@@ -3,9 +3,12 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import Avatar from 'sentry/components/avatar';
 import {AvatarUploader} from 'sentry/components/avatarUploader';
-import {Button} from 'sentry/components/button';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -214,6 +217,22 @@ class AvatarChooser extends Component<Props, State> {
     if (allowGravatar) {
       choices.push(['gravatar', t('Use Gravatar')]);
     }
+
+    const sharedAvatarProps = {
+      gravatar: false,
+      style: {width: 90, height: 90},
+    };
+
+    const avatar = isUser ? (
+      <UserAvatar {...sharedAvatarProps} user={model as AvatarUser} />
+    ) : isOrganization ? (
+      <OrganizationAvatar {...sharedAvatarProps} organization={model as Organization} />
+    ) : isTeam ? (
+      <TeamAvatar {...sharedAvatarProps} team={model as Team} />
+    ) : isSentryApp ? (
+      <SentryAppAvatar {...sharedAvatarProps} sentryApp={model as SentryApp} />
+    ) : null;
+
     return (
       <Panel>
         <PanelHeader>{title || t('Avatar')}</PanelHeader>
@@ -228,16 +247,7 @@ class AvatarChooser extends Component<Props, State> {
                 onChange={this.handleChange}
                 disabled={disabled}
               />
-              {isLetter && (
-                <Avatar
-                  gravatar={false}
-                  style={{width: 90, height: 90}}
-                  user={isUser ? (model as AvatarUser) : undefined}
-                  organization={isOrganization ? (model as Organization) : undefined}
-                  team={isTeam ? (model as Team) : undefined}
-                  sentryApp={isSentryApp ? (model as SentryApp) : undefined}
-                />
-              )}
+              {isLetter && avatar}
               {isDefault && preview}
             </AvatarGroup>
             <AvatarUploadSection>

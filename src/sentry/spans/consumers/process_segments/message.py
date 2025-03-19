@@ -1,6 +1,5 @@
 import logging
 import uuid
-from collections.abc import Sequence, Set
 from copy import deepcopy
 from typing import Any, cast
 
@@ -8,13 +7,9 @@ from django.core.exceptions import ValidationError
 from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan as SchemaSpan
 
 from sentry import options
-from sentry.event_manager import (
-    Job,
-    ProjectsMapping,
-    _detect_performance_problems,
-    _pull_out_data,
-    _record_transaction_info,
-)
+from sentry.constants import INSIGHT_MODULE_FILTERS
+from sentry.dynamic_sampling.rules.helpers.latest_releases import record_latest_release
+from sentry.event_manager import get_project_insight_flag
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -23,11 +18,49 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.receivers.features import record_generic_event_processed
+from sentry.receivers.onboarding import (
+    record_first_insight_span,
+    record_first_transaction,
+    record_release_received,
+)
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
+from sentry.utils.performance_issues.performance_detection import detect_performance_problems
 
 logger = logging.getLogger(__name__)
+
+
+# Keys in `sentry_tags` that are shared across all spans in a segment. This list
+# is taken from `extract_shared_tags` in Relay.
+SHARED_TAG_KEYS = (
+    "release",
+    "user",
+    "user.id",
+    "user.ip",
+    "user.username",
+    "user.email",
+    "user.geo.country_code",
+    "user.geo.subregion",
+    "environment",
+    "transaction",
+    "transaction.method",
+    "transaction.op",
+    "trace.status",
+    "mobile",
+    "os.name",
+    "device.class",
+    "browser.name",
+    "profiler_id",
+    "sdk.name",
+    "sdk.version",
+    "platform",
+    "thread.id",
+    "thread.name",
+)
+
+MOBILE_MAIN_THREAD_NAME = "main"
 
 
 class Span(SchemaSpan, total=False):
@@ -37,112 +70,21 @@ class Span(SchemaSpan, total=False):
     hash: str | None  # Added in enrichment
 
 
-@metrics.wraps("save_event.send_occurrence_to_platform")
-def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    for job in jobs:
-        event = job["event"]
-        project = event.project
-        event_id = event.event_id
+def process_segment(spans: list[Span]) -> list[Span]:
+    segment_span = _find_segment_span(spans)
+    _enrich_spans(segment_span, spans)
 
-        performance_problems = job["performance_problems"]
-        for problem in performance_problems:
-            occurrence = IssueOccurrence(
-                id=uuid.uuid4().hex,
-                resource_id=None,
-                project_id=project.id,
-                event_id=event_id,
-                fingerprint=[problem.fingerprint],
-                type=problem.type,
-                issue_title=problem.title,
-                subtitle=problem.desc,
-                culprit=event.transaction,
-                evidence_data=problem.evidence_data,
-                evidence_display=problem.evidence_display,
-                detection_time=event.datetime,
-                level=job["level"],
-            )
+    if segment_span is None:
+        return spans
 
-            produce_occurrence_to_kafka(
-                payload_type=PayloadType.OCCURRENCE,
-                occurrence=occurrence,
-                event_data=job["event_data"],
-                is_buffered_spans=True,
-            )
+    with metrics.timer("spans.consumers.process_segments.get_project"):
+        project = Project.objects.get_from_cache(id=segment_span["project_id"])
 
+    _create_models(segment_span, project)
+    _detect_performance_problems(segment_span, spans, project)
+    _record_signals(segment_span, spans, project)
 
-def build_tree(spans) -> tuple[dict[str, Any], str | None]:
-    span_tree = {}
-    root_span_id = None
-
-    for span in spans:
-        span_id = span["span_id"]
-        is_root = span["is_segment"]
-        if is_root:
-            root_span_id = span_id
-        if span_id not in span_tree:
-            span_tree[span_id] = span
-            span_tree[span_id]["children"] = []
-
-    for span in span_tree.values():
-        parent_id = span.get("parent_span_id")
-        if parent_id is not None and parent_id in span_tree:
-            parent_span = span_tree[parent_id]
-            children = parent_span["children"]
-            children.append(span)
-
-    return span_tree, root_span_id
-
-
-def dfs(visited, flattened_spans, tree, span_id):
-    stack = [span_id]
-
-    while len(stack):
-        span_id = stack.pop()
-
-        span = deepcopy(tree[span_id])
-        children = span.pop("children")
-
-        if span_id not in visited:
-            flattened_spans.append(span)
-            tree.pop(span_id)
-            visited.add(span_id)
-
-        for child in sorted(children, key=lambda span: span["start_timestamp"], reverse=True):
-            if child["span_id"] not in visited:
-                stack.append(child["span_id"])
-
-
-def flatten_tree(tree: dict[str, Any], root_span_id: str | None) -> list[Span]:
-    visited: Set[str] = set()
-    flattened_spans: list[Span] = []
-
-    if root_span_id:
-        dfs(visited, flattened_spans, tree, root_span_id)
-
-    # Catch all for orphan spans
-    remaining = sorted(tree.items(), key=lambda span: span[1]["start_timestamp"])
-    for span_id, _ in remaining:
-        if span_id not in visited:
-            dfs(visited, flattened_spans, tree, span_id)
-
-    return flattened_spans
-
-
-def _update_occurrence_group_type(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    """
-    Exclusive to the segments consumer: Updates group type and fingerprint of
-    all performance problems so they don't double write occurrences as we test.
-    """
-
-    for job in jobs:
-        updated_problems = []
-        performance_problems = job.pop("performance_problems")
-        for performance_problem in performance_problems:
-            performance_problem.type = PerformanceStreamedSpansGroupTypeExperimental
-            performance_problem.fingerprint = f"{performance_problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"
-            updated_problems.append(performance_problem)
-
-        job["performance_problems"] = updated_problems
+    return spans
 
 
 def _find_segment_span(spans: list[Span]) -> Span | None:
@@ -164,12 +106,22 @@ def _find_segment_span(spans: list[Span]) -> Span | None:
     return None
 
 
+# The default span.op to assume if it is missing on the span. This should be
+# normalized by Relay, but we defensively apply the same fallback as the op is
+# not guaranteed in typing.
+DEFAULT_SPAN_OP = "default"
+
+
+@metrics.wraps("spans.consumers.process_segments.enrich_spans")
 def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
     for span in spans:
-        if (op := span.get("sentry_tags", {}).get("op")) is not None:
-            span["op"] = op
+        # TODO: TEST THAT THIS RUNS WITHOUT A SEGMENT SPAN!
+        sentry_tags = span.setdefault("sentry_tags", {})
+        span["op"] = sentry_tags.get("op") or DEFAULT_SPAN_OP
+        # TODO: port set_span_exclusive_time
 
-        # TODO: Add Relay's enrichment here.
+    if segment:
+        _set_shared_tags(segment, spans)
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
@@ -177,6 +129,60 @@ def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
     groupings.write_to_spans(spans)
 
 
+def _set_shared_tags(segment: Span, spans: list[Span]) -> None:
+    # Assume that Relay has extracted the shared tags into `sentry_tags` on the
+    # root span. Once `sentry_tags` is removed, the logic from
+    # `extract_shared_tags` should be moved here.
+    segment_tags = segment.get("sentry_tags", {})
+    shared_tags = {k: v for k, v in segment_tags.items() if k in SHARED_TAG_KEYS}
+
+    is_mobile = segment_tags.get("mobile") == "true"
+    mobile_start_type = _get_mobile_start_type(segment)
+    ttid_ts = _timestamp_by_op(spans, "ui.load.initial_display")
+    ttfd_ts = _timestamp_by_op(spans, "ui.load.full_display")
+
+    for span in spans:
+        span_tags = cast(dict[str, Any], span["sentry_tags"])
+
+        if is_mobile:
+            if span_tags.get("thread.name") == MOBILE_MAIN_THREAD_NAME:
+                span_tags["main_thread"] = "true"
+            if not span_tags.get("app_start_type") and mobile_start_type:
+                span_tags["app_start_type"] = mobile_start_type
+
+        if ttid_ts is not None and span["end_timestamp_precise"] <= ttid_ts:
+            span_tags["ttid"] = "ttid"
+        if ttfd_ts is not None and span["end_timestamp_precise"] <= ttfd_ts:
+            span_tags["ttfd"] = "ttfd"
+
+        for key, value in shared_tags.items():
+            if span_tags.get(key) is None:
+                span_tags[key] = value
+
+
+def _get_mobile_start_type(segment: Span) -> str | None:
+    """
+    Check the measurements on the span to determine what kind of start type the
+    event is.
+    """
+    measurements = segment.get("measurements") or {}
+
+    if "app_start_cold" in measurements:
+        return "cold"
+    if "app_start_warm" in measurements:
+        return "warm"
+
+    return None
+
+
+def _timestamp_by_op(spans: list[Span], op: str) -> float | None:
+    for span in spans:
+        if span["op"] == op:
+            return span["end_timestamp_precise"]
+    return None
+
+
+@metrics.wraps("spans.consumers.process_segments.create_models")
 def _create_models(segment: Span, project: Project) -> None:
     """
     Creates the Environment and Release models, along with the necessary
@@ -191,6 +197,9 @@ def _create_models(segment: Span, project: Project) -> None:
     date = to_datetime(segment["end_timestamp_precise"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
+
+    if not release_name:
+        return
 
     try:
         release = Release.get_or_create(project=project, version=release_name, date_added=date)
@@ -212,124 +221,124 @@ def _create_models(segment: Span, project: Project) -> None:
         project=project, release=release, environment=environment, datetime=date
     )
 
+    # Record the release for dynamic sampling
+    record_latest_release(project, release, environment)
 
-def transform_spans_to_event_dict(segment_span: Span, spans: list[Span]) -> dict[str, Any]:
-    event_spans: list[dict[str, Any]] = []
+    # Record onboarding signals
+    record_release_received(project, release.version)
 
+
+@metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
+def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
+    if not options.get("standalone-spans.detect-performance-problems.enable"):
+        return
+
+    event_data = _build_shim_event_data(segment_span, spans)
+    performance_problems = detect_performance_problems(event_data, project, standalone=True)
+
+    if not options.get("standalone-spans.send-occurrence-to-platform.enable"):
+        return
+
+    # Prepare a slimmer event payload for the occurrence consumer. This event
+    # will be persisted by the consumer. Once issue detectors can run on
+    # standalone spans, we should directly build a minimal occurrence event
+    # payload here, instead.
+    event_data["spans"] = []
+    event_data["timestamp"] = event_data["datetime"]
+
+    for problem in performance_problems:
+        problem.type = PerformanceStreamedSpansGroupTypeExperimental
+        problem.fingerprint = (
+            f"{problem.fingerprint}-{PerformanceStreamedSpansGroupTypeExperimental.type_id}"
+        )
+
+        occurrence = IssueOccurrence(
+            id=uuid.uuid4().hex,
+            resource_id=None,
+            project_id=project.id,
+            event_id=event_data["event_id"],
+            fingerprint=[problem.fingerprint],
+            type=problem.type,
+            issue_title=problem.title,
+            subtitle=problem.desc,
+            culprit=event_data["transaction"],
+            evidence_data=problem.evidence_data or {},
+            evidence_display=problem.evidence_display,
+            detection_time=to_datetime(segment_span["end_timestamp_precise"]),
+            level="info",
+        )
+
+        produce_occurrence_to_kafka(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=occurrence,
+            event_data=event_data,
+            is_buffered_spans=True,
+        )
+
+
+def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, Any]:
     sentry_tags = segment_span.get("sentry_tags", {})
 
-    event: dict[str, Any] = {"type": "transaction", "contexts": {}, "level": "info"}
-    event["event_id"] = segment_span.get("event_id")
-    event["project_id"] = segment_span["project_id"]
-    event["transaction"] = sentry_tags.get("transaction")
-    event["release"] = sentry_tags.get("release")
-    event["dist"] = sentry_tags.get("dist")
-    event["environment"] = sentry_tags.get("environment")
-    event["platform"] = sentry_tags.get("platform")
-    event["tags"] = [["environment", sentry_tags.get("environment")]]
-
-    event["contexts"]["trace"] = {
-        "trace_id": segment_span["trace_id"],
-        "type": "trace",
-        "op": sentry_tags.get("transaction.op"),
-        "span_id": segment_span["span_id"],
-        "hash": segment_span["hash"],
+    event: dict[str, Any] = {
+        "type": "transaction",
+        "level": "info",
+        "contexts": {
+            "trace": {
+                "trace_id": segment_span["trace_id"],
+                "type": "trace",
+                "op": sentry_tags.get("transaction.op"),
+                "span_id": segment_span["span_id"],
+                "hash": segment_span["hash"],
+            },
+        },
+        "event_id": uuid.uuid4().hex,
+        "project_id": segment_span["project_id"],
+        "transaction": sentry_tags.get("transaction"),
+        "release": sentry_tags.get("release"),
+        "dist": sentry_tags.get("dist"),
+        "environment": sentry_tags.get("environment"),
+        "platform": sentry_tags.get("platform"),
+        "tags": [["environment", sentry_tags.get("environment")]],
+        "received": segment_span["received"],
+        "timestamp": segment_span["end_timestamp_precise"],
+        "start_timestamp": segment_span["start_timestamp_precise"],
+        "datetime": to_datetime(segment_span["end_timestamp_precise"]).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        ),
+        "spans": [],
     }
 
     if (profile_id := segment_span.get("profile_id")) is not None:
         event["contexts"]["profile"] = {"profile_id": profile_id, "type": "profile"}
 
+    # Add legacy span attributes required only by issue detectors. As opposed to
+    # real event payloads, this also adds the segment span so detectors can run
+    # topological sorting on the span tree.
     for span in spans:
         event_span = cast(dict[str, Any], deepcopy(span))
-        event_span["start_timestamp"] = span["start_timestamp_ms"] / 1000
-        event_span["timestamp"] = (span["start_timestamp_ms"] + span["duration_ms"]) / 1000
-        event_spans.append(event_span)
-
-    # The performance detectors expect the span list to be ordered/flattened in the way they
-    # are structured in the tree. This is an implicit assumption in the performance detectors.
-    # So we build a tree and flatten it depth first.
-    # TODO: See if we can update the detectors to work without this assumption so we can
-    # just pass it a list of spans.
-    tree, root_span_id = build_tree(event_spans)
-    flattened_spans = flatten_tree(tree, root_span_id)
-    event["spans"] = flattened_spans
-
-    root_span = flattened_spans[0]
-    event["received"] = root_span["received"]
-    event["timestamp"] = (root_span["start_timestamp_ms"] + root_span["duration_ms"]) / 1000
-    event["start_timestamp"] = root_span["start_timestamp_ms"] / 1000
-    event["datetime"] = to_datetime(event["timestamp"]).strftime("%Y-%m-%dT%H:%M:%SZ")
+        event_span["start_timestamp"] = span["start_timestamp_precise"]
+        event_span["timestamp"] = span["end_timestamp_precise"]
+        event["spans"].append(event_span)
 
     return event
 
 
-def prepare_event_for_occurrence_consumer(event):
-    event_light = deepcopy(event)
-    event_light["spans"] = []
-    event_light["timestamp"] = event["datetime"]
-    return event_light
+@metrics.wraps("spans.consumers.process_segments.record_signals")
+def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
+    # TODO: Make transaction name clustering work again
+    # record_transaction_name_for_clustering(project, event.data)
 
+    sentry_tags = segment_span.get("sentry_tags", {})
 
-def process_segment(spans: list[Span]) -> list[Span]:
-    segment_span = _find_segment_span(spans)
-    if segment_span is None:
-        # TODO: Handle segments without a defined segment span once all
-        # functions are refactored to a span interface.
-        return spans
+    record_generic_event_processed(
+        project,
+        platform=sentry_tags.get("platform"),
+        release=sentry_tags.get("release"),
+        environment=sentry_tags.get("environment"),
+    )
 
-    with metrics.timer("tasks.spans.project.get_from_cache"):
-        project = Project.objects.get_from_cache(id=segment_span["project_id"])
+    record_first_transaction(project, to_datetime(segment_span["end_timestamp_precise"]))
 
-    # The original transaction pipeline ran the following operations in this
-    # exact order, where only operations marked with X are relevant to the spans
-    # consumer:
-    #
-    #  - [X] _pull_out_data                            ->  _enrich_spans
-    #  - [X] _get_or_create_release_many               ->  _create_models
-    #  - [ ] _get_event_user_many
-    #  - [ ] _derive_plugin_tags_many
-    #  - [ ] _derive_interface_tags_many
-    #  - [X] _calculate_span_grouping                  ->  _enrich_spans
-    #  - [ ] _materialize_metadata_many
-    #  - [X] _get_or_create_environment_many           ->  _create_models
-    #  - [X] _get_or_create_release_associated_models  ->  _create_models
-    #  - [X] _tsdb_record_all_metrics
-    #  - [ ] _materialize_event_metrics
-    #  - [ ] _nodestore_save_many
-    #  - [ ] _eventstream_insert_many
-    #  - [ ] _track_outcome_accepted_many
-    #  - [X]  _detect_performance_problems
-    #  - [X]  _send_occurrence_to_platform
-    #  - [X] _record_transaction_info
-
-    _enrich_spans(segment_span, spans)
-    _create_models(segment_span, project)
-
-    # XXX: Below are old-style functions imported from EventManager that rely on
-    # the Event schema:
-
-    event = transform_spans_to_event_dict(segment_span, spans)
-    event_light = prepare_event_for_occurrence_consumer(event)
-    projects = {project.id: project}
-
-    jobs: Sequence[Job] = [
-        {
-            "data": event,
-            "project_id": project.id,
-            "raw": False,
-            "start_time": None,
-            "event_data": event_light,
-        }
-    ]
-
-    _pull_out_data(jobs, projects)
-
-    if options.get("standalone-spans.detect-performance-problems.enable"):
-        _detect_performance_problems(jobs, projects, is_standalone_spans=True)
-        _update_occurrence_group_type(jobs, projects)  # NB: exclusive to spans consumer
-        if options.get("standalone-spans.send-occurrence-to-platform.enable"):
-            _send_occurrence_to_platform(jobs, projects)
-
-    _record_transaction_info(jobs, projects)
-
-    return spans
+    for module, is_module in INSIGHT_MODULE_FILTERS.items():
+        if not get_project_insight_flag(project, module) and is_module(spans):
+            record_first_insight_span(project, module)

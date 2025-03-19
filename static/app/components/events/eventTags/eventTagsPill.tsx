@@ -28,8 +28,8 @@ function EventTagsPill({
   meta,
 }: Props) {
   const {key, value} = tag;
-  const name = !key ? <AnnotatedText value={key} meta={meta?.key?.['']} /> : key;
-  const type = !key ? 'error' : undefined;
+  const name = key ? key : <AnnotatedText value={key} meta={meta?.key?.['']} />;
+  const type = key ? undefined : 'error';
 
   return (
     <Pill name={name} value={value} type={type}>

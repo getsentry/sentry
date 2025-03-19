@@ -7,7 +7,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.EVENT_CREATED_BY_DETECTOR)
 class EventCreatedByDetectorConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.ACTION_FILTER]
+    group = DataConditionHandler.Group.ACTION_FILTER
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:

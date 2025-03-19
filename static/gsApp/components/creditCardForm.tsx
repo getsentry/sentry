@@ -3,12 +3,11 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import rubikFontPath from 'sentry/../fonts/rubik-regular.woff';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {NODE_ENV} from 'sentry/constants';
@@ -96,7 +95,6 @@ function CreditCardForm({
   referrer,
 }: Props) {
   const theme = useTheme();
-  const [postalCode, setPostalCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [stripe, setStripe] = useState<stripe.Stripe>();
   const [cardElement, setCardElement] = useState<stripe.elements.Element>();
@@ -141,7 +139,6 @@ function CreditCardForm({
       fonts: [{family: 'Rubik', src: `url(${rubikFontPath})`, weight: '400'}],
     });
     const stripeCardElement = stripeElements.create('card', {
-      hidePostalCode: true,
       style: stripeElementStyles,
     });
 
@@ -164,9 +161,6 @@ function CreditCardForm({
     setBusy(true);
 
     const validationErrors: string[] = [];
-    if (postalCode === '') {
-      validationErrors.push(t('Postal code is required.'));
-    }
 
     if (!stripe || !cardElement) {
       return;
@@ -180,19 +174,6 @@ function CreditCardForm({
       return;
     }
     onCancel?.();
-  }
-
-  function handlePostalCodeChange(value: string) {
-    setPostalCode(value);
-    if (cardElement) {
-      cardElement.update({value: {postalCode: value}});
-    }
-  }
-  function handlePostalCodeBlur(value: string) {
-    setPostalCode(value);
-    if (cardElement) {
-      cardElement.update({value: {postalCode: value}});
-    }
   }
 
   function handleErrorRetry(event: React.MouseEvent) {
@@ -243,18 +224,6 @@ function CreditCardForm({
             <div ref={stripeMount} />
           </FormControl>
         </StyledField>
-        <StyledTextField
-          required
-          stacked
-          flexibleControlStateSize
-          inline={false}
-          maxLength={12}
-          name="postal"
-          label={t('Postal Code')}
-          value={postalCode}
-          onChange={handlePostalCodeChange}
-          onBlur={handlePostalCodeBlur}
-        />
 
         <Info>
           <small>
@@ -302,10 +271,6 @@ const fieldCss = css`
 const StyledField = styled(FieldGroup)`
   ${fieldCss};
   padding-top: 0;
-`;
-
-const StyledTextField = styled(TextField)`
-  ${fieldCss};
 `;
 
 const Info = styled('p')`

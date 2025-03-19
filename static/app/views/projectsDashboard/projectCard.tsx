@@ -4,7 +4,7 @@ import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -210,30 +210,32 @@ class ProjectCard extends Component<Props> {
           </ChartContainer>
           <FooterWrapper>
             <ScoreCardWrapper>
-              {!stats ? (
+              {stats ? (
+                hasHealthData ? (
+                  <ScoreCard
+                    title={t('Crash Free Sessions')}
+                    score={
+                      defined(currentCrashFreeRate)
+                        ? displayCrashFreePercent(currentCrashFreeRate)
+                        : '\u2014'
+                    }
+                    trend={this.renderTrend()}
+                    trendStatus={
+                      this.crashFreeTrend
+                        ? this.crashFreeTrend > 0
+                          ? 'good'
+                          : 'bad'
+                        : undefined
+                    }
+                  />
+                ) : (
+                  this.renderMissingFeatureCard()
+                )
+              ) : (
                 <Fragment>
                   <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
                   <FooterPlaceholder />
                 </Fragment>
-              ) : hasHealthData ? (
-                <ScoreCard
-                  title={t('Crash Free Sessions')}
-                  score={
-                    defined(currentCrashFreeRate)
-                      ? displayCrashFreePercent(currentCrashFreeRate)
-                      : '\u2014'
-                  }
-                  trend={this.renderTrend()}
-                  trendStatus={
-                    this.crashFreeTrend
-                      ? this.crashFreeTrend > 0
-                        ? 'good'
-                        : 'bad'
-                      : undefined
-                  }
-                />
-              ) : (
-                this.renderMissingFeatureCard()
               )}
             </ScoreCardWrapper>
             <DeploysWrapper>
@@ -307,7 +309,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
         {...props}
         project={{
           ...project,
-          ...(projectDetails || {}),
+          ...projectDetails,
         }}
       />
     );

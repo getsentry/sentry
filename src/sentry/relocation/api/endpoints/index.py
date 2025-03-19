@@ -47,7 +47,7 @@ ERR_THROTTLED_RELOCATION = (
 )
 ERR_UNKNOWN_RELOCATION_STATUS = Template("`$status` is not a valid relocation status.")
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2

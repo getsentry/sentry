@@ -10,12 +10,21 @@ from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
-from sentry.sentry_apps.services.app import app_service
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models.action import Action
 
 # Keep existing excluded keys constant
 EXCLUDED_ACTION_DATA_KEYS = ["uuid", "id"]
+
+
+class SentryAppIdentifier(StrEnum):
+    """
+    SentryAppIdentifier is an enum that represents the identifier for a Sentry app.
+    """
+
+    SENTRY_APP_INSTALLATION_UUID = "sentry_app_installation_uuid"
+    SENTRY_APP_SLUG = "sentry_app_slug"
+    SENTRY_APP_ID = "sentry_app_id"
 
 
 @dataclass
@@ -183,6 +192,18 @@ class BaseActionTranslator(ABC):
             if ActionFieldMappingKeys.TARGET_DISPLAY_KEY in mapping:
                 return self.action.get(mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value])
         return None
+
+    @property
+    def action_config(self) -> dict[str, str | int | None]:
+        base_config = {
+            "target_identifier": self.target_identifier,
+            "target_display": self.target_display,
+            "target_type": self.target_type.value if self.target_type is not None else None,
+        }
+        if self.action_type == Action.Type.SENTRY_APP:
+            base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+
+        return base_config
 
     @property
     def blob_type(self) -> type[DataBlob] | None:
@@ -518,10 +539,12 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
     def target_identifier(self) -> str | None:
         target_type = self.action.get(EmailFieldMappingKeys.TARGET_TYPE_KEY.value)
         if target_type in [ActionTargetType.MEMBER.value, ActionTargetType.TEAM.value]:
-            return self.action.get(
-                ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]
+            return str(
+                self.action.get(
+                    ACTION_FIELD_MAPPINGS[Action.Type.EMAIL][
+                        ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                    ]
+                )
             )
         return None
 
@@ -572,31 +595,12 @@ class PluginActionTranslator(BaseActionTranslator):
 
 @issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK]["id"])
 class WebhookActionTranslator(BaseActionTranslator):
-    def __init__(self, action: dict[str, Any]):
-        super().__init__(action)
-        # Fetch the sentry app id using app_service
-        # If the app exists, we should heal this action as a SentryAppAction
-        # Based on sentry/rules/actions/notify_event_service.py
-        if service := self.action.get(
-            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
-                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-            ]
-        ):
-            self.sentry_app = app_service.get_sentry_app_by_slug(slug=service)
-        else:
-            self.sentry_app = None
-
     @property
     def action_type(self) -> Action.Type:
-        if self.sentry_app:
-            return Action.Type.SENTRY_APP
-        else:
-            return Action.Type.WEBHOOK
+        return Action.Type.WEBHOOK
 
     @property
     def target_type(self) -> ActionTarget | None:
-        if self.sentry_app:
-            return ActionTarget.SENTRY_APP
         return None
 
     @property
@@ -606,18 +610,6 @@ class WebhookActionTranslator(BaseActionTranslator):
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ]
         ]
-
-    @property
-    def target_identifier(self) -> str | None:
-        # The service field identifies the webhook
-        # If the webhook goes to a sentry app, then we should identify the sentry app by id
-        if self.sentry_app:
-            return str(self.sentry_app.id)
-        return self.action.get(
-            ACTION_FIELD_MAPPINGS[Action.Type.WEBHOOK][
-                ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-            ]
-        )
 
 
 @issue_alert_action_translator_registry.register(
@@ -639,26 +631,6 @@ class SentryAppActionTranslator(BaseActionTranslator):
     @property
     def target_type(self) -> ActionTarget | None:
         return ActionTarget.SENTRY_APP
-
-    @property
-    def target_identifier(self) -> str | None:
-        # Fetch the sentry app id using app_service
-        # Based on sentry/rules/actions/sentry_apps/notify_event.py
-        sentry_app_installation = app_service.get_many(
-            filter=dict(
-                uuids=[
-                    self.action.get(
-                        ACTION_FIELD_MAPPINGS[Action.Type.SENTRY_APP]["target_identifier_key"]
-                    )
-                ]
-            )
-        )
-
-        if sentry_app_installation:
-            assert len(sentry_app_installation) == 1, "Expected exactly one sentry app installation"
-            return str(sentry_app_installation[0].sentry_app.id)
-
-        raise ValueError("Sentry app installation not found")
 
     def get_sanitized_data(self) -> dict[str, Any]:
         data = SentryAppDataBlob()

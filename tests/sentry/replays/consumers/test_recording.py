@@ -13,7 +13,6 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.consumers.recording_two_step import RecordingTwoStepStrategyFactory
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
@@ -469,11 +468,3 @@ class RecordingTestCase(TransactionTestCase):
 
 class ThreadedRecordingTestCase(RecordingTestCase):
     force_synchronous = False
-
-
-# Experimental Two Step Recording Consumer
-
-
-class RecordingTwoStepTestCase(RecordingTestCase):
-    def processing_factory(self):
-        return RecordingTwoStepStrategyFactory()

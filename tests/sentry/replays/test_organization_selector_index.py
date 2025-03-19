@@ -171,3 +171,99 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
+
+    def test_get_click_filter_environment(self):
+        """Test that clicks can be filtered by environment."""
+        prod_env = self.create_environment(name="prod", project=self.project)
+        dev_env = self.create_environment(name="dev", project=self.project)
+        staging_env = self.create_environment(name="staging", project=self.project)
+
+        timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
+        replay_id_prod = uuid.uuid4().hex
+        replay_id_dev = uuid.uuid4().hex
+        replay_id_staging = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(timestamp, self.project.id, replay_id_prod, environment=prod_env.name)
+        )
+        self.store_replays(
+            mock_replay_click(
+                timestamp,
+                self.project.id,
+                replay_id_prod,
+                environment=prod_env.name,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1"],
+                is_dead=True,
+                is_rage=False,
+            )
+        )
+
+        self.store_replays(
+            mock_replay(timestamp, self.project.id, replay_id_dev, environment=dev_env.name)
+        )
+        self.store_replays(
+            mock_replay_click(
+                timestamp,
+                self.project.id,
+                replay_id_dev,
+                environment=dev_env.name,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1"],
+                is_dead=True,
+                is_rage=True,
+            )
+        )
+
+        self.store_replays(
+            mock_replay(timestamp, self.project.id, replay_id_staging, environment=staging_env.name)
+        )
+        self.store_replays(
+            mock_replay_click(
+                timestamp,
+                self.project.id,
+                replay_id_staging,
+                environment=staging_env.name,
+                node_id=1,
+                tag="div",
+                id="myid",
+                class_=["class1"],
+                is_dead=True,
+                is_rage=False,
+            )
+        )
+
+        with self.feature(REPLAYS_FEATURES):
+            # Test single environment
+            response = self.client.get(self.url + f"?environment={prod_env.name}")
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 1
+            assert response_data["data"][0]["count_dead_clicks"] == 1
+            assert response_data["data"][0]["count_rage_clicks"] == 0
+
+            # Test multiple environments
+            response = self.client.get(
+                self.url + f"?environment={prod_env.name}&environment={dev_env.name}"
+            )
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 1
+            assert response_data["data"][0]["count_dead_clicks"] == 2
+            assert response_data["data"][0]["count_rage_clicks"] == 1
+
+            # Test all environments
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            response_data = response.json()
+            assert len(response_data["data"]) == 1
+            assert response_data["data"][0]["count_dead_clicks"] == 3
+            assert response_data["data"][0]["count_rage_clicks"] == 1
+
+            # Test non-existent environment
+            response = self.client.get(self.url + "?environment=nonexistent")
+            assert response.status_code == 404

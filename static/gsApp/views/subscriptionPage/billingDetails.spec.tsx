@@ -9,6 +9,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -215,10 +216,6 @@ describe('Subscription > BillingDetails', function () {
     const modal = await screen.findByRole('dialog');
     const inModal = within(modal);
 
-    // Postal code input is not handled by Stripe elements. We need to fill it
-    // before submit will pass to Stripe
-    await userEvent.type(inModal.getByRole('textbox', {name: 'Postal Code'}), '94107');
-
     // Save the updated credit card details
     await userEvent.click(inModal.getByRole('button', {name: 'Save Changes'}));
     await waitForModalToHide();
@@ -242,41 +239,6 @@ describe('Subscription > BillingDetails', function () {
     });
   });
 
-  it('rejects update credit card if zip code is not included with setupintent', async function () {
-    const mock = MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      method: 'PUT',
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/payments/setup/`,
-      method: 'POST',
-      body: {
-        id: '123',
-        clientSecret: 'seti_abc123',
-        status: 'require_payment_method',
-        lastError: null,
-      },
-    });
-
-    render(
-      <BillingDetailsView
-        organization={organization}
-        subscription={subscription}
-        location={router.location}
-      />
-    );
-
-    await screen.findByRole('textbox', {name: /street address 1/i});
-    await userEvent.click(screen.getByRole('button', {name: 'Update card'}));
-
-    renderGlobalModal();
-    const modal = await screen.findByRole('dialog');
-    await userEvent.click(within(modal).getByRole('button', {name: 'Save Changes'}));
-
-    expect(modal).toHaveTextContent('Postal code is required');
-    expect(mock).not.toHaveBeenCalledWith();
-  });
-
   it('shows an error if the setupintent creation fails', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
@@ -297,7 +259,9 @@ describe('Subscription > BillingDetails', function () {
 
     renderGlobalModal();
     const modal = await screen.findByRole('dialog');
-    expect(modal).toHaveTextContent('Unable to initialize payment setup');
+    await waitFor(() => {
+      expect(modal).toHaveTextContent('Unable to initialize payment setup');
+    });
   });
 
   it('shows an error when confirmSetup fails', async function () {
@@ -326,10 +290,6 @@ describe('Subscription > BillingDetails', function () {
     renderGlobalModal();
     const modal = await screen.findByRole('dialog');
     const inModal = within(modal);
-
-    // Postal code input is not handled by Stripe elements. We need to fill it
-    // before submit will pass to Stripe
-    await userEvent.type(inModal.getByRole('textbox', {name: 'Postal Code'}), '94107');
 
     // Save the updated credit card details
     await userEvent.click(inModal.getByRole('button', {name: 'Save Changes'}));

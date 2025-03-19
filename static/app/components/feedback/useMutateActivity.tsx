@@ -6,7 +6,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
@@ -54,11 +53,7 @@ export default function useMutateActivity({
   onMutate,
   onSettled,
 }: Props) {
-  const api = useApi({
-    persistInFlight: false,
-  });
-
-  const mutation = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {
       const url =
@@ -66,7 +61,7 @@ export default function useMutateActivity({
           ? `/organizations/${organization.slug}/issues/${group.id}/comments/${noteId}/`
           : `/organizations/${organization.slug}/issues/${group.id}/comments/`;
 
-      return fetchMutation(api)([
+      return fetchMutation([
         method,
         url,
         {},
@@ -79,23 +74,23 @@ export default function useMutateActivity({
 
   const handleUpdate = useCallback<UpdateCommentCallback>(
     (note, noteId, activity, options) => {
-      mutation.mutate([{note, noteId, activity}, 'PUT'], options);
+      mutate([{note, noteId, activity}, 'PUT'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   const handleCreate = useCallback<CreateCommentCallback>(
     (note, activity, options) => {
-      mutation.mutate([{note, activity}, 'POST'], options);
+      mutate([{note, activity}, 'POST'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   const handleDelete = useCallback<DeleteCommentCallback>(
     (noteId, activity, options) => {
-      mutation.mutate([{noteId, activity}, 'DELETE'], options);
+      mutate([{noteId, activity}, 'DELETE'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   return {

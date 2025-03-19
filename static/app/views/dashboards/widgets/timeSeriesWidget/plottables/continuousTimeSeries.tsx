@@ -1,16 +1,16 @@
 import type {SeriesOption} from 'echarts';
 
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
 import type {TimeSeries} from '../../common/types';
+import {formatSeriesName} from '../formatters/formatSeriesName';
 
 export type ContinuousTimeSeriesConfig = {
+  /**
+   * Optional alias. If not provided, the series name from the legend will be computed from the `TimeSeries`.
+   */
+  alias?: string;
   /**
    * Optional color. If not provided, a backfill from a common palette will be provided to `toSeries`
    */
@@ -29,7 +29,11 @@ export type ContinuousTimeSeriesPlottingOptions = {
   /**
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
-  unit: DurationUnit | SizeUnit | RateUnit | null;
+  unit: DataUnit;
+  /**
+   * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
+   */
+  yAxisPosition: 'left' | 'right';
 };
 
 /**
@@ -40,11 +44,17 @@ export abstract class ContinuousTimeSeries<
 > {
   // Ideally both the `timeSeries` and `config` would be protected properties.
   timeSeries: Readonly<TimeSeries>;
+  #timestamps: readonly string[];
   config?: Readonly<TConfig>;
 
   constructor(timeSeries: TimeSeries, config?: TConfig) {
     this.timeSeries = timeSeries;
+    this.#timestamps = timeSeries.data.map(datum => datum.timestamp).toSorted();
     this.config = config;
+  }
+
+  get label(): string {
+    return this.config?.alias ?? formatSeriesName(this.timeSeries.field);
   }
 
   get isEmpty(): boolean {
@@ -56,20 +66,39 @@ export abstract class ContinuousTimeSeries<
   }
 
   get dataType(): AggregationOutputType {
-    // TODO: Simplify this. `TimeSeries` types should already have this type
-    return this.timeSeries.meta.fields[this.timeSeries.field]! as AggregationOutputType;
+    // TODO: Remove the `as` cast. `TimeSeries` meta should use `AggregationOutputType` instead of `string`
+    return this.timeSeries.meta.type as AggregationOutputType;
   }
 
-  get dataUnit(): DurationUnit | SizeUnit | RateUnit | null {
-    // TODO: Simplify this. `TimeSeries` units should already have this type
-    return this.timeSeries.meta.units[this.timeSeries.field] as
-      | DurationUnit
-      | SizeUnit
-      | RateUnit
-      | null;
+  get dataUnit(): DataUnit {
+    return this.timeSeries.meta.unit;
   }
 
-  scaleToUnit(destinationUnit: DurationUnit | SizeUnit | RateUnit | null): TimeSeries {
+  get start(): string | null {
+    return this.#timestamps.at(0) ?? null;
+  }
+
+  get end(): string | null {
+    return this.#timestamps.at(-1) ?? null;
+  }
+
+  /**
+   * Shallow clones `timeSeries` and constrains `timeSeries` data to be between
+   * boundary datetime (if provided).
+   */
+  constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return {
+      ...this.timeSeries,
+      data: this.timeSeries.data.filter(dataItem => {
+        const ts = new Date(dataItem.timestamp);
+        return (
+          (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
+        );
+      }),
+    };
+  }
+
+  scaleToUnit(destinationUnit: DataUnit): TimeSeries {
     return scaleTimeSeriesData(this.timeSeries, destinationUnit);
   }
 

@@ -502,7 +502,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 <React.Fragment>
                   <SectionHeading>{totalCountLabel}</SectionHeading>
                   <SectionValue>
-                    {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
+                    {totalCount === null ? '\u2014' : totalCount.toLocaleString()}
                   </SectionValue>
                 </React.Fragment>
               )}

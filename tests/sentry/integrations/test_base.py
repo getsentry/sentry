@@ -1,13 +1,14 @@
+import pytest
+
 from sentry.identity.services.identity.serial import serialize_identity
 from sentry.integrations.base import IntegrationInstallation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.models.identity import Identity
 
 
-class TestIntegration(IntegrationInstallation):
-    __test__ = False
-
+class ExampleIntegration(IntegrationInstallation):
     def get_client(self):
         raise NotImplementedError
 
@@ -35,11 +36,15 @@ class IntegrationTestCase(TestCase):
         )
 
     def test_with_context(self):
-        integration = TestIntegration(self.model, self.organization.id)
+        integration = ExampleIntegration(self.model, self.organization.id)
         assert integration.model.id == self.model.id
         assert integration.org_integration is not None
         assert integration.org_integration.id == self.org_integration.id
         assert integration.get_default_identity() == serialize_identity(self.identity)
+
+    def test_missing_org_integration(self):
+        with pytest.raises(Identity.DoesNotExist):
+            ExampleIntegration(self.model, -1).get_default_identity()
 
     def test_model_default_fields(self):
         # These fields are added through the DefaultFieldsModel

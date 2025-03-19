@@ -21,7 +21,7 @@ export function getTransactionDetailsUrl(
   spanId?: string
 ): LocationDescriptor {
   const locationQuery = {
-    ...(query || {}),
+    ...query,
     transaction,
   };
   if (!defined(locationQuery.transaction)) {

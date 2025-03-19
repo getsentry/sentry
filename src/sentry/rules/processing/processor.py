@@ -11,7 +11,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, buffer
+from sentry import analytics, buffer, features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -149,6 +149,7 @@ def activate_downstream_actions(
     event: GroupEvent,
     notification_uuid: str | None = None,
     rule_fire_history: RuleFireHistory | None = None,
+    is_post_process: bool | None = True,
 ) -> MutableMapping[
     str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
 ]:
@@ -156,10 +157,14 @@ def activate_downstream_actions(
         str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
     ] = {}
 
+    instantiated_actions = 0
+
     for action in rule.data.get("actions", ()):
         action_inst = instantiate_action(rule, action, rule_fire_history)
         if not action_inst:
             continue
+
+        instantiated_actions += 1
 
         results = safe_execute(
             action_inst.after,
@@ -178,6 +183,21 @@ def activate_downstream_actions(
                 grouped_futures[key] = (future.callback, [rule_future])
             else:
                 grouped_futures[key][1].append(rule_future)
+
+    if features.has(
+        "organizations:workflow-engine-process-workflows",
+        rule.project.organization,
+    ):
+        if is_post_process:
+            logger_name = "post_process.process_rules.triggered_actions"
+        else:
+            logger_name = "post_process.delayed_processing.triggered_actions"
+
+        metrics.incr(
+            logger_name,
+            amount=instantiated_actions,
+            tags={"event_type": event.group.type},
+        )
 
     return grouped_futures
 
@@ -376,6 +396,21 @@ class RuleProcessor:
                 organization_id=rule.project.organization.id,
                 rule_id=rule.id,
             )
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs",
+            rule.project.organization,
+        ):
+            logger.info(
+                "post_process.process_rules.triggered_rule",
+                extra={
+                    "rule_id": rule.id,
+                    "payload": state,
+                    "group_id": self.group.id,
+                    "event_id": self.event.event_id,
+                },
+            )
+
         notification_uuid = str(uuid.uuid4())
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(

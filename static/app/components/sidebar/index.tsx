@@ -27,7 +27,6 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconLightning,
   IconMegaphone,
   IconProject,
   IconReleases,
@@ -47,15 +46,13 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
@@ -78,10 +75,6 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import {
-  getPerformanceBaseUrl,
-  platformToDomainView,
-} from 'sentry/views/performance/utils';
 
 import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -108,8 +101,6 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const {selection} = usePageFilters();
-  const {projects: projectList} = useProjects();
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
@@ -119,12 +110,7 @@ function Sidebar() {
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-  };
+  const sidebarItemProps = {orientation, collapsed, hasPanel, organization};
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
     return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
@@ -175,7 +161,7 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const sidebarAnchor = isDemoModeEnabled() ? (
+  const sidebarAnchor = isDemoModeActive() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
@@ -249,25 +235,6 @@ function Sidebar() {
   const hasPerfLandingRemovalFlag = organization?.features.includes(
     'insights-performance-landing-removal'
   );
-  const view = hasPerfLandingRemovalFlag
-    ? platformToDomainView(projectList, selection.projects)
-    : undefined;
-  const performance = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:performance-sidebar-item"
-      features="performance-view"
-      organization={organization}
-    >
-      <SidebarItem
-        {...sidebarItemProps}
-        icon={<IconLightning />}
-        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-        active={hasPerfLandingRemovalFlag ? false : undefined}
-        to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
-        id="performance"
-      />
-    </Feature>
-  );
 
   const releases = hasOrganization && (
     <SidebarItem
@@ -309,10 +276,7 @@ function Sidebar() {
       {...sidebarItemProps}
       icon={<IconSiren />}
       label={t('Alerts')}
-      to={makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      })}
+      to={makeAlertsPathname({path: '/rules/', organization})}
       id="alerts"
     />
   );
@@ -475,7 +439,9 @@ function Sidebar() {
             <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
-              <Hook name="component:superuser-warning" organization={organization} />
+              <SuperuserBadgeContainer>
+                <Hook name="component:superuser-warning" organization={organization} />
+              </SuperuserBadgeContainer>
             )}
           </DropdownSidebarSection>
           <PrimaryItems>
@@ -494,7 +460,6 @@ function Sidebar() {
                     </SidebarSection>
 
                     <SidebarSection>
-                      {performance}
                       {feedback}
                       {monitors}
                       {alerts}
@@ -790,6 +755,17 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -5px;
+  right: 5px;
+
+  /* Hiding on smaller screens because it looks misplaced */
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -139,12 +139,12 @@ function ActionButtons({
       >
         {t('Update Now')}
       </Button>
-      <Button
+      <LinkButton
         to={`/settings/${organization.slug}/billing/checkout/?referrer=replay_onboard_modal-owner-modal`}
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}
-      </Button>
+      </LinkButton>
     </ButtonRow>
   ) : (
     <ButtonRow>

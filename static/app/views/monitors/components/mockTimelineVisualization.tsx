@@ -73,7 +73,7 @@ export function MockTimelineVisualization({schedule}: Props) {
   const errorMessage =
     isError || !isValidConfig(schedule)
       ? // @ts-expect-error TS(2571): Object is of type 'unknown'.
-        error?.responseJSON?.schedule?.[0] ?? t('Invalid Schedule')
+        (error?.responseJSON?.schedule?.[0] ?? t('Invalid Schedule'))
       : null;
 
   useEffect(() => {

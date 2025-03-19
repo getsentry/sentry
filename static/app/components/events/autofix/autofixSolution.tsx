@@ -1,16 +1,14 @@
 import {useCallback, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {Chevron} from 'sentry/components/chevron';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import {
   type AutofixRepository,
   type AutofixSolutionTimelineEvent,
@@ -25,12 +23,12 @@ import {
 import {Timeline} from 'sentry/components/timeline';
 import {
   IconAdd,
-  IconCheckmark,
   IconChevron,
   IconClose,
   IconCode,
   IconDelete,
   IconFix,
+  IconLab,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -183,7 +181,9 @@ function SolutionDescription({
       </AnimatePresence>
       <div ref={containerRef}>
         {description && (
-          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(description)}} />
+          <Description
+            dangerouslySetInnerHTML={{__html: singleLineRenderer(description)}}
+          />
         )}
         <SolutionEventList
           events={solution}
@@ -194,6 +194,12 @@ function SolutionDescription({
     </SolutionDescriptionWrapper>
   );
 }
+
+const Description = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
 
 type SolutionEventListProps = {
   events: AutofixSolutionTimelineEvent[];
@@ -212,11 +218,11 @@ function SolutionEventList({
       return [];
     }
 
-    // For 3 or fewer items, find the first highlighted item or default to first item
+    // For 3 or fewer items, find the first highlighted and active item or default to first item
     const firstHighlightedIndex = events.findIndex(
-      event => event.is_most_important_event
+      event => event.is_most_important_event && event.is_active !== false
     );
-    return [firstHighlightedIndex !== -1 ? firstHighlightedIndex : 0];
+    return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
   });
 
   const toggleItem = useCallback((index: number) => {
@@ -224,6 +230,20 @@ function SolutionEventList({
       current.includes(index) ? current.filter(i => i !== index) : [...current, index]
     );
   }, []);
+
+  // Wrap onToggleActive to also handle expanded state
+  const handleToggleActive = useCallback(
+    (index: number) => {
+      onToggleActive(index);
+      // If we're disabling an item (toggling from active to inactive),
+      // we need to remove it from expanded items
+      const event = events[index];
+      if (event && event.is_active !== false) {
+        setExpandedItems(current => current.filter(i => i !== index));
+      }
+    },
+    [events, onToggleActive]
+  );
 
   if (!events?.length) {
     return null;
@@ -237,12 +257,23 @@ function SolutionEventList({
         const isExpanded = expandedItems.includes(index);
         const isHumanAction = event.timeline_item_type === 'human_instruction';
 
+        const handleItemClick = () => {
+          if (!isSelected) {
+            // If item is disabled, re-enable it instead of toggling expansion
+            handleToggleActive(index);
+            return;
+          }
+          if (!isHumanAction && event.code_snippet_and_analysis) {
+            toggleItem(index);
+          }
+        };
+
         return (
           <Timeline.Item
             key={index}
             title={
               <StyledTimelineHeader
-                onClick={() => toggleItem(index)}
+                onClick={handleItemClick}
                 isActive={isActive}
                 isSelected={isSelected}
                 data-test-id={`autofix-solution-timeline-item-${index}`}
@@ -253,7 +284,7 @@ function SolutionEventList({
                   }}
                 />
                 <IconWrapper>
-                  {!isHumanAction && (
+                  {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
                     <StyledIconChevron
                       direction={isExpanded ? 'down' : 'right'}
                       size="xs"
@@ -266,17 +297,17 @@ function SolutionEventList({
                         if (isHumanAction) {
                           onDeleteItem(index);
                         } else {
-                          onToggleActive(index);
+                          handleToggleActive(index);
                         }
                       }}
                       aria-label={isSelected ? t('Deselect item') : t('Select item')}
                     >
                       {isHumanAction ? (
-                        <IconDelete size="xs" />
+                        <IconDelete size="xs" color="red400" />
                       ) : isSelected ? (
-                        <IconClose size="xs" />
+                        <IconClose size="xs" color="red400" />
                       ) : (
-                        <IconAdd size="xs" />
+                        <IconAdd size="xs" color="green400" />
                       )}
                     </SelectionButton>
                   </SelectionButtonWrapper>
@@ -326,6 +357,8 @@ function getEventIcon(eventType: string) {
       return <IconCode {...iconProps} />;
     case 'human_instruction':
       return <IconUser {...iconProps} />;
+    case 'repro_test':
+      return <IconLab {...iconProps} />;
     default:
       return <IconCode {...iconProps} />;
   }
@@ -345,7 +378,7 @@ function getEventColor(isActive?: boolean, isSelected?: boolean): ColorConfig {
   };
 }
 
-function formatSolutionText(
+export function formatSolutionText(
   solution: AutofixSolutionTimelineEvent[],
   customSolution?: string
 ) {
@@ -476,9 +509,9 @@ function AutofixSolutionDisplay({
         <CustomSolutionPadding>
           <HeaderWrapper>
             <HeaderText>
-              <div ref={iconFixRef}>
-                <IconFix size="sm" />
-              </div>
+              <HeaderIconWrapper ref={iconFixRef}>
+                <IconFix size="sm" color="green400" />
+              </HeaderIconWrapper>
               {t('Custom Solution')}
             </HeaderText>
             <CopySolutionButton solution={solution} customSolution={customSolution} />
@@ -496,9 +529,9 @@ function AutofixSolutionDisplay({
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
-            <div ref={iconFixRef}>
-              <IconFix size="sm" />
-            </div>
+            <HeaderIconWrapper ref={iconFixRef}>
+              <IconFix size="sm" color="green400" />
+            </HeaderIconWrapper>
             {t('Solution')}
           </HeaderText>
           <ButtonBar gap={1}>
@@ -508,7 +541,7 @@ function AutofixSolutionDisplay({
               )}
             </ButtonBar>
             <ButtonBar merged>
-              <CodeButton
+              <Button
                 title={
                   changesDisabled
                     ? t(
@@ -528,72 +561,14 @@ function AutofixSolutionDisplay({
                 }}
               >
                 {t('Code It Up')}
-              </CodeButton>
-              <DropdownMenu
-                isDisabled={changesDisabled}
-                offset={[-12, 8]}
-                items={[
-                  {
-                    key: 'fix',
-                    label: 'Write the fix',
-                    details: 'Autofix will implement this solution.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'fix',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <IconCheckmark size="sm" color="purple300" />,
-                  },
-                  {
-                    key: 'test',
-                    label: 'Write a reproduction test',
-                    details:
-                      'Autofix will write a unit test to reproduce the issue and validate future fixes.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'test',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <div style={{width: 16}} />,
-                  },
-                  {
-                    key: 'all',
-                    label: 'Write both',
-                    details:
-                      'Autofix will implement this solution and a test to validate the issue is fixed.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'all',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <div style={{width: 16}} />,
-                  },
-                ]}
-                position="bottom-end"
-                trigger={(triggerProps, isOpen) => (
-                  <DropdownButton
-                    size="sm"
-                    priority={solutionSelected ? 'default' : 'primary'}
-                    aria-label={t('More coding options')}
-                    icon={
-                      <Chevron
-                        light
-                        color="subText"
-                        weight="medium"
-                        direction={isOpen ? 'up' : 'down'}
-                      />
-                    }
-                    {...triggerProps}
-                  />
-                )}
-              />
+              </Button>
             </ButtonBar>
           </ButtonBar>
         </HeaderWrapper>
         <AnimatePresence>
           {agentCommentThread && iconFixRef.current && (
             <AutofixHighlightPopup
-              selectedText="Solution"
+              selectedText=""
               referenceElement={iconFixRef.current}
               groupId={groupId}
               runId={runId}
@@ -619,27 +594,26 @@ function AutofixSolutionDisplay({
             onToggleActive={handleToggleActive}
           />
           <AddInstructionWrapper>
-            <InstructionsInputWrapper>
-              <form onSubmit={handleFormSubmit} style={{display: 'flex', width: '100%'}}>
-                <InstructionsInput
-                  type="text"
-                  name="additional-instructions"
-                  placeholder={t('Add additional instructions for Autofix...')}
-                  value={instructions}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setInstructions(e.target.value)
-                  }
-                />
-                <AddStepButton
-                  type="submit"
-                  size="xs"
-                  disabled={!instructions.trim()}
-                  aria-label={t('Add to solution')}
-                  icon={<IconAdd size="xs" />}
-                >
-                  <span>{t('Add')}</span>
-                </AddStepButton>
-              </form>
+            <InstructionsInputWrapper onSubmit={handleFormSubmit}>
+              <InstructionsInput
+                type="text"
+                name="additional-instructions"
+                placeholder={t('Add more instructions...')}
+                value={instructions}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setInstructions(e.target.value)
+                }
+                size="sm"
+              />
+              <SubmitButton
+                size="zero"
+                type="submit"
+                borderless
+                disabled={!instructions.trim()}
+                aria-label={t('Add to solution')}
+              >
+                <IconAdd size="xs" />
+              </SubmitButton>
             </InstructionsInputWrapper>
           </AddInstructionWrapper>
         </Content>
@@ -686,7 +660,7 @@ const SolutionContainer = styled('div')`
 `;
 
 const Content = styled('div')`
-  padding: ${space(1)} 0;
+  padding: ${space(1)} 0 0;
 `;
 
 const HeaderWrapper = styled('div')`
@@ -720,28 +694,6 @@ const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
 `;
 
-const DropdownButton = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  border-left: none;
-`;
-
-const CodeButton = styled(Button)`
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        bottom: -1px;
-        right: -1px;
-        border-right: solid 1px currentColor;
-        opacity: 0.25;
-      }
-    `}
-`;
-
 const AnimatedContent = styled(motion.div)`
   overflow: hidden;
 `;
@@ -751,6 +703,12 @@ const StyledSpan = styled('span')`
     font-size: ${p => p.theme.fontSizeExtraSmall};
     display: inline-block;
   }
+`;
+
+const HeaderIconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: boolean}>`
@@ -764,6 +722,7 @@ const StyledTimelineHeader = styled('div')<{isSelected: boolean; isActive?: bool
   font-weight: ${p => (p.isActive ? p.theme.fontWeightBold : p.theme.fontWeightNormal)};
   gap: ${space(1)};
   opacity: ${p => (p.isSelected ? 1 : 0.6)};
+  text-decoration: ${p => (p.isSelected ? 'none' : 'line-through')};
   transition: opacity 0.2s ease;
 
   & > div:first-of-type {
@@ -834,38 +793,32 @@ const StyledIconChevron = styled(IconChevron)`
   }
 `;
 
-const InstructionsInputWrapper = styled('div')`
+const InstructionsInputWrapper = styled('form')`
   display: flex;
+  position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme.backgroundSecondary};
   margin-top: ${space(0.5)};
+  margin-right: ${space(0.25)};
 `;
 
-const InstructionsInput = styled('input')`
+const InstructionsInput = styled(Input)`
   flex-grow: 1;
-  border: none;
-  outline: none;
-  padding: ${space(1)};
-  line-height: 1.4;
-  color: ${p => p.theme.gray500};
-  background-color: transparent;
 
   &::placeholder {
     color: ${p => p.theme.gray300};
   }
-
-  &:focus {
-    outline: none;
-    color: ${p => p.theme.textColor};
-  }
 `;
 
-const AddStepButton = styled(Button)`
-  margin: ${space(0.5)};
-  min-width: 60px;
+const SubmitButton = styled(Button)`
+  position: absolute;
+  right: ${space(1)};
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
+  width: 24px;
   border-radius: 5px;
 `;
 
 const AddInstructionWrapper = styled('div')`
-  padding: ${space(1)} ${space(1)} ${space(1)} ${space(4)};
+  padding: ${space(1)} ${space(1)} 0 ${space(3)};
 `;

@@ -14,7 +14,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
   const {organization} = initializeOrg();
   const subscription = SubscriptionFixture({
     organization,
-    renewalDate: '2024-12-31',
+    onDemandPeriodEnd: '2024-12-30',
     onDemandBudgets: {
       enabled: true,
     } as any,

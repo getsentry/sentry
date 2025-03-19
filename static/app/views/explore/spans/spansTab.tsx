@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -44,6 +44,7 @@ import {
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -79,8 +80,8 @@ export function SpansTabContentImpl({
   const visualizes = useExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
@@ -140,6 +141,7 @@ export function SpansTabContentImpl({
   );
 
   const [expanded, setExpanded] = useState(true);
+  const [interval] = useChartInterval();
 
   useAnalytics({
     queryType,
@@ -147,6 +149,7 @@ export function SpansTabContentImpl({
     spansTableResult,
     tracesTableResult,
     timeseriesResult,
+    interval,
   });
 
   const resultsLength =
@@ -157,6 +160,13 @@ export function SpansTabContentImpl({
     }[queryType] ?? 0;
 
   const hasResults = !!resultsLength;
+
+  const resultsLoading =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.isPending
+      : queryType === 'samples'
+        ? spansTableResult.result.isPending
+        : tracesTableResult.result.isPending;
 
   return (
     <Body
@@ -219,6 +229,7 @@ export function SpansTabContentImpl({
             }
             numberTags={numberTags}
             stringTags={stringTags}
+            isLoading={numberTagsLoading || stringTagsLoading}
           />
         </HintsSection>
       </Feature>
@@ -226,7 +237,7 @@ export function SpansTabContentImpl({
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
-        {!hasResults && <QuotaExceededAlert referrer="explore" />}
+        {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
@@ -275,9 +286,7 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
-type OnboardingContentProps = SpanTabProps & {
-  onboardingProject: Project;
-};
+type OnboardingContentProps = SpanTabProps & {onboardingProject: Project};
 
 function OnboardingContent(props: OnboardingContentProps) {
   const organization = useOrganization();

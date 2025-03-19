@@ -133,8 +133,7 @@ describe('SolutionsHubDrawer', () => {
 
     expect(screen.getByText(mockEvent.id)).toBeInTheDocument();
 
-    // The heading is "Sentry AI" with a beta badge next to it
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Autofix')).toBeInTheDocument();
 
     expect(screen.getByTestId('ai-setup-data-consent')).toBeInTheDocument();
   });
@@ -156,7 +155,7 @@ describe('SolutionsHubDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Autofix')).toBeInTheDocument();
 
     // Verify the Start Autofix button is available
     const startButton = screen.getByRole('button', {name: 'Start Autofix'});
@@ -435,7 +434,7 @@ describe('SolutionsHubDrawer', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText('Seer')).toBeInTheDocument();
+    expect(screen.getByText('Autofix')).toBeInTheDocument();
 
     // Since "Install the GitHub Integration" text isn't found, let's check for
     // the "Set Up the GitHub Integration" text which is what the component is actually showing

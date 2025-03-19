@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';

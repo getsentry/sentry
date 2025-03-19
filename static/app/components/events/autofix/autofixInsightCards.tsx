@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
@@ -213,7 +213,7 @@ function AutofixInsightCard({
               </EditContainer>
             ) : (
               <InsightCardRow
-                onClick={!isUserMessage ? toggleExpand : undefined}
+                onClick={isUserMessage ? undefined : toggleExpand}
                 isUserMessage={isUserMessage}
               >
                 <MiniHeader
@@ -386,7 +386,7 @@ function AutofixInsightCards({
                 transition={{duration: 0.3}}
               >
                 {insights.map((insight, index) =>
-                  !insight ? null : (
+                  insight ? (
                     <AutofixInsightCard
                       key={index}
                       insight={insight}
@@ -398,7 +398,7 @@ function AutofixInsightCards({
                       runId={runId}
                       insightCount={validInsightCount}
                     />
-                  )
+                  ) : null
                 )}
               </motion.div>
             )}
@@ -447,7 +447,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      addSuccessMessage(t('Thanks, rethinking this...'));
+      addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Autofix your message.'));
@@ -551,8 +551,7 @@ const InsightCardRow = styled('div')<{isUserMessage?: boolean}>`
   align-items: stretch;
   cursor: ${p => (p.isUserMessage ? 'default' : 'pointer')};
   &:hover {
-    background-color: ${p =>
-      !p.isUserMessage ? p.theme.backgroundSecondary : 'inherit'};
+    background-color: ${p => (p.isUserMessage ? 'inherit' : p.theme.backgroundSecondary)};
   }
 `;
 

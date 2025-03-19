@@ -10,12 +10,12 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import Avatar from 'sentry/components/avatar';
 import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
@@ -39,7 +39,10 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
-import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
+import type {
+  SentryApp,
+  SentryAppAvatar as SentryAppAvatarType,
+} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -354,7 +357,7 @@ export default function SentryApplicationDetails(props: Props) {
       const avatars =
         app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
 
-      avatars.push(avatar as SentryAppAvatar);
+      avatars.push(avatar as SentryAppAvatarType);
       setApiQueryData(queryClient, SENTRY_APP_QUERY_KEY, {...app, avatars});
     }
   };
@@ -381,7 +384,7 @@ export default function SentryApplicationDetails(props: Props) {
     const avatarStyle = isColor ? 'color' : 'simple';
     return (
       <AvatarPreview>
-        <StyledPreviewAvatar
+        <StyledSentryAppPreviewAvatar
           size={AVATAR_STYLES[avatarStyle].size}
           sentryApp={app}
           isDefault
@@ -566,7 +569,7 @@ const AvatarPreview = styled('div')`
   grid: 25px 25px / 50px 1fr;
 `;
 
-const StyledPreviewAvatar = styled(Avatar)`
+const StyledSentryAppPreviewAvatar = styled(SentryAppAvatar)`
   grid-area: 1 / 1 / 3 / 2;
   justify-self: end;
 `;

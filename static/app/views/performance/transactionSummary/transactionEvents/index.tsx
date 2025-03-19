@@ -247,10 +247,10 @@ function generateEventView({
     'timestamp',
   ];
   const breakdown = decodeFilterFromLocation(location);
-  if (breakdown !== SpanOperationBreakdownFilter.NONE) {
-    fields.splice(2, 1, `spans.${breakdown}`);
-  } else {
+  if (breakdown === SpanOperationBreakdownFilter.NONE) {
     fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
+  } else {
+    fields.splice(2, 1, `spans.${breakdown}`);
   }
   const webVital = getWebVital(location);
   if (webVital) {

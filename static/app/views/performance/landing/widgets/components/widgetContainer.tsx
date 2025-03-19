@@ -145,8 +145,9 @@ function WidgetContainerInner(props: Props) {
             />
           )
         : null,
-    ContainerActions: !showNewWidgetDesign
-      ? (containerProps: any) => (
+    ContainerActions: showNewWidgetDesign
+      ? null
+      : (containerProps: any) => (
           <WidgetContainerActions
             {...containerProps}
             eventView={widgetEventView}
@@ -155,8 +156,7 @@ function WidgetContainerInner(props: Props) {
             setChartSetting={setChartSetting}
             rowChartSettings={rowChartSettings}
           />
-        )
-      : null,
+        ),
   };
 
   const passedProps = pick(props, [

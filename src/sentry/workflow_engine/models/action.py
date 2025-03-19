@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowJob
@@ -62,15 +62,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
 
-    # LEGACY: The target_display is used to display the target's name in notifications
-    target_display = models.TextField(null=True)
-
-    # LEGACY: The target_identifier is used to target the user / team / org that notifications are being sent to
-    target_identifier = models.TextField(null=True)
-
-    # LEGACY: This is used to denote if the Notification is going to a user, team, sentry app, etc
-    target_type = models.SmallIntegerField(choices=ActionTarget.as_choices(), null=True)
-
     def get_handler(self) -> ActionHandler:
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
@@ -84,7 +75,15 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 @receiver(pre_save, sender=Action)
 def enforce_config_schema(sender, instance: Action, **kwargs):
     handler = instance.get_handler()
-    schema = handler.config_schema
 
-    if schema is not None:
-        instance.validate_config(schema)
+    config_schema = handler.config_schema
+    data_schema = handler.data_schema
+
+    if config_schema is not None:
+        instance.validate_config(config_schema)
+
+    if data_schema is not None:
+        try:
+            validate(instance.data, data_schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid config: {e.message}")

@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

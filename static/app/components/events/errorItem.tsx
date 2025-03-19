@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -41,7 +41,7 @@ export function ErrorItem({error, meta}: ErrorItemProps) {
   const [expanded, setExpanded] = useState(false);
 
   const cleanedData = useMemo(() => {
-    const data = {...(error.data ?? {})};
+    const data = {...error.data};
     // The name is rendered as path in front of the message
     if (typeof data.name === 'string') {
       delete data.name;

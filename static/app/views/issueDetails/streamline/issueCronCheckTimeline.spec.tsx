@@ -5,22 +5,22 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import type {StatsBucket} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import GroupStore from 'sentry/stores/groupStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/streamline/issueCronCheckTimeline';
+import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/streamline/useIssueTimeWindowConfig';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {statusToText} from 'sentry/views/monitors/utils';
 
 const startTime = new Date('2025-01-01T11:00:00Z');
 
-jest.mock('sentry/components/checkInTimeline/hooks/useTimeWindowConfig');
+jest.mock('sentry/views/issueDetails/streamline/useIssueTimeWindowConfig');
 
 jest
-  .mocked(useTimeWindowConfig)
+  .mocked(useIssueTimeWindowConfig)
   .mockReturnValue(
     getConfigFromTimeRange(
       startTime,

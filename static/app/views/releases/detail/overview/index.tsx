@@ -392,9 +392,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
             releaseBounds
           );
           const titles =
-            selectedSort.value !== TransactionsListOption.SLOW_LCP
-              ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')]
-              : [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')];
+            selectedSort.value === TransactionsListOption.SLOW_LCP
+              ? [t('transaction'), t('failure_count()'), t('tpm()'), t('p75(lcp)')]
+              : [t('transaction'), t('failure_count()'), t('tpm()'), t('p50()')];
           const releaseTrendView = this.getReleaseTrendView(
             version,
             project.id,
@@ -487,8 +487,9 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                                 defaultDateTimeSelected ? releaseBoundsLabel : null
                               }
                               relativeOptions={({defaultOptions, arbitraryOptions}) =>
-                                releaseBounds.type !== 'ancient'
-                                  ? {
+                                releaseBounds.type === 'ancient'
+                                  ? {...defaultOptions, ...arbitraryOptions}
+                                  : {
                                       [RELEASE_PERIOD_KEY]: (
                                         <Fragment>
                                           {releaseBoundsLabel}
@@ -504,12 +505,11 @@ class ReleaseOverview extends DeprecatedAsyncComponent<Props> {
                                       ...defaultOptions,
                                       ...arbitraryOptions,
                                     }
-                                  : {...defaultOptions, ...arbitraryOptions}
                               }
                               defaultPeriod={
-                                releaseBounds.type !== 'ancient'
-                                  ? RELEASE_PERIOD_KEY
-                                  : '90d'
+                                releaseBounds.type === 'ancient'
+                                  ? '90d'
+                                  : RELEASE_PERIOD_KEY
                               }
                               defaultAbsolute={{
                                 start: moment(releaseBounds.releaseStart)

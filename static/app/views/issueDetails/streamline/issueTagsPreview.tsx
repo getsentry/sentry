@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -172,6 +172,9 @@ function IssueTagButton({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
+  const hasFlagsDistributions = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
 
   if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
@@ -185,7 +188,7 @@ function IssueTagButton({
         replace
         disabled={tags.length === 0}
       >
-        {t('View All Tags')}
+        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
       </VerticalIssueTagsButton>
     );
   }
@@ -200,7 +203,7 @@ function IssueTagButton({
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
     >
-      {t('View all tags')}
+      {hasFlagsDistributions ? t('View all tags and feature flags') : t('View all tags')}
     </IssueTagsLink>
   );
 }

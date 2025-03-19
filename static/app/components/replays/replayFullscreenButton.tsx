@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import screenfull from 'screenfull';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconContract, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';

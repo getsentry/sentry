@@ -10,10 +10,10 @@ import {
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DatePicker} from 'sentry/components/calendar';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
@@ -107,6 +107,7 @@ function SpecificDatePicker({
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SearchBarDatePickerOverlay
         data-test-id="specific-date-picker"
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={popoverRef}
         // Otherwise clicks will propagate to the grid and close the dropdown
         onClick={e => e.stopPropagation()}

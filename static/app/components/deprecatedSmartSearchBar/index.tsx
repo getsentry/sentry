@@ -8,8 +8,8 @@ import isEqual from 'lodash/isEqual';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {
   BooleanOperator,
@@ -521,7 +521,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
   get initialQuery() {
     const {query, defaultQuery} = this.props;
-    return query !== null ? addSpace(query) : defaultQuery ?? '';
+    return query === null ? (defaultQuery ?? '') : addSpace(query);
   }
 
   makeQueryState(query: string) {
@@ -1255,11 +1255,11 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
       tree: parsedQuery,
       noResultValue: null,
       visitorTest: ({token, returnResult, skipToken}) =>
-        !matchedTokens.includes(token.type)
-          ? null
-          : isWithinToken(token, cursor)
+        matchedTokens.includes(token.type)
+          ? isWithinToken(token, cursor)
             ? returnResult(token)
-            : skipToken,
+            : skipToken
+          : null,
     });
   }
 
@@ -1511,9 +1511,9 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
     // filter existing items immediately, until API can return
     // with actual tag value results
-    const filteredSearchGroups = !preparedQuery
-      ? this.state.searchGroups
-      : this.state.searchGroups.filter(item => item.value?.includes(preparedQuery));
+    const filteredSearchGroups = preparedQuery
+      ? this.state.searchGroups.filter(item => item.value?.includes(preparedQuery))
+      : this.state.searchGroups;
 
     this.setState({
       searchTerm: query,
@@ -2106,13 +2106,13 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
         <InputWrapper>
           <Highlight>
-            {parsedQuery !== null ? (
+            {parsedQuery === null ? (
+              query
+            ) : (
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={this.state.showDropdown ? cursor : -1}
               />
-            ) : (
-              query
             )}
           </Highlight>
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
@@ -2222,7 +2222,7 @@ export type {Props as SmartSearchBarProps};
 export {DeprecatedSmartSearchBar};
 
 const Container = styled('div')<{inputHasFocus: boolean}>`
-  min-height: ${p => p.theme.form.md.height}px;
+  min-height: ${p => p.theme.form.md.height};
   border: ${p =>
     p.inputHasFocus ? `1px solid ${p.theme.focusBorder}` : `1px solid ${p.theme.border}`};
   box-shadow: ${p =>

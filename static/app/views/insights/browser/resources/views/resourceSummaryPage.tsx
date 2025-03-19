@@ -84,8 +84,8 @@ function ResourceSummary() {
     Referrer.RESOURCE_SUMMARY_METRICS_RIBBON
   );
   const spanMetrics = selectedSpanOp
-    ? data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {}
-    : data[0] ?? {};
+    ? (data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {})
+    : (data[0] ?? {});
 
   const uniqueSpanOps = new Set(data.map(item => item[SPAN_OP]));
 

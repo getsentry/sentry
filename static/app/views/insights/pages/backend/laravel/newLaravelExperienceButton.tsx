@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconLab} from 'sentry/icons';
@@ -9,14 +9,17 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
-import {hasLaravelInsightsFeature} from 'sentry/views/insights/pages/backend/laravel/features';
-import {useLaravelInsightsContext} from 'sentry/views/insights/pages/backend/laravel/laravelInsightsContext';
+import {
+  useIsLaravelInsightsAvailable,
+  useIsLaravelInsightsEnabled,
+} from 'sentry/views/insights/pages/backend/laravel/features';
 
 export function NewLaravelExperienceButton() {
   const organization = useOrganization();
-  const hasLaravelInsightsFlag = hasLaravelInsightsFeature(organization);
-  const {isLaravelInsightsEnabled, setIsLaravelInsightsEnabled} =
-    useLaravelInsightsContext();
+  const [isLaravelInsightsEnabled, setIsLaravelInsightsEnabled] =
+    useIsLaravelInsightsEnabled();
+
+  const isLaravelInsightsAvailable = useIsLaravelInsightsAvailable();
 
   const openForm = useFeedbackForm();
 
@@ -28,7 +31,7 @@ export function NewLaravelExperienceButton() {
     });
   }, [setIsLaravelInsightsEnabled, isLaravelInsightsEnabled, organization]);
 
-  if (!hasLaravelInsightsFlag) {
+  if (!isLaravelInsightsAvailable) {
     return null;
   }
 

@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
@@ -48,6 +49,7 @@ export function PrimaryNavigationHelp() {
   const organization = useOrganization();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const contactSupportItem = getContactSupportItem({organization});
+  const openForm = useFeedbackForm();
 
   return (
     <SidebarMenu
@@ -93,11 +95,23 @@ export function PrimaryNavigationHelp() {
           ],
         },
         {
-          key: 'new-ui',
+          key: 'actions',
           children: [
             {
+              key: 'give-feedback',
+              label: t('Give Feedback'),
+              onAction() {
+                openForm?.({
+                  tags: {
+                    ['feedback.source']: 'navigation_sidebar',
+                  },
+                });
+              },
+              hidden: !openForm,
+            },
+            {
               key: 'new-ui',
-              label: t('Switch to old navigation'),
+              label: t('Switch to Old Navigation'),
               onAction() {
                 mutateUserOptions({prefersStackedNavigation: false});
                 trackAnalytics(

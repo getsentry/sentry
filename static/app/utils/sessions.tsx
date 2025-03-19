@@ -68,7 +68,7 @@ export function getSeriesSum(
   field: SessionFieldWithOperation,
   intervals: SessionApiResponse['intervals'] = []
 ) {
-  const dataPointsSums: number[] = Array(intervals.length).fill(0);
+  const dataPointsSums: number[] = new Array(intervals.length).fill(0);
   const groupSeries = groups.map(group => group.series[field]);
 
   groupSeries.forEach(series => {

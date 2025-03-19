@@ -13,12 +13,12 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
     get_started_at,
 )
-from sentry.integrations.metric_alerts import AlertContext
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature

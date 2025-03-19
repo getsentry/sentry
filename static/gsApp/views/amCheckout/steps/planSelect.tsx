@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
@@ -88,7 +88,7 @@ const REFERRER_FEATURE_HIGHLIGHTS = {
 
 function getHighlightedFeatures(referrer?: string): string[] {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return referrer ? REFERRER_FEATURE_HIGHLIGHTS[referrer] ?? [] : [];
+  return referrer ? (REFERRER_FEATURE_HIGHLIGHTS[referrer] ?? []) : [];
 }
 
 /**

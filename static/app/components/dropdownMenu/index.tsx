@@ -84,11 +84,11 @@ export interface DropdownMenuProps
   /**
    * Title for the current menu.
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
   /**
    * Reference to the container element that the portal should be rendered into.
    */
-  portalContainerRef?: React.RefObject<HTMLElement>;
+  portalContainerRef?: React.RefObject<HTMLElement | null>;
   /**
    * Tag name for the outer wrap, defaults to `div`
    */

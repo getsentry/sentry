@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {LinkButton} from 'sentry/components/button';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {LinkButton} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingError from 'sentry/components/loadingError';
@@ -78,7 +78,7 @@ function ProjectAlertSettings({canEditRule, params}: ProjectAlertSettingsProps) 
       queryClient,
       makeFetchProjectPluginsQueryKey(organization.slug, projectSlug),
       oldState =>
-        oldState.map(p => {
+        oldState?.map(p => {
           if (p.id !== plugin.id) {
             return p;
           }

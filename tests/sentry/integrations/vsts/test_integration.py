@@ -616,6 +616,43 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         with pytest.raises(IntegrationError):
             installation.get_repositories()
 
+    def test_format_source_url_with_spaces(self):
+        """Test that format_source_url correctly handles project names with spaces."""
+        self.assert_installation()
+        integration, installation = self._get_integration_and_install()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Create a repository with spaces in the project name
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="sentry-sdk",
+                url=f"{self.vsts_base_url}/_git/sentry-sdk",
+                provider="visualstudio",
+                external_id="123456",
+                config={
+                    "name": "sentry-sdk",
+                    "project": "Sentry Error Monitoring",  # Project name with spaces
+                },
+                integration_id=integration.id,
+            )
+
+            # Test with normal project name
+            source_url = installation.format_source_url(repo, "src/sentry.js", "master")
+
+            # Verify the URL is correctly encoded (spaces as %20, not double-encoded as %2520)
+            assert "Sentry%20Error%20Monitoring" in source_url
+            assert "%2520" not in source_url
+
+            # Test with already encoded project name
+            repo.config["project"] = "Sentry%20Error%20Monitoring"  # Already encoded project name
+            repo.save()
+
+            source_url = installation.format_source_url(repo, "src/sentry.js", "master")
+
+            # Verify the URL is still correctly encoded (not double-encoded)
+            assert "Sentry%20Error%20Monitoring" in source_url
+            assert "%2520" not in source_url
+
 
 @control_silo_test
 @with_feature("organizations:migrate-azure-devops-integration")

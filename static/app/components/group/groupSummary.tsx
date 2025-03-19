@@ -2,6 +2,7 @@ import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {IconDocs, IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,8 +28,11 @@ interface GroupSummaryData {
   eventId?: string | null;
   possibleCause?: string | null;
   scores?: {
-    possibleCauseConfidence: number;
-    possibleCauseNovelty: number;
+    fixabilityScore?: number | null;
+    fixabilityScoreVersion?: number | null;
+    isFixable?: boolean | null;
+    possibleCauseConfidence?: number | null;
+    possibleCauseNovelty?: number | null;
   } | null;
   trace?: string | null;
   whatsWrong?: string | null;
@@ -98,9 +102,11 @@ export function GroupSummary({
   preview?: boolean;
 }) {
   const config = getConfigForIssueType(group, project);
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
   const openFeedbackForm = useFeedbackForm();
+  const aiConfig = useAiConfig(group, event, project);
   const {data, isPending, isError, refresh} = useGroupSummary(
     group,
     event,
@@ -114,6 +120,16 @@ export function GroupSummary({
       setForceEvent(false);
     }
   }, [forceEvent, isPending, refresh]);
+
+  const isFixable = data?.scores?.isFixable ?? false;
+
+  useEffect(() => {
+    if (isFixable && !isPending && aiConfig.hasAutofix) {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(group.id),
+      });
+    }
+  }, [isFixable, isPending, aiConfig.hasAutofix, group.id, queryClient]);
 
   const eventDetailsItems = [
     {
@@ -133,16 +149,16 @@ export function GroupSummary({
             ),
       disabled: event?.id === data?.eventId,
     },
-    ...(event?.id !== data?.eventId
-      ? [
+    ...(event?.id === data?.eventId
+      ? []
+      : [
           {
             key: 'refresh',
             label: t('Summarize this event instead'),
             onAction: () => setForceEvent(true),
             disabled: isPending,
           },
-        ]
-      : []),
+        ]),
     ...(openFeedbackForm
       ? [
           {
@@ -164,21 +180,23 @@ export function GroupSummary({
 
   const shouldShowPossibleCause =
     !data?.scores ||
-    (data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
+    (data.scores.possibleCauseConfidence &&
+      data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
+      data.scores.possibleCauseNovelty &&
       data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
   const shouldShowResources = config.resources && !preview;
 
   const insightCards = [
     {
       id: 'whats_wrong',
-      title: t("What's wrong"),
+      title: t("What's Wrong"),
       insight: data?.whatsWrong,
       icon: <IconFatal size="sm" />,
       showWhenLoading: true,
     },
     {
       id: 'trace',
-      title: t('In the trace'),
+      title: t('In the Trace'),
       insight: data?.trace,
       icon: <IconSpan size="sm" />,
       showWhenLoading: false,
@@ -187,7 +205,7 @@ export function GroupSummary({
       ? [
           {
             id: 'possible_cause',
-            title: t('Possible cause'),
+            title: t('Possible Cause'),
             insight: data?.possibleCause,
             icon: <IconFocus size="sm" />,
             showWhenLoading: true,
@@ -199,7 +217,7 @@ export function GroupSummary({
           {
             id: 'resources',
             title: t('Resources'),
-            insight: `${isValidElement(config.resources?.description) ? '' : config.resources?.description ?? ''}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
+            insight: `${isValidElement(config.resources?.description) ? '' : (config.resources?.description ?? '')}\n\n${config.resources?.links?.map(link => `[${link.text}](${link.link})`).join(' • ') ?? ''}`,
             insightElement: isValidElement(config.resources?.description)
               ? config.resources?.description
               : null,
@@ -332,7 +350,7 @@ const CardLineDecorationWrapper = styled('div')`
 `;
 
 const CardLineDecoration = styled('div')`
-  width: 2px;
+  width: 1px;
   align-self: stretch;
   background-color: ${p => p.theme.border};
 `;

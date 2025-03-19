@@ -191,7 +191,7 @@ export function TransactionNodeDetails({
         onTabScrollToNode={onTabScrollToNode}
       />
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
-        {!node.canFetch ? (
+        {node.canFetch ? null : (
           <Alert.Container>
             <StyledAlert type="info" showIcon>
               {tct(
@@ -209,7 +209,7 @@ export function TransactionNodeDetails({
               )}
             </StyledAlert>
           </Alert.Container>
-        ) : null}
+        )}
 
         <IssueList node={node} organization={organization} issues={issues} />
 

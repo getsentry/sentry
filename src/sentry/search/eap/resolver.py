@@ -32,15 +32,16 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.api import event_search
-from sentry.api.event_search import SearchConfig
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
     ColumnDefinitions,
+    ConditionalAggregateDefinition,
     FormulaDefinition,
     ResolvedAggregate,
-    ResolvedColumn,
+    ResolvedAttribute,
+    ResolvedConditionalAggregate,
     ResolvedFormula,
     VirtualColumnDefinition,
 )
@@ -61,11 +62,15 @@ class SearchResolver:
     params: SnubaParams
     config: SearchResolverConfig
     definitions: ColumnDefinitions
-    _resolved_attribute_cache: dict[str, tuple[ResolvedColumn, VirtualColumnDefinition | None]] = (
-        field(default_factory=dict)
-    )
+    _resolved_attribute_cache: dict[
+        str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
+    ] = field(default_factory=dict)
     _resolved_function_cache: dict[
-        str, tuple[ResolvedFormula | ResolvedAggregate, VirtualColumnDefinition | None]
+        str,
+        tuple[
+            ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
+            VirtualColumnDefinition | None,
+        ],
     ] = field(default_factory=dict)
 
     @sentry_sdk.trace
@@ -158,7 +163,10 @@ class SearchResolver:
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
-                config=SearchConfig(wildcard_free_text=True),
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    wildcard_free_text=True,
+                ),
                 params=self.params.filter_params,
                 get_field_type=self.get_field_type,
                 get_function_result_type=self.get_field_type,
@@ -329,7 +337,7 @@ class SearchResolver:
         self,
         term: str,
         raw_value: str | list[str],
-        resolved_column: ResolvedColumn,
+        resolved_column: ResolvedAttribute,
         context: VirtualColumnDefinition,
     ) -> list[str] | str:
         # Convert the term to the expected values
@@ -473,7 +481,7 @@ class SearchResolver:
 
     def _resolve_search_value(
         self,
-        column: ResolvedColumn,
+        column: ResolvedAttribute,
         operator: str,
         value: str | float | datetime | Sequence[float] | Sequence[str],
     ) -> AttributeValue:
@@ -553,7 +561,9 @@ class SearchResolver:
 
     @sentry_sdk.trace
     def resolve_columns(self, selected_columns: list[str]) -> tuple[
-        list[ResolvedColumn | ResolvedAggregate | ResolvedFormula],
+        list[
+            ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula
+        ],
         list[VirtualColumnDefinition | None],
     ]:
         """Given a list of columns resolve them and get their context if applicable
@@ -588,10 +598,9 @@ class SearchResolver:
 
         return resolved_columns, resolved_contexts
 
-    def resolve_column(
-        self, column: str, match: Match | None = None
-    ) -> tuple[
-        ResolvedColumn | ResolvedAggregate | ResolvedFormula, VirtualColumnDefinition | None
+    def resolve_column(self, column: str, match: Match | None = None) -> tuple[
+        ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+        VirtualColumnDefinition | None,
     ]:
         """Column is either an attribute or an aggregate, this function will determine which it is and call the relevant
         resolve function"""
@@ -608,7 +617,7 @@ class SearchResolver:
     @sentry_sdk.trace
     def resolve_attributes(
         self, columns: list[str]
-    ) -> tuple[list[ResolvedColumn], list[VirtualColumnDefinition | None]]:
+    ) -> tuple[list[ResolvedAttribute], list[VirtualColumnDefinition | None]]:
         """Helper function to resolve a list of attributes instead of 1 attribute at a time"""
         resolved_columns = []
         resolved_contexts = []
@@ -620,7 +629,7 @@ class SearchResolver:
 
     def resolve_attribute(
         self, column: str
-    ) -> tuple[ResolvedColumn, VirtualColumnDefinition | None]:
+    ) -> tuple[ResolvedAttribute, VirtualColumnDefinition | None]:
         """Attributes are columns that aren't 'functions' or 'aggregates', usually this means string or numeric
         attributes (aka. tags), but can also refer to fields like span.description"""
         # If a virtual context is defined the column definition is always the same
@@ -628,7 +637,7 @@ class SearchResolver:
             return self._resolved_attribute_cache[column]
         if column in self.definitions.contexts:
             column_context = self.definitions.contexts[column]
-            column_definition = ResolvedColumn(
+            column_definition = ResolvedAttribute(
                 public_alias=column, internal_name=column, search_type="string"
             )
         elif column in self.definitions.columns:
@@ -660,7 +669,7 @@ class SearchResolver:
                 field = f"sentry.{field}"
 
             search_type = cast(constants.SearchType, field_type)
-            column_definition = ResolvedColumn(
+            column_definition = ResolvedAttribute(
                 public_alias=column, internal_name=field, search_type=search_type
             )
             column_context = None
@@ -672,9 +681,10 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
     @sentry_sdk.trace
-    def resolve_functions(
-        self, columns: list[str]
-    ) -> tuple[list[ResolvedFormula | ResolvedAggregate], list[VirtualColumnDefinition | None]]:
+    def resolve_functions(self, columns: list[str]) -> tuple[
+        list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
+        list[VirtualColumnDefinition | None],
+    ]:
         """Helper function to resolve a list of functions instead of 1 attribute at a time"""
         resolved_functions, resolved_contexts = [], []
         for column in columns:
@@ -683,9 +693,10 @@ class SearchResolver:
             resolved_contexts.append(context)
         return resolved_functions, resolved_contexts
 
-    def resolve_function(
-        self, column: str, match: Match | None = None
-    ) -> tuple[ResolvedFormula | ResolvedAggregate, VirtualColumnDefinition | None]:
+    def resolve_function(self, column: str, match: Match | None = None) -> tuple[
+        ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate,
+        VirtualColumnDefinition | None,
+    ]:
         if column in self._resolved_function_cache:
             return self._resolved_function_cache[column]
         # Check if the column looks like a function (matches a pattern), parse the function name and args out
@@ -700,15 +711,19 @@ class SearchResolver:
         alias = match.group("alias") or column
 
         # Get the function definition
-        function_definition: AggregateDefinition | FormulaDefinition
+        function_definition: (
+            AggregateDefinition | FormulaDefinition | ConditionalAggregateDefinition
+        )
         if function in self.definitions.aggregates:
             function_definition = self.definitions.aggregates[function]
         elif function in self.definitions.formulas:
             function_definition = self.definitions.formulas[function]
+        elif function in self.definitions.conditional_aggregates:
+            function_definition = self.definitions.conditional_aggregates[function]
         else:
             raise InvalidSearchQuery(f"Unknown function {function}")
 
-        parsed_args: list[ResolvedColumn | Any] = []
+        parsed_args: list[ResolvedAttribute | Any] = []
 
         # Parse the arguments
         arguments = fields.parse_arguments(function, columns)
@@ -717,66 +732,67 @@ class SearchResolver:
                 f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
             )
 
-        for index, argument in enumerate(function_definition.arguments):
-            if argument.ignored:
+        for index, argument_definition in enumerate(function_definition.arguments):
+            if argument_definition.ignored:
                 continue
-            if argument.validator is not None:
-                if not argument.validator(arguments[index]):
-                    raise InvalidSearchQuery(
-                        f"{arguments[index]} is not a valid argument for {function}"
-                    )
 
             if index < len(arguments):
-                if argument.is_attribute:
-                    parsed_argument, _ = self.resolve_attribute(arguments[index])
+                argument = arguments[index]
+                if argument_definition.validator is not None:
+                    if not argument_definition.validator(argument):
+                        raise InvalidSearchQuery(
+                            f"{argument} is not a valid argument for {function}"
+                        )
+                if argument_definition.is_attribute:
+                    parsed_argument, _ = self.resolve_attribute(argument)
                 else:
-                    if argument.argument_types is None:
-                        parsed_args.append(arguments[index])  # assume it's a string
+                    if argument_definition.argument_types is None:
+                        parsed_args.append(argument)  # assume it's a string
                         continue
                     # TODO: we assume that the argument is only one type for now, and we only support string/integer
-                    for type in argument.argument_types:
+                    for type in argument_definition.argument_types:
                         if type == "integer":
-                            parsed_args.append(int(arguments[index]))
+                            parsed_args.append(int(argument))
                         else:
-                            parsed_args.append(arguments[index])
+                            parsed_args.append(argument)
                     continue
 
-            elif argument.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument.default_arg)
+            elif argument_definition.default_arg:
+                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
             else:
                 raise InvalidSearchQuery(
                     f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
                 )
 
             if (
-                argument.argument_types is not None
-                and parsed_argument.search_type not in argument.argument_types
+                argument_definition.argument_types is not None
+                and parsed_argument.search_type not in argument_definition.argument_types
             ):
                 raise InvalidSearchQuery(
-                    f"{argument} is invalid for {function}, its a {parsed_argument.search_type} type field but {function} expects a field that are one of these types: {argument.argument_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.argument_types}"
                 )
             parsed_args.append(parsed_argument)
 
-        # Proto doesn't support anything more than 1 argument yet
-        if len(parsed_args) > 1:
-            raise InvalidSearchQuery("Cannot use more than one argument")
-        elif len(parsed_args) == 1:
-            parsed_arg = parsed_args[0]
-            if not isinstance(parsed_arg, ResolvedColumn):
+        resolved_arguments = []
+        for parsed_arg in parsed_args:
+            if not isinstance(parsed_arg, ResolvedAttribute):
                 resolved_argument = parsed_arg
                 search_type = function_definition.default_search_type
             elif isinstance(parsed_arg.proto_definition, AttributeKey):
                 resolved_argument = parsed_arg.proto_definition
-                search_type = (
-                    parsed_arg.search_type
-                    if function_definition.infer_search_type_from_arguments
-                    else function_definition.default_search_type
-                )
-        else:
-            resolved_argument = None
-            search_type = function_definition.default_search_type
+            resolved_arguments.append(resolved_argument)
 
-        resolved_function = function_definition.resolve(alias, search_type, resolved_argument)
+        # We assume the first argument contains the resolved search_type as this is always the case for now
+        if len(parsed_args) == 0 or not isinstance(parsed_args[0], ResolvedAttribute):
+            search_type = function_definition.default_search_type
+        else:
+            search_type = (
+                parsed_args[0].search_type
+                if function_definition.infer_search_type_from_arguments
+                else function_definition.default_search_type
+            )
+
+        resolved_function = function_definition.resolve(alias, search_type, resolved_arguments)
 
         resolved_context = None
         self._resolved_function_cache[column] = (resolved_function, resolved_context)

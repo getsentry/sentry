@@ -374,9 +374,7 @@ function EventTagsTreeValue({
       tagValue = defaultValue;
   }
 
-  return !isUrl(content.value) ? (
-    tagValue
-  ) : (
+  return isUrl(content.value) ? (
     <TagLinkText>
       <ExternalLink
         onClick={e => {
@@ -387,6 +385,8 @@ function EventTagsTreeValue({
         {content.value}
       </ExternalLink>
     </TagLinkText>
+  ) : (
+    tagValue
   );
 }
 

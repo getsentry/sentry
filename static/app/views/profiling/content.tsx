@@ -2,8 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -244,7 +244,7 @@ function TransactionsTab({location, selection}: TabbedContentProps) {
       <StyledPagination
         pageLinks={
           transactions.status === 'success'
-            ? transactions.getResponseHeader?.('Link') ?? null
+            ? (transactions.getResponseHeader?.('Link') ?? null)
             : null
         }
       />

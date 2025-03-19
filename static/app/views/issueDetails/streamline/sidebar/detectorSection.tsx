@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -102,7 +102,7 @@ export function DetectorSection({group, project}: {group: Group; project: Projec
       {description && <DetectorDescription>{description}</DetectorDescription>}
       <LinkButton
         aria-label={issueConfig.detector.ctaText ?? t('View detector details')}
-        href={detectorPath}
+        to={detectorPath}
         style={{width: '100%'}}
         size="sm"
       >

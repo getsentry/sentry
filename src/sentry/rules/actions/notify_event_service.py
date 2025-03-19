@@ -11,8 +11,8 @@ from sentry.eventstore.models import GroupEvent
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.metric_alerts import (
-    AlertContext,
     get_metric_count_from_incident,
     incident_attachment_info,
 )
@@ -70,8 +70,8 @@ def build_incident_attachment(
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
+    metric_value: float | int | None,
     new_status: IncidentStatus,
-    metric_value: float,
     notification_uuid: str | None = None,
 ) -> bool:
     """

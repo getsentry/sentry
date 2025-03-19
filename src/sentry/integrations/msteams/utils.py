@@ -5,7 +5,8 @@ import logging
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
@@ -102,8 +103,8 @@ def get_channel_id(organization: Organization, integration_id: int, name: str) -
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
+    metric_value: float | int | None,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     from .card_builder.incident_attachment import build_incident_attachment

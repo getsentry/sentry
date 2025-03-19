@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -108,11 +108,11 @@ export function OrganizationFeatureFlagsChangeTracking() {
         t('Removed the provider and signing secret for the organization.')
       );
 
-      setApiQueryData(
+      setApiQueryData<FetchSecretResponse>(
         queryClient,
         makeFetchSecretQueryKey({orgSlug: organization.slug}),
-        (oldData: FetchSecretResponse) => {
-          return {data: oldData.data.filter(oldSecret => oldSecret.id !== id)};
+        oldData => {
+          return {data: oldData?.data.filter(oldSecret => oldSecret.id !== id) ?? []};
         }
       );
     },

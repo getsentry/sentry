@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {LinkButton} from 'sentry/components/core/button';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,13 +59,7 @@ export default function DynamicSamplingSettings() {
         </Alert.Container>
       )}
 
-      {!hasReadAccess ? (
-        <Alert.Container>
-          <Alert type="warning">
-            {t('You need at least member permissions to view these settings.')}
-          </Alert>
-        </Alert.Container>
-      ) : (
+      {hasReadAccess ? (
         <Fragment>
           <Paragraph>
             {t(
@@ -78,6 +72,12 @@ export default function DynamicSamplingSettings() {
             <ProjectSampling />
           )}
         </Fragment>
+      ) : (
+        <Alert.Container>
+          <Alert type="warning">
+            {t('You need at least member permissions to view these settings.')}
+          </Alert>
+        </Alert.Container>
       )}
     </Fragment>
   );

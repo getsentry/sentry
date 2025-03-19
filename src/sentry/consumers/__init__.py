@@ -82,14 +82,6 @@ def ingest_replay_recordings_options() -> list[click.Option]:
     return options
 
 
-def ingest_replay_recordings_two_step_options() -> list[click.Option]:
-    """Return a list of ingest-replay-recordings-two-step options."""
-    return [
-        click.Option(["--max-pending-futures", "max_pending_futures"], type=int, default=256),
-        click.Option(["--num-threads", "num_threads"], type=int, default=16),
-    ]
-
-
 def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
@@ -258,11 +250,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
-    "ingest-replay-recordings-two-step": {
-        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
-        "strategy_factory": "sentry.replays.consumers.recording_two_step.RecordingTwoStepStrategyFactory",
-        "click_options": ingest_replay_recordings_two_step_options(),
-    },
     "ingest-monitors": {
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
@@ -336,7 +323,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "consumer_type": ConsumerType.Events,
         },
         "dlq_topic": Topic.INGEST_EVENTS_DLQ,
-        "stale_topic": Topic.INGEST_EVENTS_DLQ,
+        "stale_topic": Topic.INGEST_EVENTS_BACKLOG,
     },
     "ingest-feedback-events": {
         "topic": Topic.INGEST_FEEDBACK_EVENTS,
@@ -430,12 +417,27 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "process-spans": {
         "topic": Topic.INGEST_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            click.Option(
+                ["--max-flush-segments", "max_flush_segments"],
+                type=int,
+                default=100,
+                help="The number of segments to download from redis at once. Defaults to 100.",
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            click.Option(
+                ["--skip-produce", "skip_produce"],
+                is_flag=True,
+                default=False,
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

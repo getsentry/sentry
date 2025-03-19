@@ -107,7 +107,7 @@ type Props = {
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
   traceInfo: TraceInfo;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
   isOrphanError?: boolean;
@@ -697,6 +697,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
 
     return (
       <DividerLine
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -735,6 +736,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
         }}
       >
         <DividerLine
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={addGhostDividerLineRef()}
           style={{
             right: 0,

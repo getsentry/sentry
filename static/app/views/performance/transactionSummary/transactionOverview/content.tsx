@@ -105,7 +105,7 @@ function OTelSummaryContentInner({
   const handleSearch = useCallback(
     (query: string) => {
       const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
+        ...location.query,
         query,
       });
 
@@ -376,7 +376,7 @@ function SummaryContent({
   const handleSearch = useCallback(
     (query: string) => {
       const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
+        ...location.query,
         query,
       });
 
@@ -400,8 +400,8 @@ function SummaryContent({
     };
   }
 
-  function handleCellAction(column: TableColumn<React.ReactText>) {
-    return (action: Actions, value: React.ReactText) => {
+  function handleCellAction(column: TableColumn<string | number>) {
+    return (action: Actions, value: string | number) => {
       const searchConditions = normalizeSearchConditions(eventView.query);
 
       updateQuery(searchConditions, action, column, value);

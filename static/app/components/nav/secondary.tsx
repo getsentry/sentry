@@ -4,7 +4,7 @@ import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
@@ -13,7 +13,9 @@ import {isLinkActive} from 'sentry/components/nav/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type SecondaryNavProps = {
   children: ReactNode;
@@ -27,6 +29,7 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    * Will display the link as active under the given path.
    */
   activeTo?: To;
+  analyticsItemName?: string;
   /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
@@ -103,6 +106,7 @@ SecondaryNav.Section = function SecondaryNavSection({
 };
 
 SecondaryNav.Item = function SecondaryNavItem({
+  analyticsItemName,
   children,
   to,
   activeTo = to,
@@ -112,8 +116,9 @@ SecondaryNav.Item = function SecondaryNavItem({
   trailingItems,
   ...linkProps
 }: SecondaryNavItemProps) {
+  const organization = useOrganization();
   const location = useLocation();
-  const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
+  const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavContext();
 
@@ -124,6 +129,14 @@ SecondaryNav.Item = function SecondaryNavItem({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       layout={layout}
+      onClick={() => {
+        if (analyticsItemName) {
+          trackAnalytics('navigation.secondary_item_clicked', {
+            item: analyticsItemName,
+            organization,
+          });
+        }
+      }}
     >
       {leadingItems}
       <InteractionStateLayer data-isl hasSelectedBackground={isActive} />

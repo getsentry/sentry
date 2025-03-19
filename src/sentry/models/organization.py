@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
+ORGANIZATION_NAME_MAX_LENGTH = 64
 
 
 class OrganizationStatus(IntEnum):
@@ -154,7 +155,7 @@ class Organization(ReplicatedRegionModel):
     replication_version = 4
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=ORGANIZATION_NAME_MAX_LENGTH)
     slug: models.Field[str, str] = SentryOrgSlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value

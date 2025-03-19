@@ -80,7 +80,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
     meta: {
       fields: {
         [`${status}_session_${type}`]:
-          type === 'count' ? ('number' as const) : ('percentage' as const),
+          type === 'count' ? ('integer' as const) : ('percentage' as const),
         time: 'date' as const,
       },
       units: {},

@@ -324,9 +324,9 @@ export function SourceMapsDebuggerModal({
                 barWidth={4}
               />
               {`${t('Debug IDs')}${
-                sourceResolutionResults.sdkDebugIdSupport !== 'not-supported'
-                  ? ' ' + t('(recommended)')
-                  : ''
+                sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
+                  ? ''
+                  : ' ' + t('(recommended)')
               }`}
             </TabList.Item>
             <TabList.Item
@@ -548,25 +548,25 @@ function InstalledSdkChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('Outdated SDK')}</h6>
           <p>
-            {sourceResolutionResults.sdkVersion !== null
-              ? tct(
+            {sourceResolutionResults.sdkVersion === null
+              ? t(
+                  'You are using an outdated version of the Sentry SDK which does not support debug IDs.'
+                )
+              : tct(
                   'You are using version [currentVersion] of the Sentry SDK which does not support debug IDs.',
                   {
                     currentVersion: (
                       <MonoBlock>{sourceResolutionResults.sdkVersion}</MonoBlock>
                     ),
                   }
-                )
-              : t(
-                  'You are using an outdated version of the Sentry SDK which does not support debug IDs.'
                 )}{' '}
-            {sourceResolutionResults.minDebugIdSdkVersion !== null
-              ? tct('You should upgrade to version [targetVersion] or higher.', {
+            {sourceResolutionResults.minDebugIdSdkVersion === null
+              ? t('You should upgrade to the latest version.')
+              : tct('You should upgrade to version [targetVersion] or higher.', {
                   targetVersion: (
                     <MonoBlock>{sourceResolutionResults.minDebugIdSdkVersion}</MonoBlock>
                   ),
-                })
-              : t('You should upgrade to the latest version.')}
+                })}
           </p>
           <p>
             {tct(
@@ -1007,18 +1007,18 @@ function ReleaseSourceFileMatchingChecklistItem({
               'You uploaded a source file artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
             )}
           </p>
-          {sourceResolutionResults.dist !== null ? (
+          {sourceResolutionResults.dist === null ? (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
-                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
+                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
+                {dist: <MonoBlock>dist</MonoBlock>}
               )}
             </p>
           ) : (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
-                {dist: <MonoBlock>dist</MonoBlock>}
+                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
             </p>
           )}
@@ -1073,15 +1073,15 @@ function ReleaseSourceFileMatchingChecklistItem({
         </InstructionList>
         <p>
           {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
-          {sourceResolutionResults.dist !== null
-            ? tct(
+          {sourceResolutionResults.dist === null
+            ? t(
+                "This event doesn't have a dist value. Please check that you uploaded your artifacts without dist value."
+              )
+            : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your artifacts with dist [dist].',
                 {
                   dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
                 }
-              )
-            : t(
-                "This event doesn't have a dist value. Please check that you uploaded your artifacts without dist value."
               )}
         </p>
         {/* TODO: Link to uploaded files for this release. */}
@@ -1151,18 +1151,18 @@ function ReleaseSourceMapMatchingChecklistItem({
               'You uploaded a source map artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
             )}
           </p>
-          {sourceResolutionResults.dist !== null ? (
+          {sourceResolutionResults.dist === null ? (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
-                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
+                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
+                {dist: <MonoBlock>dist</MonoBlock>}
               )}
             </p>
           ) : (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
-                {dist: <MonoBlock>dist</MonoBlock>}
+                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
             </p>
           )}
@@ -1192,15 +1192,15 @@ function ReleaseSourceMapMatchingChecklistItem({
         </p>
         <p>
           {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
-          {sourceResolutionResults.dist !== null
-            ? tct(
+          {sourceResolutionResults.dist === null
+            ? t(
+                "This event doesn't have a dist value. Please check that you uploaded your sourcemaps without dist value."
+              )
+            : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your sourcemaps with dist [dist].',
                 {
                   dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
                 }
-              )
-            : t(
-                "This event doesn't have a dist value. Please check that you uploaded your sourcemaps without dist value."
               )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}

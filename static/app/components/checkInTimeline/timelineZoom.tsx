@@ -58,9 +58,9 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
 
         const absoluteOffset = Math.abs(offset);
 
-        const start = !isLeft
-          ? initialX.current
-          : Math.max(0, initialX.current - absoluteOffset);
+        const start = isLeft
+          ? Math.max(0, initialX.current - absoluteOffset)
+          : initialX.current;
 
         const width =
           e.clientX < containerRect.left

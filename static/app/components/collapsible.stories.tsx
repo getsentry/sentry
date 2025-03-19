@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {Button} from 'sentry/components/core/button';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import SideBySide from 'sentry/components/stories/sideBySide';

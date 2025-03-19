@@ -356,7 +356,7 @@ public class CustomJob {
     <Fragment>
       <div>
         {tct(
-          '[installLink:Install and configure] the Sentry Spring Boot SDK (min v6.30.0), then instrument your monitor:',
+          '[installLink:Install and configure] the Sentry Spring Boot SDK (min v6.30.0), ensure that [org.aspectj.aspectjweaver] is present as a dependency of your project, then instrument your monitor:',
           {
             installLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/java/guides/spring-boot/" />

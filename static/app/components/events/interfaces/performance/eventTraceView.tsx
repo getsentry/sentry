@@ -2,7 +2,8 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
@@ -22,6 +23,7 @@ import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/trace
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {SwitchToNonEAPTraceButton} from 'sentry/views/performance/newTraceDetails/traceHeader';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
   loadTraceViewPreferences,
@@ -177,7 +179,12 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const traceId = event.contexts.trace?.trace_id;
   const location = useLocation();
 
-  if (!traceId) {
+  // Performance issues have a Span Evidence section that contains the trace view
+  const isHiddenForPerformanceIssues =
+    group.issueCategory === IssueCategory.PERFORMANCE &&
+    organization.features.includes('issue-details-new-performance-trace-view');
+
+  if (!traceId || isHiddenForPerformanceIssues) {
     return null;
   }
 
@@ -205,14 +212,17 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       type={SectionKey.TRACE}
       title={t('Trace Preview')}
       actions={
-        <LinkButton
-          size="xs"
-          to={getHrefFromTraceTarget(traceTarget)}
-          analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
-          analyticsEventKey="issue_details.view_full_trace_action_button_clicked"
-        >
-          {t('View Full Trace')}
-        </LinkButton>
+        <ButtonBar gap={1}>
+          <SwitchToNonEAPTraceButton location={location} organization={organization} />
+          <LinkButton
+            size="xs"
+            to={getHrefFromTraceTarget(traceTarget)}
+            analyticsEventName="Issue Details: View Full Trace Action Button Clicked"
+            analyticsEventKey="issue_details.view_full_trace_action_button_clicked"
+          >
+            {t('View Full Trace')}
+          </LinkButton>
+        </ButtonBar>
       }
     >
       <OneOtherIssueEvent event={event} />

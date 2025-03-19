@@ -3,13 +3,15 @@ from enum import StrEnum
 
 import sentry_sdk
 from django.db import router, transaction
+from django.db.models import Q
 
-from sentry import buffer
+from sentry import buffer, features
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     Detector,
@@ -110,6 +112,34 @@ def evaluate_workflows_action_filters(
     return filter_recently_fired_workflow_actions(filtered_action_groups, job["event"].group)
 
 
+def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowJob) -> None:
+    # go from actions to workflows
+    action_ids = {action.id for action in actions}
+    action_conditions = DataConditionGroup.objects.filter(
+        dataconditiongroupaction__action_id__in=action_ids
+    ).values_list("id", flat=True)
+    workflows_to_fire = Workflow.objects.filter(
+        workflowdataconditiongroup__condition_group_id__in=action_conditions
+    )
+    workflow_to_rule = dict(
+        AlertRuleWorkflow.objects.filter(workflow__in=workflows_to_fire).values_list(
+            "workflow_id", "rule_id"
+        )
+    )
+
+    for workflow in workflows_to_fire:
+        logger.info(
+            log_name,
+            extra={
+                "workflow_id": workflow.id,
+                "rule_id": workflow_to_rule.get(workflow.id),
+                "payload": job,
+                "group_id": job["event"].group_id,
+                "event_id": job["event"].event_id,
+            },
+        )
+
+
 def process_workflows(job: WorkflowJob) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
@@ -126,9 +156,16 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         logger.exception("Detector not found for event", extra={"event_id": job["event"].event_id})
         return set()
 
+    # TODO: remove fetching org, only used for FF check
+    organization = detector.project.organization
+
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
     workflows = set(
-        Workflow.objects.filter(detectorworkflow__detector_id=detector.id, enabled=True).distinct()
+        Workflow.objects.filter(
+            (Q(environment_id=None) | Q(environment_id=job["event"].get_environment())),
+            detectorworkflow__detector_id=detector.id,
+            enabled=True,
+        ).distinct()
     )
 
     if workflows:
@@ -153,15 +190,33 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     ):
         actions = evaluate_workflows_action_filters(triggered_workflows, job)
 
-        metrics.incr(
-            "workflow_engine.process_workflows.triggered_actions",
-            len(actions),
-            tags={"detector_type": detector.type},
-        )
+        if features.has(
+            "organizations:workflow-engine-process-workflows",
+            organization,
+        ):
+            metrics.incr(
+                "workflow_engine.process_workflows.triggered_actions",
+                amount=len(actions),
+                tags={"detector_type": detector.type},
+            )
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs",
+            organization,
+        ):
+            log_fired_workflows(
+                log_name="workflow_engine.process_workflows.fired_workflow",
+                actions=list(actions),
+                job=job,
+            )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
-        for action in actions:
-            action.trigger(job, detector)
+        if features.has(
+            "organizations:workflow-engine-trigger-actions",
+            organization,
+        ):
+            for action in actions:
+                action.trigger(job, detector)
 
     return triggered_workflows
 

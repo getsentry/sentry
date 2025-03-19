@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
+import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,17 +34,12 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
-export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
-  if (!event) {
-    return null;
-  }
-
-  const {affectedSpanIds, focusedSpanIds} = getProblemSpansForSpanTree(event);
-
-  const profileId = event.contexts?.profile?.profile_id ?? null;
-
-  const hasProfilingFeature = organization.features.includes('profiling');
-
+function SpanEvidenceInteriumSection({
+  children,
+  event,
+  organization,
+  projectSlug,
+}: {children: React.ReactNode} & Props) {
   const typeId = event.occurrence?.type;
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const issueTitle = event.occurrence?.issueTitle;
@@ -75,6 +71,48 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         )
       }
     >
+      {children}
+    </InterimSection>
+  );
+}
+
+export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
+  if (!event) {
+    return null;
+  }
+
+  const hasNewTraceView = organization.features.includes(
+    'issue-details-new-performance-trace-view'
+  );
+  const traceId = event.contexts.trace?.trace_id;
+
+  if (hasNewTraceView && traceId) {
+    return (
+      <SpanEvidenceInteriumSection
+        event={event}
+        organization={organization}
+        projectSlug={projectSlug}
+      >
+        <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
+        <SpanEvidenceTraceView
+          event={event}
+          organization={organization}
+          traceId={traceId}
+        />
+      </SpanEvidenceInteriumSection>
+    );
+  }
+
+  const {affectedSpanIds, focusedSpanIds} = getProblemSpansForSpanTree(event);
+  const profileId = event.contexts?.profile?.profile_id ?? null;
+  const hasProfilingFeature = organization.features.includes('profiling');
+
+  return (
+    <SpanEvidenceInteriumSection
+      event={event}
+      organization={organization}
+      projectSlug={projectSlug}
+    >
       <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
       {hasProfilingFeature ? (
         <ProfilesProvider
@@ -83,23 +121,25 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           profileMeta={profileId || ''}
         >
           <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <TraceViewWrapper>
-                  <TraceView
-                    organization={organization}
-                    waterfallModel={
-                      new WaterfallModel(event, affectedSpanIds, focusedSpanIds)
-                    }
-                    isEmbedded
-                  />
-                </TraceViewWrapper>
-              </ProfileGroupProvider>
-            )}
+            {profiles => {
+              return (
+                <ProfileGroupProvider
+                  type="flamechart"
+                  input={profiles?.type === 'resolved' ? profiles.data : null}
+                  traceID={profileId || ''}
+                >
+                  <TraceViewWrapper>
+                    <TraceView
+                      organization={organization}
+                      waterfallModel={
+                        new WaterfallModel(event, affectedSpanIds, focusedSpanIds)
+                      }
+                      isEmbedded
+                    />
+                  </TraceViewWrapper>
+                </ProfileGroupProvider>
+              );
+            }}
           </ProfileContext.Consumer>
         </ProfilesProvider>
       ) : (
@@ -111,7 +151,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
           />
         </TraceViewWrapper>
       )}
-    </InterimSection>
+    </SpanEvidenceInteriumSection>
   );
 }
 

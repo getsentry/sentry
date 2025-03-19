@@ -16,7 +16,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.integrations.metric_alerts import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.silo.base import SiloMode
@@ -32,6 +32,7 @@ from . import FireTest
 class PagerDutyActionHandlerTest(FireTest):
     def setUp(self):
         self.integration_key = "pfc73e8cb4s44d519f3d63d45b5q77g9"
+        self.handler = PagerDutyActionHandler()
         service = [
             {
                 "type": "service",
@@ -176,11 +177,17 @@ class PagerDutyActionHandlerTest(FireTest):
             status=202,
             content_type="application/json",
         )
-        handler = PagerDutyActionHandler(self.action, incident, self.project)
+
         metric_value = 1000
         new_status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(handler, method)(metric_value, new_status)
+            getattr(self.handler, method)(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=new_status,
+            )
         data = responses.calls[0].request.body
 
         expected_payload = build_incident_attachment(
@@ -192,7 +199,9 @@ class PagerDutyActionHandlerTest(FireTest):
             new_status=new_status,
             metric_value=metric_value,
         )
-        expected_payload = attach_custom_severity(expected_payload, self.action, new_status)
+        expected_payload = attach_custom_severity(
+            expected_payload, self.action.sentry_app_config, new_status
+        )
 
         assert json.loads(data) == expected_payload
 
@@ -242,10 +251,15 @@ class PagerDutyActionHandlerTest(FireTest):
             status=202,
             content_type="application/json",
         )
-        handler = PagerDutyActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
 

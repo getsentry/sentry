@@ -64,12 +64,6 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         app_label = "workflow_engine"
         db_table = "workflow_engine_workflow"
 
-        constraints = [
-            models.UniqueConstraint(
-                fields=["name", "organization"], name="unique_workflow_name_per_org"
-            )
-        ]
-
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
 

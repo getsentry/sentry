@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';

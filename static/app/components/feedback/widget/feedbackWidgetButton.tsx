@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {UseFeedbackOptions} from 'sentry/components/feedback/widget/useFeedback';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';

@@ -6,7 +6,6 @@ import styled from '@emotion/styled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {LegacyOnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {useOverdueDoneTasks} from 'sentry/components/onboardingWizard/useOverdueDoneTasks';
 import ProgressRing, {
   RingBackground,
   RingBar,
@@ -17,7 +16,7 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -48,7 +47,7 @@ export function OnboardingStatus({
   );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
-  const demoMode = isDemoModeEnabled();
+  const demoMode = isDemoModeActive();
 
   const {
     allTasks,
@@ -56,6 +55,7 @@ export function OnboardingStatus({
     beyondBasicsTasks,
     doneTasks,
     completeTasks,
+    completeOrOverdueTasks,
     refetch,
   } = useOnboardingTasks({
     disabled: !isActive,
@@ -63,16 +63,11 @@ export function OnboardingStatus({
 
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
-  const allTasksCompleted = allTasks.length === completeTasks.length;
-  const allTasksDone = allTasks.length === doneTasks.length;
-
-  const {overdueTasks} = useOverdueDoneTasks({allTasksDone, doneTasks});
+  const allTasksCompleted = allTasks.length === completeOrOverdueTasks.length;
 
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
-    (allTasksCompleted && !isActive) ||
-    // Skip if all tasks are completed and there are overdue tasks
-    (allTasksDone && overdueTasks.length > 0);
+    (allTasksCompleted && !isActive);
 
   const orgId = organization.id;
 
@@ -83,7 +78,7 @@ export function OnboardingStatus({
   const quickStartDisplayStatus = quickStartDisplay[orgId] ?? 0;
 
   const handleShowPanel = useCallback(() => {
-    if (!demoMode && !isActive === true) {
+    if (!demoMode && isActive !== true) {
       trackAnalytics('quick_start.opened', {
         organization,
         user_clicked: true,

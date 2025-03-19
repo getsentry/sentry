@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Generator, Sequence
 from typing import Any
 
-from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
+from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
 from sentry.replays.query import query_replays_count
 from sentry.search.events.types import SnubaParams
@@ -184,7 +184,7 @@ def _get_select_column(query: str) -> tuple[str, Sequence[Any]]:
     return condition.key.name, condition.value.raw_value
 
 
-def extract_columns_recursive(query: list[Any]) -> Generator[SearchFilter]:
+def extract_columns_recursive(query: Sequence[QueryToken]) -> Generator[SearchFilter]:
     for condition in query:
         if isinstance(condition, SearchFilter):
             if condition.key.name in ("issue.id", "transaction", "replay_id"):

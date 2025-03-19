@@ -1,9 +1,9 @@
 import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
@@ -98,9 +98,9 @@ export function MergedToolbar({
           disabled={!enableFingerprintCompare}
           onClick={handleShowDiff}
           title={
-            !enableFingerprintCompare
-              ? t('To compare, exactly 2 items must be selected')
-              : undefined
+            enableFingerprintCompare
+              ? undefined
+              : t('To compare, exactly 2 items must be selected')
           }
         >
           {t('Compare')}

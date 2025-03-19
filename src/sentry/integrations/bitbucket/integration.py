@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from django.http.request import HttpRequest
@@ -10,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatures,
     IntegrationMetadata,
@@ -29,7 +31,7 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.apitoken import generate_token
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
@@ -76,6 +78,12 @@ FEATURES = [
         """,
         IntegrationFeatures.STACKTRACE_LINK,
     ),
+    FeatureDescription(
+        """
+        Import your Bitbucket [CODEOWNERS file](https://support.atlassian.com/bitbucket-cloud/docs/set-up-and-use-code-owners/) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -92,6 +100,8 @@ scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
 class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
+    codeowners_locations = [".bitbucket/CODEOWNERS"]
+
     @property
     def integration_name(self) -> str:
         return "bitbucket"
@@ -183,6 +193,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
         ]
     )
 
@@ -199,8 +210,9 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -217,7 +229,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                 }
             )
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         if state.get("publicKey"):
             principal_data = state["principal"]
             base_url = state["baseUrl"].replace("https://", "")

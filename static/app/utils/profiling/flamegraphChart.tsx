@@ -74,7 +74,7 @@ export class FlamegraphChart {
       this.tooltipFormatter = makeFormatter('percent');
       this.unit = 'percent';
       this.configSpace = configSpace.clone();
-      this.status = !measurements ? 'no metrics' : 'empty metrics';
+      this.status = measurements ? 'empty metrics' : 'no metrics';
       return;
     }
 

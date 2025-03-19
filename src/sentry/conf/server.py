@@ -22,6 +22,7 @@ from sentry.conf.api_pagination_allowlist_do_not_modify import (
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
+from sentry.conf.types.region_config import RegionConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -96,6 +97,8 @@ _env_cache: dict[str, object] = {}
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
 IS_DEV = ENVIRONMENT == "development"
+SPOTLIGHT_ENV_VAR = os.environ.get("SENTRY_SPOTLIGHT", "")
+SPOTLIGHT = IS_DEV and SPOTLIGHT_ENV_VAR.lower() not in ("0", "false", "n", "no")
 
 DEBUG = IS_DEV
 # override the settings dumped in the debug view
@@ -432,6 +435,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
+    "sentry.explore",
 )
 
 # Silence internal hints from Django's system checks
@@ -687,9 +691,8 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions, or a JSON string
-# that is parsed.
-SENTRY_REGION_CONFIG: Any = ()
+# List of the available regions
+SENTRY_REGION_CONFIG: list[RegionConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -1060,6 +1063,10 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
     },
+    "relocation-find-transfer-control": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_control",
+        "schedule": crontab(minute="*/5"),
+    },
     "fetch-release-registry-data-control": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
         # Run every 5 minutes
@@ -1206,6 +1213,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/10"),
         "options": {"expires": 10 * 60},
     },
+    "uptime-broken-monitor-checker": {
+        "task": "sentry.uptime.tasks.broken_monitor_checker",
+        "schedule": crontab(minute="0", hour="*/1"),
+        "options": {"expires": 10 * 60},
+    },
     "poll_tempest": {
         "task": "sentry.tempest.tasks.poll_tempest",
         # Run every minute
@@ -1296,6 +1308,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.demo_mode.tasks.sync_artifact_bundles",
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
+    },
+    "relocation-find-transfer-region": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_region",
+        "schedule": crontab(minute="*/5"),
     },
 }
 
@@ -1556,11 +1572,6 @@ SENTRY_FEATURES: dict[str, bool | None] = {
 SENTRY_DEFAULT_TIME_ZONE = "UTC"
 
 SENTRY_DEFAULT_LANGUAGE = "en"
-
-# Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = None
-
-SENTRY_IGNORE_EXCEPTIONS = ("OperationalError",)
 
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
@@ -2565,7 +2576,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.2.0"
+SELF_HOSTED_STABLE_VERSION = "25.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2632,7 +2643,7 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 #
 # This will allow us to have finer control over where we are running the
 # profiler. For example, only on the web server.
-SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 
 # To have finer control over which process will have continuous profiling enabled,
 # this environment variable will be required to enable continuous profiling.
@@ -2850,7 +2861,20 @@ SENTRY_BUILTIN_SOURCES = {
         "name": "Electron",
         "layout": {"type": "native"},
         "url": "https://symbols.electronjs.org/",
-        "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
+        "filters": {
+            "filetypes": ["pdb", "breakpad", "sourcebundle"],
+            # These file paths were empirically determined by examining
+            # logs of successful downloads from the Electron symbol server.
+            "path_patterns": [
+                "*electron*",
+                "*ffmpeg*",
+                "*libEGL*",
+                "*libGLESv2*",
+                "*node*",
+                "*slack*",
+                "*vk_swiftshader*",
+            ],
+        },
         "is_public": True,
     },
     # === Various Linux distributions ===
@@ -2953,6 +2977,7 @@ KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "events": "default",
     "ingest-events-dlq": "default",
+    "ingest-events-backlog": "default",
     "snuba-commit-log": "default",
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
@@ -3027,6 +3052,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "uptime",
     "workflow_engine",
     "tempest",
+    "explore",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3540,7 +3566,6 @@ if SILO_DEVSERVER:
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
-            "api_token": "dev-region-silo-token",
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]

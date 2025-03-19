@@ -16,7 +16,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
     IntegrationInstallationConfigurationError,
 )
-from sentry.testutils.asserts import assert_halt_metric
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -152,11 +152,12 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 self.trigger(event, rule_object)
 
             assert mock_record_event.call_count == 2
-            start, failure = mock_record_event.mock_calls
+            start, failure = mock_record_event.call_args_list
             assert start.args == (EventLifecycleOutcome.STARTED,)
-            assert failure.args == (
-                EventLifecycleOutcome.FAILURE,
-                "Error Communicating with Jira (HTTP 400): unknown error",
+
+            assert_failure_metric(
+                mock_record_event,
+                IntegrationError("Error Communicating with Jira (HTTP 400): unknown error"),
             )
 
     def test_fails_validation(self):
@@ -193,9 +194,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert response.status_code == 400
         assert response.data["actions"][0] == "Must configure issue link settings."
 
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")
-    def test_fails_with_field_configuration_error(self, mock_create_issue, mock_record_halt):
+    def test_fails_with_field_configuration_error(self, mock_create_issue, mock_record_event):
         # Mock an error from the client response that cotains a field
 
         def raise_api_error_with_payload(*args, **kwargs):
@@ -215,15 +216,10 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 # an ApiInvalidRequestError, which is reraised as an IntegrationError.
                 self.trigger(event, rule_object)
 
-            assert mock_record_halt.call_count == 1
-            mock_record_event_args = mock_record_halt.call_args_list[0][0]
-            assert mock_record_event_args[0] is not None
-
-            metric_exception_message = mock_record_event_args[0]
-
-            # The error message here is formatted by the Jira integration, and
-            # only includes extracted JSON from the error
-            assert metric_exception_message == "{'foo': ['bar']}"
+            assert mock_record_event.call_count == 2
+            start, halt = mock_record_event.call_args_list
+            assert start.args == (EventLifecycleOutcome.STARTED,)
+            assert_halt_metric(mock_record_event, IntegrationFormError({"foo": ["bar"]}))
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "get_create_meta_for_project", return_value=None)

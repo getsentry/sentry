@@ -163,14 +163,18 @@ describe('Subscription > UsageTotals', function () {
         subscription={dsSubscription}
         organization={organization}
         displayMode="usage"
+        allTotalsByCategory={{
+          spans: totals,
+          spansIndexed: totals,
+        }}
       />
     );
 
-    expect(screen.getByText('Accepted spans spend this period')).toBeInTheDocument();
+    expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
     expect(screen.getByTestId('reserved-spans')).toHaveTextContent(
       '$100,000.00 Reserved'
     );
-    expect(screen.getByText('$40,000')).toBeInTheDocument();
+    expect(screen.getByText('$60,000')).toBeInTheDocument();
     expect(screen.getByText('40% of $100,000')).toBeInTheDocument();
 
     // Expand usage table
@@ -182,6 +186,7 @@ describe('Subscription > UsageTotals', function () {
     expect(
       screen.getByRole('columnheader', {name: 'Accepted Spans'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Stored Spans'})).toBeInTheDocument();
   });
 
   it('renders spans with reserved budgets without dynamic sampling', async function () {
@@ -241,13 +246,22 @@ describe('Subscription > UsageTotals', function () {
         subscription={dsSubscription}
         organization={organization}
         displayMode="usage"
+        allTotalsByCategory={{
+          spans: totals,
+          spansIndexed: totals,
+        }}
       />
     );
 
     expect(screen.getByTestId('gifted-spans')).toHaveTextContent(
       '$100,000.00 Reserved + $10,000.00 Gifted'
     );
-    expect(screen.getByText('55% of $110,000')).toBeInTheDocument();
+    expect(
+      screen.getByText('Accepted Spans Included in Subscription')
+    ).toBeInTheDocument();
+    expect(screen.getByText('40% of $110,000')).toBeInTheDocument();
+    expect(screen.getByText('Stored Spans Included in Subscription')).toBeInTheDocument();
+    expect(screen.getByText('20% of $110,000')).toBeInTheDocument();
   });
 
   it('renders reserved budget categories with soft cap', function () {

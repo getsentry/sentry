@@ -82,13 +82,13 @@ function _initializeData(
     const selectedProject = newSettings.projects.find(
       p => p.id === options.selectedProjectId
     );
-    if (!selectedProject) {
-      throw new Error("Test is selecting project that isn't loaded");
-    } else {
+    if (selectedProject) {
       PageFiltersStore.updateProjects(
         settings.selectedProject ? [Number(selectedProject)] : [],
         []
       );
+    } else {
+      throw new Error("Test is selecting project that isn't loaded");
     }
     newSettings.selectedProject = selectedProject.id;
   }

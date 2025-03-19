@@ -33,7 +33,10 @@ export function displayReprocessEventAction(event: Event | null): boolean {
   }
 
   const hasDebugImages = (event?.entries ?? []).some(
-    entry => entry.type === EntryType.DEBUGMETA && entry.data.images.length > 0
+    entry =>
+      entry.type === EntryType.DEBUGMETA &&
+      Array.isArray(entry.data?.images) &&
+      entry.data.images.length > 0
   );
 
   // Otherwise, check alternative platforms if they actually have Debug Files

@@ -155,7 +155,7 @@ const decodeFields = (location: Location): Field[] => {
   const parsed: Field[] = [];
   fields.forEach((field, i) => {
     const w = Number(widths[i]);
-    const width = !isNaN(w) ? w : COL_WIDTH_UNDEFINED;
+    const width = isNaN(w) ? COL_WIDTH_UNDEFINED : w;
 
     parsed.push({field, width});
   });
@@ -779,7 +779,7 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): Array<TableColumn<React.ReactText>> {
+  getColumns(): Array<TableColumn<string | number>> {
     return decodeColumnOrder(this.fields);
   }
 
@@ -1076,7 +1076,7 @@ class EventView {
     return newEventView;
   }
 
-  getSorts(): Array<TableColumnSort<React.ReactText>> {
+  getSorts(): Array<TableColumnSort<string | number>> {
     return this.sorts.map(
       sort =>
         ({

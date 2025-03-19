@@ -45,11 +45,11 @@ export function setPageFiltersStorage(
 
   const projects = updateFilters.has('projects')
     ? selection.projects
-    : currentStoredState?.project ?? [];
+    : (currentStoredState?.project ?? []);
 
   const environments = updateFilters.has('environments')
     ? selection.environments
-    : currentStoredState?.environment ?? [];
+    : (currentStoredState?.environment ?? []);
 
   const shouldUpdateDatetime = updateFilters.has('datetime');
 
@@ -63,7 +63,7 @@ export function setPageFiltersStorage(
 
   const currentPeriod = shouldUpdateDatetime
     ? selection.datetime.period
-    : currentStoredState?.period ?? null;
+    : (currentStoredState?.period ?? null);
 
   const currentUtc = shouldUpdateDatetime
     ? selection.datetime.utc

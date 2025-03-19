@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {FormContextData} from 'sentry/components/deprecatedforms/formContext';
 import FormContext from 'sentry/components/deprecatedforms/formContext';
 import FormState from 'sentry/components/forms/state';
@@ -95,7 +95,7 @@ class Form<
     this.setState({
       state: FormState.READY,
       errors: {},
-      initialData: {...this.state.data, ...(data || {})},
+      initialData: {...this.state.data, ...data},
     });
     this.props.onSubmitSuccess?.(data);
   };

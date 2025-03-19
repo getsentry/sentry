@@ -44,9 +44,9 @@ export default class AddIntegration extends Component<Props> {
   computeCenteredWindow(width: number, height: number) {
     // Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
     const screenLeft =
-      window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+      window.screenLeft === undefined ? window.screenX : window.screenLeft;
 
-    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+    const screenTop = window.screenTop === undefined ? window.screenY : window.screenTop;
 
     const innerWidth = window.innerWidth
       ? window.innerWidth

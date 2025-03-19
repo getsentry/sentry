@@ -9,12 +9,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-type Props = {
-  yAxes: string[];
-};
+type Props = {yAxes: string[]};
 
 export function useVisualizeFields({yAxes}: Props) {
-  const numberTags = useSpanTags('number');
+  const {tags: numberTags} = useSpanTags('number');
 
   const parsedYAxes: ParsedFunction[] = useMemo(() => {
     return yAxes.map(parseFunction).filter(defined);
@@ -36,11 +34,7 @@ export function useVisualizeFields({yAxes}: Props) {
         textValue: option,
       })),
       ...Object.values(numberTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          textValue: tag.name,
-        };
+        return {label: tag.name, value: tag.key, textValue: tag.name};
       }),
     ];
 

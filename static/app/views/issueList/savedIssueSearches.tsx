@@ -4,14 +4,15 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, ButtonLabel} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button, ButtonLabel} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -76,9 +77,7 @@ function SavedSearchItem({
       key: 'edit',
       label: 'Edit',
       disabled: !canEdit,
-      details: !canEdit
-        ? t('You do not have permission to edit this search.')
-        : undefined,
+      details: canEdit ? undefined : t('You do not have permission to edit this search.'),
       onAction: () => {
         openModal(deps => (
           <EditSavedSearchModal {...deps} {...{organization, savedSearch}} />
@@ -87,9 +86,9 @@ function SavedSearchItem({
     },
     {
       disabled: !canEdit,
-      details: !canEdit
-        ? t('You do not have permission to delete this search.')
-        : undefined,
+      details: canEdit
+        ? undefined
+        : t('You do not have permission to delete this search.'),
       key: 'delete',
       label: t('Delete'),
       onAction: () => {
@@ -176,8 +175,14 @@ function SavedIssueSearches({
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!isOpen || isMobile) {
+  if (
+    !isOpen ||
+    isMobile ||
+    prefersStackedNav ||
+    organization.features.includes('issue-stream-custom-views')
+  ) {
     return null;
   }
 

@@ -7,7 +7,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.ISSUE_RESOLUTION_CHANGE)
 class IssueResolutionConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.WORKFLOW_TRIGGER]
+    group = DataConditionHandler.Group.WORKFLOW_TRIGGER
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:

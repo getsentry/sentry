@@ -9,10 +9,9 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tn} from 'sentry/locale';
-import type {CommitFile, Repository} from 'sentry/types/integrations';
+import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,6 +20,7 @@ import {useReleaseRepositories} from 'sentry/utils/useReleaseRepositories';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleaseContext} from 'sentry/views/releases/detail';
+import {useReleaseCommitFiles} from 'sentry/views/releases/utils/useReleaseCommitFiles';
 
 import {getFilesByRepository, getQuery, getReposToRender} from '../utils';
 
@@ -40,24 +40,18 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === location.query.activeRepo) ?? releaseRepos[0];
 
-  const query = getQuery({location, activeRepository: activeReleaseRepo});
+  const query = getQuery({location});
   const {
     data: fileList = [],
     isPending: isLoadingFileList,
     error: fileListError,
     refetch,
     getResponseHeader,
-  } = useApiQuery<CommitFile[]>(
-    [
-      `/organizations/${organization.slug}/releases/${encodeURIComponent(
-        params.release
-      )}/commitfiles/`,
-      {query},
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useReleaseCommitFiles({
+    release: params.release,
+    activeRepository: activeReleaseRepo,
+    ...query,
+  });
 
   const filesByRepository = getFilesByRepository(fileList);
   const reposToRender = getReposToRender(Object.keys(filesByRepository));
@@ -90,8 +84,8 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
             <Fragment>
               {reposToRender.map(repoName => {
                 const repoData = filesByRepository[repoName]!;
-                const files = Object.keys(repoData);
-                const fileCount = files.length;
+                const repoDataEntries = Object.entries(repoData);
+                const fileCount = repoDataEntries.length;
                 return (
                   <Panel key={repoName}>
                     <PanelHeader>
@@ -99,14 +93,12 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
                       <span>{tn('%s file changed', '%s files changed', fileCount)}</span>
                     </PanelHeader>
                     <PanelBody>
-                      {files.map(filename => {
-                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        const {authors} = repoData[filename];
+                      {repoDataEntries.map(([filename, {authors}]) => {
                         return (
                           <FileChange
                             key={filename}
                             filename={filename}
-                            authors={Object.values(authors)}
+                            authors={authors ? Object.values(authors) : []}
                           />
                         );
                       })}

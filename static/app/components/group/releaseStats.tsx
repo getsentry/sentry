@@ -161,7 +161,7 @@ function GroupReleaseStats({
               </SidebarSection.Wrap>
             </div>
           )}
-          {!hasRelease ? (
+          {hasRelease ? null : (
             <SidebarSection.Wrap>
               <SidebarSection.Title>{t('Releases')}</SidebarSection.Title>
               <SidebarSection.Content>
@@ -172,7 +172,7 @@ function GroupReleaseStats({
                 </AlertLink.Container>
               </SidebarSection.Content>
             </SidebarSection.Wrap>
-          ) : null}
+          )}
         </Fragment>
       )}
     </div>

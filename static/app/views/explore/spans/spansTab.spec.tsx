@@ -11,36 +11,49 @@ import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 jest.mock('sentry/utils/analytics');
 
 const mockStringTags: TagCollection = {
-  stringTag1: {
-    key: 'stringTag1',
-    kind: FieldKind.TAG,
-    name: 'stringTag1',
-  },
-  stringTag2: {
-    key: 'stringTag2',
-    kind: FieldKind.TAG,
-    name: 'stringTag2',
-  },
+  stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
+  stringTag2: {key: 'stringTag2', kind: FieldKind.TAG, name: 'stringTag2'},
 };
 
 const mockNumberTags: TagCollection = {
-  numberTag1: {
-    key: 'numberTag1',
-    kind: FieldKind.MEASUREMENT,
-    name: 'numberTag1',
-  },
-  numberTag2: {
-    key: 'numberTag2',
-    kind: FieldKind.MEASUREMENT,
-    name: 'numberTag2',
-  },
+  numberTag1: {key: 'numberTag1', kind: FieldKind.MEASUREMENT, name: 'numberTag1'},
+  numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
 };
+
+// Mock getBoundingClientRect for container
+jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+  this: HTMLElement
+) {
+  // Mock individual hint items
+  if (this.hasAttribute('data-type')) {
+    return {
+      width: 200,
+      right: 200,
+      left: 0,
+      top: 0,
+      bottom: 100,
+      height: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    };
+  }
+  return {
+    width: 1000,
+    right: 1000,
+    left: 0,
+    top: 0,
+    bottom: 100,
+    height: 100,
+    x: 0,
+    y: 0,
+    toJSON: () => {},
+  };
+});
 
 describe('SpansTabContent', function () {
   const {organization, project, router} = initializeOrg({
-    organization: {
-      features: ['visibility-explore-rpc'],
-    },
+    organization: {features: ['visibility-explore-rpc']},
   });
 
   beforeEach(function () {
@@ -54,12 +67,7 @@ describe('SpansTabContent', function () {
       {
         projects: [project].map(p => parseInt(p.id, 10)),
         environments: [],
-        datetime: {
-          period: '7d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+        datetime: {period: '7d', start: null, end: null, utc: null},
       },
       new Set()
     );
@@ -101,11 +109,7 @@ describe('SpansTabContent', function () {
       <SpansTabContent
         defaultPeriod="7d"
         maxPickableDays={7}
-        relativeOptions={{
-          '1h': 'Last hour',
-          '24h': 'Last 24 hours',
-          '7d': 'Last 7 days',
-        }}
+        relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
       />,
       {disableRouterMocks: true, router, organization}
     );
@@ -114,9 +118,7 @@ describe('SpansTabContent', function () {
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
-      expect.objectContaining({
-        result_mode: 'span samples',
-      })
+      expect.objectContaining({result_mode: 'span samples'})
     );
 
     (trackAnalytics as jest.Mock).mockClear();
@@ -126,9 +128,7 @@ describe('SpansTabContent', function () {
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
-      expect.objectContaining({
-        result_mode: 'trace samples',
-      })
+      expect.objectContaining({result_mode: 'trace samples'})
     );
 
     (trackAnalytics as jest.Mock).mockClear();
@@ -140,9 +140,7 @@ describe('SpansTabContent', function () {
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'trace.explorer.metadata',
-      expect.objectContaining({
-        result_mode: 'aggregates',
-      })
+      expect.objectContaining({result_mode: 'aggregates'})
     );
   });
 
@@ -150,37 +148,33 @@ describe('SpansTabContent', function () {
     jest.spyOn(spanTagsModule, 'useSpanTags').mockImplementation(type => {
       switch (type) {
         case 'number':
-          return mockNumberTags;
+          return {tags: mockNumberTags, isLoading: false};
         case 'string':
-          return mockStringTags;
+          return {tags: mockStringTags, isLoading: false};
         default:
-          return {};
+          return {tags: {}, isLoading: false};
       }
     });
 
     const {organization: schemaHintsOrganization} = initializeOrg({
-      organization: {
-        ...organization,
-        features: ['traces-schema-hints'],
-      },
+      organization: {...organization, features: ['traces-schema-hints']},
     });
+
+    // Mock clientWidth before rendering to display hints
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
 
     render(
       <SpansTabContent
         defaultPeriod="7d"
         maxPickableDays={7}
-        relativeOptions={{
-          '1h': 'Last hour',
-          '24h': 'Last 24 hours',
-          '7d': 'Last 7 days',
-        }}
+        relativeOptions={{'1h': 'Last hour', '24h': 'Last 24 hours', '7d': 'Last 7 days'}}
       />,
       {disableRouterMocks: true, router, organization: schemaHintsOrganization}
     );
-
     expect(screen.getByText('stringTag1 is ...')).toBeInTheDocument();
     expect(screen.getByText('stringTag2 is ...')).toBeInTheDocument();
-    expect(screen.getByText('numberTag1 is ...')).toBeInTheDocument();
-    expect(screen.getByText('numberTag2 is ...')).toBeInTheDocument();
+    expect(screen.getByText('numberTag1 > ...')).toBeInTheDocument();
+    expect(screen.getByText('numberTag2 > ...')).toBeInTheDocument();
+    expect(screen.getByText('See full list')).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {SpanProjectIcon} from 'sentry/views/performance/newTraceDetails/traceRow/traceIcons';
 
 import {TraceIcons} from '../traceIcons';
@@ -14,14 +15,20 @@ import {
 
 const NO_PROFILES: any = [];
 
-export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>) {
+export function TraceSpanRow(
+  props: TraceRowProps<TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>>
+) {
+  const spanId = isEAPSpanNode(props.node)
+    ? props.node.value.event_id
+    : props.node.value.span_id;
+
   return (
     <div
       key={props.index}
       ref={r =>
         props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
-          : null
+          : undefined
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}
@@ -65,11 +72,11 @@ export function TraceSpanRow(props: TraceRowProps<TraceTreeNode<TraceTree.Span>>
           <span className="TraceOperation">{props.node.value.op ?? '<unknown>'}</span>
           <strong className="TraceEmDash"> — </strong>
           <span className="TraceDescription" title={props.node.value.description}>
-            {!props.node.value.description
-              ? props.node.value.span_id ?? 'unknown'
-              : props.node.value.description.length > 100
+            {props.node.value.description
+              ? props.node.value.description.length > 100
                 ? props.node.value.description.slice(0, 100).trim() + '\u2026'
-                : props.node.value.description}
+                : props.node.value.description
+              : (spanId ?? 'unknown')}
           </span>
         </div>
       </div>

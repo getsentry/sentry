@@ -13,9 +13,16 @@ interface Props {
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
+  portalTarget?: HTMLElement | null;
 }
 
-export function EventsSearchBar({pageFilters, onClose, widgetQuery, dataset}: Props) {
+export function EventsSearchBar({
+  pageFilters,
+  onClose,
+  widgetQuery,
+  dataset,
+  portalTarget,
+}: Props) {
   const organization = useOrganization();
   const {customMeasurements} = useCustomMeasurements();
   const eventView = eventViewFromWidget('', widgetQuery, pageFilters);
@@ -35,6 +42,7 @@ export function EventsSearchBar({pageFilters, onClose, widgetQuery, dataset}: Pr
       dataset={dataset}
       includeTransactions={hasDatasetSelector(organization) ? false : true}
       searchSource="widget_builder"
+      portalTarget={portalTarget}
     />
   );
 }

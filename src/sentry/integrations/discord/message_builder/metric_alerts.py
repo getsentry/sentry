@@ -4,11 +4,12 @@ import time
 from datetime import datetime
 
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
-from sentry.integrations.metric_alerts import AlertContext, incident_attachment_info
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.organization import Organization
 from sentry.snuba.models import SnubaQuery
 

@@ -277,7 +277,9 @@ function LegacyGeneralInfo(props: GeneralnfoProps) {
     props.organization.features.includes('insights-initial-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself.
-  const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+  const groupHash = hasNewSpansUIFlag
+    ? (span.sentry_tags?.group ?? '')
+    : (span.hash ?? '');
 
   if (
     ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule) &&

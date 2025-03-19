@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -60,6 +61,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -166,12 +168,68 @@ def assert_alert_rule_trigger_migrated(alert_rule_trigger):
 
 
 def build_sentry_app_compare_blob(
-    sentry_app_config: list[dict[str, str]]
-) -> list[dict[str, str | None]]:
+    sentry_app_config: list[dict[str, Any]],
+) -> list[dict[str, Any | None]]:
     """
     Add the label to the config
     """
     return [{**config, "label": config.get("label", None)} for config in sentry_app_config]
+
+
+def assert_sentry_app_action_migrated(
+    action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
+):
+    # Verify target_identifier is the string representation of sentry_app_id
+    assert action.config.get("target_identifier") == str(alert_rule_trigger_action.sentry_app_id)
+    assert action.config.get("sentry_app_identifier") == SentryAppIdentifier.SENTRY_APP_ID
+
+    # Verify data blob has correct structure for Sentry apps
+    if not alert_rule_trigger_action.sentry_app_config:
+        assert action.data == {}
+    else:
+        config_list = alert_rule_trigger_action.sentry_app_config
+        if isinstance(config_list, dict):
+            config_list = [config_list]
+
+        assert action.data == {
+            "settings": build_sentry_app_compare_blob(config_list),
+        }
+
+
+def assert_oncall_action_migrated(
+    action: Action, alert_rule_trigger_action: AlertRuleTriggerAction
+):
+    if action.type == Action.Type.OPSGENIE:
+        if not alert_rule_trigger_action.sentry_app_config:
+            assert action.data == {
+                "priority": OPSGENIE_DEFAULT_PRIORITY,
+            }
+        else:
+            config = alert_rule_trigger_action.sentry_app_config
+            assert isinstance(config, dict)
+            assert action.data == {
+                "priority": config.get("priority"),
+            }
+    else:
+        if not alert_rule_trigger_action.sentry_app_config:
+            assert action.data == {
+                "priority": PAGERDUTY_DEFAULT_SEVERITY,
+            }
+        else:
+            config = alert_rule_trigger_action.sentry_app_config
+            assert isinstance(config, dict)
+            assert action.data == {
+                "priority": config.get("priority"),
+            }
+
+
+def assert_action_migrated(action: Action, alert_rule_trigger_action: AlertRuleTriggerAction):
+    if action.type == Action.Type.SENTRY_APP:
+        assert_sentry_app_action_migrated(action, alert_rule_trigger_action)
+    elif action.type == Action.Type.OPSGENIE or action.type == Action.Type.PAGERDUTY:
+        assert_oncall_action_migrated(action, alert_rule_trigger_action)
+    else:
+        assert action.data == {}
 
 
 def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_type):
@@ -183,40 +241,7 @@ def assert_alert_rule_trigger_action_migrated(alert_rule_trigger_action, action_
         action_id=action.id,
     ).exists()
 
-    # Additional checks for Sentry app actions
-    if action_type == Action.Type.SENTRY_APP:
-        # Verify target_identifier is the string representation of sentry_app_id
-        assert action.target_identifier == str(alert_rule_trigger_action.sentry_app_id)
-
-        # Verify data blob has correct structure for Sentry apps
-        if not alert_rule_trigger_action.sentry_app_config:
-            assert action.data == {}
-        else:
-            assert action.data == {
-                "settings": build_sentry_app_compare_blob(
-                    alert_rule_trigger_action.sentry_app_config
-                ),
-            }
-
-    if action_type == Action.Type.OPSGENIE:
-        if not alert_rule_trigger_action.sentry_app_config:
-            assert action.data == {
-                "priority": OPSGENIE_DEFAULT_PRIORITY,
-            }
-        else:
-            assert action.data == {
-                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
-            }
-
-    if action_type == Action.Type.PAGERDUTY:
-        if not alert_rule_trigger_action.sentry_app_config:
-            assert action.data == {
-                "priority": PAGERDUTY_DEFAULT_SEVERITY,
-            }
-        else:
-            assert action.data == {
-                "priority": alert_rule_trigger_action.sentry_app_config["priority"],
-            }
+    assert_action_migrated(action, alert_rule_trigger_action)
 
 
 class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
@@ -833,7 +858,14 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             alert_rule=self.metric_alert, label="warning", alert_threshold=100
         )
         self.alert_rule_trigger_action_email = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.warning_trigger
+            alert_rule_trigger=self.warning_trigger,
+            type=AlertRuleTriggerAction.Type.EMAIL,
+            target_identifier=self.user.id,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            # This shouldn't be migrated
+            sentry_app_config={
+                "priority": "p2",
+            },
         )
         self.alert_rule_trigger_action_integration = self.create_alert_rule_trigger_action(
             target_identifier=self.og_team["id"],
@@ -1071,9 +1103,9 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
 
         self.action.refresh_from_db()
         assert self.action.integration_id == self.integration.id
-        assert self.action.target_display == "cool-team"
-        assert self.action.target_identifier == "123-id"
-        assert self.action.target_type == ActionTarget.USER
+        assert self.action.config.get("target_display") == "cool-team"
+        assert self.action.config.get("target_identifier") == "123-id"
+        assert self.action.config.get("target_type") == ActionTarget.USER
 
     def test_dual_update_trigger_action_data(self):
         """
@@ -1152,9 +1184,9 @@ class DualUpdateAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
                 "label": None,
             },
         ]
-        assert action.target_display == "oolong"
-        assert action.target_identifier == str(sentry_app.id)
-        assert action.target_type == ActionTarget.SENTRY_APP
+        assert action.config.get("target_display") == "oolong"
+        assert action.config.get("target_identifier") == str(sentry_app.id)
+        assert action.config.get("target_type") == ActionTarget.SENTRY_APP
 
 
 class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
@@ -1177,6 +1209,7 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
         detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
+
         resolve_threshold = get_resolve_threshold(detector_dcg)
         assert resolve_threshold == self.alert_rule_trigger.alert_threshold
 

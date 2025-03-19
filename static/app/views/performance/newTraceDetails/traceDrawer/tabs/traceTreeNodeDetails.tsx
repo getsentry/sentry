@@ -3,6 +3,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -31,7 +32,7 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
     return <TransactionNodeDetails {...props} />;
   }
 
-  if (isSpanNode(props.node)) {
+  if (isSpanNode(props.node) || isEAPSpanNode(props.node)) {
     return <SpanNodeDetails {...props} />;
   }
 

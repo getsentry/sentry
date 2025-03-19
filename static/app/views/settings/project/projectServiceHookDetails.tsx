@@ -5,8 +5,8 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -84,18 +84,18 @@ function HookStats() {
     <Panel>
       <PanelHeader>{t('Events in the last 30 days (by day)')}</PanelHeader>
       <PanelBody withPadding>
-        {!emptyStats ? (
+        {emptyStats ? (
+          <EmptyMessage
+            title={t('Nothing recorded in the last 30 days.')}
+            description={t('Total webhooks fired for this configuration.')}
+          />
+        ) : (
           <MiniBarChart
             isGroupedByDate
             showTimeInTooltip
             labelYAxisExtents
             series={[series]}
             height={150}
-          />
-        ) : (
-          <EmptyMessage
-            title={t('Nothing recorded in the last 30 days.')}
-            description={t('Total webhooks fired for this configuration.')}
           />
         )}
       </PanelBody>

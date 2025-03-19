@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -87,7 +87,7 @@ export function PagePerformanceTable() {
     isPending: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
-    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
+    transaction: query === '' ? undefined : `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
     browserTypes,

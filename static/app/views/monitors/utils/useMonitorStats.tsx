@@ -1,5 +1,3 @@
-import {useState} from 'react';
-
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,19 +25,10 @@ interface Options {
  */
 export function useMonitorStats({monitors, timeWindowConfig, enabled = true}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
-  const [now] = useState(() => new Date().getTime() / 1000);
-
-  const until =
-    Math.floor(end.getTime() / 1000) +
-    rollupConfig.underscanPeriod -
-    // XXX(epurkhiser): We are dropping 1 bucket worth of data on the right
-    // side to account for the fact that this bucket is actually over-scan
-    // becauase the query on the backend is inclusive.
-    rollupConfig.interval;
 
   const selectionQuery = {
     since: Math.floor(start.getTime() / 1000),
-    until: Math.min(until, now),
+    until: Math.floor(end.getTime() / 1000),
     resolution: `${rollupConfig.interval}s`,
   };
 

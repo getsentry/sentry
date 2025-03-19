@@ -26,7 +26,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import {useBreakpoints} from 'sentry/utils/useBreakpoints';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -103,7 +102,6 @@ function ActionsBarPriority({
 }) {
   const organization = useOrganization();
   const shouldDisplayActions = anySelected && !narrowViewport;
-  const screen = useBreakpoints();
 
   return (
     <ActionsBarContainer
@@ -141,9 +139,7 @@ function ActionsBarPriority({
             </HeaderButtonsWrapper>
           ) : organization.features.includes('issue-stream-table-layout') ? (
             <NarrowHeaderButtonsWrapper>
-              <IssueStreamHeaderLabel>{t('Issue')}</IssueStreamHeaderLabel>
-              {/* Ideally we could use a smaller option, xxsmall */}
-              {screen.xsmall && <HeaderDivider />}
+              <IssueStreamHeaderLabel hideDivider>{t('Issue')}</IssueStreamHeaderLabel>
             </NarrowHeaderButtonsWrapper>
           ) : (
             <HeaderButtonsWrapper key="sort" {...animationProps}>
@@ -153,7 +149,15 @@ function ActionsBarPriority({
         </AnimatePresence>
       )}
       <AnimatePresence initial={false} mode="wait">
-        {!anySelected ? (
+        {anySelected ? (
+          !organization.features.includes('issue-stream-table-layout') && (
+            <motion.div key="sort" {...animationProps}>
+              <SortDropdownMargin>
+                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+              </SortDropdownMargin>
+            </motion.div>
+          )
+        ) : (
           <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
             <Headers
               onSelectStatsPeriod={onSelectStatsPeriod}
@@ -163,14 +167,6 @@ function ActionsBarPriority({
               isSavedSearchesOpen={isSavedSearchesOpen}
             />
           </AnimatedHeaderItemsContainer>
-        ) : (
-          !organization.features.includes('issue-stream-table-layout') && (
-            <motion.div key="sort" {...animationProps}>
-              <SortDropdownMargin>
-                <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-              </SortDropdownMargin>
-            </motion.div>
-          )
         )}
       </AnimatePresence>
     </ActionsBarContainer>

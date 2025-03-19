@@ -2034,6 +2034,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "line",
                     "interval": "5m",
                     "title": f"Widget {i}",
+                    "limit": 5,
                     "queries": [
                         {
                             "name": "Transactions",
@@ -2541,6 +2542,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "EPM line",
                     "displayType": "line",
+                    "limit": 3,
                     "queries": [
                         {
                             "name": "",
