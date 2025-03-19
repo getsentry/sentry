@@ -87,7 +87,7 @@ export function WidgetCardDataLoader({
         organization={organization}
         widget={widget}
         selection={selection}
-        limit={widget.limit ?? tableItemLimit}
+        limit={tableItemLimit}
         onDataFetched={onDataFetched}
         dashboardFilters={dashboardFilters}
       >

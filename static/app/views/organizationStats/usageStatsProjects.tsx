@@ -450,9 +450,9 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           return b.project.slug.localeCompare(a.project.slug) * direction;
         }
 
-        return a[key] !== b[key]
-          ? (b[key] - a[key]) * direction
-          : a.project.slug.localeCompare(b.project.slug);
+        return a[key] === b[key]
+          ? a.project.slug.localeCompare(b.project.slug)
+          : (b[key] - a[key]) * direction;
       });
 
       const offset = this.tableOffset;

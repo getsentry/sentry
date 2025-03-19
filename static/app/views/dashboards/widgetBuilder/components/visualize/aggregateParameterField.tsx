@@ -1,4 +1,4 @@
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
@@ -71,7 +71,7 @@ export function AggregateParameterField({
   }
   if (parameter.kind === 'dropdown') {
     return (
-      <SelectControl
+      <Select
         key="dropdown"
         name="dropdown"
         menuPlacement="auto"

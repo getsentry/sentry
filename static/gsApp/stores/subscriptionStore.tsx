@@ -50,7 +50,7 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
 
   set(orgSlug: string, data: Partial<Subscription>) {
     const subscription = {
-      ...(this.state[orgSlug]! || {}),
+      ...this.state[orgSlug]!,
       ...data,
       setAt: Date.now(), // Refetch usage data if Subscription is updated
     };

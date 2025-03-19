@@ -347,6 +347,7 @@ def _chunk_load_error_filter() -> RuleCondition:
     values = [
         ("ChunkLoadError", "Loading chunk *"),
         ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
+        ("Error", "Uncaught (in promise): ChunkLoadError*"),
     ]
 
     return _error_message_condition(values)

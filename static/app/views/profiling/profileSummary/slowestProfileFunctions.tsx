@@ -133,11 +133,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           <SlowestFunctionsQueryState>
             {t('Failed to fetch slowest functions')}
           </SlowestFunctionsQueryState>
-        ) : !functions.length ? (
-          <SlowestFunctionsQueryState>
-            {t('The fastest code is one that never runs.')}
-          </SlowestFunctionsQueryState>
-        ) : (
+        ) : functions.length ? (
           functions.map((fn, i) => {
             return (
               <SlowestFunctionEntry
@@ -149,6 +145,10 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
               />
             );
           })
+        ) : (
+          <SlowestFunctionsQueryState>
+            {t('The fastest code is one that never runs.')}
+          </SlowestFunctionsQueryState>
         )}
       </SlowestFunctionsList>
     </SlowestFunctionsContainer>

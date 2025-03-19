@@ -3,7 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

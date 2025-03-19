@@ -355,9 +355,7 @@ describe('AutofixSolution', () => {
     );
 
     // Find and fill the input
-    const input = screen.getByPlaceholderText(
-      'Add additional instructions for Autofix...'
-    );
+    const input = screen.getByPlaceholderText('Add more instructions...');
     await userEvent.type(input, 'This is a custom instruction');
 
     // Enable the Add button by typing non-empty text
@@ -422,9 +420,7 @@ describe('AutofixSolution', () => {
     );
 
     // Find and fill the input, then press Enter
-    const input = screen.getByPlaceholderText(
-      'Add additional instructions for Autofix...'
-    );
+    const input = screen.getByPlaceholderText('Add more instructions...');
     await userEvent.type(input, 'Enter key instruction{Enter}');
 
     // Verify the custom instruction was added
@@ -557,59 +553,6 @@ describe('AutofixSolution', () => {
                 is_active: false,
               }),
             ]),
-          },
-        },
-      })
-    );
-  });
-
-  it('passes the solution array when selecting the dropdown options', async () => {
-    // Mock the API directly before the test
-    const mockApi = MockApiClient.addMockResponse({
-      url: '/issues/123/autofix/update/',
-      method: 'POST',
-    });
-
-    render(
-      <AutofixSolution
-        {...defaultProps}
-        repos={[
-          {
-            name: 'owner/repo',
-            default_branch: 'main',
-            external_id: 'repo1',
-            integration_id: 'integration1',
-            provider: 'github',
-            url: 'https://github.com/owner/repo',
-            is_readable: true,
-          },
-        ]}
-      />
-    );
-
-    // Open dropdown by clicking the More options button
-    const dropdownButton = screen.getByRole('button', {name: 'More coding options'});
-    await userEvent.click(dropdownButton);
-
-    // Wait for the dropdown menu to appear and click the Write both option
-    const writeOption = await screen.findByText('Write both');
-    await userEvent.click(writeOption);
-
-    // Wait for API call
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalled();
-    });
-
-    // Verify payload
-    expect(mockApi).toHaveBeenCalledWith(
-      '/issues/123/autofix/update/',
-      expect.objectContaining({
-        data: {
-          run_id: 'run-123',
-          payload: {
-            type: 'select_solution',
-            mode: 'all',
-            solution: expect.any(Array),
           },
         },
       })

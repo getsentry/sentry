@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -139,20 +139,22 @@ function VisualizeGhostField({
                       {
                         label:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field,
                         value:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field!,
                       },
                     ]}
                     value={
                       draggingField?.kind === FieldValueKind.FUNCTION
-                        ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                            ?.arguments[0] ?? ''
+                        ? (parseFunction(fields?.map(generateFieldAsString)[activeId]!)
+                            ?.arguments[0] ?? '')
                         : draggingField?.field
                     }
                     onChange={() => {}}
@@ -240,5 +242,5 @@ const Ghost = styled('div')`
 `;
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;

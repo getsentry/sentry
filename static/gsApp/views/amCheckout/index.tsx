@@ -6,8 +6,8 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -141,10 +141,10 @@ class AMCheckout extends Component<Props, State> {
      */
     loadStripe();
 
-    if (!subscription.canSelfServe) {
-      this.handleRedirect();
-    } else {
+    if (subscription.canSelfServe) {
       this.fetchBillingConfig();
+    } else {
+      this.handleRedirect();
     }
 
     if (organization) {
@@ -158,10 +158,10 @@ class AMCheckout extends Component<Props, State> {
       return;
     }
 
-    if (!subscription.canSelfServe) {
-      this.handleRedirect();
-    } else {
+    if (subscription.canSelfServe) {
       this.fetchBillingConfig();
+    } else {
+      this.handleRedirect();
     }
   }
 
@@ -697,14 +697,14 @@ class AMCheckout extends Component<Props, State> {
 
             {subscription.canCancel && (
               <CancelSubscription>
-                <Button
+                <LinkButton
                   to={`/settings/${organization.slug}/billing/cancel/`}
                   disabled={subscription.cancelAtPeriodEnd}
                 >
                   {subscription.cancelAtPeriodEnd
                     ? t('Pending Cancellation')
                     : t('Cancel Subscription')}
-                </Button>
+                </LinkButton>
               </CancelSubscription>
             )}
             {showAnnualTerms && (

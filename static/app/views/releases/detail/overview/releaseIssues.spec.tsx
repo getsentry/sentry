@@ -187,7 +187,7 @@ describe('ReleaseIssues', function () {
     // Should pass the query param `query` with value `release:1.0.0`
     expect(link).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/123/?_allp=1&query=release%3A1.0.0&referrer=release-issue-stream'
+      '/organizations/org-slug/issues/123/?_allp=1&project=2&query=release%3A1.0.0&referrer=release-issue-stream'
     );
   });
 });

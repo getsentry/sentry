@@ -137,7 +137,7 @@ export type SpanBarProps = ScrollbarManagerChildrenProps & {
   isEmbeddedTransactionTimeAdjusted: boolean;
   isSpanExpanded: (span: Readonly<ProcessedSpanType>) => boolean;
   isSpanInEmbeddedTree: boolean;
-  listRef: React.RefObject<ReactVirtualizedList>;
+  listRef: React.RefObject<ReactVirtualizedList | null>;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
@@ -538,7 +538,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       );
     }
 
-    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
+    const chevronElement = isRoot ? null : <div>{chevron}</div>;
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
@@ -863,6 +863,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <DividerLine
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -1085,6 +1086,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             }}
           >
             <DividerLine
+              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import IdBadge from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import * as SidebarSection from 'sentry/components/sidebarSection';

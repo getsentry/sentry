@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {PluginWithProjectList} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';

@@ -63,8 +63,8 @@ def should_call_seer_for_grouping(
 
     if (
         has_blocked_fingerprint
-        or _is_race_condition_skipped_event(event, event_grouphash)
         or _has_too_many_contributing_frames(event, variants)
+        or _is_race_condition_skipped_event(event, event_grouphash)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
         or _circuit_breaker_broken(event, project)
         # The rate limit check has to be last (see below) but rate-limiting aside, call this after other checks
@@ -92,33 +92,37 @@ def _is_race_condition_skipped_event(event: Event, event_grouphash: GroupHash) -
 
     We detect the race when creating `GroupHashMetadata` records, and track all but the winner of
     the race as events whose Seer call we should skip.
-
-    NOTE: For now this only returns False, so it will never block sending to Seer. This will allow
-    us to collect logs of when it *would* block, in order or us to have greater confidence in the
-    change.
     """
     if event.should_skip_seer:
         logger.info(
             "should_call_seer_for_grouping.race_condition_skip",
             extra={
                 "grouphash_id": event_grouphash.id,
+                "grouphash_has_group": bool(event_grouphash.group_id),
                 "hash": event_grouphash.hash,
                 "event_id": event.event_id,
             },
         )
-        # TODO: The two lines below are what the code *should* be, in order to actually skip sending
-        # the events. For now, though, we're just going to log, to essentially enact the change in
-        # dry-run mode. Once we're confident that in race condition situations, exactly one event
-        # will be sent to Seer, we can restore the real code.
-        #
-        # record_did_call_seer_metric(event, call_made=False, blocker="race_condition")
-        # return True
-        return False
+        record_did_call_seer_metric(event, call_made=False, blocker="race_condition")
+        return True
+
+    # TODO: Temporary debugging for the fact that we're still sometimes seeing multiple events per
+    # hash being let through
+    initial_has_group = bool(event_grouphash.group_id)  # Should in theory always be False
+    if not initial_has_group:
+        new_has_group: Any = None  # mypy appeasement
+        try:
+            event_grouphash.refresh_from_db()
+            new_has_group = bool(event_grouphash.group_id)
+        except Exception as e:
+            new_has_group = repr(e)
 
     logger.info(
         "should_call_seer_for_grouping.race_condition_pass",
         extra={
             "grouphash_id": event_grouphash.id,
+            "initial_grouphash_has_group": initial_has_group,
+            "grouphash_has_group": new_has_group,
             "hash": event_grouphash.hash,
             "event_id": event.event_id,
         },
@@ -440,6 +444,7 @@ def maybe_check_seer_for_matching_grouphash(
                     "grouphash_metadata.none_id",
                     extra={
                         "grouphash_id": event_grouphash.id,
+                        "grouphash_has_group": bool(event_grouphash.group_id),
                         "hash": event_grouphash.hash,
                         "event_id": event.event_id,
                         "project_slug": event.project.slug,

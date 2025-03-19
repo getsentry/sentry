@@ -38,7 +38,13 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 
 from sentry import options
-from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
+from sentry.api.event_search import (
+    ParenExpression,
+    QueryToken,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
 from sentry.api.exceptions import BadRequest
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
@@ -60,8 +66,8 @@ PREFERRED_SOURCE = Literal["aggregated", "scalar"]
 
 
 def handle_viewed_by_me_filters(
-    search_filters: Sequence[SearchFilter | str | ParenExpression], request_user_id: int | None
-) -> Sequence[SearchFilter | str | ParenExpression]:
+    search_filters: Sequence[QueryToken], request_user_id: int | None
+) -> Sequence[QueryToken]:
     """Translate "viewed_by_me" as it's not a valid Snuba field, but a convenience alias for the frontend"""
     new_filters = []
     for search_filter in search_filters:
@@ -100,7 +106,7 @@ def handle_viewed_by_me_filters(
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
@@ -207,7 +213,7 @@ class QueryResponse:
     source: str
 
 
-def _has_viewed_by_filter(search_filter: SearchFilter | str | ParenExpression):
+def _has_viewed_by_filter(search_filter: QueryToken) -> bool:
     if isinstance(search_filter, SearchFilter):
         return search_filter.key.name in VIEWED_BY_KEYS
     if isinstance(search_filter, ParenExpression):
@@ -218,7 +224,7 @@ def _has_viewed_by_filter(search_filter: SearchFilter | str | ParenExpression):
 
 def query_using_optimized_search(
     fields: list[str],
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
     environments: list[str],
     sort: str | None,
     pagination: Paginators,
@@ -312,7 +318,7 @@ def query_using_optimized_search(
 
 
 def _query_using_scalar_strategy(
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
@@ -366,7 +372,7 @@ def _query_using_scalar_strategy(
 
 
 def _query_using_aggregated_strategy(
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,

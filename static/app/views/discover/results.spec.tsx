@@ -1088,7 +1088,9 @@ describe('Results', function () {
         {router, organization}
       );
 
-      expect(await screen.findByText('this is a tip')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('this is a tip')).toBeInTheDocument();
+      });
     });
 
     it('renders metric fallback alert', async function () {

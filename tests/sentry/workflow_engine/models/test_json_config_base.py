@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 
-class TestJsonConfigBase(BaseGroupTypeTest):
+class JSONConfigBaseTest(BaseGroupTypeTest):
     def setUp(self):
         super().setUp()
         self.correct_config = {
@@ -54,7 +54,8 @@ class TestJsonConfigBase(BaseGroupTypeTest):
             detector_config_schema = {"type": "object", "additionalProperties": False}
 
 
-class TestDetectorConfig(TestJsonConfigBase):
+# TODO - Move this to the detector model test
+class TestDetectorConfig(JSONConfigBaseTest):
     def test_detector_no_registration(self):
         with pytest.raises(ValueError):
             self.create_detector(name="test_detector", type="no_registration")
@@ -72,7 +73,8 @@ class TestDetectorConfig(TestJsonConfigBase):
             self.create_detector(name="test_detector", type="example", config={"hi": "there"})
 
 
-class TestWorkflowConfig(TestJsonConfigBase):
+# TODO - Move this to the workflow model test
+class TestWorkflowConfig(JSONConfigBaseTest):
     def test_workflow_mismatched_schema(self):
         with pytest.raises(ValidationError):
             self.create_workflow(
@@ -86,7 +88,8 @@ class TestWorkflowConfig(TestJsonConfigBase):
         )
 
 
-class TestMetricAlertFireDetectorConfig(TestJsonConfigBase, APITestCase):
+# TODO - This should be moved into incidents directory
+class TestMetricAlertFireDetectorConfig(JSONConfigBaseTest, APITestCase):
     def setUp(self):
         super().setUp()
         self.metric_alert = self.create_alert_rule(threshold_period=1)

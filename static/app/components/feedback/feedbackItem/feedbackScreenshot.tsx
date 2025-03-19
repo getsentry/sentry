@@ -49,16 +49,7 @@ export default function FeedbackScreenshot({
     />
   );
 
-  return !imgLoadError ? (
-    <StyledPanel className={className}>
-      {isLoading && (
-        <StyledLoadingIndicator>
-          <LoadingIndicator mini />
-        </StyledLoadingIndicator>
-      )}
-      {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
-    </StyledPanel>
-  ) : (
+  return imgLoadError ? (
     <File onClick={onClick}>
       <NoPreviewFound>
         <IconImage />
@@ -73,6 +64,15 @@ export default function FeedbackScreenshot({
         </FileDownload>
       </Tooltip>
     </File>
+  ) : (
+    <StyledPanel className={className}>
+      {isLoading && (
+        <StyledLoadingIndicator>
+          <LoadingIndicator mini />
+        </StyledLoadingIndicator>
+      )}
+      {onClick ? <StyledImageButton onClick={onClick}>{img}</StyledImageButton> : img}
+    </StyledPanel>
   );
 }
 

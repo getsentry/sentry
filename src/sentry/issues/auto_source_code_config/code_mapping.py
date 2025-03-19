@@ -12,15 +12,15 @@ from sentry.integrations.source_code_management.repo_trees import (
     RepoTreesIntegration,
     get_extension,
 )
-from sentry.issues.auto_source_code_config.constants import (
-    EXTRACT_FILENAME_FROM_MODULE_AND_ABS_PATH,
-)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.utils import metrics
 from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
+from .constants import METRIC_PREFIX
 from .integration_utils import InstallationNotFoundError, get_installation
+from .utils import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +84,11 @@ def derive_code_mappings(
 # XXX: Look at sentry.interfaces.stacktrace and maybe use that
 class FrameInfo:
     def __init__(self, frame: Mapping[str, Any], platform: str | None = None) -> None:
-        if platform in EXTRACT_FILENAME_FROM_MODULE_AND_ABS_PATH:
-            self.frame_info_from_module(frame)
-            return
+        if platform:
+            platform_config = PlatformConfig(platform)
+            if platform_config.extracts_filename_from_module():
+                self.frame_info_from_module(frame)
+                return
 
         frame_file_path = frame["filename"]
         frame_file_path = self.transformations(frame_file_path)
@@ -172,16 +174,19 @@ class CodeMappingTreesHelper:
         self.code_mappings = {}
         self.platform = platform
 
-        buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
+        with metrics.timer(
+            f"{METRIC_PREFIX}.generate_code_mappings.duration", tags={"platform": platform}
+        ):
+            buckets: dict[str, list[FrameInfo]] = self._stacktrace_buckets(frames)
 
-        # We reprocess stackframes until we are told that no code mappings were produced
-        # This is order to reprocess past stackframes in light of newly discovered code mappings
-        # This allows for idempotency since the order of the stackframes will not matter
-        # This has no performance issue because stackframes that match an existing code mapping
-        # will be skipped
-        while True:
-            if not self._process_stackframes(buckets):
-                break
+            # We reprocess stackframes until we are told that no code mappings were produced
+            # This is order to reprocess past stackframes in light of newly discovered code mappings
+            # This allows for idempotency since the order of the stackframes will not matter
+            # This has no performance issue because stackframes that match an existing code mapping
+            # will be skipped
+            while True:
+                if not self._process_stackframes(buckets):
+                    break
 
         return list(self.code_mappings.values())
 

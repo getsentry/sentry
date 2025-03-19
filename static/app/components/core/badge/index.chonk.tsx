@@ -49,57 +49,57 @@ function makeChonkBadgeTheme(
     // @TODO(jonasbadalic) these should use feature badge variants
     case 'alpha':
       return {
-        color: theme.colors.static.black,
-        background: theme.colors.static.pink400,
+        color: theme.colors.black,
+        background: theme.colors.chonk.pink400,
       };
     case 'beta':
       return {
-        color: theme.colors.static.black,
-        background: theme.colors.static.yellow400,
+        color: theme.colors.black,
+        background: theme.colors.chonk.yellow400,
       };
     case 'new':
       return {
-        color: theme.colors.static.black,
-        background: theme.colors.static.green400,
+        color: theme.colors.black,
+        background: theme.colors.chonk.green400,
       };
     case 'experimental':
       return {
-        color: theme.colors.dynamic.grayTransparent400,
-        background: theme.colors.dynamic.surface300,
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
       };
     // End feature badge variants
     case 'default':
       return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.grayTransparent400,
+        color: theme.colors.gray500,
+        background: theme.colors.gray100,
       };
 
     // Highlight maps to info badge for now, but the highlight variant should be removed
     case 'highlight':
     case 'info':
       return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.blue400,
-      };
-    case 'success':
-      return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.green400,
-      };
-    case 'warning':
-      return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.yellow400,
-      };
-    case 'danger':
-      return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.red400,
+        color: theme.colors.content.accent,
+        background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        background: theme.colors.dynamic.surface300,
-        color: theme.colors.dynamic.pink400,
+        color: theme.colors.content.promotion,
+        background: theme.colors.pink100,
+      };
+    case 'danger':
+      return {
+        color: theme.colors.content.danger,
+        background: theme.colors.red100,
+      };
+    case 'warning':
+      return {
+        color: theme.colors.content.warning,
+        background: theme.colors.yellow100,
+      };
+    case 'success':
+      return {
+        color: theme.colors.content.success,
+        background: theme.colors.green100,
       };
     default:
       unreachable(p.type);

@@ -75,9 +75,7 @@ def translate_rule_data_actions_to_notification_actions(
                 type=translator.action_type,
                 data=translator.get_sanitized_data(),
                 integration_id=translator.integration_id,
-                target_identifier=translator.target_identifier,
-                target_display=translator.target_display,
-                target_type=translator.target_type,
+                config=translator.action_config,
             )
 
             notification_actions.append(notification_action)
@@ -112,8 +110,8 @@ def build_notification_actions_from_rule_data_actions(
         actions, skip_failures=not is_dry_run
     )
 
-    # Bulk create the actions if not a dry run
+    # Create the actions if not a dry run
     if not is_dry_run:
-        Action.objects.bulk_create(notification_actions)
-
+        for action in notification_actions:
+            action.save()
     return notification_actions

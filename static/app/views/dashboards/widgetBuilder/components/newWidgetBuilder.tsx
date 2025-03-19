@@ -1,6 +1,6 @@
 import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
-import {css, useTheme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
@@ -65,7 +65,7 @@ type WidgetBuilderV2Props = {
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
@@ -148,6 +148,13 @@ function WidgetBuilderV2({
     <Fragment>
       {isOpen && (
         <Fragment>
+          <Global
+            styles={css`
+              body {
+                overflow: hidden;
+              }
+            `}
+          />
           <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
           <AnimatePresence>
             {isOpen && (
@@ -269,8 +276,8 @@ export function WidgetPreviewContainer({
     transform: isDragEnabled
       ? `translate3d(${isDragging ? translate?.x : 0}px, ${isDragging ? translate?.y : 0}px, 0)`
       : undefined,
-    top: isDragEnabled ? top ?? 0 : undefined,
-    left: isDragEnabled ? left ?? 0 : undefined,
+    top: isDragEnabled ? (top ?? 0) : undefined,
+    left: isDragEnabled ? (left ?? 0) : undefined,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragEnabled
       ? theme.zIndex.modal

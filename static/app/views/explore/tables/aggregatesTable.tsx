@@ -71,8 +71,8 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const meta = result.meta ?? {};
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 

@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {LinkButton} from 'sentry/components/core/button';
 import InlineDocs from 'sentry/components/events/interfaces/spans/inlineDocs';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -62,9 +62,9 @@ export function ProfilePreview({event, node}: SpanProfileProps) {
 
   const spanThreadId = useMemo(() => {
     const value = isMissingInstrumentationNode(node)
-      ? node.previous.value ?? node.next.value ?? null
-      : node.value ?? null;
-    return value.data?.['thread.id'];
+      ? (node.previous.value ?? node.next.value ?? null)
+      : (node.value ?? null);
+    return 'data' in value ? value.data?.['thread.id'] : null;
   }, [node]);
 
   const profile = useMemo(() => {
@@ -247,9 +247,9 @@ function LegacyProfilePreview({event, node}: SpanProfileProps) {
 
   const spanThreadId = useMemo(() => {
     const value = isMissingInstrumentationNode(node)
-      ? node.previous.value ?? node.next.value ?? null
-      : node.value ?? null;
-    return value.data?.['thread.id'];
+      ? (node.previous.value ?? node.next.value ?? null)
+      : (node.value ?? null);
+    return 'data' in value ? value.data?.['thread.id'] : null;
   }, [node]);
 
   const profile = useMemo(() => {

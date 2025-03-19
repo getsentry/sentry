@@ -6,12 +6,12 @@ import {useOption} from '@react-aria/listbox';
 import type {ComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
 
-import {Button} from 'sentry/components/button';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
 } from 'sentry/components/compactSelect/types';
+import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -243,6 +243,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
       <SectionedListBoxPane>
         <ListBox
           {...listBoxProps}
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={selectedSection === RECENT_SEARCH_CATEGORY_VALUE}
@@ -290,7 +291,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   setSelectedSection,
   overlayProps,
 }: FilterKeyListBoxProps<T>) {
-  const {filterKeyMenuWidth, wrapperRef, query} = useSearchQueryBuilder();
+  const {filterKeyMenuWidth, wrapperRef, query, portalTarget} = useSearchQueryBuilder();
 
   // Add recent filters to hiddenOptions so they don't show up the ListBox component.
   // We render recent filters manually in the RecentFiltersPane component.
@@ -340,7 +341,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
         visible={isOpen}
         style={{position: 'absolute', width: '100%', left: 0, top: 38, right: 0}}
       >
-        <SectionedOverlay ref={popoverRef} fullWidth showDetailsPane={showDetailsPane}>
+        <SectionedOverlay
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+          ref={popoverRef}
+          fullWidth
+          showDetailsPane={showDetailsPane}
+        >
           {isOpen ? (
             <FilterKeyMenuContent
               fullWidth={fullWidth}
@@ -360,9 +366,13 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
     );
   }
 
-  return (
+  const filterKeyListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay ref={popoverRef} width={filterKeyMenuWidth}>
+      <SectionedOverlay
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+        ref={popoverRef}
+        width={filterKeyMenuWidth}
+      >
         {isOpen ? (
           <FilterKeyMenuContent
             fullWidth={fullWidth}
@@ -379,6 +389,12 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
       </SectionedOverlay>
     </StyledPositionWrapper>
   );
+
+  if (portalTarget) {
+    return createPortal(filterKeyListBoxContent, portalTarget);
+  }
+
+  return filterKeyListBoxContent;
 }
 
 const SectionedOverlay = styled(Overlay, {

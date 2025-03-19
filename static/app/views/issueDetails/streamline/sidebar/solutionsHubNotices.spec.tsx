@@ -37,6 +37,21 @@ describe('SolutionsHubNotices', function () {
     );
 
     expect(screen.getByText('Set Up the GitHub Integration')).toBeInTheDocument();
+
+    // Test for text fragments with formatting
+    expect(screen.getByText(/Autofix is/, {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('a lot better')).toBeInTheDocument();
+    expect(
+      screen.getByText(/when it has your codebase as context/, {exact: false})
+    ).toBeInTheDocument();
+
+    // Test for text with links
+    expect(screen.getByText(/Set up the/, {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('GitHub Integration', {selector: 'a'})).toBeInTheDocument();
+    expect(
+      screen.getByText(/to allow Autofix to go deeper/, {exact: false})
+    ).toBeInTheDocument();
+
     expect(screen.getByText('Set Up Now')).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Install'})).toBeInTheDocument();
   });
@@ -180,12 +195,15 @@ describe('SolutionsHubNotices', function () {
     );
 
     const integrationLink = screen.getByText('GitHub integration');
-    expect(integrationLink).toHaveAttribute('href', '/settings/integrations/github/456');
+    expect(integrationLink).toHaveAttribute(
+      'href',
+      '/settings/org-slug/integrations/github/456'
+    );
 
     const codeMappingsLink = screen.getByText('code mappings');
     expect(codeMappingsLink).toHaveAttribute(
       'href',
-      '/settings/integrations/github/456/?tab=codeMappings'
+      '/settings/org-slug/integrations/github/456/?tab=codeMappings'
     );
   });
 
@@ -205,7 +223,7 @@ describe('SolutionsHubNotices', function () {
     // Should have both the GitHub setup card and the unreadable repos warning
     const setupCard = screen.getByText('Set Up the GitHub Integration').closest('div');
     const warningAlert = screen
-      .getByText(/Autofix can't access these repositories/)
+      .getByText(/Autofix can't access these repositories:/)
       .closest('div');
 
     expect(setupCard).toBeInTheDocument();

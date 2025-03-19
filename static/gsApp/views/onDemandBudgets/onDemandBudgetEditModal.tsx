@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -178,7 +178,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       return true;
     } catch (response) {
       const updateError =
-        response?.responseJSON ?? subscription.planTier === PlanTier.AM3
+        (response?.responseJSON ?? subscription.planTier === PlanTier.AM3)
           ? PAYG_BUDGET_SAVE_ERROR
           : ONDEMAND_BUDGET_SAVE_ERROR;
       this.setState({

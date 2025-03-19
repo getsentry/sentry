@@ -1,10 +1,19 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
@@ -16,19 +25,23 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   useExploreFields,
   useExploreGroupBys,
+  useExploreId,
   useExploreMode,
   useExploreQuery,
   useExploreSortBys,
   useExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ToolbarSection} from 'sentry/views/explore/toolbar/styles';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
   const {addToDashboard} = useAddToDashboard();
+  const {updateQuery, saveQuery} = useSaveQuery();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -41,6 +54,7 @@ export function ToolbarSaveAs() {
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
   const mode = useExploreMode();
+  const id = useExploreId();
   const visualizeYAxes = visualizes.flatMap(v => v.yAxes);
 
   const [interval] = useChartInterval();
@@ -72,6 +86,53 @@ export function ToolbarSaveAs() {
   }));
 
   const items: MenuItemProps[] = [];
+
+  if (organization.features.includes('performance-saved-queries')) {
+    if (defined(id)) {
+      items.push({
+        key: 'update-query',
+        label: (
+          <span>
+            {t('Existing Query')}
+            <FeatureBadge type="alpha" />
+          </span>
+        ),
+        onAction: async () => {
+          try {
+            addLoadingMessage(t('Updating query...'));
+            await updateQuery();
+            addSuccessMessage(t('Query updated successfully'));
+            trackAnalytics('trace_explorer.save_as', {
+              save_type: 'update_query',
+              ui_source: 'toolbar',
+              organization,
+            });
+          } catch (error) {
+            addErrorMessage(t('Failed to update query'));
+            Sentry.captureException(error);
+          }
+        },
+      });
+    }
+    items.push({
+      key: 'save-query',
+      label: (
+        <span>
+          {t('A New Query')}
+          <FeatureBadge type="alpha" />
+        </span>
+      ),
+      onAction: () => {
+        openSaveQueryModal({
+          organization,
+          query,
+          groupBys: mode === Mode.AGGREGATE ? groupBys : [],
+          visualizes,
+          saveQuery,
+        });
+      },
+    });
+  }
 
   if (organization.features.includes('alerts-eap')) {
     items.push({

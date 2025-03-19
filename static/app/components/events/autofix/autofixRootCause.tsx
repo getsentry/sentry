@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {
+  type AutofixFeedback,
   type AutofixRepository,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
@@ -20,13 +21,15 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconEdit, IconFocus} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconFocus, IconInput, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -39,6 +42,7 @@ type AutofixRootCauseProps = {
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;
+  feedback?: AutofixFeedback;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
@@ -144,6 +148,59 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
   });
 }
 
+export function useUpdateRootCauseFeedback({
+  groupId,
+  runId,
+}: {
+  groupId: string;
+  runId: string;
+}) {
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: {action: 'root_cause_thumbs_up' | 'root_cause_thumbs_down'}) => {
+      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
+        method: 'POST',
+        data: {
+          run_id: runId,
+          payload: {
+            type: 'feedback',
+            action: params.action,
+          },
+        },
+      });
+    },
+    onMutate: params => {
+      queryClient.setQueryData(makeAutofixQueryKey(groupId), (data: AutofixResponse) => {
+        if (!data || !data.autofix) {
+          return data;
+        }
+
+        return {
+          ...data,
+          autofix: {
+            ...data.autofix,
+            feedback: {
+              ...data.autofix.feedback,
+              root_cause_thumbs_up: params.action === 'root_cause_thumbs_up',
+              root_cause_thumbs_down: params.action === 'root_cause_thumbs_down',
+            },
+          },
+        };
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(groupId),
+      });
+    },
+    onError: () => {
+      addErrorMessage(t('Something went wrong when updating the root cause feedback.'));
+    },
+  });
+}
+
 export function replaceHeadersWithBold(markdown: string) {
   const headerRegex = /^(#{1,6})\s+(.*)$/gm;
   const boldMarkdown = markdown.replace(headerRegex, (_match, _hashes, content) => {
@@ -189,7 +246,9 @@ function RootCauseDescription({
       </AnimatePresence>
       <div ref={containerRef}>
         {cause.description && (
-          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(cause.description)}} />
+          <Description
+            dangerouslySetInnerHTML={{__html: singleLineRenderer(cause.description)}}
+          />
         )}
         {cause.root_cause_reproduction && (
           <AutofixTimeline events={cause.root_cause_reproduction} />
@@ -199,7 +258,7 @@ function RootCauseDescription({
   );
 }
 
-function formatRootCauseText(
+export function formatRootCauseText(
   cause: AutofixRootCauseData | undefined,
   customRootCause?: string
 ) {
@@ -257,9 +316,74 @@ function CopyRootCauseButton({
     return null;
   }
   const text = formatRootCauseText(cause, customRootCause);
-  return <CopyToClipboardButton size="sm" text={text} borderless />;
+  return (
+    <CopyToClipboardButton
+      size="sm"
+      text={text}
+      borderless
+      title="Copy root cause as Markdown"
+    />
+  );
 }
 
+function ThumbsUpDownButtons({
+  feedback,
+  groupId,
+  runId,
+}: {
+  groupId: string;
+  runId: string;
+  feedback?: AutofixFeedback;
+}) {
+  const {mutate: handleUpdateRootCauseFeedback} = useUpdateRootCauseFeedback({
+    groupId,
+    runId,
+  });
+  const openForm = useFeedbackForm();
+
+  return (
+    <ButtonBar>
+      <Button
+        size="sm"
+        borderless
+        onClick={() => handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_up'})}
+        title={t('This root cause analysis is helpful')}
+      >
+        {
+          <IconThumb
+            color={feedback?.root_cause_thumbs_up ? 'green400' : 'gray300'}
+            size="sm"
+            direction="up"
+            fill="red"
+          />
+        }
+      </Button>
+      <Button
+        size="sm"
+        borderless
+        onClick={() => {
+          handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_down'});
+          openForm?.({
+            messagePlaceholder: t('How can we make Autofix better for you?'),
+            tags: {
+              ['feedback.source']: 'issue_details_ai_autofix_root_cause',
+              ['feedback.owner']: 'ml-ai',
+            },
+          });
+        }}
+        title={t('This root cause is incorrect or not helpful')}
+      >
+        {
+          <IconThumb
+            color={feedback?.root_cause_thumbs_down ? 'red400' : 'gray300'}
+            size="sm"
+            direction="down"
+          />
+        }
+      </Button>
+    </ButtonBar>
+  );
+}
 function AutofixRootCauseDisplay({
   causes,
   groupId,
@@ -268,6 +392,7 @@ function AutofixRootCauseDisplay({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  feedback,
 }: AutofixRootCauseProps) {
   const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
@@ -289,9 +414,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <div ref={iconFocusRef}>
-                <IconFocus size="sm" />
-              </div>
+              <IconWrapper ref={iconFocusRef}>
+                <IconFocus size="sm" color="pink400" />
+              </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
             <CopyRootCauseButton
@@ -310,12 +435,16 @@ function AutofixRootCauseDisplay({
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
-            <div ref={iconFocusRef}>
-              <IconFocus size="sm" />
-            </div>
+            <IconWrapper ref={iconFocusRef}>
+              <IconFocus size="sm" color="pink400" />
+            </IconWrapper>
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
+            <ThumbsUpDownButtons feedback={feedback} groupId={groupId} runId={runId} />
+            <DividerWrapper>
+              <Divider />
+            </DividerWrapper>
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
@@ -331,7 +460,7 @@ function AutofixRootCauseDisplay({
                 }
               }}
             >
-              {isEditing ? <IconClose size="sm" /> : <IconEdit size="sm" />}
+              {isEditing ? <IconClose size="sm" /> : <IconInput size="sm" />}
             </EditButton>
             {isEditing && (
               <Button
@@ -354,7 +483,7 @@ function AutofixRootCauseDisplay({
         <AnimatePresence>
           {agentCommentThread && iconFocusRef.current && (
             <AutofixHighlightPopup
-              selectedText="Root Cause"
+              selectedText=""
               referenceElement={iconFocusRef.current}
               groupId={groupId}
               runId={runId}
@@ -424,6 +553,12 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   );
 }
 
+const Description = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
 const NoCausesPadding = styled('div')`
   padding: 0 ${space(2)};
 `;
@@ -449,6 +584,12 @@ const HeaderWrapper = styled('div')`
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const HeaderText = styled('div')`
@@ -488,4 +629,8 @@ const TextArea = styled('textarea')`
 
 const EditButton = styled(Button)`
   color: ${p => p.theme.subText};
+`;
+
+const DividerWrapper = styled('div')`
+  margin: 0 ${space(1)};
 `;

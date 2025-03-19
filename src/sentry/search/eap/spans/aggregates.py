@@ -1,7 +1,29 @@
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
+from typing import cast
+
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    ExistsFilter,
+    TraceItemFilter,
+)
 
 from sentry.search.eap import constants
-from sentry.search.eap.columns import AggregateDefinition, ArgumentDefinition
+from sentry.search.eap.columns import (
+    AggregateDefinition,
+    ArgumentDefinition,
+    ConditionalAggregateDefinition,
+    ResolvedArguments,
+)
+from sentry.search.eap.utils import literal_validator
+
+WEB_VITALS_MEASUREMENTS = [
+    "measurements.score.total",
+    "measurements.score.lcp",
+    "measurements.score.fcp",
+    "measurements.score.cls",
+    "measurements.score.ttfb",
+    "measurements.score.inp",
+]
 
 
 def count_processor(count_value: int | None) -> int:
@@ -10,6 +32,107 @@ def count_processor(count_value: int | None) -> int:
     else:
         return count_value
 
+
+def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    op_value = cast(str, args[0])
+
+    filter = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=AttributeKey(
+                name="sentry.op",
+                type=AttributeKey.TYPE_STRING,
+            ),
+            op=ComparisonFilter.OP_EQUALS,
+            value=AttributeValue(val_str=op_value),
+        )
+    )
+    return (AttributeKey(name="sentry.op", type=AttributeKey.TYPE_STRING), filter)
+
+
+def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    aggregate_key = cast(AttributeKey, args[0])
+    key = cast(AttributeKey, args[1])
+    value = cast(str, args[2])
+
+    filter = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=key,
+            op=ComparisonFilter.OP_EQUALS,
+            value=AttributeValue(val_str=value),
+        )
+    )
+    return (aggregate_key, filter)
+
+
+# TODO: We should eventually update the frontend to query the ratio column directly
+def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+    filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
+
+    return (ratio_attribute, filter)
+
+
+def transform_vital_score_to_ratio(args: ResolvedArguments) -> AttributeKey:
+    score_attribute = cast(AttributeKey, args[0])
+    score_name = score_attribute.name
+
+    ratio_score_name = score_name.replace("score", "score.ratio")
+    if ratio_score_name == "score.ratio.total":
+        ratio_score_name = "score.total"
+    return AttributeKey(name=ratio_score_name, type=AttributeKey.TYPE_DOUBLE)
+
+
+SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
+    "count_op": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[ArgumentDefinition(argument_types={"string"}, is_attribute=False)],
+        aggregate_resolver=resolve_count_op,
+    ),
+    "avg_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="duration",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ArgumentDefinition(
+                argument_types={
+                    "string",
+                },
+            ),
+            ArgumentDefinition(
+                argument_types={"string"},
+                is_attribute=False,
+            ),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "count_scores": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            )
+        ],
+        aggregate_resolver=resolve_count_scores,
+    ),
+}
 
 SPAN_AGGREGATE_DEFINITIONS = {
     "sum": AggregateDefinition(
@@ -243,5 +366,22 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 argument_types={"string"},
             )
         ],
+    ),
+    "performance_score": AggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        attribute_resolver=transform_vital_score_to_ratio,
     ),
 }

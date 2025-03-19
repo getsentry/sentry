@@ -26,14 +26,7 @@ default_manager.add(events.MemberRemoveAuditLogEvent())
 default_manager.add(events.MemberJoinTeamAuditLogEvent())
 default_manager.add(events.MemberLeaveTeamAuditLogEvent())
 default_manager.add(events.MemberPendingAuditLogEvent())
-default_manager.add(
-    AuditLogEvent(
-        event_id=10,
-        name="ORG_ADD",
-        api_name="org.create",
-        template="created the organization",
-    )
-)
+default_manager.add(events.OrgAddAuditLogEvent())
 default_manager.add(events.OrgEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(

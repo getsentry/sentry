@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,7 +34,25 @@ function AutofixActionSelector<T extends string>({
   return (
     <Container>
       <AnimatePresence mode="wait">
-        {!selected ? (
+        {selected ? (
+          <motion.div
+            key="content"
+            initial={{opacity: 0, scale: 0.95}}
+            animate={{opacity: 1, scale: 1}}
+            transition={testableTransition({duration: 0.1})}
+          >
+            <ContentWrapper>
+              <BackButton
+                size="xs"
+                icon={<IconArrow direction="left" size="xs" />}
+                onClick={onBack}
+                title={t('Back to options')}
+                aria-label={t('Back to options')}
+              />
+              <ContentArea>{selectedOption && children(selectedOption)}</ContentArea>
+            </ContentWrapper>
+          </motion.div>
+        ) : (
           <motion.div
             key="options"
             initial="initial"
@@ -56,24 +74,6 @@ function AutofixActionSelector<T extends string>({
                 </Button>
               ))}
             </ButtonBar>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="content"
-            initial={{opacity: 0, scale: 0.95}}
-            animate={{opacity: 1, scale: 1}}
-            transition={testableTransition({duration: 0.1})}
-          >
-            <ContentWrapper>
-              <BackButton
-                size="xs"
-                icon={<IconArrow direction="left" size="xs" />}
-                onClick={onBack}
-                title={t('Back to options')}
-                aria-label={t('Back to options')}
-              />
-              <ContentArea>{selectedOption && children(selectedOption)}</ContentArea>
-            </ContentWrapper>
           </motion.div>
         )}
       </AnimatePresence>

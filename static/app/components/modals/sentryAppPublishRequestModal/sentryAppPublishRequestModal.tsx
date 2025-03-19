@@ -136,9 +136,9 @@ export function SentryAppPublishRequestModal(props: Props) {
         inline: false,
         name: 'question3',
         validate: ({id, form}) =>
-          !safeURL(form[id])
-            ? [[id, t('Invalid link: URL must start with https://')]]
-            : [],
+          safeURL(form[id])
+            ? []
+            : [[id, t('Invalid link: URL must start with https://')]],
       },
       {
         type: 'email',
@@ -162,9 +162,9 @@ export function SentryAppPublishRequestModal(props: Props) {
         inline: false,
         name: 'question4',
         validate: ({id, form}) =>
-          !safeURL(form[id])
-            ? [[id, t('Invalid link: URL must start with https://')]]
-            : [],
+          safeURL(form[id])
+            ? []
+            : [[id, t('Invalid link: URL must start with https://')]],
       },
     ];
 

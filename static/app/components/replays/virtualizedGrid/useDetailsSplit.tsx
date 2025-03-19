@@ -10,7 +10,7 @@ interface OnClickProps {
 }
 
 interface Props {
-  containerRef: RefObject<HTMLDivElement>;
+  containerRef: RefObject<HTMLDivElement | null>;
   frames: undefined | readonly unknown[];
   handleHeight: number;
   urlParamName: string;

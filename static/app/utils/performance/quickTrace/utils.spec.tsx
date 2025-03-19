@@ -22,7 +22,7 @@ function hexCharFor(x: number): string {
 
 function generateId(prefix: string, {generation, offset}: Position) {
   const s = `${hexCharFor(generation)}${hexCharFor(offset)}`;
-  return `${prefix}:${Array(7).join(s)}`;
+  return `${prefix}:${new Array(7).join(s)}`;
 }
 
 function generateEventId({generation, offset}: Position) {
@@ -85,7 +85,7 @@ function generateTransaction(opts: {depth: number; index: number}): TraceFull {
   return {
     ...generateTransactionLite({generation, offset}),
     errors: [],
-    children: Array(depth <= 0 || generation >= depth - 1 ? 0 : 2)
+    children: new Array(depth <= 0 || generation >= depth - 1 ? 0 : 2)
       .fill(null)
       .map((_, i) =>
         generateTransaction({

@@ -269,15 +269,15 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                 </GuideAnchor>
                 <div className="count">
                   <h6 className="nav-header">{t('Users')}</h6>
-                  {userCount !== 0 ? (
+                  {userCount === 0 ? (
+                    <span>0</span>
+                  ) : (
                     <Link
                       disabled={disableActions}
                       to={`${baseUrl}tags/user/${location.search}`}
                     >
                       <Count className="count" value={userCount} />
                     </Link>
-                  ) : (
-                    <span>0</span>
                   )}
                 </div>
               </Fragment>

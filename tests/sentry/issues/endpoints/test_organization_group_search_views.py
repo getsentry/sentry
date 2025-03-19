@@ -1,12 +1,14 @@
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 
 
@@ -43,6 +45,12 @@ class BaseGSVTestCase(APITestCase):
             query_sort="date",
             position=0,
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=first_custom_view_user_one,
+            position=0,
+        )
 
         # This is out of order to test that the endpoint returns the views in the correct order
         third_custom_view_user_one = GroupSearchView.objects.create(
@@ -51,6 +59,12 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
+            position=2,
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=third_custom_view_user_one,
             position=2,
         )
 
@@ -62,6 +76,12 @@ class BaseGSVTestCase(APITestCase):
             query_sort="new",
             position=1,
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=second_custom_view_user_one,
+            position=1,
+        )
 
         first_custom_view_user_two = GroupSearchView.objects.create(
             name="Custom View One",
@@ -71,6 +91,12 @@ class BaseGSVTestCase(APITestCase):
             query_sort="date",
             position=0,
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=first_custom_view_user_two,
+            position=0,
+        )
 
         second_custom_view_user_two = GroupSearchView.objects.create(
             name="Custom View Two",
@@ -78,6 +104,12 @@ class BaseGSVTestCase(APITestCase):
             user_id=self.user_2.id,
             query="is:resolved",
             query_sort="new",
+            position=1,
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=second_custom_view_user_two,
             position=1,
         )
 
@@ -103,7 +135,35 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data == serialize(objs["user_one_views"])
+        assert response.data[0]["id"] == str(objs["user_one_views"][0].id)
+        assert response.data[0]["position"] == 0
+        assert response.data[1]["id"] == str(objs["user_one_views"][1].id)
+        assert response.data[1]["position"] == 1
+        assert response.data[2]["id"] == str(objs["user_one_views"][2].id)
+        assert response.data[2]["position"] == 2
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_last_visited_exists_for_seen_views(self) -> None:
+        objs = self.create_base_data()
+
+        with freeze_time("2025-03-07T00:00:00Z"):
+            GroupSearchViewLastVisited.objects.create(
+                user_id=self.user.id,
+                organization=self.organization,
+                group_search_view=objs["user_one_views"][0],
+                last_visited=timezone.now(),
+            )
+
+            self.login_as(user=self.user)
+            response = self.get_success_response(self.organization.slug)
+
+            assert len(response.data) == 3
+
+            assert response.data[0]["lastVisited"] == timezone.now()
+            # Second and third views should not have lastVisited
+            assert not response.data[1]["lastVisited"]
+            assert not response.data[2]["lastVisited"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -113,7 +173,10 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         self.login_as(user=self.user_2)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data == serialize(objs["user_two_views"])
+        assert response.data[0]["id"] == str(objs["user_two_views"][0].id)
+        assert response.data[0]["position"] == 0
+        assert response.data[1]["id"] == str(objs["user_two_views"][1].id)
+        assert response.data[1]["position"] == 1
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -160,13 +223,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
     def test_deletes_missing_views(self) -> None:
-        starred_views = GroupSearchViewStarred.objects.filter(
-            organization=self.organization, user_id=self.user.id
-        )
-
-        # Verify that no starred views exist initially
-        assert len(starred_views) == 0
-
         views = self.client.get(self.url).data
 
         update_custom_view_three = views[2]
@@ -228,6 +284,23 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             assert starred_views[idx].position == idx
             assert starred_views[idx].position == view["position"]
             assert str(starred_views[idx].group_search_view.id) == view["id"]
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    @freeze_time("2025-03-07T00:00:00Z")
+    def test_response_with_last_visited(self) -> None:
+        GroupSearchViewLastVisited.objects.create(
+            user_id=self.user.id,
+            organization=self.organization,
+            group_search_view=self.base_data["user_one_views"][0],
+            last_visited=timezone.now(),
+        )
+
+        views = self.client.get(self.url).data
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        assert response.data[0]["lastVisited"] == timezone.now()
+        assert response.data[1]["lastVisited"] is None
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -431,6 +504,12 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             time_filters={"period": "14d"},
             environments=[],
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=first_custom_view_user_one,
+            position=0,
+        )
         first_custom_view_user_one.projects.set([self.project1])
 
         second_custom_view_user_one = GroupSearchView.objects.create(
@@ -443,6 +522,12 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             time_filters={"period": "7d"},
             environments=["staging", "production"],
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=second_custom_view_user_one,
+            position=1,
+        )
         second_custom_view_user_one.projects.set([self.project1, self.project2, self.project3])
 
         third_custom_view_user_one = GroupSearchView.objects.create(
@@ -454,6 +539,12 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             position=2,
             time_filters={"period": "30d"},
             environments=["development"],
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=third_custom_view_user_one,
+            position=2,
         )
         third_custom_view_user_one.projects.set([])
 
@@ -691,6 +782,12 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             time_filters={"period": "14d"},
             environments=[],
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=first_issue_view_user_one,
+            position=0,
+        )
         first_issue_view_user_one.projects.set([self.project3])
 
         second_issue_view_user_one = GroupSearchView.objects.create(
@@ -703,6 +800,12 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             is_all_projects=False,
             time_filters={"period": "7d"},
             environments=["staging", "production"],
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=second_issue_view_user_one,
+            position=1,
         )
         second_issue_view_user_one.projects.set([])
 
@@ -717,6 +820,12 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             time_filters={"period": "30d"},
             environments=["development"],
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=user_1.id,
+            group_search_view=third_issue_view_user_one,
+            position=2,
+        )
         third_issue_view_user_one.projects.set([])
 
         first_issue_view_user_two = GroupSearchView.objects.create(
@@ -730,6 +839,12 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             time_filters={"period": "14d"},
             environments=[],
         )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_2.id,
+            group_search_view=first_issue_view_user_two,
+            position=0,
+        )
         first_issue_view_user_two.projects.set([])
 
         first_issue_view_user_four = GroupSearchView.objects.create(
@@ -742,6 +857,12 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_4.id,
+            group_search_view=first_issue_view_user_four,
+            position=0,
         )
         first_issue_view_user_four.projects.set([])
 

@@ -77,7 +77,7 @@ function FlagValueInput({flag}: {flag: FeatureFlag}) {
 
   return (
     <code>
-      {flag.override !== undefined ? String(flag.override) : String(flag.value)}
+      {flag.override === undefined ? String(flag.value) : String(flag.override)}
     </code>
   );
 }
@@ -88,7 +88,7 @@ function FlagValueBooleanInput({flag}: {flag: FeatureFlag}) {
   const {setOverride} = useFeatureFlagsContext();
 
   const [isActive, setIsActive] = useState(
-    flag.override !== undefined ? Boolean(flag.override) : Boolean(flag.value)
+    flag.override === undefined ? Boolean(flag.value) : Boolean(flag.override)
   );
 
   return (

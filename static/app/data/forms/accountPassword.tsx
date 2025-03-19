@@ -26,7 +26,7 @@ const formGroups: JsonFormObject[] = [
         placeholder: '',
         required: true,
         visible: getUserIsNotManaged,
-        validate: ({id, form}) => (form[id] !== form.passwordVerify ? [[id, '']] : []),
+        validate: ({id, form}) => (form[id] === form.passwordVerify ? [] : [[id, '']]),
       },
       {
         name: 'passwordVerify',

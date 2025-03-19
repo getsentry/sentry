@@ -39,15 +39,16 @@ function DashboardsSecondaryNav({children}: DashboardsNavigationProps) {
         </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/`} end>
+            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="dashboards_all">
               {t('All')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
-          <SecondaryNav.Section title={t('Starred')}>
+          <SecondaryNav.Section title={t('Starred Dashboards')}>
             {starredDashboards.data?.map(dashboard => (
               <SecondaryNav.Item
                 key={dashboard.id}
                 to={`/organizations/${organization.slug}/dashboard/${dashboard.id}/`}
+                analyticsItemName="dashboard_starred_item"
               >
                 {dashboard.title}
               </SecondaryNav.Item>

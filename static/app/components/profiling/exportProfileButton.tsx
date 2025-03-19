@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {LinkButtonProps} from 'sentry/components/button';
-import {LinkButton} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

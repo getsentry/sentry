@@ -124,13 +124,17 @@ describe('Subscription > Overview', () => {
       ).not.toBeInTheDocument();
     } else if (isAm3DsPlan(subscription.plan) && !subscription.isEnterpriseTrial) {
       if (subscription.hadCustomDynamicSampling) {
-        expect(screen.getByText('Accepted spans spend this period')).toBeInTheDocument();
-        expect(screen.getByText('Stored spans spend this period')).toBeInTheDocument();
-      } else {
         expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
         expect(
-          screen.queryByText('Stored spans spend this period')
-        ).not.toBeInTheDocument();
+          screen.getByText('Accepted Spans Included in Subscription')
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText('Stored Spans Included in Subscription')
+        ).toBeInTheDocument();
+      } else {
+        expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
+        expect(screen.queryByText('Accepted spans')).not.toBeInTheDocument();
+        expect(screen.queryByText('Stored spans')).not.toBeInTheDocument();
       }
     } else {
       expect(screen.getByText('Spans usage this period')).toBeInTheDocument();

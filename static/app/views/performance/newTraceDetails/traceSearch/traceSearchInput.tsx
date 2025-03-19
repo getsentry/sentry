@@ -239,9 +239,10 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
             traceState.search.query && !traceState.search.results?.length
               ? t('no results')
               : traceState.search.query
-                ? (traceState.search.resultIteratorIndex !== null
-                    ? traceState.search.resultIteratorIndex + 1
-                    : '-') + `/${traceState.search.results?.length ?? 0}`
+                ? (traceState.search.resultIteratorIndex === null
+                    ? '-'
+                    : traceState.search.resultIteratorIndex + 1) +
+                  `/${traceState.search.results?.length ?? 0}`
                 : ''
           }`}
         </StyledTrailingText>

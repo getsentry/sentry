@@ -13,8 +13,8 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {SeerIcon} from 'sentry/components/ai/SeerIcon';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {
   makeAutofixQueryKey,
@@ -138,10 +138,10 @@ function AutofixHighlightPopupContent({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch current autofix data to get comment thread
-  const autofixData = useAutofixData({groupId});
-  const currentStep = !isAgentComment
-    ? autofixData?.steps?.[stepIndex]
-    : autofixData?.steps?.[stepIndex + 1];
+  const {data: autofixData} = useAutofixData({groupId});
+  const currentStep = isAgentComment
+    ? autofixData?.steps?.[stepIndex + 1]
+    : autofixData?.steps?.[stepIndex];
 
   const commentThread = isAgentComment
     ? currentStep?.agent_comment_thread
@@ -255,9 +255,7 @@ function AutofixHighlightPopupContent({
   return (
     <Container onClick={handleContainerClick}>
       <Header>
-        <SelectedText>
-          <span>"{truncatedText}"</span>
-        </SelectedText>
+        <SelectedText>{truncatedText && <span>"{truncatedText}"</span>}</SelectedText>
         {allMessages.length > 0 && (
           <ResolveButton
             size="zero"
@@ -318,11 +316,12 @@ function AutofixHighlightPopupContent({
   );
 }
 
-function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect, spacing = 36) {
+function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
   const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
 
-  // Try positioning to the left first (default)
-  const left = referenceRect.left - popupRect.width - spacing;
+  // Fixed position from the right edge of the viewport
+  const left = viewportWidth / 2 - popupRect.width + 8;
   let top = referenceRect.top;
 
   // Ensure the popup stays within the viewport vertically
@@ -403,7 +402,7 @@ function AutofixHighlightPopup(props: Props) {
     <Wrapper
       ref={popupRef}
       data-popup="autofix-highlight"
-      data-autofix-input-type={!props.isAgentComment ? 'rethink' : 'agent-comment'}
+      data-autofix-input-type={props.isAgentComment ? 'agent-comment' : 'rethink'}
       initial={{opacity: 0, x: 10}}
       animate={{opacity: 1, x: 0}}
       exit={{opacity: 0, x: 10}}

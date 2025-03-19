@@ -1,6 +1,7 @@
 import isEqual from 'lodash/isEqual';
 
 import type * as ApiNamespace from 'sentry/api';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 const RealApi: typeof ApiNamespace = jest.requireActual('sentry/api');
 
@@ -263,6 +264,7 @@ class Client implements ApiNamespace.Client {
         response.callCount++;
 
         const errorResponse = Object.assign(
+          new RequestError(options.method || 'GET', url, new Error('Request failed')),
           {
             status: response.statusCode,
             responseText: JSON.stringify(body),

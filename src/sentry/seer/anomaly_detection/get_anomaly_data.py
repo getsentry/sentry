@@ -16,7 +16,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.anomaly_detection.utils import translate_direction
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -40,9 +40,8 @@ def get_anomaly_data_from_seer(
         "project_id": subscription.project_id,
         "alert_rule_id": alert_rule.id,
     }
-    if not snuba_query or not isinstance(aggregation_value, (int, float)):
-        extra_data["aggregation_value"] = aggregation_value
-        logger.warning("Aggregation value not integer or snuba query is empty", extra=extra_data)
+    if not snuba_query:
+        logger.warning("Snuba query is empty", extra=extra_data)
         return None
 
     # XXX: we know we have these things because the serializer makes sure we do, but mypy insists
@@ -51,9 +50,18 @@ def get_anomaly_data_from_seer(
         or not alert_rule.sensitivity
         or not alert_rule.seasonality
         or not snuba_query.time_window
-        or not aggregation_value
     ):
         return None
+
+    if aggregation_value is None:
+        extra_data["threshold_type"] = alert_rule.threshold_type
+        extra_data["sensitivity"] = alert_rule.sensitivity
+        extra_data["seasonality"] = alert_rule.seasonality
+        extra_data["aggregation_value"] = aggregation_value
+
+        metrics.incr("anomaly_detection.aggregation_value.none")
+        logger.warning("Aggregation value is none", extra=extra_data)
+        aggregation_value = 0
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=int(snuba_query.time_window / 60),
@@ -84,7 +92,7 @@ def get_anomaly_data_from_seer(
         return None
 
     if response.status > 400:
-        logger.error(
+        logger.info(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "response_data": response.data,
@@ -121,7 +129,7 @@ def get_anomaly_data_from_seer(
         return None
 
     if not results.get("success"):
-        logger.error(
+        logger.info(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "error_message": results.get("message", ""),

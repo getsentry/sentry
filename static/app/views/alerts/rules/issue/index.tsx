@@ -16,16 +16,16 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -669,7 +669,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
               key,
               hasChangeAlerts && key === 'interval'
                 ? '1h'
-                : formField?.initial ?? formField?.choices?.[0]?.[0],
+                : (formField?.initial ?? formField?.choices?.[0]?.[0]),
             ])
             .filter(([, initial]) => !!initial)
         )
@@ -1043,7 +1043,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         disabled={disabled}
       >
         {({onChange, onBlur}: any) => (
-          <SelectControl
+          <Select
             clearable={false}
             disabled={disabled}
             value={environment}
@@ -1082,7 +1082,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
             _selectedProject;
 
           return (
-            <SelectControl
+            <Select
               disabled={disabled || isSavedAlertRule(rule)}
               value={selectedProject.id}
               styles={{
@@ -1149,7 +1149,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         flexibleControlStateSize
       >
         {({onChange, onBlur}: any) => (
-          <SelectControl
+          <Select
             clearable={false}
             disabled={disabled}
             value={`${frequency}`}
@@ -1599,7 +1599,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...Array(filters.length).keys()],
+        filterIndices: [...new Array(filters.length).keys()],
       };
     }
   }

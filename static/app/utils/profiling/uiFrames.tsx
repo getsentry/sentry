@@ -82,14 +82,14 @@ class UIFrames {
     const frozenFramesQueue = [...frozenFrames.values].sort(sortFramesByStartedTime);
 
     while (slowFramesQueue.length > 0 || frozenFramesQueue.length > 0) {
-      const nextType = !slowFramesQueue.length
-        ? 'frozen'
-        : !frozenFramesQueue.length
-          ? 'slow'
-          : slowFramesQueue[0]!.elapsed - slowFramesQueue[0]!.value <
-              frozenFramesQueue[0]!.elapsed - frozenFramesQueue[0]!.value
+      const nextType = slowFramesQueue.length
+        ? frozenFramesQueue.length
+          ? slowFramesQueue[0]!.elapsed - slowFramesQueue[0]!.value <
+            frozenFramesQueue[0]!.elapsed - frozenFramesQueue[0]!.value
             ? 'slow'
-            : 'frozen';
+            : 'frozen'
+          : 'slow'
+        : 'frozen';
 
       // Being lazy, but we could reverse and pop to avoid shift which is O(n)
       const frame =

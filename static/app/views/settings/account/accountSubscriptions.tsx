@@ -64,7 +64,7 @@ function AccountSubscriptions() {
 
       // Update the subscription in the list
       setApiQueryData<Subscription[]>(queryClient, [ENDPOINT], subs => {
-        return subs.map(sub => {
+        return subs?.map(sub => {
           if (sub.listId === subscription.listId) {
             return subscription;
           }

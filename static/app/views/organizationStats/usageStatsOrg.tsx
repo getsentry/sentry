@@ -5,13 +5,13 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {LinkButton} from 'sentry/components/button';
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -28,12 +28,14 @@ import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
 import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 
 import {
   FORMAT_DATETIME_DAILY,
   FORMAT_DATETIME_HOURLY,
+  FORMAT_DATETIME_HOURLY_24H,
   getTooltipFormatter,
 } from './usageChart/utils';
 import {mapSeriesToChart} from './mapSeriesToChart';
@@ -63,6 +65,7 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
   projectIds: number[];
   chartTransform?: string;
   clientDiscard?: boolean;
+  clock24Hours?: boolean;
 }
 
 type UsageStatsOrganizationState = {
@@ -108,7 +111,7 @@ class UsageStatsOrganization<
   }
 
   /** List of components to render on single-project view */
-  get projectDetails(): JSX.Element[] {
+  get projectDetails(): React.JSX.Element[] {
     return [];
   }
 
@@ -244,8 +247,15 @@ class UsageStatsOrganization<
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
     // may shift ahead/behind when converting to the user's local time.
-    const FORMAT_DATETIME =
-      intervalHours >= 24 ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
+    let FORMAT_DATETIME;
+    if (intervalHours >= 24) {
+      // Daily format doesn't have time, so no change needed
+      FORMAT_DATETIME = FORMAT_DATETIME_DAILY;
+    } else if (shouldUse24Hours()) {
+      FORMAT_DATETIME = FORMAT_DATETIME_HOURLY_24H;
+    } else {
+      FORMAT_DATETIME = FORMAT_DATETIME_HOURLY;
+    }
 
     const xAxisStart = moment(startTime);
     const xAxisEnd = moment(endTime);

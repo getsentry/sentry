@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
@@ -59,6 +59,10 @@ interface PlatformPickerProps {
   showFilterBar?: boolean;
   showOther?: boolean;
   source?: string;
+  /**
+   * When `false`, hides the close button and does not display a custom background color.
+   */
+  visibleSelection?: boolean;
 }
 
 type State = {
@@ -69,6 +73,7 @@ type State = {
 class PlatformPicker extends Component<PlatformPickerProps, State> {
   static defaultProps = {
     showOther: true,
+    visibleSelection: true,
   };
 
   state: State = {
@@ -192,6 +197,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
           {platformList.map(platform => {
             return (
               <PlatformCard
+                visibleSelection={this.props.visibleSelection}
                 data-test-id={`platform-${platform.id}`}
                 key={platform.id}
                 platform={platform}
@@ -295,35 +301,41 @@ const ClearButton = styled(Button)`
   color: ${p => p.theme.textColor};
 `;
 
-const PlatformCard = styled(({platform, selected, onClear, ...props}: any) => (
-  <div {...props}>
-    <StyledPlatformIcon
-      platform={platform.id}
-      size={56}
-      radius={5}
-      withLanguageIcon
-      format="lg"
-    />
-    <h3>{platform.name}</h3>
-    {selected && (
-      <ClearButton
-        icon={<IconClose isCircled />}
-        borderless
-        size="xs"
-        onClick={onClear}
-        aria-label={t('Clear')}
+const PlatformCard = styled(
+  ({platform, selected, visibleSelection, onClear, ...props}: any) => (
+    <div {...props}>
+      <StyledPlatformIcon
+        platform={platform.id}
+        size={56}
+        radius={5}
+        withLanguageIcon
+        format="lg"
       />
-    )}
-  </div>
-))`
+      <h3>{platform.name}</h3>
+      {selected && visibleSelection && (
+        <ClearButton
+          icon={<IconClose isCircled />}
+          borderless
+          size="xs"
+          onClick={onClear}
+          aria-label={t('Clear')}
+        />
+      )}
+    </div>
+  )
+)`
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 0 0 14px;
   border-radius: 4px;
-  background: ${p => p.selected && p.theme.alert.info.backgroundLight};
   cursor: pointer;
+
+  ${p =>
+    p.selected &&
+    p.visibleSelection &&
+    `background: ${p.theme.alert.info.backgroundLight};`}
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};

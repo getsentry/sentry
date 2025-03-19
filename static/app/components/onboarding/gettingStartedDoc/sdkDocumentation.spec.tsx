@@ -29,6 +29,11 @@ function renderMockRequests({
   });
 
   MockApiClient.addMockResponse({
+    url: `/projects/${orgSlug}/${project.slug}/keys/${PROJECT_KEY?.id}/`,
+    method: 'PUT',
+  });
+
+  MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/sdks/`,
   });
 }

@@ -90,8 +90,9 @@ SentrySdk.Init(options =>
     // e.g. 0.2 means we want to profile 20 % of the captured transactions.
     // We recommend adjusting this value in production.
     options.ProfilesSampleRate = 1.0;${
-      platform !== DotNetPlatform.IOS_MACCATALYST
-        ? `
+      platform === DotNetPlatform.IOS_MACCATALYST
+        ? ''
+        : `
     // Requires NuGet package: Sentry.Profiling
     // Note: By default, the profiler is initialized asynchronously. This can
     // be tuned by passing a desired initialization timeout to the constructor.
@@ -101,7 +102,6 @@ SentrySdk.Init(options =>
         // prefer profiling to start asynchronously
         TimeSpan.FromMilliseconds(500)
     ));`
-        : ''
     }`
         : ''
     }

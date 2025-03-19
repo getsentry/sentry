@@ -11,8 +11,8 @@ import {
 } from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -220,8 +220,8 @@ function DashboardGrid({
 
     // finds number of dashboards (cached or not) based on if the screen is being resized or not
     const numDashboards = gridIsBeingResized
-      ? currentDashboards?.length ?? 0
-      : dashboards?.length ?? 0;
+      ? (currentDashboards?.length ?? 0)
+      : (dashboards?.length ?? 0);
 
     return (
       <DashboardGridContainer

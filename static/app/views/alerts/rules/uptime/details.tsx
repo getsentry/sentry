@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -145,13 +145,13 @@ export default function UptimeAlertDetails({params}: UptimeAlertDetailsProps) {
               onToggleStatus={status => handleUpdate({status})}
               size="sm"
               disabled={!canEdit}
-              title={!canEdit ? permissionTooltipText : undefined}
+              title={canEdit ? undefined : permissionTooltipText}
             />
             <LinkButton
               size="sm"
               icon={<IconEdit />}
               disabled={!canEdit}
-              title={!canEdit ? permissionTooltipText : undefined}
+              title={canEdit ? undefined : permissionTooltipText}
               to={makeAlertsPathname({
                 path: `/uptime-rules/${project.slug}/${uptimeRuleId}/`,
                 organization,

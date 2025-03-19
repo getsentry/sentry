@@ -5,7 +5,7 @@ import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import type {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 

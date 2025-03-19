@@ -7,8 +7,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
-from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.classifications import IntegrationClassification
@@ -244,7 +243,6 @@ class GitlabRequestParserTest(TestCase):
         integration = self.get_integration()
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
 
-        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)

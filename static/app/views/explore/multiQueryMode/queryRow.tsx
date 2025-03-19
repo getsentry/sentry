@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -58,6 +59,8 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: true,
   });
 
+  const [interval] = useChartInterval();
+
   useCompareAnalytics({
     aggregatesTableResult,
     index,
@@ -65,6 +68,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     spansTableResult,
     timeseriesResult,
     queryType: mode === Mode.AGGREGATE ? 'aggregate' : 'samples',
+    interval,
   });
 
   return (

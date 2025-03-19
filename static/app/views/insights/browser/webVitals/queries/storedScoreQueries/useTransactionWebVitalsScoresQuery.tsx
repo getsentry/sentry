@@ -80,9 +80,9 @@ export const useTransactionWebVitalsScoresQuery = ({
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.inp)',
-        ...(webVital !== 'total'
-          ? [`performance_score(measurements.score.${webVital})`]
-          : []),
+        ...(webVital === 'total'
+          ? []
+          : [`performance_score(measurements.score.${webVital})`]),
         `opportunity_score(measurements.score.${webVital})`,
         'performance_score(measurements.score.total)',
         'count()',

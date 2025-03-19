@@ -6,9 +6,9 @@ import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {Button, LinkButton} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
@@ -277,8 +277,6 @@ const DropdownButton = styled(Button)`
 `;
 
 const StyledTag = styled(Tag)`
-  display: flex;
-  align-items: center;
   gap: ${space(0.25)};
   position: relative;
   height: 24px;

@@ -116,10 +116,11 @@ export type CustomComboboxMenuProps<T> = {
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
-  listBoxRef: React.RefObject<HTMLUListElement>;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
   overlayProps: OverlayProps;
-  popoverRef: React.RefObject<HTMLDivElement>;
+  popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
+  portalTarget?: HTMLElement | null;
 };
 
 export type CustomComboboxMenu<T> = (
@@ -197,7 +198,7 @@ function useUpdateOverlayPositionOnContentChange({
   updateOverlayPosition,
   isOpen,
 }: {
-  contentRef: React.RefObject<HTMLDivElement>;
+  contentRef: React.RefObject<HTMLDivElement | null>;
   isOpen: boolean;
   updateOverlayPosition: (() => void) | null;
 }) {
@@ -247,16 +248,18 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   popoverRef,
   state,
   overlayProps,
+  portalTarget,
 }: {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
-  listBoxRef: React.RefObject<HTMLUListElement>;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
   overlayProps: OverlayProps;
-  popoverRef: React.RefObject<HTMLDivElement>;
+  popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
   customMenu?: CustomComboboxMenu<T>;
+  portalTarget?: HTMLElement | null;
 }) {
   if (customMenu) {
     return customMenu({
@@ -268,14 +271,19 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       state,
       overlayProps,
       filterValue,
+      portalTarget,
     });
   }
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <ListBoxOverlay ref={popoverRef}>
+      <ListBoxOverlay
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+        ref={popoverRef}
+      >
         <ListBox
           {...listBoxProps}
+          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={!!filterValue}
@@ -322,7 +330,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
-  const {disabled} = useSearchQueryBuilder();
+  const {disabled, portalTarget} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -547,6 +555,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         popoverRef={popoverRef}
         state={state}
         overlayProps={overlayProps}
+        portalTarget={portalTarget}
       />
     </Wrapper>
   );

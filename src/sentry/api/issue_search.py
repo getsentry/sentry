@@ -9,6 +9,8 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.event_search import (
     AggregateFilter,
     ParenExpression,
+    QueryOp,
+    QueryToken,
     SearchConfig,
     SearchFilter,
     SearchKey,
@@ -28,7 +30,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
-from sentry.search.events.filter import ParsedTerm, ParsedTerms, to_list
+from sentry.search.events.filter import to_list
 from sentry.search.utils import (
     DEVICE_CLASS,
     get_teams_for_users,
@@ -271,25 +273,37 @@ def convert_query_values(
 ) -> list[SearchFilter]: ...
 
 
+# maintain a specific subtype of QueryToken union
 @overload
 def convert_query_values(
-    search_filters: ParsedTerms,
+    search_filters: Sequence[AggregateFilter | SearchFilter],
     projects: Sequence[Project],
     user: User | RpcUser | AnonymousUser | None,
     environments: Sequence[Environment] | None,
     value_converters=value_converters,
     allow_aggregate_filters=False,
-) -> ParsedTerms: ...
+) -> Sequence[AggregateFilter | SearchFilter]: ...
+
+
+@overload
+def convert_query_values(
+    search_filters: Sequence[QueryToken],
+    projects: Sequence[Project],
+    user: User | RpcUser | AnonymousUser | None,
+    environments: Sequence[Environment] | None,
+    value_converters=value_converters,
+    allow_aggregate_filters=False,
+) -> Sequence[QueryToken]: ...
 
 
 def convert_query_values(
-    search_filters: ParsedTerms,
+    search_filters: Sequence[QueryToken],
     projects: Sequence[Project],
     user: User | RpcUser | AnonymousUser | None,
     environments: Sequence[Environment] | None,
     value_converters=value_converters,
     allow_aggregate_filters=False,
-) -> ParsedTerms:
+) -> Sequence[QueryToken]:
     """
     Accepts a collection of SearchFilter objects and converts their values into
     a specific format, based on converters specified in `value_converters`.
@@ -317,9 +331,9 @@ def convert_query_values(
     ) -> ParenExpression: ...
 
     @overload
-    def convert_search_filter(search_filter: str, organization: Organization) -> str: ...
+    def convert_search_filter(search_filter: QueryOp, organization: Organization) -> QueryOp: ...
 
-    def convert_search_filter(search_filter: ParsedTerm, organization: Organization) -> ParsedTerm:
+    def convert_search_filter(search_filter: QueryToken, organization: Organization) -> QueryToken:
         if isinstance(search_filter, ParenExpression):
             return search_filter._replace(
                 children=[
@@ -351,8 +365,8 @@ def convert_query_values(
         return search_filter
 
     def expand_substatus_query_values(
-        search_filters: ParsedTerms, org: Organization
-    ) -> ParsedTerms:
+        search_filters: Sequence[QueryToken], org: Organization
+    ) -> Sequence[QueryToken]:
         first_status_incl = None
         first_status_excl = None
         includes_status_filter = False

@@ -8,6 +8,7 @@ from sentry.search.eap.ourlogs.attributes import (
 
 OURLOG_DEFINITIONS = ColumnDefinitions(
     aggregates={},
+    conditional_aggregates={},
     formulas={},
     columns=OURLOG_ATTRIBUTE_DEFINITIONS,
     contexts=OURLOG_VIRTUAL_CONTEXTS,

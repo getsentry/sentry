@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -60,7 +60,7 @@ export function UptimeDetailsSidebar({
               isHoverable
               size="sm"
               title={tct(
-                'A check status is marked as intermittent when it fails but has not yet met the threshold to be considered downtime. [link:Learn more].',
+                'A check status is considered as a failure when a check fails but hasn’t recorded three consecutive failures needed for Downtime. [link:Learn more].',
                 {
                   link: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />
@@ -78,7 +78,7 @@ export function UptimeDetailsSidebar({
               isHoverable
               size="sm"
               title={tct(
-                'A check status is considered downtime when it fails 3 consecutive times, meeting the downtime threshold. [link:Learn more].',
+                'A check status is considered downtime when it fails 3 consecutive times, meeting the Downtime threshold. [link:Learn more].',
                 {
                   link: (
                     <ExternalLink href="https://docs.sentry.io/product/alerts/uptime-monitoring/#uptime-check-failures" />

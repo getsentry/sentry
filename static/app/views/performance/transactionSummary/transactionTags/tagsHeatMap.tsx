@@ -350,7 +350,7 @@ function TagsHeatMap(
 
                 return (
                   <div>
-                    {!transactionTableData?.data.length ? <Placeholder /> : null}
+                    {transactionTableData?.data.length ? null : <Placeholder />}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
                       const target = generateLinkToEventInTraceView({
                         eventId: row.id,

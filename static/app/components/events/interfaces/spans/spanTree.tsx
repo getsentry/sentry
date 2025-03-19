@@ -49,15 +49,18 @@ type PropType = ScrollbarManagerChildrenProps & {
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
 };
 
 type StateType = {
   headerPos: number;
-  spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
+  spanRows: Record<
+    string,
+    {spanRow: React.RefObject<HTMLDivElement | null>; treeDepth: number}
+  >;
 };
 
 const listRef = createRef<ReactVirtualizedList>();
@@ -288,7 +291,7 @@ class SpanTree extends Component<PropType> {
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
     outOfViewSpansAbove: EnhancedProcessedSpanType[];
-  }): JSX.Element | null {
+  }): React.JSX.Element | null {
     const {
       isCurrentSpanHidden,
       outOfViewSpansAbove,
@@ -681,7 +684,7 @@ class SpanTree extends Component<PropType> {
 
   addSpanRowToState = (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => {
     this.setState((prevState: StateType) => {
@@ -700,7 +703,7 @@ class SpanTree extends Component<PropType> {
     });
   };
 
-  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement>) => {
+  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement | null>) => {
     const {traceViewHeaderRef} = this.props;
 
     if (!spanRow.current || !traceViewHeaderRef.current) {
@@ -765,7 +768,10 @@ class SpanTree extends Component<PropType> {
     }
 
     return (
-      <TraceViewContainer ref={this.props.traceViewRef}>
+      <TraceViewContainer
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
+        ref={this.props.traceViewRef}
+      >
         <WindowScroller onScroll={this.throttledOnScroll}>
           {({height, isScrolling, onChildScroll, scrollTop}) => (
             <AutoSizer disableHeight>
@@ -795,7 +801,7 @@ class SpanTree extends Component<PropType> {
 type SpanRowProps = ListRowProps & {
   addSpanRowToState: (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => void;
   cache: CellMeasurerCache;
@@ -839,7 +845,7 @@ function SpanRow(props: SpanRowProps) {
     node: SpanTreeNode,
     extraProps: {
       cellMeasurerCache: CellMeasurerCache;
-      listRef: React.RefObject<ReactVirtualizedList>;
+      listRef: React.RefObject<ReactVirtualizedList | null>;
       measure: () => void;
     } & SpanContext.SpanContextProps
   ) => {

@@ -12,8 +12,8 @@ import iconSafari from 'sentry-logos/logo-safari.svg';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
@@ -491,16 +491,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         });
                       }}
                     >
-                      {filter.id !== 'legacy-browsers' ? (
-                        <FieldFromConfig
-                          key={filter.id}
-                          getData={data => ({active: data[filter.id]})}
-                          field={{
-                            type: 'boolean',
-                            ...fieldProps,
-                          }}
-                        />
-                      ) : (
+                      {filter.id === 'legacy-browsers' ? (
                         <FormField
                           inline={false}
                           {...fieldProps}
@@ -519,6 +510,15 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                             />
                           )}
                         </FormField>
+                      ) : (
+                        <FieldFromConfig
+                          key={filter.id}
+                          getData={data => ({active: data[filter.id]})}
+                          field={{
+                            type: 'boolean',
+                            ...fieldProps,
+                          }}
+                        />
                       )}
                     </NestedForm>
                   </PanelItem>

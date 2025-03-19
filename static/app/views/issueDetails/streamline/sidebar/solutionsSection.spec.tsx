@@ -7,13 +7,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
-import {IssueCategory} from 'sentry/types/group';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {type Group, IssueCategory} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import * as RegionUtils from 'sentry/utils/regions';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
-import {Tab} from 'sentry/views/issueDetails/types';
 
-jest.mock('sentry/utils/issueTypeConfig');
 jest.mock('sentry/utils/regions');
 
 describe('SolutionsSection', () => {
@@ -25,7 +23,7 @@ describe('SolutionsSection', () => {
       },
     ],
   });
-  const mockGroup = GroupFixture();
+  let mockGroup!: ReturnType<typeof GroupFixture>;
   const mockProject = ProjectFixture();
   const organization = OrganizationFixture({
     genAIConsent: true,
@@ -34,6 +32,7 @@ describe('SolutionsSection', () => {
   });
 
   beforeEach(() => {
+    mockGroup = GroupFixture();
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -51,86 +50,6 @@ describe('SolutionsSection', () => {
         steps: [],
       },
     });
-
-    jest.mocked(getConfigForIssueType).mockReturnValue({
-      issueSummary: {
-        enabled: true,
-      },
-      resources: {
-        description: 'Test Resource',
-        links: [{link: 'https://example.com', text: 'Test Link'}],
-        linksByPlatform: {},
-      },
-      actions: {
-        archiveUntilOccurrence: {enabled: false},
-        delete: {enabled: false},
-        deleteAndDiscard: {enabled: false},
-        ignore: {enabled: false},
-        merge: {enabled: false},
-        resolve: {enabled: true},
-        resolveInRelease: {enabled: false},
-        share: {enabled: false},
-      },
-      customCopy: {
-        resolution: 'Resolved',
-        eventUnits: 'Events',
-      },
-      pages: {
-        landingPage: Tab.DETAILS,
-        events: {enabled: false},
-        openPeriods: {enabled: false},
-        checkIns: {enabled: false},
-        uptimeChecks: {enabled: false},
-        attachments: {enabled: false},
-        userFeedback: {enabled: false},
-        replays: {enabled: false},
-        tagsTab: {enabled: false},
-      },
-      detector: {enabled: false},
-      autofix: true,
-      discover: {enabled: false},
-      eventAndUserCounts: {enabled: true},
-      evidence: null,
-      header: {
-        filterBar: {enabled: true, fixedEnvironment: false},
-        graph: {enabled: true, type: 'discover-events'},
-        tagDistribution: {enabled: false},
-        occurrenceSummary: {enabled: false},
-      },
-      logLevel: {enabled: true},
-      mergedIssues: {enabled: false},
-      performanceDurationRegression: {enabled: false},
-      profilingDurationRegression: {enabled: false},
-      regression: {enabled: false},
-      showFeedbackWidget: false,
-      similarIssues: {enabled: false},
-      spanEvidence: {enabled: false},
-      stacktrace: {enabled: false},
-      stats: {enabled: false},
-      tags: {enabled: false},
-      useOpenPeriodChecks: false,
-      usesIssuePlatform: false,
-    });
-  });
-
-  it('renders loading state when summary is pending', () => {
-    // Use a delayed response to simulate loading state
-    MockApiClient.addMockResponse({
-      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/summarize/`,
-      method: 'POST',
-      statusCode: 200,
-      body: new Promise(() => {}), // Never resolves, keeping the loading state
-    });
-
-    render(
-      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
-      {
-        organization,
-      }
-    );
-
-    expect(screen.getByText('Solutions Hub')).toBeInTheDocument();
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3); // whatsWrong, possibleCause, and Open Autofix
   });
 
   it('renders summary when AI features are enabled and data is available', async () => {
@@ -162,14 +81,30 @@ describe('SolutionsSection', () => {
       features: ['gen-ai-features'],
     });
 
+    const disabledIssueSummaryGroup: Group = {
+      ...mockGroup,
+      issueCategory: IssueCategory.PERFORMANCE,
+      title: 'ChunkLoadError',
+      platform: 'javascript',
+    };
+
+    const javascriptProject: Project = {
+      ...mockProject,
+      platform: 'javascript',
+    };
+
     render(
-      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+      <SolutionsSection
+        event={mockEvent}
+        group={disabledIssueSummaryGroup}
+        project={javascriptProject}
+      />,
       {
         organization: customOrganization,
       }
     );
 
-    expect(screen.getByText('Test Link')).toBeInTheDocument();
+    expect(screen.getByText('How to fix ChunkLoadErrors')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
   });
 
@@ -179,8 +114,24 @@ describe('SolutionsSection', () => {
       genAIConsent: false,
     });
 
+    const disabledIssueSummaryGroup: Group = {
+      ...mockGroup,
+      issueCategory: IssueCategory.PERFORMANCE,
+      title: 'ChunkLoadError',
+      platform: 'javascript',
+    };
+
+    const javascriptProject: Project = {
+      ...mockProject,
+      platform: 'javascript',
+    };
+
     render(
-      <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+      <SolutionsSection
+        event={mockEvent}
+        group={disabledIssueSummaryGroup}
+        project={javascriptProject}
+      />,
       {
         organization: customOrganization,
       }
@@ -199,7 +150,7 @@ describe('SolutionsSection', () => {
   });
 
   describe('Solutions Hub button text', () => {
-    it('shows "Set Up Seer" when AI needs setup', async () => {
+    it('shows "Set Up Autofix" when AI needs setup', async () => {
       const customOrganization = OrganizationFixture({
         genAIConsent: false,
         hideAiFeatures: false,
@@ -227,10 +178,10 @@ describe('SolutionsSection', () => {
       });
 
       expect(
-        screen.getByText('Explore potential root causes and solutions with Seer.')
+        screen.getByText('Explore potential root causes and solutions with Autofix.')
       ).toBeInTheDocument();
 
-      expect(screen.getByRole('button', {name: 'Set Up Seer'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Set Up Autofix'})).toBeInTheDocument();
     });
 
     it('shows "Find Root Cause" even when autofix needs setup', async () => {
@@ -283,11 +234,6 @@ describe('SolutionsSection', () => {
         },
       });
 
-      jest.mocked(getConfigForIssueType).mockReturnValue({
-        ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
-        resources: null,
-      });
-
       render(
         <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
         {
@@ -301,7 +247,17 @@ describe('SolutionsSection', () => {
     });
 
     it('shows "READ MORE" when only resources are available', async () => {
-      mockGroup.issueCategory = IssueCategory.UPTIME;
+      const disabledIssueSummaryGroup: Group = {
+        ...mockGroup,
+        issueCategory: IssueCategory.PERFORMANCE,
+        title: 'ChunkLoadError',
+        platform: 'javascript',
+      };
+
+      const javascriptProject: Project = {
+        ...mockProject,
+        platform: 'javascript',
+      };
 
       // Mock config with autofix disabled
       MockApiClient.addMockResponse({
@@ -313,29 +269,18 @@ describe('SolutionsSection', () => {
         },
       });
 
-      jest.mocked(getConfigForIssueType).mockReturnValue({
-        ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
-        autofix: false,
-        issueSummary: {enabled: false},
-        resources: {
-          description: '',
-          links: [],
-          linksByPlatform: {},
-        },
-      });
-
       render(
-        <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
+        <SolutionsSection
+          event={mockEvent}
+          group={disabledIssueSummaryGroup}
+          project={javascriptProject}
+        />,
         {
           organization,
         }
       );
 
-      await waitFor(() => {
-        expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      });
-
-      expect(screen.getByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'READ MORE'})).toBeInTheDocument();
     });
 
     it('does not show CTA button when region is de', () => {
@@ -363,11 +308,6 @@ describe('SolutionsSection', () => {
         },
       });
 
-      jest.mocked(getConfigForIssueType).mockReturnValue({
-        ...jest.mocked(getConfigForIssueType)(mockGroup, mockGroup.project),
-        resources: null,
-      });
-
       render(
         <SolutionsSection event={mockEvent} group={mockGroup} project={mockProject} />,
         {
@@ -376,7 +316,6 @@ describe('SolutionsSection', () => {
       );
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Set Up Seer'})).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Set Up Autofix'})
       ).not.toBeInTheDocument();

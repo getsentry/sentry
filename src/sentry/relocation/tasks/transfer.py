@@ -22,7 +22,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_local_region
 
-logger = logging.getLogger("sentry.relocation.tasks")
+logger = logging.getLogger("sentry.relocation")
 
 
 @instrumented_task(
@@ -98,6 +98,8 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
         return
     log_context["state"] = transfer.state
     log_context["relocation_uuid"] = str(transfer.relocation_uuid)
+
+    logger.info("relocation.transfer.processing", extra=log_context)
 
     if transfer.state == RelocationTransferState.Request:
         public_key = transfer.public_key or b""
@@ -191,6 +193,8 @@ def process_relocation_transfer_region(transfer_id: int) -> None:
 
     log_context["state"] = transfer.state
     log_context["relocation_uuid"] = uuid
+
+    logger.info("relocation.transfer.processing", extra=log_context)
 
     if transfer.state == RelocationTransferState.Reply:
         relocation_storage = get_relocation_storage()

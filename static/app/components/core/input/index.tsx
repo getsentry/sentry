@@ -90,7 +90,8 @@ export interface InputProps
  * To add leading/trailing items (e.g. a search icon on the left side), use
  * InputControl (components/inputControl) instead.
  */
-export const Input = styled(
+
+const StyledInput = styled(
   forwardRef<HTMLInputElement, InputProps>(
     (
       {
@@ -114,17 +115,16 @@ export const Input = styled(
       return <input {...props} ref={mergeRefs([ref, autosizeRef])} size={nativeSize} />;
     }
   ),
-  {
-    shouldForwardProp: prop => {
-      return (
-        typeof prop === 'string' &&
-        (isPropValid(prop) ||
-          prop === 'autosize' ||
-          prop === 'nativeSize' ||
-          prop === 'size')
-      );
-    },
-  }
+  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
+)``;
+
+// This is a hack - emotion does not support overriding the shouldForwardProp
+// for styled components, but if we wrap it inside another component, we can
+// prevent it from doing that while still applying the styles.
+export const Input = styled(
+  forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref) => (
+    <StyledInput {...props} ref={ref} />
+  ))
 )`
   ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
 `;

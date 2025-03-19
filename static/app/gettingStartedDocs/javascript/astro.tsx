@@ -151,7 +151,7 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            'You can further customize your SDK by [manualSetupLink:manually inializing the SDK].',
+            'You can further customize your SDK by [manualSetupLink:manually initializing the SDK].',
             {
               manualSetupLink: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/" />

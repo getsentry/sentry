@@ -8,6 +8,7 @@ from sentry.search.eap.uptime_checks.attributes import (
 
 UPTIME_CHECK_DEFINITIONS = ColumnDefinitions(
     aggregates={},
+    conditional_aggregates={},
     formulas={},
     columns=UPTIME_CHECK_ATTRIBUTE_DEFINITIONS,
     contexts=UPTIME_CHECK_VIRTUAL_CONTEXTS,

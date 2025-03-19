@@ -304,7 +304,7 @@ type SpanDescendantNode = {
 };
 
 type SpanMessageNode = {
-  element: JSX.Element;
+  element: React.JSX.Element;
   type: SpanTreeNodeType.MESSAGE;
 };
 

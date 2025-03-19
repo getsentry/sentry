@@ -41,7 +41,6 @@ from sentry.relocation.models.relocation import (
     RelocationValidationAttempt,
     ValidationStatus,
 )
-from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.relocation.tasks.process import (
     ERR_NOTIFYING_INTERNAL,
     ERR_POSTPROCESSING_INTERNAL,
@@ -90,12 +89,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
-from sentry.testutils.helpers.task_runner import (
-    BurstTaskRunner,
-    BurstTaskRunnerRetryError,
-    TaskRunner,
-)
-from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.user import User
@@ -297,13 +291,14 @@ class UploadingStartTest(RelocationTaskTestCase):
         self.mock_kms_client(fake_kms_client)
 
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
-        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+        with (
+            self.tasks(),
+            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+        ):
             uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
-            assert uploading_complete_mock.call_count == 0
-            with outbox_runner():
-                pass
-
+        # Ensure that the import/export process was driven to completion.
+        # self.tasks() is doing a lot of work here.
         assert uploading_complete_mock.call_count == 1
         assert cross_region_export_timeout_check_mock.call_count == 1
         assert fake_message_builder.call_count == 0
@@ -314,102 +309,6 @@ class UploadingStartTest(RelocationTaskTestCase):
             relocation=self.relocation,
             kind=RelocationFile.Kind.RAW_USER_DATA.value,
         ).exists()
-
-    @override_settings(
-        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
-    )
-    @patch("sentry.relocation.tasks.process.cross_region_export_timeout_check.apply_async")
-    def test_success_saas_to_saas_racing(
-        self,
-        cross_region_export_timeout_check_mock: Mock,
-        uploading_complete_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
-    ):
-        self.mock_message_builder(fake_message_builder)
-        self.mock_kms_client(fake_kms_client)
-
-        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
-        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
-            uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
-
-            # Create a racing call, due to ex: outbox retry. These must be deduped when
-            # receiving the reply back in the requesting region.
-            control_relocation_export_service.request_new_export(
-                relocation_uuid=str(self.uuid),
-                requesting_region_name=REQUESTING_TEST_REGION,
-                replying_region_name=EXPORTING_TEST_REGION,
-                org_slug=self.requested_org_slug,
-                encrypt_with_public_key=fake_kms_client.get_public_key().pem.encode(),
-            )
-
-            assert uploading_complete_mock.call_count == 0
-            with outbox_runner():
-                pass
-
-        assert uploading_complete_mock.call_count == 1
-        assert cross_region_export_timeout_check_mock.call_count == 1
-        assert fake_message_builder.call_count == 0
-        assert fake_kms_client.get_public_key.call_count > 0
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-
-        assert (
-            RelocationFile.objects.filter(
-                relocation=self.relocation,
-                kind=RelocationFile.Kind.RAW_USER_DATA.value,
-            ).count()
-            == 1
-        )
-
-    @override_settings(
-        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
-    )
-    @patch("sentry.relocation.tasks.process.cross_region_export_timeout_check.apply_async")
-    def test_outbox_killswitch(
-        self,
-        cross_region_export_timeout_check_mock: Mock,
-        uploading_complete_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
-    ):
-        self.mock_message_builder(fake_message_builder)
-        self.mock_kms_client(fake_kms_client)
-
-        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
-        with (
-            self.options({"relocation.outbox-orgslug.killswitch": [self.requested_org_slug]}),
-            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
-        ):
-            uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
-
-            # Create a racing call, due to ex: outbox retry. These must be deduped when
-            # receiving the reply back in the requesting region.
-            control_relocation_export_service.request_new_export(
-                relocation_uuid=str(self.uuid),
-                requesting_region_name=REQUESTING_TEST_REGION,
-                replying_region_name=EXPORTING_TEST_REGION,
-                org_slug=self.requested_org_slug,
-                encrypt_with_public_key=fake_kms_client.get_public_key().pem.encode(),
-            )
-
-            assert uploading_complete_mock.call_count == 0
-            with outbox_runner():
-                pass
-
-        assert cross_region_export_timeout_check_mock.call_count == 1
-        assert fake_message_builder.call_count == 0
-        assert fake_kms_client.get_public_key.call_count > 0
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-
-        # No uploading_complete call, or file created because the killswitch is active
-        assert uploading_complete_mock.call_count == 0
-        assert (
-            RelocationFile.objects.filter(
-                relocation=self.relocation,
-                kind=RelocationFile.Kind.RAW_USER_DATA.value,
-            ).count()
-            == 0
-        )
 
     @patch("sentry.relocation.tasks.process.cross_region_export_timeout_check.apply_async")
     def test_success_self_hosted(
@@ -426,12 +325,11 @@ class UploadingStartTest(RelocationTaskTestCase):
         self.relocation.save()
 
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
-        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+        with (
+            self.tasks(),
+            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+        ):
             uploading_start(self.uuid, None, None)
-
-            assert uploading_complete_mock.call_count == 1
-            with outbox_runner():
-                pass
 
         assert uploading_complete_mock.call_count == 1
         assert cross_region_export_timeout_check_mock.call_count == 0
@@ -455,7 +353,10 @@ class UploadingStartTest(RelocationTaskTestCase):
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
             fake_kms_client.get_public_key.side_effect = Exception("Test")
-            with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+            with (
+                self.tasks(),
+                assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+            ):
                 uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
         assert uploading_complete_mock.call_count == 0
@@ -484,7 +385,10 @@ class UploadingStartTest(RelocationTaskTestCase):
 
         with pytest.raises(Exception):
             fake_kms_client.get_public_key.side_effect = Exception("Test")
-            with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+            with (
+                self.tasks(),
+                assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+            ):
                 uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
         assert fake_message_builder.call_count == 1
@@ -514,14 +418,13 @@ class UploadingStartTest(RelocationTaskTestCase):
         self.mock_kms_client(fake_kms_client)
 
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
-        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+        with (
+            self.tasks(),
+            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+        ):
             # Will fail, because we do not supply an `org_slug` argument for a `SAAS_TO_SAAS`
             # relocation.
             uploading_start(self.uuid, EXPORTING_TEST_REGION, None)
-
-            assert uploading_complete_mock.call_count == 0
-            with outbox_runner():
-                pass
 
         assert uploading_complete_mock.call_count == 0
         assert cross_region_export_timeout_check_mock.call_count == 0
@@ -548,14 +451,12 @@ class UploadingStartTest(RelocationTaskTestCase):
 
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
         with (
-            TaskRunner(),
+            self.tasks(),
             assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
         ):
             uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
 
             assert uploading_complete_mock.call_count == 0
-            with outbox_runner():
-                pass
 
             # No reply due to server-side timeout.
             assert uploading_complete_mock.call_count == 0

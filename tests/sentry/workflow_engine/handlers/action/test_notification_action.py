@@ -7,6 +7,7 @@ from sentry.issues.grouptype import MetricIssuePOC
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.handlers.action.notification.handler import (
     IssueAlertRegistryInvoker,
+    MetricAlertRegistryInvoker,
     NotificationActionHandler,
     NotificationHandlerException,
 )
@@ -116,5 +117,43 @@ class TestIssueAlertRegistryInvoker(BaseWorkflowTest):
 
         mock_logger.exception.assert_called_once_with(
             "Error invoking issue alert handler",
+            extra={"action_id": self.action.id},
+        )
+
+
+class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.detector = self.create_detector(project=self.project)
+        self.action = Action(type=Action.Type.DISCORD)
+        self.group, self.event, self.group_event = self.create_group_event()
+        self.job = WorkflowJob({"event": self.group_event})
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.action.notification.handler.metric_alert_handler_registry.get"
+    )
+    def test_handle_workflow_action_no_handler(self, mock_registry_get):
+        """Test that handle_workflow_action raises NoRegistrationExistsError when no handler exists"""
+        mock_registry_get.side_effect = NoRegistrationExistsError()
+
+        with pytest.raises(NoRegistrationExistsError):
+            MetricAlertRegistryInvoker.handle_workflow_action(self.job, self.action, self.detector)
+
+    @mock.patch(
+        "sentry.workflow_engine.handlers.action.notification.handler.metric_alert_handler_registry.get"
+    )
+    @mock.patch("sentry.workflow_engine.handlers.action.notification.handler.logger")
+    def test_handle_workflow_action_general_exception(self, mock_logger, mock_registry_get):
+        """Test that handle_workflow_action wraps general exceptions in NotificationHandlerException"""
+        mock_handler = mock.Mock()
+        mock_handler.invoke_legacy_registry.side_effect = Exception("Something went wrong")
+        mock_registry_get.return_value = mock_handler
+
+        with pytest.raises(NotificationHandlerException):
+            MetricAlertRegistryInvoker.handle_workflow_action(self.job, self.action, self.detector)
+
+        mock_logger.exception.assert_called_once_with(
+            "Error invoking metric alert handler",
             extra={"action_id": self.action.id},
         )

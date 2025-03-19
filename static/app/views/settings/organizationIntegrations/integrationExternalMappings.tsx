@@ -1,8 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -230,8 +230,12 @@ const MappingTable = styled(PanelTable)`
   grid-template-columns: 1fr max-content 1fr 66px;
 
   ${p =>
-    !p.isEmpty
+    p.isEmpty
       ? `
+  > :not(:nth-child(n + 5)) {
+    padding: ${space(1)} ${space(2)};
+  }`
+      : `
   > :nth-child(n + 5) {
     display: flex;
     align-items: center;
@@ -241,11 +245,7 @@ const MappingTable = styled(PanelTable)`
   > * {
     padding: ${space(1)} ${space(2)};
   }
-`
-      : `
-  > :not(:nth-child(n + 5)) {
-    padding: ${space(1)} ${space(2)};
-  }`}
+`}
 
   > :nth-child(4n) {
     padding-right: ${space(1)};

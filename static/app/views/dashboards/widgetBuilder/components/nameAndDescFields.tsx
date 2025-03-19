@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';

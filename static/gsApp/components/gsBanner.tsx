@@ -14,10 +14,10 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
@@ -90,6 +90,7 @@ const ALERTS_OFF: Record<EventType, boolean> = {
   monitorSeat: false,
   span: false,
   profileDuration: false,
+  profileDurationUI: false,
   uptime: false,
 };
 
@@ -319,6 +320,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     },
     overageWarningDismissed: {
@@ -329,6 +331,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     },
     productTrialDismissed: {
@@ -339,6 +342,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     },
   };
@@ -669,6 +673,7 @@ class GSBanner extends Component<Props, State> {
           'monitor_seats_overage_alert',
           'spans_overage_alert',
           'profile_duration_overage_alert',
+          'profile_duration_ui_overage_alert',
           'uptime_overage_alert',
 
           // warning alerts
@@ -679,6 +684,7 @@ class GSBanner extends Component<Props, State> {
           'monitor_seats_warning_alert',
           'spans_warning_alert',
           'profile_duration_warning_alert',
+          'profile_duration_ui_warning_alert',
           'uptime_warning_alert',
 
           // product trial alerts
@@ -689,6 +695,7 @@ class GSBanner extends Component<Props, State> {
           'monitor_seats_product_trial_alert',
           'spans_product_trial_alert',
           'profile_duration_product_trial_alert',
+          'profile_duration_ui_product_trial_alert',
           'uptime_product_trial_alert',
         ],
         {
@@ -731,6 +738,9 @@ class GSBanner extends Component<Props, State> {
           profileDuration: promptIsDismissedForBillingPeriod(
             checkResults.profile_duration_overage_alert!
           ),
+          profileDurationUI: promptIsDismissedForBillingPeriod(
+            checkResults.profile_duration_ui_overage_alert!
+          ),
           uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_overage_alert!),
         },
         overageWarningDismissed: {
@@ -748,6 +758,9 @@ class GSBanner extends Component<Props, State> {
           span: promptIsDismissedForBillingPeriod(checkResults.spans_warning_alert!),
           profileDuration: promptIsDismissedForBillingPeriod(
             checkResults.profile_duration_warning_alert!
+          ),
+          profileDurationUI: promptIsDismissedForBillingPeriod(
+            checkResults.profile_duration_ui_warning_alert!
           ),
           uptime: promptIsDismissedForBillingPeriod(checkResults.uptime_warning_alert!),
         },
@@ -779,6 +792,10 @@ class GSBanner extends Component<Props, State> {
           ),
           profileDuration: trialPromptIsDismissed(
             checkResults.profile_duration_product_trial_alert!,
+            subscription
+          ),
+          profileDurationUI: trialPromptIsDismissed(
+            checkResults.profile_duration_ui_product_trial_alert!,
             subscription
           ),
           uptime: trialPromptIsDismissed(
@@ -820,6 +837,9 @@ class GSBanner extends Component<Props, State> {
       profileDuration:
         !this.state.overageAlertDismissed.profileDuration &&
         !!subscription.categories.profileDuration?.usageExceeded,
+      profileDurationUI:
+        !this.state.overageAlertDismissed.profileDurationUI &&
+        !!subscription.categories.profileDurationUI?.usageExceeded,
       uptime:
         !this.state.overageAlertDismissed.uptime &&
         !!subscription.categories.uptime?.usageExceeded,
@@ -857,6 +877,9 @@ class GSBanner extends Component<Props, State> {
       profileDuration:
         !this.state.overageWarningDismissed.profileDuration &&
         !!subscription.categories.profileDuration?.sentUsageWarning,
+      profileDurationUI:
+        !this.state.overageWarningDismissed.profileDurationUI &&
+        !!subscription.categories.profileDurationUI?.sentUsageWarning,
       uptime:
         !this.state.overageWarningDismissed.uptime &&
         !!subscription.categories.uptime?.sentUsageWarning,
@@ -924,6 +947,7 @@ class GSBanner extends Component<Props, State> {
         monitorSeat: `monitor_seats_${key}_alert`,
         span: `spans_${key}_alert`,
         profileDuration: `profile_duration_${key}_alert`,
+        profileDurationUI: `profile_duration_ui_${key}_alert`,
         uptime: `uptime_${key}_alert`,
       };
 
@@ -942,6 +966,7 @@ class GSBanner extends Component<Props, State> {
       monitorSeat: true,
       span: true,
       profileDuration: true,
+      profileDurationUI: true,
       uptime: true,
     };
     // Suppress all warnings and alerts
@@ -957,7 +982,7 @@ class GSBanner extends Component<Props, State> {
     let overquotaPrompt: React.ReactNode;
     let eventTypes: EventType[] = [];
 
-    const eventTypeToElement = (eventType: EventType): JSX.Element => {
+    const eventTypeToElement = (eventType: EventType): React.JSX.Element => {
       const onClick = () => {
         trackGetsentryAnalytics('quota_alert.clicked_link', {
           organization,
@@ -1060,7 +1085,7 @@ class GSBanner extends Component<Props, State> {
             })}
           </ExternalLink>
         ),
-        // TODO: Uncomment when we have a continuous profile doc link
+        // TODO(continuous profiling): Uncomment when we have a continuous profile doc link
         // profile: (
         //   <ExternalLink
         //     key="profiles"
@@ -1356,7 +1381,7 @@ class GSBanner extends Component<Props, State> {
                   'There was an issue with your payment. [updateUrl:Update your payment information] to ensure uninterrupted access to Sentry.',
                   {
                     updateUrl: (
-                      <Button
+                      <LinkButton
                         to={billingUrl}
                         size="xs"
                         priority="default"
@@ -1370,7 +1395,7 @@ class GSBanner extends Component<Props, State> {
                   'There was an issue with your payment. Please have the [updateUrl: Org Owner or Billing Member] update your payment information to ensure continued access to Sentry.',
                   {
                     updateUrl: (
-                      <Button
+                      <LinkButton
                         to={membersPageUrl}
                         size="xs"
                         priority="default"
@@ -1415,14 +1440,14 @@ class GSBanner extends Component<Props, State> {
               type="muted"
               trailingItems={
                 <ButtonBar gap={1}>
-                  <Button
+                  <LinkButton
                     to={checkoutUrl}
                     onClick={this.handleUpgradeLinkClick}
                     size="xs"
                     priority="primary"
                   >
                     {t('Upgrade')}
-                  </Button>
+                  </LinkButton>
                   <Button
                     onClick={this.handleSnoozeMemberDeactivatedAlert}
                     size="xs"

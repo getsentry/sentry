@@ -114,6 +114,7 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
     Referrer.API_EXPLORE_COMPARE_SERIES.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES.value,
 }
 
 
@@ -575,6 +576,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     comparison_delta=comparison_delta,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 ),
                 status=200,
             )

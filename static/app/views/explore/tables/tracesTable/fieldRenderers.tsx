@@ -324,14 +324,14 @@ export function SpanBreakdownSliceRenderer({
   const sliceColor = stylingSliceName ? pickBarColor(stylingSliceName) : theme.gray100;
 
   const sliceWidth =
-    sliceNumberWidth !== undefined
-      ? pixelsPerSlice * sliceNumberWidth
-      : pixelsPerSlice * Math.ceil(BREAKDOWN_SLICES * (sliceDuration / traceDuration));
+    sliceNumberWidth === undefined
+      ? pixelsPerSlice * Math.ceil(BREAKDOWN_SLICES * (sliceDuration / traceDuration))
+      : pixelsPerSlice * sliceNumberWidth;
   const sliceOffset =
-    sliceNumberStart !== undefined
-      ? pixelsPerSlice * sliceNumberStart
-      : pixelsPerSlice *
-        Math.floor((BREAKDOWN_SLICES * relativeSliceStart) / traceDuration);
+    sliceNumberStart === undefined
+      ? pixelsPerSlice *
+        Math.floor((BREAKDOWN_SLICES * relativeSliceStart) / traceDuration)
+      : pixelsPerSlice * sliceNumberStart;
 
   return (
     <BreakdownSlice

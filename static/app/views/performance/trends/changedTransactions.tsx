@@ -119,12 +119,12 @@ function handleChangeSelected(
     const query = {
       ...location.query,
     };
-    if (!transaction) {
-      delete query[selectedQueryKey];
-    } else {
+    if (transaction) {
       query[selectedQueryKey] = transaction
         ? `${transaction.transaction}-${transaction.project}`
         : undefined;
+    } else {
+      delete query[selectedQueryKey];
     }
     browserHistory.push({
       pathname: location.pathname,

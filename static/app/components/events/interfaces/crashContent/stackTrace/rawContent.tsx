@@ -126,7 +126,7 @@ export function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
 }
 
 function ljust(str: string, len: number) {
-  return str + Array(Math.max(0, len - str.length) + 1).join(' ');
+  return str + new Array(Math.max(0, len - str.length) + 1).join(' ');
 }
 
 export function getNativeFrame(frame: Frame): string {

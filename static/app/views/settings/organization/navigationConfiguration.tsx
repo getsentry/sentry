@@ -136,7 +136,14 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
           description: t('Set up feature flag integrations'),
-          badge: () => 'beta',
+          badge: () => (
+            <FeatureBadge
+              type="beta"
+              tooltipProps={{
+                title: t('This feature is currently in open beta and may change'),
+              }}
+            />
+          ),
           show: ({organization}) =>
             !!organization && organization.features.includes('feature-flag-ui'),
         },

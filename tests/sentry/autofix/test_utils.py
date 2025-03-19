@@ -123,7 +123,7 @@ class TestGetAutofixState(TestCase):
 
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=b'{"group_id":123,"run_id":null}',
+            data=b'{"group_id":123,"run_id":null,"check_repo_access":false}',
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
@@ -154,7 +154,7 @@ class TestGetAutofixState(TestCase):
 
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=b'{"group_id":null,"run_id":456}',
+            data=b'{"group_id":null,"run_id":456,"check_repo_access":false}',
             headers={"content-type": "application/json;charset=utf-8"},
         )
 

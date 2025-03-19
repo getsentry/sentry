@@ -39,7 +39,7 @@ describe('SampleTable', function () {
   });
 
   describe('When all data is available', () => {
-    it('should finsh loading', async () => {
+    it('should finish loading', async () => {
       render(
         <SampleTable
           groupId="groupId123"
@@ -127,8 +127,18 @@ describe('SampleTable', function () {
   describe('When there is missing data', () => {
     it('should display no query results', async () => {
       MockApiClient.addMockResponse({
-        url: '/api/0/organizations/org-slug/spans-samples/?firstBound=0.6666666666666666&lowerBound=0&query=span.group%3AgroupId123%20transaction%3A%2Fendpoint%20transaction.method%3AGET&secondBound=1.3333333333333333&statsPeriod=14d&upperBound=2',
+        url: '/api/0/organizations/org-slug/spans-samples/',
         method: 'GET',
+        match: [
+          MockApiClient.matchQuery({
+            firstBound: 0.6666666666666666,
+            lowerBound: 0,
+            query: 'span.group:groupId123 transaction:/endpoint transaction.method:GET',
+            secondBound: 1.3333333333333333,
+            statsPeriod: '14d',
+            upperBound: 2,
+          }),
+        ],
         body: {
           data: [],
         },
@@ -209,8 +219,18 @@ const initializeMockRequests = () => {
     ],
   });
   MockApiClient.addMockResponse({
-    url: '/api/0/organizations/org-slug/spans-samples/?firstBound=0.6666666666666666&lowerBound=0&query=span.group%3AgroupId123%20transaction%3A%2Fendpoint%20transaction.method%3AGET&secondBound=1.3333333333333333&statsPeriod=14d&upperBound=2',
+    url: '/api/0/organizations/org-slug/spans-samples/',
     method: 'GET',
+    match: [
+      MockApiClient.matchQuery({
+        firstBound: 0.6666666666666666,
+        lowerBound: 0,
+        query: 'span.group:groupId123 transaction:/endpoint transaction.method:GET',
+        secondBound: 1.3333333333333333,
+        statsPeriod: '14d',
+        upperBound: 2,
+      }),
+    ],
     body: {
       data: [
         {

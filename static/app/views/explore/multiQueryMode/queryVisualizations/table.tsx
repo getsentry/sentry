@@ -94,8 +94,8 @@ function AggregatesTable({
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(fields, tableRef, {
@@ -230,8 +230,8 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
     [fields]
   );
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const tableRef = useRef<HTMLTableElement>(null);
   const {initialTableStyles} = useTableStyles(visibleFields, tableRef, {

@@ -13,6 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
@@ -54,8 +55,11 @@ class BuildMetricAlertAttachmentTest(TestCase):
 
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-            incident=incident,
+            alert_context=AlertContext.from_alert_rule_incident(self.alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=self.alert_rule.snuba_query,
+            organization=self.organization,
+            date_started=incident.date_started,
             new_status=IncidentStatus.CLOSED,
             metric_value=0,
         ).build(notification_uuid=uuid) == {
@@ -92,8 +96,11 @@ class BuildMetricAlertAttachmentTest(TestCase):
         )
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-            incident=incident,
+            alert_context=AlertContext.from_alert_rule_incident(self.alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=self.alert_rule.snuba_query,
+            organization=self.organization,
+            date_started=incident.date_started,
             new_status=IncidentStatus.CRITICAL,
             metric_value=0,
         ).build(notification_uuid=uuid) == {
@@ -133,8 +140,11 @@ class BuildMetricAlertAttachmentTest(TestCase):
         )
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-            incident=incident,
+            alert_context=AlertContext.from_alert_rule_incident(self.alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=self.alert_rule.snuba_query,
+            organization=self.organization,
+            date_started=incident.date_started,
             new_status=IncidentStatus.CRITICAL,
             metric_value=metric_value,
         ).build(notification_uuid=uuid) == {
@@ -170,8 +180,11 @@ class BuildMetricAlertAttachmentTest(TestCase):
         new_status = IncidentStatus.CLOSED
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-            incident=incident,
+            alert_context=AlertContext.from_alert_rule_incident(self.alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=self.alert_rule.snuba_query,
+            organization=self.organization,
+            date_started=incident.date_started,
             new_status=new_status,
             metric_value=0,
             chart_url="chart_url",
@@ -210,8 +223,11 @@ class BuildMetricAlertAttachmentTest(TestCase):
         )
 
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule=self.alert_rule,
-            incident=incident,
+            alert_context=AlertContext.from_alert_rule_incident(self.alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=self.alert_rule.snuba_query,
+            organization=self.organization,
+            date_started=incident.date_started,
             new_status=IncidentStatus.CRITICAL,
             metric_value=0,
         ).build() == {
@@ -260,8 +276,11 @@ class BuildMetricAlertAttachmentTest(TestCase):
         )
         uuid = "uuid"
         assert DiscordMetricAlertMessageBuilder(
-            alert_rule=alert_rule,
-            incident=incident,
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            open_period_identifier=incident.identifier,
+            snuba_query=alert_rule.snuba_query,
+            organization=self.organization,
+            date_started=incident.date_started,
             new_status=IncidentStatus.CRITICAL,
             metric_value=0,
         ).build(notification_uuid=uuid) == {

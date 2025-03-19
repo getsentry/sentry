@@ -46,7 +46,7 @@ import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/t
 import {
   getTraceInfo,
   hasTraceData,
-  isRootTransaction,
+  isRootEvent,
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
@@ -313,7 +313,7 @@ function NewTraceView({
       const result = renderTransaction(trace, {
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
-        isOrphan: !isRootTransaction(trace),
+        isOrphan: !isRootEvent(trace),
         isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
           (!isLastTransaction && hasChildren) || hasOrphanErrors
@@ -340,11 +340,11 @@ function NewTraceView({
       const isVisible = isRowVisible(error, filteredEventIds);
       const currentHiddenCount = numOfHiddenErrorsAbove;
 
-      if (!isVisible) {
+      if (isVisible) {
+        numOfHiddenErrorsAbove = 0;
+      } else {
         numOfHiddenErrorsAbove += 1;
         totalNumOfHiddenErrors += 1;
-      } else {
-        numOfHiddenErrorsAbove = 0;
       }
 
       transactionGroups.push(
@@ -428,10 +428,12 @@ function NewTraceView({
                               width: 0,
                               height: '1px',
                             }}
+                            // @ts-expect-error TODO(react19): Remove ts-ignore once we upgrade to React 19
                             ref={scrollBarAreaRef}
                           />
                           <VirtualScrollbar
                             data-type="virtual-scrollbar"
+                            // @ts-expect-error TODO(react19): Remove ts-ignore once we upgrade to React 19
                             ref={virtualScrollbarRef}
                             onMouseDown={onDragStart}
                           >

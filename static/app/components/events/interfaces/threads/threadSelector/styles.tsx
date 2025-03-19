@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
+/* prettier-ignore */
 export const ThreadSelectorGrid = styled('div')<{hasThreadStates: boolean}>`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;

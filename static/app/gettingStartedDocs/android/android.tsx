@@ -38,9 +38,9 @@ const platformOptions = {
       },
     ],
     defaultValue:
-      navigator.userAgent.indexOf('Win') !== -1
-        ? InstallationMode.MANUAL
-        : InstallationMode.AUTO,
+      navigator.userAgent.indexOf('Win') === -1
+        ? InstallationMode.AUTO
+        : InstallationMode.MANUAL,
   },
 } satisfies BasePlatformOptions;
 
@@ -87,6 +87,14 @@ const getConfigurationSnippet = (params: Params) => `
   <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
   <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
   <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+
+  <!-- record session replays for 100% of errors and 10% of sessions -->
+  <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
+  <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
       : ''
   }
 </application>`;

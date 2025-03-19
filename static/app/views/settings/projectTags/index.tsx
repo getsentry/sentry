@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
@@ -69,7 +69,7 @@ function ProjectTags(props: Props) {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
         [`/projects/${organization.slug}/${projectId}/tags/`],
-        oldTags => oldTags.filter(tag => tag.key !== key)
+        oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },
     onError: () => {

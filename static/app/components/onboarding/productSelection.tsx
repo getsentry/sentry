@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -76,7 +76,11 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  android: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
@@ -140,6 +144,10 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  'javascript-tanstackstart-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
@@ -192,20 +200,6 @@ export const platformProductAvailability = {
   'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
-
-/**
- * Defines which products are selected per default for each platform
- * If not defined in here, all products are selected
- *
- * UPDATE Mar 2025, we're running an experiment that has only error monitoring enabled by default
- */
-const platformDefaultProducts = Object.keys(platformProductAvailability).reduce(
-  (acc, key) => {
-    acc[key as PlatformKey] = [];
-    return acc;
-  },
-  {} as Record<PlatformKey, ProductSolution[]>
-);
 
 type ProductProps = {
   /**
@@ -269,7 +263,7 @@ function Product({
     >
       <ProductWrapper
         onClick={disabled?.onClick ?? onClick}
-        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
+        disabled={(disabled?.onClick ?? permanentDisabled) ? false : !!disabled}
         priority={permanentDisabled || checked ? 'primary' : 'default'}
         aria-label={label}
       >
@@ -331,27 +325,16 @@ export function ProductSelection({
     [organization, disabledProductsProp]
   );
 
-  const defaultProducts = useMemo(() => {
-    const productsArray = products ?? [];
-    const definedDefaults = platform ? platformDefaultProducts[platform] : undefined;
-    let selectedDefaults: ProductSolution[] = productsArray;
-
-    if (definedDefaults) {
-      selectedDefaults = definedDefaults.filter(product =>
-        // Make sure the default product is available for the platform
-        productsArray.includes(product)
-      );
-    }
-    return selectedDefaults.filter(product => !(product in disabledProducts));
-  }, [products, platform, disabledProducts]);
+  const safeDependencies = useRef({onLoad, urlProducts});
 
   useEffect(() => {
-    onLoad?.(defaultProducts);
-    setParams({
-      product: defaultProducts,
-    });
-    // Adding defaultProducts to the dependency array causes an max-depth error
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    safeDependencies.current = {onLoad, urlProducts};
+  });
+
+  useEffect(() => {
+    safeDependencies.current.onLoad?.(
+      safeDependencies.current.urlProducts as ProductSolution[]
+    );
   }, []);
 
   const handleClickProduct = useCallback(
@@ -362,7 +345,7 @@ export function ProductSelection({
           : [...urlProducts, product]
       );
 
-      if (defaultProducts?.includes(ProductSolution.PROFILING)) {
+      if (products?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, tracing is also enabled
         if (
           product === ProductSolution.PROFILING &&
@@ -384,11 +367,11 @@ export function ProductSelection({
 
       if (organization.features.includes('project-create-replay-feedback')) {
         HookStore.get('callback:on-create-project-product-selection').map(cb =>
-          cb({defaultProducts, organization, selectedProducts})
+          cb({defaultProducts: products ?? [], organization, selectedProducts})
         );
       }
     },
-    [defaultProducts, organization, setParams, urlProducts, onChange]
+    [products, organization, setParams, urlProducts, onChange]
   );
 
   if (!products) {
@@ -458,7 +441,8 @@ const ProductButtonWrapper = styled(Button)`
     p.priority === 'primary' &&
     css`
       &,
-      :hover {
+      :hover,
+      :focus-visible {
         background: ${p.theme.purple100};
         color: ${p.theme.purple300};
       }
@@ -478,7 +462,8 @@ const DisabledProductWrapper = styled(Button)`
 const PermanentDisabledProductWrapper = styled(Button)`
   && {
     &,
-    :hover {
+    :hover,
+    :focus-visible {
       background: ${p => p.theme.purple100};
       color: ${p => p.theme.purple300};
       opacity: 0.5;

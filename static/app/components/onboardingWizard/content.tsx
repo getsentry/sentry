@@ -7,8 +7,8 @@ import partition from 'lodash/partition';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
@@ -29,7 +29,7 @@ import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -271,7 +271,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
 
       e.stopPropagation();
 
-      if (isDemoModeEnabled()) {
+      if (isDemoModeActive()) {
         DemoWalkthroughStore.activateGuideAnchor(task.task);
       }
 

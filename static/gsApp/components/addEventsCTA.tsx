@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
@@ -21,6 +21,7 @@ export type EventType =
   | 'monitorSeat'
   | 'span'
   | 'profileDuration'
+  | 'profileDurationUI'
   | 'uptime';
 
 type Props = {

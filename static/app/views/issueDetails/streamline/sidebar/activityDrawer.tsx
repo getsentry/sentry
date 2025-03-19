@@ -1,6 +1,6 @@
 import {useSearchParams} from 'react-router-dom';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {
   CrumbContainer,
   EventDrawerBody,

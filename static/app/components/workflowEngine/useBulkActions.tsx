@@ -2,8 +2,8 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AnimationProps, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

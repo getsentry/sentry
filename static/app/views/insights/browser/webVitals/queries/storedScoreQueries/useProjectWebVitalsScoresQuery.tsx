@@ -69,9 +69,9 @@ export const useProjectWebVitalsScoresQuery = ({
         'count_scores(measurements.score.cls)',
         'count_scores(measurements.score.ttfb)',
         `count_scores(measurements.score.inp)`,
-        ...(weightWebVital !== 'total'
-          ? [`sum(measurements.score.weight.${weightWebVital})`]
-          : []),
+        ...(weightWebVital === 'total'
+          ? []
+          : [`sum(measurements.score.weight.${weightWebVital})`]),
       ],
       name: 'Web Vitals',
       query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),

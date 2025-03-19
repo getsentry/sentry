@@ -60,11 +60,11 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
       columnOrder={[
-        {key: 'timestamp', width: 200, name: t('Timestamp')},
+        {key: 'timestamp', width: 150, name: t('Timestamp')},
         {key: 'checkStatus', width: 250, name: t('Status')},
         {key: 'httpStatusCode', width: 100, name: t('HTTP Code')},
         {key: 'durationMs', width: 110, name: t('Duration')},
-        {key: 'regionName', width: 150, name: t('Region')},
+        {key: 'regionName', width: 200, name: t('Region')},
         {key: 'traceId', width: 100, name: t('Trace')},
       ]}
       columnSortBy={[]}

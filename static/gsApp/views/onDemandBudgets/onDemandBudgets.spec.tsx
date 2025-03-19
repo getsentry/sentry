@@ -502,6 +502,12 @@ describe('OnDemandBudgets', () => {
     const budgetTextbox = screen.getByRole('textbox', {name: 'Pay-as-you-go max budget'});
     expect(budgetTextbox).toHaveValue('0');
 
+    expect(
+      screen.getByText(
+        `This budget ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage.`
+      )
+    ).toBeInTheDocument();
+
     await userEvent.type(budgetTextbox, '42');
     await userEvent.click(screen.getByLabelText('Save'));
     await waitForModalToHide();
@@ -515,5 +521,77 @@ describe('OnDemandBudgets', () => {
 
     expect(await screen.findByText('$42')).toBeInTheDocument();
     expect(screen.getByTestId('shared-budget-info')).toBeInTheDocument();
+  });
+
+  it('renders billed through partner for self serve partner', async function () {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 200,
+      body: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 4200,
+      },
+    });
+
+    const subscription = SubscriptionFixture({
+      plan: 'am3_business',
+      planTier: PlanTier.AM3,
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      isSelfServePartner: true,
+      partner: {
+        externalId: 'x123x',
+        name: 'FOO',
+        partnership: {
+          id: 'foo',
+          displayName: 'FOO',
+          supportNote: '',
+        },
+        isActive: true,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: false,
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 0,
+        onDemandSpendUsed: 0,
+      },
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/subscriptions/${organization.slug}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: {
+        ...subscription,
+        onDemandMaxSpend: 4200,
+        onDemandSpendUsed: 100,
+        onDemandBudgets: {
+          enabled: true,
+          budgetMode: OnDemandBudgetMode.SHARED,
+          sharedMaxBudget: 4200,
+          onDemandSpendUsed: 100,
+        },
+      },
+    });
+
+    const props = {
+      subscription,
+      onDemandEnabled: true,
+      hasPaymentSource: true,
+    };
+    createWrapper(props);
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Set Up Pay-as-you-go'}));
+    expect(
+      screen.getByText(
+        `This budget ensures continued monitoring after you've used up your reserved event volume. We'll only charge you for actual usage, so this is your maximum charge for overage. This will be part of your FOO bill.`
+      )
+    ).toBeInTheDocument();
   });
 });
