@@ -15,7 +15,13 @@ export interface Plottable {
    * date boundaries provided
    */
   constrain(boundaryStart: Date | null, boundaryEnd: Date | null): Plottable;
+  /**
+   * Type of the underlying data
+   */
   dataType: PlottableTimeSeriesValueType;
+  /**
+   * Unit of the underlying data
+   */
   dataUnit: TimeSeriesValueUnit;
   /**
    * Start timestamp of the plottable, if applicable
