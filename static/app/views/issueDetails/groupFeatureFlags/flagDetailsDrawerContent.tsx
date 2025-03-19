@@ -11,6 +11,7 @@ import Pagination from 'sentry/components/pagination';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -105,15 +106,20 @@ export function FlagDetailsDrawerContent() {
       </Table>
       <Pagination
         pageLinks={pageLinks}
-        onCursor={(cursor, path, query) =>
+        onCursor={(cursor, path, query) => {
+          trackAnalytics('flags.logs-paginated', {
+            direction: cursor?.endsWith(':1') ? 'prev' : 'next',
+            organization,
+            surface: 'flag_drawer',
+          });
           navigate({
             pathname: path,
             query: {
               ...query,
               flagDrawerCursor: cursor,
             },
-          })
-        }
+          });
+        }}
         size="xs"
       />
     </Fragment>
