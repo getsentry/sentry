@@ -61,41 +61,39 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
             </SecondaryNav.Item>
           </SecondaryNav.Section>
           {groupSearchViews && (
-            <SecondaryNav.Section title={t('Starred Views')}>
-              <IssueViewNavItems
-                loadedViews={groupSearchViews.map(
-                  (
-                    {
-                      id,
-                      name,
-                      query: viewQuery,
-                      querySort: viewQuerySort,
-                      environments: viewEnvironments,
-                      projects: viewProjects,
-                      timeFilters: viewTimeFilters,
-                      isAllProjects,
-                    },
-                    index
-                  ): IssueView => {
-                    const tabId = id ?? `default${index.toString()}`;
+            <IssueViewNavItems
+              loadedViews={groupSearchViews.map(
+                (
+                  {
+                    id,
+                    name,
+                    query: viewQuery,
+                    querySort: viewQuerySort,
+                    environments: viewEnvironments,
+                    projects: viewProjects,
+                    timeFilters: viewTimeFilters,
+                    isAllProjects,
+                  },
+                  index
+                ): IssueView => {
+                  const tabId = id ?? `default${index.toString()}`;
 
-                    return {
-                      id: tabId,
-                      key: tabId,
-                      label: name,
-                      query: viewQuery,
-                      querySort: viewQuerySort,
-                      environments: viewEnvironments,
-                      projects: isAllProjects ? [-1] : viewProjects,
-                      timeFilters: viewTimeFilters,
-                      isCommitted: true,
-                    };
-                  }
-                )}
-                sectionRef={sectionRef}
-                baseUrl={baseUrl}
-              />
-            </SecondaryNav.Section>
+                  return {
+                    id: tabId,
+                    key: tabId,
+                    label: name,
+                    query: viewQuery,
+                    querySort: viewQuerySort,
+                    environments: viewEnvironments,
+                    projects: isAllProjects ? [-1] : viewProjects,
+                    timeFilters: viewTimeFilters,
+                    isCommitted: true,
+                  };
+                }
+              )}
+              sectionRef={sectionRef}
+              baseUrl={baseUrl}
+            />
           )}
           <SecondaryNav.Section title={t('Configure')}>
             <SecondaryNav.Item
