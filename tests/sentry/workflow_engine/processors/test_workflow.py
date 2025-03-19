@@ -118,6 +118,19 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
     def test_same_environment_only(self):
+        env = self.create_environment(project=self.project)
+        other_env = self.create_environment(project=self.project)
+
+        self.group, self.event, self.group_event = self.create_group_event(environment=env.name)
+        self.job = WorkflowJob(
+            {
+                "event": self.group_event,
+                "group_state": GroupState(
+                    id=1, is_new=False, is_regression=True, is_new_group_environment=False
+                ),
+            }
+        )
+
         # only processes workflows with the same env or no env specified
         self.error_workflow.update(environment=None)
 
@@ -133,11 +146,19 @@ class TestProcessWorkflows(BaseWorkflowTest):
         dcg = self.create_data_condition_group()
         matching_env_workflow = self.create_workflow(
             when_condition_group=dcg,
-            environment=self.group_event.get_environment(),
+            environment=env,
         )
         self.create_detector_workflow(
             detector=self.error_detector,
             workflow=matching_env_workflow,
+        )
+
+        mismatched_env_workflow = self.create_workflow(
+            when_condition_group=dcg, environment=other_env
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=mismatched_env_workflow,
         )
 
         triggered_workflows = process_workflows(self.job)
@@ -241,6 +262,11 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_workflow_trigger(self):
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        assert triggered_workflows == {self.workflow}
+
+    def test_workflow_trigger__no_conditions(self):
+        self.workflow.when_condition_group.conditions.all().delete()
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert triggered_workflows == {self.workflow}
 
