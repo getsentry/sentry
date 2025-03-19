@@ -5,6 +5,7 @@ from typing import Any
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import Expression, TimeSeriesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
 from sentry.exceptions import InvalidSearchQuery
 
@@ -59,8 +60,13 @@ def transform_column_to_expression(column: Column) -> Expression:
             label=column.label,
         )
 
+    if column.aggregation.aggregate == Function.FUNCTION_UNSPECIFIED:
+        return Expression(
+            conditional_aggregation=column.conditional_aggregation,
+            label=column.label,
+        )
+
     return Expression(
         aggregation=column.aggregation,
-        conditional_aggregation=column.conditional_aggregation,
         label=column.label,
     )

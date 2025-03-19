@@ -1344,6 +1344,56 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[2][1][0]["count"] == 0.25
         assert response.data["meta"]["dataset"] == self.dataset
 
+    def test_trace_status_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "unauthenticated"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "unknown"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "trace_status_rate(ok)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 0.5
+        assert data[2][1][0]["count"] == 0.75
+        assert response.data["meta"]["dataset"] == self.dataset
+
     def test_count_op(self):
         self.store_spans(
             [
