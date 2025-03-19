@@ -220,6 +220,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_facets.py                     @getsentry/visibility
 /src/sentry/api/endpoints/organization_events_meta.py                       @getsentry/visibility
 /src/sentry/api/endpoints/organization_events_stats.py                      @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_timeseries.py                 @getsentry/visibility
 /src/sentry/api/endpoints/organization_measurements_meta.py                 @getsentry/visibility
 
 /tests/snuba/api/endpoints/*                                                @getsentry/visibility

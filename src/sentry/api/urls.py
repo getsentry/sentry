@@ -500,6 +500,7 @@ from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansStatsEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
+from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
     OrganizationEventsTraceLightEndpoint,
@@ -1435,6 +1436,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/events-timeseries/$",
+        OrganizationEventsTimeseriesEndpoint.as_view(),
+        name="sentry-api-0-organization-events-timeseries",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/events/anomalies/$",
