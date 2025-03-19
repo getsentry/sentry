@@ -12,6 +12,7 @@ import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/comp
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Link from 'sentry/components/links/link';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -485,14 +486,16 @@ const makeTransactionNameRow = (
 
   const actionButton = projectSlug ? (
     <LinkButton size="xs" to={eventDetailsLocation}>
-      {t('View Full Event')}
+      {t('View Full Trace')}
     </LinkButton>
   ) : undefined;
 
   return makeRow(
     t('Transaction'),
     <pre>
-      <Link to={transactionSummaryLocation}>{event.title}</Link>
+      <Tooltip title={t('View Transaction Summary')} skipWrapper>
+        <Link to={transactionSummaryLocation}>{event.title}</Link>
+      </Tooltip>
     </pre>,
     actionButton
   );
