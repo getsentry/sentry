@@ -9,7 +9,6 @@ from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -147,7 +146,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         self.job = WorkflowJob(
             {
                 "event": self.group_event,
-                "workflow": Workflow(environment_id=self.environment.id),
+                "workflow_env": self.environment,
             }
         )
 

@@ -5,7 +5,6 @@ from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssueCondition
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -27,7 +26,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
                         "is_new_group_environment": True,
                     }
                 ),
-                "workflow": Workflow(environment_id=1),
+                "workflow_env": self.environment,
             }
         )
         self.dc = self.create_data_condition(

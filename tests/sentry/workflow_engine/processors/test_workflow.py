@@ -110,12 +110,60 @@ class TestProcessWorkflows(BaseWorkflowTest):
                         "is_regression": True,
                         "is_new_group_environment": False,
                     },
-                    "workflow": self.error_workflow,
+                    "workflow_env": self.error_workflow.environment,
                 },
                 "group_id": self.group.id,
                 "event_id": self.event.event_id,
             },
         )
+
+    @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    def test_populate_workflow_for_filters(self, mock_filter):
+        # this should not pass because the environment is not None
+        self.error_workflow.update(environment=self.group_event.get_environment())
+        error_workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        self.create_data_condition(
+            condition_group=error_workflow_filters,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.error_workflow, condition_group=error_workflow_filters
+        )
+
+        workflow_triggers = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        # this should pass because the environment is None
+        self.create_data_condition(
+            condition_group=workflow_filters,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            name="testy",
+            when_condition_group=workflow_triggers,
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=workflow,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=workflow_filters
+        )
+
+        self.job["group_state"]["is_new"] = True
+
+        process_workflows(self.job)
+
+        mock_filter.assert_called_with({workflow_filters}, self.group)
 
     def test_same_environment_only(self):
         # only processes workflows with the same env or no env specified

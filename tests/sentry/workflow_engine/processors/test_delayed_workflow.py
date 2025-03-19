@@ -748,11 +748,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
         assert mock_trigger.call_count == 2
         assert mock_trigger.call_args_list[0][0] == (
-            {"event": self.event1.for_group(self.group1)},
+            {"event": self.event1.for_group(self.group1), "workflow_env": self.environment},
             self.detector,
         )
         assert mock_trigger.call_args_list[1][0] == (
-            {"event": self.event2.for_group(self.group2)},
+            {"event": self.event2.for_group(self.group2), "workflow_env": None},
             self.detector,
         )
 
