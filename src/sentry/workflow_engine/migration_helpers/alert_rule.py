@@ -19,6 +19,7 @@ from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -528,14 +529,6 @@ def migrate_alert_rule(
         alert_rule_workflow,
         detector_workflow,
     )
-
-
-def get_workflow_name(alert_rule: AlertRule) -> str:
-    # max length of name is 256 characters
-    # get triggers -> get actions
-    # this is a placeholder replicating the existing behavior; changes to the workflow
-    # name will come in a subsequent PR
-    return alert_rule.name
 
 
 def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> None:
