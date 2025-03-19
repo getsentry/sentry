@@ -1,9 +1,11 @@
 import logging
+from typing import Any
 
 import sentry_sdk
 from django.apps import apps
 from django.conf import settings
 
+from sentry.db import models
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
@@ -54,15 +56,33 @@ def process_pending_batch() -> None:
 
 
 @instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")
-def process_incr(**kwargs):
+def process_incr(
+    model: type[models.Model] | None,
+    columns: dict[str, int],
+    filters: dict[str, Any],
+    extra: dict[str, Any] | None = None,
+    signal_only: bool | None = None,
+    model_name: str | None = None,
+    **kwargs,
+):
     """
     Processes a buffer event.
     """
     from sentry import buffer
 
-    sentry_sdk.set_tag("model", kwargs.get("model", "Unknown"))
+    if not model:
+        assert model_name, "model or model_name is required"
+        model = apps.get_model(model_name)
 
-    buffer.backend.process(**kwargs)
+    sentry_sdk.set_tag("model", model._meta.model_name)
+
+    buffer.backend.process(
+        model=model,
+        columns=columns,
+        filters=filters,
+        extra=extra,
+        signal_only=signal_only,
+    )
 
 
 def buffer_incr(model, *args, **kwargs):
