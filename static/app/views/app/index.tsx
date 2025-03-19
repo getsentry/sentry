@@ -12,6 +12,7 @@ import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
@@ -57,18 +58,23 @@ function App({children, params}: Props) {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
+  const {visible: isModalOpen} = useGlobalModal();
   const preloadData = shouldPreloadData(config);
 
   // Command palette global-shortcut
   const commandPaletteHotkeys = useMemo(() => {
-    return {
-      match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-      includeInputs: true,
-      callback: () => openCommandPalette(),
-    };
-  }, []);
+    if (isModalOpen) {
+      return [];
+    }
+    return [
+      {
+        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+        callback: () => openCommandPalette(),
+      },
+    ];
+  }, [isModalOpen]);
 
-  useHotkeys([commandPaletteHotkeys]);
+  useHotkeys(commandPaletteHotkeys);
 
   /**
    * Loads the users organization list into the OrganizationsStore
