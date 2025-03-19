@@ -69,7 +69,6 @@ function App({children, params}: Props) {
     return [
       {
         match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        includeInputs: true,
         callback: () => openCommandPalette(),
       },
     ];
