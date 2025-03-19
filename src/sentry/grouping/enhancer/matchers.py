@@ -181,10 +181,11 @@ class FrameMatch(EnhancementMatch):
 
     @property
     def description(self) -> str:
+        pattern_contains_whitespace = self.pattern.split() != [self.pattern]
         return "{}{}:{}".format(
             "!" if self.negated else "",
             self.key,
-            self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
+            self.pattern if not pattern_contains_whitespace else f'"{self.pattern}"',
         )
 
     def matches_frame(self, frames, idx, exception_data, cache):
