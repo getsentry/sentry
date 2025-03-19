@@ -495,8 +495,8 @@ class RegressionDetector(ABC):
                 [(project_id, fingerprint) for project_id, fingerprint in pairs]
             )
 
-            for (project_id, fingerprint), bundle in pairs.items():
-                issue_group = issue_groups.get((project_id, tuple(fingerprint)))
+            for key, bundle in pairs.items():
+                issue_group = issue_groups.get(key)
                 if issue_group is None:
                     sentry_sdk.capture_message("Missing issue group for regression issue")
                     continue
@@ -561,8 +561,8 @@ class RegressionDetector(ABC):
                 [(project_id, p_fingerprint) for (project_id, p_fingerprint), _, _ in triples]
             )
 
-            for (project_id, p_fingerprint), regression_group, regression in triples:
-                issue_group = issue_groups.get((project_id, tuple(p_fingerprint)))
+            for key, regression_group, regression in triples:
+                issue_group = issue_groups.get(key)
                 if issue_group is None:
                     sentry_sdk.capture_message("Missing issue group for regression issue")
                     continue
@@ -635,9 +635,9 @@ def generate_fingerprint(regression_type: RegressionType, name: str | int) -> st
         raise ValueError(f"Unsupported RegressionType: {regression_type}")
 
 
-def generate_issue_group_key(project_id: int, fingerprint: str) -> tuple[int, list[str]]:
+def generate_issue_group_key(project_id: int, fingerprint: str) -> tuple[int, tuple[str, ...]]:
     data = {
         "fingerprint": [fingerprint],
     }
     process_occurrence_data(data)
-    return project_id, data["fingerprint"]
+    return project_id, tuple(data["fingerprint"])
