@@ -1108,14 +1108,6 @@ class SearchVisitor(NodeVisitor):
 
         operator = handle_negation(negation, operator)
 
-        return self._handle_text_filter(search_key, operator, search_value)
-
-    def _handle_text_filter(self, search_key, operator, search_value):
-        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
-            # If operators aren't allowed for this key then push it back into the value
-            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
-            operator = "="
-
         return self._handle_basic_filter(search_key, operator, search_value)
 
     # --- End of filter visitors
