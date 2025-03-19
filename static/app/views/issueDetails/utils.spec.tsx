@@ -75,6 +75,7 @@ describe('useHasStreamlinedUI', () => {
 
     ConfigStore.init();
     const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = null;
     act(() => ConfigStore.set('user', user));
 
     jest.mocked(useLocation).mockReturnValue(LocationFixture());
