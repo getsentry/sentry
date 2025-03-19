@@ -990,20 +990,11 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        aggregate_value = None
-
-        try:
-            # Even if the search value matches percentage format, only act as
-            # percentage for certain columns
-            result_type = self.get_function_result_type(search_key.name)
-            if result_type == "percentage":
-                aggregate_value = parse_percentage(search_value)
-        except ValueError:
-            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
-
-        if aggregate_value is not None:
+        # Even if the search value matches percentage format, only act as
+        # percentage for certain columns
+        result_type = self.get_function_result_type(search_key.name)
+        if result_type == "percentage":
+            aggregate_value = parse_percentage(search_value)
             return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
         # Invalid formats fall back to text match
