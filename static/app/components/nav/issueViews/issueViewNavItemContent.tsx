@@ -150,6 +150,10 @@ export function IssueViewNavItemContent({
       }}
       dragListener={false}
       dragControls={controls}
+      // This style is a hack to fix a framer-motion bug that causes views to
+      // jump from the bottom of the nav bar to their correct positions
+      // upon scrolling down on the page and triggering a page navigation.
+      // See: https://github.com/motiondivision/motion/issues/2006
       style={{
         ...(isDragging || scrollPosition === 0
           ? {}
