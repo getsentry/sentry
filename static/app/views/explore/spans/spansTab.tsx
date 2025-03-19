@@ -373,7 +373,7 @@ const SideSection = styled('aside')<{withToolbar: boolean}>`
   }
 `;
 
-const HintsSection = styled('div')`
+export const HintsSection = styled('div')`
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;
