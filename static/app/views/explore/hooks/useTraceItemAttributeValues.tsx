@@ -33,21 +33,9 @@ interface UseTraceItemAttributeValuesProps extends UseTraceItemAttributeBaseProp
    * The attribute key for which to fetch values
    */
   attributeKey: string;
-  /**
-   * Optional datetime filter
-   */
   datetime?: PageFilters['datetime'];
-  /**
-   * Whether the query should be enabled
-   */
   enabled?: boolean;
-  /**
-   * Optional project IDs to filter by
-   */
   projectIds?: PageFilters['projects'];
-  /**
-   * Optional search string to filter values
-   */
   search?: string;
 }
 
