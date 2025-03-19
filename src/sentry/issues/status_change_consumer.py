@@ -150,6 +150,8 @@ def bulk_get_groups_from_fingerprints(
 
     Note that fingerprints for issue platform are expected to be
     processed via `process_occurrence_data` prior to calling this function.
+
+    If we map to multiple groups, we'll use the group that matches the first fingerprint.
     """
     fingerprints_by_project: dict[int, list[str]] = defaultdict(list)
     for project_id, hashes in project_fingerprint_pairs:
@@ -172,7 +174,8 @@ def bulk_get_groups_from_fingerprints(
     result = {}
     for project_id, fingerprint in project_fingerprint_pairs:
         for hash in fingerprint:
-            # See if we managed to load any of the hashes from the fingerprint, prioritising early ones first
+            # See if we managed to load any of the hashes from the fingerprint. We prioritise the first hash we find
+            # for each fingerprint.
             if (project_id, hash) in group_hash_result:
                 result[(project_id, tuple(fingerprint))] = group_hash_result[(project_id, hash)]
                 break
