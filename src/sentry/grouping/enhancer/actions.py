@@ -9,7 +9,9 @@ from .exceptions import InvalidEnhancerConfig
 
 ACTIONS = ["group", "app"]
 ACTION_BITSIZE = 8
-assert len(ACTIONS) < 1 << ACTION_BITSIZE
+# Ensure that the number of possible actions is smaller than the number of numbers which can be
+# represented with `ACTION_BITSIZE` bits
+assert len(ACTIONS) < 1 << ACTION_BITSIZE  # This is 2^ACTION_BITSIZE
 ACTION_FLAGS = {
     (True, None): 0,
     (True, "up"): 1,
@@ -54,19 +56,26 @@ class EnhancementAction:
 
     @classmethod
     def _from_config_structure(cls, val, version: int):
-        if isinstance(val, list):
+        if isinstance(val, list):  # This is a `VarAction`
             return VarAction(val[0], val[1])
+        # Otherwise, assume it's a `FlagAction`, since those are the only two types we currently have
         flag, range_direction = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
         return FlagAction(ACTIONS[val & 0xF], flag, range_direction)
 
 
 class FlagAction(EnhancementAction):
+    """
+    An action which sets either a frame's `contributes` value or its `in_app` value.
+
+    May optionally set the value for all frames above or below it in the stacktrace as well.
+    """
+
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
-        self.key = key
+        self.key = key  # The type of change (`app` or `group`)
         self._is_updater = key in {"group", "app"}
         self._is_modifier = key == "app"
-        self.flag = flag
-        self.range = range  # e.g. None, "up", "down"
+        self.flag = flag  # True for `+app/+group` rules, False for `-app/-group` rules
+        self.range = range  # None (apply the action to this frame), "up", or "down"
 
     def __str__(self) -> str:
         return "{}{}{}".format(
@@ -76,6 +85,15 @@ class FlagAction(EnhancementAction):
         )
 
     def _to_config_structure(self, version: int):
+        """
+        Convert the action into an integer by
+            - converting the combination of its boolean value (if it's a `+app/+group` rule or a
+              `-app/-group` rule) and its range (if it applies to this frame, frames above, or
+              frames below) into a number (see `ACTION_FLAGS`) and then multiplying that number by
+              2^ACTION_BITSIZE
+            - converting its type (app or group) into a number (using the index in `ACTIONS`)
+            - bitwise or-ing those two numbers
+        """
         return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE)
 
     def _slice_to_range(self, seq, idx):
