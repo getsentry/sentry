@@ -137,9 +137,14 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         )
 
 
+def get_groups_from_fingerprint(project_id: int, fingerprint: Sequence[str]) -> Group | None:
+    results = bulk_get_groups_from_fingerprints([(project_id, fingerprint)])
+    return results.get((project_id, tuple(fingerprint)))
+
+
 def bulk_get_groups_from_fingerprints(
     project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]]
-) -> dict[tuple[int, str], Group]:
+) -> dict[tuple[int, tuple[str, ...]], Group]:
     """
     Returns a map of (project, fingerprint) to the group.
 
@@ -147,30 +152,37 @@ def bulk_get_groups_from_fingerprints(
     processed via `process_occurrence_data` prior to calling this function.
     """
     fingerprints_by_project: dict[int, list[str]] = defaultdict(list)
-    for project_id, fingerprints in project_fingerprint_pairs:
-        fingerprints_by_project[project_id].append(fingerprints[0])
+    for project_id, hashes in project_fingerprint_pairs:
+        fingerprints_by_project[project_id].extend(hashes)
 
     query = GroupHash.objects.none()
-    for project_id, fingerprints in fingerprints_by_project.items():
+    for project_id, hashes in fingerprints_by_project.items():
         query = query.union(
             GroupHash.objects.filter(
                 project=project_id,
-                hash__in=fingerprints,
+                hash__in=hashes,
             ).select_related("group")
         )
 
-    result = {
+    group_hash_result = {
         (grouphash.project_id, grouphash.hash): grouphash.group
         for grouphash in query
         if grouphash.group is not None
     }
+    result = {}
+    for project_id, fingerprint in project_fingerprint_pairs:
+        for hash in fingerprint:
+            # See if we managed to load any of the hashes from the fingerprint, prioritising early ones first
+            if (project_id, hash) in group_hash_result:
+                result[(project_id, tuple(fingerprint))] = group_hash_result[(project_id, hash)]
+                break
 
-    found_fingerprints = set(result.keys())
     fingerprints_set = {
-        (project_id, fingerprint[0]) for project_id, fingerprint in project_fingerprint_pairs
+        (project_id, tuple(fingerprint)) for project_id, fingerprint in project_fingerprint_pairs
     }
-    for project_id, fingerprint in fingerprints_set - found_fingerprints:
-        metrics.incr("occurrence_ingest.grouphash.not_found")
+    missing_count = len(fingerprints_set) - len(result)
+    if missing_count:
+        metrics.incr("occurrence_ingest.grouphash.not_found", amount=missing_count)
 
     return result
 
@@ -216,8 +228,7 @@ def process_status_change_message(
 
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
         fingerprint = status_change_data["fingerprint"]
-        groups_by_fingerprints = bulk_get_groups_from_fingerprints([(project.id, fingerprint)])
-        group = groups_by_fingerprints.get((project.id, fingerprint[0]), None)
+        group = get_groups_from_fingerprint(project.id, fingerprint)
         if not group:
             logger.info(
                 "status_change.dropped_group_not_found",
