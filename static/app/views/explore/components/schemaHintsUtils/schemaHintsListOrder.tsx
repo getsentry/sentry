@@ -1,4 +1,5 @@
 import {FieldKey} from 'sentry/utils/fields';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const FRONTEND_HINT_KEYS = [SpanIndexedField.BROWSER_NAME, SpanIndexedField.USER];
@@ -20,6 +21,23 @@ const COMMON_HINT_KEYS = [
   'url',
 ];
 
+const LOGS_HINT_KEYS = [
+  OurLogKnownFieldKey.BODY,
+  OurLogKnownFieldKey.SEVERITY_TEXT,
+  OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.PROJECT_ID,
+  OurLogKnownFieldKey.SPAN_ID,
+  OurLogKnownFieldKey.TIMESTAMP,
+  OurLogKnownFieldKey.PROJECT_ID,
+  OurLogKnownFieldKey.SPAN_ID,
+  OurLogKnownFieldKey.TIMESTAMP,
+];
+
 export const SCHEMA_HINTS_LIST_ORDER_KEYS = [
-  ...new Set([...FRONTEND_HINT_KEYS, ...MOBILE_HINT_KEYS, ...COMMON_HINT_KEYS]),
+  ...new Set([
+    ...FRONTEND_HINT_KEYS,
+    ...MOBILE_HINT_KEYS,
+    ...LOGS_HINT_KEYS,
+    ...COMMON_HINT_KEYS,
+  ]),
 ];
