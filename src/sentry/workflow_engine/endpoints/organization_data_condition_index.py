@@ -54,7 +54,9 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
         try:
             DataConditionHandler.Group(group)
         except ValueError:
-            raise serializers.ValidationError("Invalid group")
+            raise serializers.ValidationError(
+                f"Please provide a valid group. Accepted values are: {', '.join([group.value for group in DataConditionHandler.Group])}"
+            )
 
         data_conditions = []
 
