@@ -133,7 +133,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             message_identifier = str(ts) if ts is not None else None
             if message_identifier is None:
                 sentry_sdk.capture_message(
-                    "Recieved no thread_ts from Slack",
+                    "Received no thread_ts from Slack",
                     level="info",
                 )
 
