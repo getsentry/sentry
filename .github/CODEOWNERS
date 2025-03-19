@@ -635,9 +635,9 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 /tests/sentry/data_secrecy/                                           @getsentry/core-product-foundations
 ## End of Core Product Foundations
 
-# Taskworkers
-/src/sentry/taskworker/                                       @getsentry/taskworker
-/tests/sentry/taskworker/                                     @getsentry/taskworker
+# Taskbroker workers
+/src/sentry/taskworker/                                       @getsentry/taskbroker
+/tests/sentry/taskworker/                                     @getsentry/taskbroker
 
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx
