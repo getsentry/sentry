@@ -119,14 +119,7 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity =
-  | 'high'
-  | 'medium'
-  | 'low'
-  | 'metrics'
-  | 'issues'
-  | 'spans'
-  | 'spans-low';
+export type Fidelity = 'high' | 'medium' | 'low' | 'metrics' | 'issues' | 'spans-low';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -137,7 +130,6 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
     issues: issuesFidelityLadder,
-    spans: spansFidelityLadder,
     'spans-low': spansLowFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
@@ -186,18 +178,6 @@ const issuesFidelityLadder = new GranularityLadder([
   [TWENTY_FOUR_HOURS, '20m'],
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
-  [0, '1m'],
-]);
-
-const spansFidelityLadder = new GranularityLadder([
-  [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '12h'],
-  [TWO_WEEKS, '4h'],
-  [ONE_WEEK, '2h'],
-  [FORTY_EIGHT_HOURS, '30m'],
-  [TWENTY_FOUR_HOURS, '15m'],
-  [SIX_HOURS, '15m'],
-  [ONE_HOUR, '5m'],
   [0, '1m'],
 ]);
 
