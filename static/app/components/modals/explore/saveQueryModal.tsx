@@ -98,7 +98,11 @@ function SaveQueryModal({
           <ExploreParamsContainer>
             <ExploreParamSection>
               <ExploreParamTitle>{t('Visualize')}</ExploreParamTitle>
-              <ExploreVisualizes>{yAxes.join(', ')}</ExploreVisualizes>
+              <ExploreParamSection>
+                {yAxes.map(yAxis => (
+                  <ExploreVisualizes key={yAxis}>{yAxis}</ExploreVisualizes>
+                ))}
+              </ExploreParamSection>
             </ExploreParamSection>
             {query && (
               <ExploreParamSection>
@@ -111,7 +115,11 @@ function SaveQueryModal({
             {groupBys && groupBys.length > 0 && (
               <ExploreParamSection>
                 <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-                <ExploreGroupBys>{groupBys.join(', ')}</ExploreGroupBys>
+                <ExploreParamSection>
+                  {groupBys.map(groupBy => (
+                    <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
+                  ))}
+                </ExploreParamSection>
               </ExploreParamSection>
             )}
             <ExploreParamSection>...</ExploreParamSection>
@@ -173,6 +181,7 @@ const ExploreParamSection = styled('span')`
   flex-direction: row;
   gap: ${space(0.5)};
   overflow: hidden;
+  flex-wrap: wrap;
 `;
 
 const ExploreParamTitle = styled('span')`
@@ -189,8 +198,8 @@ const ExploreVisualizes = styled('span')`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
   height: 24px;
-  white-space: nowrap;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 `;
 
