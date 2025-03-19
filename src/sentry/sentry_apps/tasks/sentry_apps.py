@@ -27,6 +27,7 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
     SentryAppWebhookFailureReason,
+    SentryAppWebhookHaltReason,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -70,8 +71,8 @@ CONTROL_TASK_OPTIONS = {
 
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
-    ignore=(ClientError,),
-    ignore_and_capture=(SentryAppSentryError, AssertionError, ValueError),
+    ignore=(ClientError, SentryAppSentryError, AssertionError, ValueError),
+    ignore_and_capture=(),
 )
 
 # We call some models by a different name, publicly, than their class name.
@@ -182,7 +183,10 @@ def send_alert_webhook(
             )
         )
         if not installations:
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            # when someone deletes an installation we don't clean up the rule actions
+            # so we can have missing installations here
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.MISSING_INSTALLATION)
+            return
         (install,) = installations
 
         nodedata = nodestore.backend.get(
@@ -517,7 +521,7 @@ def send_resource_change_webhook(
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
-            logger.error(
+            logger.info(
                 "notify_sentry_app.future_missing_sentry_app",
                 extra={"event": event.as_dict(), "future": f, "event_id": event.event_id},
             )
