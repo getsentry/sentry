@@ -15,11 +15,8 @@ LEGACY_PICKLE_TASKS = frozenset(
         # basic tasks that must be passed models still
         "sentry.tasks.process_buffer.process_incr",
         "sentry.tasks.unmerge",
-        "src.sentry.notifications.utils.async_send_notification",
         # basic tasks that can already deal with primary keys passed
         "sentry.tasks.update_code_owners_schema",
-        # integration tasks that must be passed models still
-        "sentry.integrations.slack.link_users_identities",
     ]
 )
 
