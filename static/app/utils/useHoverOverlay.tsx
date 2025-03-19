@@ -10,6 +10,7 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
 import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -266,9 +267,11 @@ function useHoverOverlay(
    */
   const wrapTrigger = useCallback(
     (triggerChildren: React.ReactNode) => {
-      const props = {
+      const providedProps = {
+        // !!These props are always overriden!!
         'aria-describedby': describeById,
         ref: setTriggerElement,
+        // The following props are composed from the componentProps trigger props
         onFocus: handleMouseEnter,
         onBlur: handleMouseLeave,
         onPointerEnter: handleMouseEnter,
@@ -291,20 +294,22 @@ function useHoverOverlay(
 
           return cloneElement<any>(
             triggerChildren,
-            Object.assign(props, {style: triggerStyle})
+            Object.assign(mergeProps(triggerChildren.props, providedProps), {
+              style: triggerStyle,
+            })
           );
         }
 
         // Basic DOM nodes can be cloned and have more props applied.
         return cloneElement<any>(
           triggerChildren,
-          Object.assign(props, {
+          Object.assign(mergeProps(triggerChildren.props, providedProps), {
             style: triggerChildren.props.style,
           })
         );
       }
 
-      const containerProps = Object.assign(props, {
+      const containerProps = Object.assign(providedProps, {
         style: {
           ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
           ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
