@@ -488,6 +488,10 @@ def process_delayed_workflows(
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+    logger.info(
+        "delayed_workflow.condition_query_groups",
+        extra={"condition_groups": len(condition_groups), "project_id": project_id},
+    )
     condition_group_results = get_condition_group_results(condition_groups)
 
     # Evaluate DCGs
