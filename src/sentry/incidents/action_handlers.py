@@ -44,6 +44,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
@@ -184,13 +185,13 @@ class EmailActionHandler(ActionHandler):
             return set()
 
         if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-            assert isinstance(target, RpcUser)
+            assert isinstance(target, OrganizationMember)
             if RuleSnooze.objects.is_snoozed_for_user(
-                user_id=target.id, alert_rule=incident.alert_rule
+                user_id=target.user_id, alert_rule=incident.alert_rule
             ):
                 return set()
 
-            return {target.id}
+            return {target.user_id}
 
         elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             assert isinstance(target, Team)
