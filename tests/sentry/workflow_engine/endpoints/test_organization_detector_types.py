@@ -21,8 +21,8 @@ class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCas
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert len(response.data) == 3
-        assert set(response.data) == {
+        assert response.data == [
             MetricAlertFire.slug,
             MonitorIncidentType.slug,
             UptimeDomainCheckFailure.slug,
-        }
+        ]

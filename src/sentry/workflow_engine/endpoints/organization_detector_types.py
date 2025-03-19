@@ -42,6 +42,7 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         """
         # Note: This is a temporary stop gap until we have a detector type registry
         distinct_types = list(Detector.objects.values_list("type", flat=True).distinct())
+        distinct_types.sort()
 
         return self.paginate(
             request=request,
