@@ -15,9 +15,6 @@ import {useTraceItemAttributeValues} from '../hooks/useTraceItemAttributeValues'
 import {TraceItemDataset} from '../types';
 
 interface TraceItemSearchQueryBuilderProps {
-  /**
-   * Required props
-   */
   initialQuery: string;
   itemType: TraceItemDataset.LOGS; // This should include TraceItemDataset.SPANS etc.
   numberAttributes: TagCollection;
