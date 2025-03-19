@@ -84,12 +84,12 @@ export function SidebarMenu({
   const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem label={label} showLabel={showLabel}>
-      <DropdownMenu
-        position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
-        shouldApplyMinWidth={false}
-        trigger={(props, isOpen) => {
-          return (
+    <DropdownMenu
+      position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
+      shouldApplyMinWidth={false}
+      trigger={(props, isOpen) => {
+        return (
+          <SidebarItem label={label} showLabel={showLabel}>
             <NavButton
               {...props}
               aria-label={showLabel ? undefined : label}
@@ -103,11 +103,11 @@ export function SidebarMenu({
               {children}
               {showLabel ? label : null}
             </NavButton>
-          );
-        }}
-        items={items}
-      />
-    </SidebarItem>
+          </SidebarItem>
+        );
+      }}
+      items={items}
+    />
   );
 }
 
