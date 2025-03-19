@@ -69,7 +69,7 @@ function SetPayAsYouGo({
     }
   }, [isNewPayingCustomer, suggestedBudgetForPlan]);
 
-  const handleBudgetChange = (value: OnDemandBudgets) => {
+  const handleBudgetChange = (value: OnDemandBudgets, fromButton = false) => {
     // NOTE: `value` is always a SharedOnDemandBudget here because we don't support per-category budgets
     // on AM3 but we use getTotalBudget anyway to be type safe
     const totalBudget = getTotalBudget(value);
@@ -85,6 +85,7 @@ function SetPayAsYouGo({
         subscription,
         plan: formData.plan,
         cents: totalBudget || 0,
+        method: fromButton ? 'button' : 'textbox',
       });
     }
     setCurrentBudget(totalBudget);
@@ -102,10 +103,13 @@ function SetPayAsYouGo({
   };
 
   const incrementBudget = (step: number) => {
-    handleBudgetChange({
-      budgetMode: OnDemandBudgetMode.SHARED,
-      sharedMaxBudget: Math.max(0, currentBudget + step),
-    });
+    handleBudgetChange(
+      {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: Math.max(0, currentBudget + step),
+      },
+      true
+    );
   };
 
   const renderProductAccessInfo = () => {
