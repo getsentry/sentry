@@ -323,8 +323,9 @@ def _handle_workflow_engine_notification(
     text: str,
     channel: str,
 ) -> bool:
-    group = Group.objects.get(id=metric_issue_context.id)
-    if not group:
+    try:
+        group = Group.objects.get(id=metric_issue_context.id)
+    except Group.DoesNotExist:
         _logger.info(
             "Group not found",
             extra={"incident_id": metric_issue_context.id},
