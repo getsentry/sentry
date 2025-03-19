@@ -25,6 +25,26 @@ enum DiscardReason {
   PAYLOAD = 'payload',
   INVALID_COMPRESSION = 'invalid_compression',
   TOO_LARGE = 'too_large', // Left for backwards compatibility
+  // All the too_large we want to communicate to the end-user
+  TOO_LARGE_EVENT = 'too_large:event',
+  TOO_LARGE_TRANSACTION = 'too_large:transaction',
+  TOO_LARGE_ATTACHMENT = 'too_large:attachment',
+  TOO_LARGE_FORM_DATA = 'too_large:form_data',
+  TOO_LARGE_NEL = 'too_large:nel',
+  TOO_LARGE_UNREAL_REPORT = 'too_large:unreal_report',
+  TOO_LARGE_USER_REPORT = 'too_large:user_report',
+  TOO_LARGE_USER_REPORT_V2 = 'too_large:user_report_v2',
+  TOO_LARGE_SESSION = 'too_large:session',
+  TOO_LARGE_SESSIONS = 'too_large:sessions',
+  TOO_LARGE_REPLAY_EVENT = 'too_large:replay_event',
+  TOO_LARGE_REPLAY_RECORDING = 'too_large:replay_recording',
+  TOO_LARGE_REPLAY_VIDEO = 'too_large:replay_video',
+  TOO_LARGE_OTEL_LOG = 'too_large:otel_log',
+  TOO_LARGE_LOG = 'too_large:log',
+  TOO_LARGE_SPAN = 'too_large:span',
+  TOO_LARGE_OTEL_SPAN = 'too_large:otel_span',
+  TOO_LARGE_PROFILE_CHUNK = 'too_large:profile_chunk',
+  TOO_LARGE_PROFILE = 'too_large:profile',
   MISSING_MINIDUMP_UPLOAD = 'missing_minidump_upload',
   INVALID_MINIDUMP = 'invalid_minidump',
   SECURITY_REPORT = 'security_report',
@@ -91,8 +111,28 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
     DiscardReason.INVALID_REPLAY_VIDEO,
   ],
   payload: [DiscardReason.PAYLOAD, DiscardReason.INVALID_COMPRESSION],
-  too_large: [
-    DiscardReason.TOO_LARGE, // Left for backwards compatibility
+  too_large_other: [DiscardReason.TOO_LARGE],
+  too_large_event: [DiscardReason.TOO_LARGE_EVENT],
+  too_large_transaction: [DiscardReason.TOO_LARGE_TRANSACTION],
+  too_large_attachment: [DiscardReason.TOO_LARGE_ATTACHMENT],
+  too_large_form_data: [DiscardReason.TOO_LARGE_FORM_DATA],
+  too_large_nel: [DiscardReason.TOO_LARGE_NEL],
+  too_large_unreal_report: [DiscardReason.TOO_LARGE_UNREAL_REPORT],
+  too_large_user_report: [
+    DiscardReason.TOO_LARGE_USER_REPORT,
+    DiscardReason.TOO_LARGE_USER_REPORT_V2,
+  ],
+  too_large_session: [DiscardReason.TOO_LARGE_SESSION, DiscardReason.TOO_LARGE_SESSIONS],
+  too_large_replay: [
+    DiscardReason.TOO_LARGE_REPLAY_EVENT,
+    DiscardReason.TOO_LARGE_REPLAY_RECORDING,
+    DiscardReason.TOO_LARGE_REPLAY_VIDEO,
+  ],
+  too_large_log: [DiscardReason.TOO_LARGE_OTEL_LOG, DiscardReason.TOO_LARGE_LOG],
+  too_large_span: [DiscardReason.TOO_LARGE_SPAN, DiscardReason.TOO_LARGE_OTEL_SPAN],
+  too_large_profile: [
+    DiscardReason.TOO_LARGE_PROFILE_CHUNK,
+    DiscardReason.TOO_LARGE_PROFILE,
   ],
   minidump: [DiscardReason.MISSING_MINIDUMP_UPLOAD, DiscardReason.INVALID_MINIDUMP],
   security_report: [DiscardReason.SECURITY_REPORT, DiscardReason.SECURITY_REPORT_TYPE],
@@ -106,33 +146,22 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   sampling: [DiscardReason.TRANSACTION_SAMPLED],
 };
 
-function lookupInvalidReasonGroup(reason: DiscardReason): string {
+function getInvalidReasonGroupName(reason: string): string {
+  // 1. Check if there is a direct match in the `invalidReasonsGroup`
   for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
     if (reasons.includes(reason as DiscardReason)) {
       return group;
     }
   }
-  return 'internal';
-}
-
-function getInvalidReasonGroupName(reason: string): string {
-  // Reasons can be of the form 'baseReason:subReason' for the `baseReason` we expect it
-  // to be part of `DiscardReason` while the `subReason` can be freeform.
-  //
-  // If the `baseReason` and `subReason` are valid we want to return `baseReason_subReason`
-  // else we just want to return the reasonGroup for the `baseReason`
-
-  const [baseReason, ...rest] = reason.split(':');
-  const subReason = rest.join(':');
-  const group_name = lookupInvalidReasonGroup(baseReason as DiscardReason);
-
-  if (group_name === 'internal' || subReason === 'unknown' || subReason.length === 0) {
-    // Ensures we return `internal` rather than `internal: foo`
-    // Ensures we return `too_large` rather than too_large_unknown`
-    // Ensures we don't return `too_large_` if there is no subReason
-    return group_name;
+  // 2. If there is no direct match check if there is a match for the baseReason
+  const [baseReason, ..._] = reason.split(':');
+  for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
+    if (reasons.includes(baseReason as DiscardReason)) {
+      return group;
+    }
   }
-  return [baseReason, subReason].join('_');
+  // 3. Else just return internal
+  return 'internal';
 }
 
 function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): string {
