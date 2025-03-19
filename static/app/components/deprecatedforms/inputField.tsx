@@ -1,4 +1,4 @@
-import {Input} from 'sentry/components/core/input';
+import {DO_NOT_USE_LegacyFormInput} from 'sentry/components/core/input';
 import FormField from 'sentry/components/deprecatedforms/formField';
 
 type InputFieldProps = FormField['props'] & {
@@ -24,7 +24,7 @@ abstract class InputField<
 > extends FormField<Props, State> {
   getField() {
     return (
-      <Input
+      <DO_NOT_USE_LegacyFormInput
         id={this.getId()} // TODO(Priscila): check the reason behind this. We are getting warnings if we have 2 or more fields with the same name, for instance in the DATA PRIVACY RULES
         type={this.getType()}
         className="form-control"
