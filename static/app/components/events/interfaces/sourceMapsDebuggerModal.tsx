@@ -767,7 +767,7 @@ function SentryCliMessage({
   return (
     <p>
       {tct(
-        'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified!',
+        'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified.',
         {
           sentryCliLink: <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />,
           injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
