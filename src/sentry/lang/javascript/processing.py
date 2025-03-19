@@ -308,7 +308,7 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-NODE_MODULES_RE = re.compile(r"/node_modules/")
+NODE_MODULES_RE = re.compile(r"\bnode_modules/")
 
 
 # Port from symbolicator-js
