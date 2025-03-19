@@ -210,7 +210,7 @@ def _set_exclusive_time(spans: list[Span]) -> None:
     span_map: dict[str, list[tuple[float, float]]] = {}
     for span in spans:
         if parent_span_id := span.get("parent_span_id"):
-            interval = (span["start_timestamp_precise"], span["end_timestamp_precise"])
+            interval = (_us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"]))
             span_map.setdefault(parent_span_id, []).append(interval)
 
     for span in spans:
@@ -218,22 +218,30 @@ def _set_exclusive_time(spans: list[Span]) -> None:
         # Sort by start ASC, end DESC to skip over nested intervals efficiently
         intervals.sort(key=lambda x: (x[0], -x[1]))
 
-        exclusive_time: float = 0
-        start, end = span["end_timestamp_precise"], span["start_timestamp_precise"]
+        exclusive_time_us: int = 0  # microseconds to prevent rounding issues
+        start, end = _us(span["start_timestamp_precise"]), _us(span["end_timestamp_precise"])
 
         # Progressively add time gaps before the next span and then skip to its end.
         for child_start, child_end in intervals:
+            if child_start >= end:
+                break
             if child_start > start:
-                exclusive_time += child_start - start
+                exclusive_time_us += child_start - start
             start = max(start, child_end)
 
         # Add any remaining time not covered by children
-        exclusive_time += max(end - start, 0)
+        exclusive_time_us += max(end - start, 0)
 
         # Note: Event protocol spans expect `exclusive_time` while EAP expects
         # `exclusive_time_ms`. Both are the same value in milliseconds
-        span["exclusive_time"] = exclusive_time * 1000  # type: ignore[typeddict-unknown-key]
-        span["exclusive_time_ms"] = exclusive_time * 1000  # type: ignore[typeddict-unknown-key]
+        span["exclusive_time"] = exclusive_time_us / 1_000  # type: ignore[typeddict-unknown-key]
+        span["exclusive_time_ms"] = exclusive_time_us / 1_000  # type: ignore[typeddict-unknown-key]
+
+
+def _us(timestamp: float) -> int:
+    """Convert the floating point duration or timestamp to integer microsecond
+    precision."""
+    return int(timestamp * 1_000_000)
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")
