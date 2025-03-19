@@ -94,8 +94,7 @@ def make_rust_exception_data(
         "value": e.get("value"),
         "mechanism": get_path(e, "mechanism", "type"),
     }
-    for key in e.keys():
-        value = e[key]
+    for key, value in e.items():
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
     return e
