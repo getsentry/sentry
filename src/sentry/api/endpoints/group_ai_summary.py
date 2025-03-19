@@ -193,8 +193,11 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                 continue
             if e.group_id not in issue_ids:
                 issue_ids.add(e.group_id)
-                if e.group:
-                    connected_issues.append(e.group)
+                try:
+                    if e.group:
+                        connected_issues.append(e.group)
+                except Group.DoesNotExist:
+                    continue
         return connected_issues
 
     def post(self, request: Request, group: Group) -> Response:
