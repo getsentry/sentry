@@ -345,11 +345,7 @@ class MigrateMetricAlertTest(TestMigrations):
             action=action.id,
         )
         assert action.type == Action.Type.EMAIL
-        assert action.data == {
-            "type": self.email_action.type,
-            "sentry_app_id": self.email_action.sentry_app_id,
-            "sentry_app_config": self.email_action.sentry_app_config,
-        }
+        assert action.data == {}
         assert action.integration_id is None
         assert action.config.get("target_display") is None
         assert action.config.get("target_identifier") == self.email_action.target_identifier
@@ -410,6 +406,7 @@ class MigrateMetricAlertTest(TestMigrations):
         assert action.config.get("target_display") == self.sentry_app_action.target_display
         assert action.config.get("target_identifier") == self.sentry_app_action.target_identifier
         assert action.config.get("target_type") == self.sentry_app_action.target_type
+        assert action.config.get("sentry_app_identifier") == "sentry_app_id"
 
     def test_skip_dynamic_rule(self):
         assert not AlertRuleDetector.objects.filter(alert_rule=self.dynamic_rule).exists()
