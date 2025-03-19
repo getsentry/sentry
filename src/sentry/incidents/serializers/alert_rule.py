@@ -34,7 +34,7 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger,
-    dual_update_resolve_condition,
+    dual_update_alert_rule,
     dual_write_alert_rule,
 )
 
@@ -313,6 +313,11 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                 )
                 raise BadRequest
             self._handle_triggers(alert_rule, triggers)
+            try:
+                dual_update_alert_rule(alert_rule)
+            except Exception:
+                sentry_sdk.capture_exception()
+                raise BadRequest(message="Error when updating alert rule")
             return alert_rule
 
     def _handle_triggers(self, alert_rule, triggers):
@@ -360,8 +365,5 @@ class AlertRuleSerializer(SnubaQueryValidator, CamelSnakeModelSerializer[AlertRu
                         channel_lookup_timeout_error = e
                 else:
                     raise serializers.ValidationError(trigger_serializer.errors)
-            # after all the triggers have been processed, dual update the resolve data condition if necessary
-            # if an error occurs in this method, it won't affect the alert rule triggers, which have already been saved
-            dual_update_resolve_condition(alert_rule)
         if channel_lookup_timeout_error:
             raise channel_lookup_timeout_error
