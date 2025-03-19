@@ -6,17 +6,18 @@ from sentry.users.services.user import RpcUser
 
 MAX_ACTIONS = 3
 
+ACTION_TYPE_TO_STRING = {
+    AlertRuleTriggerAction.Type.PAGERDUTY.value: "PagerDuty",
+    AlertRuleTriggerAction.Type.SLACK.value: "Slack",
+    AlertRuleTriggerAction.Type.MSTEAMS.value: "Microsoft Teams",
+    AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
+}
+
 
 def get_action_description(action: AlertRuleTriggerAction) -> str:
     """
     Returns a human readable action description
     """
-    ACTION_TYPE_TO_STRING = {
-        AlertRuleTriggerAction.Type.PAGERDUTY.value: "PagerDuty",
-        AlertRuleTriggerAction.Type.SLACK.value: "Slack",
-        AlertRuleTriggerAction.Type.MSTEAMS.value: "Microsoft Teams",
-        AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
-    }
 
     if action.type == AlertRuleTriggerAction.Type.EMAIL.value:
         if action.target:
