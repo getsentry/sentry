@@ -34,7 +34,9 @@ function AddDataVolume({
     });
   }
 
-  const isLegacy = [PlanTier.AM2, PlanTier.AM1].includes(checkoutTier ?? PlanTier.AM3);
+  const isLegacy = [PlanTier.MM1, PlanTier.MM2, PlanTier.AM2, PlanTier.AM1].includes(
+    checkoutTier ?? PlanTier.AM3
+  );
 
   const title = isLegacy ? t('Reserved Volumes') : t('Set Reserved Volumes (optional)');
   const testId = 'reserved-volumes';
