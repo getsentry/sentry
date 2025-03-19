@@ -2,13 +2,14 @@ from uuid import uuid4
 
 from django.urls import reverse
 
+from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_trace import (
     OrganizationEventsTraceEndpointBase,
 )
 
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
-    url_name = "sentry-api-0-organization-spans-trace"
+    url_name = "sentry-api-0-organization-trace"
     FEATURES = ["organizations:trace-spans-format"]
 
     def assert_event(self, result, event_data, message):
@@ -23,7 +24,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         for child in event["children"]:
             if child["is_transaction"]:
                 children.append(child)
-            else:
+            elif child["event_type"] == "span":
                 children.extend(child["children"])
         return sorted(children, key=lambda event: event["description"])
 
@@ -112,3 +113,33 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         data = response.data
         assert len(data) == 1
         self.assert_trace_data(data[0])
+
+    def test_with_errors_data(self):
+        self.load_trace(is_eap=True)
+        start, _ = self.get_start_end_from_day_ago(1000)
+        error_data = load_data(
+            "javascript",
+            timestamp=start,
+        )
+        error_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": self.trace_id,
+            "span_id": self.root_event.data["contexts"]["trace"]["span_id"],
+        }
+        error_data["tags"] = [["transaction", "/transaction/gen1-0"]]
+        error = self.store_event(error_data, project_id=self.gen1_project.id)
+
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+        error_event = None
+        assert len(data[0]["errors"]) == 1
+        error_event = data[0]["errors"][0]
+        assert error_event is not None
+        assert error_event["event_id"] == error.data["event_id"]
+        assert error_event["project_slug"] == self.gen1_project.slug

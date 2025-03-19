@@ -576,12 +576,12 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldValuesEndpoint,
 )
 from .endpoints.organization_spans_fields_stats import OrganizationSpansFieldsStatsEndpoint
-from .endpoints.organization_spans_trace import OrganizationSpansTraceEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_trace import OrganizationTraceEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
@@ -1620,8 +1620,8 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationSpansTraceEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-trace",
+        OrganizationTraceEndpoint.as_view(),
+        name="sentry-api-0-organization-trace",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/measurements-meta/$",
