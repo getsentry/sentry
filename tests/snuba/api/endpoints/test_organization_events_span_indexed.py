@@ -2889,6 +2889,36 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["avg_if(span.duration, span.op, queue.publish)"] == 3000.0
         assert meta["dataset"] == self.dataset
 
+    def test_avg_compare(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"release": "foo"}}, duration=100, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"release": "bar"}},
+                    duration=10,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["avg_compare(span.self_time, release, foo, bar)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["avg_compare(span.self_time, release, foo, bar)"] == -0.9
+        assert meta["dataset"] == self.dataset
+
     def test_avg_if_invalid_param(self):
         self.store_spans(
             [
