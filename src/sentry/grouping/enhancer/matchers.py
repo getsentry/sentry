@@ -182,7 +182,7 @@ class FrameMatch(EnhancementMatch):
     @property
     def description(self) -> str:
         return "{}{}:{}".format(
-            self.negated and "!" or "",
+            "!" if self.negated else "",
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
