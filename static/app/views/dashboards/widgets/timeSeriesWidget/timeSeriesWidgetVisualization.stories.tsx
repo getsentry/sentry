@@ -32,7 +32,7 @@ const sampleDurationTimeSeries2 = {
   data: sampleDurationTimeSeries.data.map(datum => {
     return {
       ...datum,
-      value: datum.value * 0.3 + 30 * Math.random(),
+      value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
     };
   }),
 };
@@ -257,12 +257,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const millisecondsSeries = sampleDurationTimeSeries;
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
-    const secondsSeries = {
+    const secondsSeries: TimeSeries = {
       field: 'p99(span.self_time)',
       data: sampleDurationTimeSeries.data.map(datum => {
         return {
           ...datum,
-          value: (datum.value / 1000) * (1 + Math.random() / 10), // Introduce jitter so the series is visible
+          value: datum.value ? (datum.value / 1000) * (1 + Math.random() / 10) : null, // Introduce jitter so the series is visible
         };
       }),
       meta: {
@@ -375,7 +375,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   story('Color', () => {
     const theme = useTheme();
 
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
@@ -471,7 +471,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Legends', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({
-      'p99(span.duration)': false,
+      p99: false,
     });
 
     return (
@@ -495,6 +495,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           like "p99(span.duration)" are truncated, and the p99 series is hidden by
           default.
         </p>
+
+        <code>{JSON.stringify(legendSelection)}</code>
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
