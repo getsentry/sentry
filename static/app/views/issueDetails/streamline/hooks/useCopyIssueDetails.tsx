@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AutofixData} from 'sentry/components/events/autofix/types';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {
@@ -17,9 +16,9 @@ import type {Group} from 'sentry/types/group';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-const issueAndEventToMarkdown = (
+export const issueAndEventToMarkdown = (
   group: Group,
-  event: Event,
+  event: Event | null | undefined,
   groupSummaryData: GroupSummaryData | null | undefined,
   autofixData: AutofixData | null | undefined
 ): string => {
@@ -31,7 +30,7 @@ const issueAndEventToMarkdown = (
     markdownText += `**Project:** ${group.project?.slug}\n`;
   }
 
-  if (typeof event.dateCreated === 'string') {
+  if (event && typeof event.dateCreated === 'string') {
     markdownText += `**Date:** ${new Date(event.dateCreated).toLocaleString()}\n`;
   }
 
@@ -58,7 +57,7 @@ const issueAndEventToMarkdown = (
     }
   }
 
-  if (Array.isArray(event.tags) && event.tags.length > 0) {
+  if (event && Array.isArray(event.tags) && event.tags.length > 0) {
     markdownText += `\n## Tags\n\n`;
     event.tags.forEach(tag => {
       if (tag && typeof tag.key === 'string') {
@@ -67,7 +66,7 @@ const issueAndEventToMarkdown = (
     });
   }
 
-  event.entries.forEach(entry => {
+  event?.entries.forEach(entry => {
     if (entry.type === EntryType.EXCEPTION && entry.data.values) {
       markdownText += `\n## Exception${entry.data.values.length > 1 ? 's' : ''}\n\n`;
 
@@ -136,17 +135,13 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const {data: autofixData} = useAutofixData({groupId: group.id});
 
   const text = useMemo(() => {
-    if (!event) {
-      addErrorMessage(t('Could not copy issue to clipboard'));
-      return '';
-    }
-
     return issueAndEventToMarkdown(group, event, groupSummaryData, autofixData);
   }, [group, event, groupSummaryData, autofixData]);
 
   const {onClick} = useCopyToClipboard({
     text,
     successMessage: t('Copied issue to clipboard as Markdown'),
+    errorMessage: t('Could not copy issue to clipboard'),
   });
 
   useHotkeys([
