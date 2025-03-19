@@ -59,8 +59,11 @@ def execute_via_group_type_registry(
 def execute_via_metric_alert_handler(
     job: WorkflowEventData, action: Action, detector: Detector
 ) -> None:
-    # TODO(iamrajjoshi): Implement this, it should be used for the ticketing actions
-    pass
+    """
+    This exists so that all ticketing actions can use the same handler as issue alerts since thats the only way we can
+    ensure that the same thread is used for the notification action.
+    """
+    IssueAlertRegistryInvoker.handle_workflow_action(job, action, detector)
 
 
 class NotificationActionHandler(ActionHandler, ABC):
@@ -91,6 +94,36 @@ class NotificationActionHandler(ActionHandler, ABC):
         detector: Detector,
     ) -> None:
         execute_via_group_type_registry(job, action, detector)
+
+
+class TicketingActionHandler(ActionHandler, ABC):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Ticketing Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {
+                "type": ["null"],
+            },
+            "target_display": {
+                "type": ["null"],
+            },
+            "target_type": {
+                "type": ["integer"],
+                "enum": [*ActionTarget],
+            },
+        },
+    }
+
+    data_schema = {}
+
+    @staticmethod
+    def execute(
+        job: WorkflowJob,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_metric_alert_handler(job, action, detector)
 
 
 @action_handler_registry.register(Action.Type.DISCORD)
@@ -134,27 +167,27 @@ class PluginActionHandler(NotificationActionHandler):
 
 
 @action_handler_registry.register(Action.Type.GITHUB)
-class GithubActionHandler(NotificationActionHandler):
+class GithubActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
-class GithubEnterpriseActionHandler(NotificationActionHandler):
+class GithubEnterpriseActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.JIRA)
-class JiraActionHandler(NotificationActionHandler):
+class JiraActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.JIRA_SERVER)
-class JiraServerActionHandler(NotificationActionHandler):
+class JiraServerActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.AZURE_DEVOPS)
-class AzureDevopsActionHandler(NotificationActionHandler):
+class AzureDevopsActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
