@@ -1,10 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
+import type {EAPSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
-import type {CallbackSearchState} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
@@ -14,20 +13,11 @@ import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 import {useTraceItemAttributeValues} from '../hooks/useTraceItemAttributeValues';
 import {TraceItemDataset} from '../types';
 
-interface TraceItemSearchQueryBuilderProps {
-  initialQuery: string;
+export type TraceItemSearchQueryBuilderProps = {
   itemType: TraceItemDataset.LOGS; // This should include TraceItemDataset.SPANS etc.
   numberAttributes: TagCollection;
-  searchSource: string;
   stringAttributes: TagCollection;
-  datetime?: PageFilters['datetime'];
-  getFilterTokenWarning?: (key: string) => React.ReactNode;
-  onBlur?: (query: string, state: CallbackSearchState) => void;
-  onSearch?: (query: string, state: CallbackSearchState) => void;
-  portalTarget?: HTMLElement | null;
-  projects?: PageFilters['projects'];
-  supportedAggregates?: AggregationKey[];
-}
+} & Omit<EAPSpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
