@@ -6,6 +6,7 @@ import pytest
 from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.environment import Environment
 from sentry.models.rule import Rule
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import with_feature
@@ -201,6 +202,20 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
         mock_logger.exception.assert_called_once_with(
             "Detector not found for event",
+            extra={"event_id": self.event.event_id},
+        )
+
+    @patch("sentry.workflow_engine.processors.workflow.metrics")
+    @patch("sentry.workflow_engine.processors.workflow.logger")
+    def test_no_environment(self, mock_logger, mock_metrics):
+        Environment.objects.all().delete()
+        triggered_workflows = process_workflows(self.job)
+
+        assert not triggered_workflows
+
+        mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_logger.exception.assert_called_once_with(
+            "Missing environment for event",
             extra={"event_id": self.event.event_id},
         )
 
