@@ -394,7 +394,11 @@ const SideSection = styled('aside')<{withToolbar: boolean}>`
   }
 `;
 
+<<<<<<< HEAD
 const HintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+=======
+export const HintsSection = styled('div')`
+>>>>>>> 8d1b4573f5c (feat(ourlogs): Add schema hints for logs)
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;

@@ -26,10 +26,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
+  useLogsSearch,
+  useSetLogsQuery,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
   PageParamsProvider,
   useExploreQuery,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import type {TraceItemDataset} from 'sentry/views/explore/types';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
@@ -38,6 +43,7 @@ interface SchemaHintsListProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
+  dataset?: TraceItemDataset;
   isLoading?: boolean;
 }
 
@@ -62,13 +68,20 @@ function SchemaHintsList({
   numberTags,
   stringTags,
   isLoading,
+  dataset: traceItemType,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
-  const exploreQuery = useExploreQuery();
-  const setExploreQuery = useSetExploreQuery();
+  const _exploreQuery = useExploreQuery();
+  const _setExploreQuery = useSetExploreQuery();
+  const logsSearch = useLogsSearch();
+  const logsQuery = logsSearch.formatString();
+  const setLogsQuery = useSetLogsQuery();
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+
+  const exploreQuery = traceItemType === 'logs' ? logsQuery : _exploreQuery;
+  const setExploreQuery = traceItemType === 'logs' ? setLogsQuery : _setExploreQuery;
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
