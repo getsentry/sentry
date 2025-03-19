@@ -8,31 +8,40 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
-    ExtrapolationMode,
     Function,
     StrArray,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition, ResolvedArguments
+from sentry.search.eap.columns import (
+    ArgumentDefinition,
+    FormulaDefinition,
+    ResolvedArguments,
+    ResolverSettings,
+)
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.utils import literal_validator
 
-"""
-This column represents a count of the all of spans.
-It works by counting the number of spans that have the attribute "sentry.exclusive_time_ms" (which is set on every span)
-"""
-TOTAL_SPAN_COUNT = Column(
-    aggregation=AttributeAggregation(
-        aggregate=Function.FUNCTION_COUNT,
-        key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-        label="total",
-        extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+
+def get_total_span_count(settings: ResolverSettings) -> Column:
+    """
+    This column represents a count of the all of spans.
+    It works by counting the number of spans that have the attribute "sentry.exclusive_time_ms" (which is set on every span)
+    """
+    extrapolation_mode = settings["extrapolation_mode"]
+    return Column(
+        aggregation=AttributeAggregation(
+            aggregate=Function.FUNCTION_COUNT,
+            key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+            label="total",
+            extrapolation_mode=extrapolation_mode,
+        )
     )
-)
 
 
-def failure_rate(_: ResolvedArguments) -> Column.BinaryFormula:
+def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -56,16 +65,17 @@ def failure_rate(_: ResolvedArguments) -> Column.BinaryFormula:
                     )
                 ),
                 label="trace_status_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=TOTAL_SPAN_COUNT,
+        right=get_total_span_count(settings),
     )
 
 
-def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     code = cast(Literal[1, 2, 3, 4, 5], args[0])
+    extrapolation_mode = settings["extrapolation_mode"]
 
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
@@ -91,7 +101,7 @@ def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
                     )
                 ),
                 label="error_request_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
@@ -103,15 +113,15 @@ def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
                     type=AttributeKey.TYPE_STRING,
                 ),
                 label="total_request_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
     )
 
 
-def trace_status_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+def trace_status_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     status = cast(str, args[0])
-
+    extrapolation_mode = settings["extrapolation_mode"]
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -133,15 +143,17 @@ def trace_status_rate(args: ResolvedArguments) -> Column.BinaryFormula:
                     )
                 ),
                 label="trace_status_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=TOTAL_SPAN_COUNT,
+        right=get_total_span_count(settings),
     )
 
 
-def cache_miss_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+def cache_miss_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -163,7 +175,7 @@ def cache_miss_rate(args: ResolvedArguments) -> Column.BinaryFormula:
                     )
                 ),
                 label="cache_miss_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
@@ -175,13 +187,17 @@ def cache_miss_rate(args: ResolvedArguments) -> Column.BinaryFormula:
                     type=AttributeKey.TYPE_BOOLEAN,
                 ),
                 label="total_cache_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
     )
 
 
-def ttfd_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+def ttfd_contribution_rate(
+    args: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -195,15 +211,19 @@ def ttfd_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
                     )
                 ),
                 label="ttfd_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=TOTAL_SPAN_COUNT,
+        right=get_total_span_count(settings),
     )
 
 
-def ttid_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+def ttid_contribution_rate(
+    _: ResolvedArguments, settings: ResolverSettings
+) -> Column.BinaryFormula:
+    extrapolation_mode = settings["extrapolation_mode"]
+
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -217,11 +237,11 @@ def ttid_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
                     )
                 ),
                 label="ttid_count",
-                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+                extrapolation_mode=extrapolation_mode,
             ),
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=TOTAL_SPAN_COUNT,
+        right=get_total_span_count(settings),
     )
 
 

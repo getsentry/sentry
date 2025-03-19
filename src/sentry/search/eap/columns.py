@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, TypedDict
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -24,6 +24,10 @@ from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
+
+
+class ResolverSettings(TypedDict):
+    extrapolation_mode: ExtrapolationMode
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -311,12 +315,22 @@ class ConditionalAggregateDefinition(FunctionDefinition):
 @dataclass(kw_only=True)
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
-    formula_resolver: Callable[..., Column.BinaryFormula]
+    formula_resolver: Callable[[ResolvedArguments, ResolverSettings], Column.BinaryFormula]
     is_aggregate: bool
 
     @property
     def required_arguments(self) -> list[ArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
+
+    @property
+    def __resolver_settings(self) -> ResolverSettings:
+        return ResolverSettings(
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            )
+        )
 
     def resolve(
         self,
@@ -327,7 +341,7 @@ class FormulaDefinition(FunctionDefinition):
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_arguments),
+            formula=self.formula_resolver(resolved_arguments, self.__resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
