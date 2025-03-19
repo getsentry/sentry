@@ -16,20 +16,12 @@ describe('getReasonGroupName', function () {
       ['to_large:raw_security', 'internal'],
       [':attachment', 'internal'],
       ['', 'internal'],
+      ['too_large:future_reason', 'too_large_future_reason'],
     ];
 
     testCases.forEach(([input, expected]) => {
       expect(getReasonGroupName(Outcome.INVALID, input)).toBe(expected);
     });
-  });
-
-  it('handles unknown too_large reasons', function () {
-    // Make sure that future too large types are still being displayed correctly
-    // That is, if someone adds a new item type in Relay they do not need to update
-    // the front-end.
-    expect(getReasonGroupName(Outcome.INVALID, 'too_large:future_type')).toBe(
-      'too_large_future_type'
-    );
   });
 
   it('handles other existing reason types', function () {
