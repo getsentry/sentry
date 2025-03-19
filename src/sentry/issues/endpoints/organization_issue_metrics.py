@@ -98,7 +98,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 keys = [v[0] for v in nlargest(5, grouped_counter.items(), key=lambda i: i[0])]
 
                 new_grouped_series: dict[str, list[TimeSeries]] = {}
-                other_series = collections.defaultdict(int)
+                other_series: collections.defaultdict[float, float] = collections.defaultdict(float)
                 for key, series in grouped_series.items():
                     if key in keys:
                         new_grouped_series[key] = series
