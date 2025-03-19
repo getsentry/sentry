@@ -7,10 +7,12 @@ import {
   useSetExploreDataset,
   useSetExploreFields,
   useSetExploreGroupBys,
+  useSetExploreId,
   useSetExploreMode,
   useSetExplorePageParams,
   useSetExploreQuery,
   useSetExploreSortBys,
+  useSetExploreTitle,
   useSetExploreVisualizes,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -26,6 +28,8 @@ describe('PageParamsProvider', function () {
   let setQuery: ReturnType<typeof useSetExploreQuery>;
   let setSortBys: ReturnType<typeof useSetExploreSortBys>;
   let setVisualizes: ReturnType<typeof useSetExploreVisualizes>;
+  let setId: ReturnType<typeof useSetExploreId>;
+  let setTitle: ReturnType<typeof useSetExploreTitle>;
 
   function Component() {
     pageParams = useExplorePageParams();
@@ -37,6 +41,8 @@ describe('PageParamsProvider', function () {
     setQuery = useSetExploreQuery();
     setSortBys = useSetExploreSortBys();
     setVisualizes = useSetExploreVisualizes();
+    setId = useSetExploreId();
+    setTitle = useSetExploreTitle();
     return <br />;
   }
 
@@ -489,5 +495,17 @@ describe('PageParamsProvider', function () {
         },
       ],
     });
+  });
+
+  it('correctly updates id', function () {
+    renderTestComponent();
+    act(() => setId('123'));
+    expect(pageParams).toEqual(expect.objectContaining({id: '123'}));
+  });
+
+  it('correctly updates title', function () {
+    renderTestComponent();
+    act(() => setTitle('My Query'));
+    expect(pageParams).toEqual(expect.objectContaining({title: 'My Query'}));
   });
 });

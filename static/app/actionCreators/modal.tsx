@@ -4,6 +4,7 @@ import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
 import type {DashboardWidgetQuerySelectorModalOptions} from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
+import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
 import type {ImportDashboardFromFileModalProps} from 'sentry/components/modals/importDashboardFromFileModal';
 import type {InsightChartModalOptions} from 'sentry/components/modals/insightChartModal';
 import type {InviteRow} from 'sentry/components/modals/inviteMembersModal/types';
@@ -394,6 +395,13 @@ export async function openAddTempestCredentialsModal(options: {
   project: Project;
 }) {
   const mod = await import('sentry/components/modals/addTempestCredentialsModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
+}
+
+export async function openSaveQueryModal(options: SaveQueryModalProps) {
+  const mod = await import('sentry/components/modals/explore/saveQueryModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
