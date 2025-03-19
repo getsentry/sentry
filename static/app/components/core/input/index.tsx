@@ -88,8 +88,6 @@ const StyledInput = styled(
   forwardRef<HTMLInputElement, InputProps>(
     (
       {
-        // Do not forward `required` to avoid default browser behavior
-        required: _required,
         // Do not forward `size` since it's used for custom styling, not as the
         // native `size` attribute (for that, use `nativeSize` instead)
         size: _size,
