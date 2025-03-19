@@ -84,7 +84,6 @@ export function NewIssueExperienceButton() {
       openModal(
         props => (
           <IssueDetailsTourModal
-            {...props}
             handleDismissTour={() => {
               mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
               tourDispatch({type: 'SET_COMPLETION', isCompleted: true});
