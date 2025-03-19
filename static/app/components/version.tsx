@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withOrganization from 'sentry/utils/withOrganization';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
   /**
@@ -80,9 +81,10 @@ function Version({
     if (anchor && organization?.slug) {
       const props = {
         to: {
-          pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-            version
-          )}/`,
+          pathname: makeReleasesPathname({
+            path: `/${encodeURIComponent(version)}/`,
+            organization,
+          }),
           query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
         },
         className,
