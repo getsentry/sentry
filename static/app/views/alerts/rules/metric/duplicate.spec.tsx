@@ -94,9 +94,9 @@ describe('MetricRuleDuplicate', function () {
     );
 
     // Has correct values copied from the duplicated alert
-    expect(await screen.findByTestId('critical-threshold')).toHaveValue(70);
-    expect(screen.getByTestId('warning-threshold')).toHaveValue(60);
-    expect(screen.getByTestId('resolve-threshold')).toHaveValue(50);
+    expect(await screen.findByTestId('critical-threshold')).toHaveValue('70');
+    expect(screen.getByTestId('warning-threshold')).toHaveValue('60');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('50');
 
     // Duplicated alert has been called
     expect(req).toHaveBeenCalled();

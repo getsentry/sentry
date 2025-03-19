@@ -48,7 +48,7 @@ export function NumberDragInput({
         return;
       }
 
-      const step = parseInt(props.step?.toString() ?? '1', 10);
+      const step = parseFloat(props.step?.toString() ?? '1');
 
       if (isNaN(step)) {
         throw new TypeError('Step must be of type number, got ' + props.step);
@@ -92,9 +92,29 @@ export function NumberDragInput({
     [onPointerMove, onPointerUp]
   );
 
+  const onKeyDownProp = props.onKeyDown;
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      onKeyDownProp?.(event);
+
+      if (!inputRef.current || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+        return;
+      }
+
+      event.preventDefault();
+      const value = parseFloat(inputRef.current.value);
+      const step = parseFloat(props.step?.toString() ?? '1');
+      const min = props.min ?? Number.NEGATIVE_INFINITY;
+      const max = props.max ?? Number.POSITIVE_INFINITY;
+      const newValue = clamp(value + (event.key === 'ArrowUp' ? step : -step), min, max);
+      setInputValueAndDispatchChange(inputRef.current, newValue.toString());
+    },
+    [onKeyDownProp, props.min, props.max, props.step]
+  );
+
   return (
     <InputGroup>
-      <InputGroup.Input ref={inputRef} type="number" {...props} />
+      <InputGroup.Input ref={inputRef} type="text" {...props} onKeyDown={onKeyDown} />
       <InputGroup.TrailingItems>
         <Tooltip
           title={tct('Drag to adjust threshold[break]You can hold shift to fine tune', {

@@ -135,7 +135,7 @@ class ThresholdControl extends Component<Props, State> {
               <ThresholdInput>
                 <NumberDragInput
                   min={0}
-                  step={0.01}
+                  step={1}
                   size="md"
                   axis="y"
                   name={`${type}Threshold`}
