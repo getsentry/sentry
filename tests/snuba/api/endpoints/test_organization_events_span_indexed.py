@@ -2907,6 +2907,8 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         response = self.do_request(
             {
                 "field": ["avg_compare(span.self_time, release, foo, bar)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
             }
         )
 
