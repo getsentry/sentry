@@ -20,12 +20,12 @@ import {
   useSetLogsFields,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {TraceItemAttributes} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {
   LogAttributesRendererMap,
   RendererExtra,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {OurLogsTableRowDetails} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   adjustLogTraceID,
   getLogAttributeItem,
@@ -65,12 +65,12 @@ interface LogAttributeFieldRender {
 }
 
 interface LogFieldsTreeProps extends LogAttributeFieldRender {
-  attributes: OurLogsTableRowDetails['attributes'];
+  attributes: TraceItemAttributes;
   hiddenAttributes?: OurLogFieldKey[];
 }
 
 interface LogFieldsTreeColumnsProps extends LogAttributeFieldRender {
-  attributes: OurLogsTableRowDetails['attributes'];
+  attributes: TraceItemAttributes;
   columnCount: number;
   hiddenAttributes?: OurLogFieldKey[];
 }
@@ -498,7 +498,7 @@ function LogFieldsTreeValue({
  * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
-  attributes: OurLogsTableRowDetails['attributes'],
+  attributes: TraceItemAttributes,
   attributeKey: string,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
@@ -515,7 +515,8 @@ function getAttribute(
   // Replace the key name with the new key name
   const newKeyName = removeSentryPrefix(attributeKey);
 
-  const attributeValue = attribute.value;
+  const attributeValue =
+    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
   if (!defined(attributeValue)) {
     return undefined;
   }

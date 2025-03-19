@@ -196,7 +196,7 @@ describe('Nav', function () {
       const issues = screen.getByRole('link', {name: 'Issues'});
       await userEvent.click(issues);
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.clicked_sidebar',
+        'navigation.primary_item_clicked',
         expect.objectContaining({
           item: 'issues',
         })
@@ -223,7 +223,9 @@ describe('Nav', function () {
       renderNav();
 
       // Should have a top-level header element with a home link and menu button
-      expect(screen.getByRole('link', {name: 'Sentry Home'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Open main menu'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));

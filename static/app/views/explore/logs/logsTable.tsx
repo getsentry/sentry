@@ -42,6 +42,7 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const {data, isError, isPending, pageLinks, meta} = tableData;
 
   const tableRef = useRef<HTMLTableElement>(null);
+  const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
   });
@@ -142,7 +143,12 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
           )}
           {data?.map((row, index) => (
             <TableRow key={index}>
-              <LogRowContent dataRow={row} meta={meta} highlightTerms={highlightTerms} />
+              <LogRowContent
+                dataRow={row}
+                meta={meta}
+                highlightTerms={highlightTerms}
+                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+              />
             </TableRow>
           ))}
         </TableBody>

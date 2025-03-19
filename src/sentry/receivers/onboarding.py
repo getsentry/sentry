@@ -375,7 +375,6 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
     )
 
 
-@first_insight_span_received.connect(weak=False)
 def record_first_insight_span(project, module, **kwargs):
     flag = None
     if module == InsightModules.HTTP:
@@ -408,6 +407,9 @@ def record_first_insight_span(project, module, **kwargs):
         platform=project.platform,
         module=module,
     )
+
+
+first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
 @member_invited.connect(weak=False)

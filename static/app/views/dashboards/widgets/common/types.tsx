@@ -1,10 +1,11 @@
 import type {AccuracyStats, Confidence} from 'sentry/types/organization';
+import type {DataUnit} from 'sentry/utils/discover/fields';
 
 import type {ThresholdsConfig} from '../../widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type Meta = {
-  fields: Record<string, string | null>;
-  units: Record<string, string | null>;
+  type: string | null; // TODO: This can probably be `AggregationOutputType`
+  unit: DataUnit | null;
   isOther?: boolean;
 };
 
@@ -40,7 +41,5 @@ export type Release = {
   timestamp: string;
   version: string;
 };
-
-export type Aliases = Record<string, string>;
 
 export type LegendSelection = {[key: string]: boolean};

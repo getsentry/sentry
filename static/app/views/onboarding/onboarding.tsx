@@ -251,6 +251,18 @@ function Onboarding(props: Props) {
         ...onboardingContext.data,
         projects: currentProjects,
       });
+      if (docsOnPlatformClickEnabled) {
+        onboardingContext.setData({
+          ...onboardingContext.data,
+          projects: currentProjects,
+          selectedSDK: undefined,
+        });
+      } else {
+        onboardingContext.setData({
+          ...onboardingContext.data,
+          projects: currentProjects,
+        });
+      }
       handleXhrErrorResponse('Unable to delete project in onboarding', error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }

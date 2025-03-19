@@ -3,9 +3,11 @@ import {AnimatePresence, Reorder} from 'framer-motion';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
+import {IssueViewAddViewButton} from 'sentry/components/nav/issueViews/issueViewAddViewButton';
 import {IssueViewNavItemContent} from 'sentry/components/nav/issueViews/issueViewNavItemContent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -14,6 +16,7 @@ import {useParams} from 'sentry/utils/useParams';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {generateTempViewId} from 'sentry/views/issueList/issueViews/issueViews';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
+import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
 interface IssueViewNavItemsProps {
@@ -34,8 +37,19 @@ export function IssueViewNavItems({
 
   const queryParams = location.query;
 
+  /**
+   * TODO(msun): Revisit whether we can use the useApiQuery's cache as the
+   * source of truth for the view state, rather than a separate state
+   */
   const [views, setViews] = useState<IssueView[]>(loadedViews);
-  const [isDragging, setIsDragging] = useState(false);
+  const [isDragging, setIsDragging] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (loadedViews.length !== views.length) {
+      setViews(loadedViews);
+    }
+  }, [loadedViews, views, setViews]);
 
   // If the `viewId` (from `/issues/views/:viewId`) is not found in the views array,
   // then redirect to the "All Issues" page
@@ -178,8 +192,25 @@ export function IssueViewNavItems({
         leftNav: true,
         organization: organization.slug,
       });
+      setApiQueryData<GroupSearchView[]>(
+        queryClient,
+        makeFetchGroupSearchViewsKey({orgSlug: organization.slug}),
+        newViews.map(v => ({
+          ...v,
+          isAllProjects: isEqual(v.projects, [-1]),
+          name: v.label,
+        }))
+      );
     },
-    [views, debounceUpdateViews, viewId, baseUrl, navigate, organization.slug]
+    [
+      views,
+      debounceUpdateViews,
+      viewId,
+      baseUrl,
+      navigate,
+      organization.slug,
+      queryClient,
+    ]
   );
 
   const handleDuplicateView = useCallback(
@@ -202,22 +233,39 @@ export function IssueViewNavItems({
         if (view.id === viewId) {
           navigate(constructViewLink(baseUrl, duplicatedView));
         }
+        setApiQueryData<GroupSearchView[]>(
+          queryClient,
+          makeFetchGroupSearchViewsKey({orgSlug: organization.slug}),
+          newViews.map(v => ({
+            ...v,
+            isAllProjects: isEqual(v.projects, [-1]),
+            name: v.label,
+          }))
+        );
       }
     },
-    [views, viewId, baseUrl, navigate, debounceUpdateViews]
+    [
+      views,
+      viewId,
+      baseUrl,
+      navigate,
+      debounceUpdateViews,
+      organization.slug,
+      queryClient,
+    ]
   );
 
   return (
     <Reorder.Group
       as="div"
       axis="y"
-      values={views ?? []}
+      values={views}
       onReorder={newOrder => setViews(newOrder)}
       initial={false}
       ref={sectionRef}
     >
       {views.map(view => (
-        <AnimatePresence key={view.id}>
+        <AnimatePresence key={view.id} mode="sync">
           <IssueViewNavItemContent
             view={view}
             sectionRef={sectionRef}
@@ -232,6 +280,7 @@ export function IssueViewNavItems({
           />
         </AnimatePresence>
       ))}
+      <IssueViewAddViewButton baseUrl={baseUrl} />
     </Reorder.Group>
   );
 }

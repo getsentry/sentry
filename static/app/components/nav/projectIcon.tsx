@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {IconAllProjects} from 'sentry/components/nav/iconAllProjects';
-import {space} from 'sentry/styles/space';
 
 interface ProjectIconProps {
   projectPlatforms: string[];
+  className?: string;
 }
 
-function ProjectIcon({projectPlatforms}: ProjectIconProps) {
+function ProjectIcon({projectPlatforms, className}: ProjectIconProps) {
   let renderedIcons: React.ReactNode;
 
   switch (projectPlatforms.length) {
@@ -36,7 +36,11 @@ function ProjectIcon({projectPlatforms}: ProjectIconProps) {
       );
   }
 
-  return <IconWrap>{renderedIcons}</IconWrap>;
+  return (
+    <IconWrap className={className} data-project-icon>
+      {renderedIcons}
+    </IconWrap>
+  );
 }
 
 const IconWrap = styled('div')`
@@ -45,7 +49,6 @@ const IconWrap = styled('div')`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
 `;
 
 const IconContainer = styled('div')`
@@ -61,7 +64,6 @@ const BorderOverlay = styled('div')`
   border: 1px solid ${p => p.theme.translucentGray100};
   border-radius: 3px;
   pointer-events: none;
-  z-index: 1;
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
@@ -77,14 +79,12 @@ const PlatformIconWrapper = styled('div')<{index: number}>`
     `
     top: 0;
     left: 0;
-    z-index: 1;
   `}
   ${p =>
     p.index === 1 &&
     `
     bottom: 0;
     right: 0;
-    z-index: 2;
   `}
 `;
 

@@ -417,12 +417,27 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "process-spans": {
         "topic": Topic.INGEST_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            click.Option(
+                ["--max-flush-segments", "max_flush_segments"],
+                type=int,
+                default=100,
+                help="The number of segments to download from redis at once. Defaults to 100.",
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
         "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            click.Option(
+                ["--skip-produce", "skip_produce"],
+                is_flag=True,
+                default=False,
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }

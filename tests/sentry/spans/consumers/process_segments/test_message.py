@@ -5,15 +5,36 @@ from unittest import mock
 import pytest
 
 from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
+from sentry.models.environment import Environment
+from sentry.models.release import Release
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
-from tests.sentry.spans.consumers.process.test_factory import build_mock_span
+from tests.sentry.spans.consumers.process import build_mock_span
 
 
 class TestSpansTask(TestCase):
     def setUp(self):
         self.project = self.create_project()
+
+    def generate_basic_spans(self):
+        segment_span = build_mock_span(project_id=self.project.id)
+        child_span = build_mock_span(
+            project_id=self.project.id,
+            description="mock_test",
+            is_segment=False,
+            parent_span_id=segment_span["span_id"],
+            span_id="940ce942561548b5",
+            start_timestamp_ms=1707953018867,
+            start_timestamp_precise=1707953018.867,
+        )
+
+        del child_span["sentry_tags"]["transaction"]
+        del child_span["sentry_tags"]["transaction.method"]
+        del child_span["sentry_tags"]["transaction.op"]
+        del child_span["sentry_tags"]["user"]
+
+        return [child_span, segment_span]
 
     def generate_n_plus_one_spans(self):
         segment_span = build_mock_span(project_id=self.project.id)
@@ -54,6 +75,48 @@ class TestSpansTask(TestCase):
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
         return spans
+
+    def test_enrich_spans(self):
+        spans = self.generate_basic_spans()
+        processed_spans = process_segment(spans)
+
+        assert len(processed_spans) == len(spans)
+        child_span, segment_span = processed_spans
+        child_tags = child_span["sentry_tags"]
+        segment_tags = segment_span["sentry_tags"]
+
+        assert child_tags["transaction"] == segment_tags["transaction"]
+        assert child_tags["transaction.method"] == segment_tags["transaction.method"]
+        assert child_tags["transaction.op"] == segment_tags["transaction.op"]
+        assert child_tags["user"] == segment_tags["user"]  # type: ignore[typeddict-item]
+
+    def test_enrich_spans_no_segment(self):
+        spans = self.generate_basic_spans()
+        for span in spans:
+            span["is_segment"] = False
+            del span["sentry_tags"]
+
+        processed_spans = process_segment(spans)
+        assert len(processed_spans) == len(spans)
+        for i, span in enumerate(processed_spans):
+            assert span["span_id"] == spans[i]["span_id"]
+            assert span["op"]
+            assert span["hash"]
+
+    def test_create_models(self):
+        spans = self.generate_basic_spans()
+        assert process_segment(spans)
+
+        Environment.objects.get(
+            organization_id=self.organization.id,
+            name="development",
+        )
+
+        release = Release.objects.get(
+            organization_id=self.organization.id,
+            version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+        )
+        assert release.date_added.timestamp() == spans[0]["end_timestamp_precise"]
 
     @override_options(
         {

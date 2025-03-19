@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, cast
 
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -14,7 +14,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition
+from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition, ResolvedArguments
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.utils import literal_validator
 
@@ -32,7 +32,41 @@ TOTAL_SPAN_COUNT = Column(
 )
 
 
-def http_response_rate(code: Literal[1, 2, 3, 4, 5]) -> Column.BinaryFormula:
+def failure_rate(_: ResolvedArguments) -> Column.BinaryFormula:
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(
+                    name="sentry.trace.status",
+                    type=AttributeKey.TYPE_STRING,
+                ),
+                filter=TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=AttributeKey(
+                            name="sentry.trace.status",
+                            type=AttributeKey.TYPE_STRING,
+                        ),
+                        op=ComparisonFilter.OP_NOT_IN,
+                        value=AttributeValue(
+                            val_str_array=StrArray(
+                                values=["ok", "cancelled", "unknown"],
+                            ),
+                        ),
+                    )
+                ),
+                label="trace_status_count",
+                extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
+            ),
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=TOTAL_SPAN_COUNT,
+    )
+
+
+def http_response_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+    code = cast(Literal[1, 2, 3, 4, 5], args[0])
+
     response_codes = RESPONSE_CODE_MAP[code]
     return Column.BinaryFormula(
         left=Column(
@@ -75,7 +109,9 @@ def http_response_rate(code: Literal[1, 2, 3, 4, 5]) -> Column.BinaryFormula:
     )
 
 
-def trace_status_rate(status: str) -> Column.BinaryFormula:
+def trace_status_rate(args: ResolvedArguments) -> Column.BinaryFormula:
+    status = cast(str, args[0])
+
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -105,7 +141,7 @@ def trace_status_rate(status: str) -> Column.BinaryFormula:
     )
 
 
-def cache_miss_rate(arg: None) -> Column.BinaryFormula:
+def cache_miss_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -145,7 +181,7 @@ def cache_miss_rate(arg: None) -> Column.BinaryFormula:
     )
 
 
-def ttfd_contribution_rate(args: None) -> Column.BinaryFormula:
+def ttfd_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -167,7 +203,7 @@ def ttfd_contribution_rate(args: None) -> Column.BinaryFormula:
     )
 
 
-def ttid_contribution_rate(args: None) -> Column.BinaryFormula:
+def ttid_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     return Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
@@ -218,6 +254,12 @@ SPAN_FORMULA_DEFINITIONS = {
             )
         ],
         formula_resolver=trace_status_rate,
+    ),
+    "failure_rate": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[],
+        formula_resolver=failure_rate,
+        is_aggregate=True,
     ),
     "ttfd_contribution_rate": FormulaDefinition(
         default_search_type="percentage",

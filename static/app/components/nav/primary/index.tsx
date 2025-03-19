@@ -75,7 +75,7 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/dashboards/`}
             activeTo={`/${prefix}/dashboard`}
-            analyticsKey="customizable-dashboards"
+            analyticsKey="dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
           >
             <IconDashboard />
@@ -86,10 +86,10 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/insights/frontend/`}
             activeTo={`/${prefix}/insights`}
-            analyticsKey="insights-domains"
+            analyticsKey="insights"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
           >
-            <IconGraph />
+            <IconGraph type="area" />
           </SidebarLink>
         </Feature>
 

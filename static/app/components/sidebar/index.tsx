@@ -46,7 +46,7 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
@@ -161,7 +161,7 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const sidebarAnchor = isDemoModeEnabled() ? (
+  const sidebarAnchor = isDemoModeActive() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
@@ -439,7 +439,9 @@ function Sidebar() {
             <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
-              <Hook name="component:superuser-warning" organization={organization} />
+              <SuperuserBadgeContainer>
+                <Hook name="component:superuser-warning" organization={organization} />
+              </SuperuserBadgeContainer>
             )}
           </DropdownSidebarSection>
           <PrimaryItems>
@@ -753,6 +755,17 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -5px;
+  right: 5px;
+
+  /* Hiding on smaller screens because it looks misplaced */
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

@@ -1,11 +1,6 @@
 import type {SeriesOption} from 'echarts';
 
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 
 /**
  * A `Plottable` is any object that can be converted to an ECharts `Series` and therefore plotted on an ECharts chart. This could be a data series, releases, samples, and other kinds of markers. `TimeSeriesWidgetVisualization` uses `Plottable` objects under the hood, to convert data coming into the component via props into ECharts series.
@@ -23,7 +18,7 @@ export interface Plottable {
   /**
    * If the plottable is based on data, the unit. Otherwise, null
    */
-  dataUnit: DurationUnit | SizeUnit | RateUnit | null;
+  dataUnit: DataUnit;
   /**
    * Start timestamp of the plottable, if applicable
    */
@@ -40,10 +35,13 @@ export interface Plottable {
    * Start timestamp of the plottable, if applicable
    */
   start: string | null;
-
   /**
    *
    * @param plottingOptions Plotting options depend on the specific implementation of the interface.
    */
   toSeries(plottingOptions: unknown): SeriesOption[];
+  /**
+   * Optional label for this plottable, if it appears in the legend and in tooltips.
+   */
+  label?: string;
 }

@@ -19,7 +19,7 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelPageActive} from 'sentry/views/insights/pages/backend/laravel/utils';
+import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -57,7 +57,7 @@ export function DomainViewHeader({
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
-  const isLaravelPageActive = useIsLaravelPageActive();
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
 
   const crumbs: Crumb[] = [
     {
@@ -107,7 +107,7 @@ export function DomainViewHeader({
           <ButtonBar gap={1}>
             <FeedbackWidgetButton
               optionOverrides={
-                isLaravelPageActive
+                isLaravelInsightsEnabled
                   ? {
                       tags: {
                         ['feedback.source']: 'laravel-insights',

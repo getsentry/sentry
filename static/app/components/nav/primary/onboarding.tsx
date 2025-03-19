@@ -24,7 +24,7 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,7 +47,7 @@ function OnboardingItem({
   const theme = useTheme();
   const {layout} = useNavContext();
   const showLabel = layout === NavLayout.MOBILE;
-  const demoMode = isDemoModeEnabled();
+  const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
   const {activateSidebar} = useOnboardingSidebar();
@@ -127,7 +127,7 @@ export function PrimaryNavigationOnboarding() {
     false
   );
 
-  const demoMode = isDemoModeEnabled();
+  const demoMode = isDemoModeActive();
 
   const {allTasks, doneTasks, completeTasks, refetch} = useOnboardingTasks({
     disabled: !isActive,

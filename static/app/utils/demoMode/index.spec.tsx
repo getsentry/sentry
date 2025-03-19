@@ -3,7 +3,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
-  isDemoModeEnabled,
+  isDemoModeActive,
   urlAttachQueryParams,
 } from './';
 
@@ -60,13 +60,13 @@ describe('Demo Mode Functions', () => {
     });
   });
 
-  describe('isDemoModeEnabled', () => {
+  describe('isDemoModeActive', () => {
     it('returns true if demoMode is enabled and user is not a superuser', () => {
       jest.spyOn(ConfigStore, 'get').mockReturnValue(true);
       jest
         .spyOn(require('sentry/utils/isActiveSuperuser'), 'isActiveSuperuser')
         .mockReturnValue(false);
-      expect(isDemoModeEnabled()).toBe(true);
+      expect(isDemoModeActive()).toBe(true);
     });
 
     it('returns false if demoMode is enabled but user is a superuser', () => {
@@ -74,12 +74,12 @@ describe('Demo Mode Functions', () => {
       jest
         .spyOn(require('sentry/utils/isActiveSuperuser'), 'isActiveSuperuser')
         .mockReturnValue(true);
-      expect(isDemoModeEnabled()).toBe(false);
+      expect(isDemoModeActive()).toBe(false);
     });
 
     it('returns false if demoMode is not enabled', () => {
       jest.spyOn(ConfigStore, 'get').mockReturnValue(false);
-      expect(isDemoModeEnabled()).toBe(false);
+      expect(isDemoModeActive()).toBe(false);
     });
   });
 });

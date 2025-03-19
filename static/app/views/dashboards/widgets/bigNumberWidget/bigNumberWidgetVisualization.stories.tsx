@@ -7,6 +7,9 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+
+import type {Meta} from '../common/types';
 
 import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
 
@@ -60,12 +63,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 value={0.01087819860850493}
                 field="eps()"
                 meta={{
-                  fields: {
-                    'eps()': 'rate',
-                  },
-                  units: {
-                    'eps()': '1/second',
-                  },
+                  type: 'rate',
+                  unit: RateUnit.PER_SECOND,
                 }}
                 thresholds={{
                   max_values: {
@@ -83,12 +82,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 value={178451214}
                 field="count()"
                 meta={{
-                  fields: {
-                    'count()': 'integer',
-                  },
-                  units: {
-                    'count()': null,
-                  },
+                  type: 'integer',
+                  unit: null,
                 }}
               />
             </Container>
@@ -99,12 +94,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 value={17.28}
                 field="p95(span.duration)"
                 meta={{
-                  fields: {
-                    'p95(span.duration)': 'duration',
-                  },
-                  units: {
-                    'p95(spa.duration)': 'milliseconds',
-                  },
+                  type: 'duration',
+                  unit: DurationUnit.MILLISECOND,
                 }}
               />
             </Container>
@@ -115,12 +106,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
                 value={'2024-10-17T16:08:07+00:00'}
                 field="max(timestamp)"
                 meta={{
-                  fields: {
-                    'max(timestamp)': 'date',
-                  },
-                  units: {
-                    'max(timestamp)': null,
-                  },
+                  type: 'date',
+                  unit: null,
                 }}
               />
             </Container>
@@ -164,10 +151,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               field="count()"
               maximumValue={1000000}
               meta={{
-                fields: {
-                  'count()': 'integer',
-                },
-                units: {},
+                type: 'integer',
+                unit: null,
               }}
             />
           </SmallWidget>
@@ -200,12 +185,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               field="eps()"
               previousPeriodValue={15.0088607819850493}
               meta={{
-                fields: {
-                  'eps()': 'rate',
-                },
-                units: {
-                  'eps()': '1/second',
-                },
+                type: 'rate',
+                unit: RateUnit.PER_SECOND,
               }}
             />
           </SmallWidget>
@@ -217,10 +198,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               field="http_rate(500)"
               preferredPolarity="-"
               meta={{
-                fields: {
-                  'http_rate(500)': 'percentage',
-                },
-                units: {},
+                type: 'percentage',
+                unit: null,
               }}
             />
           </SmallWidget>
@@ -231,10 +210,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               previousPeriodValue={0.1728139}
               preferredPolarity="+"
               meta={{
-                fields: {
-                  'http_rate(200)': 'percentage',
-                },
-                units: {},
+                type: 'percentage',
+                unit: null,
               }}
             />
           </SmallWidget>
@@ -244,13 +221,9 @@ export default storyBook('BigNumberWidgetVisualization', story => {
   });
 
   story('Thresholds', () => {
-    const meta = {
-      fields: {
-        'eps()': 'rate',
-      },
-      units: {
-        'eps()': '1/second',
-      },
+    const meta: Meta = {
+      type: 'rate',
+      unit: RateUnit.PER_SECOND,
     };
 
     const thresholds = {

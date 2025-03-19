@@ -9,6 +9,7 @@ import SideBySide from 'sentry/components/stories/sideBySide';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -31,17 +32,9 @@ const sampleDurationTimeSeries2 = {
   data: sampleDurationTimeSeries.data.map(datum => {
     return {
       ...datum,
-      value: datum.value * 0.3 + 30 * Math.random(),
+      value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
     };
   }),
-  meta: {
-    fields: {
-      'p50(span.duration)': 'duration',
-    },
-    units: {
-      'p50(span.duration)': 'millisecond',
-    },
-  },
 };
 
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
@@ -264,21 +257,17 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const millisecondsSeries = sampleDurationTimeSeries;
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
-    const secondsSeries = {
+    const secondsSeries: TimeSeries = {
       field: 'p99(span.self_time)',
       data: sampleDurationTimeSeries.data.map(datum => {
         return {
           ...datum,
-          value: (datum.value / 1000) * (1 + Math.random() / 10), // Introduce jitter so the series is visible
+          value: datum.value ? (datum.value / 1000) * (1 + Math.random() / 10) : null, // Introduce jitter so the series is visible
         };
       }),
       meta: {
-        fields: {
-          'p99(span.self_time)': 'duration',
-        },
-        units: {
-          'p99(span.self_time)': 'second',
-        },
+        type: 'duration',
+        unit: DurationUnit.SECOND,
       },
     };
 
@@ -386,16 +375,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   story('Color', () => {
     const theme = useTheme();
 
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
-        fields: {
-          'error_rate()': 'rate',
-        },
-        units: {
-          'error_rate()': '1/second',
-        },
+        type: 'rate',
+        unit: RateUnit.PER_SECOND,
       },
     };
 
@@ -486,7 +471,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Legends', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({
-      'p99(span.duration)': false,
+      p99: false,
     });
 
     return (
@@ -505,21 +490,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           the user changes the legend selection by clicking on legend labels.
         </p>
         <p>
-          You can also provide aliases for legends to give them a friendlier name. In this
-          example, verbose names like "p99(span.duration)" are truncated, and the p99
-          series is hidden by default.
+          You can also provide aliases for plottables like <code>Line</code> This will
+          give the legends and tooltips a friendlier name. In this example, verbose names
+          like "p99(span.duration)" are truncated, and the p99 series is hidden by
+          default.
         </p>
+
+        <code>{JSON.stringify(legendSelection)}</code>
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
             plottables={[
-              new Area(sampleDurationTimeSeries, {}),
-              new Area(sampleDurationTimeSeries2, {}),
+              new Area(sampleDurationTimeSeries, {alias: 'p50'}),
+              new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
             ]}
-            aliases={{
-              'p99(span.duration)': 'p99',
-              'p50(span.duration)': 'p50',
-            }}
             legendSelection={legendSelection}
             onLegendSelectionChange={setLegendSelection}
           />
@@ -554,14 +538,6 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               new Line({
                 ...sampleThroughputTimeSeries,
                 field: 'error_rate()',
-                meta: {
-                  fields: {
-                    'error_rate()': 'rate',
-                  },
-                  units: {
-                    'error_rate()': '1/second',
-                  },
-                },
               }),
             ]}
             releases={releases}

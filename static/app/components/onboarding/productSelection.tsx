@@ -140,6 +140,10 @@ export const platformProductAvailability = {
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
+  'javascript-tanstackstart-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
@@ -433,7 +437,8 @@ const ProductButtonWrapper = styled(Button)`
     p.priority === 'primary' &&
     css`
       &,
-      :hover {
+      :hover,
+      :focus-visible {
         background: ${p.theme.purple100};
         color: ${p.theme.purple300};
       }
@@ -453,7 +458,8 @@ const DisabledProductWrapper = styled(Button)`
 const PermanentDisabledProductWrapper = styled(Button)`
   && {
     &,
-    :hover {
+    :hover,
+    :focus-visible {
       background: ${p => p.theme.purple100};
       color: ${p => p.theme.purple300};
       opacity: 0.5;

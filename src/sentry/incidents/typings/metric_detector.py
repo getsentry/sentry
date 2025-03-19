@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
+from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group, GroupStatus
+from sentry.snuba.models import SnubaQuery
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action, Detector
 
 
@@ -92,4 +98,86 @@ class NotificationContext:
             integration_id=action.integration_id,
             target_identifier=action.config.get("target_identifier"),
             target_display=action.config.get("target_display"),
+        )
+
+
+@dataclass
+class MetricIssueContext:
+    open_period_identifier: int
+    snuba_query: SnubaQuery
+    new_status: IncidentStatus
+    metric_value: float | None
+
+    @classmethod
+    def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
+        if group.status == GroupStatus.RESOLVED:
+            return IncidentStatus.CLOSED
+        elif occurrence.initial_issue_priority == PriorityLevel.MEDIUM.value:
+            return IncidentStatus.WARNING
+        else:
+            return IncidentStatus.CRITICAL
+
+    @classmethod
+    def _get_snuba_query(cls, occurrence: IssueOccurrence) -> SnubaQuery:
+        snuba_query_id = occurrence.evidence_data.get("snuba_query_id")
+        if not snuba_query_id:
+            raise ValueError("Snuba query ID is required for alert context")
+        try:
+            query = SnubaQuery.objects.get(id=snuba_query_id)
+        except SnubaQuery.DoesNotExist as e:
+            raise ValueError("Snuba query does not exist") from e
+        return query
+
+    @classmethod
+    def _get_metric_value(cls, occurrence: IssueOccurrence) -> float:
+        if (metric_value := occurrence.evidence_data.get("metric_value")) is None:
+            raise ValueError("Metric value is required for alert context")
+        return metric_value
+
+    @classmethod
+    def from_group_event(cls, group_event: GroupEvent) -> MetricIssueContext:
+        group = group_event.group
+        occurrence = group_event.occurrence
+        if occurrence is None:
+            raise ValueError("Occurrence is required for alert context")
+        return cls(
+            # TODO(iamrajjoshi): Replace with something once we know how we want to build the link
+            # If we store open periods in the database, we can use the id from that
+            # Otherwise, we can use the issue id
+            open_period_identifier=group.id,
+            snuba_query=cls._get_snuba_query(occurrence),
+            new_status=cls._get_new_status(group, occurrence),
+            metric_value=cls._get_metric_value(occurrence),
+        )
+
+    @classmethod
+    def from_legacy_models(
+        cls,
+        incident: Incident,
+        new_status: IncidentStatus,
+        metric_value: float | None = None,
+    ) -> MetricIssueContext:
+        return cls(
+            open_period_identifier=incident.identifier,
+            snuba_query=incident.alert_rule.snuba_query,
+            new_status=new_status,
+            metric_value=metric_value,
+        )
+
+
+@dataclass
+class OpenPeriodContext:
+    """
+    We want to eventually delete this class. it serves as a way to pass data around
+    that we used to use `incident` for.
+    """
+
+    date_started: datetime
+    date_closed: datetime | None
+
+    @classmethod
+    def from_incident(cls, incident: Incident) -> OpenPeriodContext:
+        return cls(
+            date_started=incident.date_added,
+            date_closed=incident.date_closed,
         )

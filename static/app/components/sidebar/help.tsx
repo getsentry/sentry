@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 
@@ -64,7 +64,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               >
                 {t('Search Support, Docs and More')}
               </SidebarMenuItem>
-              {!isDemoModeEnabled() && (
+              {!isDemoModeActive() && (
                 // Sentry zendesk is public but we hide it in demo mode to limit the amount of potential spam
                 <SidebarMenuItem href="https://sentry.zendesk.com/hc/en-us">
                   {t('Visit Help Center')}

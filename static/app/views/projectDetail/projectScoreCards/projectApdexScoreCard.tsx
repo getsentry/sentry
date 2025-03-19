@@ -169,10 +169,8 @@ function ProjectApdexScoreCard(props: Props) {
           previousPeriodValue={previousApdex}
           field="apdex()"
           meta={{
-            fields: {
-              'apdex()': 'number',
-            },
-            units: {},
+            type: 'number',
+            unit: null,
           }}
           preferredPolarity="+"
         />

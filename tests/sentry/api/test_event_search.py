@@ -15,7 +15,9 @@ from sentry.api.event_search import (
     SearchFilter,
     SearchKey,
     SearchValue,
+    _RecursiveList,
     default_config,
+    flatten,
     parse_search_query,
     translate_wildcard_as_clickhouse_pattern,
 )
@@ -224,6 +226,21 @@ shared_tests_skipped = [
 register_fixture_tests(ParseSearchQueryTest, shared_tests_skipped)
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    (
+        pytest.param([], [], id="noop"),
+        pytest.param([1, 2, 3], [1, 2, 3], id="flat"),
+        pytest.param([[1], [2]], [1, 2], id="nested"),
+        # technically this isn't supported by the annotations but it works
+        pytest.param([[1], 2], [1, 2], id="staggered"),
+        pytest.param([1, [2]], [1, 2], id="staggered reversed"),
+    ),
+)
+def test_flatten(value: _RecursiveList[int], expected: list[int]) -> None:
+    assert flatten(value) == expected
+
+
 class ParseSearchQueryBackendTest(SimpleTestCase):
     """
     These test cases cannot be represented by the test data used to drive the
@@ -275,6 +292,11 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="message"), operator="=", value=SearchValue(raw_value="( x:1 )")
             )
         ]
+
+    def test_paren_expression_to_query_string(self):
+        (val,) = parse_search_query("(has:1 random():<5)")
+        assert isinstance(val, ParenExpression)
+        assert val.to_query_string() == "(has:=1 random():<5.0)"
 
     def test_bool_operator_with_bool_disabled(self):
         config = SearchConfig.create_from(default_config, allow_boolean=False)
@@ -362,6 +384,13 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
+    def test_aggregate_empty_quoted_arg(self):
+        assert parse_search_query('p50(""):5') == [
+            AggregateFilter(
+                key=AggregateKey(name='p50("")'), operator="=", value=SearchValue(raw_value=5.0)
+            )
+        ]
+
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_ibyte_size_filter(self, mock_type):
         config = SearchConfig()
@@ -400,6 +429,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             ),
         ]
 
+    def test_invalid_duration(self):
+        with pytest.raises(InvalidSearchQuery) as excinfo:
+            parse_search_query("transaction.duration:>1111111111w")
+        (msg,) = excinfo.value.args
+        assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
+
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_aggregate_duration_measurement_filter(self, mock_type):
         config = SearchConfig()
@@ -419,6 +454,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 value=SearchValue(3 * 1000 * 60),
             ),
         ]
+
+    def test_invalid_aggregate_duration(self):
+        with pytest.raises(InvalidSearchQuery) as excinfo:
+            parse_search_query("trend_difference():>1111111111w")
+        (msg,) = excinfo.value.args
+        assert msg == "1111111111w is too large of a value, the maximum value is 999999999 days"
 
     @patch("sentry.search.events.builder.base.BaseQueryBuilder.get_field_type")
     def test_numeric_measurement_filter(self, mock_type):
@@ -479,6 +520,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 SearchFilter(key=SearchKey(name="random"), operator="=", value=SearchValue("-2w"))
             ]
 
+    def test_invalid_rel_time_filter(self):
+        with pytest.raises(InvalidSearchQuery) as excinfo:
+            parse_search_query(f'time:+{"1" * 9999}d')
+        (msg,) = excinfo.value.args
+        assert msg.endswith(" is not a valid datetime query")
+
     def test_aggregate_rel_time_filter(self):
         now = timezone.now()
         with freeze_time(now):
@@ -499,6 +546,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             assert parse_search_query("random():-2w") == [
                 SearchFilter(key=SearchKey(name="random()"), operator="=", value=SearchValue("-2w"))
             ]
+
+    def test_invalid_aggregate_rel_time_filter(self):
+        with pytest.raises(InvalidSearchQuery) as excinfo:
+            parse_search_query(f'last_seen():+{"1" * 9999}d')
+        (msg,) = excinfo.value.args
+        assert msg.endswith(" is not a valid datetime query")
 
     def test_invalid_date_filter(self):
         with pytest.raises(InvalidSearchQuery) as excinfo:
@@ -825,6 +878,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == "a*b"
 
         # the first and last asterisks arent escaped with a preceding backslash, so they're
@@ -834,6 +888,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="title"), operator="=", value=SearchValue(r"*\**"))
         ]
         search_filter = search_filters[0]
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == r"^.*\*.*$"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
@@ -844,6 +899,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the extra slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == r"a\b"
 
     @pytest.mark.xfail(reason="escaping backslashes is not supported yet")
@@ -854,6 +910,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the extra slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == "a\\"
 
     def test_escaping_quotes(self):
@@ -863,6 +920,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
         search_filter = search_filters[0]
         # the slash should be removed in the final value
+        assert isinstance(search_filter, SearchFilter)
         assert search_filter.value.value == 'a"b'
 
 
@@ -914,6 +972,7 @@ def test_search_filter_to_query_string(query):
 
     filters = parse_search_query(query)
     assert len(filters) == 1
+    assert isinstance(filters[0], SearchFilter)
     actual = filters[0].to_query_string()
     assert actual == query
 

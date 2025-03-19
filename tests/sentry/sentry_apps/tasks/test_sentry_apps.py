@@ -43,6 +43,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.asserts import (
     assert_count_of_metric,
     assert_failure_metric,
+    assert_halt_metric,
     assert_many_halt_metrics,
     assert_success_metric,
 )
@@ -115,7 +116,8 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_no_sentry_app_for_send_alert_event_v2(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_no_sentry_app_for_send_alert_event_v2(self, mock_record, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
@@ -123,11 +125,52 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             instance_id=group_event.event_id,
             group_id=group_event.group_id,
             occurrence_id=None,
-            rule=self.rule,
+            rule=self.rule.label,
             sentry_app_id=9999,
         )
 
         assert not safe_urlopen.called
+
+        assert_failure_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.MISSING_SENTRY_APP
+            ),
+        )
+        # PREPARE_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_missing_event(self, mock_record, safe_urlopen):
+        project = self.create_project()
+        issue = self.create_group(project=project)
+
+        send_alert_webhook(
+            instance_id=123,
+            group_id=issue.id,
+            occurrence_id=None,
+            rule=self.rule.label,
+            sentry_app_id=self.sentry_app.id,
+        )
+
+        assert not safe_urlopen.called
+
+        assert_failure_metric(
+            mock_record, SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_EVENT)
+        )
+        # PREPARE_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app_in_future(self, safe_urlopen):
@@ -142,7 +185,8 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert not safe_urlopen.called
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_no_installation(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_no_installation(self, mock_record, safe_urlopen):
         sentry_app = self.create_sentry_app(organization=self.organization)
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
@@ -153,9 +197,23 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             notify_sentry_app(group_event, [rule_future])
 
         assert not safe_urlopen.called
+        assert_failure_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppSentryError(
+                message=SentryAppWebhookFailureReason.MISSING_INSTALLATION
+            ),
+        )
+        # PREPARE_WEBHOOK (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
-    def test_send_alert_event(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_alert_event(self, mock_record, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group = event.group
@@ -208,8 +266,19 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
+        # SLO validation
+        assert_success_metric(mock_record=mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
-    def test_send_alert_event_with_additional_payload(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_alert_event_with_additional_payload(self, mock_record, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
 
@@ -249,8 +318,19 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
+        # SLO validation
+        assert_success_metric(mock_record=mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
-    def test_send_alert_event_with_groupevent(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_alert_event_with_groupevent(self, mock_record, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         occurrence_data = self.build_occurrence_data(
             event_id=event.event_id, project_id=self.project.id
@@ -311,6 +391,74 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert len(requests) == 1
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
+
+        # SLO validation
+        assert_success_metric(mock_record=mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_send_alert_event_with_3p_failure(self, mock_record, safe_urlopen):
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
+
+        group_event = GroupEvent.from_event(event, event.group)
+        settings = [
+            {"name": "alert_prefix", "value": "[Not Good]"},
+            {"name": "channel", "value": "#ignored-errors"},
+            {"name": "best_emoji", "value": ":fire:"},
+            {"name": "teamId", "value": 1},
+            {"name": "assigneeId", "value": 3},
+        ]
+
+        rule_future = RuleFuture(
+            rule=self.rule,
+            kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
+        )
+
+        with self.tasks():
+            notify_sentry_app(group_event, [rule_future])
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        payload = json.loads(kwargs["data"])
+
+        assert payload["action"] == "triggered"
+        assert payload["data"]["triggered_rule"] == self.rule.label
+        assert payload["data"]["issue_alert"] == {
+            "id": self.rule.id,
+            "title": self.rule.label,
+            "sentry_app_id": self.sentry_app.id,
+            "settings": settings,
+        }
+
+        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
+        requests = buffer.get_requests()
+
+        assert len(requests) == 1
+        assert requests[0]["event_type"] == "event_alert.triggered"
+
+        # SLO validation
+        assert_success_metric(mock_record=mock_record)
+        assert_halt_metric(
+            mock_record=mock_record,
+            error_msg=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.GOT_CLIENT_ERROR}_{404}",
+        )
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (halt)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -864,7 +1012,8 @@ class TestCommentWebhook(TestCase):
             "project_slug": self.note.project.slug,
         }
 
-    def test_sends_comment_created_webhook(self, safe_urlopen):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_comment_created_webhook(self, mock_record, safe_urlopen):
         build_comment_webhook(
             self.install.id, self.issue.id, "comment.created", self.user.id, data=self.data
         )
@@ -876,7 +1025,18 @@ class TestCommentWebhook(TestCase):
         assert data["action"] == "created"
         assert data["data"]["issue_id"] == self.issue.id
 
-    def test_sends_comment_updated_webhook(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_comment_updated_webhook(self, mock_record, safe_urlopen):
         self.data.update(data={"text": "goodbye world"})
         build_comment_webhook(
             self.install.id, self.issue.id, "comment.updated", self.user.id, data=self.data
@@ -889,7 +1049,18 @@ class TestCommentWebhook(TestCase):
         assert data["action"] == "updated"
         assert data["data"]["issue_id"] == self.issue.id
 
-    def test_sends_comment_deleted_webhook(self, safe_urlopen):
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_sends_comment_deleted_webhook(self, mock_record, safe_urlopen):
         self.note.delete()
         build_comment_webhook(
             self.install.id, self.issue.id, "comment.deleted", self.user.id, data=self.data
@@ -901,6 +1072,16 @@ class TestCommentWebhook(TestCase):
         data = json.loads(kwargs["data"])
         assert data["action"] == "deleted"
         assert data["data"]["issue_id"] == self.issue.id
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -1219,7 +1400,7 @@ class TestWebhookRequests(TestCase):
             self.sentry_app.update(status=SentryAppStatus.INTERNAL)
         data = {"issue": serialize(self.issue)}
         # event.alert is not in the servicehook events
-        with pytest.raises(SentryAppSentryError):
+        with pytest.raises(ValueError):
             for i in range(3):
                 send_webhooks(
                     installation=self.install, event="event.alert", data=data, actor=self.user

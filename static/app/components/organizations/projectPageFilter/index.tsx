@@ -26,6 +26,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {useUser} from 'sentry/utils/useUser';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
 
@@ -271,7 +272,12 @@ export function ProjectPageFilter({
               size="zero"
               icon={<IconOpen />}
               aria-label={t('Project Details')}
-              to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+              to={
+                makeProjectsPathname({
+                  path: `/${project.slug}/`,
+                  orgSlug: organization.slug,
+                }) + `?project=${project.id}`
+              }
               visible={isFocused}
             />
             <TrailingButton

@@ -59,6 +59,7 @@ export function PlatformSelection(props: StepProps) {
         </p>
         <PlatformPicker
           noAutoFilter
+          visibleSelection={!docsOnPlatformClickEnabled}
           source="targeted-onboarding"
           platform={onboardingContext.data.selectedSDK?.key}
           defaultCategory={onboardingContext.data.selectedSDK?.category}
