@@ -161,6 +161,15 @@ export function OnboardingLayout({
             <PlatformOptionsControl
               platformOptions={platformOptions}
               onChange={onPlatformOptionsChange}
+              disabledOptions={{
+                routerType: !activeProductSelection.includes(
+                  ProductSolution.PERFORMANCE_MONITORING
+                ),
+                reactRouterVersion:
+                  !activeProductSelection.includes(
+                    ProductSolution.PERFORMANCE_MONITORING
+                  ) || selectedOptions.routerType !== 'reactRouter',
+              }}
             />
           ) : null}
         </Header>

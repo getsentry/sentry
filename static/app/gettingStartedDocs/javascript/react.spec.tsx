@@ -189,4 +189,39 @@ describe('javascript-react onboarding docs', function () {
       screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).not.toBeInTheDocument();
   });
+
+  it('does not display router options when performance is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+      organization: {slug: 'test-org'},
+      projectSlug: 'test-project',
+    });
+
+    // Router types should not be visible
+    expect(screen.queryByRole('radio', {name: 'React Router'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('radio', {name: 'Tanstack Router'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'No Router'})).not.toBeInTheDocument();
+
+    // Version options should not be visible
+    expect(screen.queryByRole('radio', {name: 'v7 (Latest)'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'v6'})).not.toBeInTheDocument();
+  });
+
+  it('displays router options when performance is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+      organization: {slug: 'test-org'},
+      projectSlug: 'test-project',
+    });
+
+    // Router types should be visible
+    expect(screen.getByRole('radio', {name: 'React Router'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'Tanstack Router'})).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: 'No Router'})).toBeInTheDocument();
+  });
 });

@@ -25,6 +25,13 @@ export interface PlatformOption<Value extends string = string> {
    * The default value to be used on initial render
    */
   defaultValue?: string;
+  /**
+   * Optional tooltip configuration
+   */
+  tooltip?: {
+    description: string;
+    link?: string;
+  };
 }
 
 export type BasePlatformOptions = Record<string, PlatformOption<string>>;

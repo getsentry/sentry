@@ -7,6 +7,8 @@ import type {
   SelectedPlatformOptions,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {space} from 'sentry/styles/space';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -30,7 +32,7 @@ export function useUrlPlatformOptions<PlatformOptions extends BasePlatformOption
       const values = platformOptions[key]!.items.map(({value}) => value);
       acc[key as keyof PlatformOptions] = values.includes(query[key])
         ? query[key]
-        : (defaultValue ?? values[0]);
+        : defaultValue ?? values[0];
       return acc;
     }, {} as SelectedPlatformOptions<PlatformOptions>);
   }, [platformOptions, query]);
@@ -49,15 +51,39 @@ type OptionControlProps = {
    * Click handler.
    */
   onChange?: (option: string) => void;
+  /**
+   * Whether the option is disabled
+   */
+  disabled?: boolean;
 };
 
-function OptionControl({option, value, onChange}: OptionControlProps) {
+function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
+  const tooltipContent = option.tooltip && (
+    <TooltipContent>
+      <div>{option.tooltip.description}</div>
+      {option.tooltip.link && (
+        <ExternalLink href={option.tooltip.link}>Learn more</ExternalLink>
+      )}
+    </TooltipContent>
+  );
+
   return (
-    <SegmentedControl onChange={onChange} value={value} aria-label={option.label}>
-      {option.items.map(({value: itemValue, label}) => (
-        <SegmentedControl.Item key={itemValue}>{label}</SegmentedControl.Item>
-      ))}
-    </SegmentedControl>
+    <ControlWrapper>
+      <ControlLabel>
+        {option.label}
+        {option.tooltip && <StyledQuestionTooltip size="sm" title={tooltipContent} />}
+      </ControlLabel>
+      <StyledSegmentedControl
+        onChange={onChange}
+        value={value}
+        aria-label={option.label}
+        disabled={disabled}
+      >
+        {option.items.map(({value: itemValue, label}) => (
+          <SegmentedControl.Item key={itemValue}>{label}</SegmentedControl.Item>
+        ))}
+      </StyledSegmentedControl>
+    </ControlWrapper>
   );
 }
 
@@ -74,11 +100,16 @@ export type PlatformOptionsControlProps = {
    * Fired when the value changes
    */
   onChange?: (options: SelectedPlatformOptions) => void;
+  /**
+   * Map of platform option keys to whether they should be disabled
+   */
+  disabledOptions?: Record<string, boolean>;
 };
 
 export function PlatformOptionsControl({
   platformOptions,
   onChange,
+  disabledOptions = {},
 }: PlatformOptionsControlProps) {
   const router = useRouter();
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
@@ -102,6 +133,7 @@ export function PlatformOptionsControl({
           option={platformOption}
           value={urlOptionValues[key] ?? (platformOption.items[0]?.value as string)}
           onChange={value => handleChange(key, value)}
+          disabled={disabledOptions[key]}
         />
       ))}
     </Options>
@@ -112,4 +144,37 @@ const Options = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
+`;
+
+const ControlWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;
+
+const ControlLabel = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  font-weight: 600;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  color: ${p => p.theme.subText};
+`;
+
+const TooltipContent = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+  max-width: 250px;
+`;
+
+const StyledSegmentedControl = styled(SegmentedControl)`
+  opacity: ${p => p.disabled && '0.4'};
+  filter: ${p => p.disabled && 'grayscale(50%)'};
+  transition:
+    opacity 0.2s ease-in-out,
+    filter 0.2s ease-in-out;
 `;

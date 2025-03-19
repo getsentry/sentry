@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import ExternalLink from 'sentry/components/links/externalLink';
-import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
@@ -48,9 +47,15 @@ export enum ReactRouterVersion {
 
 type PlatformOptionKey = 'routerType' | 'reactRouterVersion';
 
-const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
+const platformOptions: Record<PlatformOptionKey, PlatformOption<string>> = {
   routerType: {
     label: t('Router'),
+    tooltip: {
+      description: t(
+        'Select the router library you are using in your React application. This helps Sentry provide better tracing and performance monitoring for your routes.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
+    },
     items: [
       {
         label: t('React Router'),
@@ -68,6 +73,12 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
   },
   reactRouterVersion: {
     label: t('React Router Version'),
+    tooltip: {
+      description: t(
+        'Select your React Router version to ensure proper integration with Sentry tracing. Each version has specific integration requirements.'
+      ),
+      link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
+    },
     items: [
       {
         label: t('v7 (Latest)'),
@@ -399,6 +410,47 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 
     return nextSteps;
   },
+  onPlatformOptionsChange: () => platformOptions => {
+    // When React Router is not selected, don't show version options
+    if (platformOptions.routerType !== RouterType.REACT_ROUTER) {
+      return {
+        routerType: platformOptions.routerType,
+      };
+    }
+
+    // When React Router is selected, show both options
+    return platformOptions;
+  },
+
+  onProductSelectionChange: params => products => {
+    // Check if performance monitoring is included in selected products
+    const isPerformanceSelected = products.includes(
+      ProductSolution.PERFORMANCE_MONITORING
+    );
+
+    if (!isPerformanceSelected) {
+      // Return empty object when performance is not selected to hide router options
+      return {};
+    }
+
+    // Return current platform options when performance is selected
+    return params.platformOptions || {};
+  },
+
+  onProductSelectionLoad: params => products => {
+    // Check if performance monitoring is included in selected products
+    const isPerformanceSelected = products.includes(
+      ProductSolution.PERFORMANCE_MONITORING
+    );
+
+    if (!isPerformanceSelected) {
+      // Return empty object when performance is not selected to hide router options
+      return {};
+    }
+
+    // Return current platform options when performance is selected
+    return params.platformOptions || {};
+  },
 };
 
 const replayOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -554,11 +606,12 @@ const profilingOnboarding: OnboardingConfig<PlatformOptions> = {
 };
 
 const docs: Docs<PlatformOptions> = {
-  onboarding,
+  onboarding: {
+    ...onboarding,
+  },
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
   replayOnboarding,
-
   performanceOnboarding,
   crashReportOnboarding,
   profilingOnboarding,
