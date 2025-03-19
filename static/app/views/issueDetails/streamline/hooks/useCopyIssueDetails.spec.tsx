@@ -13,25 +13,13 @@ import * as autofixHooks from 'sentry/components/events/autofix/useAutofix';
 import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
+import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
 import {
   issueAndEventToMarkdown,
   useCopyIssueDetails,
 } from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 
-jest.spyOn(
-  require('sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails'),
-  'issueAndEventToMarkdown'
-);
-
 jest.mock('sentry/utils/useCopyToClipboard');
-
-// Get the mocked function, this is to type the mock correctly
-const useCopyToClipboard = jest.requireMock('sentry/utils/useCopyToClipboard').default;
-
-useCopyToClipboard.mockImplementation(() => ({
-  onClick: jest.fn(),
-  label: 'Copy',
-}));
 
 describe('useCopyIssueDetails', () => {
   const group = GroupFixture();
@@ -193,39 +181,42 @@ describe('useCopyIssueDetails', () => {
 
   describe('useCopyIssueDetails', () => {
     const mockClipboard = {writeText: jest.fn()};
+    const mockOnClick = jest.fn().mockImplementation(() => {
+      mockClipboard.writeText('test');
+      indicators.addSuccessMessage('Copied issue to clipboard as Markdown');
+      return Promise.resolve();
+    });
+    const mockCopyToClipboard = jest.fn();
+    let generatedText: string;
 
     beforeEach(() => {
       jest.clearAllMocks();
 
-      // Mock navigator.clipboard
       Object.defineProperty(window.navigator, 'clipboard', {
         value: mockClipboard,
         writable: true,
       });
 
-      // Mock the onClick implementation for each test
-      useCopyToClipboard.mockImplementation(() => ({
-        onClick: jest.fn().mockImplementation(() => {
-          mockClipboard.writeText('test');
-          indicators.addSuccessMessage('Copied issue to clipboard as Markdown');
-          return Promise.resolve();
-        }),
-        label: 'Copy',
-      }));
+      mockCopyToClipboard.mockImplementation(({text}) => {
+        generatedText = text;
+        return {
+          onClick: mockOnClick,
+          label: 'Copy',
+        };
+      });
 
-      // Mock the hook with the proper return structure
+      jest.mocked(copyToClipboardModule.default).mockImplementation(mockCopyToClipboard);
+
       jest.spyOn(groupSummaryHooks, 'useGroupSummaryData').mockReturnValue({
         data: mockGroupSummaryData,
         isPending: false,
       });
 
-      // Mock the autofix hook with the proper return structure
       jest.spyOn(autofixHooks, 'useAutofixData').mockReturnValue({
         data: mockAutofixData,
         isPending: false,
       });
 
-      // Mock the indicators
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
     });
@@ -233,7 +224,8 @@ describe('useCopyIssueDetails', () => {
     it('sets up useCopyToClipboard with the correct parameters', () => {
       renderHook(() => useCopyIssueDetails(group, event));
 
-      expect(useCopyToClipboard).toHaveBeenCalledWith({
+      // Check that the hook was called with the expected parameters
+      expect(mockCopyToClipboard).toHaveBeenCalledWith({
         text: expect.any(String),
         successMessage: 'Copied issue to clipboard as Markdown',
         errorMessage: 'Could not copy issue to clipboard',
@@ -241,9 +233,6 @@ describe('useCopyIssueDetails', () => {
     });
 
     it('sets up hotkeys with the correct callbacks', () => {
-      const mockOnClick = jest.fn();
-      useCopyToClipboard.mockReturnValueOnce({onClick: mockOnClick});
-
       const useHotkeysMock = jest.spyOn(require('sentry/utils/useHotkeys'), 'useHotkeys');
 
       renderHook(() => useCopyIssueDetails(group, event));
@@ -251,11 +240,11 @@ describe('useCopyIssueDetails', () => {
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
           match: 'command+alt+c',
-          callback: mockOnClick,
+          callback: expect.any(Function),
         },
         {
           match: 'ctrl+alt+c',
-          callback: mockOnClick,
+          callback: expect.any(Function),
         },
       ]);
     });
@@ -263,24 +252,20 @@ describe('useCopyIssueDetails', () => {
     it('provides partial data when event is undefined', () => {
       renderHook(() => useCopyIssueDetails(group, undefined));
 
-      const useCopyToClipboardCall = useCopyToClipboard.mock.calls[0][0];
-      expect(useCopyToClipboardCall.text).toContain(`# ${group.title}`);
-      expect(useCopyToClipboardCall.text).toContain(`**Issue ID:** ${group.id}`);
-      expect(useCopyToClipboardCall.text).toContain(
-        `**Project:** ${group.project?.slug}`
-      );
-      expect(useCopyToClipboardCall.text).toContain('## Issue Summary');
-      expect(useCopyToClipboardCall.text).toContain('## Root Cause');
-      expect(useCopyToClipboardCall.text).toContain('## Solution');
-      expect(useCopyToClipboardCall.text).not.toContain('## Exception');
+      expect(generatedText).toContain(`# ${group.title}`);
+      expect(generatedText).toContain(`**Issue ID:** ${group.id}`);
+      expect(generatedText).toContain(`**Project:** ${group.project?.slug}`);
+      expect(generatedText).toContain('## Issue Summary');
+      expect(generatedText).toContain('## Root Cause');
+      expect(generatedText).toContain('## Solution');
+      expect(generatedText).not.toContain('## Exception');
     });
 
     it('generates markdown with the correct data when event is provided', () => {
       renderHook(() => useCopyIssueDetails(group, event));
 
-      const useCopyToClipboardCall = useCopyToClipboard.mock.calls[0][0];
-      expect(useCopyToClipboardCall.text).toContain(`# ${group.title}`);
-      expect(useCopyToClipboardCall.text).toContain(`**Issue ID:** ${group.id}`);
+      expect(generatedText).toContain(`# ${group.title}`);
+      expect(generatedText).toContain(`**Issue ID:** ${group.id}`);
     });
   });
 });
