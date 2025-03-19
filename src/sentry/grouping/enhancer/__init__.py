@@ -353,11 +353,13 @@ def _load_configs() -> dict[str, Enhancements]:
     for filename in os.listdir(configs_dir):
         if filename.endswith(".txt"):
             with open(os.path.join(configs_dir, filename), encoding="utf-8") as f:
+                # Strip the extension
+                filename = filename.replace(".txt", "")
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_config_string(f.read(), id=filename[:-4])
-                enhancement_bases[filename[:-4]] = enhancements
+                enhancements = Enhancements.from_config_string(f.read(), id=filename)
+                enhancement_bases[filename] = enhancements
     return enhancement_bases
 
 
