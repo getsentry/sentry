@@ -78,27 +78,27 @@ function makeChonkBadgeTheme(
     case 'highlight':
     case 'info':
       return {
-        color: theme.colors.blue500,
+        color: theme.colors.content.accent,
         background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        color: theme.colors.pink500,
+        color: theme.colors.content.promotion,
         background: theme.colors.pink100,
       };
     case 'danger':
       return {
-        color: theme.colors.red500,
+        color: theme.colors.content.danger,
         background: theme.colors.red100,
       };
     case 'warning':
       return {
-        color: theme.colors.yellow500,
+        color: theme.colors.content.warning,
         background: theme.colors.yellow100,
       };
     case 'success':
       return {
-        color: theme.colors.green500,
+        color: theme.colors.content.success,
         background: theme.colors.green100,
       };
     default:
