@@ -86,7 +86,7 @@ describe('ProjectDetail Utils', function () {
     });
 
     it('returns correct query text for other platforms', () => {
-      expect(getANRIssueQueryText('windows')).toBe('mechanism:[ANR,AppExitInfo]');
+      expect(getANRIssueQueryText('other')).toBe('mechanism:[ANR,AppExitInfo]');
       expect(getANRIssueQueryText()).toBe('mechanism:[ANR,AppExitInfo]');
     });
   });
