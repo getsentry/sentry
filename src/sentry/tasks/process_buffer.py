@@ -57,9 +57,9 @@ def process_pending_batch() -> None:
 
 @instrumented_task(name="sentry.tasks.process_buffer.process_incr", queue="counters-0")
 def process_incr(
-    model: type[models.Model] | None,
-    columns: dict[str, int],
-    filters: dict[str, Any],
+    model: type[models.Model] | None = None,
+    columns: dict[str, int] | None = None,
+    filters: dict[str, Any] | None = None,
     extra: dict[str, Any] | None = None,
     signal_only: bool | None = None,
     model_name: str | None = None,
@@ -70,11 +70,11 @@ def process_incr(
     """
     from sentry import buffer
 
-    if not model:
-        assert model_name, "model or model_name is required"
+    if not model and model_name:
         model = apps.get_model(model_name)
 
-    sentry_sdk.set_tag("model", model._meta.model_name)
+    if model:
+        sentry_sdk.set_tag("model", model._meta.model_name)
 
     buffer.backend.process(
         model=model,
@@ -82,6 +82,7 @@ def process_incr(
         filters=filters,
         extra=extra,
         signal_only=signal_only,
+        **kwargs,
     )
 
 
