@@ -281,7 +281,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         }
         with (
             patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
-            patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=[]),
+            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_supported", return_value=True),
         ):
             self._process_and_assert_code_mapping(
                 repo_trees=repo_trees,
