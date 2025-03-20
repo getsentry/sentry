@@ -188,6 +188,7 @@ const Section = styled('div')`
 `;
 
 const SectionTitle = styled('div')<{layout: NavLayout}>`
+  font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   padding: 0 ${space(1)};
