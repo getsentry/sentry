@@ -827,6 +827,10 @@ export enum PlanTier {
    * Features and data volumes are tightly coupled.
    */
   MM1 = 'mm1',
+  /**
+   * No specified tier
+   */
+  ALL = 'all',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/

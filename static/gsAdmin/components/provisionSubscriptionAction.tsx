@@ -1,6 +1,7 @@
 import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import upperFirst from 'lodash/upperFirst';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -11,10 +12,10 @@ import Form from 'sentry/components/deprecatedforms/form';
 import InputField from 'sentry/components/deprecatedforms/inputField';
 import NumberField from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
-import {DataCategoryExact} from 'sentry/types/core';
-import {capitalize} from 'sentry/utils/string/capitalize';
+import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import withApi from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
@@ -27,12 +28,14 @@ import type {
 } from 'getsentry/types';
 import {
   getAmPlanTier,
+  getCategoryInfoFromPlural,
   isAm3DsPlan,
   isAm3Plan,
   isAmEnterprisePlan,
   isAmPlan,
   isTrialPlan,
 } from 'getsentry/utils/billing';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 
 const CPE_DECIMAL_PRECISION = 8;
 
@@ -92,6 +95,7 @@ class DollarsAndCentsField extends InputField<DollarsAndCentsFieldProps> {
 
 type Props = {
   api: Client;
+  billingConfig: BillingConfig | null;
   onSuccess: () => void;
   orgId: string;
   subscription: Subscription;
@@ -104,6 +108,7 @@ type ModalState = {
   data: any;
   // TODO(ts), TODO:categories get data.plan categories to dynamically create fields
   effectiveAtDisabled: boolean;
+  isLoading: boolean;
   provisionablePlans: Record<string, Plan>;
 };
 
@@ -160,6 +165,7 @@ function toCents(dollars: number | null | undefined, decimals = 0) {
 
 class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   state: ModalState = {
+    isLoading: true,
     data: {},
     effectiveAtDisabled: false,
     provisionablePlans: {},
@@ -167,10 +173,36 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
   componentDidMount() {
     this.initializeState();
+    this.setState({isLoading: false});
   }
 
   initializeState() {
-    const {subscription, canProvisionDsPlan} = this.props;
+    const {subscription, billingConfig, canProvisionDsPlan} = this.props;
+
+    this.setState(state => ({
+      ...state,
+      provisionablePlans: billingConfig
+        ? billingConfig.planList.reduce(
+            (acc, plan) => {
+              if (
+                (isAmEnterprisePlan(plan.id) ||
+                  plan.id === 'e1' ||
+                  plan.id === 'mm2_a' ||
+                  plan.id === 'mm2_b') &&
+                !plan.id.endsWith('_ac') &&
+                !plan.id.endsWith('_auf') &&
+                !isTrialPlan(plan.id) &&
+                (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
+              ) {
+                acc[plan.id] = plan;
+              }
+              return acc;
+            },
+            {} as Record<string, Plan>
+          )
+        : {},
+    }));
+
     const existingPlanWithoutSuffix = subscription.plan.endsWith('_auf')
       ? subscription.plan.slice(0, subscription.plan.length - 4)
       : subscription.plan.endsWith('_ac')
@@ -180,46 +212,36 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       plan => plan[0] === existingPlanWithoutSuffix
     );
 
-    if (existingPlanIsEnterprise) {
-      const reservedBudgets = subscription.reservedBudgets;
-      const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> =
-        {};
-      reservedBudgets?.forEach(budget => {
-        Object.entries(budget.categories).forEach(([category, info]) => {
-          reservedBudgetMetricHistories[category] = info;
-        });
+    const reservedBudgets = subscription.reservedBudgets;
+    const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
+    reservedBudgets?.forEach(budget => {
+      Object.entries(budget.categories).forEach(([category, info]) => {
+        reservedBudgetMetricHistories[category] = info;
       });
+    });
 
-      const infoFromMetricHistories: Record<string, any> = {};
-      Object.entries(subscription.categories).forEach(([category, info]) => {
-        const suffix = capitalize(category);
-        infoFromMetricHistories[`reserved${suffix}`] = info.reserved;
-        infoFromMetricHistories[`softCapType${suffix}`] = info.softCapType;
-        infoFromMetricHistories[`customPrice${suffix}`] = toAnnualDollars(
+    const infoFromMetricHistories: Record<string, any> = {};
+    Object.entries(subscription.categories).forEach(([category, info]) => {
+      const categorySuffix = this.capitalizeForApiName(category);
+      infoFromMetricHistories[`reserved${categorySuffix}`] = info.reserved;
+      if (existingPlanIsEnterprise) {
+        infoFromMetricHistories[`softCapType${categorySuffix}`] = info.softCapType;
+        infoFromMetricHistories[`customPrice${categorySuffix}`] = toAnnualDollars(
           info.customPrice,
           subscription.billingInterval
         );
-        infoFromMetricHistories[`paygCpe${suffix}`] = toDollars(
+        infoFromMetricHistories[`paygCpe${categorySuffix}`] = toDollars(
           info.paygCpe,
           CPE_DECIMAL_PRECISION
         );
-        infoFromMetricHistories[`reservedCpe${suffix}`] = toDollars(
+        infoFromMetricHistories[`reservedCpe${categorySuffix}`] = toDollars(
           reservedBudgetMetricHistories[category]?.reservedCpe,
           CPE_DECIMAL_PRECISION
         );
-        infoFromMetricHistories[`paygCpe${suffix}`] = toDollars(
-          info.paygCpe,
-          CPE_DECIMAL_PRECISION
-        );
-        infoFromMetricHistories[`reservedCpe${suffix}`] = toDollars(
-          reservedBudgetMetricHistories[category]?.reservedCpe,
-          CPE_DECIMAL_PRECISION
-        );
-      });
-      this.setState(state => ({
-        ...state,
-        data: {
-          ...state.data,
+      }
+    });
+    const enterpriseData = existingPlanIsEnterprise
+      ? {
           plan: existingPlanWithoutSuffix,
           billingInterval: subscription.billingInterval,
           retainOnDemandBudget: false,
@@ -238,38 +260,20 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             subscription.customPrice,
             subscription.billingInterval
           ),
-          ...infoFromMetricHistories,
-        },
-      }));
-    }
-    this.fetchPlanData(canProvisionDsPlan ?? false);
+        }
+      : {};
+    this.setState(state => ({
+      ...state,
+      data: {
+        ...state.data,
+        ...enterpriseData,
+        ...infoFromMetricHistories,
+      },
+    }));
   }
 
-  fetchPlanData = async (canProvisionDsPlan: boolean) => {
-    const billingConfig: BillingConfig = await this.props.api.requestPromise(
-      `/customers/${this.props.orgId}/billing-config/?tier=all`
-    );
-    billingConfig.planList
-      .filter(
-        (plan: Plan) =>
-          (isAmEnterprisePlan(plan.id) ||
-            plan.id === 'e1' ||
-            plan.id === 'mm2_a' ||
-            plan.id === 'mm2_b') &&
-          !plan.id.endsWith('_ac') &&
-          !plan.id.endsWith('_auf') &&
-          !isTrialPlan(plan.id) &&
-          (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
-      )
-      .forEach((plan: Plan) => {
-        this.setState(state => ({
-          ...state,
-          provisionablePlans: {
-            ...state.provisionablePlans,
-            [plan.id]: plan,
-          },
-        }));
-      });
+  capitalizeForApiName = (categoryString: string) => {
+    return upperFirst(categoryString);
   };
 
   get endpoint() {
@@ -294,7 +298,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     isAm3DsPlan(this.state.data.plan) &&
     Object.entries(this.state.data)
       .filter(([key, _]) => key.startsWith('reservedCpeSpans'))
-      .every(([_, value]) => value !== null && value !== 0);
+      .every(([_, value]) => !!value) &&
+    Object.keys(this.state.data).filter(key => key.startsWith('reservedCpeSpans'))
+      .length >= 2;
 
   /**
    * Whether the user has set all the required fields to provision a spans budget.
@@ -329,7 +335,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   };
 
   onSubmit: Form['props']['onSubmit'] = (formData, _onSubmitSuccess, onSubmitError) => {
-    const postData = {...this.state.data};
+    const postData: Record<string, any> = {};
 
     for (const k in formData) {
       if (formData[k] !== '' && formData[k] !== null) {
@@ -337,15 +343,15 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }
     }
 
-    // clear disabled fields
+    // clear conflicting fields regarding when the changes take effect
     if (postData.atPeriodEnd || postData.coterm) {
       delete postData.effectiveAt;
     }
-
     if (!postData.coterm) {
       delete postData.coterm;
     }
 
+    // remove custom price fields if the plan is not AM Enterprise
     const hasCustomSkuPrices = isAmEnterprisePlan(postData.plan);
     if (!hasCustomSkuPrices) {
       const customSkuFields = Object.keys(postData).filter(key =>
@@ -358,16 +364,20 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
 
     const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
     const planCategories = this.state.provisionablePlans[postData.plan]?.categories ?? [];
+
+    // remove fields for any categories that are not in the selected plan
     allCategories.forEach(category => {
       if (!planCategories.includes(category)) {
-        delete postData[`reserved${category}`];
-        delete postData[`customPrice${category}`];
-        delete postData[`softCapType${category}`];
-        delete postData[`paygCpe${category}`];
-        delete postData[`reservedCpe${category}`];
+        const categorySuffix = this.capitalizeForApiName(category);
+        delete postData[`reserved${categorySuffix}`];
+        delete postData[`customPrice${categorySuffix}`];
+        delete postData[`softCapType${categorySuffix}`];
+        delete postData[`paygCpe${categorySuffix}`];
+        delete postData[`reservedCpe${categorySuffix}`];
       }
     });
 
+    // remove on-demand fields if the plan is not invoiced
     if (postData.type !== 'invoiced') {
       delete postData.onDemandInvoicedManual;
       const paygCpeFields = Object.keys(postData).filter(key =>
@@ -387,6 +397,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }));
     }
 
+    // soft cap and on-demand max spend are mutually exclusive
     if (this.isEnablingOnDemandMaxSpend()) {
       Object.keys(postData).forEach(key => {
         if (key.startsWith('softCapType')) {
@@ -408,7 +419,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         delete postData[key];
       });
     }
-
     if (this.isEnablingSoftCap()) {
       postData.onDemandInvoicedManual = 'DISABLE';
       const paygCpeFields = Object.keys(postData).filter(key =>
@@ -419,6 +429,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
+    // convert any currency fields to the right unit
     Object.entries(postData).forEach(([key, value]) => {
       if (
         (key.startsWith('payCpe') || key.startsWith('reservedCpe')) &&
@@ -429,14 +440,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         postData[key] = toCents(value as number); // price should be in cents
       }
     });
-    const hasCustomPrice = hasCustomSkuPrices || postData.managed;
-    if (!hasCustomPrice) {
-      delete postData.hasCustomPrice;
-    }
 
     if (postData.customPrice) {
       // For AM only: If customPrice is set, ensure that it is equal to sum of SKU prices
-
       const skuSum = Object.entries(postData).reduce((acc, [key, value]) => {
         if (
           key.startsWith('customPrice') &&
@@ -458,6 +464,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       }
     }
 
+    // override retainOnDemandBudget based on whether user is changing the mode or disabling on-demand, or not
     postData.retainOnDemandBudget = postData.retainOnDemandBudget
       ? !this.disableRetainOnDemand()
       : false;
@@ -465,20 +472,28 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     if (isAmPlan(postData.plan)) {
       // Setting soft cap types to null if not `ON_DEMAND` or `TRUE_FORWARD` ensures soft cap type
       // is disabled if it was set but is not set with the new provisioning request.
-      postData.trueForward = {};
-      Object.entries(postData).forEach(([key, value]) => {
-        if (key.startsWith('softCapType')) {
-          if (!value) {
-            postData[key] = null;
-          }
-          postData.trueForward = {
-            [key.replace('softCapType', '').toLowerCase()]: value === 'TRUE_FORWARD',
-          };
+      planCategories.forEach(category => {
+        const key = `softCapType${this.capitalizeForApiName(category)}`;
+        if (postData[key] !== 'ON_DEMAND' && postData[key] !== 'TRUE_FORWARD') {
+          postData[key] = null;
         }
       });
+
+      // Update trueForward object to reflect the new soft cap types
+      postData.trueForward = {
+        ...planCategories.reduce((acc, category) => {
+          return {
+            ...acc,
+            [category]:
+              (postData[`softCapType${this.capitalizeForApiName(category)}`] ?? null) ===
+              'TRUE_FORWARD',
+          };
+        }, {}),
+      };
     }
 
     if (isAm3DsPlan(postData.plan)) {
+      // Validate DS plan and reserved spans budget
       if (this.hasCompleteSpansBudget()) {
         postData.reservedBudgets = [
           {
@@ -525,6 +540,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const hasCustomSkuPrices = isAmEnt;
     const hasCustomPrice = hasCustomSkuPrices || !!data.managed; // Refers to ACV
 
+    if (this.state.isLoading) {
+      return <LoadingIndicator />;
+    }
+
     return (
       <Fragment>
         <Header>Provision Subscription Changes</Header>
@@ -558,24 +577,18 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     const chosenPlanIsAm3Ds = isAm3DsPlan(v as string);
                     const nextPrices = isManagedPlan
                       ? {}
-                      : {
-                          ...Object.values(DATA_CATEGORY_INFO).map(categoryInfo => {
-                            return {
-                              [`customPrice${categoryInfo.plural}`]: '',
-                            };
-                          }),
-                          customPricePcss: '',
-                          customPrice: '',
-                        };
+                      : Object.keys(this.state.data)
+                          .filter(key => key.startsWith('customPrice'))
+                          .reduce((acc, key) => {
+                            return {...acc, [key]: ''};
+                          }, {});
                     const nextReservedCpes = chosenPlanIsAm3Ds
                       ? {}
-                      : {
-                          ...Object.values(DATA_CATEGORY_INFO).map(categoryInfo => {
-                            return {
-                              [`reservedCpe${categoryInfo.plural}`]: '',
-                            };
-                          }),
-                        };
+                      : Object.keys(this.state.data)
+                          .filter(key => key.startsWith('reservedCpe'))
+                          .reduce((acc, key) => {
+                            return {...acc, [key]: ''};
+                          }, {});
 
                     this.setState(state => ({
                       ...state,
@@ -698,12 +711,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       this.state.data.type === 'credit_card' || this.isEnablingSoftCap()
                     }
                     value={this.state.data.onDemandInvoicedManual}
-                    onChange={v =>
+                    onChange={v => {
                       this.setState(state => ({
                         ...state,
-                        data: {...state.data, onDemandInvoicedManual: v},
-                      }))
-                    }
+                        data: {...state.data, onDemandInvoicedManual: v ? v : null},
+                      }));
+                    }}
                   />
                 )}
 
@@ -732,41 +745,36 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       <SectionHeaderDescription>
                         Monthly quantities for each SKU
                       </SectionHeaderDescription>
-                      {Object.entries(DATA_CATEGORY_INFO)
-                        .filter(
-                          ([_, categoryInfo]) =>
-                            this.state.data.plan &&
-                            this.state.provisionablePlans[
-                              this.state.data.plan
-                            ]?.categories.includes(categoryInfo.plural)
-                        )
-                        .map(([category, categoryInfo]) => {
-                          const titleName =
-                            category === DataCategoryExact.SPAN && isAm3Ds
-                              ? 'Accepted Spans'
-                              : categoryInfo.titleName;
-                          const suffix =
-                            category === DataCategoryExact.ATTACHMENT
-                              ? ' (in GB)'
-                              : category === DataCategoryExact.PROFILE_DURATION
-                                ? ' (in hours)'
-                                : '';
-                          const capitalizedApiName = capitalize(categoryInfo.plural);
+                      {this.state.data.plan &&
+                        (
+                          this.state.provisionablePlans[this.state.data.plan]
+                            ?.categories ?? []
+                        ).map(category => {
+                          const categoryInfo = getCategoryInfoFromPlural(
+                            category as DataCategory
+                          );
+                          if (!categoryInfo) {
+                            return null;
+                          }
+                          const titleName = getPlanCategoryName({
+                            plan: this.state.provisionablePlans[this.state.data.plan],
+                            category,
+                            title: true,
+                            hadCustomDynamicSampling: isAm3Ds,
+                          });
+                          const suffix = categoryInfo.pluralUnit
+                            ? ` (in ${categoryInfo.pluralUnit})`
+                            : '';
+                          const capitalizedApiName = this.capitalizeForApiName(
+                            categoryInfo.plural
+                          );
                           return (
                             <Fragment key={categoryInfo.plural}>
                               <NumberField
                                 label={`Reserved ${titleName}${suffix}`}
                                 name={`reserved${capitalizedApiName}`}
-                                required={
-                                  category === DataCategoryExact.ERROR
-                                    ? !!data.plan
-                                    : isAmEnt
-                                }
+                                required
                                 disabled={
-                                  [
-                                    DataCategoryExact.SPAN,
-                                    DataCategoryExact.SPAN_INDEXED,
-                                  ].includes(category as DataCategoryExact) &&
                                   this.state.data[`reservedCpe${capitalizedApiName}`]
                                 }
                                 value={this.state.data[`reserved${capitalizedApiName}`]}
@@ -803,47 +811,50 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                                   }))
                                 }
                               />
-                              {[
-                                DataCategoryExact.SPAN,
-                                DataCategoryExact.SPAN_INDEXED,
-                              ].includes(category as DataCategoryExact) && (
-                                <StyledDollarsAndCentsField
-                                  label={`Reserved Cost-Per-${titleName}`}
-                                  name={`reservedCpe${capitalizedApiName}`}
-                                  disabled={!isAm3Ds}
-                                  value={data[`reservedCpe${capitalizedApiName}`]}
-                                  step={0.00000001}
-                                  min={0.00000001}
-                                  max={1}
-                                  onChange={v =>
-                                    this.setState(state => ({
-                                      ...state,
-                                      data: {
-                                        ...state.data,
-                                        [`reservedCpe${capitalizedApiName}`]: v,
-                                      },
-                                    }))
-                                  }
-                                  onBlur={() => {
-                                    const currentValue = parseFloat(
-                                      this.state.data[`reservedCpe${capitalizedApiName}`]
-                                    );
-                                    if (!isNaN(currentValue)) {
+                              {isAm3Ds &&
+                                [DataCategory.SPANS, DataCategory.SPANS_INDEXED].includes(
+                                  category as DataCategory
+                                ) && (
+                                  <StyledDollarsAndCentsField
+                                    label={`Reserved Cost-Per-Event ${titleName}`}
+                                    name={`reservedCpe${capitalizedApiName}`}
+                                    value={data[`reservedCpe${capitalizedApiName}`]}
+                                    step={0.00000001}
+                                    min={0.00000001}
+                                    max={1}
+                                    onChange={v =>
                                       this.setState(state => ({
                                         ...state,
                                         data: {
                                           ...state.data,
-                                          [`reservedCpe${capitalizedApiName}`]:
-                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                          [`reservedCpe${capitalizedApiName}`]: v,
+                                          [`reserved${capitalizedApiName}`]:
+                                            RESERVED_BUDGET_QUOTA,
                                         },
-                                      }));
+                                      }))
                                     }
-                                  }}
-                                />
-                              )}
+                                    onBlur={() => {
+                                      const currentValue = parseFloat(
+                                        this.state.data[
+                                          `reservedCpe${capitalizedApiName}`
+                                        ]
+                                      );
+                                      if (!isNaN(currentValue)) {
+                                        this.setState(state => ({
+                                          ...state,
+                                          data: {
+                                            ...state.data,
+                                            [`reservedCpe${capitalizedApiName}`]:
+                                              currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                          },
+                                        }));
+                                      }
+                                    }}
+                                  />
+                                )}
                               {this.isEnablingOnDemandMaxSpend() && (
                                 <StyledDollarsAndCentsField
-                                  label={`On-Demand Cost-Per-${titleName}`}
+                                  label={`On-Demand Cost-Per-Event ${titleName}`}
                                   name={`paygCpe${capitalizedApiName}`}
                                   value={data[`paygCpe${capitalizedApiName}`]}
                                   step={0.00000001}
@@ -858,6 +869,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                                       },
                                     }))
                                   }
+                                  required
                                   onBlur={() => {
                                     const currentValue = parseFloat(
                                       this.state.data[`paygCpe${capitalizedApiName}`]
@@ -886,45 +898,60 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 <SectionHeaderDescription>
                   Annual prices for reserved volumes, in whole dollars.
                 </SectionHeaderDescription>
-                {Object.entries(DATA_CATEGORY_INFO)
-                  .filter(
-                    ([_, categoryInfo]) =>
-                      this.state.data.plan &&
-                      this.state.provisionablePlans[
-                        this.state.data.plan
-                      ]?.categories.includes(categoryInfo.plural)
-                  )
-                  .map(([category, categoryInfo]) => {
-                    const titleName =
-                      category === DataCategoryExact.SPAN && isAm3Ds
-                        ? 'Accepted Spans'
-                        : categoryInfo.titleName;
-                    const suffix =
-                      category === DataCategoryExact.SPAN &&
-                      isAm3DsPlan(this.state.data.plan)
-                        ? ' (Reserved Spans Budget)'
-                        : '';
-                    const capitalizedApiName = capitalize(categoryInfo.plural);
-                    return (
-                      <StyledDollarsField
-                        key={`customPrice${capitalizedApiName}`}
-                        label={`Price for ${titleName}${suffix}`}
-                        name={`customPrice${capitalizedApiName}`}
-                        disabled={!hasCustomSkuPrices}
-                        required={hasCustomSkuPrices}
-                        value={data[`customPrice${capitalizedApiName}`]}
-                        onChange={v =>
-                          this.setState(state => ({
-                            ...state,
-                            data: {
-                              ...state.data,
-                              [`customPrice${capitalizedApiName}`]: v,
-                            },
-                          }))
-                        }
-                      />
-                    );
-                  })}
+                {this.state.data.plan &&
+                  this.state.provisionablePlans[this.state.data.plan]?.categories.map(
+                    category => {
+                      const categoryInfo = getCategoryInfoFromPlural(
+                        category as DataCategory
+                      );
+                      if (!categoryInfo) {
+                        return null;
+                      }
+                      const titleName = getPlanCategoryName({
+                        plan: this.state.provisionablePlans[this.state.data.plan],
+                        category,
+                        title: true,
+                        hadCustomDynamicSampling: isAm3Ds,
+                      });
+                      const suffix =
+                        category === DataCategory.SPANS &&
+                        isAm3Ds &&
+                        this.isSettingSpansBudget()
+                          ? ' (Reserved Spans Budget)'
+                          : '';
+                      const capitalizedApiName = this.capitalizeForApiName(
+                        categoryInfo.plural
+                      );
+                      return (
+                        <StyledDollarsField
+                          key={`customPrice${capitalizedApiName}`}
+                          label={`Price for ${titleName}${suffix}`}
+                          name={`customPrice${capitalizedApiName}`}
+                          disabled={
+                            !hasCustomSkuPrices ||
+                            (this.isSettingSpansBudget() &&
+                              category === DataCategory.SPANS_INDEXED)
+                          }
+                          required={hasCustomSkuPrices}
+                          value={
+                            this.isSettingSpansBudget() &&
+                            category === DataCategory.SPANS_INDEXED
+                              ? 0
+                              : data[`customPrice${capitalizedApiName}`]
+                          }
+                          onChange={v =>
+                            this.setState(state => ({
+                              ...state,
+                              data: {
+                                ...state.data,
+                                [`customPrice${capitalizedApiName}`]: v,
+                              },
+                            }))
+                          }
+                        />
+                      );
+                    }
+                  )}
                 <StyledDollarsField
                   label="Price for PCSS"
                   name="customPricePcss"
@@ -946,6 +973,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   label="Annual Contract Value"
                   name="customPrice"
                   help="Used as a checksum, must be equal to sum of prices above"
+                  required={hasCustomPrice}
                   disabled={!hasCustomPrice}
                   value={data.customPrice}
                   onChange={v =>
@@ -1017,7 +1045,10 @@ const StyledDollarsAndCentsField = styled(DollarsAndCentsField)`
 
 const Modal = withApi(ProvisionSubscriptionModal);
 
-type Options = Pick<Props, 'orgId' | 'subscription' | 'onSuccess' | 'canProvisionDsPlan'>;
+type Options = Pick<
+  Props,
+  'orgId' | 'subscription' | 'onSuccess' | 'canProvisionDsPlan' | 'billingConfig'
+>;
 
 const triggerProvisionSubscription = (opts: Options) =>
   openModal(deps => <Modal {...deps} {...opts} />, {modalCss});

@@ -286,6 +286,8 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Attachments'),
     uid: 4,
     isBilledCategory: true,
+    singularUnit: 'GB',
+    pluralUnit: 'GB',
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
@@ -376,6 +378,8 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Continuous Profiling'),
     uid: 17,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    singularUnit: 'hour',
+    pluralUnit: 'hours',
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
@@ -386,6 +390,8 @@ export const DATA_CATEGORY_INFO = {
     productName: t('UI Profiling'),
     uid: 25,
     isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    singularUnit: 'hour',
+    pluralUnit: 'hours',
   },
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,
