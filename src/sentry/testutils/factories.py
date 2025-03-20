@@ -996,6 +996,7 @@ class Factories:
             data.update({"exception": [{"value": "BadError"}]})
 
         manager = EventManager(data, sent_at=sent_at)
+        breakpoint()
         manager.normalize()
         if assert_no_errors:
             errors = manager.get_data().get("errors")

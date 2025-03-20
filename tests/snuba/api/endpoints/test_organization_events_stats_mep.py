@@ -231,6 +231,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
             [{"count": 0}],
         ]
 
+    # TODO (nar)
     def test_percentiles_multi_axis(self):
         for hour in range(6):
             timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
@@ -1035,6 +1036,46 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
 
         # First bucket, where the transaction should be
         assert response.data["data"][0][1][0]["count"] == 1
+
+    def test_metrics_enhanced_with_avg_measurements_time_to_initial_display(self):
+        transaction_data = load_data("transaction")
+        self.store_event(
+            {
+                **transaction_data,
+                "tags": {"existingTag": "true"},
+                "start_timestamp": before_now(days=1, minutes=1).isoformat(),
+                "timestamp": before_now(days=1).isoformat(),
+                "measurements": {"time_to_initial_display": 222},
+            },
+            project_id=self.project.id,
+        )
+
+        for hour in range(6):
+            timestamp = self.day_ago + timedelta(hours=hour, minutes=30)
+            self.store_transaction_metric(
+                111,
+                metric="measurements.time_to_initial_display",
+                timestamp=timestamp,
+                tags={"existingTag": "true"},
+            )
+        query = {
+            "field": ["avg(measurements.time_to_initial_display)"],
+            "query": "has:existingTag !has:nonExistingTag",
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "dataset": "metricsEnhanced",
+            "yAxis": ["avg(measurements.time_to_initial_display)"],
+        }
+        response = self.do_request(query, **self.additional_params)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+
+        # The request fell back to indexed data because the tag doesn't exist in the metrics indexer
+        assert response.data["meta"]["isMetricsData"] is False
+
+        # First bucket, where the transaction should be
+        assert response.data["data"][0][1][0]["count"] == 222
 
 
 class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithOnDemandWidgets(

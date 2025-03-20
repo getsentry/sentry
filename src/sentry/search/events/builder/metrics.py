@@ -780,6 +780,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         value = search_filter.value.value
 
         # Handle checks for existence
+        # breakpoint()
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
             if name in constants.METRICS_MAP:
                 if search_filter.operator == "!=":
@@ -787,8 +788,14 @@ class MetricsQueryBuilder(BaseQueryBuilder):
                 else:
                     raise IncompatibleMetricsQuery("!has isn't compatible with metrics queries")
             else:
+                # has: <tag key> is not null, has(tags.key, <tag key>)
+                # !has: <tag key> is null, notEquals(has(tags.key, <tag key>), 1)
+                resolved_metric_id = self.resolve_metric_index(name)
+                if resolved_metric_id is None:
+                    # Throw an error because we can't resolve the metric ID, so the query just checks if `null` a tag key
+                    raise IncompatibleMetricsQuery(f"{name} isn't compatible with metrics queries")
                 return Condition(
-                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Function("has", [Column("tags.key"), resolved_metric_id]),
                     Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )

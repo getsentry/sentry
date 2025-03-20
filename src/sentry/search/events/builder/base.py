@@ -383,6 +383,7 @@ class BaseQueryBuilder:
     def resolve_where(self, parsed_terms: event_filter.ParsedTerms) -> list[WhereType]:
         """Given a list of parsed terms, construct their equivalent snql where
         conditions. filtering out any aggregates"""
+        # breakpoint()
         where_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.SearchFilter):
