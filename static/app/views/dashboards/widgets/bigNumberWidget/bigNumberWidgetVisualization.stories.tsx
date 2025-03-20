@@ -9,8 +9,6 @@ import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 
-import type {Meta} from '../common/types';
-
 import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
 
 export default storyBook('BigNumberWidgetVisualization', story => {
@@ -62,10 +60,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               <BigNumberWidgetVisualization
                 value={0.01087819860850493}
                 field="eps()"
-                meta={{
-                  type: 'rate',
-                  unit: RateUnit.PER_SECOND,
-                }}
+                type="rate"
+                unit={RateUnit.PER_SECOND}
                 thresholds={{
                   max_values: {
                     max1: 1,
@@ -81,10 +77,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               <BigNumberWidgetVisualization
                 value={178451214}
                 field="count()"
-                meta={{
-                  type: 'integer',
-                  unit: null,
-                }}
+                type="integer"
+                unit={null}
               />
             </Container>
           </SmallSizingWindow>
@@ -93,10 +87,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               <BigNumberWidgetVisualization
                 value={17.28}
                 field="p95(span.duration)"
-                meta={{
-                  type: 'duration',
-                  unit: DurationUnit.MILLISECOND,
-                }}
+                type="duration"
+                unit={DurationUnit.MILLISECOND}
               />
             </Container>
           </SmallSizingWindow>
@@ -105,10 +97,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               <BigNumberWidgetVisualization
                 value={'2024-10-17T16:08:07+00:00'}
                 field="max(timestamp)"
-                meta={{
-                  type: 'date',
-                  unit: null,
-                }}
+                type="date"
+                unit={null}
               />
             </Container>
           </SmallSizingWindow>
@@ -150,10 +140,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               value={1000000}
               field="count()"
               maximumValue={1000000}
-              meta={{
-                type: 'integer',
-                unit: null,
-              }}
+              type="integer"
+              unit={null}
             />
           </SmallWidget>
         </SideBySide>
@@ -184,10 +172,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               value={17.1087819860850493}
               field="eps()"
               previousPeriodValue={15.0088607819850493}
-              meta={{
-                type: 'rate',
-                unit: RateUnit.PER_SECOND,
-              }}
+              type="rate"
+              unit={RateUnit.PER_SECOND}
             />
           </SmallWidget>
 
@@ -197,10 +183,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               previousPeriodValue={0.1728139}
               field="http_rate(500)"
               preferredPolarity="-"
-              meta={{
-                type: 'percentage',
-                unit: null,
-              }}
+              type="percentage"
+              unit={null}
             />
           </SmallWidget>
           <SmallWidget>
@@ -209,10 +193,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
               value={0.14227123}
               previousPeriodValue={0.1728139}
               preferredPolarity="+"
-              meta={{
-                type: 'percentage',
-                unit: null,
-              }}
+              type="percentage"
+              unit={null}
             />
           </SmallWidget>
         </SideBySide>
@@ -221,10 +203,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
   });
 
   story('Thresholds', () => {
-    const meta: Meta = {
-      type: 'rate',
-      unit: RateUnit.PER_SECOND,
-    };
+    const type = 'rate' as const;
+    const unit = RateUnit.PER_SECOND;
 
     const thresholds = {
       max_values: {
@@ -248,7 +228,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
             <BigNumberWidgetVisualization
               value={7.1}
               field="eps()"
-              meta={meta}
+              type={type}
+              unit={unit}
               thresholds={thresholds}
               preferredPolarity="+"
             />
@@ -258,7 +239,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
             <BigNumberWidgetVisualization
               value={27.781}
               field="eps()"
-              meta={meta}
+              type={type}
+              unit={unit}
               thresholds={thresholds}
               preferredPolarity="-"
             />
@@ -268,7 +250,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
             <BigNumberWidgetVisualization
               field="eps()"
               value={78.1}
-              meta={meta}
+              type={type}
+              unit={unit}
               thresholds={thresholds}
               preferredPolarity="+"
             />
@@ -285,7 +268,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
             <BigNumberWidgetVisualization
               field="eps()"
               value={7.1}
-              meta={meta}
+              type={type}
+              unit={unit}
               thresholds={thresholds}
               preferredPolarity="-"
             />
@@ -295,7 +279,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
             <BigNumberWidgetVisualization
               field="eps()"
               value={27.781}
-              meta={meta}
+              type={type}
+              unit={unit}
               thresholds={thresholds}
               preferredPolarity="-"
             />
@@ -305,7 +290,8 @@ export default storyBook('BigNumberWidgetVisualization', story => {
             <BigNumberWidgetVisualization
               field="eps()"
               value={78.1}
-              meta={meta}
+              type={type}
+              unit={unit}
               thresholds={thresholds}
               preferredPolarity="-"
             />

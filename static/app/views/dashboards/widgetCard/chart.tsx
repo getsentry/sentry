@@ -225,10 +225,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
           key={i}
           field={field}
           value={value}
-          meta={{
-            type: meta.fields?.[field] ?? null,
-            unit: (meta.units?.[field] as DataUnit) ?? null,
-          }}
+          type={meta.fields?.[field] ?? null}
+          unit={(meta.units?.[field] as DataUnit) ?? null}
           thresholds={widget.thresholds ?? undefined}
           preferredPolarity="-"
         />

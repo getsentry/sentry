@@ -184,10 +184,8 @@ export function ProjectAnrScoreCard({
           previousPeriodValue={previousValue ?? undefined}
           field="anr_rate()"
           preferredPolarity="-"
-          meta={{
-            type: 'percentage',
-            unit: null,
-          }}
+          type="percentage"
+          unit={null}
         />
       }
     />
