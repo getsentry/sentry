@@ -892,7 +892,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   );
 
   const logsTableData = useLogsPageData();
-  if (props.tree.type === 'empty' && logsTableData?.logsData?.data) {
+  if (props.tree.type === 'empty' && logsTableData?.logsData?.data?.length > 0) {
     return null; // do not show the main trace details if you are in 'logs mode'
   }
 
