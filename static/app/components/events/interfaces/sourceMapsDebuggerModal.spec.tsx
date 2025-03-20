@@ -56,6 +56,8 @@ const renderModal = (props?: Partial<SourceMapsDebuggerModalProps>) => {
         <SourceMapsDebuggerModal
           analyticsParams={defaultAnalyticsParams}
           sourceResolutionResults={defaultSourceResolutionResults}
+          projectId="1"
+          orgSlug="org-slug"
           {...props}
           {...modalProps}
         />
