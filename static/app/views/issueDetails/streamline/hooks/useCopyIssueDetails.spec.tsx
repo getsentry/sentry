@@ -1,5 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
@@ -14,6 +15,7 @@ import type {GroupSummaryData} from 'sentry/components/group/groupSummary';
 import * as groupSummaryHooks from 'sentry/components/group/groupSummary';
 import {EntryType} from 'sentry/types/event';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
+import * as useOrganization from 'sentry/utils/useOrganization';
 import {
   issueAndEventToMarkdown,
   useCopyIssueDetails,
@@ -22,6 +24,7 @@ import {
 jest.mock('sentry/utils/useCopyToClipboard');
 
 describe('useCopyIssueDetails', () => {
+  const organization = OrganizationFixture();
   const group = GroupFixture();
   const event = EventFixture({
     id: '123456',
@@ -219,6 +222,7 @@ describe('useCopyIssueDetails', () => {
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
+      jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
     });
 
     it('sets up useCopyToClipboard with the correct parameters', () => {
@@ -229,6 +233,7 @@ describe('useCopyIssueDetails', () => {
         text: expect.any(String),
         successMessage: 'Copied issue to clipboard as Markdown',
         errorMessage: 'Could not copy issue to clipboard',
+        onCopy: expect.any(Function),
       });
     });
 

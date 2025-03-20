@@ -13,8 +13,10 @@ import {
 import {t} from 'sentry/locale';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export const issueAndEventToMarkdown = (
   group: Group,
@@ -130,6 +132,8 @@ export const issueAndEventToMarkdown = (
 };
 
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
+  const organization = useOrganization();
+
   // These aren't guarded by useAiConfig because they are both non fetching, and should only return data when it's fetched elsewhere.
   const {data: groupSummaryData} = useGroupSummaryData(group);
   const {data: autofixData} = useAutofixData({groupId: group.id});
@@ -142,6 +146,15 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
     text,
     successMessage: t('Copied issue to clipboard as Markdown'),
     errorMessage: t('Could not copy issue to clipboard'),
+    onCopy: () => {
+      trackAnalytics('issue_details.copy_issue_details_as_markdown', {
+        organization,
+        groupId: group.id,
+        eventId: event?.id,
+        hasAutofix: Boolean(autofixData),
+        hasSummary: Boolean(groupSummaryData),
+      });
+    },
   });
 
   useHotkeys([
