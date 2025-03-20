@@ -39,7 +39,8 @@ type ParamKeys =
   | 'teamId'
   | 'traceSlug'
   | 'viewId'
-  | 'widgetIndex';
+  | 'widgetIndex'
+  | 'step';
 
 /**
  * Get params from the current route. Param availability depends on the current route.

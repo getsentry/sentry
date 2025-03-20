@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import {removeProject} from 'sentry/actionCreators/projects';
 import type {OpenConfirmOptions} from 'sentry/components/confirm';
 import Confirm, {openConfirmModal} from 'sentry/components/confirm';
 import type {ButtonProps} from 'sentry/components/core/button';
@@ -22,16 +21,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePrevious from 'sentry/utils/usePrevious';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
+import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import Stepper from './components/stepper';
@@ -46,7 +42,7 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams>;
 
-const onboardingSteps: StepDescriptor[] = [
+export const onboardingSteps: StepDescriptor[] = [
   {
     id: 'welcome',
     title: t('Welcome'),
@@ -70,7 +66,6 @@ const onboardingSteps: StepDescriptor[] = [
 ];
 
 function Onboarding(props: Props) {
-  const api = useApi();
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
   const selectedSDK = onboardingContext.data.selectedSDK;
@@ -84,8 +79,7 @@ function Onboarding(props: Props) {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
-  const projectSlug =
-    stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
+  const projectSlug = selectedProjectSlug;
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
@@ -93,9 +87,6 @@ function Onboarding(props: Props) {
     // Wait until the first event is received as we have an UI element that depends on it
     pollUntilFirstEvent: true,
   });
-
-  const prevStepIndex = usePrevious(stepIndex);
-  const prevRecentCreatedProject = usePrevious(recentCreatedProject);
 
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
 
@@ -180,15 +171,26 @@ function Onboarding(props: Props) {
     setContainerHasFooter(stepObj.hasFooter ?? false);
   };
 
-  const goToStep = (step: StepDescriptor) => {
-    if (!stepObj) {
-      return;
-    }
-    if (step.cornerVariant !== stepObj.cornerVariant) {
-      cornerVariantControl.start('none');
-    }
-    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
-  };
+  const goToStep = useCallback(
+    (step: StepDescriptor) => {
+      if (!stepObj) {
+        return;
+      }
+      if (step.cornerVariant !== stepObj.cornerVariant) {
+        cornerVariantControl.start('none');
+      }
+      props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
+    },
+    [cornerVariantControl, organization.slug, props.router, stepObj]
+  );
+
+  const {handleGoBack} = useBackActions({
+    stepIndex,
+    goToStep,
+    recentCreatedProject,
+    isRecentCreatedProjectActive: isProjectActive,
+    cornerVariantControl,
+  });
 
   const goNextStep = useCallback(
     (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
@@ -206,179 +208,6 @@ function Onboarding(props: Props) {
       props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
     },
     [organization.slug, cornerVariantControl, props.router]
-  );
-
-  const deleteRecentCreatedProject = useCallback(
-    async (projectToBeDeleted: Project) => {
-      const currentProjects = {...onboardingContext.data.projects};
-      const newProjects = Object.keys(currentProjects).reduce((acc, key) => {
-        if (currentProjects[key]!.slug !== onboardingContext.data.selectedSDK?.key) {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          acc[key] = currentProjects[key];
-        }
-        return acc;
-      }, {});
-
-      try {
-        if (docsOnPlatformClickEnabled) {
-          onboardingContext.setData({
-            ...onboardingContext.data,
-            projects: newProjects,
-            selectedSDK: undefined,
-          });
-        } else {
-          onboardingContext.setData({
-            ...onboardingContext.data,
-            projects: newProjects,
-          });
-        }
-        await removeProject({
-          api,
-          orgSlug: organization.slug,
-          projectSlug: projectToBeDeleted.slug,
-          origin: 'onboarding',
-        });
-
-        trackAnalytics('onboarding.data_removed', {
-          organization,
-          date_created: projectToBeDeleted.dateCreated,
-          platform: projectToBeDeleted.slug,
-          project_id: projectToBeDeleted.id,
-        });
-      } catch (error) {
-        onboardingContext.setData({
-          ...onboardingContext.data,
-          projects: currentProjects,
-        });
-        handleXhrErrorResponse('Unable to delete project in onboarding', error);
-        // we don't give the user any feedback regarding this error as this shall be silent
-      }
-    },
-    [api, organization, onboardingContext, docsOnPlatformClickEnabled]
-  );
-
-  const backStepActions = useCallback(
-    ({
-      currentStepIndex,
-      previousStepIndex,
-      browserBackButton,
-      projectToBeDeleted,
-    }: {
-      browserBackButton: boolean;
-      currentStepIndex: number;
-      previousStepIndex: number;
-      projectToBeDeleted: Project | undefined;
-    }) => {
-      const previousStep = onboardingSteps[previousStepIndex];
-      const currentStep = onboardingSteps[currentStepIndex];
-
-      if (!previousStep || !currentStep) {
-        return;
-      }
-
-      if (currentStep.cornerVariant !== previousStep.cornerVariant) {
-        cornerVariantControl.start('none');
-      }
-
-      trackAnalytics('onboarding.back_button_clicked', {
-        organization,
-        from: currentStep.id,
-        to: previousStep.id,
-        browserBackButton,
-      });
-
-      // from selected platform to welcome
-      if (currentStep.id === 'select-platform') {
-        onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
-
-        if (!browserBackButton) {
-          props.router.replace(
-            normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
-          );
-        }
-        return;
-      }
-
-      // from setup docs to selected platform
-      if (
-        currentStep.id === 'setup-docs' &&
-        defined(isProjectActive) &&
-        !isProjectActive &&
-        projectToBeDeleted
-      ) {
-        trackAnalytics('onboarding.data_removal_modal_confirm_button_clicked', {
-          organization,
-          platform: projectToBeDeleted.slug,
-          project_id: projectToBeDeleted.id,
-        });
-        deleteRecentCreatedProject(projectToBeDeleted);
-      }
-
-      if (!browserBackButton) {
-        props.router.replace(
-          normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
-        );
-      }
-    },
-    [
-      organization,
-      cornerVariantControl,
-      props.router,
-      onboardingContext,
-      isProjectActive,
-      deleteRecentCreatedProject,
-    ]
-  );
-
-  const safeStepIndexDependencies = useRef({
-    stepIndex,
-    backStepActions,
-    prevStepIndex,
-    prevRecentCreatedProject,
-  });
-
-  useEffect(() => {
-    safeStepIndexDependencies.current = {
-      stepIndex,
-      backStepActions,
-      prevStepIndex,
-      prevRecentCreatedProject,
-    };
-  });
-
-  const handlePopState = useCallback(() => {
-    if (
-      safeStepIndexDependencies.current.stepIndex <
-      safeStepIndexDependencies.current.prevStepIndex
-    ) {
-      safeStepIndexDependencies.current.backStepActions({
-        // previous and current are inverted, because the 'go back' action has already happened,
-        // unlike what happens in the handleGoBack function
-        previousStepIndex: safeStepIndexDependencies.current.stepIndex,
-        currentStepIndex: safeStepIndexDependencies.current.prevStepIndex,
-        projectToBeDeleted: safeStepIndexDependencies.current.prevRecentCreatedProject,
-        browserBackButton: true,
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [handlePopState]);
-
-  const handleGoBack = useCallback(
-    (goToStepIndex?: number) => {
-      backStepActions({
-        previousStepIndex: defined(goToStepIndex) ? goToStepIndex : stepIndex - 1,
-        currentStepIndex: stepIndex,
-        projectToBeDeleted: recentCreatedProject,
-        browserBackButton: false,
-      });
-    },
-    [backStepActions, stepIndex, recentCreatedProject]
   );
 
   const genSkipOnboardingLink = () => {
