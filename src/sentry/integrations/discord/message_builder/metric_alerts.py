@@ -22,22 +22,16 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
         chart_url: str | None = None,
     ) -> None:
         self.alert_context = alert_context
-        self.open_period_identifier = metric_issue_context.open_period_identifier
-        self.snuba_query = metric_issue_context.snuba_query
+        self.metric_issue_context = metric_issue_context
         self.organization = organization
         self.date_started = date_started
-        self.metric_value = metric_issue_context.metric_value
-        self.new_status = metric_issue_context.new_status
         self.chart_url = chart_url
 
     def build(self, notification_uuid: str | None = None) -> dict[str, object]:
         data = incident_attachment_info(
-            alert_context=self.alert_context,
-            open_period_identifier=self.open_period_identifier,
             organization=self.organization,
-            snuba_query=self.snuba_query,
-            metric_value=self.metric_value,
-            new_status=self.new_status,
+            alert_context=self.alert_context,
+            metric_issue_context=self.metric_issue_context,
             notification_uuid=notification_uuid,
             referrer="metric_alert_discord",
         )
