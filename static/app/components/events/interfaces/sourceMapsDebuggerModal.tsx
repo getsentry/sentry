@@ -277,7 +277,7 @@ function SentryWizardCallout({
           );
         }}
       >
-        {`npx @sentry/wizard@latest -i sourcemaps ${isSelfHosted ? '' : '--saas'} --org ${orgSlug} --project ${projectSlug}`}
+        {`npx @sentry/wizard@latest -i sourcemaps${isSelfHosted ? '' : ' --saas'} --org ${orgSlug} --project ${projectSlug}`}
       </InstructionCodeSnippet>
     </Fragment>
   );
