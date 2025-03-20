@@ -95,6 +95,16 @@ class BaseDeriveCodeMappings(TestCase):
             code_mappings_count = RepositoryProjectPathConfig.objects.all().count()
             event = self.create_event(frames, platform)
             process_event(self.project.id, event.group_id, event.event_id)
+
+            code_mappings = RepositoryProjectPathConfig.objects.all()
+            assert len(code_mappings) == expected_num_code_mappings
+            code_mapping = code_mappings.filter(
+                stack_root=expected_stack_root,
+                source_root=expected_source_root,
+            ).first()
+            assert code_mapping is not None
+            assert code_mapping.repository.name == expected_repo_name
+
             platform_config = PlatformConfig(platform)
             dry_run = platform_config.is_dry_run_platform()
             tags = {"dry_run": dry_run, "platform": platform}
@@ -108,15 +118,6 @@ class BaseDeriveCodeMappings(TestCase):
                 mock_incr.assert_any_call(
                     key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                 )
-
-            code_mappings = RepositoryProjectPathConfig.objects.all()
-            assert len(code_mappings) == expected_num_code_mappings
-            code_mapping = code_mappings.filter(
-                stack_root=expected_stack_root,
-                source_root=expected_source_root,
-            ).first()
-            assert code_mapping is not None
-            assert code_mapping.repository.name == expected_repo_name
 
     def _process_and_assert_no_code_mapping(
         self,
