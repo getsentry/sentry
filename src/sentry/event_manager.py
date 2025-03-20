@@ -393,9 +393,6 @@ class EventManager:
         pre_normalize_type = self._data.get("type")
         self._data = rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
 
-        # Ensure IP addresses are properly set
-        self._ensure_has_ip()
-
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -404,28 +401,6 @@ class EventManager:
 
     def get_data(self) -> MutableMapping[str, Any]:
         return self._data
-
-    def _ensure_has_ip(self) -> None:
-        """
-        Ensures that the event data has IP address information, using the
-        client_ip passed to the EventManager constructor as a fallback.
-
-        This replaces any `{{auto}}` placeholders with the client IP.
-        """
-        data = self._data
-        client_ip = self._client_ip
-
-        if client_ip:
-            if data.get("user"):
-                if data["user"].get("ip_address") == "{{auto}}":
-                    data["user"]["ip_address"] = client_ip
-
-            if not data.get("user"):
-                data["user"] = {"ip_address": client_ip}
-
-            if data.get("request") and data["request"].get("env"):
-                if data["request"]["env"].get("REMOTE_ADDR") == "{{auto}}":
-                    data["request"]["env"]["REMOTE_ADDR"] = client_ip
 
     @sentry_sdk.tracing.trace
     def save(
