@@ -18,6 +18,7 @@ from sentry.integrations.source_code_management.metrics import (
     CommitContextIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -31,7 +32,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import ApiInvalidRequestError, ApiRateLimitedError
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -110,6 +111,7 @@ class CommitContextIntegration(ABC):
                 lifecycle.record_failure(e)
                 sentry_sdk.capture_exception(e)
                 return []
+
             try:
                 response = client.get_blame_for_files(files, extra)
             except IdentityNotValid as e:
@@ -121,6 +123,14 @@ class CommitContextIntegration(ABC):
                 sentry_sdk.capture_exception(e)
                 lifecycle.record_halt(e)
                 return []
+            except ApiInvalidRequestError as e:
+                # Ignore invalid request errors for GitLab
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                if self.integration_name == ExternalProviderEnum.GITLAB.value:
+                    lifecycle.record_halt(e)
+                    return []
+                else:
+                    raise
             return response
 
     def get_commit_context_all_frames(
