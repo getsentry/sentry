@@ -8,7 +8,7 @@ export default function useErrorFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
@@ -26,7 +26,7 @@ export default function useErrorFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },
