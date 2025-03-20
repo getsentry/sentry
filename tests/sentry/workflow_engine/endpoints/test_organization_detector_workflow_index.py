@@ -144,6 +144,12 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             status_code=404,
         )
 
+    def test_missing_body_params(self):
+        self.get_error_response(
+            self.organization.slug,
+            status_code=400,
+        )
+
 
 @region_silo_test
 class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAPITestCase):
@@ -158,9 +164,15 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
         assert not DetectorWorkflow.objects.filter(detector_id=self.detector_1.id).exists()
         assert DetectorWorkflow.objects.filter(detector_id=self.detector_2.id).exists()
 
-    def test_handles_non_existing(self):
+    def test_invalid_id(self):
         self.get_error_response(
             self.organization.slug,
             qs_params={"detector_id": -1},
             status_code=404,
+        )
+
+    def test_missing_ids(self):
+        self.get_error_response(
+            self.organization.slug,
+            status_code=400,
         )
