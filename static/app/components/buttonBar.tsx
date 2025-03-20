@@ -5,15 +5,15 @@ import {StyledButton} from 'sentry/components/core/button';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 
-export interface ButtonBarProps {
+export interface ButtonBarProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   gap?: ValidSize | 0;
   merged?: boolean;
 }
 
-function ButtonBar({children, merged = false, gap = 0}: ButtonBarProps) {
+function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
   return (
-    <StyledButtonBar merged={merged} gap={gap}>
+    <StyledButtonBar merged={merged} gap={gap} {...props}>
       {children}
     </StyledButtonBar>
   );
