@@ -129,6 +129,12 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         else:
             order_by = ["lower_name"]
 
+        exclude = request.query_params.get("exclude")
+        if exclude == "shared":
+            queryset = queryset.filter(created_by_id=request.user.id)
+        elif exclude == "owned":
+            queryset = queryset.exclude(created_by_id=request.user.id)
+
         queryset = queryset.order_by(*order_by)
 
         def data_fn(offset, limit):

@@ -13,7 +13,9 @@ import {isLinkActive} from 'sentry/components/nav/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type SecondaryNavProps = {
   children: ReactNode;
@@ -27,6 +29,7 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    * Will display the link as active under the given path.
    */
   activeTo?: To;
+  analyticsItemName?: string;
   /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
@@ -103,6 +106,7 @@ SecondaryNav.Section = function SecondaryNavSection({
 };
 
 SecondaryNav.Item = function SecondaryNavItem({
+  analyticsItemName,
   children,
   to,
   activeTo = to,
@@ -112,6 +116,7 @@ SecondaryNav.Item = function SecondaryNavItem({
   trailingItems,
   ...linkProps
 }: SecondaryNavItemProps) {
+  const organization = useOrganization();
   const location = useLocation();
   const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
@@ -124,6 +129,14 @@ SecondaryNav.Item = function SecondaryNavItem({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       layout={layout}
+      onClick={() => {
+        if (analyticsItemName) {
+          trackAnalytics('navigation.secondary_item_clicked', {
+            item: analyticsItemName,
+            organization,
+          });
+        }
+      }}
     >
       {leadingItems}
       <InteractionStateLayer data-isl hasSelectedBackground={isActive} />

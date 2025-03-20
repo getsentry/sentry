@@ -1,7 +1,7 @@
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -104,22 +104,23 @@ function TraceActionsMenu({
           },
         },
         {
-          key: 'custom_instrumentation_button',
-          label: t('Add Instrumentation'),
-          onAction: () => {
-            const docsLink = getCustomInstrumentationLink(traceProject);
-            if (docsLink) {
-              window.location.href = docsLink;
-            }
-          },
-        },
-        {
           key: 'shortcuts_button',
           label: t('See Shortcuts'),
           onAction: () => {
             traceAnalytics.trackViewShortcuts(organization);
             openModal(props => <TraceShortcutsModal {...props} />);
           },
+        },
+        {
+          key: 'external-actions',
+          children: [
+            {
+              key: 'custom_instrumentation_button',
+              label: t('Add Instrumentation'),
+              externalHref: getCustomInstrumentationLink(traceProject),
+              leadingItems: <IconOpen />,
+            },
+          ],
         },
       ]}
       trigger={triggerProps => (
