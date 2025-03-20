@@ -88,8 +88,6 @@ const StyledInput = styled(
   forwardRef<HTMLInputElement, InputProps>(
     (
       {
-        // Do not forward `required` to avoid default browser behavior
-        required: _required,
         // Do not forward `size` since it's used for custom styling, not as the
         // native `size` attribute (for that, use `nativeSize` instead)
         size: _size,
@@ -109,37 +107,6 @@ const StyledInput = styled(
 export const Input = styled(
   forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref) => (
     <StyledInput {...props} ref={ref} />
-  ))
-)`
-  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
-`;
-
-/**
- * @deprecated Use `Input` instead, this should only be used in the old deprecated forms
- */
-const LegacyFormInput = styled(
-  forwardRef<HTMLInputElement, InputProps>(
-    (
-      {
-        // Do not forward `size` since it's used for custom styling, not as the
-        // native `size` attribute (for that, use `nativeSize` instead)
-        size: _size,
-        // Use `nativeSize` as the native `size` attribute
-        nativeSize,
-        ...props
-      },
-      ref
-    ) => <input {...props} ref={ref} size={nativeSize} />
-  ),
-  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
-)``;
-
-/**
- * @deprecated Use `Input` instead, this should only be used in the old deprecated forms
- */
-export const DO_NOT_USE_LegacyFormInput = styled(
-  forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref) => (
-    <LegacyFormInput {...props} ref={ref} />
   ))
 )`
   ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
