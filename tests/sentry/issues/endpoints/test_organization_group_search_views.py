@@ -715,7 +715,6 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
                         "name": issue_view_one.name,
                         "query": issue_view_one.query,
                         "query_sort": issue_view_one.query_sort,
-                        "position": issue_view_one.position,
                         "time_filters": issue_view_one.time_filters,
                         "environments": issue_view_one.environments,
                         "projects": [project1.id, 123456],
