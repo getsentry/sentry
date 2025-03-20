@@ -134,6 +134,22 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
         <KeyValueTableRow
+          keyName={t('Failure tolerance')}
+          value={tn(
+            '%s check-in',
+            '%s check-ins',
+            monitor.config.failure_issue_threshold ?? 1
+          )}
+        />
+        <KeyValueTableRow
+          keyName={t('Recovery tolerance')}
+          value={tn(
+            '%s check-in',
+            '%s check-ins',
+            monitor.config.recovery_threshold ?? 1
+          )}
+        />
+        <KeyValueTableRow
           keyName={t('Owner')}
           value={
             monitor.owner ? (
