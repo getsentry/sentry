@@ -29,18 +29,18 @@ const formGroups: JsonFormObject[] = [
             ),
           }
         ),
-        disabled: ({hasMsaUpdated, hasBillingAccess, isSuperuser}) =>
-          (!hasMsaUpdated || !hasBillingAccess) && !isSuperuser,
-        disabledReason: ({hasMsaUpdated, hasBillingAccess}) =>
-          hasMsaUpdated
-            ? hasBillingAccess
+        disabled: ({isTouchCustomerAndNeedsMsaUpdate, hasBillingAccess, isSuperuser}) =>
+          (isTouchCustomerAndNeedsMsaUpdate || !hasBillingAccess) && !isSuperuser,
+        disabledReason: ({isTouchCustomerAndNeedsMsaUpdate, hasBillingAccess}) =>
+          isTouchCustomerAndNeedsMsaUpdate
+            ? t(
+                'These changes require updates to your account. Please contact your customer success manager to learn more.'
+              )
+            : hasBillingAccess
               ? null
               : t(
                   "You don't have access to manage these billing and subscription details."
-                )
-            : t(
-                'These changes require updates to your account. Please contact your customer success manager to learn more.'
-              ),
+                ),
       },
       {
         name: 'genAIConsent',

@@ -27,6 +27,7 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
     SentryAppWebhookFailureReason,
+    SentryAppWebhookHaltReason,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -70,8 +71,8 @@ CONTROL_TASK_OPTIONS = {
 
 retry_decorator = retry(
     on=(RequestException, ApiHostError, ApiTimeoutError),
-    ignore=(ClientError,),
-    ignore_and_capture=(SentryAppSentryError, AssertionError),
+    ignore=(ClientError, SentryAppSentryError, AssertionError, ValueError),
+    ignore_and_capture=(),
 )
 
 # We call some models by a different name, publicly, than their class name.
@@ -116,10 +117,36 @@ def _webhook_event_data(
     return event_context
 
 
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook_v2", **TASK_OPTIONS
+)
+@retry_decorator
+def send_alert_webhook_v2(
+    rule_label: str,
+    sentry_app_id: int,
+    instance_id: str,
+    group_id: int,
+    occurrence_id: str,
+    additional_payload_key: str | None = None,
+    additional_payload: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+):
+    send_alert_webhook(
+        rule=rule_label,
+        sentry_app_id=sentry_app_id,
+        instance_id=instance_id,
+        group_id=group_id,
+        occurrence_id=occurrence_id,
+        additional_payload_key=additional_payload_key,
+        additional_payload=additional_payload,
+        **kwargs,
+    )
+
+
 @instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
 @retry_decorator
 def send_alert_webhook(
-    rule_label: str,
+    rule: str,
     sentry_app_id: int,
     instance_id: str,
     group_id: int,
@@ -140,7 +167,7 @@ def send_alert_webhook(
             "sentry_app_id": sentry_app_id,
             "project_id": project.id,
             "organization_slug": organization.slug,
-            "rule": rule_label,
+            "rule": rule,
         }
         lifecycle.add_extras(extra)
 
@@ -156,7 +183,10 @@ def send_alert_webhook(
             )
         )
         if not installations:
-            raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_INSTALLATION)
+            # when someone deletes an installation we don't clean up the rule actions
+            # so we can have missing installations here
+            lifecycle.record_halt(halt_reason=SentryAppWebhookHaltReason.MISSING_INSTALLATION)
+            return
         (install,) = installations
 
         nodedata = nodestore.backend.get(
@@ -185,7 +215,7 @@ def send_alert_webhook(
 
         event_context = _webhook_event_data(group_event, group.id, project.id)
 
-        data = {"event": event_context, "triggered_rule": rule_label}
+        data = {"event": event_context, "triggered_rule": rule}
 
         # Attach extra payload to the webhook
         if additional_payload_key and additional_payload:
@@ -227,15 +257,10 @@ def _process_resource_change(
         # Looks up the human name for the model. Defaults to the model name.
         name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
-    try:
-        event = SentryAppEventType(f"{name}.{action}")
-    except ValueError as e:
-        raise SentryAppSentryError(
-            message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-        ) from e
-
+    event = SentryAppEventType(f"{name}.{action}")
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK, event_type=event
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event,
     ).capture():
         project_id: int | None = kwargs.get("project_id", None)
         group_id: int | None = kwargs.get("group_id", None)
@@ -386,11 +411,7 @@ def clear_region_cache(sentry_app_id: int, region_name: str) -> None:
 def workflow_notification(
     installation_id: int, issue_id: int, type: str, user_id: int | None, *args: Any, **kwargs: Any
 ) -> None:
-    try:
-        event = SentryAppEventType(f"issue.{type}")
-    except ValueError as e:
-        raise SentryAppSentryError(message=SentryAppWebhookFailureReason.INVALID_EVENT) from e
-
+    event = SentryAppEventType(f"issue.{type}")
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=event,
@@ -417,22 +438,28 @@ def workflow_notification(
 def build_comment_webhook(
     installation_id: int, issue_id: int, type: str, user_id: int, *args: Any, **kwargs: Any
 ) -> None:
-    webhook_data = get_webhook_data(installation_id, issue_id, user_id)
-    install, _, user = webhook_data
-    data = kwargs.get("data", {})
-    project_slug = data.get("project_slug")
-    comment_id = data.get("comment_id")
-    payload = {
-        "comment_id": data.get("comment_id"),
-        "issue_id": issue_id,
-        "project_slug": data.get("project_slug"),
-        "timestamp": data.get("timestamp"),
-        "comment": data.get("comment"),
-    }
-    send_webhooks(installation=install, event=type, data=payload, actor=user)
-    # `type` is comment.created, comment.updated, or comment.deleted
+    event = SentryAppEventType(type)
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event,
+    ).capture():
+        webhook_data = get_webhook_data(installation_id, issue_id, user_id)
+        install, _, user = webhook_data
+        data = kwargs.get("data", {})
+        project_slug = data.get("project_slug")
+        comment_id = data.get("comment_id")
+        payload = {
+            "comment_id": data.get("comment_id"),
+            "issue_id": issue_id,
+            "project_slug": data.get("project_slug"),
+            "timestamp": data.get("timestamp"),
+            "comment": data.get("comment"),
+        }
+
+    send_webhooks(installation=install, event=event, data=payload, actor=user)
+    # `event` is comment.created, comment.updated, or comment.deleted
     analytics.record(
-        type,
+        event,
         user_id=user_id,
         group_id=issue_id,
         project_slug=project_slug,
@@ -494,7 +521,7 @@ def send_resource_change_webhook(
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
     for f in futures:
         if not f.kwargs.get("sentry_app"):
-            logger.error(
+            logger.info(
                 "notify_sentry_app.future_missing_sentry_app",
                 extra={"event": event.as_dict(), "future": f, "event_id": event.event_id},
             )
@@ -519,22 +546,16 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
             instance_id=event.event_id,
             group_id=event.group_id,
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
-            rule_label=f.rule.label,
+            rule=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
         )
 
 
 def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: Any) -> None:
-    try:
-        event = SentryAppEventType(event)
-    except ValueError as e:
-        raise SentryAppSentryError(
-            message=f"{SentryAppWebhookFailureReason.INVALID_EVENT}",
-        ) from e
-
     with SentryAppInteractionEvent(
-        operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
+        operation_type=SentryAppInteractionType.SEND_WEBHOOK,
+        event_type=SentryAppEventType(event),
     ).capture():
         servicehook: ServiceHook
         try:

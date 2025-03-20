@@ -43,7 +43,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -553,7 +553,7 @@ function StreamGroup({
     <Placeholder height="18px" />
   );
 
-  const issueStreamAnchor = isDemoModeEnabled() ? (
+  const issueStreamAnchor = isDemoModeActive() ? (
     <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
     <GuideAnchor target="issue_stream" />

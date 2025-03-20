@@ -14,16 +14,8 @@ from sentry.search.eap.columns import (
     ConditionalAggregateDefinition,
     ResolvedArguments,
 )
+from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.utils import literal_validator
-
-WEB_VITALS_MEASUREMENTS = [
-    "measurements.score.total",
-    "measurements.score.lcp",
-    "measurements.score.fcp",
-    "measurements.score.cls",
-    "measurements.score.ttfb",
-    "measurements.score.inp",
-]
 
 
 def count_processor(count_value: int | None) -> int:
@@ -66,12 +58,11 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
 
 # TODO: We should eventually update the frontend to query the ratio column directly
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
-    score_column = cast(str, args[0])
-    ratio_column_name = score_column.replace("measurements.score", "score.ratio")
-    attribute_key = AttributeKey(name=ratio_column_name, type=AttributeKey.TYPE_DOUBLE)
-    filter = TraceItemFilter(exists_filter=ExistsFilter(key=attribute_key))
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+    filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
 
-    return (attribute_key, filter)
+    return (ratio_attribute, filter)
 
 
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
@@ -111,9 +102,14 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         arguments=[
             ArgumentDefinition(
-                argument_types={"string"},
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
                 validator=literal_validator(WEB_VITALS_MEASUREMENTS),
-                is_attribute=False,
             )
         ],
         aggregate_resolver=resolve_count_scores,
@@ -352,5 +348,22 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 argument_types={"string"},
             )
         ],
+    ),
+    "performance_score": AggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        attribute_resolver=transform_vital_score_to_ratio,
     ),
 }
