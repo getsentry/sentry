@@ -118,6 +118,7 @@ describe('provisionSubscriptionAction', function () {
     expect(getSpinbutton('Reserved Performance Units')).toBeInTheDocument();
     expect(getSpinbutton('Reserved Attachments (in GB)')).toBeInTheDocument();
     expect(getSpinbutton('Reserved Profile Duration (in hours)')).toBeInTheDocument();
+    expect(getSpinbutton('Reserved Profile Duration UI (in hours)')).toBeInTheDocument();
 
     expect(getSpinbutton('Price for Errors')).toBeInTheDocument();
     expect(getSpinbutton('Price for Performance Units')).toBeInTheDocument();
@@ -141,9 +142,11 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.getByLabelText('Soft Cap Type Performance Units')).toBeDisabled();
     expect(screen.getByLabelText('Soft Cap Type Spans')).toBeDisabled();
     expect(screen.getByLabelText('Soft Cap Type Profile Duration')).toBeDisabled();
+    expect(screen.getByLabelText('Soft Cap Type Profile Duration UI')).toBeDisabled();
     expect(screen.getByLabelText('Price for Performance Units')).toBeDisabled();
     expect(screen.getByLabelText('Price for Spans')).toBeDisabled();
     expect(screen.getByLabelText('Price for Profile Duration')).toBeDisabled();
+    expect(screen.getByLabelText('Price for Profile Duration UI')).toBeDisabled();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -159,6 +162,7 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.getByLabelText('Price for Spans')).toBeDisabled();
     // TODO: change to enabled when profile duration is enabled
     expect(screen.getByLabelText('Price for Profile Duration')).toBeDisabled();
+    expect(screen.getByLabelText('Price for Profile Duration UI')).toBeDisabled();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -174,6 +178,7 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.getByLabelText('Price for Spans')).toBeEnabled();
     // TODO: change to enabled when profile duration is enabled
     expect(screen.getByLabelText('Price for Profile Duration')).toBeDisabled();
+    expect(screen.getByLabelText('Price for Profile Duration UI')).toBeDisabled();
   });
 
   it('select coterm disables effectiveAt and atPeriodEnd', async function () {
@@ -731,6 +736,7 @@ describe('provisionSubscriptionAction', function () {
             uptime: false,
             attachments: false,
             profile_duration: false,
+            profile_duration_ui: false,
           },
         },
       })
@@ -838,6 +844,7 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeReplays: null,
           softCapTypeTransactions: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             attachments: false,
             errors: false,
@@ -846,6 +853,7 @@ describe('provisionSubscriptionAction', function () {
             replays: false,
             transactions: false,
             profile_duration: false,
+            profile_duration_ui: false,
           },
           type: 'invoiced',
         },
@@ -971,6 +979,7 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeReplays: null,
           softCapTypeTransactions: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             attachments: false,
             errors: false,
@@ -979,6 +988,7 @@ describe('provisionSubscriptionAction', function () {
             replays: false,
             transactions: false,
             profile_duration: false,
+            profile_duration_ui: false,
           },
           type: 'invoiced',
         },
@@ -1103,6 +1113,7 @@ describe('provisionSubscriptionAction', function () {
             uptime: true,
             attachments: false,
             profile_duration: false,
+            profile_duration_ui: false,
           },
         },
       })
@@ -1226,6 +1237,7 @@ describe('provisionSubscriptionAction', function () {
             uptime: true,
             attachments: false,
             profile_duration: false,
+            profile_duration_ui: false,
           },
         },
       })
@@ -1349,6 +1361,7 @@ describe('provisionSubscriptionAction', function () {
             uptime: false,
             attachments: false,
             profile_duration: false,
+            profile_duration_ui: false,
           },
         },
       })
@@ -1453,10 +1466,12 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeUptime: null,
           softCapTypeAttachments: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             errors: false,
             transactions: false,
             profile_duration: false,
+            profile_duration_ui: false,
             replays: false,
             monitor_seats: false,
             uptime: false,
@@ -1665,6 +1680,7 @@ describe('provisionSubscriptionAction', function () {
             uptime: false,
             attachments: false,
             profile_duration: false,
+            profile_duration_ui: false,
           },
         },
       })

@@ -178,6 +178,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
           reservedSpansIndexed: subscription.categories.spansIndexed?.reserved,
           reservedAttachments: subscription.categories.attachments?.reserved,
           reservedProfileDuration: subscription.categories.profileDuration?.reserved,
+          reservedProfileDurationUI: subscription.categories.profileDurationUI?.reserved,
           softCapTypeErrors: subscription.categories.errors?.softCapType,
           softCapTypeTransactions: subscription.categories.transactions?.softCapType,
           softCapTypeReplays: subscription.categories.replays?.softCapType,
@@ -188,6 +189,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
           softCapTypeAttachments: subscription.categories.attachments?.softCapType,
           softCapTypeProfileDuration:
             subscription.categories.profileDuration?.softCapType,
+          softCapTypeProfileDurationUI:
+            subscription.categories.profileDurationUI?.softCapType,
           customPriceErrors: toAnnualDollars(
             subscription.categories.errors?.customPrice,
             subscription.billingInterval
@@ -222,6 +225,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
           ),
           customPriceProfileDuration: toAnnualDollars(
             subscription.categories.profileDuration?.customPrice,
+            subscription.billingInterval
+          ),
+          customPriceProfileDurationUI: toAnnualDollars(
+            subscription.categories.profileDurationUI?.customPrice,
             subscription.billingInterval
           ),
           customPricePcss: toAnnualDollars(
@@ -274,6 +281,11 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
           ),
           onDemandCpeProfileDuration: toAnnualDollars(
             subscription.categories.profileDuration?.onDemandCpe,
+            null,
+            CPE_DECIMAL_PRECISION
+          ),
+          onDemandCpeProfileDurationUI: toAnnualDollars(
+            subscription.categories.profileDurationUI?.onDemandCpe,
             null,
             CPE_DECIMAL_PRECISION
           ),
@@ -368,6 +380,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       delete postData.customPriceSpans;
       delete postData.customPriceSpansIndexed;
       delete postData.customPriceProfileDuration;
+      delete postData.customPriceProfileDurationUI;
     }
 
     // only set reserved & custom price for spans OR transactions
@@ -389,6 +402,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       delete postData.onDemandCpeUptime;
       delete postData.onDemandCpeSpans;
       delete postData.onDemandCpeProfileDuration;
+      delete postData.onDemandCpeProfileDurationUI;
 
       // clear corresponding state
       this.setState(state => ({
@@ -409,6 +423,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       postData.softCapTypeUptime = null;
       postData.softCapTypeSpans = null;
       postData.softCapTypeProfileDuration = null;
+      postData.softCapTypeProfileDurationUI = null;
       this.setState(state => ({
         ...state,
         data: {
@@ -421,6 +436,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
           softCapTypeUptime: null,
           softCapTypeSpans: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
         },
       }));
     } else {
@@ -432,6 +448,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       delete postData.onDemandCpeUptime;
       delete postData.onDemandCpeSpans;
       delete postData.onDemandCpeProfileDuration;
+      delete postData.onDemandCpeProfileDurationUI;
     }
 
     if (this.isEnablingSoftCap()) {
@@ -444,6 +461,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       delete postData.onDemandCpeUptime;
       delete postData.onDemandCpeSpans;
       delete postData.onDemandCpeProfileDuration;
+      delete postData.onDemandCpeProfileDurationUI;
     }
 
     if (!isNaN(postData.onDemandCpeErrors)) {
@@ -500,6 +518,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         CPE_DECIMAL_PRECISION
       );
     }
+    if (!isNaN(postData.onDemandCpeProfileDurationUI)) {
+      postData.onDemandCpeProfileDuration = toCents(
+        postData.onDemandCpeProfileDuration,
+        CPE_DECIMAL_PRECISION
+      );
+    }
 
     if (!isNaN(postData.reservedCpeSpans)) {
       postData.reservedCpeSpans = toCpeCents(postData.reservedCpeSpans);
@@ -547,6 +571,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     if (!isNaN(postData.customPriceProfileDuration)) {
       postData.customPriceProfileDuration *= 100; // Price should be in cents
     }
+    if (!isNaN(postData.customPriceProfileDurationUI)) {
+      postData.customPriceProfileDurationUI *= 100; // Price should be in cents
+    }
 
     if (!isNaN(postData.customPrice)) {
       postData.customPrice *= 100; // Price should be in cents
@@ -565,6 +592,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
             postData.customPriceAttachments +
             postData.customPricePcss +
             (postData.customPriceProfileDuration ?? 0) +
+            (postData.customPriceProfileDurationUI ?? 0) +
             (isAm3DsPlan(postData.plan) ? (postData.customPriceSpansIndexed ?? 0) : 0)
       ) {
         onSubmitError({
@@ -597,7 +625,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       if (!postData.softCapTypeProfileDuration) {
         postData.softCapTypeProfileDuration = null;
       }
-      // If a data category has a set soft cap type, trueForwad will also need to be set to true for that category
+      if (!postData.softCapTypeProfileDurationUI) {
+        postData.softCapTypeProfileDuration = null;
+      }
+      // If a data category has a set soft cap type, trueForward will also need to be set to true for that category
       // until the true forward fields are fully deprecated and soft cap types are used in their place.
       postData.trueForward = {
         errors: postData.softCapTypeErrors ? true : false,
@@ -606,6 +637,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         monitor_seats: postData.softCapTypeMonitorSeats ? true : false,
         uptime: postData.softCapTypeUptime ? true : false,
         profile_duration: postData.softCapTypeProfileDuration ? true : false,
+        profile_duration_ui: postData.softCapTypeProfileDurationUI ? true : false,
       };
 
       if (isAm3Plan(postData.plan)) {
@@ -1254,6 +1286,37 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }))
                   }
                 />
+                <NumberField
+                  label="Reserved Profile Duration UI (in hours)"
+                  name="reservedProfileDurationUI"
+                  required={isAmEnt}
+                  disabled={!isAmEnt || true} // TODO: remove this when profile duration is enabled
+                  value={this.state.data.reservedProfileDurationUI}
+                  onChange={v =>
+                    this.setState(state => ({
+                      ...state,
+                      data: {...state.data, reservedProfileDurationUI: v},
+                    }))
+                  }
+                />
+                <SelectField
+                  label="Soft Cap Type Profile Duration UI"
+                  name="softCapTypeProfileDurationUI"
+                  clearable
+                  required={false}
+                  choices={[
+                    ['ON_DEMAND', 'On Demand'],
+                    ['TRUE_FORWARD', 'True Forward'],
+                  ]}
+                  disabled={this.isEnablingOnDemandMaxSpend() || !isAmEnt || true} // TODO: remove this when profile duration is enabled
+                  value={this.state.data.softCapTypeProfileDurationUI}
+                  onChange={v =>
+                    this.setState(state => ({
+                      ...state,
+                      data: {...state.data, softCapTypeProfileDurationUI: v},
+                    }))
+                  }
+                />
               </div>
               <div>
                 <SectionHeader>Reserved Volume Prices</SectionHeader>
@@ -1410,6 +1473,22 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                       data: {
                         ...state.data,
                         customPriceProfileDuration: v,
+                      },
+                    }))
+                  }
+                />
+                <StyledDollarsField
+                  label="Price for Profile Duration UI"
+                  name="customPriceProfileDurationUI"
+                  disabled={!hasCustomSkuPrices || true} // TODO: remove this when profile duration is enabled
+                  required={hasCustomSkuPrices}
+                  value={data.customPriceProfileDurationUI}
+                  onChange={v =>
+                    this.setState(state => ({
+                      ...state,
+                      data: {
+                        ...state.data,
+                        customPriceProfileDurationUI: v,
                       },
                     }))
                   }
@@ -1652,6 +1731,39 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             data: {
                               ...state.data,
                               onDemandCpeProfileDuration:
+                                currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                            },
+                          }));
+                        }
+                      }}
+                    />
+                    <StyledDollarsAndCentsField
+                      label="On-Demand Cost-Per-Profile Duration UI"
+                      name="onDemandCpeProfileDurationUI"
+                      disabled={!this.isEnablingOnDemandMaxSpend() || true} // TODO: remove this when profile duration is enabled
+                      value={data.onDemandCpeProfileDurationUI}
+                      step={0.00000001}
+                      min={0.00000001}
+                      max={1}
+                      onChange={v =>
+                        this.setState(state => ({
+                          ...state,
+                          data: {
+                            ...state.data,
+                            onDemandCpeProfileDurationUI: v,
+                          },
+                        }))
+                      }
+                      onBlur={() => {
+                        const currentValue = parseFloat(
+                          this.state.data.onDemandCpeProfileDurationUI
+                        );
+                        if (!isNaN(currentValue)) {
+                          this.setState(state => ({
+                            ...state,
+                            data: {
+                              ...state.data,
+                              onDemandCpeProfileDurationUI:
                                 currentValue.toFixed(CPE_DECIMAL_PRECISION),
                             },
                           }));
