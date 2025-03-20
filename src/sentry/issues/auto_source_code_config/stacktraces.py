@@ -19,6 +19,8 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
     for stacktrace in stacktraces:
         frames = stacktrace["frames"] or []
         for frame in frames:
+            if frame is None:
+                continue
 
             if platform_config.creates_in_app_stack_trace_rules():
                 frames_to_process.append(frame)
