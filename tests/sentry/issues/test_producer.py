@@ -360,7 +360,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             status_change=bad_status_change_resolve,
         )
         group.refresh_from_db()
-        mock_metrics_incr.assert_any_call("occurrence_ingest.grouphash.not_found")
+        mock_metrics_incr.assert_any_call("occurrence_ingest.grouphash.not_found", amount=1)
         assert group.status == initial_status
         assert group.substatus == initial_substatus
 
