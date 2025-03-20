@@ -1250,7 +1250,13 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
     return <LegacyEventTags event={event} projectSlug={projectSlug} />;
   }
 
-  return <EventTagsDataSection event={event} projectSlug={projectSlug} />;
+  return (
+    <EventTagsDataSection
+      event={event}
+      projectSlug={projectSlug}
+      disableCollapsePersistence
+    />
+  );
 }
 
 function LegacyEventTags({projectSlug, event}: {event: Event; projectSlug: string}) {

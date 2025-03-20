@@ -36,6 +36,7 @@ type Props = {
   };
   event: Event;
   organization: Organization;
+  disableCollapsePersistence?: boolean;
   hideTitle?: boolean;
 };
 
@@ -88,7 +89,13 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
   );
 }
 
-function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Props) {
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  hideTitle = false,
+  disableCollapsePersistence,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSelections, setFilterSelections] = useState<Array<SelectOption<string>>>(
     []
@@ -323,6 +330,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
       type={SectionKey.BREADCRUMBS}
       title={hideTitle ? '' : t('Breadcrumbs')}
       actions={actions}
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       <ErrorBoundary>
         <Breadcrumbs
