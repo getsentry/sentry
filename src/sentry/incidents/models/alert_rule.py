@@ -478,7 +478,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
                 return None
 
             try:
-                alert_rule = AlertRule.objects.get(id=trigger.alert_rule_id)
+                alert_rule = AlertRule.objects_with_snapshots.get(id=trigger.alert_rule_id)
             except AlertRule.DoesNotExist:
                 return None
 
