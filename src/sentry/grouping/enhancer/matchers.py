@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, TypedDict
 
 from sentry.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -71,6 +71,23 @@ MATCHERS = {
     "family": "family",
     "app": "app",
 }
+
+
+class MatchFrame(TypedDict):
+    category: bytes | None
+    family: bytes | None
+    function: bytes
+    in_app: bool | None
+    orig_in_app: int | None
+    module: bytes | None
+    package: bytes | None
+    path: bytes | None
+
+
+# TODO: Maybe someday mypy won't make us keep this as a separate list
+MatchFrameKey = Literal[
+    "category", "family", "function", "in_app", "orig_in_app", "module", "package", "path"
+]
 
 
 def _get_function_name(frame_data: dict, platform: str | None):
