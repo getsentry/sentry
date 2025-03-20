@@ -32,6 +32,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 
 export interface SearchQueryBuilderProps {
@@ -206,6 +207,7 @@ export function SearchQueryBuilder({
   getFilterTokenWarning,
   portalTarget,
 }: SearchQueryBuilderProps) {
+  const organization = useOrganization();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
   const {state, dispatch} = useQueryBuilderState({
@@ -245,9 +247,21 @@ export function SearchQueryBuilder({
   const previousQuery = usePrevious(state.query);
   useEffectAfterFirstRender(() => {
     if (previousQuery !== state.query) {
-      onChange?.(state.query, {parsedQuery, queryIsValid: queryIsValid(parsedQuery)});
+      const valid = queryIsValid(parsedQuery);
+      onChange?.(state.query, {parsedQuery, queryIsValid: valid});
+
+      if (organization.features.includes('search-on-token-completion')) {
+        onSearch?.(state.query, {parsedQuery, queryIsValid: valid});
+      }
     }
-  }, [onChange, state.query, previousQuery, parsedQuery]);
+  }, [
+    onChange,
+    onSearch,
+    state.query,
+    previousQuery,
+    parsedQuery,
+    organization.features,
+  ]);
 
   const handleSearch = useHandleSearch({
     parsedQuery,
