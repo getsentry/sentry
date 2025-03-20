@@ -11,7 +11,8 @@ import {t} from 'sentry/locale';
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
 
-export interface FileFieldProps extends Omit<InputFieldProps, 'type' | 'accept'> {
+export interface FileFieldProps
+  extends Omit<InputFieldProps, 'type' | 'accept' | 'required'> {
   accept?: string[];
   // TODO(dcramer): multiple is native to the file input type, but not yet supported
   // multiple?: boolean;
@@ -82,6 +83,8 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
               name={name}
               accept={accept?.join(', ')}
               onChange={e => handleFile(model, name, onChange, e)}
+              // Do not forward required to `input` to avoid default browser behavior
+              required={undefined}
             />
             {!hideControlState && (
               <InputGroup.TrailingItems disablePointerEvents>

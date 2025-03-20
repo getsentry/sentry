@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {InputFieldProps, OnEvent} from './inputField';
 import InputField from './inputField';
 
-export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {
+export interface NumberFieldProps extends Omit<InputFieldProps, 'type' | 'required'> {
   /**
    * Optional units/suffix to render inside the number input
    */
@@ -66,6 +66,8 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
           onChange={e => onChange(e.target.value, e)}
           name={name}
           {...rest}
+          // Do not forward required to `input` to avoid default browser behavior
+          required={undefined}
         />
         <SuffixWrapper {...{size, monospace, alignRight}}>
           <HiddenValue aria-hidden>{rest.value || rest.placeholder}</HiddenValue>

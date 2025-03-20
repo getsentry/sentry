@@ -29,7 +29,7 @@ interface DefaultProps {
   allowEmpty: boolean;
 }
 
-export interface TableFieldProps extends Omit<InputFieldProps, 'type'> {}
+export interface TableFieldProps extends Omit<InputFieldProps, 'type' | 'required'> {}
 
 interface RenderProps extends TableFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
@@ -151,6 +151,8 @@ export default class TableField extends Component<InputFieldProps> {
                   <Input
                     onChange={v => setValue(rowIndex, fieldKey, v)}
                     value={defined(row[fieldKey]) ? row[fieldKey] : ''}
+                    // Do not forward required to `input` to avoid default browser behavior
+                    required={undefined}
                   />
                 </RowInput>
                 {i === mappedKeys.length - 1 && (
