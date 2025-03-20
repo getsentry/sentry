@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("groupsearchview.position has been removed in 0844")
 class BackfillGroupSearchViewPositionsTest(TestMigrations):
     migrate_from = "0837_create_groupsearchviewlastseen_table"
     migrate_to = "0838_backfill_groupsearchview_positions_to_gsvstarred"
