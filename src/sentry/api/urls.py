@@ -182,6 +182,7 @@ from sentry.issues.endpoints import (
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationGroupSearchViewStarredEndpoint,
     OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -1786,6 +1787,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/visit/$",
         OrganizationGroupSearchViewVisitEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-visit",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-view/(?P<view_id>[^\/]+)/starred/$",
+        OrganizationGroupSearchViewStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-starred",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views-starred-order/$",
