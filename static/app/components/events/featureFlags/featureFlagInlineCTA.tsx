@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
@@ -16,6 +17,38 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+
+export function FeatureFlagCTAContent({
+  handleSetupButtonClick,
+}: {
+  handleSetupButtonClick: (e: any) => void;
+}) {
+  return (
+    <Fragment>
+      <BannerContent>
+        <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
+        <BannerDescription>
+          {t(
+            'Want to know which feature flags were associated with this issue? Set up your feature flag integration.'
+          )}
+        </BannerDescription>
+        <ActionButton>
+          <Button onClick={handleSetupButtonClick} priority="primary">
+            {t('Set Up Now')}
+          </Button>
+          <LinkButton
+            priority="default"
+            href="https://docs.sentry.io/product/explore/feature-flags/"
+            external
+          >
+            {t('Read More')}
+          </LinkButton>
+        </ActionButton>
+      </BannerContent>
+      <BannerIllustration src={onboardingInstall} alt="Install" />
+    </Fragment>
+  );
+}
 
 export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
@@ -79,26 +112,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
       actions={actions}
     >
       <BannerWrapper>
-        <BannerContent>
-          <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
-          <BannerDescription>
-            {t(
-              'Want to know which feature flags were associated with this error? Set up your feature flag integration.'
-            )}
-          </BannerDescription>
-          <ActionButton>
-            <Button onClick={handleSetupButtonClick} priority="primary">
-              {t('Set Up Now')}
-            </Button>
-            <LinkButton
-              priority="default"
-              href="https://docs.sentry.io/product/explore/feature-flags/"
-              external
-            >
-              {t('Read More')}
-            </LinkButton>
-          </ActionButton>
-        </BannerContent>
+        <FeatureFlagCTAContent handleSetupButtonClick={handleSetupButtonClick} />
         <CloseDropdownMenu
           position="bottom-end"
           triggerProps={{
@@ -132,11 +146,15 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
             },
           ]}
         />
-        <BannerIllustration src={onboardingInstall} alt="Install" />
       </BannerWrapper>
     </InterimSection>
   );
 }
+
+const ActionButton = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
 
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
@@ -165,26 +183,10 @@ const BannerIllustration = styled('img')`
   padding: ${space(2)};
 `;
 
-const CloseDropdownMenu = styled(DropdownMenu)`
-  position: absolute;
-  display: block;
-  top: ${space(1)};
-  right: ${space(1)};
-  color: ${p => p.theme.white};
-  cursor: pointer;
-  z-index: 1;
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const BannerWrapper = styled('div')`
+export const BannerWrapper = styled('div')`
   position: relative;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
   margin: ${space(1)} 0;
   background: linear-gradient(
     90deg,
@@ -197,4 +199,14 @@ const BannerWrapper = styled('div')`
   align-items: flex-end;
   justify-content: space-between;
   gap: ${space(1)};
+`;
+
+const CloseDropdownMenu = styled(DropdownMenu)`
+  position: absolute;
+  display: block;
+  top: ${space(1)};
+  right: ${space(1)};
+  color: ${p => p.theme.white};
+  cursor: pointer;
+  z-index: 1;
 `;
