@@ -1,4 +1,4 @@
-import {type ComponentProps, useEffect, useState} from 'react';
+import {type ComponentProps, Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -95,7 +95,7 @@ export function ModulePageFilterBar({
   }
 
   return (
-    <PageFilterBarContainer>
+    <Fragment>
       <Tooltip
         title={CHANGE_PROJECT_TEXT}
         forceVisible
@@ -112,13 +112,9 @@ export function ModulePageFilterBar({
         <DatePageFilter {...dateFilterProps} />
       </PageFilterBar>
       {hasDataWithSelectedProjects && extraFilters}
-    </PageFilterBarContainer>
+    </Fragment>
   );
 }
-
-const PageFilterBarContainer = styled('div')`
-  position: relative;
-`;
 
 function DisabledDateOption({value}: {value: string}) {
   return (
