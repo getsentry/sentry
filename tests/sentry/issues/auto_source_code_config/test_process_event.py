@@ -254,7 +254,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     def test_extension_is_not_included(self) -> None:
         frame_filename = "foo/bar.tbd"
         file_in_repo = "src/foo/bar.tbd"
-        platform = "foo"
+        platform = "other"
         self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
 
         with (
