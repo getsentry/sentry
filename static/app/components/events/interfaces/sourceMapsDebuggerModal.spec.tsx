@@ -29,6 +29,7 @@ const defaultSourceResolutionResults: FrameSourceMapDebuggerData = {
   releaseProgress: 0,
   releaseProgressPercent: 0,
   releaseSourceMapReference: null,
+  releaseUserAgent: null,
   scrapingProgress: 0,
   scrapingProgressPercent: 0,
   sdkDebugIdSupport: 'full',

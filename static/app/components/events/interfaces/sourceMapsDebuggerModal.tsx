@@ -118,6 +118,7 @@ export interface FrameSourceMapDebuggerData {
   releaseProgress: number;
   releaseProgressPercent: number;
   releaseSourceMapReference: string | null;
+  releaseUserAgent: string | null;
   scrapingProgress: number;
   scrapingProgressPercent: number;
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
@@ -235,6 +236,8 @@ function getSourceMapsDocLinks({
     bundlerPluginRepoLink: `https://github.com/getsentry/sentry-javascript-bundler-plugins`,
   };
 }
+
+type SourceMapsDocLinks = ReturnType<typeof getSourceMapsDocLinks>;
 
 export function SourceMapsDebuggerModal({
   Body,
@@ -621,6 +624,159 @@ function InstalledSdkChecklistItem({
   );
 }
 
+function getToolUsedToUploadSourceMaps({
+  releaseUserAgent,
+}: Pick<FrameSourceMapDebuggerData, 'releaseUserAgent'>) {
+  const tools = [
+    'sentry-cli',
+    'vite-plugin',
+    'webpack-plugin',
+    'rollup-plugin',
+    'esbuild-plugin',
+  ];
+
+  return tools.reduce(
+    (acc, tool) => {
+      const key = tool.replace(/-([a-z])/g, (_match, name) => name.toUpperCase());
+      acc[key] = releaseUserAgent?.includes(tool) ?? false;
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
+}
+
+type ToolUsedToUploadSourceMaps = ReturnType<typeof getToolUsedToUploadSourceMaps>;
+
+const pluginConfig: Record<
+  keyof Omit<ToolUsedToUploadSourceMaps, 'sentryCli'>,
+  {
+    configFile: string;
+    link: string;
+    name: string;
+  }
+> = {
+  vitePlugin: {
+    name: 'Vite',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/',
+    configFile: 'vite.config.(js|ts)',
+  },
+  webpackPlugin: {
+    name: 'Webpack',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/webpack/',
+    configFile: 'webpack.config.(js|ts)',
+  },
+  rollupPlugin: {
+    name: 'Rollup',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/rollup/',
+    configFile: 'rollup.config.(js|ts)',
+  },
+  esbuildPlugin: {
+    name: 'Esbuild',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/esbuild/',
+    configFile: 'esbuild.config.(js|ts)',
+  },
+};
+
+function SentryPluginMessage({
+  toolUsedToUploadSourceMaps,
+  sourceMapsDocLinks,
+}: {
+  sourceMapsDocLinks: SourceMapsDocLinks;
+  toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
+}) {
+  const activePlugin = Object.keys(pluginConfig).find(
+    key => toolUsedToUploadSourceMaps[key as keyof ToolUsedToUploadSourceMaps]
+  );
+
+  const plugin = activePlugin
+    ? pluginConfig[activePlugin as keyof typeof pluginConfig]
+    : undefined;
+
+  if (plugin) {
+    return (
+      <p>
+        {tct(
+          'For your Sentry [pluginNameAndLink] Plugin, check your [configFile] and ensure the plugin is active when building your production app. You cannot do two separate builds—one for uploading to Sentry with the plugin active, and one for deploying without it. The plugin needs to be active for every build.',
+          {
+            pluginNameAndLink: (
+              <ExternalLinkWithIcon href={plugin.link}>
+                {plugin.name}
+              </ExternalLinkWithIcon>
+            ),
+            configFile: <code>{plugin.configFile}</code>,
+          }
+        )}
+      </p>
+    );
+  }
+
+  return (
+    <p>
+      {tct(
+        'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+        {
+          bundlerPluginRepoLink: (
+            <ExternalLinkWithIcon href={sourceMapsDocLinks.bundlerPluginRepoLink} />
+          ),
+        }
+      )}
+    </p>
+  );
+}
+
+function SentryCliMessage({
+  sourceResolutionResults,
+  sourceMapsDocLinks,
+  toolUsedToUploadSourceMaps,
+}: {
+  sourceMapsDocLinks: SourceMapsDocLinks & {
+    sentryCli: NonNullable<SourceMapsDocLinks['sentryCli']>;
+  };
+  sourceResolutionResults: FrameSourceMapDebuggerData;
+  toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
+}) {
+  if (isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})) {
+    return (
+      <p>
+        {tct(
+          'When manually creating source maps, ensure that you upload the exact same files that were bundled into the application package. For details, see the [uploadingSourceMapsLink:Uploading Source Maps documentation]',
+          {
+            uploadingSourceMapsLink: (
+              <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />
+            ),
+          }
+        )}
+      </p>
+    );
+  }
+
+  if (toolUsedToUploadSourceMaps.sentryCli) {
+    return (
+      <p>
+        {tct(
+          'Since you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified.',
+          {
+            sentryCliLink: <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />,
+            injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
+          }
+        )}
+      </p>
+    );
+  }
+
+  return (
+    <p>
+      {tct(
+        'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified.',
+        {
+          sentryCliLink: <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />,
+          injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
+        }
+      )}
+    </p>
+  );
+}
+
 function HasDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
@@ -657,6 +813,9 @@ function HasDebugIdChecklistItem({
   }
 
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
+    const toolUsedToUploadSourceMaps = getToolUsedToUploadSourceMaps(
+      sourceResolutionResults
+    );
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
@@ -693,41 +852,21 @@ function HasDebugIdChecklistItem({
                   "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that you didn't deploy the same files you injected the Debug IDs into. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
                 )}
               </p>
-              <p>
-                {tct(
-                  'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
-                  {
-                    bundlerPluginRepoLink: (
-                      <ExternalLinkWithIcon
-                        href={sourceMapsDocLinks.bundlerPluginRepoLink}
-                      />
-                    ),
-                  }
-                )}
-              </p>
+              <SentryPluginMessage
+                toolUsedToUploadSourceMaps={toolUsedToUploadSourceMaps}
+                sourceMapsDocLinks={sourceMapsDocLinks}
+              />
             </Fragment>
           )}
           {defined(sourceMapsDocLinks.sentryCli) && (
-            <p>
-              {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
-                ? tct(
-                    'When manually creating source maps, ensure that you upload the exact same files that were bundled into the application package. For details, see the [uploadingSourceMapsLink:Uploading Source Maps documentation]',
-                    {
-                      uploadingSourceMapsLink: (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />
-                      ),
-                    }
-                  )
-                : tct(
-                    'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified!',
-                    {
-                      sentryCliLink: (
-                        <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />
-                      ),
-                      injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
-                    }
-                  )}
-            </p>
+            <SentryCliMessage
+              sourceMapsDocLinks={{
+                ...sourceMapsDocLinks,
+                sentryCli: sourceMapsDocLinks.sentryCli,
+              }}
+              sourceResolutionResults={sourceResolutionResults}
+              toolUsedToUploadSourceMaps={toolUsedToUploadSourceMaps}
+            />
           )}
           <p>
             {tct(
