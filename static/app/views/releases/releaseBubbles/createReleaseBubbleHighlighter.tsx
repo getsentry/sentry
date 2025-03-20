@@ -95,4 +95,18 @@ export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance)
 
     trackLegend(params);
   });
+
+  // This fixes a bug where if you hover over a bubble and mouseout via xaxis
+  // (i.e. bottom of chart), the bubble will remain highlighted. This makes it
+  // look buggy and can be misleading especially for bubbles w/ 0 releases.
+  echartsInstance.on('globalout', () => {
+    const series = echartsInstance.getOption().series;
+    const seriesIndex = series.findIndex((s: Series) => s.id === BUBBLE_SERIES_ID);
+    // We could find and include a `dataIndex` to be specific about which
+    // bubble to "downplay", but I think it's ok to downplay everything
+    echartsInstance.dispatchAction({
+      type: 'downplay',
+      seriesIndex,
+    });
+  });
 }
