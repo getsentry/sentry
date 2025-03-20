@@ -17,6 +17,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
+from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DataConditionHandler, DataSourceTypeHandler
 
 
@@ -281,4 +282,19 @@ class WorkflowSerializer(Serializer):
             "actionFilters": attrs.get("actionFilters"),
             "environment": obj.environment.name if obj.environment else None,
             "config": obj.config,
+        }
+
+
+class DetectorWorkflowResponse(TypedDict):
+    detectorId: str
+    workflowId: str
+
+
+class DetectorWorkflowSerializer(Serializer):
+    def serialize(
+        self, obj: DetectorWorkflow, attrs: Mapping[str, Any], user, **kwargs
+    ) -> dict[str, Any]:
+        return {
+            "detectorId": str(obj.detector.id),
+            "workflowId": str(obj.workflow.id),
         }
