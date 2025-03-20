@@ -79,7 +79,8 @@ function Onboarding(props: Props) {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
-  const projectSlug = selectedProjectSlug;
+  const projectSlug =
+    stepObj && stepObj.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
