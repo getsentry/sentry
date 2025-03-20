@@ -14,3 +14,6 @@ class DetectorWorkflow(DefaultFieldsModel):
 
     detector = FlexibleForeignKey("workflow_engine.Detector", on_delete=models.CASCADE)
     workflow = FlexibleForeignKey("workflow_engine.Workflow", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = (("detector", "workflow"),)
