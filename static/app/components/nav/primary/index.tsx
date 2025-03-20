@@ -59,7 +59,11 @@ export function PrimaryNavigationItems() {
         </SidebarLink>
 
         <SidebarLink
-          to={`/${prefix}/explore/traces/`}
+          to={
+            organization.features.includes('performance-view')
+              ? `/${prefix}/explore/traces/`
+              : `/${prefix}/explore/profiling/`
+          }
           activeTo={`/${prefix}/explore`}
           analyticsKey="explore"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}

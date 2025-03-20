@@ -209,7 +209,7 @@ function Sidebar() {
   );
 
   const traces = hasOrganization && (
-    <Feature features="performance-trace-explorer">
+    <Feature features={['performance-trace-explorer', 'performance-view']}>
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
