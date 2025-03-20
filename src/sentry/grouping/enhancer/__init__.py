@@ -82,6 +82,7 @@ def parse_rust_enhancements(
         raise InvalidEnhancerConfig(str(e))
 
 
+# TODO: Convert this into a typeddict in ophio
 RustExceptionData = dict[str, bytes | None]
 
 
@@ -97,7 +98,12 @@ def make_rust_exception_data(
     for key, value in e.items():
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
-    return e
+
+    return RustExceptionData(
+        ty=e["ty"],
+        value=e["value"],
+        mechanism=e["mechanism"],
+    )
 
 
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
@@ -155,7 +161,8 @@ class Enhancements:
         also be persisted in the saved event, so they can be used in the UI and when determining
         things like suspect commits and suggested assignees.
         """
-        match_frames = [create_match_frame(frame, platform) for frame in frames]
+        # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
+        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
         category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
             match_frames, make_rust_exception_data(exception_data)
@@ -183,7 +190,8 @@ class Enhancements:
 
         This also handles cases where the entire stacktrace should be discarded.
         """
-        match_frames = [create_match_frame(frame, platform) for frame in frames]
+        # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
+        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
         rust_frame_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
