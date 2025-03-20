@@ -25,33 +25,26 @@ enum DiscardReason {
   PAYLOAD = 'payload',
   INVALID_COMPRESSION = 'invalid_compression',
   TOO_LARGE = 'too_large', // Left for backwards compatibility
-  TOO_LARGE_UNKNOWN = 'too_large_unknown',
-  TOO_LARGE_EVENT = 'too_large_event',
-  TOO_LARGE_TRANSACTION = 'too_large_transaction',
-  TOO_LARGE_SECURITY = 'too_large_security',
-  TOO_LARGE_ATTACHMENT = 'too_large_attachment',
-  TOO_LARGE_FORM_DATA = 'too_large_form_data',
-  TOO_LARGE_RAW_SECURITY = 'too_large_raw_security',
-  TOO_LARGE_NEL = 'too_large_nel',
-  TOO_LARGE_UNREAL_REPORT = 'too_large_unreal_report',
-  TOO_LARGE_USER_REPORT = 'too_large_user_report',
-  TOO_LARGE_SESSION = 'too_large_session',
-  TOO_LARGE_SESSIONS = 'too_large_sessions',
-  TOO_LARGE_STATSD = 'too_large_statsd',
-  TOO_LARGE_METRIC_BUCKETS = 'too_large_metric_buckets',
-  TOO_LARGE_CLIENT_REPORT = 'too_large_client_report',
-  TOO_LARGE_PROFILE = 'too_large_profile',
-  TOO_LARGE_REPLAY_EVENT = 'too_large_replay_event',
-  TOO_LARGE_REPLAY_RECORDING = 'too_large_replay_recording',
-  TOO_LARGE_REPLAY_VIDEO = 'too_large_replay_video',
-  TOO_LARGE_CHECK_IN = 'too_large_check_in',
-  TOO_LARGE_OTEL_LOG = 'too_large_otel_log',
-  TOO_LARGE_LOG = 'too_large_log',
-  TOO_LARGE_SPAN = 'too_large_span',
-  TOO_LARGE_OTEL_SPAN = 'too_large_otel_span',
-  TOO_LARGE_OTEL_TRACES_DATA = 'too_large_otel_traces_data',
-  TOO_LARGE_USER_REPORT_V2 = 'too_large_user_report_v2',
-  TOO_LARGE_PROFILE_CHUNK = 'too_large_profile_chunk',
+  // All the too_large we want to communicate to the end-user
+  TOO_LARGE_EVENT = 'too_large:event',
+  TOO_LARGE_TRANSACTION = 'too_large:transaction',
+  TOO_LARGE_ATTACHMENT = 'too_large:attachment',
+  TOO_LARGE_FORM_DATA = 'too_large:form_data',
+  TOO_LARGE_NEL = 'too_large:nel',
+  TOO_LARGE_UNREAL_REPORT = 'too_large:unreal_report',
+  TOO_LARGE_USER_REPORT = 'too_large:user_report',
+  TOO_LARGE_USER_REPORT_V2 = 'too_large:user_report_v2',
+  TOO_LARGE_SESSION = 'too_large:session',
+  TOO_LARGE_SESSIONS = 'too_large:sessions',
+  TOO_LARGE_REPLAY_EVENT = 'too_large:replay_event',
+  TOO_LARGE_REPLAY_RECORDING = 'too_large:replay_recording',
+  TOO_LARGE_REPLAY_VIDEO = 'too_large:replay_video',
+  TOO_LARGE_OTEL_LOG = 'too_large:otel_log',
+  TOO_LARGE_LOG = 'too_large:log',
+  TOO_LARGE_SPAN = 'too_large:span',
+  TOO_LARGE_OTEL_SPAN = 'too_large:otel_span',
+  TOO_LARGE_PROFILE_CHUNK = 'too_large:profile_chunk',
+  TOO_LARGE_PROFILE = 'too_large:profile',
   MISSING_MINIDUMP_UPLOAD = 'missing_minidump_upload',
   INVALID_MINIDUMP = 'invalid_minidump',
   SECURITY_REPORT = 'security_report',
@@ -118,36 +111,29 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
     DiscardReason.INVALID_REPLAY_VIDEO,
   ],
   payload: [DiscardReason.PAYLOAD, DiscardReason.INVALID_COMPRESSION],
-  too_large: [
-    DiscardReason.TOO_LARGE, // Left for backwards compatibility
-    DiscardReason.TOO_LARGE_UNKNOWN,
-  ],
+  too_large_other: [DiscardReason.TOO_LARGE],
   too_large_event: [DiscardReason.TOO_LARGE_EVENT],
   too_large_transaction: [DiscardReason.TOO_LARGE_TRANSACTION],
-  too_large_security: [DiscardReason.TOO_LARGE_SECURITY],
   too_large_attachment: [DiscardReason.TOO_LARGE_ATTACHMENT],
   too_large_form_data: [DiscardReason.TOO_LARGE_FORM_DATA],
-  too_large_raw_security: [DiscardReason.TOO_LARGE_RAW_SECURITY],
   too_large_nel: [DiscardReason.TOO_LARGE_NEL],
   too_large_unreal_report: [DiscardReason.TOO_LARGE_UNREAL_REPORT],
-  too_large_user_report: [DiscardReason.TOO_LARGE_USER_REPORT],
-  too_large_session: [DiscardReason.TOO_LARGE_SESSION],
-  too_large_sessions: [DiscardReason.TOO_LARGE_SESSIONS],
-  too_large_statsd: [DiscardReason.TOO_LARGE_STATSD],
-  too_large_metric_buckets: [DiscardReason.TOO_LARGE_METRIC_BUCKETS],
-  too_large_client_report: [DiscardReason.TOO_LARGE_CLIENT_REPORT],
-  too_large_profile: [DiscardReason.TOO_LARGE_PROFILE],
-  too_large_replay_event: [DiscardReason.TOO_LARGE_REPLAY_EVENT],
-  too_large_replay_recording: [DiscardReason.TOO_LARGE_REPLAY_RECORDING],
-  too_large_replay_video: [DiscardReason.TOO_LARGE_REPLAY_VIDEO],
-  too_large_check_in: [DiscardReason.TOO_LARGE_CHECK_IN],
-  too_large_otel_log: [DiscardReason.TOO_LARGE_OTEL_LOG],
-  too_large_log: [DiscardReason.TOO_LARGE_LOG],
-  too_large_span: [DiscardReason.TOO_LARGE_SPAN],
-  too_large_otel_span: [DiscardReason.TOO_LARGE_OTEL_SPAN],
-  too_large_otel_traces_data: [DiscardReason.TOO_LARGE_OTEL_TRACES_DATA],
-  too_large_user_report_v2: [DiscardReason.TOO_LARGE_USER_REPORT_V2],
-  too_large_profile_chunk: [DiscardReason.TOO_LARGE_PROFILE_CHUNK],
+  too_large_user_report: [
+    DiscardReason.TOO_LARGE_USER_REPORT,
+    DiscardReason.TOO_LARGE_USER_REPORT_V2,
+  ],
+  too_large_session: [DiscardReason.TOO_LARGE_SESSION, DiscardReason.TOO_LARGE_SESSIONS],
+  too_large_replay: [
+    DiscardReason.TOO_LARGE_REPLAY_EVENT,
+    DiscardReason.TOO_LARGE_REPLAY_RECORDING,
+    DiscardReason.TOO_LARGE_REPLAY_VIDEO,
+  ],
+  too_large_log: [DiscardReason.TOO_LARGE_OTEL_LOG, DiscardReason.TOO_LARGE_LOG],
+  too_large_span: [DiscardReason.TOO_LARGE_SPAN, DiscardReason.TOO_LARGE_OTEL_SPAN],
+  too_large_profile: [
+    DiscardReason.TOO_LARGE_PROFILE_CHUNK,
+    DiscardReason.TOO_LARGE_PROFILE,
+  ],
   minidump: [DiscardReason.MISSING_MINIDUMP_UPLOAD, DiscardReason.INVALID_MINIDUMP],
   security_report: [DiscardReason.SECURITY_REPORT, DiscardReason.SECURITY_REPORT_TYPE],
   unreal: [DiscardReason.PROCESS_UNREAL],
@@ -160,12 +146,21 @@ const invalidReasonsGroup: Record<string, DiscardReason[]> = {
   sampling: [DiscardReason.TRANSACTION_SAMPLED],
 };
 
-function getInvalidReasonGroupName(reason: DiscardReason): string {
+function getInvalidReasonGroupName(reason: string): string {
+  // 1. Check if there is a direct match in the `invalidReasonsGroup`
   for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
-    if (reasons.includes(reason)) {
+    if (reasons.includes(reason as DiscardReason)) {
       return group;
     }
   }
+  // 2. If there is no direct match check if there is a match for the baseReason
+  const baseReason = reason.split(':')[0];
+  for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
+    if (reasons.includes(baseReason as DiscardReason)) {
+      return group;
+    }
+  }
+  // 3. Else just return internal
   return 'internal';
 }
 
@@ -214,7 +209,7 @@ function getClientDiscardReasonGroupName(reason: ClientDiscardReason): string {
 export function getReasonGroupName(outcome: string | number, reason: string): string {
   switch (outcome) {
     case Outcome.INVALID:
-      return getInvalidReasonGroupName(reason as DiscardReason);
+      return getInvalidReasonGroupName(reason);
     case Outcome.CARDINALITY_LIMITED:
     case Outcome.RATE_LIMITED:
     case Outcome.ABUSE:

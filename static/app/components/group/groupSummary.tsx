@@ -22,7 +22,7 @@ const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
 const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
 // These thresholds were used when embedding the cause and computing simliarities.
 
-interface GroupSummaryData {
+export interface GroupSummaryData {
   groupId: string;
   headline: string;
   eventId?: string | null;
@@ -49,6 +49,21 @@ export const makeGroupSummaryQueryKey = (
     data: eventId ? {event_id: eventId} : undefined,
   },
 ];
+
+/**
+ * Gets the data for group summary if it exists but doesn't fetch it.
+ */
+export function useGroupSummaryData(group: Group) {
+  const organization = useOrganization();
+  const queryKey = makeGroupSummaryQueryKey(organization.slug, group.id);
+
+  const {data, isPending} = useApiQuery<GroupSummaryData>(queryKey, {
+    staleTime: Infinity,
+    enabled: false,
+  });
+
+  return {data, isPending};
+}
 
 export function useGroupSummary(
   group: Group,

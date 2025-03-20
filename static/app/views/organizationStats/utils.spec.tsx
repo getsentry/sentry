@@ -166,7 +166,7 @@ describe('formatUsageWithUnits', function () {
 
   it('Correctly groups invalid outcome reasons', function () {
     expect(getReasonGroupName('invalid', 'duplicate_item')).toBe('invalid_request');
-    expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large');
+    expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large_other');
     expect(getReasonGroupName('invalid', 'some_other_reason')).toBe('internal');
   });
 });
