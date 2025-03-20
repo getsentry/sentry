@@ -15,15 +15,15 @@ import mergeRefs from 'sentry/utils/mergeRefs';
 
 import type {SliderProps} from './index';
 
-const passthrough = (n: number) => n;
+const passthrough = (n: number | '') => n;
 
 export const Slider = forwardRef<HTMLInputElement, SliderProps>(
   ({formatLabel = passthrough, ...props}, ref) => {
     const inputRef = useRef<HTMLInputElement>();
     const refs = mergeRefs([ref, inputRef]);
-    const [label, setLabel] = useState(props.value ?? props.defaultValue ?? 50);
+    const [label, setLabel] = useState((props.value ?? props.defaultValue) || 50);
     const initialProgress = getProgress(
-      props.value ?? props.defaultValue ?? 50,
+      (props.value ?? props.defaultValue) || 50,
       props.min ?? 0,
       props.max ?? 100
     );
@@ -56,11 +56,53 @@ export const Slider = forwardRef<HTMLInputElement, SliderProps>(
             <SliderLabel>{formatLabel(label)}</SliderLabel>
           </SliderOutput>
         )}
+        {props.step ? <SliderTicks n={props.step} /> : null}
         <StyledSlider ref={refs} type="range" {...props} />
       </SliderContainer>
     );
   }
 );
+
+function SliderTicks({n}: {n: number}) {
+  return (
+    <StepsContainer role="presentation">
+      {Array.from({length: n}, (_, i) => (
+        <StepMark key={i} />
+      ))}
+    </StepsContainer>
+  );
+}
+
+const StepsContainer = styled('div')`
+  pointer-events: none;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: row;
+  height: 12px;
+  width: calc(100% - 24px);
+  margin-inline: auto;
+  z-index: 1;
+`;
+
+const StepMark = styled('span')<{theme?: DO_NOT_USE_ChonkTheme}>`
+  box-sizing: border-box;
+  position: relative;
+  flex-grow: 1;
+  height: 100%;
+
+  &::before {
+    content: '';
+    position: absolute;
+    height: 12px;
+    width: 2px;
+    background: linear-gradient(90deg, white, black);
+    opacity: 0.5;
+    mix-blend-mode: multiply;
+  }
+`;
 
 function toNumber(value: number | string) {
   if (typeof value === 'number') {
