@@ -114,7 +114,7 @@ function GeneralInfo(props: GeneralInfoProps) {
   return (
     <InterimSection
       title={t('General')}
-      disableCollapsePersistence
+      disableCollapsePersistence={false}
       type="trace_transaction_general"
     >
       <ContentWrapper>

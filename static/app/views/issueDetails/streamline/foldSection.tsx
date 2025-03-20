@@ -61,6 +61,22 @@ export interface FoldSectionProps {
   style?: CSSProperties;
 }
 
+function useOptionalLocalStorageState(
+  key: SectionKey,
+  initialState: boolean,
+  disablePersistence: boolean
+): [boolean, (value: boolean) => void] {
+  const [localState, setLocalState] = useState(initialState);
+  const [persistedState, setPersistedState] = useSyncedLocalStorageState(
+    getFoldSectionKey(key),
+    initialState
+  );
+
+  return disablePersistence
+    ? [localState, setLocalState]
+    : [persistedState, setPersistedState];
+}
+
 export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
   {
     children,
@@ -77,19 +93,10 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
 
-  const [localState, setLocalState] = useState(initialCollapse);
-  const [persistedState, setPersistedState] = useSyncedLocalStorageState(
-    getFoldSectionKey(sectionKey),
-    initialCollapse
-  );
-
-  const isCollapsed = disableCollapsePersistence ? localState : persistedState;
-  const setIsCollapsed = useCallback(
-    (value: boolean) => {
-      setLocalState(value);
-      setPersistedState(value);
-    },
-    [setLocalState, setPersistedState]
+  const [isCollapsed, setIsCollapsed] = useOptionalLocalStorageState(
+    sectionKey,
+    initialCollapse,
+    disableCollapsePersistence
   );
 
   const hasAttemptedScroll = useRef(false);
