@@ -49,8 +49,14 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     exclude: mode === 'owned' ? 'shared' : 'owned', // Inverse because this is an exclusion
     perPage,
   });
+  const filteredData = data?.filter(row => row.query.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const renderBodyCell = (col: Column, row: SavedQuery) => {
+    const query = row.query[0];
+    // This shouldn't happen, but adding this to enforce type safety
+    if (query === undefined) {
+      return null;
+    }
     if (col.key === 'name') {
       return (
         <NoOverflow>
@@ -58,8 +64,9 @@ export function SavedQueriesTable({mode, perPage}: Props) {
             to={getExploreUrl({
               organization,
               ...row,
+              ...query,
               title: row.name,
-              mode: row.mode as Mode,
+              mode: query.mode as Mode,
               selection: {
                 datetime: {end: row.end, period: row.range, start: row.start, utc: null},
                 environments: row.environment,
@@ -122,7 +129,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     if (col.key === 'query') {
       return (
         <FormattedQueryWrapper>
-          <FormattedQuery query={row.query} />
+          <FormattedQuery query={query.query} />
         </FormattedQueryWrapper>
       );
     }
@@ -165,10 +172,6 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     if (col.key === 'access') {
       return <Center>{NO_VALUE}</Center>;
     }
-    // We don't actually use this column, but we return null here to prevent typescript from complaining
-    if (col.key === 'visualize') {
-      return null;
-    }
     return <div>{row[col.key]}</div>;
   };
 
@@ -182,7 +185,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
   return (
     <GridEditable
       isLoading={isLoading}
-      data={data}
+      data={filteredData}
       grid={{renderBodyCell, renderHeadCell}}
       columnOrder={ORDER}
       columnSortBy={[]}

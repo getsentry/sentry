@@ -9,23 +9,25 @@ export type SavedQuery = {
   dateUpdated: string;
   end: string;
   environment: string[];
-  fields: string[];
   id: number;
   interval: string;
   lastVisited: string;
-  mode: string;
   name: string;
-  orderby: string;
   projects: number[];
-  query: string;
+  query: Array<{
+    fields: string[];
+    groupby: string[];
+    mode: string;
+    orderby: string;
+    query: string;
+    visualize: Array<{
+      chartType: number;
+      yAxes: string[];
+    }>;
+  }>;
   queryDataset: string;
   range: string;
   start: string;
-  // Can probably have stricter type here
-  visualize: Array<{
-    chartType: number;
-    yAxes: string[];
-  }>;
 };
 
 type Props = {
@@ -37,7 +39,7 @@ type Props = {
 export function useGetSavedQueries({sortBy, exclude, perPage = 5}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const {data, isLoading} = useQuery({
+  const {data, isLoading} = useQuery<SavedQuery[]>({
     queryKey: ['saved-queries', organization.slug, sortBy, exclude, perPage],
     queryFn: () =>
       api.requestPromise(`/organizations/${organization.slug}/explore/saved/`, {
