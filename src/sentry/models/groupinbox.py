@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, TypedDict
 
-import jsonschema
 import sentry_sdk
 from django.db import models
 from django.utils import timezone
@@ -27,19 +25,6 @@ if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
-
-INBOX_REASON_DETAILS = {
-    "type": ["object", "null"],
-    "properties": {
-        "until": {"type": ["string", "null"], "format": "date-time"},
-        "count": {"type": ["integer", "null"]},
-        "window": {"type": ["integer", "null"]},
-        "user_count": {"type": ["integer", "null"]},
-        "user_window": {"type": ["integer", "null"]},
-    },
-    "required": [],
-    "additionalProperties": False,
-}
 
 
 class GroupInboxReason(Enum):
@@ -88,12 +73,6 @@ def add_group_to_inbox(
 ) -> GroupInbox:
     if reason_details is not None and reason_details["until"] is not None:
         reason_details["until"] = reason_details["until"].replace(microsecond=0)
-
-    try:
-        jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
-    except jsonschema.ValidationError:
-        logging.exception("GroupInbox invalid jsonschema: %s", reason_details)
-        reason_details = None
 
     group_inbox, _ = GroupInbox.objects.get_or_create(
         group=group,
