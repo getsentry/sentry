@@ -24,10 +24,9 @@ class EnhancementRule:
 
     @property
     def matcher_description(self):
-        rv = " ".join(matcher.description for matcher in self.matchers)
-        for action in self.actions:
-            rv = f"{rv} {action}"
-        return rv
+        matchers = " ".join(matcher.description for matcher in self.matchers)
+        actions = " ".join(str(action) for action in self.actions)
+        return f"{matchers} {actions}"
 
     def _as_modifier_rule(self) -> EnhancementRule | None:
         actions = [action for action in self.actions if action.is_modifier]

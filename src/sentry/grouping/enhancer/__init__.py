@@ -94,8 +94,7 @@ def make_rust_exception_data(
         "value": e.get("value"),
         "mechanism": get_path(e, "mechanism", "type"),
     }
-    for key in e.keys():
-        value = e[key]
+    for key, value in e.items():
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
     return e
@@ -137,14 +136,10 @@ class Enhancements:
     ):
         self.id = id
         self.rules = rules
-        if version is None:
-            version = LATEST_VERSION
-        self.version = version
-        if bases is None:
-            bases = []
-        self.bases = bases
+        self.version = version or LATEST_VERSION
+        self.bases = bases or []
 
-        self.rust_enhancements = merge_rust_enhancements(bases, rust_enhancements)
+        self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
 
     def apply_category_and_updated_in_app_to_frames(
         self,
@@ -353,11 +348,13 @@ def _load_configs() -> dict[str, Enhancements]:
     for filename in os.listdir(configs_dir):
         if filename.endswith(".txt"):
             with open(os.path.join(configs_dir, filename), encoding="utf-8") as f:
+                # Strip the extension
+                filename = filename.replace(".txt", "")
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
                 filename = filename.replace("@", ":")
-                enhancements = Enhancements.from_config_string(f.read(), id=filename[:-4])
-                enhancement_bases[filename[:-4]] = enhancements
+                enhancements = Enhancements.from_config_string(f.read(), id=filename)
+                enhancement_bases[filename] = enhancements
     return enhancement_bases
 
 
