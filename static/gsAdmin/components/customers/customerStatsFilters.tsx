@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
+import {Data} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
@@ -12,7 +13,6 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useRouter from 'sentry/utils/useRouter';
-import {Data} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
