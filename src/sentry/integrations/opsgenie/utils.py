@@ -6,7 +6,7 @@ from typing import Any, cast
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import (
     get_metric_count_from_incident,
     incident_attachment_info,
@@ -16,7 +16,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.snuba.models import SnubaQuery
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -25,32 +24,26 @@ OPSGENIE_CUSTOM_PRIORITIES = {"P1", "P2", "P3", "P4", "P5"}
 
 def build_incident_attachment(
     alert_context: AlertContext,
-    open_period_identifier: int,
+    metric_issue_context: MetricIssueContext,
     organization: Organization,
-    snuba_query: SnubaQuery,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
 
     data = incident_attachment_info(
         alert_context=alert_context,
-        open_period_identifier=open_period_identifier,
+        metric_issue_context=metric_issue_context,
         organization=organization,
-        snuba_query=snuba_query,
-        new_status=new_status,
-        metric_value=metric_value,
         notification_uuid=notification_uuid,
         referrer="metric_alert_opsgenie",
     )
 
-    alert_key = f"incident_{organization.id}_{open_period_identifier}"
-    if new_status == IncidentStatus.CLOSED:
+    alert_key = f"incident_{organization.id}_{metric_issue_context.open_period_identifier}"
+    if metric_issue_context.new_status == IncidentStatus.CLOSED:
         payload = {"identifier": alert_key}
         return payload
 
     priority = "P1"
-    if new_status == IncidentStatus.WARNING:
+    if metric_issue_context.new_status == IncidentStatus.WARNING:
         priority = "P2"
     payload = {
         "message": alert_context.name,
@@ -123,11 +116,10 @@ def send_incident_alert_notification(
     client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(
         alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-        open_period_identifier=incident.identifier,
+        metric_issue_context=MetricIssueContext.from_legacy_models(
+            incident, new_status, metric_value
+        ),
         organization=incident.organization,
-        snuba_query=incident.alert_rule.snuba_query,
-        new_status=new_status,
-        metric_value=metric_value,
         notification_uuid=notification_uuid,
     )
     attachment = attach_custom_priority(attachment, action, new_status)
