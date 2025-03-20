@@ -9,6 +9,9 @@ from sentry.utils.safe import get_path
 
 from .exceptions import InvalidEnhancerConfig
 
+# A cache of function return values, keyed by function and args
+ReturnValueCache = dict[tuple[Any, ...], Any]
+
 
 def _cached(cache, function, *args, **kwargs):
     """Calls ``function`` or retrieves its return value from the ``cache``.
