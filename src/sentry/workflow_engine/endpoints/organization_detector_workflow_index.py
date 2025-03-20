@@ -33,7 +33,7 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
-    permission_classes = OrganizationPermission
+    permission_classes = (OrganizationPermission,)
 
     @extend_schema(
         operation_id="Fetch Connected Detectors and Workflows",

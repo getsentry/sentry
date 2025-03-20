@@ -32,7 +32,7 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
 
 
 @region_silo_test
-class OrganizationDataConditionIndexGetTest(OrganizationDetectorWorkflowAPITestCase):
+class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITestCase):
     def test_detector_filter(self):
         response = self.get_success_response(
             self.organization.slug,
@@ -99,7 +99,7 @@ class OrganizationDataConditionIndexGetTest(OrganizationDetectorWorkflowAPITestC
 
 
 @region_silo_test
-class OrganizationDataConditionIndexPostTest(OrganizationDetectorWorkflowAPITestCase):
+class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPITestCase):
     method = "post"
 
     def test_simple(self):
@@ -146,7 +146,7 @@ class OrganizationDataConditionIndexPostTest(OrganizationDetectorWorkflowAPITest
 
 
 @region_silo_test
-class OrganizationDataConditionIndexDeleteTest(OrganizationDetectorWorkflowAPITestCase):
+class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAPITestCase):
     method = "delete"
 
     def test_simple_delete(self):
