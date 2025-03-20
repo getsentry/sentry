@@ -85,7 +85,3 @@ class GroupSearchView(DefaultFieldsModelExisting):
                 deferrable=models.Deferrable.DEFERRED,
             )
         ]
-
-    @property
-    def is_default(self):
-        return self.position == 0

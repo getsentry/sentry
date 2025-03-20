@@ -43,7 +43,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -59,7 +58,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -74,7 +72,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -89,7 +86,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -104,7 +100,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=self.user_2.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -500,7 +495,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             time_filters={"period": "14d"},
             environments=[],
         )
@@ -518,7 +512,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
             time_filters={"period": "7d"},
             environments=["staging", "production"],
         )
@@ -536,7 +529,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
             time_filters={"period": "30d"},
             environments=["development"],
         )
@@ -709,7 +701,6 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
             user_id=self.user.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             time_filters={"period": "14d"},
             environments=["production"],
         )
@@ -777,7 +768,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
@@ -796,7 +786,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
             is_all_projects=False,
             time_filters={"period": "7d"},
             environments=["staging", "production"],
@@ -815,7 +804,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
             is_all_projects=True,
             time_filters={"period": "30d"},
             environments=["development"],
@@ -834,7 +822,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
@@ -853,7 +840,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=self.user_4.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
