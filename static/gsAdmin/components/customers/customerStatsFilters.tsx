@@ -28,6 +28,7 @@ export enum DataType {
   INDEXED_SPANS = 'indexed_spans',
   PROFILE_DURATION = 'profile_duration',
   PROFILE_CHUNK = 'profile_chunk',
+  PROFILE_CHUNK_UI = 'profile_chunk_ui',
   ATTACHMENTS = 'attachments',
 }
 
@@ -39,6 +40,7 @@ const dataTypeLabels = {
   [DataType.INDEXED_PROFILES]: 'Indexed Profiles',
   [DataType.PROFILE_DURATION]: 'Profile Hours',
   [DataType.PROFILE_CHUNK]: 'Profile Chunks',
+  [DataType.PROFILE_CHUNK_UI]: 'Profile Chunks UI',
   [DataType.REPLAYS]: 'Replays',
   [DataType.FEEDBACK]: 'Feedback',
   [DataType.MONITORS]: 'Monitor Check-Ins',
@@ -61,6 +63,8 @@ export function categoryFromDataType(dataType: DataType): string {
       return 'profile_duration';
     case DataType.PROFILE_CHUNK:
       return 'profile_chunk';
+    case DataType.PROFILE_CHUNK_UI:
+      return 'profile_chunk_ui';
     case DataType.REPLAYS:
       return 'replay';
     case DataType.FEEDBACK:
