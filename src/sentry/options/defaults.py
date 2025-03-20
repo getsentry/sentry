@@ -3118,3 +3118,11 @@ register(
     default=1,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Taskbroker flags
+
+register(
+    "taskworker.route.overrides",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

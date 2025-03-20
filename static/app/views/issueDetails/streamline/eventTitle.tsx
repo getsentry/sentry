@@ -62,11 +62,18 @@ export const EventTitle = forwardRef<HTMLDivElement, EventNavigationProps>(
   function EventNavigation({event, group, ...props}, ref) {
     const organization = useOrganization();
     const theme = useTheme();
+    const showTraceLink = organization.features.includes('performance-view');
+
+    const excludedSectionKeys: SectionKey[] = [];
+    if (!showTraceLink) {
+      excludedSectionKeys.push(SectionKey.TRACE);
+    }
 
     const {sectionData} = useIssueDetails();
     const eventSectionConfigs = Object.values(sectionData ?? {}).filter(
-      config => sectionLabels[config.key]
+      config => sectionLabels[config.key] && !excludedSectionKeys.includes(config.key)
     );
+
     const [_isEventErrorCollapsed, setEventErrorCollapsed] = useSyncedLocalStorageState(
       getFoldSectionKey(SectionKey.PROCESSING_ERROR),
       true

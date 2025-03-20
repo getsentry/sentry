@@ -36,9 +36,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeProject,
 )
 from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
-from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
-    ProjectBackfillSimilarIssuesEmbeddingsRecords,
-)
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
@@ -185,6 +182,7 @@ from sentry.issues.endpoints import (
     OrganizationGroupIndexStatsEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationGroupSearchViewStarredEndpoint,
     OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -1791,6 +1789,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-search-view-visit",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-view/(?P<view_id>[^\/]+)/starred/$",
+        OrganizationGroupSearchViewStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-starred",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views-starred-order/$",
         OrganizationGroupSearchViewStarredOrderEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-view-starred-order",
@@ -2622,11 +2625,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
         ProjectRuleTaskDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-task-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/backfill-similar-embeddings-records/$",
-        ProjectBackfillSimilarIssuesEmbeddingsRecords.as_view(),
-        name="sentry-api-0-project-backfill-similar-embeddings-records",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/stats/$",
