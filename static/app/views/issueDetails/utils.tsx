@@ -274,6 +274,7 @@ export function useHasStreamlinedUI() {
   const location = useLocation();
   const user = useUser();
   const organization = useOrganization();
+  const userStreamlinedUIOption = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   // Allow query param to override all other settings to set the UI.
   if (defined(location.query.streamline)) {
@@ -286,12 +287,15 @@ export function useHasStreamlinedUI() {
   }
 
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI
-  if (organization.features.includes('issue-details-streamline-enforce')) {
+  if (
+    userStreamlinedUIOption !== false &&
+    organization.features.includes('issue-details-streamline-enforce')
+  ) {
     return true;
   }
 
   // Apply the UI based on user preferences
-  return !!user?.options?.prefersIssueDetailsStreamlinedUI;
+  return userStreamlinedUIOption ?? false;
 }
 
 export function useIsSampleEvent(): boolean {
