@@ -23,13 +23,13 @@ import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
   field: string;
-  unit: TabularValueUnit;
   value: number | string;
   maximumValue?: number;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number | string;
   thresholds?: Thresholds;
   type?: TabularValueType;
+  unit?: TabularValueUnit;
 }
 
 export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
