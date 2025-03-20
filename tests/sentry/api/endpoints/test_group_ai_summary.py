@@ -138,9 +138,9 @@ class GroupAiSummaryEndpointTest(APITestCase, SnubaTestCase):
             "scores": {
                 "possible_cause_confidence": 0.9,
                 "possible_cause_novelty": 0.8,
-                "fixability_score": None,
-                "is_fixable": None,
-                "fixability_score_version": None,
+                "fixability_score": 0.5,
+                "is_fixable": True,
+                "fixability_score_version": 1,
             },
         }
         mock_post.return_value = mock_response
