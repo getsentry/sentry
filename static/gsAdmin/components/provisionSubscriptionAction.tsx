@@ -13,13 +13,18 @@ import NumberField from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
-import {DataCategory, DataCategoryExact} from 'sentry/types/core';
+import {DataCategoryExact} from 'sentry/types/core';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import withApi from 'sentry/utils/withApi';
 
 import {prettyDate} from 'admin/utils';
 import {CPE_MULTIPLIER_TO_CENTS, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {Plan, ReservedBudgetMetricHistory, Subscription} from 'getsentry/types';
+import type {
+  BillingConfig,
+  Plan,
+  ReservedBudgetMetricHistory,
+  Subscription,
+} from 'getsentry/types';
 import {
   getAmPlanTier,
   isAm3DsPlan,
@@ -96,7 +101,6 @@ type Props = {
 type ModalProps = ModalRenderProps & Props;
 
 type ModalState = {
-  currentCategories: string[];
   data: any;
   // TODO(ts), TODO:categories get data.plan categories to dynamically create fields
   effectiveAtDisabled: boolean;
@@ -159,10 +163,13 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     data: {},
     effectiveAtDisabled: false,
     provisionablePlans: {},
-    currentCategories: [],
   };
 
   componentDidMount() {
+    this.initializeState();
+  }
+
+  initializeState() {
     const {subscription, canProvisionDsPlan} = this.props;
     const existingPlanWithoutSuffix = subscription.plan.endsWith('_auf')
       ? subscription.plan.slice(0, subscription.plan.length - 4)
@@ -239,50 +246,30 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   }
 
   fetchPlanData = async (canProvisionDsPlan: boolean) => {
-    const mm1BillingConfig = await this.props.api.requestPromise(
-      `/customers/${this.props.orgId}/billing-config/?tier=mm1`
+    const billingConfig: BillingConfig = await this.props.api.requestPromise(
+      `/customers/${this.props.orgId}/billing-config/?tier=all`
     );
-    const mm2BillingConfig = await this.props.api.requestPromise(
-      `/customers/${this.props.orgId}/billing-config/?tier=mm2`
-    );
-    const am1BillingConfig = await this.props.api.requestPromise(
-      `/customers/${this.props.orgId}/billing-config/?tier=am1`
-    );
-    const am2BillingConfig = await this.props.api.requestPromise(
-      `/customers/${this.props.orgId}/billing-config/?tier=am2`
-    );
-    const am3BillingConfig = await this.props.api.requestPromise(
-      `/customers/${this.props.orgId}/billing-config/?tier=am3`
-    );
-    [
-      am3BillingConfig,
-      am2BillingConfig,
-      am1BillingConfig,
-      mm2BillingConfig,
-      mm1BillingConfig,
-    ].forEach(billingConfig => {
-      billingConfig.planList
-        .filter(
-          (plan: Plan) =>
-            (isAmEnterprisePlan(plan.id) ||
-              plan.id === 'e1' ||
-              plan.id === 'mm2_a' ||
-              plan.id === 'mm2_b') &&
-            !plan.id.endsWith('_ac') &&
-            !plan.id.endsWith('_auf') &&
-            !isTrialPlan(plan.id) &&
-            (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
-        )
-        .forEach((plan: Plan) => {
-          this.setState(state => ({
-            ...state,
-            provisionablePlans: {
-              ...state.provisionablePlans,
-              [plan.id]: plan,
-            },
-          }));
-        });
-    });
+    billingConfig.planList
+      .filter(
+        (plan: Plan) =>
+          (isAmEnterprisePlan(plan.id) ||
+            plan.id === 'e1' ||
+            plan.id === 'mm2_a' ||
+            plan.id === 'mm2_b') &&
+          !plan.id.endsWith('_ac') &&
+          !plan.id.endsWith('_auf') &&
+          !isTrialPlan(plan.id) &&
+          (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
+      )
+      .forEach((plan: Plan) => {
+        this.setState(state => ({
+          ...state,
+          provisionablePlans: {
+            ...state.provisionablePlans,
+            [plan.id]: plan,
+          },
+        }));
+      });
   };
 
   get endpoint() {
@@ -369,28 +356,10 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       });
     }
 
-    // TODO: get plans from API so we can also check what categories are available for the plan
-    const allCategories = Object.values(DATA_CATEGORY_INFO)
-      .filter(c => c.isBilledCategory)
-      .map(c => c.plural);
-    const includedCategories = [DataCategory.ERRORS];
-    if (isAmPlan(postData.plan)) {
-      includedCategories.push(DataCategory.REPLAYS);
-      includedCategories.push(DataCategory.ATTACHMENTS);
-      includedCategories.push(DataCategory.MONITOR_SEATS);
-      includedCategories.push(DataCategory.UPTIME);
-
-      if (isAm3Plan(postData.plan)) {
-        includedCategories.push(DataCategory.SPANS);
-        if (isAm3DsPlan(postData.plan)) {
-          includedCategories.push(DataCategory.SPANS_INDEXED);
-        }
-      } else {
-        includedCategories.push(DataCategory.TRANSACTIONS);
-      }
-    }
+    const allCategories = Object.values(DATA_CATEGORY_INFO).map(c => c.plural);
+    const planCategories = this.state.provisionablePlans[postData.plan]?.categories ?? [];
     allCategories.forEach(category => {
-      if (!includedCategories.includes(category as DataCategory)) {
+      if (!planCategories.includes(category)) {
         delete postData[`reserved${category}`];
         delete postData[`customPrice${category}`];
         delete postData[`softCapType${category}`];
@@ -502,6 +471,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
           if (!value) {
             postData[key] = null;
           }
+          postData.trueForward = {
+            [key.replace('softCapType', '').toLowerCase()]: value === 'TRUE_FORWARD',
+          };
         }
       });
     }
@@ -549,7 +521,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     const {data} = this.state;
 
     const isAmEnt = isAmEnterprisePlan(data.plan);
-    // const isAm3 = isAm3Plan(data.plan);
     const isAm3Ds = isAm3DsPlan(data.plan);
     const hasCustomSkuPrices = isAmEnt;
     const hasCustomPrice = hasCustomSkuPrices || !!data.managed; // Refers to ACV
@@ -571,16 +542,16 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   label="Plan"
                   name="plan"
                   clearable={false}
-                  choices={Object.entries(this.state.provisionablePlans).map(
-                    ([id, plan]) => {
+                  choices={Object.entries(this.state.provisionablePlans)
+                    .reverse()
+                    .map(([id, plan]) => {
                       const suffix = isAm3DsPlan(plan.id) ? ' with Dynamic Sampling' : '';
 
                       return [
                         id,
                         `${plan.name}${suffix} (${isAmPlan(plan.id) ? getAmPlanTier(plan.id) : plan.id === 'e1' ? 'mm1' : 'mm2'})`,
                       ];
-                    }
-                  )}
+                    })}
                   onChange={v => {
                     // Reset price fields if next plan is not AM Enterprise
                     const isManagedPlan = isAmEnterprisePlan(v as string);
@@ -614,8 +585,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                         ...nextPrices,
                         ...nextReservedCpes,
                       },
-                      currentCategories:
-                        this.state.provisionablePlans[v as string]?.categories ?? [],
                     }));
                   }}
                   value={this.state.data.plan}
@@ -709,13 +678,20 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 />
                 {this.state.data.type === 'invoiced' && (
                   <StyledSelectFieldWithHelpText
-                    label="On-Demand Max Spend Type"
+                    label="On-Demand Max Spend Setting"
                     name="onDemandInvoicedManual"
-                    choices={[
-                      ['SHARED', 'Shared'],
-                      ['PER_CATEGORY', 'Per Category'],
-                      ['DISABLE', 'Disable'],
-                    ]}
+                    choices={
+                      isAm3Plan(this.state.data.plan)
+                        ? [
+                            ['SHARED', 'Shared'],
+                            ['DISABLE', 'Disable'],
+                          ]
+                        : [
+                            ['SHARED', 'Shared'],
+                            ['PER_CATEGORY', 'Per Category'],
+                            ['DISABLE', 'Disable'],
+                          ]
+                    }
                     help="Used to enable (Shared or Per Category) or disable on-demand max spend for invoiced customers. Cannot be provisioned with soft cap."
                     clearable
                     disabled={
@@ -748,154 +724,162 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                     }
                   />
                 )}
-                {this.state.currentCategories.length > 0 && (
-                  <Fragment>
-                    <SectionHeader>Plan Quotas</SectionHeader>
-                    <SectionHeaderDescription>
-                      Monthly quantities for each SKU
-                    </SectionHeaderDescription>
-                    {Object.entries(DATA_CATEGORY_INFO)
-                      .filter(([_, categoryInfo]) =>
-                        this.state.currentCategories.includes(categoryInfo.plural)
-                      )
-                      .map(([category, categoryInfo]) => {
-                        const titleName =
-                          category === DataCategoryExact.SPAN && isAm3Ds
-                            ? 'Accepted Spans'
-                            : categoryInfo.titleName;
-                        const suffix =
-                          category === DataCategoryExact.ATTACHMENT
-                            ? ' (in GB)'
-                            : category === DataCategoryExact.PROFILE_DURATION
-                              ? ' (in hours)'
-                              : '';
-                        const capitalizedApiName = capitalize(categoryInfo.plural);
-                        return (
-                          <Fragment key={categoryInfo.plural}>
-                            <NumberField
-                              label={`Reserved ${titleName}${suffix}`}
-                              name={`reserved${capitalizedApiName}`}
-                              required={
-                                category === DataCategoryExact.ERROR
-                                  ? !!data.plan
-                                  : isAmEnt
-                              }
-                              disabled={
-                                [
-                                  DataCategoryExact.SPAN,
-                                  DataCategoryExact.SPAN_INDEXED,
-                                ].includes(category as DataCategoryExact) &&
-                                this.state.data[`reservedCpe${capitalizedApiName}`]
-                              }
-                              value={this.state.data[`reserved${capitalizedApiName}`]}
-                              onChange={v =>
-                                this.setState(state => ({
-                                  ...state,
-                                  data: {
-                                    ...state.data,
-                                    [`reserved${capitalizedApiName}`]: v,
-                                  },
-                                }))
-                              }
-                            />
-                            <SelectField
-                              label={`Soft Cap Type ${titleName}`}
-                              name={`softCapType${capitalizedApiName}`}
-                              clearable
-                              required={false}
-                              choices={[
-                                ['ON_DEMAND', 'On Demand'],
-                                ['TRUE_FORWARD', 'True Forward'],
-                              ]}
-                              disabled={this.isEnablingOnDemandMaxSpend()}
-                              value={this.state.data[`softCapType${capitalizedApiName}`]}
-                              onChange={v =>
-                                this.setState(state => ({
-                                  ...state,
-                                  data: {
-                                    ...state.data,
-                                    [`softCapType${capitalizedApiName}`]: v,
-                                  },
-                                }))
-                              }
-                            />
-                            {[
-                              DataCategoryExact.SPAN,
-                              DataCategoryExact.SPAN_INDEXED,
-                            ].includes(category as DataCategoryExact) && (
-                              <StyledDollarsAndCentsField
-                                label={`Reserved Cost-Per-${titleName}`}
-                                name={`reservedCpe${capitalizedApiName}`}
-                                disabled={!isAm3Ds}
-                                value={data[`reservedCpe${capitalizedApiName}`]}
-                                step={0.00000001}
-                                min={0.00000001}
-                                max={1}
+                {this.state.data.plan &&
+                  (this.state.provisionablePlans[this.state.data.plan]?.categories
+                    .length ?? 0) > 0 && (
+                    <Fragment>
+                      <SectionHeader>Plan Quotas</SectionHeader>
+                      <SectionHeaderDescription>
+                        Monthly quantities for each SKU
+                      </SectionHeaderDescription>
+                      {Object.entries(DATA_CATEGORY_INFO)
+                        .filter(
+                          ([_, categoryInfo]) =>
+                            this.state.data.plan &&
+                            this.state.provisionablePlans[
+                              this.state.data.plan
+                            ]?.categories.includes(categoryInfo.plural)
+                        )
+                        .map(([category, categoryInfo]) => {
+                          const titleName =
+                            category === DataCategoryExact.SPAN && isAm3Ds
+                              ? 'Accepted Spans'
+                              : categoryInfo.titleName;
+                          const suffix =
+                            category === DataCategoryExact.ATTACHMENT
+                              ? ' (in GB)'
+                              : category === DataCategoryExact.PROFILE_DURATION
+                                ? ' (in hours)'
+                                : '';
+                          const capitalizedApiName = capitalize(categoryInfo.plural);
+                          return (
+                            <Fragment key={categoryInfo.plural}>
+                              <NumberField
+                                label={`Reserved ${titleName}${suffix}`}
+                                name={`reserved${capitalizedApiName}`}
+                                required={
+                                  category === DataCategoryExact.ERROR
+                                    ? !!data.plan
+                                    : isAmEnt
+                                }
+                                disabled={
+                                  [
+                                    DataCategoryExact.SPAN,
+                                    DataCategoryExact.SPAN_INDEXED,
+                                  ].includes(category as DataCategoryExact) &&
+                                  this.state.data[`reservedCpe${capitalizedApiName}`]
+                                }
+                                value={this.state.data[`reserved${capitalizedApiName}`]}
                                 onChange={v =>
                                   this.setState(state => ({
                                     ...state,
                                     data: {
                                       ...state.data,
-                                      [`reservedCpe${capitalizedApiName}`]: v,
+                                      [`reserved${capitalizedApiName}`]: v,
                                     },
                                   }))
                                 }
-                                onBlur={() => {
-                                  const currentValue = parseFloat(
-                                    this.state.data[`reservedCpe${capitalizedApiName}`]
-                                  );
-                                  if (!isNaN(currentValue)) {
-                                    this.setState(state => ({
-                                      ...state,
-                                      data: {
-                                        ...state.data,
-                                        [`reservedCpe${capitalizedApiName}`]:
-                                          currentValue.toFixed(CPE_DECIMAL_PRECISION),
-                                      },
-                                    }));
-                                  }
-                                }}
                               />
-                            )}
-                            {this.isEnablingOnDemandMaxSpend() && (
-                              <StyledDollarsAndCentsField
-                                label={`On-Demand Cost-Per-${titleName}`}
-                                name={`paygCpe${capitalizedApiName}`}
-                                value={data[`paygCpe${capitalizedApiName}`]}
-                                step={0.00000001}
-                                min={0.00000001}
-                                max={1}
+                              <SelectField
+                                label={`Soft Cap Type ${titleName}`}
+                                name={`softCapType${capitalizedApiName}`}
+                                clearable
+                                required={false}
+                                choices={[
+                                  ['ON_DEMAND', 'On Demand'],
+                                  ['TRUE_FORWARD', 'True Forward'],
+                                ]}
+                                disabled={this.isEnablingOnDemandMaxSpend()}
+                                value={
+                                  this.state.data[`softCapType${capitalizedApiName}`]
+                                }
                                 onChange={v =>
                                   this.setState(state => ({
                                     ...state,
                                     data: {
                                       ...state.data,
-                                      [`paygCpe${capitalizedApiName}`]: v,
+                                      [`softCapType${capitalizedApiName}`]: v ? v : null,
                                     },
                                   }))
                                 }
-                                onBlur={() => {
-                                  const currentValue = parseFloat(
-                                    this.state.data[`paygCpe${capitalizedApiName}`]
-                                  );
-                                  if (!isNaN(currentValue)) {
+                              />
+                              {[
+                                DataCategoryExact.SPAN,
+                                DataCategoryExact.SPAN_INDEXED,
+                              ].includes(category as DataCategoryExact) && (
+                                <StyledDollarsAndCentsField
+                                  label={`Reserved Cost-Per-${titleName}`}
+                                  name={`reservedCpe${capitalizedApiName}`}
+                                  disabled={!isAm3Ds}
+                                  value={data[`reservedCpe${capitalizedApiName}`]}
+                                  step={0.00000001}
+                                  min={0.00000001}
+                                  max={1}
+                                  onChange={v =>
                                     this.setState(state => ({
                                       ...state,
                                       data: {
                                         ...state.data,
-                                        [`paygCpe${capitalizedApiName}`]:
-                                          currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                        [`reservedCpe${capitalizedApiName}`]: v,
                                       },
-                                    }));
+                                    }))
                                   }
-                                }}
-                              />
-                            )}
-                          </Fragment>
-                        );
-                      })}
-                  </Fragment>
-                )}
+                                  onBlur={() => {
+                                    const currentValue = parseFloat(
+                                      this.state.data[`reservedCpe${capitalizedApiName}`]
+                                    );
+                                    if (!isNaN(currentValue)) {
+                                      this.setState(state => ({
+                                        ...state,
+                                        data: {
+                                          ...state.data,
+                                          [`reservedCpe${capitalizedApiName}`]:
+                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                        },
+                                      }));
+                                    }
+                                  }}
+                                />
+                              )}
+                              {this.isEnablingOnDemandMaxSpend() && (
+                                <StyledDollarsAndCentsField
+                                  label={`On-Demand Cost-Per-${titleName}`}
+                                  name={`paygCpe${capitalizedApiName}`}
+                                  value={data[`paygCpe${capitalizedApiName}`]}
+                                  step={0.00000001}
+                                  min={0.00000001}
+                                  max={1}
+                                  onChange={v =>
+                                    this.setState(state => ({
+                                      ...state,
+                                      data: {
+                                        ...state.data,
+                                        [`paygCpe${capitalizedApiName}`]: v,
+                                      },
+                                    }))
+                                  }
+                                  onBlur={() => {
+                                    const currentValue = parseFloat(
+                                      this.state.data[`paygCpe${capitalizedApiName}`]
+                                    );
+                                    if (!isNaN(currentValue)) {
+                                      this.setState(state => ({
+                                        ...state,
+                                        data: {
+                                          ...state.data,
+                                          [`paygCpe${capitalizedApiName}`]:
+                                            currentValue.toFixed(CPE_DECIMAL_PRECISION),
+                                        },
+                                      }));
+                                    }
+                                  }}
+                                />
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                    </Fragment>
+                  )}
               </div>
               <div>
                 <SectionHeader>Reserved Volume Prices</SectionHeader>
@@ -903,8 +887,12 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   Annual prices for reserved volumes, in whole dollars.
                 </SectionHeaderDescription>
                 {Object.entries(DATA_CATEGORY_INFO)
-                  .filter(([_, categoryInfo]) =>
-                    this.state.currentCategories.includes(categoryInfo.plural)
+                  .filter(
+                    ([_, categoryInfo]) =>
+                      this.state.data.plan &&
+                      this.state.provisionablePlans[
+                        this.state.data.plan
+                      ]?.categories.includes(categoryInfo.plural)
                   )
                   .map(([category, categoryInfo]) => {
                     const titleName =
