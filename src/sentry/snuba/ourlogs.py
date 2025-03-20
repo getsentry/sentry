@@ -49,6 +49,7 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     return run_table_query(
         query_string=query or "",
@@ -64,4 +65,5 @@ def query(
                 use_aggregate_conditions=use_aggregate_conditions,
             ),
         ),
+        debug=debug,
     )

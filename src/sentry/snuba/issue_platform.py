@@ -40,6 +40,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -100,6 +101,8 @@ def query(
     if conditions is not None:
         builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer, query_source=query_source))
+    if debug:
+        result["meta"]["query"] = str(builder.get_snql_query().query)
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 

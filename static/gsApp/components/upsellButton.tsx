@@ -1,18 +1,16 @@
-import {Button} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {IconBusiness} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
 import type {Subscription} from 'getsentry/types';
 
-type Props = Pick<
-  React.ComponentProps<typeof UpsellProvider>,
-  'source' | 'extraAnalyticsParams'
-> &
-  Omit<React.ComponentProps<typeof Button>, 'aria-label'> & {
-    organization?: Organization;
-    subscription?: Subscription;
-  };
+interface Props
+  extends Omit<ButtonProps, 'aria-label'>,
+    Pick<React.ComponentProps<typeof UpsellProvider>, 'source' | 'extraAnalyticsParams'> {
+  organization?: Organization;
+  subscription?: Subscription;
+}
 
 function UpsellButton({
   source,

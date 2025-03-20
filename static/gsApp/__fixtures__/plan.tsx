@@ -14,6 +14,7 @@ export function PlanFixture(fields: Partial<Plan>): Plan {
     features: [],
     hasOnDemandModes: false,
     id: 'am2_f',
+    isTestPlan: false,
     maxMembers: 1,
     name: 'Developer',
     onDemandCategories: [],

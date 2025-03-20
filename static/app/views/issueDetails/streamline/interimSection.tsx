@@ -18,9 +18,22 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
  */
 export const InterimSection = forwardRef<
   HTMLElement,
-  EventDataSectionProps & Pick<FoldSectionProps, 'initialCollapse' | 'preventCollapse'>
+  EventDataSectionProps &
+    Pick<
+      FoldSectionProps,
+      'initialCollapse' | 'preventCollapse' | 'disableCollapsePersistence'
+    >
 >(function InterimSection(
-  {children, title, type, actions = null, initialCollapse, preventCollapse, ...props},
+  {
+    children,
+    title,
+    type,
+    actions = null,
+    initialCollapse,
+    preventCollapse,
+    disableCollapsePersistence,
+    ...props
+  },
   ref
 ) {
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -33,6 +46,7 @@ export const InterimSection = forwardRef<
       ref={ref}
       initialCollapse={initialCollapse}
       preventCollapse={preventCollapse}
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       {children}
     </FoldSection>

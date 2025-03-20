@@ -1,5 +1,3 @@
-import 'intersection-observer'; // polyfill
-
 import {useEffect, useState} from 'react';
 
 /**

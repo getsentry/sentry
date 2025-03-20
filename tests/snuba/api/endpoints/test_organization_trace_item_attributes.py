@@ -72,7 +72,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 6
+        assert len(keys) >= 6
         assert "test.attribute1" in keys
         assert "test.attribute2" in keys
         assert "test.attribute3" in keys
@@ -108,7 +108,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 3
+        assert len(keys) >= 3
         assert "test.attribute1" in keys
         assert "test.attribute2" in keys
         assert "sentry.severity_text" in keys

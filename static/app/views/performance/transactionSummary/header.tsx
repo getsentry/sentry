@@ -34,7 +34,6 @@ import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader'
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
-import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
@@ -105,8 +104,6 @@ function TransactionHeader({
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.AGGREGATE_WATERFALL:
-          return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.TRANSACTION_SUMMARY:
         default:
           return transactionSummaryRouteWithQuery(routeQuery);
@@ -153,10 +150,6 @@ function TransactionHeader({
     project &&
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
-
-  const hasAggregateWaterfall = organization.features.includes(
-    'insights-initial-modules'
-  );
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -235,13 +228,6 @@ function TransactionHeader({
               hidden={!hasProfiling}
             >
               {t('Profiles')}
-            </TabList.Item>
-            <TabList.Item
-              key={Tab.AGGREGATE_WATERFALL}
-              textValue={t('Aggregate Spans')}
-              hidden={!hasAggregateWaterfall}
-            >
-              {t('Aggregate Spans')}
             </TabList.Item>
           </TabList>
         );
@@ -436,13 +422,6 @@ function TransactionHeader({
                 hidden={!hasProfiling}
               >
                 {t('Profiles')}
-              </TabList.Item>
-              <TabList.Item
-                key={Tab.AGGREGATE_WATERFALL}
-                textValue={t('Aggregate Spans')}
-                hidden={!hasAggregateWaterfall}
-              >
-                {t('Aggregate Spans')}
               </TabList.Item>
             </TabList>
           );

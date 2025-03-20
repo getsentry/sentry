@@ -23,10 +23,8 @@ describe('BigNumberWidgetVisualization', () => {
             <BigNumberWidgetVisualization
               value={Infinity}
               field="count()"
-              meta={{
-                type: 'number',
-                unit: null,
-              }}
+              type="number"
+              unit={null}
             />
           }
         />
@@ -40,10 +38,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={'2024-10-17T16:08:07+00:00'}
           field="max(timestamp)"
-          meta={{
-            type: 'date',
-            unit: null,
-          }}
+          type="date"
+          unit={null}
         />
       );
 
@@ -55,10 +51,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={'/api/0/fetch'}
           field="any(transaction)"
-          meta={{
-            type: 'string',
-            unit: null,
-          }}
+          type="string"
+          unit={null}
         />
       );
 
@@ -70,10 +64,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={17.28}
           field="p95(span.duration)"
-          meta={{
-            type: 'duration',
-            unit: DurationUnit.MILLISECOND,
-          }}
+          type="duration"
+          unit={DurationUnit.MILLISECOND}
         />
       );
 
@@ -85,10 +77,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={178451214}
           field="count()"
-          meta={{
-            type: 'integer',
-            unit: null,
-          }}
+          type="integer"
+          unit={null}
         />
       );
 
@@ -103,10 +93,8 @@ describe('BigNumberWidgetVisualization', () => {
           value={178451214}
           field="count()"
           maximumValue={100000000}
-          meta={{
-            type: 'integer',
-            unit: null,
-          }}
+          type="integer"
+          unit={null}
         />
       );
 
@@ -121,10 +109,8 @@ describe('BigNumberWidgetVisualization', () => {
           value={0.14227123}
           previousPeriodValue={0.1728139}
           field="http_response_code_rate(500)"
-          meta={{
-            type: 'percentage',
-            unit: null,
-          }}
+          type="percentage"
+          unit={null}
         />
       );
 
@@ -139,10 +125,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={14.227123}
           field="eps()"
-          meta={{
-            type: 'rate',
-            unit: RateUnit.PER_SECOND,
-          }}
+          type="rate"
+          unit={RateUnit.PER_SECOND}
           thresholds={{
             max_values: {
               max1: 10,
@@ -164,10 +148,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={135} //  2.25/s
           field="mystery_error_rate()"
-          meta={{
-            type: 'rate',
-            unit: RateUnit.PER_MINUTE,
-          }}
+          type="rate"
+          unit={RateUnit.PER_MINUTE}
           thresholds={{
             max_values: {
               max1: 2,
@@ -186,10 +168,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={135}
           field="mystery_error_rate()"
-          meta={{
-            type: 'rate',
-            unit: RateUnit.PER_SECOND,
-          }}
+          type="rate"
+          unit={RateUnit.PER_SECOND}
           thresholds={{
             max_values: {
               max1: 200,

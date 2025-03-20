@@ -55,6 +55,7 @@ def query(
     granularity: int | None = None,
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -91,6 +92,8 @@ def query(
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
+        if debug:
+            results["meta"]["query"] = str(metrics_query.get_snql_query().query)
         sentry_sdk.set_tag("performance.dataset", "metrics")
         sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
         return results

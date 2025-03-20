@@ -116,6 +116,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
               {t('Unknown Status')}
               <QuestionTooltip
                 size="sm"
+                isHoverable
                 title={tct(
                   'Sentry was unable to determine the check-in status. [link:Learn More].',
                   {

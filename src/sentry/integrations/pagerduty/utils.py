@@ -21,7 +21,6 @@ from sentry.models.organization import Organization
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
-from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -95,45 +94,39 @@ def get_service(
 
 def build_incident_attachment(
     alert_context: AlertContext,
-    open_period_identifier: int,
+    metric_issue_context: MetricIssueContext,
     organization: Organization,
-    snuba_query: SnubaQuery,
     integration_key,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
 
     data = incident_attachment_info(
-        alert_context=alert_context,
-        open_period_identifier=open_period_identifier,
         organization=organization,
-        snuba_query=snuba_query,
-        metric_value=metric_value,
-        new_status=new_status,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
         notification_uuid=notification_uuid,
         referrer="metric_alert_pagerduty",
     )
     severity = "info"
-    if new_status == IncidentStatus.CRITICAL:
+    if metric_issue_context.new_status == IncidentStatus.CRITICAL:
         severity = "critical"
-    elif new_status == IncidentStatus.WARNING:
+    elif metric_issue_context.new_status == IncidentStatus.WARNING:
         severity = "warning"
-    elif new_status == IncidentStatus.CLOSED:
+    elif metric_issue_context.new_status == IncidentStatus.CLOSED:
         severity = "info"
 
     event_action = "resolve"
-    if new_status in [IncidentStatus.WARNING, IncidentStatus.CRITICAL]:
+    if metric_issue_context.new_status in [IncidentStatus.WARNING, IncidentStatus.CRITICAL]:
         event_action = "trigger"
 
     return {
         "routing_key": integration_key,
         "event_action": event_action,
-        "dedup_key": f"incident_{organization.id}_{open_period_identifier}",
+        "dedup_key": f"incident_{organization.id}_{metric_issue_context.open_period_identifier}",
         "payload": {
             "summary": alert_context.name,
             "severity": severity,
-            "source": str(open_period_identifier),
+            "source": str(metric_issue_context.open_period_identifier),
             "custom_details": {"details": data["text"]},
         },
         "links": [{"href": data["title_link"], "text": data["title"]}],
@@ -224,12 +217,9 @@ def send_incident_alert_notification(
 
     attachment = build_incident_attachment(
         alert_context=alert_context,
-        open_period_identifier=metric_issue_context.open_period_identifier,
+        metric_issue_context=metric_issue_context,
         organization=organization,
-        snuba_query=metric_issue_context.snuba_query,
         integration_key=client.integration_key,
-        new_status=metric_issue_context.new_status,
-        metric_value=metric_issue_context.metric_value,
         notification_uuid=notification_uuid,
     )
     attachment = attach_custom_severity(

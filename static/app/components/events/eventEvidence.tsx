@@ -11,13 +11,23 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-type EvidenceProps = {event: Event; project: Project; group?: Group};
+type EvidenceProps = {
+  event: Event;
+  project: Project;
+  disableCollapsePersistence?: boolean;
+  group?: Group;
+};
 
 /**
  * This component is rendered whenever an `event.occurrence.evidenceDisplay` is
  * present and the issue type config is set up to use evidenceDisplay.
  */
-export function EventEvidence({event, group, project}: EvidenceProps) {
+export function EventEvidence({
+  event,
+  group,
+  project,
+  disableCollapsePersistence,
+}: EvidenceProps) {
   if (!event.occurrence) {
     return null;
   }
@@ -40,6 +50,7 @@ export function EventEvidence({event, group, project}: EvidenceProps) {
       type={SectionKey.EVIDENCE}
       title={config.title}
       help={config.helpText}
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       <KeyValueList
         data={evidenceDisplay.map(item => ({

@@ -82,6 +82,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
+    debug: bool = False,
 ) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         query_string,
@@ -91,6 +92,7 @@ def run_table_query(
         limit,
         referrer,
         search_resolver or get_resolver(params, config),
+        debug,
     )
 
 

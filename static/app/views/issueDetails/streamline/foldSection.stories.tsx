@@ -60,6 +60,25 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
     );
   });
 
+  story('Disabling persistence of collapsed state', () => {
+    return (
+      <Fragment>
+        <FoldSection
+          title="Disable Persistence Section"
+          sectionKey={SectionKey.HIGHLIGHTS}
+          disableCollapsePersistence
+        >
+          <Lorem />
+        </FoldSection>
+        <CodeSnippet language="jsx">
+          {`<FoldSection title="Disable Persistence Section" sectionKey={SectionKey.MY_SECTION} disableCollapsePersistence>
+  <p>Lorem ipsum...</p>
+</FoldSection>`}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
   story('Custom headers/titles for the section', () => {
     return (
       <Fragment>

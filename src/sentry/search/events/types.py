@@ -71,6 +71,8 @@ class EventsMeta(TypedDict):
     isMetricsData: NotRequired[bool]
     isMetricsExtractedData: NotRequired[bool]
     discoverSplitDecision: NotRequired[str]
+    # only returned when debug=True
+    query: NotRequired[dict[str, Any] | str]
 
 
 class EventsResponse(TypedDict):
