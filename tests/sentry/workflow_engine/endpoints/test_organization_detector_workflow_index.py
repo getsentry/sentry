@@ -1,5 +1,10 @@
+from sentry import audit_log
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
 
@@ -117,9 +122,30 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         )
         assert response.data == {
             "id": str(detector_workflow.id),
-            "detectorId": str(self.unconnected_workflow.id),
-            "workflowId": str(self.unconnected_detector.id),
+            "detectorId": str(self.unconnected_detector.id),
+            "workflowId": str(self.unconnected_workflow.id),
         }
+
+    def test_audit_entry(self):
+        body_params = {
+            "detectorId": self.unconnected_detector.id,
+            "workflowId": self.unconnected_workflow.id,
+        }
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                **body_params,
+                status_code=200,
+            )
+        detector_workflow = DetectorWorkflow.objects.get(
+            detector_id=self.unconnected_detector.id, workflow_id=self.unconnected_workflow.id
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                target_object=detector_workflow.id,
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+                actor=self.user,
+            ).exists()
 
     def test_duplicate(self):
         body_params = {"detectorId": self.detector_1.id, "workflowId": self.workflow_1.id}
@@ -161,8 +187,24 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
             qs_params={"detector_id": self.detector_1.id},
             status_code=204,
         )
+        with self.tasks():
+            run_scheduled_deletions()
         assert not DetectorWorkflow.objects.filter(detector_id=self.detector_1.id).exists()
         assert DetectorWorkflow.objects.filter(detector_id=self.detector_2.id).exists()
+
+    def test_audit_entry(self):
+        with outbox_runner():
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={"detector_id": self.detector_1.id, "workflow_id": self.workflow_1.id},
+                status_code=204,
+            )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                target_object=self.detector_1_workflow_1.id,
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                actor=self.user,
+            ).exists()
 
     def test_invalid_id(self):
         self.get_error_response(
