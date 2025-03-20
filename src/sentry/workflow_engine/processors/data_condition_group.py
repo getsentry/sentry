@@ -126,9 +126,13 @@ def process_data_condition_group(
     conditions_to_evaluate = [(condition, value) for condition in conditions]
     logic_result, condition_results = evaluate_data_conditions(conditions_to_evaluate, logic_type)
 
-    if (not logic_result and logic_type == DataConditionGroup.Type.ALL) or (
-        logic_result and logic_type == DataConditionGroup.Type.ANY
-    ):
+    is_short_circuit_all = not logic_result and logic_type == DataConditionGroup.Type.ALL
+    is_short_circuit_any = logic_result and logic_type in (
+        DataConditionGroup.Type.ANY,
+        DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+    )
+
+    if is_short_circuit_all or is_short_circuit_any:
         # if we have a logic type of all and a False result,
         # or if we have a logic type of any and a True result, then
         #  we can short-circuit any remaining conditions since we have a completed logic result

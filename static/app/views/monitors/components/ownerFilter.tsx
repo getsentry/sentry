@@ -1,5 +1,6 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';
 
@@ -35,6 +36,7 @@ export function OwnerFilter({selectedOwners, onChangeFilter}: OwnerFilterProps) 
       clearable
       searchable
       loading={fetching}
+      disabled={isDemoModeActive()}
       menuTitle={t('Filter owners')}
       options={[{label: t('Suggested'), options: suggestedOptions}, ...options]}
       value={selectedOwners}

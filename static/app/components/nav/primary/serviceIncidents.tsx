@@ -1,8 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {
   SidebarButton,
-  SidebarItem,
   SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
 import {
@@ -24,7 +24,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
   } = usePrimaryButtonOverlay();
 
   return (
-    <SidebarItem>
+    <Fragment>
       <SidebarButton
         analyticsKey="statusupdate"
         label={t('Service status')}
@@ -42,7 +42,7 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
           ))}
         </PrimaryButtonOverlay>
       )}
-    </SidebarItem>
+    </Fragment>
   );
 }
 export function PrimaryNavigationServiceIncidents() {

@@ -316,9 +316,10 @@ function IssueListOverview({router}: Props) {
       ...getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
-      savedSearch: savedSearchLoading
-        ? savedSearchLookupEnabled
-        : savedSearchLookupDisabled,
+      savedSearch:
+        savedSearchLoading && !prefersStackedNav
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled,
     };
 
     if (selectedSearchId) {
@@ -343,7 +344,13 @@ function IssueListOverview({router}: Props) {
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query, savedSearchLoading, selectedSearchId]);
+  }, [
+    getEndpointParams,
+    location.query,
+    savedSearchLoading,
+    selectedSearchId,
+    prefersStackedNav,
+  ]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);

@@ -4,6 +4,7 @@ import {motion, Reorder, useDragControls} from 'framer-motion';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useNavContext} from 'sentry/components/nav/context';
 import {GrabHandleIcon} from 'sentry/components/nav/issueViews/grabHandleIcon';
 import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueViewNavEditableTitle';
@@ -38,7 +39,7 @@ export interface IssueViewNavItemContentProps {
   /**
    * Whether an item is being dragged.
    */
-  isDragging: boolean;
+  isDragging: string | null;
   /**
    * Whether the item is the last view in the list.
    * This will be removed once view sharing/starring is implemented.
@@ -63,7 +64,7 @@ export interface IssueViewNavItemContentProps {
   /**
    * A callback function that updates the isDragging state.
    */
-  setIsDragging: (isDragging: boolean) => void;
+  setIsDragging: (isDragging: string | null) => void;
   /**
    * The issue view to display
    */
@@ -129,6 +130,8 @@ export function IssueViewNavItemContent({
 
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
+  const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+
   return (
     <StyledReorderItem
       as="div"
@@ -137,23 +140,28 @@ export function IssueViewNavItemContent({
       dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
       value={view}
       onDragStart={() => {
-        setIsDragging(true);
+        setIsDragging(view.id);
         startInteraction();
       }}
       onDragEnd={() => {
-        setIsDragging(false);
+        setIsDragging(null);
         onReorderComplete();
         endInteraction();
       }}
       dragListener={false}
       dragControls={controls}
+      // This style is a hack to fix a framer-motion bug that causes views to
+      // jump from the bottom of the nav bar to their correct positions
+      // upon scrolling down on the page and triggering a page navigation.
+      // See: https://github.com/motiondivision/motion/issues/2006
       style={{
-        ...(isDragging
+        ...(isDragging || scrollPosition === 0
           ? {}
           : {
               originY: '0px',
             }),
       }}
+      grabbing={isDragging === view.id}
     >
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
@@ -168,6 +176,7 @@ export function IssueViewNavItemContent({
                 e.preventDefault();
               }}
             >
+              <StyledInteractionStateLayer isPressed={isDragging === view.id} />
               <GrabHandleIcon color="gray300" />
             </GrabHandleWrapper>
             <ProjectIcon projectPlatforms={projectPlatforms} />
@@ -205,6 +214,7 @@ export function IssueViewNavItemContent({
             });
           }
         }}
+        analyticsItemName="issues_view_starred"
       >
         <IssueViewNavEditableTitle
           label={view.label}
@@ -218,7 +228,7 @@ export function IssueViewNavItemContent({
             });
           }}
           setIsEditing={setIsEditing}
-          isDragging={isDragging}
+          isDragging={!!isDragging}
         />
         {view.unsavedChanges && (
           <Tooltip
@@ -342,9 +352,15 @@ const hasUnsavedChanges = (
 
 // Reorder.Item does handle lifting an item being dragged above other items out of the box,
 // but we need to ensure the item is relatively positioned and has a background color for it to work
-const StyledReorderItem = styled(Reorder.Item)`
+const StyledReorderItem = styled(Reorder.Item)<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  height: 120%;
+  border-radius: 4px;
 `;
 
 const TrailingItemsWrapper = styled('div')`
@@ -357,14 +373,12 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
 
-  /* Hide the ellipsis menu if not hovered, or if it's not expanded  */
-  :not(:hover):not(:has([data-ellipsis-menu-trigger][aria-expanded='true'])) {
-    [data-ellipsis-menu-trigger] {
+  /* Hide the ellipsis menu if the item is not hovered */
+  :not(:hover) {
+    [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
       ${p => p.theme.visuallyHidden}
     }
-  }
 
-  :not(:hover) {
     [data-drag-icon] {
       ${p => p.theme.visuallyHidden}
     }
@@ -381,8 +395,7 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   }
 
   /* Hide the query count if the ellipsis menu is expanded */
-  &:has([data-ellipsis-menu-trigger][aria-expanded='true'])
-    [data-issue-view-query-count] {
+  :has([data-ellipsis-menu-trigger][aria-expanded='true']) [data-issue-view-query-count] {
     ${p => p.theme.visuallyHidden}
   }
 `;
@@ -402,8 +415,8 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   background: ${p => p.theme.purple400};
   border: solid 2px ${p => p.theme.surface200};
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   top: -3px;
   right: -3px;
 `;
@@ -413,13 +426,13 @@ const LeadingItemsWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-right: ${space(0.75)};
 `;
 
 const GrabHandleWrapper = styled(motion.div)`
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: ${space(0.75)};
   width: 18px;
   height: 18px;
   cursor: grab;

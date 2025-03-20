@@ -21,6 +21,7 @@ export const MODULES = [
   ModuleName.HTTP,
   ModuleName.RESOURCE,
   ModuleName.SESSIONS,
+  ModuleName.UPTIME,
 ];
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py, except shared platforms are removed

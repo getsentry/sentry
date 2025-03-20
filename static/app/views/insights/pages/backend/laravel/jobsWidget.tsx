@@ -34,7 +34,9 @@ function createEmptySeries(color: string, seriesName: string): DiscoverSeries {
     data: [],
     seriesName,
     meta: {
-      fields: {},
+      fields: {
+        [seriesName]: 'integer',
+      },
       units: {},
     },
     color,
@@ -85,9 +87,7 @@ export function JobsWidget({query}: {query?: string}) {
           fields: {
             [name]: 'integer',
           },
-          units: {
-            [name]: '',
-          },
+          units: {},
         },
         color,
       };
@@ -107,7 +107,12 @@ export function JobsWidget({query}: {query?: string}) {
 
   const plottables = useMemo(() => {
     return timeSeries.map(
-      ts => new Bars(convertSeriesToTimeseries(ts), {color: ts.color, stack: 'stack'})
+      ts =>
+        new Bars(convertSeriesToTimeseries(ts), {
+          color: ts.color,
+          stack: 'stack',
+          alias: seriesAliases[ts.seriesName as 'ok' | 'internal_error'],
+        })
     );
   }, [timeSeries]);
 
@@ -120,7 +125,6 @@ export function JobsWidget({query}: {query?: string}) {
       isEmpty={isEmpty}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        aliases: seriesAliases,
         plottables,
       }}
     />

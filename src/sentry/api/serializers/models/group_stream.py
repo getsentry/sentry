@@ -155,7 +155,7 @@ class GroupStatsMixin:
                 query_params = {
                     "start": stats_query_args.stats_period_start,
                     "end": stats_query_args.stats_period_end,
-                    "rollup": int(rollup),
+                    "rollup": max(int(rollup), 1),  # Zero is a bad thing to divide by
                 }
             else:
                 segments, interval = self.STATS_PERIOD_CHOICES[stats_query_args.stats_period]

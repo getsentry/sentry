@@ -61,7 +61,7 @@ class FeedbackCreationSource(Enum):
         }
 
 
-def make_evidence(feedback, is_message_spam: bool | None):
+def make_evidence(feedback, source: FeedbackCreationSource, is_message_spam: bool | None):
     evidence_data = {}
     evidence_display = []
     if feedback.get("associated_event_id"):
@@ -85,8 +85,11 @@ def make_evidence(feedback, is_message_spam: bool | None):
         evidence_data["name"] = feedback["name"]
         evidence_display.append(IssueEvidence(name="name", value=feedback["name"], important=False))
 
+    evidence_data["source"] = source.value  # Used by alerts post process.
+    # Exluding this from the display, since it's not useful to users.
+
     if is_message_spam is True:
-        evidence_data["is_spam"] = is_message_spam
+        evidence_data["is_spam"] = is_message_spam  # Used by alerts post process.
         evidence_display.append(
             IssueEvidence(name="is_spam", value=str(is_message_spam), important=False)
         )
@@ -328,7 +331,9 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
     # are not used by the feedback UI, but are required.
     event["event_id"] = event.get("event_id") or uuid4().hex
     detection_time = datetime.fromtimestamp(event["timestamp"], UTC)
-    evidence_data, evidence_display = make_evidence(event["contexts"]["feedback"], is_message_spam)
+    evidence_data, evidence_display = make_evidence(
+        event["contexts"]["feedback"], source, is_message_spam
+    )
     issue_fingerprint = [uuid4().hex]
     occurrence = IssueOccurrence(
         id=uuid4().hex,

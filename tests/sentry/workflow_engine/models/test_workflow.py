@@ -86,3 +86,27 @@ class WorkflowTest(BaseWorkflowTest):
 
         with pytest.raises(ValidationError):
             workflow2.full_clean()
+
+    def test_duplicate_name(self):
+        name = "my-dupe-name"
+        self.create_workflow(
+            organization_id=self.organization.id,
+            name=name,
+            environment_id=None,
+            when_condition_group=self.create_data_condition_group(),
+            created_by_id=None,
+            owner_user_id=None,
+            owner_team=None,
+            config={"frequency": 30},
+        )
+        self.create_workflow(
+            organization_id=self.organization.id,
+            name=name,
+            environment_id=None,
+            when_condition_group=self.create_data_condition_group(),
+            created_by_id=None,
+            owner_user_id=None,
+            owner_team=None,
+            config={"frequency": 5},
+        )
+        assert Workflow.objects.filter(name=name).count() == 2

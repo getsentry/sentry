@@ -1,12 +1,21 @@
+from typing import cast
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, Function
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    ExistsFilter,
+    TraceItemFilter,
+)
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
     ArgumentDefinition,
     ConditionalAggregateDefinition,
+    ResolvedArguments,
 )
+from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
+from sentry.search.eap.utils import literal_validator
 
 
 def count_processor(count_value: int | None) -> int:
@@ -16,8 +25,10 @@ def count_processor(count_value: int | None) -> int:
         return count_value
 
 
-def resolve_count_op_filter(op_value: str) -> TraceItemFilter:
-    return TraceItemFilter(
+def resolve_count_op(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    op_value = cast(str, args[0])
+
+    filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=AttributeKey(
                 name="sentry.op",
@@ -27,6 +38,31 @@ def resolve_count_op_filter(op_value: str) -> TraceItemFilter:
             value=AttributeValue(val_str=op_value),
         )
     )
+    return (AttributeKey(name="sentry.op", type=AttributeKey.TYPE_STRING), filter)
+
+
+def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    aggregate_key = cast(AttributeKey, args[0])
+    key = cast(AttributeKey, args[1])
+    value = cast(str, args[2])
+
+    filter = TraceItemFilter(
+        comparison_filter=ComparisonFilter(
+            key=key,
+            op=ComparisonFilter.OP_EQUALS,
+            value=AttributeValue(val_str=value),
+        )
+    )
+    return (aggregate_key, filter)
+
+
+# TODO: We should eventually update the frontend to query the ratio column directly
+def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    score_attribute = cast(AttributeKey, args[0])
+    ratio_attribute = transform_vital_score_to_ratio([score_attribute])
+    filter = TraceItemFilter(exists_filter=ExistsFilter(key=ratio_attribute))
+
+    return (ratio_attribute, filter)
 
 
 SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
@@ -34,9 +70,50 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
         arguments=[ArgumentDefinition(argument_types={"string"}, is_attribute=False)],
-        key=AttributeKey(type=AttributeKey.TYPE_STRING, name="sentry.op"),
-        filter_resolver=resolve_count_op_filter,
-    )
+        aggregate_resolver=resolve_count_op,
+    ),
+    "avg_if": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="duration",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ArgumentDefinition(
+                argument_types={
+                    "string",
+                },
+            ),
+            ArgumentDefinition(
+                argument_types={"string"},
+                is_attribute=False,
+            ),
+        ],
+        aggregate_resolver=resolve_key_eq_value_filter,
+    ),
+    "count_scores": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            )
+        ],
+        aggregate_resolver=resolve_count_scores,
+    ),
 }
 
 SPAN_AGGREGATE_DEFINITIONS = {
@@ -271,5 +348,22 @@ SPAN_AGGREGATE_DEFINITIONS = {
                 argument_types={"string"},
             )
         ],
+    ),
+    "performance_score": AggregateDefinition(
+        internal_function=Function.FUNCTION_AVG,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(WEB_VITALS_MEASUREMENTS),
+            ),
+        ],
+        attribute_resolver=transform_vital_score_to_ratio,
     ),
 }

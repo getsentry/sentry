@@ -206,8 +206,6 @@ class BaseQueryBuilder:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
-        if self.builder_config.parser_config_overrides is None:
-            self.builder_config.parser_config_overrides = {}
 
         self.dataset = dataset
 
@@ -1168,9 +1166,12 @@ class BaseQueryBuilder:
             parsed_terms = event_search.parse_search_query(
                 query,
                 params=self.filter_params,
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    **self.builder_config.parser_config_overrides,
+                ),
                 get_field_type=self.get_field_type,
                 get_function_result_type=self.get_function_result_type,
-                config_overrides=self.builder_config.parser_config_overrides,
             )
         except ParseError as e:
             if e.expr is not None:

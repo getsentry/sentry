@@ -145,6 +145,10 @@ const Header = styled('div')`
   grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: 1;
+
+  > :last-child {
+    box-shadow: -1px 0 0 0 ${p => p.theme.translucentInnerBorder};
+  }
 `;
 
 const TimelineWidthTracker = styled('div')`

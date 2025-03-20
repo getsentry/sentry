@@ -2,6 +2,7 @@ import dataclasses
 import logging
 from typing import Any
 
+from django.db import router, transaction
 from django.forms import ValidationError
 
 from sentry.incidents.grouptype import MetricAlertFire
@@ -18,6 +19,7 @@ from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -495,7 +497,8 @@ def migrate_alert_rule(
     detector_data_condition_group = create_data_condition_group(organization_id)
     detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
 
-    workflow = create_workflow(alert_rule.name, organization_id, user)
+    workflow_name = get_workflow_name(alert_rule)
+    workflow = create_workflow(workflow_name, organization_id, user)
 
     open_incident = Incident.objects.get_active_incident(alert_rule, project)
     if open_incident:
@@ -526,6 +529,26 @@ def migrate_alert_rule(
         alert_rule_workflow,
         detector_workflow,
     )
+
+
+def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> None:
+    """
+    Comprehensively dual write the ACI objects corresponding to an alert rule, its triggers, and
+    its actions. All these objects will have been created before calling this method.
+    """
+    with transaction.atomic(router.db_for_write(Detector)):
+        # step 1: migrate the alert rule
+        migrate_alert_rule(alert_rule)
+        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+        # step 2: migrate each trigger
+        for trigger in triggers:
+            migrate_metric_data_conditions(trigger)
+            trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+            # step 3: for each trigger, migrate the actions
+            for trigger_action in trigger_actions:
+                migrate_metric_action(trigger_action)
+        # step 4: migrate alert rule resolution
+        migrate_resolve_threshold_data_conditions(alert_rule)
 
 
 def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (

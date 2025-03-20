@@ -32,8 +32,8 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
 import {
@@ -176,6 +176,7 @@ function GenericBackendOverviewPage() {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,

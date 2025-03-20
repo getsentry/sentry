@@ -15,7 +15,7 @@ jest.mock('sentry/utils/removeBodyTheme');
 
 describe('useChonkTheme', () => {
   beforeEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     OrganizationStore.reset();
     ConfigStore.loadInitialData(
       ConfigFixture({
@@ -41,7 +41,7 @@ describe('useChonkTheme', () => {
   });
 
   it('returns null if organization has chonk-ui feature and session storage is unset', () => {
-    sessionStorage.clear();
+    localStorage.clear();
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -53,7 +53,7 @@ describe('useChonkTheme', () => {
   });
 
   it('returns light theme if organization has chonk-ui feature and session storage is set to light', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'light'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'light'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -65,7 +65,7 @@ describe('useChonkTheme', () => {
   });
 
   it('returns dark theme if organization has chonk-ui feature and dark theme is selected', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -77,7 +77,7 @@ describe('useChonkTheme', () => {
   });
 
   it('unsets chonk theme on config store theme change', async () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -97,7 +97,7 @@ describe('useChonkTheme', () => {
   });
 
   it('unsets chonk theme if new organization does not have chonk-ui feature', async () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
