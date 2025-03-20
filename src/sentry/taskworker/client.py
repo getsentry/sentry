@@ -18,6 +18,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
+from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
@@ -84,17 +85,19 @@ class RequestSignatureInterceptor(InterceptorBase):
 class TaskworkerClient:
     """
     Taskworker RPC client wrapper
+
+    When num_brokers is provided, the client will connect to all brokers
+    and choose a new broker to pair with randomly every max_tasks_before_rebalance tasks.
     """
 
     def __init__(
         self,
         host: str,
         num_brokers: int | None = None,
-        max_tasks_before_rebalance: int = 2048,
+        max_tasks_before_rebalance: int = DEFAULT_REBALANCE_AFTER,
     ) -> None:
         hosts = [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
 
-        # TODO(taskworker) Need to support xds bootstrap file
         grpc_config = options.get("taskworker.grpc_service_config")
         grpc_options = []
         if grpc_config:
