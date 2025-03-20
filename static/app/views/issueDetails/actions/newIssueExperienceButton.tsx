@@ -57,9 +57,6 @@ export function NewIssueExperienceButton() {
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
-  const hasEnforceStreamlinedUIFlag = organization.features.includes(
-    'issue-details-streamline-enforce'
-  );
   const hasNewUIOnly = Boolean(organization.streamlineOnly);
 
   const openForm = useFeedbackForm();
@@ -168,11 +165,7 @@ export function NewIssueExperienceButton() {
       //  - The org does not have the opt-in flag
       //  - The org has the enforce flag
       //  - The org has the new UI only option
-      hidden:
-        !hasStreamlinedUI ||
-        !hasStreamlinedUIFlag ||
-        hasEnforceStreamlinedUIFlag ||
-        hasNewUIOnly,
+      hidden: !hasStreamlinedUI || !hasStreamlinedUIFlag || hasNewUIOnly,
       onAction: handleToggle,
     },
     {
