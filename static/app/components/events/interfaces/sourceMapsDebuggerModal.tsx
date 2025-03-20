@@ -243,7 +243,12 @@ function getSourceMapsDocLinks(platform: string) {
 
 function SentryWizardCallout({
   analyticsParams,
-}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams'>) {
+  orgSlug = 'example-org',
+  projectSlug = 'example-project',
+}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams'> & {
+  orgSlug?: string;
+  projectSlug?: string;
+}) {
   return (
     <Fragment>
       <WizardInstructionParagraph>
@@ -270,7 +275,7 @@ function SentryWizardCallout({
           );
         }}
       >
-        {'npx @sentry/wizard@latest -i sourcemaps'}
+        {`npx @sentry/wizard@latest -i sourcemaps --saas --org ${orgSlug} --project ${projectSlug}`}
       </InstructionCodeSnippet>
     </Fragment>
   );
@@ -312,6 +317,9 @@ function MetaFrameworkConfigInfo({
   // ... rest of your sentry config
 });`}
         </InstructionCodeSnippet>
+        <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional">
+          {t('Read the docs for more details.')}
+        </ExternalLink>
       </p>
     );
   }
@@ -340,6 +348,9 @@ function MetaFrameworkConfigInfo({
 });
 `}
         </InstructionCodeSnippet>
+        <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload">
+          {t('Read the docs for more details.')}
+        </ExternalLink>
       </p>
     );
   }
@@ -377,6 +388,9 @@ function MetaFrameworkConfigInfo({
   // ... rest of your Vite config
 });`}
         </InstructionCodeSnippet>
+        <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/#using-vite-plugin-recommended">
+          {t('Read the docs for more details.')}
+        </ExternalLink>
       </p>
     );
   }
@@ -402,6 +416,9 @@ plugins: [
 // ... rest of your Vite config
 };`}
       </InstructionCodeSnippet>
+      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload">
+        {t('Read the docs for more details.')}
+      </ExternalLink>
     </p>
   );
 }
@@ -455,7 +472,11 @@ export function SourceMapsDebuggerModal({
             projectSlug={project?.slug}
           />
         ) : (
-          <SentryWizardCallout analyticsParams={analyticsParams} />
+          <SentryWizardCallout
+            analyticsParams={analyticsParams}
+            orgSlug={orgSlug}
+            projectSlug={project?.slug}
+          />
         )}
         <p>
           {t(
