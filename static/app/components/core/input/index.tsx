@@ -70,7 +70,10 @@ const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
 `;
 
 export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
+  extends Omit<
+      React.InputHTMLAttributes<HTMLInputElement>,
+      'size' | 'readOnly' | 'required'
+    >,
     InputStylesProps {}
 
 /**
