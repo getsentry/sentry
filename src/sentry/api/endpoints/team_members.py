@@ -16,13 +16,13 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organizationmember import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.api.serializers.user import UserSerializerWithoutEmailsResponse
 
 
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
     # NOTE: We override users to be required b/c team members will always have
     # an existing user to be part of a team.
-    user: UserSerializerResponse  # type: ignore[misc]
+    user: UserSerializerWithoutEmailsResponse  # type: ignore[misc]
     teamRole: str | None
     teamSlug: str
 
@@ -90,7 +90,10 @@ class TeamMembersEndpoint(TeamEndpoint):
         The response will not include members with pending invites.
         """
         queryset = OrganizationMemberTeam.objects.filter(
-            Q(organizationmember__user_is_active=True, organizationmember__user_id__isnull=False)
+            Q(
+                organizationmember__user_is_active=True,
+                organizationmember__user_id__isnull=False,
+            )
             | Q(organizationmember__user_id__isnull=True),
             organizationmember__organization=team.organization,
             organizationmember__invite_status=InviteStatus.APPROVED.value,
