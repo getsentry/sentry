@@ -129,7 +129,7 @@ function ReleasesDetail({children, releaseMeta}: Props) {
   }, [releaseQuery, deploysQuery, sessionsQuery]);
 
   const isLoading =
-    releaseQuery.isPending || deploysQuery.isLoading || sessionsQuery.isPending;
+    releaseQuery.isPending || deploysQuery.isPending || sessionsQuery.isPending;
 
   const isError =
     releaseQuery.isError ||
