@@ -92,7 +92,9 @@ class TaskworkerClient:
         num_brokers: int | None = None,
         max_tasks_before_rebalance: int = 2048,
     ) -> None:
-        hosts = [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
+        self._hosts: list[str] = (
+            [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
+        )
 
         # TODO(taskworker) Need to support xds bootstrap file
         grpc_config = options.get("taskworker.grpc_service_config")
@@ -100,9 +102,9 @@ class TaskworkerClient:
         if grpc_config:
             self._grpc_options = [("grpc.service_config", grpc_config)]
 
-        self._cur_stub_idx = random.randint(0, len(hosts) - 1)
+        self._cur_stub_idx = random.randint(0, len(self._hosts) - 1)
         self._stubs: dict[int, ConsumerServiceStub] = {
-            self._cur_stub_idx: self._connect_to_host(hosts[self._cur_stub_idx])
+            self._cur_stub_idx: self._connect_to_host(self._hosts[self._cur_stub_idx])
         }
         self._max_tasks_before_rebalance = max_tasks_before_rebalance
         self._num_tasks_before_rebalance = max_tasks_before_rebalance
@@ -139,6 +141,7 @@ class TaskworkerClient:
             self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
 
         self._num_tasks_before_rebalance -= 1
+        return self._cur_stub_idx, self._stubs[self._cur_stub_idx]
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
         """
