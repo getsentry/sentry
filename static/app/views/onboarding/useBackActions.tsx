@@ -13,6 +13,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {onboardingSteps} from 'sentry/views/onboarding/onboarding';
 import type {StepDescriptor} from 'sentry/views/onboarding/types';
 
+/**
+ * Custom hook that performs a couple of actions when navigating back in the onboarding flow,
+ * either by clicking the native browser back button or a custom back button.
+ */
 export function useBackActions({
   stepIndex,
   recentCreatedProject,
