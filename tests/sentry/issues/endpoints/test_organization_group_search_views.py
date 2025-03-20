@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
@@ -723,7 +725,7 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
         )
         issue_view_one.projects.set([project1])
 
-        response = self.client.put(
+        response: Any = self.client.put(
             url,
             data={
                 "views": [

@@ -33,6 +33,7 @@ DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
         "position": 0,
         "isAllProjects": False,
         "environments": [],
+        "projects": [],
         "timeFilters": DEFAULT_TIME_FILTER,
         "dateCreated": None,
         "dateUpdated": None,
