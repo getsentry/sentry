@@ -49,6 +49,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -76,6 +77,7 @@ def query(
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                debug=debug,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -114,6 +116,7 @@ def query(
             transform_alias_to_input_format=transform_alias_to_input_format,
             has_metrics=has_metrics,
             query_source=query_source,
+            debug=debug,
         )
         results["meta"]["isMetricsData"] = False
         results["meta"]["isMetricsExtractedData"] = False

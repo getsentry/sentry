@@ -37,4 +37,5 @@ class DatasetQuery(Protocol):
         dataset: Dataset = Dataset.Discover,
         fallback_to_transactions: bool = False,
         query_source: QuerySource | None = None,
+        debug: bool = False,
     ) -> EventsResponse: ...

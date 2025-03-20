@@ -335,6 +335,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
+                query = meta.pop("query", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -349,6 +350,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if discoverSplitDecision is not None:
                     meta["discoverSplitDecision"] = discoverSplitDecision
+
+                # Only appears in meta when debug is passed to the endpoint
+                if query:
+                    meta["query"] = query
             else:
                 meta = fields_meta
 
