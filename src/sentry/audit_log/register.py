@@ -603,6 +603,22 @@ default_manager.add(
         template="removed workflow {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=216,
+        name="DETECTOR_WORKFLOW_ADD",
+        api_name="detector_workflow.add",
+        template="connected detector {detector_name} to workflow {workflow_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=217,
+        name="DETECTOR_WORKFLOW_REMOVE",
+        api_name="detector_workflow.remove",
+        template="disconnected detector {detector_name} from workflow {workflow_name}",
+    )
+)
 
 default_manager.add(
     AuditLogEvent(

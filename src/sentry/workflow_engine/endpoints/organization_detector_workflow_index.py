@@ -3,6 +3,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -18,6 +19,8 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorWorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import DetectorWorkflowValidator
 from sentry.workflow_engine.models.detector import Detector
@@ -112,6 +115,14 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_409_CONFLICT,
             )
 
+        create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=detector_workflow.id,
+            event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+            data=detector_workflow.get_audit_log_data(),
+        )
+
         return Response(serialize(detector_workflow, request.user, DetectorWorkflowSerializer()))
 
     def delete(self, request, organization):
@@ -137,6 +148,14 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
         if not queryset:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        queryset.delete()
+        for detector_workflow in queryset:
+            RegionScheduledDeletion.schedule(detector_workflow, days=0, actor=request.user)
+            create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=detector_workflow.id,
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                data=detector_workflow.get_audit_log_data(),
+            )
 
         return Response(status=status.HTTP_204_NO_CONTENT)
