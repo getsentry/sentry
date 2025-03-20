@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {InputFieldProps, OnEvent} from './inputField';
 import InputField from './inputField';
 
-export interface NumberFieldProps extends Omit<InputFieldProps, 'type' | 'required'> {
+export interface NumberFieldProps extends Omit<InputFieldProps, 'type'> {
   /**
    * Optional units/suffix to render inside the number input
    */

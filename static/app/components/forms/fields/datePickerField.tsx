@@ -14,7 +14,7 @@ import useOverlay from 'sentry/utils/useOverlay';
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps, OnEvent} from './inputField';
 
-interface DatePickerFieldProps extends Omit<InputFieldProps, 'field' | 'required'> {}
+interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 
 function handleChangeDate(
   onChange: OnEvent,

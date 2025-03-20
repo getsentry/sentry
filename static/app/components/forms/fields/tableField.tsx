@@ -29,7 +29,7 @@ interface DefaultProps {
   allowEmpty: boolean;
 }
 
-export interface TableFieldProps extends Omit<InputFieldProps, 'type' | 'required'> {}
+export interface TableFieldProps extends Omit<InputFieldProps, 'type'> {}
 
 interface RenderProps extends TableFieldProps, DefaultProps, Omit<TableType, 'type'> {}
 
