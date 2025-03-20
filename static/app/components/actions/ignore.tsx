@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';

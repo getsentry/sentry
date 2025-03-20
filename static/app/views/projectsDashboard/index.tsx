@@ -5,8 +5,8 @@ import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 
 type Props = {

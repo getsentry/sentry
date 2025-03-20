@@ -1,8 +1,8 @@
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import Link from 'sentry/components/links/link';
 import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';

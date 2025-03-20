@@ -1,7 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -13,6 +12,7 @@ import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
 import {LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Panel from 'sentry/components/panels/panel';

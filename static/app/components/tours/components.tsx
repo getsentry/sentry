@@ -3,8 +3,8 @@ import {createPortal} from 'react-dom';
 import {ClassNames, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   type TourContextType,

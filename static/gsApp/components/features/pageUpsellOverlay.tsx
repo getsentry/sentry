@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import PageOverlay from 'sentry/components/pageOverlay';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

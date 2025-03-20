@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Footer from 'sentry/components/footer';
 import PageOverlay from 'sentry/components/pageOverlay';

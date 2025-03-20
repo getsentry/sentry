@@ -2,7 +2,7 @@ import {forwardRef, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import {
   getSentryDefaultTags,
   TagFilter,

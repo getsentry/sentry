@@ -6,8 +6,8 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';

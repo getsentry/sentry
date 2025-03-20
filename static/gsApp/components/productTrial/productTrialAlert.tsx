@@ -2,9 +2,9 @@ import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';

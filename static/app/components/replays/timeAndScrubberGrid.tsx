@@ -1,8 +1,8 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';

@@ -1,5 +1,5 @@
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import DisableInDemoMode from 'sentry/components/acl/demoModeDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';

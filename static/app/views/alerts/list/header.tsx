@@ -1,6 +1,6 @@
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';

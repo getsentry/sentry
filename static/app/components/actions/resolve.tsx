@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import ButtonBar from 'sentry/components/core/button/buttonBar';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
