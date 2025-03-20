@@ -6,7 +6,7 @@ import os
 import zlib
 from collections import Counter
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 import msgpack
 import sentry_sdk
@@ -23,7 +23,7 @@ from sentry.utils.safe import get_path, set_path
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import EnhancementRule
+from .rules import EnhancementRule, EnhancementRuleDict
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +129,13 @@ def keep_profiling_rules(config: str) -> str:
         if is_valid_profiling_matcher(matchers) and is_valid_profiling_action(action):
             filtered_rules.append(rule)
     return "\n".join(filtered_rules)
+
+
+class EnhancementsDict(TypedDict):
+    id: str | None
+    bases: list[str]
+    latest: bool
+    rules: NotRequired[list[EnhancementRuleDict]]
 
 
 class Enhancements:
