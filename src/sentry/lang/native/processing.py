@@ -323,7 +323,10 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
 
     # We do module rewriting only for Electron minidumps.
     # See the documentation of `ELECTRON_FIRST_MODULE_REWRITE_RULES`.
-    if get_path(data, "sdk", "name") == "sentry.javascript.electron":
+    #
+    # Electron minidumps can be detected via the "prod" key in the
+    # "crashpad" context.
+    if get_path(data, "contexts", "crashpad", "prod") == "Electron":
         rewrite_first_module = ELECTRON_FIRST_MODULE_REWRITE_RULES
     else:
         rewrite_first_module = []
