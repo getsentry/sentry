@@ -98,5 +98,5 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const AddViewButton = styled(Button)<{layout: NavLayout}>`
   padding: ${space(0.5)};
-  /* margin-right: -${space(0.5)}; */
+  margin-right: -${space(0.5)};
 `;
