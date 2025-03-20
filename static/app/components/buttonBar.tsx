@@ -3,13 +3,14 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import type {ButtonProps} from 'sentry/components/core/button';
 import {StyledButton} from 'sentry/components/core/button';
 import type {ValidSize} from 'sentry/styles/space';
 import {space} from 'sentry/styles/space';
 
 type ButtonBarProps = {
   children: React.ReactNode;
-  active?: string;
+  active?: ButtonProps['barId'];
   className?: string;
   gap?: ValidSize | 0;
   merged?: boolean;
