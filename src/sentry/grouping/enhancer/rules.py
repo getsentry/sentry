@@ -24,10 +24,9 @@ class EnhancementRule:
 
     @property
     def matcher_description(self):
-        rv = " ".join(x.description for x in self.matchers)
-        for action in self.actions:
-            rv = f"{rv} {action}"
-        return rv
+        matchers = " ".join(matcher.description for matcher in self.matchers)
+        actions = " ".join(str(action) for action in self.actions)
+        return f"{matchers} {actions}"
 
     def _as_modifier_rule(self) -> EnhancementRule | None:
         actions = [action for action in self.actions if action.is_modifier]
@@ -47,7 +46,7 @@ class EnhancementRule:
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
-        return {"match": matchers, "actions": [str(x) for x in self.actions]}
+        return {"match": matchers, "actions": [str(action) for action in self.actions]}
 
     def get_matching_frame_actions(
         self,
@@ -81,13 +80,20 @@ class EnhancementRule:
 
     def _to_config_structure(self, version):
         return [
-            [x._to_config_structure(version) for x in self.matchers],
-            [x._to_config_structure(version) for x in self.actions],
+            [matcher._to_config_structure(version) for matcher in self.matchers],
+            [action._to_config_structure(version) for action in self.actions],
         ]
 
     @classmethod
-    def _from_config_structure(cls, tuple, version):
+    def _from_config_structure(cls, config_structure, version):
+        matcher_abbreviations, encoded_actions = config_structure
         return EnhancementRule(
-            [EnhancementMatch._from_config_structure(x, version) for x in tuple[0]],
-            [EnhancementAction._from_config_structure(x, version) for x in tuple[1]],
+            [
+                EnhancementMatch._from_config_structure(matcher, version)
+                for matcher in matcher_abbreviations
+            ],
+            [
+                EnhancementAction._from_config_structure(action, version)
+                for action in encoded_actions
+            ],
         )

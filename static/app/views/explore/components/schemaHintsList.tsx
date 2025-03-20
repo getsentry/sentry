@@ -57,6 +57,7 @@ function SchemaHintsList({
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
+
   const {openDrawer, isDrawerOpen} = useDrawer();
 
   const functionTags = useMemo(() => {
@@ -96,7 +97,6 @@ function SchemaHintsList({
       }
 
       const container = schemaHintsContainerRef.current;
-      const containerRect = container.getBoundingClientRect();
 
       // Create a temporary div to measure items without rendering them
       const measureDiv = document.createElement('div');
@@ -123,11 +123,12 @@ function SchemaHintsList({
         Array.from(measureDiv.children).length - 1
       ]?.getBoundingClientRect();
 
+      const measureDivRect = measureDiv.getBoundingClientRect();
       // Find the last item that fits within the container
       let lastVisibleIndex =
         items.findIndex(item => {
           const itemRect = item.getBoundingClientRect();
-          return itemRect.right > containerRect.right - (seeFullListTagRect?.width ?? 0);
+          return itemRect.right > measureDivRect.right - (seeFullListTagRect?.width ?? 0);
         }) - 1;
 
       // If all items fit, show them all
@@ -164,6 +165,7 @@ function SchemaHintsList({
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
+              drawerWidth: '35vw',
               shouldCloseOnLocationChange: newLocation => {
                 return (
                   location.pathname !== newLocation.pathname ||

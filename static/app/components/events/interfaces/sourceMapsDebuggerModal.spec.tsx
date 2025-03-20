@@ -29,6 +29,7 @@ const defaultSourceResolutionResults: FrameSourceMapDebuggerData = {
   releaseProgress: 0,
   releaseProgressPercent: 0,
   releaseSourceMapReference: null,
+  releaseUserAgent: null,
   scrapingProgress: 0,
   scrapingProgressPercent: 0,
   sdkDebugIdSupport: 'full',
@@ -55,6 +56,8 @@ const renderModal = (props?: Partial<SourceMapsDebuggerModalProps>) => {
         <SourceMapsDebuggerModal
           analyticsParams={defaultAnalyticsParams}
           sourceResolutionResults={defaultSourceResolutionResults}
+          projectId="1"
+          orgSlug="org-slug"
           {...props}
           {...modalProps}
         />

@@ -41,8 +41,8 @@ def get_latest_release_for_env(
 
 @condition_handler_registry.register(Condition.LATEST_RELEASE)
 class LatestReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.EVENT_ATTRIBUTES
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod

@@ -240,6 +240,9 @@ const appConfig: webpack.Configuration = {
      */
     pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
 
+    // admin interface
+    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
+
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
      * This generates a single "sentry.css" file that imports ALL component styles
@@ -771,7 +774,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: ['pipeline'],
+      excludeChunks: ['pipeline', 'gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,

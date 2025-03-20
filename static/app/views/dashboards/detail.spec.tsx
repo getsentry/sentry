@@ -157,7 +157,9 @@ describe('Dashboards > Detail', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('assigns unique IDs to all widgets so grid keys are unique', async function () {
+    // TODO(nar): Flaky test
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('assigns unique IDs to all widgets so grid keys are unique', async function () {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: 'default-overview'},

@@ -1,5 +1,7 @@
 from unittest.mock import Mock, patch
 
+import pytest
+
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     SourceLineInfo,
@@ -84,6 +86,41 @@ class CommitContextIntegrationTest(TestCase):
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
         assert_halt_metric(mock_record, ApiRateLimitedError(text="Rate limited"))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_invalid_request(self, mock_record):
+        """Test invalid request records failure"""
+        from sentry.shared_integrations.exceptions import ApiInvalidRequestError
+
+        self.integration.client.get_blame_for_files = Mock(
+            side_effect=ApiInvalidRequestError(text="Invalid request")
+        )
+
+        with pytest.raises(ApiInvalidRequestError):
+            self.integration.get_blame_for_files([self.source_line], {})
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert_failure_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_invalid_request_gitlab(self, mock_record):
+        """Test invalid request for GitLab records halt"""
+        from sentry.shared_integrations.exceptions import ApiInvalidRequestError
+
+        class MockGitlabIntegration(MockCommitContextIntegration):
+            integration_name = "gitlab"
+
+        self.integration = MockGitlabIntegration()
+
+        self.integration.client.get_blame_for_files = Mock(
+            side_effect=ApiInvalidRequestError(text="Invalid request")
+        )
+
+        result = self.integration.get_blame_for_files([self.source_line], {})
+
+        assert result == []
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_commit_context_all_frames(self, mock_record):

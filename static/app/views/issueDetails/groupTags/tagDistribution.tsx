@@ -101,10 +101,6 @@ const TagPanel = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   padding: ${space(1)};
-
-  &:hover > h5 {
-    text-decoration: underline;
-  }
 `;
 
 const TagHeader = styled('h5')`

@@ -40,6 +40,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
@@ -2373,13 +2374,18 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             owner_id=self.user.id,
             visibility=Visibility.OWNER_PINNED,
         )
-        GroupSearchView.objects.create(
+        default_view = GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=0,
             name="Default View",
             query="ZeroDivisionError",
             query_sort="date",
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=0,
+            group_search_view=default_view,
         )
         event = self.store_event(
             data={
@@ -2415,7 +2421,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=0,
             name="Default View",
             query="TypeError",
             query_sort="date",
@@ -2424,7 +2429,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         view = GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=1,
             name="Custom View",
             query="ZeroDivisionError",
             query_sort="date",

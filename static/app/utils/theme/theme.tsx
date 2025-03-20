@@ -911,7 +911,13 @@ const iconSizes: Sizes = {
 const dataCategory: Record<
   Exclude<
     DataCategory,
-    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
+    | 'profiles'
+    | 'profileChunks'
+    | 'profileDuration'
+    | 'profileDurationUI'
+    | 'spans'
+    | 'spansIndexed'
+    | 'uptime'
   >,
   string
 > = {
@@ -1146,6 +1152,8 @@ export type StrictCSSObject = {
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
+  [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
 
 /**
