@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconCheckmark} from 'sentry/icons';

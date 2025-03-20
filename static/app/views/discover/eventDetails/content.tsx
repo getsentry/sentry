@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';

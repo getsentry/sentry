@@ -5,7 +5,7 @@ import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustome
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';

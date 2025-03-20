@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';

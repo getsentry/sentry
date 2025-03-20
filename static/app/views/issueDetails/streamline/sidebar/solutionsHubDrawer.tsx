@@ -8,7 +8,7 @@ import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumb
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';

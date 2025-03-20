@@ -11,7 +11,7 @@ import {
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Select} from 'sentry/components/core/select';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

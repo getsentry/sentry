@@ -3,7 +3,7 @@ import type {Location} from 'history';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {IconOpen} from 'sentry/icons';

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';

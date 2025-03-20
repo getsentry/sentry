@@ -13,7 +13,7 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';

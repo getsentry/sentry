@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';

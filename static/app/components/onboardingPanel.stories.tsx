@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';

@@ -7,7 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Confirm from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import KeyValueData from 'sentry/components/keyValueData';
 import {t, tct} from 'sentry/locale';

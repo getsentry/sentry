@@ -10,7 +10,7 @@ import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';

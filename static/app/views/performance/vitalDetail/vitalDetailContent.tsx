@@ -7,7 +7,7 @@ import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {getInterval} from 'sentry/components/charts/utils';
 import {Alert} from 'sentry/components/core/alert';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';

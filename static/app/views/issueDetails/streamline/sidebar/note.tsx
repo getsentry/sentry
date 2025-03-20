@@ -12,7 +12,7 @@ import type {
   Mentioned,
 } from 'sentry/components/activity/note/types';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';

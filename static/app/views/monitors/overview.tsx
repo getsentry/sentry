@@ -6,7 +6,7 @@ import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
 import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';

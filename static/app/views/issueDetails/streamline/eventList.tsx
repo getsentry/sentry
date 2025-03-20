@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {type Group, IssueType} from 'sentry/types/group';

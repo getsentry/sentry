@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';

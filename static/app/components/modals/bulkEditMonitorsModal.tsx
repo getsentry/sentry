@@ -6,7 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';

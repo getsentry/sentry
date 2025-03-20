@@ -5,7 +5,7 @@ import type {Location} from 'history';
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';

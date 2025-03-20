@@ -5,7 +5,7 @@ import Access from 'sentry/components/acl/access';
 import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';

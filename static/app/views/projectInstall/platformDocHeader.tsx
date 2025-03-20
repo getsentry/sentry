@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {removeProject} from 'sentry/actionCreators/projects';
 import Confirm from 'sentry/components/confirm';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';

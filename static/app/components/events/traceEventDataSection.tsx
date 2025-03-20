@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconSort} from 'sentry/icons';

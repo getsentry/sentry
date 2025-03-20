@@ -4,7 +4,7 @@ import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backen
 
 import PageBanner from 'sentry/components/alerts/pageBanner';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';

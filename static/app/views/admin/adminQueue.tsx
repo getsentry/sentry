@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Select} from 'sentry/components/core/select';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import LoadingError from 'sentry/components/loadingError';

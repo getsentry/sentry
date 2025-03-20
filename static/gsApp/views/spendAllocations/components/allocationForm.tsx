@@ -8,7 +8,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {APIRequestMethod} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {ControlProps} from 'sentry/components/core/select';
 import NewBooleanField from 'sentry/components/forms/fields/booleanField';
 import SelectField from 'sentry/components/forms/fields/selectField';

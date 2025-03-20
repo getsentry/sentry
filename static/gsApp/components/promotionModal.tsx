@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconClose, IconWarning} from 'sentry/icons';

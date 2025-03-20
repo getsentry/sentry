@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button';
-import ButtonBar from 'sentry/components/core/button/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
