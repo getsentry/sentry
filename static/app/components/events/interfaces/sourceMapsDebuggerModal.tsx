@@ -300,7 +300,14 @@ function MetaFrameworkConfigInfo({
   if (framework === 'nextjs') {
     return (
       <p>
-        {t('Firstly, ensure that source maps are enabled as following:')}
+        {tct(
+          'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+          {
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional" />
+            ),
+          }
+        )}
         <InstructionCodeSnippet
           language="javascript"
           dark
@@ -317,9 +324,6 @@ function MetaFrameworkConfigInfo({
   // ... rest of your sentry config
 });`}
         </InstructionCodeSnippet>
-        <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional">
-          {t('Read the docs for more details.')}
-        </ExternalLink>
       </p>
     );
   }
@@ -327,7 +331,14 @@ function MetaFrameworkConfigInfo({
   if (framework === 'nuxt') {
     return (
       <p>
-        {t('Firstly, ensure that source maps are enabled as following:')}
+        {tct(
+          'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+          {
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload" />
+            ),
+          }
+        )}
         <InstructionCodeSnippet language="javascript" dark filename="nuxt.config.ts">
           {`export default defineNuxtConfig({
   modules: ["@sentry/nuxt/module"],
@@ -348,9 +359,6 @@ function MetaFrameworkConfigInfo({
 });
 `}
         </InstructionCodeSnippet>
-        <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload">
-          {t('Read the docs for more details.')}
-        </ExternalLink>
       </p>
     );
   }
@@ -359,10 +367,13 @@ function MetaFrameworkConfigInfo({
     return (
       <p>
         {tct(
-          'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as following:',
+          'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
           {
             vitePluginLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
+            ),
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/#using-vite-plugin-recommended" />
             ),
           }
         )}
@@ -388,9 +399,6 @@ function MetaFrameworkConfigInfo({
   // ... rest of your Vite config
 });`}
         </InstructionCodeSnippet>
-        <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/#using-vite-plugin-recommended">
-          {t('Read the docs for more details.')}
-        </ExternalLink>
       </p>
     );
   }
@@ -398,7 +406,14 @@ function MetaFrameworkConfigInfo({
   // Sveltekit
   return (
     <p>
-      {t('Firstly, make sure source maps is not disabled as following:')}
+      {tct(
+        'Firstly, make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
+        {
+          docLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload" />
+          ),
+        }
+      )}
       <InstructionCodeSnippet language="javascript" dark filename="vite.config.(js|ts)">
         {`export default {
 plugins: [
@@ -416,9 +431,6 @@ plugins: [
 // ... rest of your Vite config
 };`}
       </InstructionCodeSnippet>
-      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload">
-        {t('Read the docs for more details.')}
-      </ExternalLink>
     </p>
   );
 }
