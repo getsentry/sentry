@@ -121,7 +121,16 @@ def create_match_frame(frame_data: dict, platform: str | None) -> dict:
                 # We do this here in a central place instead of in each matcher separately.
                 value = match_frame[key] = value.lower().replace(b"\\", b"/")
 
-    return match_frame
+    return MatchFrame(
+        category=match_frame["category"],
+        family=match_frame["family"],
+        function=match_frame["function"],
+        in_app=match_frame["in_app"],
+        orig_in_app=match_frame["orig_in_app"],
+        module=match_frame["module"],
+        package=match_frame["package"],
+        path=match_frame["path"],
+    )
 
 
 class EnhancementMatch:
