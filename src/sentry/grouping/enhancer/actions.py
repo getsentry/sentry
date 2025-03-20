@@ -57,7 +57,8 @@ class EnhancementAction:
     @classmethod
     def _from_config_structure(cls, val, version: int):
         if isinstance(val, list):  # This is a `VarAction`
-            return VarAction(val[0], val[1])
+            variable, value = val
+            return VarAction(variable, value)
         # Otherwise, assume it's a `FlagAction`, since those are the only two types we currently have
         flag, range_direction = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
         return FlagAction(ACTIONS[val & 0xF], flag, range_direction)
@@ -80,7 +81,7 @@ class FlagAction(EnhancementAction):
     def __str__(self) -> str:
         return "{}{}{}".format(
             {"up": "^", "down": "v", None: ""}.get(self.range),
-            self.flag and "+" or "-",
+            "+" if self.flag else "-",
             self.key,
         )
 
@@ -105,7 +106,7 @@ class FlagAction(EnhancementAction):
             return seq[idx + 1 :]
         return []
 
-    def _in_app_changed(self, frame: dict[str, Any], component) -> bool:
+    def _in_app_changed(self, frame: dict[str, Any]) -> bool:
         orig_in_app = get_path(frame, "data", "orig_in_app")
 
         if orig_in_app is not None:
@@ -113,10 +114,7 @@ class FlagAction(EnhancementAction):
                 orig_in_app = None
             return orig_in_app != frame.get("in_app")
         else:
-            # FIXME: I don't fully understand this. The `group` Action is the only
-            # one I can find that actually sets the `contributes` flag to `True`.
-            # And `orig_in_app` is only `None` if the `app` Action was never applied.
-            return self.flag == component.contributes
+            return False
 
     def apply_modifications_to_frame(
         self,
@@ -147,7 +145,7 @@ class FlagAction(EnhancementAction):
                 )
             # The in app flag was set by `apply_modifications_to_frame`
             # but we want to add a hint if there is none yet.
-            elif self.key == "app" and self._in_app_changed(frame, component):
+            elif self.key == "app" and self._in_app_changed(frame):
                 component.update(
                     hint="marked {} by {}".format(self.flag and "in-app" or "out of app", rule_hint)
                 )
