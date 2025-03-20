@@ -3,36 +3,31 @@ from __future__ import annotations
 import time
 from datetime import datetime
 
-from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
 from sentry.integrations.discord.message_builder.base.embed.image import DiscordMessageEmbedImage
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.organization import Organization
-from sentry.snuba.models import SnubaQuery
 
 
 class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
     def __init__(
         self,
         alert_context: AlertContext,
-        open_period_identifier: int,
-        snuba_query: SnubaQuery,
+        metric_issue_context: MetricIssueContext,
         organization: Organization,
         date_started: datetime,
-        new_status: IncidentStatus,
-        metric_value: float | None = None,
         chart_url: str | None = None,
     ) -> None:
         self.alert_context = alert_context
-        self.open_period_identifier = open_period_identifier
-        self.snuba_query = snuba_query
+        self.open_period_identifier = metric_issue_context.open_period_identifier
+        self.snuba_query = metric_issue_context.snuba_query
         self.organization = organization
         self.date_started = date_started
-        self.metric_value = metric_value
-        self.new_status = new_status
+        self.metric_value = metric_issue_context.metric_value
+        self.new_status = metric_issue_context.new_status
         self.chart_url = chart_url
 
     def build(self, notification_uuid: str | None = None) -> dict[str, object]:
