@@ -1,8 +1,8 @@
 import type {Actor} from 'sentry/types/core';
-import {useQuery} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
+// Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
   createdBy: Actor;
   dateAdded: string;
@@ -35,20 +35,16 @@ type Props = {
 };
 
 export function useGetSavedQueries({sortBy, exclude, perPage = 5}: Props) {
-  const api = useApi();
   const organization = useOrganization();
-  const {data, isLoading} = useQuery({
-    queryKey: ['saved-queries', organization.slug, sortBy, exclude, perPage],
-    queryFn: () =>
-      api.requestPromise(`/organizations/${organization.slug}/explore/saved/`, {
-        method: 'GET',
-        data: {
-          sortBy,
-          exclude,
-          per_page: perPage,
-        },
-      }),
-  });
+  const {data, isLoading} = useApiQuery<SavedQuery[]>(
+    [
+      `/organizations/${organization.slug}/explore/saved/`,
+      {query: {sortBy, exclude, per_page: perPage}},
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
   return {data, isLoading};
 }
