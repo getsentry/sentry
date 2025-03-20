@@ -1,3 +1,5 @@
+import cloneDeep from 'lodash/cloneDeep';
+
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
@@ -22,16 +24,18 @@ export function LatencyChart({error, destination, referrer}: Props) {
     referrer,
   });
 
-  const latencySeries = {
-    ...data['avg(messaging.message.receive.latency)'],
-  };
+  const messageReceiveLatencySeries = cloneDeep(
+    data['avg(messaging.message.receive.latency)']
+  );
 
   if (
     !isPending &&
     !error &&
-    defined(latencySeries.data) &&
-    defined(latencySeries.meta) &&
-    !defined(latencySeries.meta?.fields['avg(messaging.message.receive.latency)'])
+    defined(messageReceiveLatencySeries.data) &&
+    defined(messageReceiveLatencySeries.meta) &&
+    !defined(
+      messageReceiveLatencySeries.meta?.fields['avg(messaging.message.receive.latency)']
+    )
   ) {
     // This is a tricky data issue. If Snuba doesn't find any data for a field,
     // it doesn't return a unit. If Discover can't guess the type based on the
@@ -40,17 +44,16 @@ export function LatencyChart({error, destination, referrer}: Props) {
     // axis, which looks weird. This is a rare case, and I'm hoping that in the
     // future, backend will be able to determine types most of the time. For
     // now, backfill the type, since we know it.
-    latencySeries.meta.fields['avg(messaging.message.receive.latency)'] = 'duration';
-    latencySeries.meta.units['avg(messaging.message.receive.latency)'] = 'millisecond';
+    messageReceiveLatencySeries.meta.fields['avg(messaging.message.receive.latency)'] =
+      'duration';
+    messageReceiveLatencySeries.meta.units['avg(messaging.message.receive.latency)'] =
+      'millisecond';
   }
 
   return (
     <InsightsAreaChartWidget
       title={t('Average Duration')}
-      series={[
-        data['avg(messaging.message.receive.latency)'],
-        data['avg(span.duration)'],
-      ]}
+      series={[messageReceiveLatencySeries, data['avg(span.duration)']]}
       aliases={FIELD_ALIASES}
       error={error ?? latencyError}
       isLoading={isPending}
