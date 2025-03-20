@@ -1,9 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {AutofixRepository} from 'sentry/components/events/autofix/types';
-import {SolutionsHubNotices} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubNotices';
+import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
-describe('SolutionsHubNotices', function () {
+describe('SeerNotices', function () {
   // Helper function to create repository objects
   const createRepository = (
     overrides: Partial<AutofixRepository> = {}
@@ -22,7 +22,7 @@ describe('SolutionsHubNotices', function () {
     const repositories = [createRepository(), createRepository({name: 'org/repo2'})];
 
     const {container} = render(
-      <SolutionsHubNotices autofixRepositories={repositories} hasGithubIntegration />
+      <SeerNotices autofixRepositories={repositories} hasGithubIntegration />
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -30,7 +30,7 @@ describe('SolutionsHubNotices', function () {
 
   it('renders GitHub integration setup card when hasGithubIntegration is false', function () {
     render(
-      <SolutionsHubNotices
+      <SeerNotices
         autofixRepositories={[createRepository()]}
         hasGithubIntegration={false}
       />
@@ -59,9 +59,7 @@ describe('SolutionsHubNotices', function () {
   it('renders warning for a single unreadable GitHub repository', function () {
     const repositories = [createRepository({is_readable: false})];
 
-    render(
-      <SolutionsHubNotices autofixRepositories={repositories} hasGithubIntegration />
-    );
+    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
 
     expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/repo')).toBeInTheDocument();
@@ -74,9 +72,7 @@ describe('SolutionsHubNotices', function () {
       createRepository({is_readable: false, provider: 'gitlab', name: 'org/gitlab-repo'}),
     ];
 
-    render(
-      <SolutionsHubNotices autofixRepositories={repositories} hasGithubIntegration />
-    );
+    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
 
     expect(screen.getByText(/Autofix can't access the/)).toBeInTheDocument();
     expect(screen.getByText('org/gitlab-repo')).toBeInTheDocument();
@@ -91,9 +87,7 @@ describe('SolutionsHubNotices', function () {
       createRepository({is_readable: false, name: 'org/repo2'}),
     ];
 
-    render(
-      <SolutionsHubNotices autofixRepositories={repositories} hasGithubIntegration />
-    );
+    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -118,9 +112,7 @@ describe('SolutionsHubNotices', function () {
       }),
     ];
 
-    render(
-      <SolutionsHubNotices autofixRepositories={repositories} hasGithubIntegration />
-    );
+    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -134,16 +126,10 @@ describe('SolutionsHubNotices', function () {
   it('renders warning for multiple unreadable repositories (mixed GitHub and non-GitHub)', function () {
     const repositories = [
       createRepository({is_readable: false, name: 'org/github-repo'}),
-      createRepository({
-        is_readable: false,
-        provider: 'gitlab',
-        name: 'org/gitlab-repo',
-      }),
+      createRepository({is_readable: false, provider: 'gitlab', name: 'org/gitlab-repo'}),
     ];
 
-    render(
-      <SolutionsHubNotices autofixRepositories={repositories} hasGithubIntegration />
-    );
+    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
 
     expect(
       screen.getByText(/Autofix can't access these repositories:/)
@@ -164,10 +150,7 @@ describe('SolutionsHubNotices', function () {
     ];
 
     render(
-      <SolutionsHubNotices
-        autofixRepositories={repositories}
-        hasGithubIntegration={false}
-      />
+      <SeerNotices autofixRepositories={repositories} hasGithubIntegration={false} />
     );
 
     // GitHub setup card
@@ -183,16 +166,10 @@ describe('SolutionsHubNotices', function () {
 
   it('renders correct integration links based on integration_id', function () {
     const repositories = [
-      createRepository({
-        is_readable: false,
-        integration_id: '456',
-        name: 'org/repo1',
-      }),
+      createRepository({is_readable: false, integration_id: '456', name: 'org/repo1'}),
     ];
 
-    render(
-      <SolutionsHubNotices autofixRepositories={repositories} hasGithubIntegration />
-    );
+    render(<SeerNotices autofixRepositories={repositories} hasGithubIntegration />);
 
     const integrationLink = screen.getByText('GitHub integration');
     expect(integrationLink).toHaveAttribute(
@@ -214,10 +191,7 @@ describe('SolutionsHubNotices', function () {
     ];
 
     render(
-      <SolutionsHubNotices
-        autofixRepositories={repositories}
-        hasGithubIntegration={false}
-      />
+      <SeerNotices autofixRepositories={repositories} hasGithubIntegration={false} />
     );
 
     // Should have both the GitHub setup card and the unreadable repos warning
