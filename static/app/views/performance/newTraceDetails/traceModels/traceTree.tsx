@@ -1471,7 +1471,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       // When eap-transaction nodes are expanded, we need to reparent the transactions under
       // the eap-spans (by their parent_span_id) that were previously hidden. Note that this only impacts the
-      // direct children of the targetted eap-transaction node.
+      // direct eap-transaction children of the targetted eap-transaction node.
       if (isEAPTransactionNode(node)) {
         TraceTree.ReparentEAPTransactions(
           node,
