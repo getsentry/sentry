@@ -53,6 +53,7 @@ export type TabularMeta = {
 };
 
 export type TabularRow = Record<string, number | string | undefined>;
+
 export type TabularData = {
   data: TabularRow[];
   meta: TabularMeta;

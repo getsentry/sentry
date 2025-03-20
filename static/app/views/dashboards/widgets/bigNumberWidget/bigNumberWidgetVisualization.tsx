@@ -11,8 +11,9 @@ import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
 import type {
   TabularRow,
+  TabularValueType,
+  TabularValueUnit,
   Thresholds,
-  TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 
 import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
@@ -22,12 +23,13 @@ import {ThresholdsIndicator} from './thresholdsIndicator';
 
 export interface BigNumberWidgetVisualizationProps {
   field: string;
+  unit: TabularValueUnit;
   value: number | string;
   maximumValue?: number;
-  meta?: TimeSeriesMeta;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number | string;
   thresholds?: Thresholds;
+  type?: TabularValueType;
 }
 
 export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
@@ -37,7 +39,8 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     previousPeriodValue,
     maximumValue = Number.MAX_VALUE,
     preferredPolarity,
-    meta,
+    type,
+    unit,
   } = props;
 
   if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
@@ -46,9 +49,6 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
   const location = useLocation();
   const organization = useOrganization();
-
-  const unit = meta?.unit;
-  const type = meta?.type;
 
   // Create old-school renderer meta, so we can pass it to field renderers
   const rendererMeta: MetaType = {
@@ -63,9 +63,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     };
   }
 
-  const fieldRenderer = meta
-    ? getFieldRenderer(field, rendererMeta, false)
-    : (renderableValue: any) => renderableValue.toString();
+  const fieldRenderer = getFieldRenderer(field, rendererMeta, false);
 
   const baggage = {
     location,
