@@ -25,25 +25,25 @@ class UpdateCodeOwnersSchemaTest(TestCase):
 
     def test_no_op(self):
         with self.feature("organizations:integrations-codeowners"):
-            update_code_owners_schema(self.organization)
+            update_code_owners_schema(self.organization.id)
         self.mock_update.assert_not_called()
 
     def test_with_project(self):
         with self.feature("organizations:integrations-codeowners"):
-            update_code_owners_schema(self.organization, projects=[self.project])
+            update_code_owners_schema(self.organization.id, projects=[self.project.id])
         self.mock_update.assert_called_with(organization=self.organization)
 
     def test_with_project_id(self):
         with self.feature("organizations:integrations-codeowners"):
-            update_code_owners_schema(self.organization, projects=[self.project.id])
+            update_code_owners_schema(self.organization.id, projects=[self.project.id])
         self.mock_update.assert_called_with(organization=self.organization)
 
     def test_with_integration(self):
         with self.feature("organizations:integrations-codeowners"):
-            update_code_owners_schema(self.organization, integration=self.integration)
+            update_code_owners_schema(self.organization.id, integration=self.integration.id)
         self.mock_update.assert_called_with(organization=self.organization)
 
     def test_with_integration_id(self):
         with self.feature("organizations:integrations-codeowners"):
-            update_code_owners_schema(self.organization, integration=self.integration.id)
+            update_code_owners_schema(self.organization.id, integration=self.integration.id)
         self.mock_update.assert_called_with(organization=self.organization)
