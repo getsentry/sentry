@@ -259,6 +259,9 @@ class PathLikeMatch(FrameMatch):
         self._encoded_pattern = pattern.lower().encode("utf-8")
 
     def _positive_frame_match(self, match_frame, exception_data, cache):
+        if not self.field:  # Shouldn't happen, but it keeps mypy happy
+            return False
+
         value = match_frame[self.field]
         if value is None:
             return False
@@ -298,6 +301,9 @@ class InAppMatch(FrameMatch):
 
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, exception_data, cache):
+        if not self.field:  # Shouldn't happen, but it keeps mypy happy
+            return False
+
         value = match_frame[self.field]
         if value is None:
             return False
