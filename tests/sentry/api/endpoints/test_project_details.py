@@ -1127,7 +1127,7 @@ class ProjectUpdateTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
+                "filters": {"filetypes": ["pe"]},
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -1180,7 +1180,7 @@ class ProjectUpdateTest(APITestCase):
                 "layout": {
                     "type": "native",
                 },
-                "filetypes": ["pe"],
+                "filters": {"filetypes": ["pe"]},
                 "type": "http",
                 "url": "http://honk.beep",
                 "username": "honkhonk",
@@ -1215,6 +1215,8 @@ class ProjectUpdateTest(APITestCase):
             "layout": {
                 "type": "native",
             },
+            "filters": {"filetypes": ["pe"]},
+            # FIXME: This is temporarily included for backwards compatibility.
             "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
@@ -1228,6 +1230,8 @@ class ProjectUpdateTest(APITestCase):
             "layout": {
                 "type": "native",
             },
+            "filters": {"filetypes": ["pe"]},
+            # FIXME: This is temporarily included for backwards compatibility.
             "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
