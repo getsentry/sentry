@@ -653,7 +653,7 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   justify-content: center;
   width: 100%;
   padding: ${space(2)} 0;
-  min-height: 78px;
+  min-height: 76px;
 
   /* Add a border between two rows of loading issue states */
   & + & {
@@ -720,6 +720,7 @@ const StyledLegacyPanelItem = styled(PanelItem)`
   justify-content: space-between;
   align-items: center;
   padding: ${space(1)} 0;
+  line-height: 1.1;
 `;
 
 const StyledPanelItem = styled(StyledLegacyPanelItem)`
