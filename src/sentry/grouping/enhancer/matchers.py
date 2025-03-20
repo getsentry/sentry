@@ -122,9 +122,11 @@ class EnhancementMatch:
     def _from_config_structure(config_structure, version):
         val = config_structure
         if val.startswith("|[") and val.endswith("]"):
-            return CalleeMatch(EnhancementMatch._from_config_structure(val[2:-1], version))
+            frame_match: Any = EnhancementMatch._from_config_structure(val[2:-1], version)
+            return CalleeMatch(frame_match)
         if val.startswith("[") and val.endswith("]|"):
-            return CallerMatch(EnhancementMatch._from_config_structure(val[1:-2], version))
+            frame_match = EnhancementMatch._from_config_structure(val[1:-2], version)
+            return CallerMatch(frame_match)
 
         if val.startswith("!"):
             negated = True
