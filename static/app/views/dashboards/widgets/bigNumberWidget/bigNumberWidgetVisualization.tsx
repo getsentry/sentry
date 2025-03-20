@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
 import type {
-  TableData,
+  TabularRow,
   Thresholds,
   TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
@@ -140,7 +140,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               previousPeriodValue={previousPeriodValue}
               field={field}
               preferredPolarity={preferredPolarity}
-              renderer={(previousDatum: TableData[number]) =>
+              renderer={(previousDatum: TabularRow) =>
                 fieldRenderer(previousDatum, baggage)
               }
             />
