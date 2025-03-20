@@ -216,6 +216,8 @@ export type GroupWithAutofix = Group & {
 export type AutofixFeedback = {
   root_cause_thumbs_down?: boolean;
   root_cause_thumbs_up?: boolean;
+  solution_thumbs_down?: boolean;
+  solution_thumbs_up?: boolean;
 };
 
 export type FilePatch = {

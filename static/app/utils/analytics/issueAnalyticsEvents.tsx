@@ -182,6 +182,9 @@ export type IssueEventParameters = {
   'issue_details.streamline_ui_toggle': {
     isEnabled: boolean;
   };
+  'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
+  'issue_details.tour.skipped': Record<string, unknown>;
+  'issue_details.tour.started': {method: 'dropdown' | 'modal'};
   'issue_details.view_full_trace_waterfall_clicked': Record<string, unknown>;
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
@@ -372,7 +375,7 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'tour-guide.close': {id?: string};
+  'tour-guide.dismiss': {id?: string};
   'tour-guide.open': {id?: string};
   'whats_new.link_clicked': Pick<Broadcast, 'title'> &
     Partial<Pick<Broadcast, 'category'>>;
@@ -422,6 +425,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
+  'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
+  'issue_details.tour.started': 'Issue Details: Tour Started',
+  'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
@@ -530,6 +536,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.comment_deleted': 'Issue Details: Comment Deleted',
   'issue_details.comment_updated': 'Issue Details: Comment Updated',
   'tour-guide.open': 'Tour Guide: Opened',
-  'tour-guide.close': 'Tour Guide: Closed',
+  'tour-guide.dismiss': 'Tour Guide: Dismissed',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };

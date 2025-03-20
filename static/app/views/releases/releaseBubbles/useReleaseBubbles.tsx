@@ -26,14 +26,14 @@ import {getFormat} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useUser} from 'sentry/utils/useUser';
+import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
 import {
   BUBBLE_AREA_SERIES_ID,
   BUBBLE_SERIES_ID,
-} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/constants';
-import {createReleaseBubbleHighlighter} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/createReleaseBubbleHighlighter';
-import type {Bucket} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/types';
-import {createReleaseBuckets} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/utils/createReleaseBuckets';
-import {ReleasesDrawer} from 'sentry/views/releases/drawer/releasesDrawer';
+} from 'sentry/views/releases/releaseBubbles/constants';
+import {createReleaseBubbleHighlighter} from 'sentry/views/releases/releaseBubbles/createReleaseBubbleHighlighter';
+import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
+import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
@@ -361,7 +361,12 @@ export function useReleaseBubbles({
       releases?.length &&
       minTime &&
       maxTime &&
-      createReleaseBuckets(minTime, maxTime, releasesMaxTime, releases)) ||
+      createReleaseBuckets({
+        minTime,
+        maxTime,
+        finalTime: releasesMaxTime,
+        releases,
+      })) ||
     [];
 
   if (!releases || !buckets.length) {

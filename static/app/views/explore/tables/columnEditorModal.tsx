@@ -53,6 +53,7 @@ export function ColumnEditorModal({
             value: column,
             textValue: column,
             trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+            key: `${column}-${classifyTagKey(column)}`,
           };
         }),
       ...Object.values(stringTags).map(tag => {
@@ -61,6 +62,7 @@ export function ColumnEditorModal({
           value: tag.key,
           textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+          key: `${tag.key}-${FieldKind.TAG}`,
         };
       }),
       ...Object.values(numberTags).map(tag => {
@@ -69,6 +71,7 @@ export function ColumnEditorModal({
           value: tag.key,
           textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+          key: `${tag.key}-${FieldKind.MEASUREMENT}`,
         };
       }),
     ];
