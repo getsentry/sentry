@@ -5,7 +5,7 @@ import logging
 
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
@@ -117,12 +117,11 @@ def send_incident_alert_notification(
 
     attachment = build_incident_attachment(
         alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-        open_period_identifier=incident.identifier,
-        snuba_query=incident.alert_rule.snuba_query,
+        metric_issue_context=MetricIssueContext.from_legacy_models(
+            incident, new_status, metric_value
+        ),
         organization=incident.organization,
         date_started=incident.date_started,
-        new_status=new_status,
-        metric_value=metric_value,
         notification_uuid=notification_uuid,
     )
     success = integration_service.send_msteams_incident_alert_notification(

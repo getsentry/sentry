@@ -40,11 +40,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         """
         super().__init__()
         self.alert_context = alert_context
-        self.open_period_identifier = metric_issue_context.open_period_identifier
+        self.metric_issue_context = metric_issue_context
         self.organization = organization
-        self.snuba_query = metric_issue_context.snuba_query
-        self.metric_value = metric_issue_context.metric_value
-        self.new_status = metric_issue_context.new_status
         self.date_started = date_started
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
@@ -52,11 +49,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def build(self) -> SlackBody:
         data = incident_attachment_info(
             alert_context=self.alert_context,
-            open_period_identifier=self.open_period_identifier,
+            metric_issue_context=self.metric_issue_context,
             organization=self.organization,
-            snuba_query=self.snuba_query,
-            new_status=self.new_status,
-            metric_value=self.metric_value,
             notification_uuid=self.notification_uuid,
             referrer="metric_alert_slack",
         )

@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.msteams.card_builder.block import (
     AdaptiveCard,
@@ -13,27 +12,20 @@ from sentry.integrations.msteams.card_builder.block import (
     TextWeight,
 )
 from sentry.models.organization import Organization
-from sentry.snuba.models import SnubaQuery
 
 
 def build_incident_attachment(
     alert_context: AlertContext,
-    open_period_identifier: int,
-    snuba_query: SnubaQuery,
+    metric_issue_context: MetricIssueContext,
     organization: Organization,
     date_started: datetime,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> AdaptiveCard:
 
     data = incident_attachment_info(
         alert_context=alert_context,
-        open_period_identifier=open_period_identifier,
+        metric_issue_context=metric_issue_context,
         organization=organization,
-        snuba_query=snuba_query,
-        metric_value=metric_value,
-        new_status=new_status,
         notification_uuid=notification_uuid,
         referrer="metric_alert_msteams",
     )
