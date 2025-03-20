@@ -63,6 +63,9 @@ class EnhancementAction:
         flag, range_direction = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
         return FlagAction(ACTIONS[val & 0xF], flag, range_direction)
 
+    def _to_config_structure(self, version: int) -> int | list[str | int]:
+        raise NotImplementedError()
+
 
 class FlagAction(EnhancementAction):
     """
