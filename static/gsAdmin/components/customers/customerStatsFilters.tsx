@@ -12,6 +12,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import useRouter from 'sentry/utils/useRouter';
+import {Data} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data';
 
 const ON_DEMAND_PERIOD_KEY = 'onDemand';
 
@@ -27,6 +28,7 @@ export enum DataType {
   SPANS = 'spans',
   INDEXED_SPANS = 'indexed_spans',
   PROFILE_DURATION = 'profile_duration',
+  PROFILE_DURATION_UI = 'profile_duration_ui',
   PROFILE_CHUNK = 'profile_chunk',
   PROFILE_CHUNK_UI = 'profile_chunk_ui',
   ATTACHMENTS = 'attachments',
@@ -39,6 +41,7 @@ const dataTypeLabels = {
   [DataType.PROFILES]: 'Profiles',
   [DataType.INDEXED_PROFILES]: 'Indexed Profiles',
   [DataType.PROFILE_DURATION]: 'Profile Hours',
+  [DataType.PROFILE_DURATION_UI]: 'Profile Hours UI',
   [DataType.PROFILE_CHUNK]: 'Profile Chunks',
   [DataType.PROFILE_CHUNK_UI]: 'Profile Chunks UI',
   [DataType.REPLAYS]: 'Replays',
@@ -61,6 +64,8 @@ export function categoryFromDataType(dataType: DataType): string {
       return 'profile_indexed';
     case DataType.PROFILE_DURATION:
       return 'profile_duration';
+    case DataType.PROFILE_DURATION_UI:
+      return 'profile_duration_ui';
     case DataType.PROFILE_CHUNK:
       return 'profile_chunk';
     case DataType.PROFILE_CHUNK_UI:
