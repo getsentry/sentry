@@ -28,17 +28,6 @@ const ICON_SIZES: Partial<
 };
 
 /**
- * Default sizes to use for SVGIcon
- */
-const ICON_SIZES: Partial<
-  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
-> = {
-  xs: 'xs',
-  sm: 'sm',
-  md: 'sm',
-};
-
-/**
  * The button can actually also be an anchor or React router Link (which seems
  * to be poorly typed as `any`). So this is a bit of a workaround to receive
  * the proper html attributes.
