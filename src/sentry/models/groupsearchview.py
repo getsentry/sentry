@@ -1,7 +1,6 @@
 from typing import Any
 
 from django.db import models
-from django.db.models import UniqueConstraint
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
@@ -77,11 +76,4 @@ class GroupSearchView(DefaultFieldsModelExisting):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsearchview"
-        # Two views cannot occupy the same position in an organization user's list of views
-        constraints = [
-            UniqueConstraint(
-                fields=["user_id", "organization_id", "position"],
-                name="sentry_issueviews_unique_view_position_per_org_user",
-                deferrable=models.Deferrable.DEFERRED,
-            )
-        ]
+        constraints = []
