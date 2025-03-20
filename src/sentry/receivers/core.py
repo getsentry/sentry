@@ -74,7 +74,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         )
         project.add_team(team)
 
-        project_created.send(
+        project_created.send_robust(
             project=project,
             user=user or AnonymousUser(),
             default_rules=True,
