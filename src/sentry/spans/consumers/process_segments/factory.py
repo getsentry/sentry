@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Mapping
-from typing import cast
 
 import orjson
 from arroyo import Topic as ArroyoTopic
@@ -16,7 +15,8 @@ from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegme
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.spans.consumers.process_segments.message import Span, process_segment
+from sentry.spans.consumers.process_segments.message import process_segment
+from sentry.spans.consumers.process_segments.types import Span
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -89,7 +89,7 @@ def _process_message(message: Message[KafkaPayload]) -> list[Span]:
     try:
         value = message.payload.value
         segment = BUFFERED_SEGMENT_SCHEMA.decode(value)
-        return process_segment(cast(list[Span], segment["spans"]))
+        return process_segment(segment["spans"])
     except Exception:  # NOQA
         raise
         # TODO: Implement error handling
