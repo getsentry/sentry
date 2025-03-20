@@ -23,8 +23,8 @@ pytestmark = [requires_snuba]
 
 CODE_ROOT = "sentry.issues.auto_source_code_config"
 REPO_TREES_CODE = "sentry.integrations.source_code_management.repo_trees"
-REPO_TREES_GET_TREES_FOR_ORG = f"{REPO_TREES_CODE}.RepoTreesIntegration.get_trees_for_org"
-REPO_TREES_GET_REPOS = f"{REPO_TREES_CODE}.RepoTreesIntegration._populate_repositories"
+REPO_TREES_INTEGRATION = f"{REPO_TREES_CODE}.RepoTreesIntegration"
+# XXX: This will need to get fixed once we support other providers
 CLIENT = "sentry.integrations.github.client.GitHubBaseClient"
 
 
@@ -69,7 +69,9 @@ class BaseDeriveCodeMappings(TestCase):
         with (
             patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(repo_files)),
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
-            patch(REPO_TREES_GET_REPOS, return_value=[self._repo_info()]),
+            patch(
+                f"{REPO_TREES_INTEGRATION}._populate_repositories", return_value=[self._repo_info()]
+            ),
             patch("sentry.utils.metrics.incr") as mock_incr,
         ):
             event = self.create_event(frames, platform)
@@ -103,7 +105,9 @@ class BaseDeriveCodeMappings(TestCase):
         with (
             patch(f"{CLIENT}.get_tree", return_value=self._repo_tree_files(repo_files)),
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
-            patch(REPO_TREES_GET_REPOS, return_value=[self._repo_info()]),
+            patch(
+                f"{REPO_TREES_INTEGRATION}._populate_repositories", return_value=[self._repo_info()]
+            ),
             patch("sentry.utils.metrics.incr") as mock_incr,
         ):
             event = self.create_event(frames, platform)
@@ -143,19 +147,19 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
 
     def test_api_errors_halts(self, mock_record: Any) -> None:
         error = ApiError('{"message":"Not Found"}')
-        with patch(REPO_TREES_GET_TREES_FOR_ORG, side_effect=error):
+        with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert_halt_metric(mock_record, error)
 
     def test_unable_to_get_lock_halts(self, mock_record: Any) -> None:
         error = UnableToAcquireLock()
-        with patch(REPO_TREES_GET_TREES_FOR_ORG, side_effect=error):
+        with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=error):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             assert not RepositoryProjectPathConfig.objects.exists()
             assert_halt_metric(mock_record, error)
 
     def test_generic_errors_fail(self, mock_record: Any) -> None:
-        with patch(REPO_TREES_GET_TREES_FOR_ORG, side_effect=Exception("foo")):
+        with patch(f"{REPO_TREES_INTEGRATION}.get_trees_for_org", side_effect=Exception("foo")):
             process_event(self.project.id, self.event.group_id, self.event.event_id)
             # Failures require manual investigation.
             assert_failure_metric(mock_record, DeriveCodeMappingsErrorReason.UNEXPECTED_ERROR)
