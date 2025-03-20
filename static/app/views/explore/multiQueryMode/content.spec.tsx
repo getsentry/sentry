@@ -376,7 +376,7 @@ describe('MultiQueryModeContent', function () {
           query: expect.objectContaining({
             dataset: 'spans',
             field: [],
-            interval: '1h',
+            interval: '1d',
             orderby: undefined,
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -427,7 +427,7 @@ describe('MultiQueryModeContent', function () {
             dataset: 'spans',
             excludeOther: 0,
             field: ['span.op', 'avg(span.duration)'],
-            interval: '1h',
+            interval: '1d',
             orderby: '-avg_span_duration',
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -566,9 +566,9 @@ describe('MultiQueryModeContent', function () {
 
     const section = screen.getByTestId('section-visualization-0');
     expect(
-      await within(section).findByRole('button', {name: '1 hour'})
+      await within(section).findByRole('button', {name: '1 day'})
     ).toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('button', {name: '1 hour'}));
+    await userEvent.click(within(section).getByRole('button', {name: '1 day'}));
     await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/traces/compare',

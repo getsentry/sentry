@@ -16,6 +16,7 @@ export type TracingEventParameters = {
     confidences: string[];
     dataset: string;
     has_exceeded_performance_usage_limit: boolean | null;
+    interval: string;
     page_source: 'explore' | 'compare';
     query_status: 'success' | 'error' | 'pending';
     result_length: number;
@@ -26,6 +27,7 @@ export type TracingEventParameters = {
     user_queries_count: number;
     visualizes: BaseVisualize[];
     visualizes_count: number;
+    empty_buckets_percentage?: number[];
   };
   'trace.load.empty_state': {
     source: TraceWaterFallSource;
@@ -130,7 +132,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
-    save_type: 'alert' | 'dashboard';
+    save_type: 'alert' | 'dashboard' | 'saved_query' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart';
   };
   'trace_explorer.search_failure': {
