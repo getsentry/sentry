@@ -119,6 +119,12 @@ export type IssueEventParameters = {
   };
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_issue_details_as_markdown': {
+    groupId: string;
+    hasAutofix: boolean;
+    hasSummary: boolean;
+    eventId?: string;
+  };
   'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
   'issue_details.copy_issue_short_id_clicked': StreamlineGroupParams;
   'issue_details.copy_issue_url_clicked': StreamlineGroupParams;
@@ -520,6 +526,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
+  'issue_details.copy_issue_details_as_markdown':
+    'Issue Details: Copy Issue Details as Markdown',
   'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
