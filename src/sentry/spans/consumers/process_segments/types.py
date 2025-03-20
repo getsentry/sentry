@@ -21,5 +21,5 @@ class Span(UnprocessedSpan, total=True):
     # Added in enrichment
     exclusive_time: float
     exclusive_time_ms: float
-    op: NotRequired[str | None]
+    op: str
     hash: NotRequired[str]
