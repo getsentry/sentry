@@ -1,8 +1,11 @@
+import pytest
+
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillDesyncedStarredViewsTest(TestMigrations):
     migrate_from = "0840_savedsearch_type_non_null"
     migrate_to = "0841_backfill_desynced_starred_views"
