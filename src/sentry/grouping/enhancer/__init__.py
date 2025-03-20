@@ -82,6 +82,7 @@ def parse_rust_enhancements(
         raise InvalidEnhancerConfig(str(e))
 
 
+# TODO: Convert this into a typeddict in ophio
 RustExceptionData = dict[str, bytes | None]
 
 
@@ -97,7 +98,12 @@ def make_rust_exception_data(
     for key, value in e.items():
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
-    return e
+
+    return RustExceptionData(
+        ty=e["ty"],
+        value=e["value"],
+        mechanism=e["mechanism"],
+    )
 
 
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
