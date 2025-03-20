@@ -302,8 +302,14 @@ function MetaFrameworkConfigInfo({
           filename="next.config.(js|mjs)"
         >
           {`export default withSentryConfig(nextConfig, {
+  // If you use environment variables,
+  // you don't need to specify these options
+  org: "${orgSlug}",
+  project: "${projectSlug}",
+
   // Upload a larger set of source maps for prettier stack traces (increases build time)
   widenClientFileUpload: true,
+  // ... rest of your sentry config
 });`}
         </InstructionCodeSnippet>
       </p>
@@ -319,16 +325,18 @@ function MetaFrameworkConfigInfo({
   modules: ["@sentry/nuxt/module"],
   sentry: {
     sourceMapsUploadOptions: {
-      // If you use .sentryclirc or environment variables,
+      // If you use environment variables,
       // you don't need to specify these options
       org: "${orgSlug}",
       project: "${projectSlug}",
-      authToken: process.env.SENTRY_AUTH_TOKEN,
+      // ... rest of your sourceMapsUploadOptions
     }
+    // ... rest of your sentry config
   },
   // Enable it explicitly for the client-side
   // The 'hidden' option functions the same as true
   sourcemap: { client: "hidden" }
+  // ... rest of your Nuxt config
 });
 `}
         </InstructionCodeSnippet>
@@ -354,12 +362,13 @@ function MetaFrameworkConfigInfo({
       // ... your Remix plugin options
     }),
     sentryVitePlugin({
-      // If you use .sentryclirc or environment variables,
+      // If you use environment variables,
       // you don't need to specify these options
       org: "${orgSlug}",
       project: "${projectSlug}",
-      authToken: process.env.SENTRY_AUTH_TOKEN,
+      // ... rest of your sentryVitePlugin
     }),
+    // ... rest of your plugins
   ],
   build: {
     sourcemap: true,
@@ -372,7 +381,7 @@ function MetaFrameworkConfigInfo({
     );
   }
 
-  // sveltekit
+  // Sveltekit
   return (
     <p>
       {t('Firstly, make sure source maps is not disabled as following:')}
@@ -380,8 +389,13 @@ function MetaFrameworkConfigInfo({
         {`export default {
 plugins: [
   sentrySvelteKit({
+    // If you use environment variables,
+    // you don't need to specify these options
+    org: "${orgSlug}",
+    project: "${projectSlug}",
     // Set this to true, or omit it entirely
     autoUploadSourceMaps: true,
+    // ... rest of your sentrySvelteKit
   }),
   sveltekit(),
 ],
