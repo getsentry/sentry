@@ -14,6 +14,8 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
+import {getChonkButtonStyles} from './index.chonk';
+
 /**
  * Default sizes to use for SVGIcon
  */
@@ -389,7 +391,7 @@ export const StyledButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
-  ${getButtonStyles}
+  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p))}
 `;
 
 const getBoxShadow = ({
