@@ -117,6 +117,7 @@ export function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
+                  feedback={feedback}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (

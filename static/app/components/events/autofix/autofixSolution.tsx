@@ -9,7 +9,9 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
+import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
+  type AutofixFeedback,
   type AutofixRepository,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
@@ -38,6 +40,7 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import type {Color} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {useTextSelection} from './useTextSelection';
@@ -114,6 +117,7 @@ type AutofixSolutionProps = {
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
+  feedback?: AutofixFeedback;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -444,6 +448,7 @@ function AutofixSolutionDisplay({
   solutionSelected,
   changesDisabled,
   agentCommentThread,
+  feedback,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, _setIsEditing] = useState(false);
@@ -535,6 +540,15 @@ function AutofixSolutionDisplay({
             {t('Solution')}
           </HeaderText>
           <ButtonBar gap={1}>
+            <AutofixThumbsUpDownButtons
+              thumbsUpDownType="solution"
+              feedback={feedback}
+              groupId={groupId}
+              runId={runId}
+            />
+            <DividerWrapper>
+              <Divider />
+            </DividerWrapper>
             <ButtonBar>
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
@@ -821,4 +835,8 @@ const SubmitButton = styled(Button)`
 
 const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
+`;
+
+const DividerWrapper = styled('div')`
+  margin: 0 ${space(0.5)};
 `;
