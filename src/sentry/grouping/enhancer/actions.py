@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.enhancer.matchers import MatchFrame
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
+
+if TYPE_CHECKING:
+    from sentry.grouping.enhancer.rules import EnhancementRule
 
 ACTIONS = ["group", "app"]
 ACTION_BITSIZE = 8
@@ -30,14 +35,18 @@ class EnhancementAction:
     def apply_modifications_to_frame(
         self,
         frames: Sequence[dict[str, Any]],
-        match_frames: Sequence[dict[str, Any]],
+        match_frames: list[MatchFrame],
         idx: int,
-        rule: Any = None,
+        rule: Any | None = None,
     ) -> None:
         pass
 
     def update_frame_components_contributions(
-        self, components, frames: Sequence[dict[str, Any]], idx, rule=None
+        self,
+        components: list[BaseGroupingComponent],
+        frames: list[dict[str, Any]],
+        idx: int,
+        rule: Any | None = None,
     ) -> None:
         pass
 
@@ -55,7 +64,7 @@ class EnhancementAction:
         return self._is_updater
 
     @classmethod
-    def _from_config_structure(cls, val, version: int):
+    def _from_config_structure(cls, val: list[str] | int, version: int) -> EnhancementAction:
         if isinstance(val, list):  # This is a `VarAction`
             variable, value = val
             return VarAction(variable, value)
@@ -88,7 +97,7 @@ class FlagAction(EnhancementAction):
             self.key,
         )
 
-    def _to_config_structure(self, version: int):
+    def _to_config_structure(self, version: int) -> int:
         """
         Convert the action into an integer by
             - converting the combination of its boolean value (if it's a `+app/+group` rule or a
@@ -100,7 +109,7 @@ class FlagAction(EnhancementAction):
         """
         return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE)
 
-    def _slice_to_range(self, seq, idx):
+    def _slice_to_range(self, seq: list[Any], idx: int) -> list[Any]:
         if self.range is None:
             return [seq[idx]]
         elif self.range == "down":
@@ -122,9 +131,9 @@ class FlagAction(EnhancementAction):
     def apply_modifications_to_frame(
         self,
         frames: Sequence[dict[str, Any]],
-        match_frames: Sequence[dict[str, Any]],
+        match_frames: list[MatchFrame],
         idx: int,
-        rule: Any = None,
+        rule: Any | None = None,
     ) -> None:
         # Change a frame or many to be in_app
         if self.key == "app":
@@ -132,7 +141,11 @@ class FlagAction(EnhancementAction):
                 match_frame["in_app"] = self.flag
 
     def update_frame_components_contributions(
-        self, components, frames: Sequence[dict[str, Any]], idx, rule=None
+        self,
+        components: list[BaseGroupingComponent],
+        frames: list[dict[str, Any]],
+        idx: int,
+        rule: EnhancementRule | None = None,
     ) -> None:
         rule_hint = "stack trace rule"
         if rule:
@@ -184,19 +197,20 @@ class VarAction(EnhancementAction):
     def __str__(self) -> str:
         return f"{self.var}={self.value}"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> list[str | int]:
+        # TODO: Can we switch this to a tuple so we can type it more exactly?
         return [self.var, self.value]
 
-    def modify_stacktrace_state(self, state, rule):
+    def modify_stacktrace_state(self, state, rule) -> None:
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
     def apply_modifications_to_frame(
         self,
         frames: Sequence[dict[str, Any]],
-        match_frames: Sequence[dict[str, Any]],
+        match_frames: list[MatchFrame],
         idx: int,
-        rule: Any = None,
+        rule: Any | None = None,
     ) -> None:
         if self.var == "category":
             frame = frames[idx]
