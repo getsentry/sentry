@@ -318,9 +318,13 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('spend notifications on org with am3 with spend visibility notifications', async function () {
-    const organization = OrganizationFixture();
-    organization.features.push('spend-visibility-notifications');
-    organization.features.push('am3-tier');
+    const organization = OrganizationFixture({
+      features: [
+        'spend-visibility-notifications',
+        'am3-tier',
+        'continuous-profiling-billing',
+      ],
+    });
     renderComponent({
       notificationType: 'quota',
       organizations: [organization],
@@ -333,7 +337,8 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
+    expect(screen.getByText('Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -366,9 +371,13 @@ describe('NotificationSettingsByType', function () {
   });
 
   it('spend notifications on org with am3 and org without am3', async function () {
-    const organization = OrganizationFixture();
-    organization.features.push('spend-visibility-notifications');
-    organization.features.push('am3-tier');
+    const organization = OrganizationFixture({
+      features: [
+        'spend-visibility-notifications',
+        'am3-tier',
+        'continuous-profiling-billing',
+      ],
+    });
     const otherOrganization = OrganizationFixture();
     renderComponent({
       notificationType: 'quota',
@@ -383,13 +392,15 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
+    expect(screen.getByText('Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
   });
 
   it('spend notifications on org with am1 org only', async function () {
     const organization = OrganizationFixture();
     organization.features.push('spend-visibility-notifications');
     organization.features.push('am1-tier');
+    organization.features.push('continuous-profiling-billing');
     const otherOrganization = OrganizationFixture();
     renderComponent({
       notificationType: 'quota',
@@ -403,13 +414,15 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument();
+    expect(screen.queryByText('Profile Hours', {exact: true})).not.toBeInTheDocument();
+    expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
   });
 
   it('spend notifications on org with am3 without spend visibility notifications', async function () {
-    const organization = OrganizationFixture();
-    organization.features.push('am3-tier');
+    const organization = OrganizationFixture({
+      features: ['am3-tier', 'continuous-profiling-billing'],
+    });
     renderComponent({
       notificationType: 'quota',
       organizations: [organization],
@@ -423,7 +436,8 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.queryByText('Continuous Profiling')).not.toBeInTheDocument(); // TODO(Continuous Profiling GA): should be in document
+    expect(screen.getByText('Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
     const editSettingMock = MockApiClient.addMockResponse({
@@ -453,5 +467,33 @@ describe('NotificationSettingsByType', function () {
         },
       })
     );
+  });
+
+  it('should not show Profile Hours when continuous-profiling-billing is not enabled', async function () {
+    const organization = OrganizationFixture({
+      features: [
+        'spend-visibility-notifications',
+        'am3-tier',
+        // No continuous-profiling-billing feature
+      ],
+    });
+    renderComponent({
+      notificationType: 'quota',
+      organizations: [organization],
+    });
+
+    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
+
+    // These should be present
+    expect(screen.getByText('Errors')).toBeInTheDocument();
+    expect(screen.getByText('Spans')).toBeInTheDocument();
+    expect(screen.getByText('Session Replays')).toBeInTheDocument();
+    expect(screen.getByText('Attachments')).toBeInTheDocument();
+    expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
+
+    // These should NOT be present
+    expect(screen.queryByText('Profile Hours', {exact: true})).not.toBeInTheDocument();
+    expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
+    expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
   });
 });

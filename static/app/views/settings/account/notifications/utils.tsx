@@ -56,6 +56,7 @@ export function getDocsLinkForEventType(
     case DataCategoryExact.MONITOR_SEAT:
       return 'https://docs.sentry.io/product/crons/';
     case DataCategoryExact.PROFILE_DURATION:
+    case DataCategoryExact.PROFILE_DURATION_UI:
       return 'https://docs.sentry.io/product/explore/profiling/';
     case DataCategoryExact.UPTIME:
       return 'https://docs.sentry.io/product/alerts/uptime-monitoring/';

@@ -375,7 +375,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profile Hours'),
     productName: t('Continuous Profiling'),
     uid: 17,
-    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    isBilledCategory: true,
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
@@ -385,7 +385,7 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('UI Profile Hours'),
     productName: t('UI Profiling'),
     uid: 25,
-    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    isBilledCategory: true,
   },
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,

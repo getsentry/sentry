@@ -199,9 +199,15 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       organization.features?.includes('am2-tier')
     );
 
+    // Check if any organization has the continuous-profiling-billing feature flag
+    const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
+      organization.features?.includes('continuous-profiling-billing')
+    );
+
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
     const includeSpans = hasOrgWithAm3;
-    const includeProfileDuration = hasOrgWithAm2 || hasOrgWithAm3;
+    const includeProfileDuration =
+      (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
 
     // if a quota notification is not disabled, add in our dependent fields
     // but do not show the top level controller
@@ -219,7 +225,10 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             if (field.name === 'quotaTransactions' && excludeTransactions) {
               return false;
             }
-            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
+            if (
+              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
+              !includeProfileDuration
+            ) {
               return false;
             }
             return true;
@@ -246,7 +255,10 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             if (field.name === 'quotaTransactions' && excludeTransactions) {
               return false;
             }
-            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
+            if (
+              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
+              !includeProfileDuration
+            ) {
               return false;
             }
             return true;
