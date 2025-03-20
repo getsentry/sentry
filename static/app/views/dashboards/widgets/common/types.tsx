@@ -18,7 +18,7 @@ export type TimeSeriesValueType =
 
 export type TimeSeriesValueUnit = DataUnit | null;
 
-export type Meta = {
+export type TimeSeriesMeta = {
   type: TimeSeriesValueType;
   unit: TimeSeriesValueUnit;
   isOther?: boolean;
@@ -36,7 +36,7 @@ export type TimeSeriesItem = {
 export type TimeSeries = {
   data: TimeSeriesItem[];
   field: string;
-  meta: Meta;
+  meta: TimeSeriesMeta;
   confidence?: Confidence;
   sampleCount?: AccuracyStats<number>;
   samplingRate?: AccuracyStats<number | null>;

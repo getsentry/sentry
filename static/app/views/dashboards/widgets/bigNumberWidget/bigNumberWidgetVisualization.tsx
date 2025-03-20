@@ -10,9 +10,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
 import type {
-  Meta,
   TableData,
   Thresholds,
+  TimeSeriesMeta,
 } from 'sentry/views/dashboards/widgets/common/types';
 
 import {NON_FINITE_NUMBER_MESSAGE} from '../common/settings';
@@ -24,7 +24,7 @@ export interface BigNumberWidgetVisualizationProps {
   field: string;
   value: number | string;
   maximumValue?: number;
-  meta?: Meta;
+  meta?: TimeSeriesMeta;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number | string;
   thresholds?: Thresholds;

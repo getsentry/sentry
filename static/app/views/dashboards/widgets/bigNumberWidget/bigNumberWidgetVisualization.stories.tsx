@@ -9,7 +9,7 @@ import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 
-import type {Meta} from '../common/types';
+import type {TimeSeriesMeta} from '../common/types';
 
 import {BigNumberWidgetVisualization} from './bigNumberWidgetVisualization';
 
@@ -221,7 +221,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
   });
 
   story('Thresholds', () => {
-    const meta: Meta = {
+    const meta: TimeSeriesMeta = {
       type: 'rate',
       unit: RateUnit.PER_SECOND,
     };
