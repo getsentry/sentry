@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useReducer, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useRef} from 'react';
 
 export type TourEnumType = string | number;
 
@@ -74,9 +74,11 @@ type TourRegistry<T extends TourEnumType> = {
   [key in T]: TourStep<T> | null;
 };
 
-type TourCallbacks<T extends TourEnumType> = Partial<{
+type TourOptions<T extends TourEnumType> = Partial<{
   onEndTour: () => void;
   onStartTour: (stepId?: T) => void;
+  onStepChange: (stepId: T) => void;
+  requireAllStepsRegistered: boolean;
 }>;
 
 function tourReducer<T extends TourEnumType>(
@@ -84,12 +86,9 @@ function tourReducer<T extends TourEnumType>(
   action: TourAction<T>
 ): TourState<T> {
   const completeTourState = {...state, currentStepId: null, isCompleted: true};
+
   switch (action.type) {
     case 'START_TOUR': {
-      // If steps are not all registered, do nothing
-      if (!state.isRegistered) {
-        return state;
-      }
       // If the stepId is provided, set the current step to the stepId
       const startStepIndex = action.stepId
         ? state.orderedStepIds.indexOf(action.stepId)
@@ -159,7 +158,7 @@ function tourReducer<T extends TourEnumType>(
 
 export function useTourReducer<T extends TourEnumType>(
   initialState: TourState<T>,
-  callbacks: TourCallbacks<T>
+  options: TourOptions<T>
 ): TourContextType<T> {
   const {orderedStepIds} = initialState;
 
@@ -168,6 +167,10 @@ export function useTourReducer<T extends TourEnumType>(
 
   const handleStepRegistration = useCallback(
     (step: TourStep<T>) => {
+      if (options?.requireAllStepsRegistered === false) {
+        return () => {};
+      }
+
       registry.current[step.id] = step;
       const isCompletelyRegistered = orderedStepIds.every(stepId =>
         Boolean(registry.current[stepId])
@@ -180,21 +183,24 @@ export function useTourReducer<T extends TourEnumType>(
         dispatch({type: 'SET_REGISTRATION', isRegistered: false});
       };
     },
-    [orderedStepIds]
+    [orderedStepIds, options?.requireAllStepsRegistered]
   );
 
   const startTour = useCallback(
     (stepId?: T) => {
+      if (options?.requireAllStepsRegistered !== false && !state.isRegistered) {
+        return;
+      }
       dispatch({type: 'START_TOUR', stepId});
-      callbacks?.onStartTour?.(stepId);
+      options?.onStartTour?.(stepId);
     },
-    [callbacks]
+    [options, state.isRegistered]
   );
 
   const endTour = useCallback(() => {
     dispatch({type: 'END_TOUR'});
-    callbacks?.onEndTour?.();
-  }, [callbacks]);
+    options?.onEndTour?.();
+  }, [options]);
 
   const nextStep = useCallback(() => {
     dispatch({type: 'NEXT_STEP'});
@@ -207,6 +213,13 @@ export function useTourReducer<T extends TourEnumType>(
   const setStep = useCallback((stepId: T) => {
     dispatch({type: 'SET_STEP', stepId});
   }, []);
+
+  useEffect(() => {
+    if (state.currentStepId) {
+      options?.onStepChange?.(state.currentStepId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.currentStepId]);
 
   return useMemo<TourContextType<T>>(
     () => ({
