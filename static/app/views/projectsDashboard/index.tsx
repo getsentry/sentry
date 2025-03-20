@@ -37,6 +37,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';
@@ -205,7 +206,10 @@ function Dashboard() {
                   ? undefined
                   : t('You do not have permission to create projects')
               }
-              to={`/organizations/${organization.slug}/projects/new/`}
+              to={makeProjectsPathname({
+                path: '/new/',
+                orgSlug: organization.slug,
+              })}
               icon={<IconAdd isCircled />}
               data-test-id="create-project"
             >

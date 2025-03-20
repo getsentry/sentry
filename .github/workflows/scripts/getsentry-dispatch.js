@@ -8,10 +8,6 @@
  */
 const DISPATCHES = [
   {
-    workflow: 'js-build-and-lint.yml',
-    pathFilterName: 'frontend_all',
-  },
-  {
     workflow: 'backend.yml',
     pathFilterName: 'backend_all',
   },

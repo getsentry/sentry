@@ -10,9 +10,13 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
     AlertRuleSerializerResponse,
 )
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    DetailedIncidentSerializerResponse,
+)
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.incident import Incident
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -97,13 +101,17 @@ class BuildMetricAlertChartTest(TestCase):
         alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
             alert_rule, None, AlertRuleSerializer()
         )
+        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+            incident, None, DetailedIncidentSerializer()
+        )
 
         url = build_metric_alert_chart(
             self.organization,
             alert_rule_serialized_response=alert_rule_serialized_response,
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
             snuba_query=alert_rule.snuba_query,
-            selected_incident=incident,
+            open_period_context=OpenPeriodContext.from_incident(incident),
+            selected_incident_serialized=incident_serialized_response,
         )
 
         assert url == "chart-url"

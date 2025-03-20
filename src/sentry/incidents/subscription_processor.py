@@ -411,18 +411,6 @@ class SubscriptionProcessor:
             )
 
         aggregation_value = self.get_aggregation_value(subscription_update)
-        if features.has(
-            "organizations:failure-rate-metric-alert-logging",
-            self.subscription.project.organization,
-        ):
-            logger.info(
-                "Update value in subscription processor",
-                extra={
-                    "result": subscription_update,
-                    "aggregation_value": aggregation_value,
-                    "rule_id": self.alert_rule.id,
-                },
-            )
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
@@ -443,18 +431,6 @@ class SubscriptionProcessor:
                     subscription=self.subscription,
                     last_update=self.last_update.timestamp(),
                     aggregation_value=aggregation_value,
-                )
-            # XXX (mifu67): log problematic rule, to be deleted later
-            if features.has(
-                "feature.organizations:failure-rate-metric-alert-logging",
-                self.subscription.project.organization,
-            ):
-                logger.info(
-                    "Received this response from Seer",
-                    extra={
-                        "potential_anomalies": potential_anomalies,
-                        "alert_rule_id": self.alert_rule.id,
-                    },
                 )
             if potential_anomalies is None:
                 logger.info(

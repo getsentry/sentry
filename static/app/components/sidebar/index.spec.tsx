@@ -14,7 +14,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
@@ -133,14 +133,14 @@ describe('Sidebar', function () {
   });
 
   it('does not render help center in demo mode', async () => {
-    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     renderSidebar({organization});
     await userEvent.click(await screen.findByText('Help'));
 
     expect(screen.queryByText('Visit Help Center')).not.toBeInTheDocument();
 
-    (isDemoModeEnabled as jest.Mock).mockReset();
+    (isDemoModeActive as jest.Mock).mockReset();
   });
 
   describe('SidebarDropdown', function () {
@@ -421,7 +421,10 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       expect(await screen.findByText(/Try New Navigation/)).toBeInTheDocument();
     });
@@ -432,7 +435,10 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -453,7 +459,10 @@ describe('Sidebar', function () {
         body: {},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 

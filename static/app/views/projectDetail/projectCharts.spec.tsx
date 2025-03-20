@@ -81,28 +81,24 @@ describe('ProjectDetail > ProjectCharts', () => {
   });
 
   it('renders App Hang options for apple projects when the feature flag is enabled', async () => {
-    renderProjectCharts('apple', undefined, [
-      'projects:project-detail-apple-app-hang-rate',
-    ]);
+    renderProjectCharts('apple', undefined, ['project-detail-apple-app-hang-rate']);
 
     await userEvent.click(
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
-    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+    expect(screen.getByText('App Hang Rate')).toBeInTheDocument();
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 
   it('renders App Hang options for apple-ios projects when the feature flag is enabled', async () => {
-    renderProjectCharts('apple-ios', undefined, [
-      'projects:project-detail-apple-app-hang-rate',
-    ]);
+    renderProjectCharts('apple-ios', undefined, ['project-detail-apple-app-hang-rate']);
 
     await userEvent.click(
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
-    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+    expect(screen.getByText('App Hang Rate')).toBeInTheDocument();
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 
@@ -113,7 +109,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
-    expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
+    expect(screen.queryByText('App Hang Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
   });
 

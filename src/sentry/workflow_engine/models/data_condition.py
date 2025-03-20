@@ -82,6 +82,17 @@ SLOW_CONDITIONS = [
     Condition.PERCENT_SESSIONS_COUNT,
 ] + PERCENT_CONDITIONS
 
+# Conditions that are not supported in the UI
+LEGACY_CONDITIONS = [
+    Condition.EVERY_EVENT,
+    Condition.EVENT_CREATED_BY_DETECTOR,
+    Condition.EVENT_SEEN_COUNT,
+    Condition.NEW_HIGH_PRIORITY_ISSUE,
+    Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+    Condition.ISSUE_CATEGORY,
+    Condition.ISSUE_RESOLUTION_CHANGE,
+]
+
 
 T = TypeVar("T")
 

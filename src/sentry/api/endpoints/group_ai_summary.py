@@ -18,6 +18,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.autofix.utils import get_autofix_state
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.group import Group
@@ -192,8 +193,11 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                 continue
             if e.group_id not in issue_ids:
                 issue_ids.add(e.group_id)
-                if e.group:
-                    connected_issues.append(e.group)
+                try:
+                    if e.group:
+                        connected_issues.append(e.group)
+                except Group.DoesNotExist:
+                    continue
         return connected_issues
 
     def post(self, request: Request, group: Group) -> Response:
@@ -239,12 +243,25 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
                 issue_summary = self._generate_fixability_score(group.id)
 
-            with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
-                response = trigger_autofix(group=group, event_id=event.event_id, user=request.user)
+            if issue_summary.scores.is_fixable:
+                with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):
+                    autofix_state = get_autofix_state(group_id=group.id)
 
-            if response.status_code != 202:
-                # If autofix trigger fails, we don't cache to let it error and we can run again, this is only temporary for when we're testing this internally.
-                return response
+                if (
+                    not autofix_state
+                ):  # Only trigger autofix if we don't have an autofix on this issue already.
+                    with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+                        response = trigger_autofix(
+                            group=group,
+                            event_id=event.event_id,
+                            user=request.user,
+                            auto_run_source="issue_summary_fixability",
+                        )
+
+                        if response.status_code != 202:
+                            # If autofix trigger fails, we don't cache to let it error and we can run again
+                            # This is only temporary for when we're testing this internally.
+                            return response
 
         summary_dict = issue_summary.dict()
         summary_dict["event_id"] = event.event_id

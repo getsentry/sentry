@@ -76,7 +76,11 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  android: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
@@ -137,6 +141,10 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-svelte': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  'javascript-tanstackstart-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
@@ -433,7 +441,8 @@ const ProductButtonWrapper = styled(Button)`
     p.priority === 'primary' &&
     css`
       &,
-      :hover {
+      :hover,
+      :focus-visible {
         background: ${p.theme.purple100};
         color: ${p.theme.purple300};
       }
@@ -453,7 +462,8 @@ const DisabledProductWrapper = styled(Button)`
 const PermanentDisabledProductWrapper = styled(Button)`
   && {
     &,
-    :hover {
+    :hover,
+    :focus-visible {
       background: ${p => p.theme.purple100};
       color: ${p => p.theme.purple300};
       opacity: 0.5;
