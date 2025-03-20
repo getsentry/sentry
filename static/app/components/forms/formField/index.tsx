@@ -374,6 +374,8 @@ function FormField(props: FormFieldProps) {
                         typeof fieldProps.placeholder === 'function'
                           ? fieldProps.placeholder({...props, model})
                           : fieldProps.placeholder,
+                      // !! Do not forward `required` to avoid default browser behavior !!
+                      required: undefined,
                     })}
                   </Fragment>
                 );
