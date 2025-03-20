@@ -17,7 +17,8 @@ from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 
 
-class OrganizationDataConditionAPITestCase(APITestCase):
+@region_silo_test
+class OrganizationDetectorTypesAPITestCase(APITestCase):
     endpoint = "sentry-api-0-organization-detector-type-index"
 
     def setUp(self):
@@ -76,9 +77,6 @@ class OrganizationDataConditionAPITestCase(APITestCase):
         super().tearDown()
         self.registry_patcher.stop()
 
-
-@region_silo_test
-class OrganizationDataConditionIndexBaseTest(OrganizationDataConditionAPITestCase):
     def test_simple(self):
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert len(response.data) == 3
