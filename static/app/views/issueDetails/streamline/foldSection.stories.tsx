@@ -60,7 +60,7 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
     );
   });
 
-  story('Disabling persistence of collapse state', () => {
+  story('Disabling persistence of collapsed state', () => {
     return (
       <Fragment>
         <FoldSection
