@@ -76,5 +76,4 @@ const TraceTagsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
-  margin-bottom: ${space(2)};
 `;
