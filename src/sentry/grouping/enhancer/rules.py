@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict
 
 from .actions import EnhancementAction
 from .matchers import EnhancementMatch, ExceptionFieldMatch
+
+
+class EnhancementRuleDict(TypedDict):
+    match: dict[str, str]
+    actions: list[str]
 
 
 class EnhancementRule:
