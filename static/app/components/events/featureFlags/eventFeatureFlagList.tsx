@@ -127,8 +127,6 @@ export function EventFeatureFlagList({
       : new Set(suspectFlags.map(f => f.flag));
   }, [isSuspectError, isSuspectPending, suspectFlags]);
 
-  const hasFlagContext = Boolean(event.contexts?.flags?.values);
-
   const eventFlags: Array<Required<FeatureFlag>> = useMemo(() => {
     // At runtime there's no type guarantees on the event flags. So we have to
     // explicitly validate against SDK developer error or user-provided contexts.
@@ -218,14 +216,12 @@ export function EventFeatureFlagList({
     return null;
   }
 
-  // contexts.flags is not set and project has not ingested flags
-  if (
-    !hasFlagContext &&
-    !project.hasFlags &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
-    organization.features.includes('feature-flag-cta')
-  ) {
-    return <FeatureFlagInlineCTA projectId={event.projectID} />;
+  // If the project has never ingested flags, either show a CTA or hide the section entirely.
+  if (!hasFlags && !project.hasFlags) {
+    const showCTA =
+      featureFlagOnboardingPlatforms.includes(project.platform ?? 'other') &&
+      organization.features.includes('feature-flag-cta');
+    return showCTA ? <FeatureFlagInlineCTA projectId={event.projectID} /> : null;
   }
 
   const actions = (
