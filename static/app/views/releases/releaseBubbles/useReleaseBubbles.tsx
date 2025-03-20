@@ -268,13 +268,6 @@ function ReleaseBubbleSeries({
         // TODO: figure out correct opacity calculations
         opacity: Math.round((Number(numberReleases) / avgReleases) * 50) / 100,
       },
-      emphasis: {
-        style: {
-          opacity: 1,
-          stroke: 'transparent',
-          fill: theme.blue400,
-        },
-      },
     } satisfies CustomSeriesRenderItemReturn;
   };
 
