@@ -473,9 +473,19 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
 
         if self.target_type == self.TargetType.USER.value:
             try:
+                trigger = AlertRuleTrigger.objects.get(id=self.alert_rule_trigger_id)
+            except AlertRuleTrigger.DoesNotExist:
+                return None
+
+            try:
+                alert_rule = AlertRule.objects.get(id=trigger.alert_rule_id)
+            except AlertRule.DoesNotExist:
+                return None
+
+            try:
                 return OrganizationMember.objects.get(
                     user_id=int(self.target_identifier),
-                    organization=self.alert_rule_trigger.alert_rule.organization,
+                    organization=alert_rule.organization,
                 )
             except OrganizationMember.DoesNotExist:
                 pass

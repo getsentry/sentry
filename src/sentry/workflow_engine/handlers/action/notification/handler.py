@@ -3,10 +3,9 @@ from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     issue_alert_handler_registry,
@@ -203,14 +202,16 @@ class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
             raise NotificationHandlerException(e)
 
     @staticmethod
-    def target(action: Action) -> RpcUser | Team | str | None:
+    def target(action: Action) -> OrganizationMember | Team | str | None:
         target_identifier = action.config.get("target_identifier")
         if target_identifier is None:
             return None
 
         target_type = action.config.get("target_type")
         if target_type == ActionTarget.USER.value:
-            return user_service.get_user(user_id=int(target_identifier))
+            return OrganizationMember.objects.get(
+                user_id=int(target_identifier),
+            )
         elif target_type == ActionTarget.TEAM.value:
             try:
                 return Team.objects.get(id=int(target_identifier))
