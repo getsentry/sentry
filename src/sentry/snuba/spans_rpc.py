@@ -269,6 +269,7 @@ def build_top_event_conditions(
     )
 
 
+@sentry_sdk.trace
 def run_top_events_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -427,6 +428,7 @@ def _process_all_timeseries(
     return result
 
 
+@sentry_sdk.trace
 def run_trace_query(
     trace_id: str,
     params: SnubaParams,
@@ -467,6 +469,7 @@ def run_trace_query(
                 "id": span_item.id,
                 "children": [],
                 "errors": [],
+                "occurrences": [],
                 "event_type": "span",
             }
             for attribute in span_item.attributes:
