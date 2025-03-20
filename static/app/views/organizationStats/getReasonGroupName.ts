@@ -154,7 +154,7 @@ function getInvalidReasonGroupName(reason: string): string {
     }
   }
   // 2. If there is no direct match check if there is a match for the baseReason
-  const [baseReason, ..._] = reason.split(':');
+  const baseReason = reason.split(':')[0];
   for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
     if (reasons.includes(baseReason as DiscardReason)) {
       return group;
