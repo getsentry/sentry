@@ -46,7 +46,7 @@ export function DurationWidget({query}: {query?: string}) {
   const getTimeSeries = useCallback(
     (field: string, color?: string): DiscoverSeries | undefined => {
       const series = data?.[field];
-      if (!series) {
+      if (!series || series.data.every(([_, [value]]) => value?.count === 0)) {
         return undefined;
       }
 

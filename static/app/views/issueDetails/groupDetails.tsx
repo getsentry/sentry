@@ -745,7 +745,9 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     const issueDetailsTourData = assistantData?.find(
       item => item.guide === ISSUE_DETAILS_TOUR_GUIDE_KEY
     );
-    return issueDetailsTourData?.seen ?? false;
+
+    // Prevent tour from showing until assistant data is loaded
+    return issueDetailsTourData?.seen ?? true;
   }, [assistantData]);
   const isIssueDetailsTourAvailable = useMemo(() => {
     if (!hasStreamlinedUI) {

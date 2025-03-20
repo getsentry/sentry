@@ -141,6 +141,8 @@ def process_buffer() -> None:
 
     for processing_type, handler in delayed_processing_registry.registrations.items():
         if handler.option and not options.get(handler.option):
+            log_name = f"{processing_type}.disabled"
+            logger.info(log_name, extra={"option": handler.option})
             continue
 
         with metrics.timer(f"{processing_type}.process_all_conditions.duration"):

@@ -46,7 +46,7 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
@@ -161,7 +161,7 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const sidebarAnchor = isDemoModeEnabled() ? (
+  const sidebarAnchor = isDemoModeActive() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>

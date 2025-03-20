@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {Badge} from 'sentry/components/core/badge';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
 import {useNavPrompts} from 'sentry/components/nav/useNavPrompts';
@@ -10,7 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 
@@ -64,7 +65,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               >
                 {t('Search Support, Docs and More')}
               </SidebarMenuItem>
-              {!isDemoModeEnabled() && (
+              {!isDemoModeActive() && (
                 // Sentry zendesk is public but we hide it in demo mode to limit the amount of potential spam
                 <SidebarMenuItem href="https://sentry.zendesk.com/hc/en-us">
                   {t('Visit Help Center')}
@@ -99,7 +100,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     );
                   }}
                 >
-                  {t('Try New Navigation ✨')}
+                  {t('Try New Navigation')} <Badge type="alpha">Alpha</Badge>
                 </SidebarMenuItem>
               )}
             </HelpMenu>

@@ -33,6 +33,10 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 import {OwnerFilter} from 'sentry/views/monitors/components/ownerFilter';
 
@@ -45,6 +49,7 @@ export default function UptimeOverview() {
   const location = useLocation();
   const project = decodeList(location.query?.project);
   const {projects} = useProjects();
+  const {view = ''} = useDomainViewFilters();
 
   function makeQueryKey() {
     const {query, environment, owner, cursor, sort, asc} = location.query;
@@ -93,37 +98,40 @@ export default function UptimeOverview() {
     {settingsLink: <Link to={`/settings/${organization.slug}`} />}
   );
 
+  const headerProps = {
+    module: ModuleName.UPTIME,
+    headerTitle: (
+      <Fragment>
+        {MODULE_TITLE}
+        <PageHeadingQuestionTooltip
+          docsUrl={MODULE_DOC_LINK}
+          title={MODULE_DESCRIPTION}
+        />
+      </Fragment>
+    ),
+    headerActions: (
+      <ButtonBar gap={1}>
+        <LinkButton
+          size="sm"
+          priority="primary"
+          to={makeAlertsPathname({
+            path: `/new/uptime/`,
+            organization,
+          })}
+          icon={<IconAdd isCircled />}
+          disabled={!canCreateAlert}
+          title={canCreateAlert ? undefined : permissionTooltipText}
+        >
+          {t('Add Uptime Monitor')}
+        </LinkButton>
+      </ButtonBar>
+    ),
+  };
+
   return (
     <ModulePageProviders moduleName="uptime" pageTitle={t('Overview')}>
-      <BackendHeader
-        module={ModuleName.UPTIME}
-        headerTitle={
-          <Fragment>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Fragment>
-        }
-        headerActions={
-          <ButtonBar gap={1}>
-            <LinkButton
-              size="sm"
-              priority="primary"
-              to={makeAlertsPathname({
-                path: `/new/uptime/`,
-                organization,
-              })}
-              icon={<IconAdd isCircled />}
-              disabled={!canCreateAlert}
-              title={canCreateAlert ? undefined : permissionTooltipText}
-            >
-              {t('Add Uptime Monitor')}
-            </LinkButton>
-          </ButtonBar>
-        }
-      />
+      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
+      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
       <Layout.Body>
         <Layout.Main fullWidth>
           <Filters>

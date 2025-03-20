@@ -69,6 +69,23 @@ eap trace root
 "
 `;
 
+exports[`TraceTree eap trace correctly renders eap-transactions collapsed state 1`] = `
+"
+eap trace root
+  span.op - span.description (eap-transaction)
+    span.op - span.description (eap-transaction)
+"
+`;
+
+exports[`TraceTree eap trace correctly renders eap-transactions expanded state 1`] = `
+"
+eap trace root
+  span.op - span.description (eap-transaction)
+    span.op - span.description
+      span.op - span.description (eap-transaction)
+"
+`;
+
 exports[`TraceTree expand collapsing a parent autogroup node shows tail chain 1`] = `
 "
 trace root

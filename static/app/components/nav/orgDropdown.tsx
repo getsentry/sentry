@@ -15,7 +15,7 @@ import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -107,33 +107,33 @@ export function OrgDropdown({className}: {className?: string}) {
             {
               key: 'organization-settings',
               label: t('Organization Settings'),
-              to: `/settings/${organization.slug}/`,
+              to: `/organizations/${organization.slug}/settings/`,
               hidden: !hasOrgRead,
             },
             {
               key: 'members',
               label: t('Members'),
-              to: `/settings/${organization.slug}/members/`,
+              to: `/organizations/${organization.slug}/settings/members/`,
               hidden: !hasMemberRead,
             },
             {
               key: 'teams',
               label: t('Teams'),
-              to: `/settings/${organization.slug}/teams/`,
+              to: `/organizations/${organization.slug}/settings/teams/`,
               hidden: !hasTeamRead,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
-              to: `/settings/${organization.slug}/billing/`,
-              hidden: !hasBillingAccess,
+              to: `/organizations/${organization.slug}/settings/billing/`,
+              hidden: hasBillingAccess,
             },
             {
               key: 'switch-organization',
               label: t('Switch Organization'),
               isSubmenu: true,
               disabled: !organizations?.length,
-              hidden: config.singleOrganization || isDemoModeEnabled(),
+              hidden: config.singleOrganization || isDemoModeActive(),
               children: [
                 ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
                   key: switchOrg.id,

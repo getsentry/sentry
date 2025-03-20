@@ -11,6 +11,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import (
     Action,
+    AlertRuleWorkflow,
     DataCondition,
     DataConditionGroup,
     Detector,
@@ -111,6 +112,34 @@ def evaluate_workflows_action_filters(
     return filter_recently_fired_workflow_actions(filtered_action_groups, job["event"].group)
 
 
+def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowJob) -> None:
+    # go from actions to workflows
+    action_ids = {action.id for action in actions}
+    action_conditions = DataConditionGroup.objects.filter(
+        dataconditiongroupaction__action_id__in=action_ids
+    ).values_list("id", flat=True)
+    workflows_to_fire = Workflow.objects.filter(
+        workflowdataconditiongroup__condition_group_id__in=action_conditions
+    )
+    workflow_to_rule = dict(
+        AlertRuleWorkflow.objects.filter(workflow__in=workflows_to_fire).values_list(
+            "workflow_id", "rule_id"
+        )
+    )
+
+    for workflow in workflows_to_fire:
+        logger.info(
+            log_name,
+            extra={
+                "workflow_id": workflow.id,
+                "rule_id": workflow_to_rule.get(workflow.id),
+                "payload": job,
+                "group_id": job["event"].group_id,
+                "event_id": job["event"].event_id,
+            },
+        )
+
+
 def process_workflows(job: WorkflowJob) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
@@ -131,13 +160,29 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
     organization = detector.project.organization
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
+    environment = job["event"].get_environment()
     workflows = set(
         Workflow.objects.filter(
-            (Q(environment_id=None) | Q(environment_id=job["event"].get_environment())),
+            (Q(environment_id=None) | Q(environment_id=environment.id)),
             detectorworkflow__detector_id=detector.id,
             enabled=True,
         ).distinct()
     )
+
+    if features.has(
+        "organizations:workflow-engine-process-workflows-logs",
+        organization,
+    ):
+        logger.info(
+            "workflow_engine.process_workflows.process_event",
+            extra={
+                "payload": job,
+                "group_id": job["event"].group_id,
+                "event_id": job["event"].event_id,
+                "event_environment_id": environment.id,
+                "workflows": [workflow.id for workflow in workflows],
+            },
+        )
 
     if workflows:
         metrics.incr(
@@ -169,6 +214,16 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
                 "workflow_engine.process_workflows.triggered_actions",
                 amount=len(actions),
                 tags={"detector_type": detector.type},
+            )
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs",
+            organization,
+        ):
+            log_fired_workflows(
+                log_name="workflow_engine.process_workflows.fired_workflow",
+                actions=list(actions),
+                job=job,
             )
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):

@@ -46,30 +46,28 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams>;
 
-function getOrganizationOnboardingSteps(): StepDescriptor[] {
-  return [
-    {
-      id: 'welcome',
-      title: t('Welcome'),
-      Component: TargetedOnboardingWelcome,
-      cornerVariant: 'top-right',
-    },
-    {
-      id: 'select-platform',
-      title: t('Select platform'),
-      Component: PlatformSelection,
-      hasFooter: true,
-      cornerVariant: 'top-left',
-    },
-    {
-      id: 'setup-docs',
-      title: t('Install the Sentry SDK'),
-      Component: SetupDocs,
-      hasFooter: true,
-      cornerVariant: 'top-left',
-    },
-  ];
-}
+const onboardingSteps: StepDescriptor[] = [
+  {
+    id: 'welcome',
+    title: t('Welcome'),
+    Component: TargetedOnboardingWelcome,
+    cornerVariant: 'top-right',
+  },
+  {
+    id: 'select-platform',
+    title: t('Select platform'),
+    Component: PlatformSelection,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: 'setup-docs',
+    title: t('Install the Sentry SDK'),
+    Component: SetupDocs,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+];
 
 function Onboarding(props: Props) {
   const api = useApi();
@@ -83,7 +81,6 @@ function Onboarding(props: Props) {
     params: {step: stepId},
   } = props;
 
-  const onboardingSteps = getOrganizationOnboardingSteps();
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
@@ -153,7 +150,6 @@ function Onboarding(props: Props) {
     props.location.query,
     props.router,
     onboardingContext,
-    onboardingSteps,
     organization.slug,
     props.location.pathname,
   ]);
@@ -209,7 +205,7 @@ function Onboarding(props: Props) {
 
       props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
     },
-    [organization.slug, onboardingSteps, cornerVariantControl, props.router]
+    [organization.slug, cornerVariantControl, props.router]
   );
 
   const deleteRecentCreatedProject = useCallback(
@@ -325,7 +321,6 @@ function Onboarding(props: Props) {
       }
     },
     [
-      onboardingSteps,
       organization,
       cornerVariantControl,
       props.router,

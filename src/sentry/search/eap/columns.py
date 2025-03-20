@@ -87,7 +87,7 @@ class ArgumentDefinition:
     # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
     is_attribute: bool = True
     # Validator to check if the value is allowed for this argument
-    validator: Callable[[Any], Any] | None = None
+    validator: Callable[[str], bool] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
 
@@ -238,6 +238,11 @@ class FunctionDefinition:
 @dataclass(kw_only=True)
 class AggregateDefinition(FunctionDefinition):
     internal_function: Function.ValueType
+    """
+    An optional function that takes in the resolved argument and returns the attribute key to aggregate on.
+    If not provided, assumes the aggregate is on the first argument.
+    """
+    attribute_resolver: Callable[[ResolvedArguments], AttributeKey] | None = None
 
     def resolve(
         self,
@@ -249,11 +254,15 @@ class AggregateDefinition(FunctionDefinition):
             raise InvalidSearchQuery(
                 f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
             )
-        resolved_argument = None
+
+        resolved_attribute = None
+
         if len(resolved_arguments) == 1:
             if not isinstance(resolved_arguments[0], AttributeKey):
                 raise InvalidSearchQuery("Aggregates accept attribute keys only")
-            resolved_argument = resolved_arguments[0]
+            resolved_attribute = resolved_arguments[0]
+            if self.attribute_resolver is not None:
+                resolved_attribute = self.attribute_resolver(resolved_arguments)
 
         return ResolvedAggregate(
             public_alias=alias,
@@ -262,7 +271,7 @@ class AggregateDefinition(FunctionDefinition):
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation=self.extrapolation,
-            argument=resolved_argument,
+            argument=resolved_attribute,
         )
 
 

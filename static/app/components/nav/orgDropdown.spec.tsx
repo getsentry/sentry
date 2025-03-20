@@ -26,15 +26,15 @@ describe('OrgDropdown', function () {
 
     expect(screen.getByRole('link', {name: 'Organization Settings'})).toHaveAttribute(
       'href',
-      `/settings/${organization.slug}/`
+      `/organizations/${organization.slug}/settings/`
     );
     expect(screen.getByRole('link', {name: 'Members'})).toHaveAttribute(
       'href',
-      `/settings/${organization.slug}/members/`
+      `/organizations/${organization.slug}/settings/members/`
     );
     expect(screen.getByRole('link', {name: 'Teams'})).toHaveAttribute(
       'href',
-      `/settings/${organization.slug}/teams/`
+      `/organizations/${organization.slug}/settings/teams/`
     );
   });
 
