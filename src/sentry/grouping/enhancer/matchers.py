@@ -1,4 +1,5 @@
-from typing import Any, Literal, TypedDict
+from collections.abc import Callable
+from typing import Any, Literal, Self, TypedDict
 
 from sentry.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
@@ -13,7 +14,12 @@ from .exceptions import InvalidEnhancerConfig
 ReturnValueCache = dict[tuple[Any, ...], Any]
 
 
-def _cached(cache, function, *args, **kwargs):
+def _cached(
+    cache: ReturnValueCache,
+    function: Callable[..., Any],
+    *args: Any,
+    **kwargs: Any,
+) -> Any:
     """Calls ``function`` or retrieves its return value from the ``cache``.
 
     This is similar to ``functools.cache``, but uses a custom cache instead
@@ -90,13 +96,13 @@ MatchFrameKey = Literal[
 ]
 
 
-def _get_function_name(frame_data: dict, platform: str | None):
+def _get_function_name(frame_data: dict[str, Any], platform: str | None) -> str:
     function_name = get_function_name_for_frame(frame_data, platform)
 
     return function_name or "<unknown>"
 
 
-def create_match_frame(frame_data: dict, platform: str | None) -> dict:
+def create_match_frame(frame_data: dict[str, Any], platform: str | None) -> MatchFrame:
     """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
@@ -137,18 +143,24 @@ class EnhancementMatch:
     key: str
     pattern: str
 
-    def matches_frame(self, frames, idx, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: list[MatchFrame],
+        idx: int,
+        exception_data: dict[str, Any],
+        cache: ReturnValueCache,
+    ) -> bool:
         raise NotImplementedError()
 
     @property
     def description(self) -> str:
         raise NotImplementedError()
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> str:
         raise NotImplementedError()
 
     @staticmethod
-    def _from_config_structure(config_structure, version):
+    def _from_config_structure(config_structure: str, version: int) -> "EnhancementMatch":
         val = config_structure
         if val.startswith("|[") and val.endswith("]"):
             frame_match: Any = EnhancementMatch._from_config_structure(val[2:-1], version)
@@ -176,11 +188,11 @@ InstanceKey = tuple[str, str, bool]
 
 class FrameMatch(EnhancementMatch):
     # Global registry of matchers
-    instances: dict[InstanceKey, EnhancementMatch] = {}
-    field: Any = None
+    instances: dict[InstanceKey, Self] = {}
+    field: MatchFrameKey | None = None
 
     @classmethod
-    def from_key(cls, key: str, pattern: str, negated: bool) -> EnhancementMatch:
+    def from_key(cls, key: str, pattern: str, negated: bool) -> Self:
         instance_key = (key, pattern, negated)
         if instance_key in cls.instances:
             instance = cls.instances[instance_key]
@@ -207,7 +219,7 @@ class FrameMatch(EnhancementMatch):
 
         return subclass(key, pattern, negated)
 
-    def __init__(self, key, pattern, negated=False):
+    def __init__(self, key: str, pattern: str, negated: bool = False):
         super().__init__()
         try:
             self.key = MATCHERS[key]
@@ -226,18 +238,26 @@ class FrameMatch(EnhancementMatch):
             self.pattern if not pattern_contains_whitespace else f'"{self.pattern}"',
         )
 
-    def matches_frame(self, frames, idx, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: list[MatchFrame],
+        idx: int,
+        exception_data: dict[str, Any],
+        cache: ReturnValueCache,
+    ) -> bool:
         match_frame = frames[idx]
         rv = self._positive_frame_match(match_frame, exception_data, cache)
         if self.negated:
             rv = not rv
         return rv
 
-    def _positive_frame_match(self, match_frame, exception_data, cache):
+    def _positive_frame_match(
+        self, match_frame: MatchFrame, exception_data: dict[str, Any], cache: ReturnValueCache
+    ) -> bool:
         # Implement in subclasses
         raise NotImplementedError
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> str:
         """
         Convert the matcher into a string of the form
             <match_type><match_pattern>
@@ -268,7 +288,7 @@ class FrameMatch(EnhancementMatch):
         return ("!" if self.negated else "") + match_type_abbreviation + value_to_match
 
 
-def path_like_match(pattern, value):
+def path_like_match(pattern: bytes, value: bytes) -> bool:
     """Stand-alone function for use with ``_cached``"""
     if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
@@ -281,13 +301,15 @@ def path_like_match(pattern, value):
 
 
 class PathLikeMatch(FrameMatch):
-    def __init__(self, key, pattern, negated=False):
+    def __init__(self, key: str, pattern: str, negated: bool = False):
         # NOTE: We do not want to mess with `pattern` directly, as that is used for the `description`.
         # We rather want to `lower()` only the encoded pattern used within glob matching.
         super().__init__(key, pattern, negated)
         self._encoded_pattern = pattern.lower().encode("utf-8")
 
-    def _positive_frame_match(self, match_frame, exception_data, cache):
+    def _positive_frame_match(
+        self, match_frame: MatchFrame, exception_data: dict[str, Any], cache: ReturnValueCache
+    ) -> bool:
         if not self.field:  # Shouldn't happen, but it keeps mypy happy
             return False
 
@@ -311,7 +333,9 @@ class FamilyMatch(FrameMatch):
         super().__init__(*args, **kwargs)
         self._flags = set(self._encoded_pattern.split(b","))
 
-    def _positive_frame_match(self, match_frame, exception_data, cache):
+    def _positive_frame_match(
+        self, match_frame: MatchFrame, exception_data: dict[str, Any], cache: ReturnValueCache
+    ) -> bool:
         if b"all" in self._flags:
             return True
 
@@ -323,13 +347,17 @@ class InAppMatch(FrameMatch):
         super().__init__(*args, **kwargs)
         self._ref_val = bool_from_string(self.pattern)
 
-    def _positive_frame_match(self, match_frame, exception_data, cache):
+    def _positive_frame_match(
+        self, match_frame: MatchFrame, exception_data: dict[str, Any], cache: ReturnValueCache
+    ) -> bool:
         ref_val = self._ref_val
         return ref_val is not None and ref_val == bool(match_frame["in_app"])
 
 
 class FrameFieldMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, exception_data, cache):
+    def _positive_frame_match(
+        self, match_frame: MatchFrame, exception_data: dict[str, Any], cache: ReturnValueCache
+    ) -> bool:
         if not self.field:  # Shouldn't happen, but it keeps mypy happy
             return False
 
@@ -357,14 +385,25 @@ class CategoryMatch(FrameFieldMatch):
 class ExceptionFieldMatch(FrameMatch):
     field_path: list[str]
 
-    def matches_frame(self, frames, idx, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: list[MatchFrame],
+        idx: int | None,
+        exception_data: dict[str, Any],
+        cache: ReturnValueCache,
+    ) -> bool:
         match_frame = None
         rv = self._positive_frame_match(match_frame, exception_data, cache)
         if self.negated:
             rv = not rv
         return rv
 
-    def _positive_frame_match(self, frame_data, exception_data, cache):
+    def _positive_frame_match(
+        self,
+        match_frame: MatchFrame | None,
+        exception_data: dict[str, Any],
+        cache: ReturnValueCache,
+    ) -> bool:
         field = get_path(exception_data, *self.field_path) or "<unknown>"
         return _cached(cache, glob_match, field, self._encoded_pattern)
 
@@ -389,10 +428,16 @@ class CallerMatch(EnhancementMatch):
     def description(self) -> str:
         return f"[ {self.inner.description} ] |"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> str:
         return f"[{self.inner._to_config_structure(version)}]|"
 
-    def matches_frame(self, frames, idx, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: list[MatchFrame],
+        idx: int,
+        exception_data: dict[str, Any],
+        cache: ReturnValueCache,
+    ) -> bool:
         return idx > 0 and self.inner.matches_frame(frames, idx - 1, exception_data, cache)
 
 
@@ -404,10 +449,16 @@ class CalleeMatch(EnhancementMatch):
     def description(self) -> str:
         return f"| [ {self.inner.description} ]"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> str:
         return f"|[{self.inner._to_config_structure(version)}]"
 
-    def matches_frame(self, frames, idx, exception_data, cache):
+    def matches_frame(
+        self,
+        frames: list[MatchFrame],
+        idx: int,
+        exception_data: dict[str, Any],
+        cache: ReturnValueCache,
+    ) -> bool:
         return idx < len(frames) - 1 and self.inner.matches_frame(
             frames, idx + 1, exception_data, cache
         )

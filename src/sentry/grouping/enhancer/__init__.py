@@ -145,7 +145,12 @@ class Enhancements:
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
     def __init__(
-        self, rules, rust_enhancements: RustEnhancements, version=None, bases=None, id=None
+        self,
+        rules: list[EnhancementRule],
+        rust_enhancements: RustEnhancements,
+        version: int | None = None,
+        bases: list[str] | None = None,
+        id: str | None = None,
     ):
         self.id = id
         self.rules = rules
@@ -286,8 +291,8 @@ class Enhancements:
 
         return stacktrace_component
 
-    def as_dict(self, with_rules=False):
-        rv = {
+    def as_dict(self, with_rules: bool = False) -> EnhancementsDict:
+        rv: EnhancementsDict = {
             "id": self.id,
             "bases": self.bases,
             "latest": projectoptions.lookup_well_known_key(
@@ -299,7 +304,8 @@ class Enhancements:
             rv["rules"] = [x.as_dict() for x in self.rules]
         return rv
 
-    def _to_config_structure(self):
+    def _to_config_structure(self) -> list[Any]:
+        # TODO: Can we switch this to a tuple so we can type it more exactly?
         return [
             self.version,
             self.bases,
@@ -312,7 +318,11 @@ class Enhancements:
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
-    def _from_config_structure(cls, data, rust_enhancements: RustEnhancements) -> Enhancements:
+    def _from_config_structure(
+        cls,
+        data: list[Any],
+        rust_enhancements: RustEnhancements,
+    ) -> Enhancements:
         version, bases, rules = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
@@ -324,7 +334,7 @@ class Enhancements:
         )
 
     @classmethod
-    def loads(cls, data) -> Enhancements:
+    def loads(cls, data: str | bytes) -> Enhancements:
         if isinstance(data, str):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
@@ -344,7 +354,9 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(cls, s, bases=None, id=None) -> Enhancements:
+    def from_config_string(
+        cls, s: str, bases: list[str] | None = None, id: str | None = None
+    ) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)
