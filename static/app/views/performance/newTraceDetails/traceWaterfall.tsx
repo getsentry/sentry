@@ -15,6 +15,7 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -35,7 +36,12 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  DEFAULT_TRACE_VIEW_PREFERENCES,
+  loadTraceViewPreferences,
+} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
@@ -87,6 +93,10 @@ import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
+
+const MIN_HEIGHT = 0;
+const DEFAULT_HEIGHT = 0;
+const MAX_HEIGHT = 1500;
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
   node: 'trace',
@@ -816,6 +826,76 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
   ]);
 
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('trace-view-preferences') ||
+      DEFAULT_TRACE_VIEW_PREFERENCES,
+    []
+  );
+
+  useEffect(() => {
+    const loadedHeight = preferences.drawer.sizes['trace grid height'];
+
+    if (traceGridRef && typeof loadedHeight !== 'undefined') {
+      setHeight(loadedHeight);
+      traceGridRef.style.setProperty('--panel-height', `${loadedHeight}px`);
+    }
+  }, [preferences.drawer.sizes, traceGridRef]);
+  const handleMouseDown = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+
+      if (!traceGridRef) {
+        return;
+      }
+
+      const startY = event.clientY;
+      const startHeight = height;
+
+      function handleMouseMove(moveEvent: MouseEvent) {
+        if (!traceGridRef) {
+          return;
+        }
+
+        const deltaY = moveEvent.clientY - startY;
+        const newHeight = Math.max(
+          MIN_HEIGHT,
+          Math.min(startHeight + deltaY, MAX_HEIGHT)
+        );
+
+        traceGridRef.style.setProperty('--panel-height', `${newHeight}px`);
+      }
+
+      function handleMouseUp() {
+        if (!traceGridRef) {
+          return;
+        }
+
+        const finalHeight = parseInt(
+          getComputedStyle(traceGridRef).getPropertyValue('--panel-height'),
+          10
+        );
+
+        setHeight(finalHeight);
+        traceDispatch({type: 'set trace grid height', payload: finalHeight});
+
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      }
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [height, traceDispatch, traceGridRef]
+  );
+
+  const logsTableData = useLogsPageData();
+  if (props.tree.type === 'empty' && logsTableData?.logsData?.data?.length > 0) {
+    return null; // do not show the main trace details if you are in 'logs mode'
+  }
+
   return (
     <Fragment>
       <TraceTypeWarnings
@@ -886,9 +966,29 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           traceEventView={props.traceEventView}
         />
       </TraceGrid>
+      <GrabberContainer onMouseDown={handleMouseDown}>
+        <IconGrabbable color="gray500" />
+      </GrabberContainer>
     </Fragment>
   );
 }
+
+const GrabberContainer = styled('div')`
+  align-items: center;
+  justify-content: center;
+  background: ${p => p.theme.background};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  display: flex;
+
+  width: 100%;
+  cursor: row-resize;
+  padding: ${space(0.5)};
+
+  & > svg {
+    transform: rotate(90deg);
+  }
+`;
 
 const TraceToolbar = styled('div')`
   flex-grow: 0;
@@ -911,6 +1011,7 @@ export const TraceGrid = styled('div')<{
   --profile: ${p => p.theme.purple300};
   --autogrouped: ${p => p.theme.blue300};
   --performance-issue: ${p => p.theme.blue300};
+  --panel-height: ${DEFAULT_HEIGHT}px;
 
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
@@ -918,6 +1019,8 @@ export const TraceGrid = styled('div')<{
   display: grid;
   overflow: hidden;
   position: relative;
+  min-height: var(--panel-height);
+
   /* false positive for grid layout */
   /* stylelint-disable */
   grid-template-areas: ${p =>
