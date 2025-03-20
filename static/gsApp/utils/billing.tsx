@@ -39,6 +39,13 @@ export function isUnlimitedReserved(value: number | null | undefined): boolean {
   return value === UNLIMITED_RESERVED;
 }
 
+export function isContinuousProfiling(category: DataCategory | string) {
+  return (
+    category === DataCategory.PROFILE_DURATION ||
+    category === DataCategory.PROFILE_DURATION_UI
+  );
+}
+
 export const getSlot = (
   events?: number,
   price?: number,
@@ -161,7 +168,7 @@ export function formatUsageWithUnits(
       ? `${displayNumber(usageGb)} GB`
       : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
-  if (dataCategory === DataCategory.PROFILE_DURATION) {
+  if (isContinuousProfiling(dataCategory)) {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
       return '0';

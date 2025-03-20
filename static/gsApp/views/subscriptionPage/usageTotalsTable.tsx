@@ -12,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
-import {formatUsageWithUnits} from 'getsentry/utils/billing';
+import {formatUsageWithUnits, isContinuousProfiling} from 'getsentry/utils/billing';
 import {getPlanCategoryName, SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
@@ -177,6 +177,9 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
       </StyledTable>
     );
   }
+  const totalDropped = isContinuousProfiling(category)
+    ? t('Total Dropped (estimated)')
+    : t('Total Dropped');
 
   return (
     <UsageTableWrapper>
@@ -189,7 +192,7 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
         />
         <OutcomeSection
           isEventBreakdown={isEventBreakdown}
-          name={t('Total Dropped')}
+          name={totalDropped}
           quantity={totals.dropped}
           category={category}
           totals={totals}
