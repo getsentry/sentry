@@ -210,6 +210,7 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
         assert proto_message == activation.SerializeToString()
 
 
+@pytest.mark.django_db
 def test_registry_get() -> None:
     registry = TaskRegistry()
     ns = registry.create_namespace(name="tests")
@@ -226,6 +227,7 @@ def test_registry_get() -> None:
     assert registry.contains("tests")
 
 
+@pytest.mark.django_db
 def test_registry_get_task() -> None:
     registry = TaskRegistry()
     ns = registry.create_namespace(name="tests")
@@ -244,6 +246,7 @@ def test_registry_get_task() -> None:
         registry.get_task(ns.name, "nope")
 
 
+@pytest.mark.django_db
 def test_registry_create_namespace_simple() -> None:
     registry = TaskRegistry()
     ns = registry.create_namespace(name="tests")
@@ -264,6 +267,7 @@ def test_registry_create_namespace_simple() -> None:
     assert ns.topic == Topic.TASK_WORKER
 
 
+@pytest.mark.django_db
 def test_registry_create_namespace_route_setting() -> None:
     routes = {
         "profiling": "profiles",
