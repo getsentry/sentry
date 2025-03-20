@@ -105,6 +105,9 @@ def create_match_frame(frame_data: dict, platform: str | None) -> dict:
 
 
 class EnhancementMatch:
+    key: str
+    pattern: str
+
     def matches_frame(self, frames, idx, exception_data, cache):
         raise NotImplementedError()
 
