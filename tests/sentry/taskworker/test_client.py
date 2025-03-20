@@ -380,3 +380,6 @@ def test_client_loadbalance():
             assert task is not None and task.id == "3"
 
             assert client._task_id_to_stub_idx == {"0": 0, "1": 1, "2": 2, "3": 3}
+
+
+# TODO(taskworker): Test popping the task from dict
