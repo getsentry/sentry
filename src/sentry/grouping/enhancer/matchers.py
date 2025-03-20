@@ -111,6 +111,10 @@ class EnhancementMatch:
     def matches_frame(self, frames, idx, exception_data, cache):
         raise NotImplementedError()
 
+    @property
+    def description(self) -> str:
+        raise NotImplementedError()
+
     def _to_config_structure(self, version):
         raise NotImplementedError()
 
