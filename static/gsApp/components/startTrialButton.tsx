@@ -1,11 +1,9 @@
-import {Button} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import type {Organization} from 'sentry/types/organization';
 
 import TrialStarter from 'getsentry/components/trialStarter';
-
-type ButtonProps = React.ComponentProps<typeof Button>;
 
 type Props = React.PropsWithChildren<
   {
