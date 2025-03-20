@@ -8,7 +8,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from sentry.api.serializers.models.organization_member.response import _OrganizationMemberFlags
+# from sentry.api.serializers.models.organization_member.response import _OrganizationMemberFlags
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -50,6 +50,21 @@ def default_expiration():
 
 def generate_token():
     return secrets.token_hex(nbytes=32)
+
+
+# Causes a circular import error when importing
+# from sentry.api.serializers.models.organization_member.response
+_OrganizationMemberFlags = TypedDict(
+    "_OrganizationMemberFlags",
+    {
+        "idp:provisioned": bool,
+        "idp:role-restricted": bool,
+        "sso:linked": bool,
+        "sso:invalid": bool,
+        "member-limit:restricted": bool,
+        "partnership:restricted": bool,
+    },
+)
 
 
 class OrganizationMemberInviteResponse(TypedDict):
