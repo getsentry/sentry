@@ -46,7 +46,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
   const {projects} = useProjects();
   const {data, isLoading} = useGetSavedQueries({
     sortBy: 'mostPopular',
-    exclude: mode,
+    exclude: mode === 'owned' ? 'shared' : 'owned', // Inverse because this is an exclusion
     perPage,
   });
   const {deleteQuery} = useDeleteQuery();
