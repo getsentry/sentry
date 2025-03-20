@@ -630,8 +630,7 @@ const IssuesWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(0.75)};
   justify-content: left;
-  margin-bottom: ${space(1.5)};
-  margin-top: ${space(1)};
+  margin: ${space(1)} 0;
 
   ${StyledPanel} {
     margin-bottom: 0;
