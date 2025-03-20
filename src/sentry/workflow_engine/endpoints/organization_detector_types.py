@@ -13,7 +13,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.workflow_engine.models.detector import Detector
+from sentry.issues import grouptype
 
 
 @region_silo_endpoint
@@ -40,12 +40,15 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of detector types for a given org
         """
-        # Note: This is a temporary stop gap until we have a detector type registry
-        distinct_types = list(Detector.objects.values_list("type", flat=True).distinct())
-        distinct_types.sort()
+        type_slugs = [
+            gt.slug
+            for gt in grouptype.registry.get_visible(organization)
+            if gt.detector_handler is not None
+        ]
+        type_slugs.sort()
 
         return self.paginate(
             request=request,
-            queryset=distinct_types,
+            queryset=type_slugs,
             paginator_cls=OffsetPaginator,
         )
