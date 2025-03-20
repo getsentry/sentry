@@ -34,6 +34,7 @@ def run_storage() -> RunStorage:
     return RunStorage(redis)
 
 
+@pytest.mark.django_db
 def test_schedulerunner_add_invalid(taskregistry) -> None:
     run_storage = Mock(spec=RunStorage)
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
@@ -66,6 +67,7 @@ def test_schedulerunner_add_invalid(taskregistry) -> None:
     assert "microseconds" in str(err)
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: RunStorage) -> None:
     schedule_set = ScheduleRunner(registry=taskregistry, run_storage=run_storage)
 
@@ -74,6 +76,7 @@ def test_schedulerunner_tick_no_tasks(taskregistry: TaskRegistry, run_storage: R
         assert sleep_time == 60
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_time_remaining(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
@@ -99,6 +102,7 @@ def test_schedulerunner_tick_one_task_time_remaining(
     assert last_run == datetime(2025, 1, 24, 14, 23, 0, tzinfo=UTC)
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_spawned(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
@@ -128,6 +132,7 @@ def test_schedulerunner_tick_one_task_spawned(
     run_storage.set.assert_called_with("test:valid", datetime(2025, 1, 24, 14, 30, 0, tzinfo=UTC))
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_key_exists_no_spawn(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
@@ -160,6 +165,7 @@ def test_schedulerunner_tick_key_exists_no_spawn(
         assert mock_send.call_count == 1
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_multiple_ticks(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
@@ -184,6 +190,7 @@ def test_schedulerunner_tick_one_task_multiple_ticks(
         assert sleep_time == 120
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_one_task_multiple_ticks_crontab(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
@@ -214,6 +221,7 @@ def test_schedulerunner_tick_one_task_multiple_ticks_crontab(
         assert mock_send.call_count == 2
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_multiple_tasks(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:
@@ -255,6 +263,7 @@ def test_schedulerunner_tick_multiple_tasks(
         assert mock_send.call_count == 3
 
 
+@pytest.mark.django_db
 def test_schedulerunner_tick_fast_and_slow(
     taskregistry: TaskRegistry, run_storage: RunStorage
 ) -> None:

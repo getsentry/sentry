@@ -4,6 +4,7 @@ from multiprocessing import Event
 from unittest import mock
 
 import grpc
+import pytest
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_FAILURE,
@@ -11,7 +12,6 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-import sentry.taskworker.tasks.examples as example_tasks
 from sentry.taskworker.worker import ProcessingResult, TaskWorker, child_worker
 from sentry.testutils.cases import TestCase
 
@@ -56,8 +56,11 @@ AT_MOST_ONCE_TASK = TaskActivation(
 )
 
 
+@pytest.mark.django_db
 class TestTaskWorker(TestCase):
     def test_tasks_exist(self) -> None:
+        import sentry.taskworker.tasks.examples as example_tasks
+
         assert example_tasks.simple_task
         assert example_tasks.retry_task
         assert example_tasks.at_most_once_task
@@ -180,6 +183,7 @@ class TestTaskWorker(TestCase):
             assert mock_client.update_task.call_count == 3
 
 
+@pytest.mark.django_db
 def test_child_worker_complete() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -194,6 +198,7 @@ def test_child_worker_complete() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
 
 
+@pytest.mark.django_db
 def test_child_worker_retry_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -208,6 +213,7 @@ def test_child_worker_retry_task() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_RETRY
 
 
+@pytest.mark.django_db
 def test_child_worker_failure_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -222,6 +228,7 @@ def test_child_worker_failure_task() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_FAILURE
 
 
+@pytest.mark.django_db
 def test_child_worker_shutdown() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -236,6 +243,7 @@ def test_child_worker_shutdown() -> None:
     assert processed.qsize() == 0
 
 
+@pytest.mark.django_db
 def test_child_worker_unknown_task() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
@@ -254,6 +262,7 @@ def test_child_worker_unknown_task() -> None:
     assert result.status == TASK_ACTIVATION_STATUS_COMPLETE
 
 
+@pytest.mark.django_db
 def test_child_worker_at_most_once() -> None:
     todo: queue.Queue[TaskActivation] = queue.Queue()
     processed: queue.Queue[ProcessingResult] = queue.Queue()
