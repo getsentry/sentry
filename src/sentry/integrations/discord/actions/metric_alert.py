@@ -86,8 +86,6 @@ def send_incident_alert_notification(
         ),
         organization=incident.organization,
         date_started=incident.date_started,
-        new_status=new_status,
-        metric_value=metric_value,
         chart_url=chart_url,
     ).build(notification_uuid=notification_uuid)
 
