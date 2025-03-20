@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -32,6 +33,7 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
+    permission_classes = OrganizationPermission
 
     @extend_schema(
         operation_id="Fetch Connected Detectors and Workflows",
