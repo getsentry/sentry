@@ -28,7 +28,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
-      'trace context height': 150,
+      'trace grid height': 150,
     },
     layoutOptions: [],
   },
