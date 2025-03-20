@@ -278,6 +278,20 @@ function ReleaseBubbleSeries({
     name: t('Releases'),
     data,
     color: theme.blue300,
+    markLine: {
+      silent: true,
+      symbol: 'none',
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        color: theme.gray300,
+        opacity: 0.5,
+        type: 'solid',
+        width: 1,
+      },
+      data: [{yAxis: 0}],
+    },
     tooltip: {
       trigger: 'item',
       position: 'bottom',
