@@ -13,7 +13,12 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
 from sentry.workflow_engine.handlers.action.notification.metric_alert import (
     metric_alert_handler_registry,
 )
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Detector,
+)
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
@@ -207,10 +212,20 @@ class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
         if target_identifier is None:
             return None
 
+        try:
+            dcga = DataConditionGroupAction.objects.get(action=action)
+        except DataConditionGroupAction.DoesNotExist:
+            return None
+        try:
+            dcg = DataConditionGroup.objects.get(id=dcga.condition_group_id)
+        except DataConditionGroup.DoesNotExist:
+            return None
+
         target_type = action.config.get("target_type")
         if target_type == ActionTarget.USER.value:
             return OrganizationMember.objects.get(
                 user_id=int(target_identifier),
+                organization=dcg.organization,
             )
         elif target_type == ActionTarget.TEAM.value:
             try:
