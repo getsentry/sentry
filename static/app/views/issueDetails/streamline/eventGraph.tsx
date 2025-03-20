@@ -236,7 +236,7 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
     });
 
     const {
-      createReleaseBubbleHighlighter,
+      connectReleaseBubbleChartRef,
       releaseBubbleEventHandlers,
       releaseBubbleSeries,
       releaseBubbleXAxis,
@@ -263,14 +263,14 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
 
     const handleConnectRef = useCallback(
       (e: ReactEchartsRef | null) => {
-        createReleaseBubbleHighlighter(e);
+        connectReleaseBubbleChartRef(e);
         if (typeof ref === 'function') {
           ref(e);
         } else if (ref) {
           ref.current = e;
         }
       },
-      [createReleaseBubbleHighlighter, ref]
+      [connectReleaseBubbleChartRef, ref]
     );
     const flagSeries = useFlagSeries({
       query: {
