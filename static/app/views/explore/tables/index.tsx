@@ -109,5 +109,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
