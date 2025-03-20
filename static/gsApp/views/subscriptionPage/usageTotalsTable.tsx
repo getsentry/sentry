@@ -12,8 +12,12 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import type {BillingStatTotal, Subscription} from 'getsentry/types';
-import {formatUsageWithUnits, isContinuousProfiling} from 'getsentry/utils/billing';
-import {getPlanCategoryName, SINGULAR_DATA_CATEGORY} from 'getsentry/utils/dataCategory';
+import {formatUsageWithUnits} from 'getsentry/utils/billing';
+import {
+  getPlanCategoryName,
+  isContinuousProfiling,
+  SINGULAR_DATA_CATEGORY,
+} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {StripedTable} from 'getsentry/views/subscriptionPage/styles';
 import {displayPercentage} from 'getsentry/views/subscriptionPage/usageTotals';

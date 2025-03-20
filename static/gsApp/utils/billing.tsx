@@ -19,12 +19,14 @@ import {
 import type {
   BillingConfig,
   BillingMetricHistory,
+  BillingStatTotal,
   EventBucket,
   Plan,
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
 import {PlanName, PlanTier} from 'getsentry/types';
+import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -39,11 +41,19 @@ export function isUnlimitedReserved(value: number | null | undefined): boolean {
   return value === UNLIMITED_RESERVED;
 }
 
-export function isContinuousProfiling(category: DataCategory | string) {
-  return (
-    category === DataCategory.PROFILE_DURATION ||
-    category === DataCategory.PROFILE_DURATION_UI
-  );
+export function addBillingStatTotals(
+  a: BillingStatTotal,
+  b: BillingStatTotal | undefined
+): BillingStatTotal {
+  return {
+    accepted: a.accepted + (b?.accepted ?? 0),
+    dropped: a.dropped + (b?.dropped ?? 0),
+    droppedOther: a.droppedOther + (b?.droppedOther ?? 0),
+    droppedOverQuota: a.droppedOverQuota + (b?.droppedOverQuota ?? 0),
+    droppedSpikeProtection: a.droppedSpikeProtection + (b?.droppedSpikeProtection ?? 0),
+    filtered: a.filtered + (b?.filtered ?? 0),
+    projected: a.projected + (b?.projected ?? 0),
+  };
 }
 
 export const getSlot = (

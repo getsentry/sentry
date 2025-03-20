@@ -25,15 +25,19 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  addBillingStatTotals,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
   getPotentialProductTrial,
-  isContinuousProfiling,
   isUnlimitedReserved,
   MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getChunkCategoryFromDuration,
+  getPlanCategoryName,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
 import titleCase from 'getsentry/utils/titleCase';
@@ -328,21 +332,6 @@ function ReservedUsage({
   );
 }
 
-function addBillingStatTotals(
-  a: BillingStatTotal,
-  b: BillingStatTotal | undefined
-): BillingStatTotal {
-  return {
-    accepted: a.accepted + (b?.accepted ?? 0),
-    dropped: a.dropped + (b?.dropped ?? 0),
-    droppedOther: a.droppedOther + (b?.droppedOther ?? 0),
-    droppedOverQuota: a.droppedOverQuota + (b?.droppedOverQuota ?? 0),
-    droppedSpikeProtection: a.droppedSpikeProtection + (b?.droppedSpikeProtection ?? 0),
-    filtered: a.filtered + (b?.filtered ?? 0),
-    projected: a.projected + (b?.projected ?? 0),
-  };
-}
-
 function UsageTotals({
   category,
   subscription,
@@ -495,10 +484,14 @@ function UsageTotals({
     category,
     usageOptions
   );
+
   // use dropped profile chunks to estimate dropped continuous profiling
   const total = isContinuousProfiling(category)
     ? {
-        ...addBillingStatTotals(totals, eventTotals[DataCategory.PROFILE_CHUNKS]),
+        ...addBillingStatTotals(
+          totals,
+          eventTotals[getChunkCategoryFromDuration(category)]
+        ),
         accepted: totals.accepted,
       }
     : totals;
