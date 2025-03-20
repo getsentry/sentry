@@ -206,6 +206,7 @@ module = [
     "sentry.api.endpoints.integrations.sentry_apps.installation.external_issue.*",
     "sentry.api.endpoints.project_backfill_similar_issues_embeddings_records",
     "sentry.api.endpoints.release_thresholds.health_checks.*",
+    "sentry.api.event_search",
     "sentry.api.helpers.deprecation",
     "sentry.api.helpers.group_index.update",
     "sentry.api.helpers.source_map_helper",
