@@ -32,6 +32,7 @@ abstract class InputField<
         placeholder={this.props.placeholder}
         onChange={this.onChange}
         disabled={this.props.disabled}
+        required={this.props.required}
         name={this.props.name}
         value={this.state.value as string | number} // can't pass in boolean here
         style={this.props.inputStyle}
