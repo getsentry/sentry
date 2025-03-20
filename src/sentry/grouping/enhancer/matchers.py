@@ -181,10 +181,11 @@ class FrameMatch(EnhancementMatch):
 
     @property
     def description(self) -> str:
+        pattern_contains_whitespace = self.pattern.split() != [self.pattern]
         return "{}{}:{}".format(
-            self.negated and "!" or "",
+            "!" if self.negated else "",
             self.key,
-            self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
+            self.pattern if not pattern_contains_whitespace else f'"{self.pattern}"',
         )
 
     def matches_frame(self, frames, idx, exception_data, cache):
@@ -212,10 +213,10 @@ class FrameMatch(EnhancementMatch):
         # Convert the families to match into a string of single letter abbreviations (so
         # `javascript,native` becomes `JN`, for example)
         if self.key == "family":
+            family_abbreviations = [FAMILIES.get(family) for family in self.pattern.split(",")]
             value_to_match = "".join(
-                abbreviation
-                for abbreviation in [FAMILIES.get(family) for family in self.pattern.split(",")]
-                if abbreviation
+                # Filter out Nones (which come from unrecognized families)
+                [abbreviation for abbreviation in family_abbreviations if abbreviation]
             )
         elif self.key == "app":
             boolified_pattern = bool_from_string(self.pattern)
@@ -224,7 +225,9 @@ class FrameMatch(EnhancementMatch):
             )
         else:
             value_to_match = self.pattern
-        return ("!" if self.negated else "") + MATCH_KEYS[self.key] + value_to_match
+
+        match_type_abbreviation = MATCH_KEYS[self.key]
+        return ("!" if self.negated else "") + match_type_abbreviation + value_to_match
 
 
 def path_like_match(pattern, value):
