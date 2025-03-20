@@ -27,10 +27,14 @@ type Props = {
    * Additional buttons to render in the header of the section
    */
   additionalActions?: React.ReactNode;
+  disableCollapsePersistence?: boolean;
 };
 
 export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
-  function EventTagsDataSection({event, projectSlug, additionalActions}: Props, ref) {
+  function EventTagsDataSection(
+    {event, projectSlug, additionalActions, disableCollapsePersistence}: Props,
+    ref
+  ) {
     const sentryTags = getSentryDefaultTags();
 
     const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
@@ -73,6 +77,7 @@ export const EventTagsDataSection = forwardRef<HTMLElement, Props>(
 
     return (
       <StyledEventDataSection
+        disableCollapsePersistence={disableCollapsePersistence}
         title={
           <GuideAnchor target="tags" position="top">
             {t('Tags')}
