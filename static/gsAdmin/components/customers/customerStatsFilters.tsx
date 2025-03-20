@@ -5,7 +5,6 @@ import moment from 'moment-timezone';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
-import {Data} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
