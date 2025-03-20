@@ -471,7 +471,8 @@ class _ClientConfig:
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
             "demoMode": is_demo_mode_enabled() and is_demo_user(self.user),
-            "enableAnalytics": settings.ENABLE_ANALYTICS,
+            # Analytics is initally disabled for demo users until they opt in
+            "enableAnalytics": settings.ENABLE_ANALYTICS and not is_demo_mode_enabled(),
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
             ),
