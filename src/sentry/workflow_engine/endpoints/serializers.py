@@ -286,6 +286,7 @@ class WorkflowSerializer(Serializer):
 
 
 class DetectorWorkflowResponse(TypedDict):
+    id: str
     detectorId: str
     workflowId: str
 
@@ -295,6 +296,7 @@ class DetectorWorkflowSerializer(Serializer):
         self, obj: DetectorWorkflow, attrs: Mapping[str, Any], user, **kwargs
     ) -> dict[str, Any]:
         return {
+            "id": str(obj.id),
             "detectorId": str(obj.detector.id),
             "workflowId": str(obj.workflow.id),
         }

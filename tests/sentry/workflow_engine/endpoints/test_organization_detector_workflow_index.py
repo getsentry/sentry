@@ -33,21 +33,6 @@ class OrganizationDetectorWorkflowAPITestCase(APITestCase):
 
 @region_silo_test
 class OrganizationDataConditionIndexGetTest(OrganizationDetectorWorkflowAPITestCase):
-    def test_workflow_filter(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params={"workflow_id": self.workflow_1.id},
-            status_code=200,
-        )
-        assert len(response.data) == 2
-
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params={"workflow_id": self.unconnected_workflow.id},
-            status_code=200,
-        )
-        assert len(response.data) == 0
-
     def test_detector_filter(self):
         response = self.get_success_response(
             self.organization.slug,
@@ -63,6 +48,33 @@ class OrganizationDataConditionIndexGetTest(OrganizationDetectorWorkflowAPITestC
         )
         assert len(response.data) == 0
 
+    def test_workflow_filter(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"workflow_id": self.workflow_1.id},
+            status_code=200,
+        )
+        assert len(response.data) == 2
+        assert response.data == [
+            {
+                "id": str(self.detector_1_workflow_1.id),
+                "detectorId": str(self.detector_1.id),
+                "workflowId": str(self.workflow_1.id),
+            },
+            {
+                "id": str(self.detector_2_workflow_1.id),
+                "detectorId": str(self.detector_2.id),
+                "workflowId": str(self.workflow_1.id),
+            },
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"workflow_id": self.unconnected_workflow.id},
+            status_code=200,
+        )
+        assert len(response.data) == 0
+
     def test_detector_workflow_filter(self):
         response = self.get_success_response(
             self.organization.slug,
@@ -70,6 +82,13 @@ class OrganizationDataConditionIndexGetTest(OrganizationDetectorWorkflowAPITestC
             status_code=200,
         )
         assert len(response.data) == 1
+        assert response.data == [
+            {
+                "id": str(self.detector_1_workflow_1.id),
+                "detectorId": str(self.detector_1.id),
+                "workflowId": str(self.workflow_1.id),
+            }
+        ]
 
         response = self.get_success_response(
             self.organization.slug,
@@ -93,7 +112,11 @@ class OrganizationDataConditionIndexPostTest(OrganizationDetectorWorkflowAPITest
             **body_params,
             status_code=200,
         )
+        detector_workflow = DetectorWorkflow.objects.get(
+            detector_id=self.unconnected_detector.id, workflow_id=self.unconnected_workflow.id
+        )
         assert response.data == {
+            "id": str(detector_workflow.id),
             "detectorId": str(self.unconnected_workflow.id),
             "workflowId": str(self.unconnected_detector.id),
         }
