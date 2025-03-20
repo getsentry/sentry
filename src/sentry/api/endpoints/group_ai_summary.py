@@ -147,7 +147,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         )
 
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
+            f"{settings.SEER_SEVERITY_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
