@@ -888,11 +888,8 @@ class SearchVisitor(NodeVisitor):
             operator = get_operator_value(operator)
 
         if self.is_size_key(search_key.name):
-            try:
-                search_value = parse_size(*search_value)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, SearchValue(search_value))
+            search_value_f = parse_size(*search_value)
+            return SearchFilter(search_key, operator, SearchValue(search_value_f))
 
         search_value = "".join(search_value)
         search_value = operator + search_value if operator not in ("=", "!=") else search_value
@@ -926,10 +923,7 @@ class SearchVisitor(NodeVisitor):
         operator = handle_negation(negation, "IN")
 
         if self.is_numeric_key(search_key.name):
-            try:
-                search_value = SearchValue([parse_numeric_value(*val) for val in search_value])
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            search_value = SearchValue([parse_numeric_value(*val) for val in search_value])
             return SearchFilter(search_key, operator, search_value)
 
         search_value = SearchValue(["".join(value) for value in search_value])
@@ -960,25 +954,26 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        try:
-            # Even if the search value matches duration format, only act as
-            # duration for certain columns
-            result_type = self.get_function_result_type(search_key.name)
+        # Even if the search value matches duration format, only act as
+        # duration for certain columns
+        result_type = self.get_function_result_type(search_key.name)
 
-            if result_type == "duration" or result_type in DURATION_UNITS:
+        if result_type == "duration" or result_type in DURATION_UNITS:
+            try:
                 aggregate_value = parse_duration(*search_value)
-            else:
-                # Duration overlaps with numeric values with `m` (million vs
-                # minutes). So we fall through to numeric if it's not a
-                # duration key
-                #
-                # TODO(epurkhiser): Should we validate that the field is
-                # numeric and do some other fallback if it's not?
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+        else:
+            # Duration overlaps with numeric values with `m` (million vs
+            # minutes). So we fall through to numeric if it's not a
+            # duration key
+            #
+            # TODO(epurkhiser): Should we validate that the field is
+            # numeric and do some other fallback if it's not?
+            try:
                 aggregate_value = parse_numeric_value(*search_value)
-        except ValueError:
-            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
 
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
@@ -986,33 +981,18 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        try:
-            aggregate_value = parse_size(*search_value)
-        except ValueError:
-            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
-
+        aggregate_value = parse_size(*search_value)
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_percentage_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        aggregate_value = None
-
-        try:
-            # Even if the search value matches percentage format, only act as
-            # percentage for certain columns
-            result_type = self.get_function_result_type(search_key.name)
-            if result_type == "percentage":
-                aggregate_value = parse_percentage(search_value)
-        except ValueError:
-            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
-
-        if aggregate_value is not None:
+        # Even if the search value matches percentage format, only act as
+        # percentage for certain columns
+        result_type = self.get_function_result_type(search_key.name)
+        if result_type == "percentage":
+            aggregate_value = parse_percentage(search_value)
             return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
         # Invalid formats fall back to text match
@@ -1023,11 +1003,7 @@ class SearchVisitor(NodeVisitor):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
-        try:
-            aggregate_value = parse_numeric_value(*search_value)
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
-
+        aggregate_value = parse_numeric_value(*search_value)
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
@@ -1131,14 +1107,6 @@ class SearchVisitor(NodeVisitor):
             operator = "="
 
         operator = handle_negation(negation, operator)
-
-        return self._handle_text_filter(search_key, operator, search_value)
-
-    def _handle_text_filter(self, search_key, operator, search_value):
-        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
-            # If operators aren't allowed for this key then push it back into the value
-            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
-            operator = "="
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
