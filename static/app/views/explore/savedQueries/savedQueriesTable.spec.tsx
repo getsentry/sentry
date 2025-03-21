@@ -51,7 +51,7 @@ describe('SavedQueriesTable', () => {
         `/organizations/${organization.slug}/explore/saved/`,
         expect.objectContaining({
           method: 'GET',
-          data: expect.objectContaining({sortBy: 'mostPopular', exclude: 'shared'}),
+          query: expect.objectContaining({sortBy: 'mostPopular', exclude: 'shared'}),
         })
       )
     );
@@ -64,7 +64,7 @@ describe('SavedQueriesTable', () => {
         `/organizations/${organization.slug}/explore/saved/`,
         expect.objectContaining({
           method: 'GET',
-          data: expect.objectContaining({
+          query: expect.objectContaining({
             sortBy: 'mostPopular',
             exclude: 'owned',
           }),
