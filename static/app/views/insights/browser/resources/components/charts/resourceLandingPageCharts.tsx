@@ -4,11 +4,11 @@ import {space} from 'sentry/styles/space';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 import {
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;

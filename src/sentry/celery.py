@@ -14,9 +14,6 @@ LEGACY_PICKLE_TASKS = frozenset(
     [
         # basic tasks that must be passed models still
         "sentry.tasks.process_buffer.process_incr",
-        "sentry.tasks.unmerge",
-        # basic tasks that can already deal with primary keys passed
-        "sentry.tasks.update_code_owners_schema",
     ]
 )
 
