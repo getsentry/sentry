@@ -182,7 +182,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
   return (
     <GridEditable
       isLoading={isLoading}
-      data={data}
+      data={data ?? []}
       grid={{renderBodyCell, renderHeadCell}}
       columnOrder={ORDER}
       columnSortBy={[]}
