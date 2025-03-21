@@ -319,6 +319,21 @@ def ttid_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     )
 
 
+def time_spent_percentage(args: ResolvedArguments) -> Column.BinaryFormula:
+    attribute = cast(AttributeKey, args[0])
+    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the total time"""
+
+    return Column.BinaryFormula(
+        left=Column(
+            aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=attribute)
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=attribute)
+        ),
+    )
+
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -437,6 +452,24 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=division,
+        is_aggregate=True,
+    ),
+    "time_spent_percentage": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="span.self_time",
+                validator=literal_validator(["span.self_time", "span.duration"]),
+            )
+        ],
+        formula_resolver=time_spent_percentage,
         is_aggregate=True,
     ),
 }
