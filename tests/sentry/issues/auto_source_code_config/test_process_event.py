@@ -91,8 +91,11 @@ class BaseDeriveCodeMappings(TestCase):
             ),
             patch("sentry.utils.metrics.incr") as mock_incr,
         ):
+            repositories_count = Repository.objects.all().count()
+            code_mappings_count = RepositoryProjectPathConfig.objects.all().count()
             event = self.create_event(frames, platform)
             process_event(self.project.id, event.group_id, event.event_id)
+
             code_mappings = RepositoryProjectPathConfig.objects.all()
             assert len(code_mappings) == expected_num_code_mappings
             code_mapping = code_mappings.filter(
@@ -101,19 +104,20 @@ class BaseDeriveCodeMappings(TestCase):
             ).first()
             assert code_mapping is not None
             assert code_mapping.repository.name == expected_repo_name
+
             platform_config = PlatformConfig(platform)
             dry_run = platform_config.is_dry_run_platform()
-            # Check that both metrics were called with any order
-            mock_incr.assert_any_call(
-                key=f"{METRIC_PREFIX}.code_mapping.created",
-                tags={"dry_run": dry_run, "platform": event.platform},
-                sample_rate=1.0,
-            )
-            mock_incr.assert_any_call(
-                key=f"{METRIC_PREFIX}.repository.created",
-                tags={"dry_run": dry_run, "platform": event.platform},
-                sample_rate=1.0,
-            )
+            tags = {"dry_run": dry_run, "platform": platform}
+
+            if Repository.objects.all().count() > repositories_count:
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                )
+
+            if RepositoryProjectPathConfig.objects.all().count() > code_mappings_count:
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                )
 
     def _process_and_assert_no_code_mapping(
         self,
@@ -250,7 +254,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     def test_extension_is_not_included(self) -> None:
         frame_filename = "foo/bar.tbd"
         file_in_repo = "src/foo/bar.tbd"
-        platform = "foo"
+        platform = "other"
         self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
 
         with (
@@ -273,10 +277,11 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                     expected_source_root="src/foo/",
                 )
 
-    def test_multiple_repositories(self) -> None:
-        platform = "foo"
+    def test_multiple_calls(self) -> None:
+        platform = "other"
+        # XXX: We need a test for when repo_files changes over time
         repo_trees = {
-            REPO1: ["src/foo/bar.py"],
+            REPO1: ["src/foo/bar.py", "src/app/main.py"],
             REPO2: ["app/baz/qux.py"],
         }
         with (
@@ -292,6 +297,27 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 expected_repo_name=REPO1,
                 expected_num_code_mappings=1,
             )
+            # Processing the same stacktrace again should not create anything new
+            self._process_and_assert_code_mapping(
+                repo_trees=repo_trees,
+                frames=[self.frame("foo/bar.py", True)],
+                platform=platform,
+                expected_stack_root="foo/",
+                expected_source_root="src/foo/",
+                expected_repo_name=REPO1,
+                expected_num_code_mappings=1,
+            )
+            # New code mapping in the same repository
+            self._process_and_assert_code_mapping(
+                repo_trees=repo_trees,
+                frames=[self.frame("app/main.py", True)],
+                platform=platform,
+                expected_stack_root="app/",
+                expected_source_root="src/app/",
+                expected_repo_name=REPO1,  # Same repository as before
+                expected_num_code_mappings=2,  # New code mapping
+            )
+            # New code mapping in a different repository
             self._process_and_assert_code_mapping(
                 repo_trees=repo_trees,
                 frames=[self.frame("baz/qux.py", True)],
@@ -299,7 +325,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 expected_stack_root="baz/",
                 expected_source_root="app/baz/",
                 expected_repo_name=REPO2,
-                expected_num_code_mappings=2,
+                expected_num_code_mappings=3,
             )
 
 
