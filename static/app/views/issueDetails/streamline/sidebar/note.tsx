@@ -11,8 +11,8 @@ import type {
   MentionChangeEvent,
   Mentioned,
 } from 'sentry/components/activity/note/types';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';

@@ -1,6 +1,6 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {AutofixFeedback} from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,

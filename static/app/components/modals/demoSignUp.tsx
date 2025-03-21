@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';

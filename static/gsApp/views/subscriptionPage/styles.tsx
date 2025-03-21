@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 

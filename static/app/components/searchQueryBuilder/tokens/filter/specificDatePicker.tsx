@@ -10,10 +10,10 @@ import {
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {DatePicker} from 'sentry/components/calendar';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
