@@ -7,6 +7,48 @@ import styled from '@emotion/styled';
 import {chonkInputStyles} from 'sentry/components/core/input/index.chonk';
 import type {FormSize} from 'sentry/utils/theme';
 
+export interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
+    InputStylesProps {}
+
+/**
+ * Basic input component.
+ *
+ * Use the `size` prop ('md', 'sm', 'xs') to control the input's height &
+ * padding. To use the native size attribute (which controls the number of
+ * characters the input should fit), use the `nativeSize` prop instead.
+ *
+ * To add leading/trailing items (e.g. a search icon on the left side), use
+ * InputControl (components/inputControl) instead.
+ */
+const StyledInput = styled(
+  forwardRef<HTMLInputElement, InputProps>(
+    (
+      {
+        // Do not forward `size` since it's used for custom styling, not as the
+        // native `size` attribute (for that, use `nativeSize` instead)
+        size: _size,
+        // Use `nativeSize` as the native `size` attribute
+        nativeSize,
+        ...props
+      },
+      ref
+    ) => <input {...props} ref={ref} size={nativeSize} />
+  ),
+  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
+)``;
+
+// This is a hack - emotion does not support overriding the shouldForwardProp
+// for styled components, but if we wrap it inside another component, we can
+// prevent it from doing that while still applying the styles.
+export const Input = styled(
+  forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref) => (
+    <StyledInput {...props} ref={ref} />
+  ))
+)`
+  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
+`;
+
 export interface InputStylesProps {
   monospace?: boolean;
   nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
@@ -67,80 +109,4 @@ const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
     -webkit-appearance: none;
     margin: 0;
   }
-`;
-
-export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
-    InputStylesProps {}
-
-/**
- * Basic input component.
- *
- * Use the `size` prop ('md', 'sm', 'xs') to control the input's height &
- * padding. To use the native size attribute (which controls the number of
- * characters the input should fit), use the `nativeSize` prop instead.
- *
- * To add leading/trailing items (e.g. a search icon on the left side), use
- * InputControl (components/inputControl) instead.
- */
-
-const StyledInput = styled(
-  forwardRef<HTMLInputElement, InputProps>(
-    (
-      {
-        // Do not forward `required` to avoid default browser behavior
-        required: _required,
-        // Do not forward `size` since it's used for custom styling, not as the
-        // native `size` attribute (for that, use `nativeSize` instead)
-        size: _size,
-        // Use `nativeSize` as the native `size` attribute
-        nativeSize,
-        ...props
-      },
-      ref
-    ) => <input {...props} ref={ref} size={nativeSize} />
-  ),
-  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
-)``;
-
-// This is a hack - emotion does not support overriding the shouldForwardProp
-// for styled components, but if we wrap it inside another component, we can
-// prevent it from doing that while still applying the styles.
-export const Input = styled(
-  forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref) => (
-    <StyledInput {...props} ref={ref} />
-  ))
-)`
-  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
-`;
-
-/**
- * @deprecated Use `Input` instead, this should only be used in the old deprecated forms
- */
-const LegacyFormInput = styled(
-  forwardRef<HTMLInputElement, InputProps>(
-    (
-      {
-        // Do not forward `size` since it's used for custom styling, not as the
-        // native `size` attribute (for that, use `nativeSize` instead)
-        size: _size,
-        // Use `nativeSize` as the native `size` attribute
-        nativeSize,
-        ...props
-      },
-      ref
-    ) => <input {...props} ref={ref} size={nativeSize} />
-  ),
-  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
-)``;
-
-/**
- * @deprecated Use `Input` instead, this should only be used in the old deprecated forms
- */
-export const DO_NOT_USE_LegacyFormInput = styled(
-  forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref) => (
-    <LegacyFormInput {...props} ref={ref} />
-  ))
-)`
-  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
 `;
