@@ -597,7 +597,7 @@ export default typescript.config([
       'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-includes': 'error',
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule

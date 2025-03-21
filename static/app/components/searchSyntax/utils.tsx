@@ -297,7 +297,7 @@ export function isWithinToken(
 }
 
 export function isOperator(value: string) {
-  return allOperators.some(op => op === value);
+  return allOperators.includes(value);
 }
 
 function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {

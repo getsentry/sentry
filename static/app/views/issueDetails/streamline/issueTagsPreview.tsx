@@ -254,9 +254,9 @@ export default function IssueTagsPreview({
 
     const priorityTags = isMobilePlatform(project?.platform)
       ? MOBILE_TAGS
-      : frontend.some(val => val === project?.platform)
+      : frontend.includes(project?.platform)
         ? FRONTEND_TAGS
-        : backend.some(val => val === project?.platform)
+        : backend.includes(project?.platform)
           ? BACKEND_TAGS
           : DEFAULT_TAGS;
     // Sort tags based on priority order defined in priorityTags array
