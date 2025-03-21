@@ -142,9 +142,14 @@ def _sync_release_artifact_bundle(
 
 
 def _find_matching_project(project_id, organization_id):
-    source_project = Project.objects.get(id=project_id)
+    try:
+        source_project = Project.objects.get(id=project_id)
 
-    return Project.objects.get(
-        organization_id=organization_id,
-        slug=source_project.slug,
-    )
+        return Project.objects.get(
+            organization_id=organization_id,
+            slug=source_project.slug,
+        )
+    except Project.DoesNotExist:
+        sentry_sdk.set_context("project_id", project_id)
+        sentry_sdk.set_context("organization_id", organization_id)
+        raise
