@@ -39,13 +39,13 @@ TOTAL_SPAN_COUNT = Column(
 
 
 def division(args: ResolvedArguments) -> Column.BinaryFormula:
-    numerator = cast(AttributeKey, args[0])
-    denominator = cast(AttributeKey, args[1])
+    dividend = cast(AttributeKey, args[0])
+    divisor = cast(AttributeKey, args[1])
 
     return Column.BinaryFormula(
-        left=Column(key=numerator, label="numerator"),
+        left=Column(key=dividend, label="dividend"),
         op=Column.BinaryFormula.OP_DIVIDE,
-        right=Column(key=denominator, label="denominator"),
+        right=Column(key=divisor, label="divisor"),
     )
 
 
