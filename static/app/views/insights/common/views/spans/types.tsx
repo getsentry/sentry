@@ -1,6 +1,15 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
+import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+
+export type ModuleFilters = {
+  [SpanMetricsField.SPAN_ACTION]?: string;
+  [SpanMetricsField.SPAN_DOMAIN]?: string;
+  [SpanMetricsField.SPAN_GROUP]?: string;
+  [SpanMetricsField.SPAN_OP]?: string;
+  [SpanMetricsField.USER_GEO_SUBREGION]?: SubregionCode[];
+};
 
 export type DataKey =
   | 'change'
