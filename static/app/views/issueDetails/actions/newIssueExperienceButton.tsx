@@ -71,7 +71,7 @@ export function NewIssueExperienceButton() {
       isEnabled: !hasStreamlinedUI,
       organization,
       enforced_streamline_ui:
-        organization.features.includes('issue-details-streamline-enforced') &&
+        organization.features.includes('issue-details-streamline-enforce') &&
         userStreamlinePreference === null,
     });
   }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
