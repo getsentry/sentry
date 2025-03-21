@@ -5,8 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
+import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
@@ -65,17 +64,14 @@ export default function GroupFeatureFlagsDrawerContent({
     return searchedTags;
   }, [data, search, tagValues]);
 
-  const organization = useOrganization();
-  const project = useProjectFromSlug({organization, projectSlug: group.project?.slug});
+  const {projects} = useProjects();
+  const project = projects.find(p => p.slug === group.project.slug)!;
 
-  if (
+  const showCTA =
     data.length === 0 &&
     project &&
     !project.hasFlags &&
-    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other')
-  ) {
-    return <FlagDrawerCTA />;
-  }
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
 
   return isPending ? (
     <LoadingIndicator />
@@ -84,6 +80,8 @@ export default function GroupFeatureFlagsDrawerContent({
       message={t('There was an error loading feature flags.')}
       onRetry={refetch}
     />
+  ) : showCTA ? (
+    <FlagDrawerCTA />
   ) : displayTags.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {data.length === 0
