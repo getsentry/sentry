@@ -2138,7 +2138,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     name="sentry-api-0-organization-scim-team-index",
                 ),
                 re_path(
-                    r"^Groups/(?P<team_id>\d+)$",
+                    r"^Groups/(?P<team_id_or_slug>\d+)$",
                     OrganizationSCIMTeamDetails.as_view(),
                     name="sentry-api-0-organization-scim-team-details",
                 ),
