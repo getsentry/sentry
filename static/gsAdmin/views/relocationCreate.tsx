@@ -152,12 +152,11 @@ function RelocationForm() {
           type="text"
           name="owner"
           aria-label="owner-input"
-          required
           minLength={1}
           placeholder=""
         />
         <InputLabel>List of Organization Slugs</InputLabel>
-        <Input type="text" name="orgs" aria-label="orgs-input" required minLength={1} />
+        <Input type="text" name="orgs" aria-label="orgs-input" minLength={1} />
         <InputLabel>Promo Code (Optional)</InputLabel>
         <Input
           type="text"

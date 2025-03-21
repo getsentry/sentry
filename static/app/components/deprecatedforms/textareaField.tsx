@@ -1,3 +1,4 @@
+import {TextArea} from 'sentry/components/core/textarea';
 import InputField from 'sentry/components/deprecatedforms/inputField';
 
 type State = InputField['state'] & {
@@ -12,7 +13,7 @@ type State = InputField['state'] & {
 export default class TextareaField extends InputField<InputField['props'], State> {
   getField() {
     return (
-      <textarea
+      <TextArea
         id={this.getId()}
         className="form-control"
         value={this.state.value}

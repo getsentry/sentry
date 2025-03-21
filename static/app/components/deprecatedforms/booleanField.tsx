@@ -1,3 +1,4 @@
+import {Checkbox} from 'sentry/components/core/checkbox';
 import InputField from 'sentry/components/deprecatedforms/inputField';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
@@ -27,7 +28,7 @@ export default class BooleanField extends InputField<Props, State> {
 
   getField() {
     return (
-      <input
+      <Checkbox
         id={this.getId()}
         type={this.getType()}
         checked={this.state.value}

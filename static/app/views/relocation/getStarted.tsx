@@ -80,7 +80,6 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             onChange={evt => {
               onUpdateRelocationState({orgSlugs: evt.target.value});
             }}
-            required
             minLength={3}
             placeholder="org-slug-1, org-slug-2, ..."
             value={orgSlugs}

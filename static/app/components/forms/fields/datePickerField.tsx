@@ -55,6 +55,8 @@ export default function DatePickerField(props: DatePickerFieldProps) {
                 size={size}
                 value={dateString}
                 readOnly
+                // Do not forward required to avoid default browser behavior
+                required={undefined}
               />
               <StyledIconCalendar inputSize={size} size={size === 'xs' ? 'xs' : 'sm'} />
             </InputWrapper>

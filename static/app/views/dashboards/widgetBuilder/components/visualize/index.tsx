@@ -576,7 +576,6 @@ function Visualize({error, setError}: VisualizeProps) {
                               name="arithmetic"
                               key="parameter:text"
                               type="text"
-                              required
                               value={field.field}
                               onUpdate={value => {
                                 dispatch({

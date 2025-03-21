@@ -35,8 +35,9 @@ function TextareaField({
         <InputGroup>
           <InputGroup.TextArea
             {...{monospace, rows, autosize, name}}
-            // Do not forward required to `textarea` to avoid default browser behavior
-            {...omit(fieldProps, ['onKeyDown', 'children', 'required'])}
+            {...omit(fieldProps, ['onKeyDown', 'children'])}
+            // Do not forward required to avoid default browser behavior
+            required={undefined}
           />
           {!hideControlState && (
             <InputGroup.TrailingItems>

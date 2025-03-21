@@ -194,7 +194,6 @@ export function AutofixOutputStream({
                 placeholder={
                   responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
                 }
-                required={responseRequired}
               />
               <StyledButton
                 type="submit"

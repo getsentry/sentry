@@ -82,6 +82,8 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
               name={name}
               accept={accept?.join(', ')}
               onChange={e => handleFile(model, name, onChange, e)}
+              // Do not forward required to `input` to avoid default browser behavior
+              required={undefined}
             />
             {!hideControlState && (
               <InputGroup.TrailingItems disablePointerEvents>

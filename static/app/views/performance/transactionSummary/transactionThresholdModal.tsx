@@ -215,7 +215,6 @@ class TransactionThresholdModal extends Component<Props, State> {
           <Input
             type="number"
             name="threshold"
-            required
             pattern="[0-9]*(\.[0-9]*)?"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
               this.handleFieldChange('threshold')(event.target.value);
