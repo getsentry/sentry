@@ -70,7 +70,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
-        arguments=[AttributeArgumentDefinition(attribute_types={"string"})],
+        arguments=[ArgumentDefinition(argument_types={"string"})],
         aggregate_resolver=resolve_count_op,
     ),
     "avg_if": ConditionalAggregateDefinition(
