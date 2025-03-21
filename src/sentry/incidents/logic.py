@@ -524,6 +524,7 @@ def create_alert_rule(
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
     detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
+    group_by: str | None = None,
     **kwargs: Any,
 ) -> AlertRule:
     """
