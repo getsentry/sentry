@@ -29,6 +29,10 @@ type Props = {
   isHoverPreviewed?: boolean;
   isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
+  /**
+   * Whether to show the absolute path in the title instead of the relative path.
+   */
+  showAbsPath?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
@@ -39,6 +43,7 @@ function DefaultTitle({
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
+  showAbsPath,
 }: Props) {
   const title: React.ReactElement[] = [];
   const framePlatform = getPlatform(frame.platform, platform);
@@ -111,7 +116,9 @@ function DefaultTitle({
           delay={tooltipDelay}
         >
           <code key="filename" className="filename" data-test-id="filename">
-            {!!pathNameOrModule.meta && !pathNameOrModule.value ? (
+            {showAbsPath && frame.absPath ? (
+              <Truncate value={frame.absPath} maxLength={100} leftTrim />
+            ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
                 value={pathNameOrModule.value}
                 meta={pathNameOrModule.meta}
