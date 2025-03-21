@@ -487,13 +487,29 @@ def process_delayed_workflows(
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
+    logger.info(
+        "delayed_workflow.workflows",
+        extra={"data": workflow_event_dcg_data, "workflows": set(dcg_to_workflow.values())},
+    )
+
     # Get unique query groups to query Snuba
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+
+    if not condition_groups:
+        return
+
+    repr_condition_groups = {
+        repr(condition_group): group_ids for condition_group, group_ids in condition_groups.items()
+    }
     logger.info(
         "delayed_workflow.condition_query_groups",
-        extra={"condition_groups": condition_groups, "project_id": project_id},
+        extra={
+            "condition_groups": repr_condition_groups,
+            "num_condition_groups": len(condition_groups),
+            "project_id": project_id,
+        },
     )
     condition_group_results = get_condition_group_results(condition_groups)
 
