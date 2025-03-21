@@ -106,7 +106,7 @@ type ModalProps = ModalRenderProps & Props;
 
 type ModalState = {
   data: any;
-  // TODO(ts), TODO:categories get data.plan categories to dynamically create fields
+  // TODO(ts)
   effectiveAtDisabled: boolean;
   isLoading: boolean;
   provisionablePlans: Record<string, Plan>;
