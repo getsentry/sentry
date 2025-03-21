@@ -245,6 +245,38 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["name"] == "Shared query"
 
+    def test_get_query_last_visited(self):
+        last_visited = before_now(minutes=10)
+        query = {"fields": ["span.op"], "mode": "samples"}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query with last visited",
+            query=query,
+            last_visited=last_visited,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"query": "name:Query with last visited"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["lastVisited"] == last_visited
+
+    def test_post_require_mode(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert "This field is required." == response.data["mode"][0]
+
     def test_post_success(self):
         with self.feature(self.feature_name):
             response = self.client.post(

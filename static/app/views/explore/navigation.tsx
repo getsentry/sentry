@@ -31,7 +31,7 @@ export default function ExploreNavigation({children}: Props) {
         </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <Feature features="performance-trace-explorer">
+            <Feature features={['performance-trace-explorer', 'performance-view']}>
               <SecondaryNav.Item
                 to={`${baseUrl}/traces/`}
                 analyticsItemName="explore_traces"
@@ -75,6 +75,11 @@ export default function ExploreNavigation({children}: Props) {
             >
               {t('Releases')}
             </SecondaryNav.Item>
+            <Feature features="performance-saved-queries">
+              <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
+                {t('All Queries')}
+              </SecondaryNav.Item>
+            </Feature>
           </SecondaryNav.Section>
         </SecondaryNav.Body>
       </SecondaryNav>
