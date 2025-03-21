@@ -14,7 +14,7 @@ type DefaultProps = {
 };
 
 type CustomComponentRenderProps = {
-  error: Error | null;
+  error: Error | string | null;
 };
 
 type Props = DefaultProps & {
@@ -29,7 +29,7 @@ type Props = DefaultProps & {
 };
 
 type State = {
-  error: Error | null;
+  error: Error | string | null;
 };
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
@@ -59,7 +59,7 @@ class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error | string, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
 
     this.setState({error});
@@ -69,11 +69,14 @@ class ErrorBoundary extends Component<Props, State> {
       }
 
       // Based on https://github.com/getsentry/sentry-javascript/blob/6f4ad562c469f546f1098136b65583309d03487b/packages/react/src/errorboundary.tsx#L75-L85
-      const errorBoundaryError = new Error(error.message);
+      const isErrorAnErrorObject = error instanceof Error;
+      const errorBoundaryError = new Error(isErrorAnErrorObject ? error.message : error);
       errorBoundaryError.name = `React ErrorBoundary ${errorBoundaryError.name}`;
       errorBoundaryError.stack = errorInfo.componentStack!;
 
-      error.cause = errorBoundaryError;
+      if (isErrorAnErrorObject) {
+        error.cause = errorBoundaryError;
+      }
 
       scope.setExtra('errorInfo', errorInfo);
       Sentry.captureException(error);
