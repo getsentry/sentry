@@ -279,8 +279,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         return {"id": user["name"], "text": display}
 
     def view_autocomplete(self, request: Request, group, **kwargs):
-        query = request.GET.get("autocomplete_query")
-        field = request.GET.get("autocomplete_field")
+        query = request.GET.get("autocomplete_query", "")
+        field = request.GET.get("autocomplete_field", "")
         project = self.get_option("default_project", group.project)
 
         if field == "issue_id":
@@ -325,8 +325,8 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
                 status=400,
             )
 
-        parsed = list(parsed)
-        jira_query = parse_qs(parsed[3])
+        parsed_mut = list(parsed)
+        jira_query = parse_qs(parsed_mut[3])
 
         jira_client = self.get_jira_client(group.project)
 
@@ -336,30 +336,29 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
 
         if is_user_api:  # its the JSON version of the autocompleter
             is_xml = False
-            jira_query["username"] = query
-            jira_query.pop(
-                "issueKey", False
-            )  # some reason JIRA complains if this key is in the URL.
-            jira_query["project"] = project
+            jira_query["username"] = [query]
+            # some reason JIRA complains if this key is in the URL.
+            jira_query.pop("issueKey", None)
+            jira_query["project"] = [project]
         elif is_user_picker:
             is_xml = False
             # for whatever reason, the create meta api returns an
             # invalid path, so let's just use the correct, documented one here:
             # https://docs.atlassian.com/jira/REST/cloud/#api/2/user
             # also, only pass path so saved instance url will be used
-            parsed[0] = ""
-            parsed[1] = ""
-            parsed[2] = "/rest/api/2/user/picker"
-            jira_query["query"] = query
+            parsed_mut[0] = ""
+            parsed_mut[1] = ""
+            parsed_mut[2] = "/rest/api/2/user/picker"
+            jira_query["query"] = [query]
         else:  # its the stupid XML version of the API.
             is_xml = True
-            jira_query["query"] = query
+            jira_query["query"] = [query]
             if jira_query.get("fieldName"):
                 # for some reason its a list.
-                jira_query["fieldName"] = jira_query["fieldName"][0]
+                jira_query["fieldName"] = [jira_query["fieldName"][0]]
 
-        parsed[3] = urlencode(jira_query)
-        final_url = urlunsplit(parsed)
+        parsed_mut[3] = urlencode(jira_query, doseq=True)
+        final_url = urlunsplit(parsed_mut)
 
         autocomplete_response = jira_client.get_cached(final_url)
 
