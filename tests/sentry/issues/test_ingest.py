@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.constants import LOG_LEVELS_MAP
+from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     FeedbackGroup,
@@ -452,13 +452,13 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
-        occurrence = self.build_occurrence()
+        occurrence = self.build_occurrence(culprit="abcde" * 100)
         event = self.store_event(data={}, project_id=self.project.id)
         assert _create_issue_kwargs(occurrence, event, None) == {
             "platform": event.platform,
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
-            "culprit": occurrence.culprit,
+            "culprit": f"{occurrence.culprit[:MAX_CULPRIT_LENGTH-3]}...",
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,
