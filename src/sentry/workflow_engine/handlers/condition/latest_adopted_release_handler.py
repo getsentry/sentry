@@ -38,7 +38,7 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
         age_comparison = comparison["age_comparison"]
         environment_name = comparison["environment"]
 
-        event = job["event"]
+        event = job.event
 
         if follows_semver_versioning_scheme(event.organization.id, event.project.id):
             order_type = LatestReleaseOrders.SEMVER

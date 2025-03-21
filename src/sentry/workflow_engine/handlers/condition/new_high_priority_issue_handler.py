@@ -15,7 +15,7 @@ class NewHighPriorityIssueConditionHandler(DataConditionHandler[WorkflowJob]):
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         is_new = is_new_event(job)
-        event = job["event"]
+        event = job.event
         if not event.project.flags.has_high_priority_alerts:
             return is_new
 

@@ -24,7 +24,7 @@ class LevelConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+        event = job.event
         level_name = event.get_tag("level")
         if level_name is None:
             return False

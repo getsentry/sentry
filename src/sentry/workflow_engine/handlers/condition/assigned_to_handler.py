@@ -36,7 +36,7 @@ class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+        event = job.event
         target_type = AssigneeTargetType(comparison.get("target_type"))
         assignees = AssignedToConditionHandler.get_assignees(event.group)
 

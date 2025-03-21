@@ -51,7 +51,7 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+        event = job.event
         attribute = comparison.get("attribute", "")
         attribute_values = EventAttributeConditionHandler.get_attribute_values(event, attribute)
 

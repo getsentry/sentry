@@ -6,11 +6,11 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 def is_new_event(job: WorkflowJob) -> bool:
-    state = job.get("group_state")
+    state = job.group_state
     if state is None:
         return False
 
-    workflow = job.get("workflow")
+    workflow = job.workflow
     if workflow is None or workflow.environment_id is None:
         return state["is_new"]
 

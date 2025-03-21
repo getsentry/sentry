@@ -13,11 +13,9 @@ class ExistingHighPriorityIssueConditionHandler(DataConditionHandler[WorkflowJob
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        state = job.get("group_state")
+        state = job.group_state
         if state is None or state["is_new"]:
             return False
 
-        has_reappeared = job.get("has_reappeared", False)
-        has_escalated = job.get("has_escalated", False)
-        is_escalating = has_reappeared or has_escalated
-        return is_escalating and job["event"].group.priority == PriorityLevel.HIGH
+        is_escalating = bool(job.has_reappeared or job.has_escalated)
+        return is_escalating and job.event.group.priority == PriorityLevel.HIGH
