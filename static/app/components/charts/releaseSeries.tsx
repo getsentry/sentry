@@ -308,6 +308,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     });
 
     return {
+      id: 'release-series-line',
       seriesName: 'Releases',
       color: theme.purple200,
       data: [],

@@ -1,4 +1,4 @@
-import {useCallback, useRef} from 'react';
+import {type MutableRefObject, useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -54,6 +54,9 @@ export interface TimeSeriesWidgetVisualizationProps {
    * TODO(billy): temporary until we implement route based nav
    */
   disableReleaseNavigation?: boolean;
+  forwardedRef?:
+    | MutableRefObject<ReactEchartsRef | null>
+    | ((e: ReactEchartsRef | null) => void);
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
@@ -66,10 +69,12 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
   onZoom?: EChartDataZoomHandler;
+
   /**
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
+
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
@@ -112,10 +117,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+    chartRenderer: ({start: trimStart, end: trimEnd, ref: chartRendererRef}) => {
       return (
         <TimeSeriesWidgetVisualization
           {...props}
+          forwardedRef={chartRendererRef}
           disableReleaseNavigation
           plottables={props.plottables.map(plottable =>
             plottable.constrain(trimStart, trimEnd)
@@ -154,8 +160,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
 
+  const {forwardedRef} = props;
   const handleChartRef = useCallback(
     (e: ReactEchartsRef) => {
+      if (forwardedRef) {
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(e);
+        } else {
+          forwardedRef.current = e;
+        }
+      }
       chartRef.current = e;
 
       if (!e?.getEchartsInstance) {
@@ -169,7 +183,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         connectReleaseBubbleChartRef(e);
       }
     },
-    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
+    [
+      hasReleaseBubblesSeries,
+      connectReleaseBubbleChartRef,
+      registerWithWidgetSyncContext,
+      forwardedRef,
+    ]
   );
 
   const chartZoomProps = useChartZoom({
