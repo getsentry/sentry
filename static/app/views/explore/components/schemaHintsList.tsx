@@ -196,15 +196,15 @@ function SchemaHintsList({
                 );
               },
               onOpen: () => {
-                trackAnalytics('trace.explorer.schema_hints', {
-                  schema_hints_drawer_open: true,
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: true,
                   organization,
                 });
               },
 
               onClose: () => {
-                trackAnalytics('trace.explorer.schema_hints', {
-                  schema_hints_drawer_open: false,
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: false,
                   organization,
                 });
               },
@@ -230,7 +230,7 @@ function SchemaHintsList({
         isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
       );
       setExploreQuery(newSearchQuery.formatString());
-      trackAnalytics('trace.explorer.schema_hints', {
+      trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         schema_hints_drawer_open: isDrawerOpen,
         organization,
