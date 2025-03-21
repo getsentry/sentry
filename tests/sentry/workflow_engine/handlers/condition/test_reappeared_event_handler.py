@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 from jsonschema import ValidationError
 
@@ -39,12 +41,7 @@ class TestReappearedEventCondition(ConditionTestCase):
             dc.save()
 
     def test(self):
-        job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "has_reappeared": True,
-            }
-        )
+        job = WorkflowJob(event=self.group_event, has_reappeared=True)
         dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -53,5 +50,5 @@ class TestReappearedEventCondition(ConditionTestCase):
 
         self.assert_passes(dc, job)
 
-        job["has_reappeared"] = False
+        job = replace(job, has_reappeared=False)
         self.assert_does_not_pass(dc, job)

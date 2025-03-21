@@ -19,12 +19,7 @@ class TestLevelCondition(ConditionTestCase):
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "has_reappeared": True,
-            }
-        )
+        self.job = WorkflowJob(event=self.group_event)
 
     def setUp(self):
         super().setUp()

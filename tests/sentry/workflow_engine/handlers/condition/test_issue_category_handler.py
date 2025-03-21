@@ -19,11 +19,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.job = WorkflowJob(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -85,11 +81,11 @@ class TestIssueCategoryCondition(ConditionTestCase):
         group_event = self.event.for_group(self.group)
 
         self.dc.update(comparison={"value": GroupCategory.ERROR.value})
-        self.assert_passes(self.dc, WorkflowJob({"event": self.event}))
-        self.assert_passes(self.dc, WorkflowJob({"event": group_event}))
+        self.assert_passes(self.dc, WorkflowJob(event=self.event))
+        self.assert_passes(self.dc, WorkflowJob(event=group_event))
 
     @patch("sentry.issues.grouptype.GroupTypeRegistry.get_by_type_id")
     def test_invalid_issue_category(self, mock_get_by_type_id):
         mock_get_by_type_id.side_effect = ValueError("Invalid group type")
 
-        self.assert_does_not_pass(self.dc, WorkflowJob({"event": self.event}))
+        self.assert_does_not_pass(self.dc, WorkflowJob(event=self.event))

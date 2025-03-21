@@ -17,19 +17,11 @@ class TestAgeComparisonCondition(ConditionTestCase):
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.job = WorkflowJob(event=self.group_event)
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.job = WorkflowJob(event=self.group_event)
         self.payload = {
             "id": AgeComparisonFilter.id,
             "comparison_type": AgeComparisonType.OLDER,

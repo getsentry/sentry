@@ -24,11 +24,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.job = WorkflowJob(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -145,10 +141,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
         )
 
         self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "workflow": Workflow(environment_id=self.environment.id),
-            }
+            event=self.group_event, workflow=Workflow(environment_id=self.environment.id)
         )
 
         self.event.data["tags"] = (("release", new_release.version),)
