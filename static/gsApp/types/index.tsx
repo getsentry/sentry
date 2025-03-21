@@ -98,6 +98,7 @@ export type Plan = {
   hasOnDemandModes: boolean;
 
   id: string;
+  isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
   onDemandCategories: string[];
@@ -708,6 +709,7 @@ export enum CreditType {
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   ATTACHMENT = 'attachment',
   REPLAY = 'replay',
   MONITOR_SEAT = 'monitorSeat',
@@ -741,6 +743,7 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.TRANSACTION
     | CreditType.SPAN
     | CreditType.PROFILE_DURATION
+    | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
     | CreditType.REPLAY;
 }
@@ -827,6 +830,10 @@ export enum PlanTier {
    * Features and data volumes are tightly coupled.
    */
   MM1 = 'mm1',
+  /**
+   * Test plans
+   */
+  TEST = 'test',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/

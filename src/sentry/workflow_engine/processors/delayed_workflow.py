@@ -75,6 +75,9 @@ class UniqueConditionQuery:
     comparison_interval: str | None = None
     filters: list[dict[str, Any]] | None = None
 
+    def __repr__(self):
+        return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
+
 
 def fetch_project(project_id: int) -> Project | None:
     try:
@@ -488,7 +491,16 @@ def process_delayed_workflows(
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+    logger.info(
+        "delayed_workflow.condition_query_groups",
+        extra={"condition_groups": condition_groups, "project_id": project_id},
+    )
     condition_group_results = get_condition_group_results(condition_groups)
+
+    logger.info(
+        "delayed_workflow.condition_group_results",
+        extra={"results": condition_group_results},
+    )
 
     # Evaluate DCGs
     groups_to_dcgs = get_groups_to_fire(
@@ -497,6 +509,11 @@ def process_delayed_workflows(
         dcg_to_workflow,
         dcg_to_groups,
         condition_group_results,
+    )
+
+    logger.info(
+        "delayed_workflow.groups_to_fire",
+        extra={"groups_to_dcgs": groups_to_dcgs},
     )
 
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(

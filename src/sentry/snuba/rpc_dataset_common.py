@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
@@ -15,7 +16,7 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import EventsMeta, SnubaData
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
@@ -43,6 +44,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     resolver: SearchResolver,
+    debug: bool = False,
 ) -> EAPResponse:
     """Make the query"""
     meta = resolver.resolve_meta(referrer=referrer)
@@ -142,5 +144,8 @@ def run_table_query(
                     column_value.reliabilities[index], None
                 )
     sentry_sdk.set_measurement("SearchResolver.result_size.final_data", len(final_data))
+
+    if debug:
+        final_meta["query"] = json.loads(MessageToJson(rpc_request))
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}

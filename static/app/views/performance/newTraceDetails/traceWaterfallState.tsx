@@ -23,16 +23,17 @@ function TraceError() {
 
   return (
     <LoadingContainer animate error>
-      <div>{t('Ughhhhh, we failed to load your trace...')}</div>
       <div>
-        {t('Seeing this often? Send us ')}
+        {t('Woof. We failed to load your trace. If you need to yell at someone, ')}
+      </div>
+      <div>
         {feedback ? (
           <a href="#" ref={linkref}>
-            {t('feedback')}
+            {t('send feedback')}
           </a>
         ) : (
           <a href="mailto:support@sentry.io?subject=Trace%20fails%20to%20load">
-            {t('feedback')}
+            {t('send feedback')}
           </a>
         )}
       </div>
@@ -41,9 +42,6 @@ function TraceError() {
 }
 
 function TraceEmpty() {
-  const linkref = useRef<HTMLAnchorElement>(null);
-  const feedback = useFeedbackWidget({buttonRef: linkref});
-
   const traceQueryParams = useTraceQueryParams();
   const timestamp = traceQueryParams.timestamp;
 
@@ -52,26 +50,12 @@ function TraceEmpty() {
   // minute buffer to account for this.
   const message =
     timestamp && new Date(timestamp * 1000) >= new Date(Date.now() - 2 * 60 * 1000)
-      ? t(
-          'We could still be ingesting this trace. Please wait a few seconds and refresh.'
-        )
-      : t('This trace does not contain any data.');
+      ? t("We're still processing this trace. In a few seconds, refresh")
+      : t("This trace is so empty, even tumbleweeds don't roll here");
 
   return (
     <LoadingContainer animate>
       <div>{message}</div>
-      <div>
-        {t('Seeing this often? Send us ')}
-        {feedback ? (
-          <a href="#" ref={linkref}>
-            {t('feedback')}
-          </a>
-        ) : (
-          <a href="mailto:support@sentry.io?subject=Trace%20does%20not%20contain%20data">
-            {t('feedback')}
-          </a>
-        )}
-      </div>
     </LoadingContainer>
   );
 }

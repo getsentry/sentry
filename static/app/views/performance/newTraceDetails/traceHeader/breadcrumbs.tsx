@@ -165,16 +165,6 @@ function getPerformanceBreadCrumbs(
       }
       break;
     }
-    case Tab.AGGREGATE_WATERFALL:
-      crumbs.push({
-        label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/aggregateWaterfall`,
-          location.query,
-          organization
-        ),
-      });
-      break;
     default:
       crumbs.push({
         label: t('Transaction Summary'),

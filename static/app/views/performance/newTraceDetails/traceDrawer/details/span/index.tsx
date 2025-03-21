@@ -163,7 +163,11 @@ function SpanSections({
         onParentClick={onParentClick}
       />
       {hasSpanSpecificData ? (
-        <InterimSection title={t('Span Specific')} type="span_specifc" initialCollapse>
+        <InterimSection
+          title={t('Span Specific')}
+          type="span_specifc"
+          disableCollapsePersistence
+        >
           <TraceDrawerComponents.SectionCardGroup>
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
@@ -231,7 +235,11 @@ function ProfileDetails({
   }
 
   return (
-    <InterimSection title={t('Profile')} type="span_profile_details" initialCollapse>
+    <InterimSection
+      title={t('Profile')}
+      type="span_profile_details"
+      disableCollapsePersistence
+    >
       <EmbededContentWrapper>
         <SpanProfileDetails span={span} event={event} />
       </EmbededContentWrapper>
