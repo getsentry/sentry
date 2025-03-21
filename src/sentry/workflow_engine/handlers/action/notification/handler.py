@@ -70,6 +70,34 @@ NOTES_SCHEMA = {
     "description": "Notes to add to the message",
 }
 
+ONCALL_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a On-call Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": ["string"]},
+        "target_display": {"type": ["null"]},
+        "target_type": {
+            "type": ["integer"],
+            "enum": [*ActionTarget],
+        },
+    },
+    "required": ["target_identifier", "target_type"],
+    "additionalProperties": False,
+}
+
+ONCALL_ACTION_DATA_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "priority": {
+            "type": "string",
+            "description": "The priority of the on-call action",
+        },
+        "additionalProperties": False,
+    },
+}
+
 
 class LegacyRegistryInvoker(ABC):
     """
@@ -243,11 +271,15 @@ class MsteamsActionHandler(NotificationActionHandler):
 
 @action_handler_registry.register(Action.Type.PAGERDUTY)
 class PagerdutyActionHandler(NotificationActionHandler):
+    config_schema = ONCALL_ACTION_CONFIG_SCHEMA
+    data_schema = ONCALL_ACTION_DATA_SCHEMA
     group = NotificationActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.OPSGENIE)
 class OpsgenieActionHandler(NotificationActionHandler):
+    config_schema = ONCALL_ACTION_CONFIG_SCHEMA
+    data_schema = ONCALL_ACTION_DATA_SCHEMA
     group = ActionHandler.Group.NOTIFICATION
 
 
