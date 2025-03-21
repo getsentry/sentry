@@ -3,16 +3,17 @@ import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {
   ModalChartContainer,
@@ -23,25 +24,6 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
-
-const seriesAliases = {
-  ok: t('Processed'),
-  internal_error: t('Failed'),
-};
-
-function createEmptySeries(color: string, seriesName: string): DiscoverSeries {
-  return {
-    data: [],
-    seriesName,
-    meta: {
-      fields: {
-        [seriesName]: 'integer',
-      },
-      units: {},
-    },
-    color,
-  };
-}
 
 export function JobsWidget({query}: {query?: string}) {
   const organization = useOrganization();
@@ -59,12 +41,11 @@ export function JobsWidget({query}: {query?: string}) {
         query: {
           ...pageFilterChartParams,
           dataset: 'spans',
-          field: ['trace.status', 'count(span.duration)'],
-          yAxis: ['count(span.duration)'],
+          field: ['trace_status_rate(internal_error)', 'count(span.duration)'],
+          yAxis: ['trace_status_rate(internal_error)', 'count(span.duration)'],
           transformAliasToInputFormat: 1,
           query: fullQuery,
           useRpc: 1,
-          topEvents: 10,
         },
       },
     ],
@@ -72,51 +53,49 @@ export function JobsWidget({query}: {query?: string}) {
   );
 
   const statsToSeries = useCallback(
-    (stats: EventsStats | undefined, name: string, color: string): DiscoverSeries => {
-      if (!stats) {
-        return createEmptySeries(color, name);
-      }
+    (multiSeriesStats: MultiSeriesEventsStats | undefined, field: string): TimeSeries => {
+      const stats = multiSeriesStats?.[field];
+      const statsData = stats?.data || [];
+      const meta = stats?.meta;
 
-      return {
-        data: stats.data.map(([time], index) => ({
+      return convertSeriesToTimeseries({
+        data: statsData.map(([time], index) => ({
           name: new Date(time * 1000).toISOString(),
-          value: stats.data[index]?.[1][0]?.count! || 0,
+          value: statsData[index]?.[1][0]?.count! || 0,
         })),
-        seriesName: name,
+        seriesName: field,
         meta: {
           fields: {
-            [name]: 'integer',
+            [field]: meta?.fields[field]!,
           },
           units: {},
         },
-        color,
-      };
+      });
     },
     []
   );
 
-  const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!data) {
-      return [];
-    }
-
-    const okJobs = statsToSeries(data.ok, 'ok', theme.gray200);
-    const failedJobs = statsToSeries(data.internal_error, 'internal_error', theme.error);
-    return [okJobs, failedJobs].filter(series => !!series);
+  const plottables = useMemo(() => {
+    return [
+      new Bars(statsToSeries(data, 'count(span.duration)'), {
+        alias: t('Jobs'),
+        color: theme.gray200,
+      }),
+      new Line(statsToSeries(data, 'trace_status_rate(internal_error)'), {
+        alias: t('Error Rate'),
+        color: theme.error,
+      }),
+    ];
   }, [data, statsToSeries, theme.error, theme.gray200]);
 
-  const plottables = useMemo(() => {
-    return timeSeries.map(
-      ts =>
-        new Bars(convertSeriesToTimeseries(ts), {
-          color: ts.color,
-          stack: 'stack',
-          alias: seriesAliases[ts.seriesName as 'ok' | 'internal_error'],
-        })
-    );
-  }, [timeSeries]);
-
-  const isEmpty = plottables.every(plottable => plottable.isEmpty);
+  const isEmpty = useMemo(
+    () =>
+      plottables.every(
+        plottable =>
+          plottable.isEmpty || plottable.timeSeries.data.every(point => !point.value)
+      ),
+    [plottables]
+  );
 
   const visualization = (
     <WidgetVisualizationStates
@@ -130,24 +109,44 @@ export function JobsWidget({query}: {query?: string}) {
     />
   );
 
+  const {totalJobs, overallErrorRate} = useMemo(() => {
+    const errorSeries = plottables[1]!.timeSeries;
+    const jobCounts = plottables[0]!.timeSeries.data;
+    let jobsCount = 0;
+    let errorCount = 0;
+    errorSeries.data.forEach((point, i) => {
+      const count = jobCounts[i]?.value!;
+      jobsCount += count;
+      errorCount += point.value! * count;
+    });
+
+    return {totalJobs: jobsCount, overallErrorRate: errorCount / jobsCount};
+  }, [plottables]);
+
   const footer = !isEmpty && (
     <WidgetFooterTable>
-      {timeSeries.map(series => {
-        const total = series.data.reduce((sum, point) => sum + point.value, 0);
-        return (
-          <Fragment key={series.seriesName}>
-            <div>
-              <SeriesColorIndicator
-                style={{
-                  backgroundColor: series.color,
-                }}
-              />
-            </div>
-            <div>{seriesAliases[series.seriesName as keyof typeof seriesAliases]}</div>
-            <span>{formatAbbreviatedNumber(total)}</span>
-          </Fragment>
-        );
-      })}
+      <Fragment>
+        <div>
+          <SeriesColorIndicator
+            style={{
+              backgroundColor: theme.gray200,
+            }}
+          />
+        </div>
+        <div>{t('Jobs')}</div>
+        <span>{formatAbbreviatedNumber(totalJobs)}</span>
+      </Fragment>
+      <Fragment>
+        <div>
+          <SeriesColorIndicator
+            style={{
+              backgroundColor: theme.error,
+            }}
+          />
+        </div>
+        <div>{t('Error Rate')}</div>
+        <span>{(overallErrorRate * 100).toFixed(2)}%</span>
+      </Fragment>
     </WidgetFooterTable>
   );
 
