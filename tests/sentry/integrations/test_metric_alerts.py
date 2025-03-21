@@ -7,7 +7,7 @@ from django.utils import timezone
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -19,12 +19,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 def incident_attachment_info_with_metric_value(incident, new_status, metric_value):
     return incident_attachment_info(
-        AlertContext.from_alert_rule_incident(incident.alert_rule),
-        open_period_identifier=incident.identifier,
-        new_status=new_status,
         organization=incident.organization,
-        snuba_query=incident.alert_rule.snuba_query,
-        metric_value=metric_value,
+        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+        metric_issue_context=MetricIssueContext.from_legacy_models(
+            incident, new_status, metric_value
+        ),
     )
 
 
@@ -48,12 +47,11 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
         data = incident_attachment_info(
-            AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
-            new_status=IncidentStatus.CLOSED,
             organization=incident.organization,
-            snuba_query=alert_rule.snuba_query,
-            metric_value=metric_value,
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CLOSED, metric_value
+            ),
             notification_uuid=notification_uuid,
             referrer=referrer,
         )

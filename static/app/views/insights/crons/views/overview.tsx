@@ -31,28 +31,28 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {
+  CronsLandingPanel,
+  isValidGuide,
+  isValidPlatform,
+} from 'sentry/views/insights/crons/components/cronsLandingPanel';
+import {NewMonitorButton} from 'sentry/views/insights/crons/components/newMonitorButton';
+import {OverviewTimeline} from 'sentry/views/insights/crons/components/overviewTimeline';
+import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
+import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorListErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
+import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/crons/settings';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {ModuleName} from 'sentry/views/insights/types';
-import {
-  CronsLandingPanel,
-  isValidGuide,
-  isValidPlatform,
-} from 'sentry/views/monitors/components/cronsLandingPanel';
-import {NewMonitorButton} from 'sentry/views/monitors/components/newMonitorButton';
-import {OverviewTimeline} from 'sentry/views/monitors/components/overviewTimeline';
-import {OwnerFilter} from 'sentry/views/monitors/components/ownerFilter';
-import {MonitorProcessingErrors} from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorListErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 import type {
   CheckinProcessingError,
   Monitor,
   ProcessingErrorType,
-} from 'sentry/views/monitors/types';
-import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
+} from 'sentry/views/insights/crons/types';
+import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {ModuleName} from 'sentry/views/insights/types';
 
 const CronsListPageHeader = HookOrDefault({
   hookName: 'component:crons-list-page-header',
@@ -135,7 +135,7 @@ function CronsOverview() {
               {t('Manage Monitors')}
             </Button>
             {showAddMonitor && (
-              <NewMonitorButton linkToAlerts size="sm" icon={<IconAdd isCircled />}>
+              <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
                 {t('Add Monitor')}
               </NewMonitorButton>
             )}
@@ -182,11 +182,11 @@ function CronsOverview() {
             <LoadingIndicator />
           ) : monitorList?.length ? (
             <Fragment>
-              <OverviewTimeline linkToAlerts monitorList={monitorList} />
+              <OverviewTimeline monitorList={monitorList} />
               {monitorListPageLinks && <Pagination pageLinks={monitorListPageLinks} />}
             </Fragment>
           ) : (
-            <CronsLandingPanel linkToAlerts />
+            <CronsLandingPanel />
           )}
         </Layout.Main>
       </Layout.Body>

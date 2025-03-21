@@ -32,13 +32,13 @@ import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {OwnerFilter} from 'sentry/views/insights/crons/components/ownerFilter';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
-import {OwnerFilter} from 'sentry/views/monitors/components/ownerFilter';
 
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK, MODULE_TITLE} from '../../uptime/settings';
 import {OverviewTimeline} from '../components/overviewTimeline';

@@ -14,6 +14,7 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   useIssueDetailsTour,
@@ -57,10 +58,9 @@ export function NewIssueExperienceButton() {
 
   const hasStreamlinedUI = useHasStreamlinedUI();
   const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
-  const hasEnforceStreamlinedUIFlag = organization.features.includes(
-    'issue-details-streamline-enforce'
-  );
   const hasNewUIOnly = Boolean(organization.streamlineOnly);
+  const user = useUser();
+  const userStreamlinePreference = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   const openForm = useFeedbackForm();
   const {mutate: mutateUserOptions} = useMutateUserOptions();
@@ -70,8 +70,11 @@ export function NewIssueExperienceButton() {
     trackAnalytics('issue_details.streamline_ui_toggle', {
       isEnabled: !hasStreamlinedUI,
       organization,
+      enforced_streamline_ui:
+        organization.features.includes('issue-details-streamline-enforced') &&
+        userStreamlinePreference === null,
     });
-  }, [mutateUserOptions, organization, hasStreamlinedUI]);
+  }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
 
   // The promotional modal should only appear if:
   //  - The tour is available to this user
@@ -166,13 +169,8 @@ export function NewIssueExperienceButton() {
       // Do not show the toggle out of the new UI if any of these are true:
       //  - The user is on the old UI
       //  - The org does not have the opt-in flag
-      //  - The org has the enforce flag
       //  - The org has the new UI only option
-      hidden:
-        !hasStreamlinedUI ||
-        !hasStreamlinedUIFlag ||
-        hasEnforceStreamlinedUIFlag ||
-        hasNewUIOnly,
+      hidden: !hasStreamlinedUI || !hasStreamlinedUIFlag || hasNewUIOnly,
       onAction: handleToggle,
     },
     {

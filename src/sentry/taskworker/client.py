@@ -3,7 +3,6 @@ import hmac
 import logging
 import random
 from collections.abc import Callable
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 import grpc
@@ -87,36 +86,62 @@ class TaskworkerClient:
     Taskworker RPC client wrapper
     """
 
-    def __init__(self, host: str, num_brokers: int | None) -> None:
-        self._host = host if not num_brokers else self.loadbalance(host, num_brokers)
+    def __init__(
+        self,
+        host: str,
+        num_brokers: int | None = None,
+        max_tasks_before_rebalance: int = 2048,
+    ) -> None:
+        self._hosts: list[str] = (
+            [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
+        )
 
         # TODO(taskworker) Need to support xds bootstrap file
         grpc_config = options.get("taskworker.grpc_service_config")
-        grpc_options = []
+        self._grpc_options = []
         if grpc_config:
-            grpc_options = [("grpc.service_config", grpc_config)]
+            self._grpc_options = [("grpc.service_config", grpc_config)]
 
-        logger.info("Connecting to %s with options %s", self._host, grpc_options)
-        channel = grpc.insecure_channel(self._host, options=grpc_options)
+        self._cur_stub_idx = random.randint(0, len(self._hosts) - 1)
+        self._stubs: dict[int, ConsumerServiceStub] = {
+            self._cur_stub_idx: self._connect_to_host(self._hosts[self._cur_stub_idx])
+        }
+        self._max_tasks_before_rebalance = max_tasks_before_rebalance
+        self._num_tasks_before_rebalance = max_tasks_before_rebalance
+        self._task_id_to_stub_idx: dict[str, int] = {}
+
+    def _connect_to_host(self, host: str) -> ConsumerServiceStub:
+        logger.info("Connecting to %s with options %s", host, self._grpc_options)
+        channel = grpc.insecure_channel(host, options=self._grpc_options)
         if settings.TASKWORKER_SHARED_SECRET:
             channel = grpc.intercept_channel(
                 channel, RequestSignatureInterceptor(settings.TASKWORKER_SHARED_SECRET)
             )
-        self._channel = channel
-        self._stub = ConsumerServiceStub(self._channel)
+        return ConsumerServiceStub(channel)
 
-    def loadbalance(self, host: str, num_brokers: int) -> str:
+    def _get_all_hosts(self, pattern: str, num_brokers: int) -> list[str]:
         """
-        This function can be used to determine which broker a particular taskworker should connect to.
-        Currently it selects a random broker and connects to it.
+        This function is used to determine the individual host names of
+        the broker given their headless service name.
 
-        This assumes that the passed in port is of the form broker:port, where broker corresponds to the
-        headless service of the brokers.
+        This assumes that the passed in port is of the form broker:port,
+        where broker corresponds to the headless service of the brokers.
         """
-        domain, port = host.split(":")
-        random.seed(datetime.now().microsecond)
-        broker_index = random.randint(0, num_brokers - 1)
-        return f"{domain}-{broker_index}:{port}"
+        domain, port = pattern.split(":")
+        return [f"{domain}-{i}:{port}" for i in range(0, num_brokers)]
+
+    def _get_cur_stub(self) -> tuple[int, ConsumerServiceStub]:
+        if self._num_tasks_before_rebalance == 0:
+            new_stub_idx = random.randint(0, len(self._stubs) - 1)
+            if new_stub_idx != self._cur_stub_idx:
+                self._cur_stub_idx = new_stub_idx
+                self._stubs[self._cur_stub_idx] = self._stubs.get(
+                    self._cur_stub_idx, self._connect_to_host(self._hosts[self._cur_stub_idx])
+                )
+            self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
+
+        self._num_tasks_before_rebalance -= 1
+        return self._cur_stub_idx, self._stubs[self._cur_stub_idx]
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
         """
@@ -128,7 +153,8 @@ class TaskworkerClient:
         request = GetTaskRequest(namespace=namespace)
         try:
             with metrics.timer("taskworker.get_task.rpc"):
-                response = self._stub.GetTask(request)
+                stub_idx, stub = self._get_cur_stub()
+                response = stub.GetTask(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error", tags={"method": "GetTask", "status": err.code().name}
@@ -141,6 +167,7 @@ class TaskworkerClient:
                 "taskworker.client.get_task",
                 tags={"namespace": response.task.namespace},
             )
+            self._task_id_to_stub_idx[response.task.id] = stub_idx
             return response.task
         return None
 
@@ -163,7 +190,11 @@ class TaskworkerClient:
         )
         try:
             with metrics.timer("taskworker.update_task.rpc"):
-                response = self._stub.SetTaskStatus(request)
+                if task_id not in self._task_id_to_stub_idx:
+                    metrics.incr("taskworker.client.task_id_not_in_client")
+                    return None
+                stub_idx = self._task_id_to_stub_idx.pop(task_id)
+                response = self._stubs[stub_idx].SetTaskStatus(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
@@ -173,5 +204,6 @@ class TaskworkerClient:
                 return None
             raise
         if response.HasField("task"):
+            self._task_id_to_stub_idx[response.task.id] = stub_idx
             return response.task
         return None
