@@ -323,21 +323,14 @@ def _handle_workflow_engine_notification(
     text: str,
     channel: str,
 ) -> bool:
-    try:
-        group = Group.objects.get(id=metric_issue_context.id)
-    except Group.DoesNotExist:
-        _logger.info(
-            "Group not found",
-            extra={"incident_id": metric_issue_context.id},
-        )
-        return False
+    assert metric_issue_context.group is not None
 
-    open_period_start = open_period_start_for_group(group)
+    open_period_start = open_period_start_for_group(metric_issue_context.group)
 
     parent_notification_message = _fetch_parent_notification_message_for_notification_action(
         organization=organization,
         notification_context=notification_context,
-        group=group,
+        group=metric_issue_context.group,
         open_period_start=open_period_start,
         thread_option_default=METRIC_ALERTS_THREAD_DEFAULT,
     )
