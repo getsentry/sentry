@@ -51,3 +51,24 @@ trace root
   transaction 4 - transaction.op
 "
 `;
+
+exports[`IssuesTraceTree respects numSurroundingNodes parameter: custom surrounding nodes (2) 1`] = `
+"
+collapsed
+  transaction 2 - transaction.op
+  transaction 3 - transaction.op
+  transaction 4 - transaction.op
+  collapsed
+"
+`;
+
+exports[`IssuesTraceTree respects numSurroundingNodes parameter: default surrounding nodes (3) 1`] = `
+"
+collapsed
+  transaction 1 - transaction.op
+  transaction 2 - transaction.op
+  transaction 3 - transaction.op
+  transaction 4 - transaction.op
+  transaction 5 - transaction.op
+"
+`;

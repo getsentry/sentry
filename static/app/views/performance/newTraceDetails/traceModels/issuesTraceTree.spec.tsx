@@ -107,6 +107,26 @@ describe('IssuesTraceTree', () => {
     expect(tree.build().collapseList(errors).serialize()).toMatchSnapshot();
   });
 
+  it('respects numSurroundingNodes parameter', () => {
+    const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
+      meta: null,
+      replay: null,
+    });
+
+    const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
+
+    // Test with default value (3)
+    const defaultCollapsed = tree.build().collapseList(issues).serialize();
+
+    // Test with custom value (2)
+    const customCollapsed = tree.build().collapseList(issues, 2).serialize();
+
+    expect(defaultCollapsed).toMatchSnapshot('default surrounding nodes (3)');
+    expect(customCollapsed).toMatchSnapshot('custom surrounding nodes (2)');
+
+    expect(defaultCollapsed).not.toEqual(customCollapsed);
+  });
+
   describe('FromSpans', () => {
     const traceWithSpans = makeTrace({
       transactions: [
