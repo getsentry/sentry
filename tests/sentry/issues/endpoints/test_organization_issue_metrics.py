@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
 
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.testutils.cases import APITestCase
 
 
@@ -27,14 +28,20 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         self.create_group(project=project1, status=1, first_seen=prev, first_release=one, type=2)
         self.create_group(project=project2, status=1, first_seen=curr, first_release=two, type=3)
         self.create_group(project=project2, status=2, first_seen=curr, first_release=two, type=4)
-        self.create_group(project=project2, status=2, first_seen=curr, first_release=two, type=6)
+        self.create_group(
+            project=project2,
+            status=2,
+            first_seen=curr,
+            first_release=two,
+            type=FeedbackGroup.type_id,
+        )
 
         # Time based issues.
         self.create_group(project=project1, status=0, first_seen=curr, type=1)
         self.create_group(project=project1, status=1, first_seen=curr, resolved_at=curr, type=2)
         self.create_group(project=project2, status=1, first_seen=prev, resolved_at=prev, type=3)
         self.create_group(project=project2, status=2, first_seen=prev, type=4)
-        self.create_group(project=project2, status=2, first_seen=prev, type=6)
+        self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
 
         response = self.client.get(
             self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error"
@@ -146,13 +153,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         self.create_group(project=project1, status=0, first_seen=curr, type=1)
         self.create_group(project=project1, status=1, first_seen=curr, type=2)
         self.create_group(project=project2, status=1, first_seen=curr, type=3)
-        self.create_group(project=project2, status=2, first_seen=prev, type=6)
-        self.create_group(project=project2, status=2, first_seen=curr, type=6)
+        self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
+        self.create_group(project=project2, status=2, first_seen=curr, type=FeedbackGroup.type_id)
         # Resolved cohort
         self.create_group(project=project1, status=0, resolved_at=curr, type=2)
         self.create_group(project=project1, status=1, resolved_at=curr, type=3)
-        self.create_group(project=project2, status=1, resolved_at=prev, type=6)
-        self.create_group(project=project2, status=1, resolved_at=curr, type=6)
+        self.create_group(project=project2, status=1, resolved_at=prev, type=FeedbackGroup.type_id)
+        self.create_group(project=project2, status=1, resolved_at=curr, type=FeedbackGroup.type_id)
         self.create_group(project=project2, status=2, resolved_at=curr, type=5)
 
         response = self.client.get(
