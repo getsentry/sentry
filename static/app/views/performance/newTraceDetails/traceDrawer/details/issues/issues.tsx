@@ -261,7 +261,7 @@ function LegacyIssue(
     <StyledLegacyPanelItem>
       {hasNewLayout ? (
         <NarrowIssueSummaryWrapper>
-          <EventOrGroupHeader data={props.fetchedIssue} organization={organization} />
+          <EventOrGroupHeader data={props.fetchedIssue} />
           <EventOrGroupExtraDetails data={props.fetchedIssue} />
         </NarrowIssueSummaryWrapper>
       ) : (
