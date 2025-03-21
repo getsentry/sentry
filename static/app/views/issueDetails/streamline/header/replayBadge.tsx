@@ -30,7 +30,6 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
       <ReplayButton
         type="button"
         priority="link"
-        size="zero"
         icon={<IconPlay size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
