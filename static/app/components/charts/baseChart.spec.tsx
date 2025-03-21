@@ -14,9 +14,7 @@ describe('BaseChart', function () {
     render(
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}
-        previousPeriod={[
-          {seriesName: 'count()', data: [{value: 123, name: new Date().getTime()}]},
-        ]}
+        previousPeriod={[{seriesName: 'count()', data: [{value: 123, name: Date.now()}]}]}
       />
     );
     // @ts-expect-error TODO: Fix this type
@@ -31,14 +29,14 @@ describe('BaseChart', function () {
       <BaseChart
         colors={['#444674', '#d6567f', '#f2b712']}
         previousPeriod={[
-          {seriesName: 'count()', data: [{value: 123, name: new Date().getTime()}]},
+          {seriesName: 'count()', data: [{value: 123, name: Date.now()}]},
           {
             seriesName: 'count_unique(user)',
-            data: [{value: 123, name: new Date().getTime()}],
+            data: [{value: 123, name: Date.now()}],
           },
           {
             seriesName: 'failure_count()',
-            data: [{value: 123, name: new Date().getTime()}],
+            data: [{value: 123, name: Date.now()}],
           },
         ]}
       />

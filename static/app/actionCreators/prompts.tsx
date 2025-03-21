@@ -183,7 +183,7 @@ export function usePrompt({
         projectId,
       }),
       () => {
-        const dimissedTs = new Date().getTime() / 1000;
+        const dimissedTs = Date.now() / 1000;
         return {
           data: {dismissed_ts: dimissedTs},
           features: {[feature]: {dismissed_ts: dimissedTs}},
@@ -213,7 +213,7 @@ export function usePrompt({
         projectId,
       }),
       () => {
-        const snoozedTs = new Date().getTime() / 1000;
+        const snoozedTs = Date.now() / 1000;
         return {
           data: {snoozed_ts: snoozedTs},
           features: {[feature]: {snoozed_ts: snoozedTs}},

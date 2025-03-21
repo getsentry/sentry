@@ -36,7 +36,7 @@ type State = {
 };
 
 const getInitialState = (): State => {
-  const until = Math.floor(new Date().getTime() / 1000);
+  const until = Math.floor(Date.now() / 1000);
   return {
     since: until - 3600 * 24 * 30,
     until,

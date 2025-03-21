@@ -29,7 +29,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 function DataForwardingStats() {
   const {orgId, projectId} = useParams<{orgId: string; projectId: string}>();
 
-  const until = Math.floor(new Date().getTime() / 1000);
+  const until = Math.floor(Date.now() / 1000);
   const since = until - 3600 * 24 * 30;
   const options = {
     query: {
