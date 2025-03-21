@@ -418,19 +418,19 @@ function MetaFrameworkConfigInfo({
       )}
       <InstructionCodeSnippet language="javascript" dark filename="vite.config.(js|ts)">
         {`export default {
-plugins: [
-  sentrySvelteKit({
-    // If you use environment variables,
-    // you don't need to specify these options
-    org: "${orgSlug}",
-    project: "${projectSlug}",
-    // Set this to true, or omit it entirely
-    autoUploadSourceMaps: true,
-    // ... rest of your sentrySvelteKit
-  }),
-  sveltekit(),
-],
-// ... rest of your Vite config
+  plugins: [
+    sentrySvelteKit({
+      // If you use environment variables,
+      // you don't need to specify these options
+      org: "${orgSlug}",
+      project: "${projectSlug}",
+      // Set this to true, or omit it entirely
+      autoUploadSourceMaps: true,
+      // ... rest of your sentrySvelteKit
+    }),
+    sveltekit(),
+  ],
+  // ... rest of your Vite config
 };`}
       </InstructionCodeSnippet>
     </p>
