@@ -11,7 +11,7 @@ class TaskRouter(Protocol):
 
 
 class DefaultRouter:
-    """Simple router used for self-hosted and local development"""
+    """Router that uses django settings and options to select topics at runtime"""
 
     def route_namespace(self, name: str) -> Topic:
         overrides = options.get("taskworker.route.overrides")

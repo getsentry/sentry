@@ -1,5 +1,5 @@
 from concurrent.futures import Future
-from unittest.mock import patch
+from unittest.mock import Mock
 
 import pytest
 from django.test.utils import override_settings
@@ -11,13 +11,14 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import TaskNamespace, TaskRegistry
 from sentry.taskworker.retry import LastAction, Retry
+from sentry.taskworker.router import DefaultRouter
 from sentry.taskworker.task import Task
 
 
 def test_namespace_register_task() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=None,
     )
 
@@ -37,7 +38,7 @@ def test_namespace_register_task() -> None:
 def test_namespace_register_inherits_default_retry() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=Retry(times=5, on=(RuntimeError,)),
     )
 
@@ -65,7 +66,7 @@ def test_namespace_register_inherits_default_retry() -> None:
 def test_register_inherits_default_expires_processing_deadline() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=None,
         expires=10 * 60,
         processing_deadline_duration=5,
@@ -93,7 +94,7 @@ def test_register_inherits_default_expires_processing_deadline() -> None:
 def test_namespace_get_unknown() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=None,
     )
 
@@ -102,10 +103,11 @@ def test_namespace_get_unknown() -> None:
     assert "No task registered" in str(err)
 
 
+@pytest.mark.django_db
 def test_namespace_send_task_no_retry() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=None,
     )
 
@@ -118,21 +120,24 @@ def test_namespace_send_task_no_retry() -> None:
     assert activation.retry_state.max_attempts == 1
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
-    with patch.object(namespace, "_producer") as mock_producer:
-        namespace.send_task(activation)
-        assert mock_producer.produce.call_count == 1
+    mock_producer = Mock()
+    namespace._producers[Topic.TASK_WORKER] = mock_producer
 
-        mock_call = mock_producer.produce.call_args
-        assert mock_call[0][0].name == "task-worker"
+    namespace.send_task(activation)
+    assert mock_producer.produce.call_count == 1
 
-        proto_message = mock_call[0][1].value
-        assert proto_message == activation.SerializeToString()
+    mock_call = mock_producer.produce.call_args
+    assert mock_call[0][0].name == "task-worker"
+
+    proto_message = mock_call[0][1].value
+    assert proto_message == activation.SerializeToString()
 
 
+@pytest.mark.django_db
 def test_namespace_send_task_with_retry() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=None,
     )
 
@@ -147,19 +152,22 @@ def test_namespace_send_task_with_retry() -> None:
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    with patch.object(namespace, "_producer") as mock_producer:
-        namespace.send_task(activation)
-        assert mock_producer.produce.call_count == 1
+    mock_producer = Mock()
+    namespace._producers[Topic.TASK_WORKER] = mock_producer
 
-        mock_call = mock_producer.produce.call_args
-        proto_message = mock_call[0][1].value
-        assert proto_message == activation.SerializeToString()
+    namespace.send_task(activation)
+    assert mock_producer.produce.call_count == 1
+
+    mock_call = mock_producer.produce.call_args
+    proto_message = mock_call[0][1].value
+    assert proto_message == activation.SerializeToString()
 
 
+@pytest.mark.django_db
 def test_namespace_with_retry_send_task() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=Retry(times=3),
     )
 
@@ -172,21 +180,24 @@ def test_namespace_with_retry_send_task() -> None:
     assert activation.retry_state.max_attempts == 3
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
-    with patch.object(namespace, "_producer") as mock_producer:
-        namespace.send_task(activation)
-        assert mock_producer.produce.call_count == 1
+    mock_producer = Mock()
+    namespace._producers[Topic.TASK_WORKER] = mock_producer
 
-        mock_call = mock_producer.produce.call_args
-        assert mock_call[0][0].name == "task-worker"
+    namespace.send_task(activation)
+    assert mock_producer.produce.call_count == 1
 
-        proto_message = mock_call[0][1].value
-        assert proto_message == activation.SerializeToString()
+    mock_call = mock_producer.produce.call_args
+    assert mock_call[0][0].name == "task-worker"
+
+    proto_message = mock_call[0][1].value
+    assert proto_message == activation.SerializeToString()
 
 
+@pytest.mark.django_db
 def test_namespace_with_wait_for_delivery_send_task() -> None:
     namespace = TaskNamespace(
         name="tests",
-        topic=Topic.TASK_WORKER,
+        router=DefaultRouter(),
         retry=Retry(times=3),
     )
 
@@ -196,18 +207,20 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
 
     activation = simple_task.create_activation()
 
-    with patch.object(namespace, "_producer") as mock_producer:
-        ret_value: Future[None] = Future()
-        ret_value.set_result(None)
-        mock_producer.produce.return_value = ret_value
-        namespace.send_task(activation, wait_for_delivery=True)
-        assert mock_producer.produce.call_count == 1
+    mock_producer = Mock()
+    namespace._producers[Topic.TASK_WORKER] = mock_producer
 
-        mock_call = mock_producer.produce.call_args
-        assert mock_call[0][0].name == "task-worker"
+    ret_value: Future[None] = Future()
+    ret_value.set_result(None)
+    mock_producer.produce.return_value = ret_value
+    namespace.send_task(activation, wait_for_delivery=True)
+    assert mock_producer.produce.call_count == 1
 
-        proto_message = mock_call[0][1].value
-        assert proto_message == activation.SerializeToString()
+    mock_call = mock_producer.produce.call_args
+    assert mock_call[0][0].name == "task-worker"
+
+    proto_message = mock_call[0][1].value
+    assert proto_message == activation.SerializeToString()
 
 
 @pytest.mark.django_db
@@ -217,7 +230,7 @@ def test_registry_get() -> None:
 
     assert isinstance(ns, TaskNamespace)
     assert ns.name == "tests"
-    assert ns.topic
+    assert ns.router
     assert ns == registry.get("tests")
 
     with pytest.raises(KeyError):
@@ -284,4 +297,6 @@ def test_registry_create_namespace_route_setting() -> None:
         assert profiling.topic == Topic.PROFILES
 
         with pytest.raises(ValueError):
-            registry.create_namespace(name="lol")
+            ns = registry.create_namespace(name="lol")
+            # Should raise as the name is routed to an invalid topic
+            ns.topic
