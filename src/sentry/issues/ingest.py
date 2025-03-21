@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db import router, transaction
 
 from sentry import eventstream
-from sentry.constants import LOG_LEVELS_MAP
+from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.event_manager import (
     GroupInfo,
     _get_or_create_group_environment,
@@ -29,6 +29,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
+from sentry.utils.strings import truncatechars
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
@@ -105,7 +106,7 @@ def _create_issue_kwargs(
         # define it in `search_message` there.
         "message": event.search_message,
         "level": LOG_LEVELS_MAP.get(occurrence.level),
-        "culprit": occurrence.culprit,
+        "culprit": truncatechars(occurrence.culprit, MAX_CULPRIT_LENGTH),
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
