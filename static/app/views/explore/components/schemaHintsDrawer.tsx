@@ -75,12 +75,15 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       } else {
         const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
         filterQuery.addFilterValue(
-          hint.key,
+          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ||
+            hint.kind === FieldKind.MEASUREMENT
+            ? hint.key
+            : `!${hint.key}`,
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
             ? 'True'
             : hint.kind === FieldKind.MEASUREMENT
               ? '>0'
-              : ''
+              : 'null'
         );
       }
       setExploreQuery(filterQuery.formatString());

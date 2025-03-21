@@ -187,8 +187,8 @@ function SchemaHintsList({
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
       newSearchQuery.addFilterValue(
-        hint.key,
-        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+        isBoolean || hint.kind === FieldKind.MEASUREMENT ? hint.key : `!${hint.key}`,
+        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : 'null'
       );
       setExploreQuery(newSearchQuery.formatString());
     },
