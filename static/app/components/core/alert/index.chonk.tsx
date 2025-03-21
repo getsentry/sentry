@@ -30,12 +30,14 @@ const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   gap: ${p => p.theme.space.md};
 
   a,
-  button {
+  button,
+  code {
     color: inherit;
   }
 
   a:hover,
-  button:hover {
+  button:hover,
+  code:hover {
     color: inherit;
   }
 
