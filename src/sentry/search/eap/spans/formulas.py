@@ -407,7 +407,7 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="number",
         arguments=[
             AttributeArgumentDefinition(
-                argument_types={
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
