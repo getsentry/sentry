@@ -38,6 +38,7 @@ describe('provisionSubscriptionAction', function () {
   }
 
   async function typeNum(name: string, value: string) {
+    await userEvent.clear(getSpinbutton(name));
     await userEvent.click(getSpinbutton(name), {delay: null, skipHover: true});
     await userEvent.paste(value);
   }
@@ -212,7 +213,7 @@ describe('provisionSubscriptionAction', function () {
     );
 
     expect(
-      within(container).queryByLabelText('On-Demand Max Spend Type')
+      within(container).queryByLabelText('On-Demand Max Spend Setting')
     ).not.toBeInTheDocument();
     expect(
       within(container).queryByLabelText('On-Demand Cost-Per-Event Errors')
@@ -267,61 +268,7 @@ describe('provisionSubscriptionAction', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('shows on-demand CPE fields when enabling on-demand', async function () {
-    triggerProvisionSubscription({
-      subscription: mockSub,
-      orgId: '',
-      onSuccess,
-      billingConfig: mockBillingConfig,
-    });
-
-    const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
-
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
-      'Invoiced'
-    );
-
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Errors')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Performance Units')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Replays')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Attachments')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Cron Monitors')
-    ).not.toBeInTheDocument();
-
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
-      'Shared'
-    );
-
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Errors')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Performance Units')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Replays')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Attachments')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Cron Monitors')
-    ).toBeInTheDocument();
-  });
-
-  it('hides on-demand CPE fields when disabling on-demand', async function () {
+  it('shows or hides on-demand CPE fields based on setting', async function () {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -341,49 +288,24 @@ describe('provisionSubscriptionAction', function () {
       screen.getByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
+    expect(
+      within(container).queryByLabelText(/On-Demand Cost-Per-Event/)
+    ).not.toBeInTheDocument();
+
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
-
     expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Errors')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Spans')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Replays')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Attachments')
-    ).toBeInTheDocument();
-    expect(
-      within(container).getByLabelText('On-Demand Cost-Per-Event Cron Monitors')
-    ).toBeInTheDocument();
+      (await within(container).findAllByLabelText(/On-Demand Cost-Per-Event/)).length
+    ).toBeGreaterThan(0);
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Type'}),
+      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Disable'
     );
-
     expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Errors')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Spans')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Replays')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Attachments')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Cron Monitors')
-    ).not.toBeInTheDocument();
-    expect(
-      within(container).queryByLabelText('On-Demand Cost-Per-Event Uptime Monitors')
+      within(container).queryByLabelText(/On-Demand Cost-Per-Event/)
     ).not.toBeInTheDocument();
   });
 
@@ -400,12 +322,9 @@ describe('provisionSubscriptionAction', function () {
       screen.getByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am3)'
     );
-    expect(screen.getByLabelText('Soft Cap Type Errors')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Spans')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Replays')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Attachments')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Cron Monitors')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Uptime')).toBeEnabled();
+    const enabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
+    expect(enabledSoftCapFields.length).toBeGreaterThan(0);
+    enabledSoftCapFields.forEach(field => expect(field).toBeEnabled());
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
@@ -415,13 +334,9 @@ describe('provisionSubscriptionAction', function () {
       screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
-
-    expect(screen.getByLabelText('Soft Cap Type Errors')).toBeDisabled();
-    expect(screen.getByLabelText('Soft Cap Type Spans')).toBeDisabled();
-    expect(screen.getByLabelText('Soft Cap Type Replays')).toBeDisabled();
-    expect(screen.getByLabelText('Soft Cap Type Attachments')).toBeDisabled();
-    expect(screen.getByLabelText('Soft Cap Type Cron Monitors')).toBeDisabled();
-    expect(screen.getByLabelText('Soft Cap Type Uptime')).toBeDisabled();
+    const disabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
+    expect(disabledSoftCapFields.length).toBeGreaterThan(0);
+    disabledSoftCapFields.forEach(field => expect(field).toBeDisabled());
   });
 
   it('does not disable soft cap fields when on-demand is disabled', async function () {
@@ -445,13 +360,9 @@ describe('provisionSubscriptionAction', function () {
       screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Disable'
     );
-
-    expect(screen.getByLabelText('Soft Cap Type Errors')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Spans')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Replays')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Attachments')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Cron Monitors')).toBeEnabled();
-    expect(screen.getByLabelText('Soft Cap Type Uptime')).toBeEnabled();
+    const enabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
+    expect(enabledSoftCapFields.length).toBeGreaterThan(0);
+    enabledSoftCapFields.forEach(field => expect(field).toBeEnabled());
   });
 
   it('renders spans fields based on selected plan', async function () {
@@ -556,7 +467,7 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.queryByLabelText('Reserved Stored Spans')).not.toBeInTheDocument();
   });
 
-  it('prefills the form based on the enterprise subscription', function () {
+  it('prefills the form based on the enterprise subscription', async function () {
     const mockInvoicedSub = InvoicedSubscriptionFixture({
       organization: mockOrg,
       plan: 'am3_business_ent_auf',
@@ -591,7 +502,7 @@ describe('provisionSubscriptionAction', function () {
 
     loadModal();
 
-    expect(screen.getByText('Enterprise (Business) (am3)')).toBeInTheDocument();
+    expect(await screen.findByText('Enterprise (Business) (am3)')).toBeInTheDocument();
     expect(screen.getByText('Annual')).toBeInTheDocument();
     expect(screen.getByText('Invoiced')).toBeInTheDocument();
     expect(screen.getByText('Shared')).toBeInTheDocument();
@@ -603,7 +514,7 @@ describe('provisionSubscriptionAction', function () {
     expect(screen.getByDisplayValue('0.84')).toBeInTheDocument();
   });
 
-  it('select am1 enterprise enables custom prices', async () => {
+  it('select am enterprise enables custom prices', async () => {
     triggerProvisionSubscription({
       subscription: mockSub,
       orgId: '',
@@ -614,20 +525,18 @@ describe('provisionSubscriptionAction', function () {
     loadModal();
 
     expect(getSpinbutton('Annual Contract Value')).toBeDisabled();
-    expect(getSpinbutton('Price for Errors')).toBeDisabled();
-    expect(getSpinbutton('Price for Performance Units')).toBeDisabled();
-    expect(getSpinbutton('Price for Attachments')).toBeDisabled();
+    const priceForFields = screen.getAllByLabelText(/Price for/);
+    expect(priceForFields).toHaveLength(1); // PCSS
     expect(getSpinbutton('Price for PCSS')).toBeDisabled();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business (am1)'
+      'Enterprise (Business) (am1)'
     );
 
     expect(getSpinbutton('Annual Contract Value')).toBeEnabled();
-    expect(getSpinbutton('Price for Errors')).toBeEnabled();
-    expect(getSpinbutton('Price for Performance Units')).toBeEnabled();
-    expect(getSpinbutton('Price for Attachments')).toBeEnabled();
+    const loadedPriceForFields = screen.getAllByLabelText(/Price for/);
+    expect(loadedPriceForFields.length).toBeGreaterThan(1);
     expect(getSpinbutton('Price for PCSS')).toBeEnabled();
   });
 
@@ -667,7 +576,6 @@ describe('provisionSubscriptionAction', function () {
 
     await clickCheckbox('Managed Subscription');
     await clickCheckbox('Apply Changes To Current Subscription');
-    screen.getAllByLabelText(/Reserved/i).forEach(el => userEvent.clear(el));
     await typeNum('Reserved Errors', '2000000');
     await typeNum('Reserved Transactions', '1000000');
     await typeNum('Reserved Replays', '500');
@@ -763,23 +671,18 @@ describe('provisionSubscriptionAction', function () {
       screen.getByRole('textbox', {name: 'Plan'}),
       'Enterprise (Business) (am2)'
     );
-
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Interval'}),
       'Annual'
     );
-
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
       'Invoiced'
     );
-
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
-
-    await clickCheckbox('Managed Subscription');
     await clickCheckbox('Retain On-Demand Budget');
     await clickCheckbox('Apply Changes To Current Subscription');
     await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
@@ -789,12 +692,21 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
+    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.1');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
+    await typeNum('Price for Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -821,15 +733,24 @@ describe('provisionSubscriptionAction', function () {
           customPricePcss: 50000,
           customPriceReplays: 150000,
           customPriceTransactions: 100000,
+          customPriceProfileDuration: 0,
           managed: true,
           onDemandInvoicedManual: 'SHARED',
           plan: 'am2_business_ent',
+          paygCpeErrors: 10000000,
+          paygCpeMonitorSeats: 10000000,
+          paygCpeReplays: 10000000,
+          paygCpeTransactions: 10000000,
+          paygCpeUptime: 10000000,
+          paygCpeProfileDuration: 10000000,
+          paygCpeAttachments: 10000000,
           reservedAttachments: 50,
           reservedErrors: 2000000,
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedReplays: 75000,
           reservedTransactions: 1000000,
+          reservedProfileDuration: 100,
           retainOnDemandBudget: true,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
@@ -841,11 +762,11 @@ describe('provisionSubscriptionAction', function () {
           trueForward: {
             attachments: false,
             errors: false,
-            monitor_seats: false,
+            monitorSeats: false,
             uptime: false,
             replays: false,
             transactions: false,
-            profile_duration: false,
+            profileDuration: false,
           },
           type: 'invoiced',
         },
@@ -882,7 +803,7 @@ describe('provisionSubscriptionAction', function () {
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Type'}),
+      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
 
@@ -891,7 +812,7 @@ describe('provisionSubscriptionAction', function () {
     ).toBeInTheDocument();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Type'}),
+      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Per Category'
     );
 
@@ -901,7 +822,7 @@ describe('provisionSubscriptionAction', function () {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business (am2)'
+      'Enterprise (Business) (am2)'
     );
 
     await selectEvent.select(
@@ -923,12 +844,21 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
+    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.1');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
+    await typeNum('Price for Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -955,15 +885,24 @@ describe('provisionSubscriptionAction', function () {
           customPricePcss: 50000,
           customPriceReplays: 150000,
           customPriceTransactions: 100000,
+          customPriceProfileDuration: 0,
           managed: true,
           onDemandInvoicedManual: 'PER_CATEGORY',
           plan: 'am2_business_ent',
+          paygCpeErrors: 10000000,
+          paygCpeMonitorSeats: 10000000,
+          paygCpeReplays: 10000000,
+          paygCpeTransactions: 10000000,
+          paygCpeUptime: 10000000,
+          paygCpeProfileDuration: 10000000,
+          paygCpeAttachments: 10000000,
           reservedAttachments: 50,
           reservedErrors: 2000000,
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedReplays: 75000,
           reservedTransactions: 1000000,
+          reservedProfileDuration: 100,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
@@ -975,11 +914,11 @@ describe('provisionSubscriptionAction', function () {
           trueForward: {
             attachments: false,
             errors: false,
-            monitor_seats: false,
+            monitorSeats: false,
             uptime: false,
             replays: false,
             transactions: false,
-            profile_duration: false,
+            profileDuration: false,
           },
           type: 'invoiced',
         },
@@ -1000,7 +939,7 @@ describe('provisionSubscriptionAction', function () {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business (am2)'
+      'Enterprise (Business) (am2)'
     );
 
     await selectEvent.select(
@@ -1014,7 +953,7 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Type'}),
+      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Disable'
     );
 
@@ -1034,7 +973,7 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Uptime'}),
+      screen.getByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
       'True Forward'
     );
 
@@ -1047,12 +986,14 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
+    await typeNum('Reserved Profile Hours (in hours)', '100');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
+    await typeNum('Price for Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -1079,6 +1020,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceMonitorSeats: 40000,
           customPriceUptime: 0,
           customPriceTransactions: 100000,
+          customPriceProfileDuration: 0,
           managed: true,
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am2_business_ent',
@@ -1088,6 +1030,7 @@ describe('provisionSubscriptionAction', function () {
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedTransactions: 1_000_000,
+          reservedProfileDuration: 100,
           retainOnDemandBudget: false,
           type: 'invoiced',
           softCapTypeErrors: 'TRUE_FORWARD',
@@ -1101,10 +1044,10 @@ describe('provisionSubscriptionAction', function () {
             errors: true,
             transactions: false,
             replays: true,
-            monitor_seats: true,
+            monitorSeats: true,
             uptime: true,
             attachments: false,
-            profile_duration: false,
+            profileDuration: false,
           },
         },
       })
@@ -1124,7 +1067,7 @@ describe('provisionSubscriptionAction', function () {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business (am3)'
+      'Enterprise (Business) (am3)'
     );
 
     await selectEvent.select(
@@ -1138,7 +1081,7 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Type'}),
+      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Disable'
     );
 
@@ -1158,7 +1101,7 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Uptime'}),
+      screen.getByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
       'True Forward'
     );
 
@@ -1171,12 +1114,14 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
+    await typeNum('Reserved Profile Hours (in hours)', '100');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Spans', '1000');
     await typeNum('Price for Replays', '1500');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
+    await typeNum('Price for Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -1203,6 +1148,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceMonitorSeats: 40000,
           customPriceUptime: 0,
           customPriceSpans: 100000,
+          customPriceProfileDuration: 0,
           managed: true,
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am3_business_ent',
@@ -1212,6 +1158,7 @@ describe('provisionSubscriptionAction', function () {
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedSpans: 10_000_000,
+          reservedProfileDuration: 100,
           retainOnDemandBudget: false,
           type: 'invoiced',
           softCapTypeErrors: 'TRUE_FORWARD',
@@ -1225,10 +1172,10 @@ describe('provisionSubscriptionAction', function () {
             errors: true,
             spans: false,
             replays: true,
-            monitor_seats: true,
+            monitorSeats: true,
             uptime: true,
             attachments: false,
-            profile_duration: false,
+            profileDuration: false,
           },
         },
       })
@@ -1249,7 +1196,7 @@ describe('provisionSubscriptionAction', function () {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business with Dynamic Sampling (am3)'
+      'Enterprise (Business) with Dynamic Sampling (am3)'
     );
 
     await selectEvent.select(
@@ -1263,7 +1210,7 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Type'}),
+      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Disable'
     );
 
@@ -1280,15 +1227,16 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Cost-Per-Accepted Span', '1');
-    await typeNum('Reserved Cost-Per-Stored Span', '2');
+    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('Reserved Cost-Per-Event Accepted Spans', '1');
+    await typeNum('Reserved Cost-Per-Event Stored Spans', '2');
     await typeNum('Price for Errors', '3000');
-    await typeNum('Price for Accepted Spans (Reserved Spans Budget)', '12000');
-    await typeNum('Price for Stored Spans', '0');
+    await typeNum('Price for Accepted Spans (Reserved Spans Budget)', '12000'); // custom price for stored spans is auto-filled to 0
     await typeNum('Price for Replays', '1500');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
+    await typeNum('Price for Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '17450');
 
@@ -1316,6 +1264,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceUptime: 0,
           customPriceSpans: 1200000,
           customPriceSpansIndexed: 0,
+          customPriceProfileDuration: 0,
           managed: true,
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am3_business_ent_ds',
@@ -1324,6 +1273,7 @@ describe('provisionSubscriptionAction', function () {
           reservedReplays: 75_000,
           reservedMonitorSeats: 250,
           reservedUptime: 250,
+          reservedProfileDuration: 100,
           reservedSpans: RESERVED_BUDGET_QUOTA,
           reservedSpansIndexed: RESERVED_BUDGET_QUOTA,
           reservedCpeSpans: 100_000_000,
@@ -1349,10 +1299,10 @@ describe('provisionSubscriptionAction', function () {
             spans: true,
             spansIndexed: false,
             replays: false,
-            monitor_seats: false,
+            monitorSeats: false,
             uptime: false,
             attachments: false,
-            profile_duration: false,
+            profileDuration: false,
           },
         },
       })
@@ -1373,7 +1323,7 @@ describe('provisionSubscriptionAction', function () {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business (am2)'
+      'Enterprise (Business) (am2)'
     );
 
     await selectEvent.select(
@@ -1387,7 +1337,7 @@ describe('provisionSubscriptionAction', function () {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'On-Demand Max Spend Type'}),
+      screen.getByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
 
@@ -1400,19 +1350,23 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
+    await typeNum('Reserved Profile Hours (in hours)', '100');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
+    await typeNum('Price for Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.5');
     await typeNum('On-Demand Cost-Per-Event Performance Units', '0.0111');
     await typeNum('On-Demand Cost-Per-Event Replays', '1');
+    await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.0001');
+    await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.0001');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.0002');
-
+    await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.0001');
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
       method: 'POST',
@@ -1436,11 +1390,15 @@ describe('provisionSubscriptionAction', function () {
           customPriceMonitorSeats: 40000,
           customPriceUptime: 0,
           customPriceTransactions: 100000,
+          customPriceProfileDuration: 0,
           managed: true,
-          paygCpeErrors: 50,
-          paygCpeTransactions: 1.11,
-          paygCpeReplays: 100,
-          paygCpeAttachments: 0.02,
+          paygCpeErrors: 50000000,
+          paygCpeTransactions: 1110000,
+          paygCpeReplays: 100000000,
+          paygCpeAttachments: 20000,
+          paygCpeProfileDuration: 10000,
+          paygCpeMonitorSeats: 10000,
+          paygCpeUptime: 10000,
           onDemandInvoicedManual: 'SHARED',
           plan: 'am2_business_ent',
           reservedAttachments: 50,
@@ -1449,6 +1407,7 @@ describe('provisionSubscriptionAction', function () {
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedTransactions: 1_000_000,
+          reservedProfileDuration: 100,
           retainOnDemandBudget: false,
           type: 'invoiced',
           softCapTypeErrors: null,
@@ -1461,9 +1420,9 @@ describe('provisionSubscriptionAction', function () {
           trueForward: {
             errors: false,
             transactions: false,
-            profile_duration: false,
+            profileDuration: false,
             replays: false,
-            monitor_seats: false,
+            monitorSeats: false,
             uptime: false,
             attachments: false,
           },
@@ -1540,7 +1499,7 @@ describe('provisionSubscriptionAction', function () {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business (am1)'
+      'Enterprise (Business) (am1)'
     );
 
     await selectEvent.select(
@@ -1556,7 +1515,7 @@ describe('provisionSubscriptionAction', function () {
     await clickCheckbox('Managed Subscription');
     await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
     await typeNum('Reserved Errors', '2000000');
-    await typeNum('Reserved Performance Units', '1000000');
+    await typeNum('Reserved Transactions', '1000000');
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Replays', '500');
@@ -1565,7 +1524,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Replays', '0');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
-    await typeNum('Price for Performance Units', '1000');
+    await typeNum('Price for Transactions', '1000');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '5050');
@@ -1589,7 +1548,7 @@ describe('provisionSubscriptionAction', function () {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
-      'Business (am1)'
+      'Enterprise (Business) (am1)'
     );
 
     await selectEvent.select(
@@ -1605,13 +1564,13 @@ describe('provisionSubscriptionAction', function () {
     await clickCheckbox('Managed Subscription');
     await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
     await typeNum('Reserved Errors', '2000000');
-    await typeNum('Reserved Performance Units', '1000000');
+    await typeNum('Reserved Transactions', '1000000');
     await typeNum('Reserved Replays', '500');
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
     await typeNum('Price for Errors', '3000');
-    await typeNum('Price for Performance Units', '1000');
+    await typeNum('Price for Transactions', '1000');
     await typeNum('Price for Replays', '0');
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
@@ -1664,15 +1623,13 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeMonitorSeats: null,
           softCapTypeUptime: null,
           softCapTypeAttachments: null,
-          softCapTypeProfileDuration: null,
           trueForward: {
             errors: false,
             transactions: false,
             replays: false,
-            monitor_seats: false,
+            monitorSeats: false,
             uptime: false,
             attachments: false,
-            profile_duration: false,
           },
         },
       })

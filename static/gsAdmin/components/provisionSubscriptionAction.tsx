@@ -179,28 +179,30 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   initializeState() {
     const {subscription, billingConfig, canProvisionDsPlan} = this.props;
 
+    const provisionablePlans = billingConfig
+      ? billingConfig.planList.reduce(
+          (acc, plan) => {
+            if (
+              (isAmEnterprisePlan(plan.id) ||
+                plan.id === 'e1' ||
+                plan.id === 'mm2_a' ||
+                plan.id === 'mm2_b') &&
+              !plan.id.endsWith('_ac') &&
+              !plan.id.endsWith('_auf') &&
+              !isTrialPlan(plan.id) &&
+              (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
+            ) {
+              acc[plan.id] = plan;
+            }
+            return acc;
+          },
+          {} as Record<string, Plan>
+        )
+      : {};
+
     this.setState(state => ({
       ...state,
-      provisionablePlans: billingConfig
-        ? billingConfig.planList.reduce(
-            (acc, plan) => {
-              if (
-                (isAmEnterprisePlan(plan.id) ||
-                  plan.id === 'e1' ||
-                  plan.id === 'mm2_a' ||
-                  plan.id === 'mm2_b') &&
-                !plan.id.endsWith('_ac') &&
-                !plan.id.endsWith('_auf') &&
-                !isTrialPlan(plan.id) &&
-                (isAm3DsPlan(plan.id) ? canProvisionDsPlan : true)
-              ) {
-                acc[plan.id] = plan;
-              }
-              return acc;
-            },
-            {} as Record<string, Plan>
-          )
-        : {},
+      provisionablePlans,
     }));
 
     const existingPlanWithoutSuffix = subscription.plan.endsWith('_auf')
@@ -208,8 +210,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       : subscription.plan.endsWith('_ac')
         ? subscription.plan.slice(0, subscription.plan.length - 3)
         : subscription.plan;
-    const existingPlanIsEnterprise = Object.keys(this.state.provisionablePlans).some(
-      plan => plan[0] === existingPlanWithoutSuffix
+    const existingPlanIsEnterprise = Object.keys(provisionablePlans).some(
+      plan => plan === existingPlanWithoutSuffix
     );
 
     const reservedBudgets = subscription.reservedBudgets;
@@ -335,7 +337,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   };
 
   onSubmit: Form['props']['onSubmit'] = (formData, _onSubmitSuccess, onSubmitError) => {
-    const postData: Record<string, any> = {};
+    const postData: Record<string, any> = {...this.state.data};
 
     for (const k in formData) {
       if (formData[k] !== '' && formData[k] !== null) {
@@ -354,8 +356,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     // remove custom price fields if the plan is not AM Enterprise
     const hasCustomSkuPrices = isAmEnterprisePlan(postData.plan);
     if (!hasCustomSkuPrices) {
-      const customSkuFields = Object.keys(postData).filter(key =>
-        key.startsWith('customPrice')
+      const customSkuFields = Object.keys(postData).filter(
+        key => key.startsWith('customPrice') && key !== 'customPrice'
       );
       customSkuFields.forEach(key => {
         delete postData[key];
@@ -432,7 +434,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     // convert any currency fields to the right unit
     Object.entries(postData).forEach(([key, value]) => {
       if (
-        (key.startsWith('payCpe') || key.startsWith('reservedCpe')) &&
+        (key.startsWith('paygCpe') || key.startsWith('reservedCpe')) &&
         !isNaN(value as number)
       ) {
         postData[key] = toCpeCents(value as number); // price should be in 0.000001 cents
@@ -515,7 +517,6 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
         return;
       }
     }
-
     this.props.api.request(this.endpoint, {
       method: 'POST',
       data: postData,
