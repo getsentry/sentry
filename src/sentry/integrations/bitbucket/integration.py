@@ -19,6 +19,7 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.atlassian_connect import (
@@ -99,7 +100,7 @@ metadata = IntegrationMetadata(
 scopes = ("issue:write", "pullrequest", "webhook", "repository")
 
 
-class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec):
+class BitbucketIntegration(RepositoryIntegration, BitbucketIssuesSpec, CommitContextIntegration):
     codeowners_locations = [".bitbucket/CODEOWNERS"]
 
     @property
