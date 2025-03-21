@@ -951,7 +951,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     try:
-        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
+        workflow_job = WorkflowJob(**job)
     except Exception:
         logger.exception("Could not create WorkflowJob", extra={"job": job})
         return

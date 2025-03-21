@@ -398,7 +398,7 @@ def fire_actions_for_groups(
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
     for group, group_event in group_to_groupevent.items():
-        job = WorkflowJob({"event": group_event})
+        job = WorkflowJob(event=group_event)
         detector = get_detector_by_event(job)
 
         workflow_triggers: set[DataConditionGroup] = set()

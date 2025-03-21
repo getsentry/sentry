@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_detector_by_event(job: WorkflowJob) -> Detector:
-    evt = job["event"]
+    evt = job.event
     issue_occurrence = evt.occurrence
 
     if issue_occurrence is None:
