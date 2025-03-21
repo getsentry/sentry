@@ -61,8 +61,8 @@ error.value:"*something*"                       max-frames=12
 
     insta_snapshot(dump_obj(enhancement))
 
-    dumped = enhancement.dumps()
-    assert Enhancements.loads(dumped).dumps() == dumped
+    dumped = enhancement.base64_string
+    assert Enhancements.loads(dumped).base64_string == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, str)
 

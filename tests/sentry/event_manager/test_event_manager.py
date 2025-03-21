@@ -988,7 +988,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             function:in_app_function +app
             function:not_in_app_function -app
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -2226,7 +2226,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             function:foo2 category=bar
             category:bar -app
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -2301,7 +2301,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             function:foo category=foo_like
             category:foo_like -group
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config: GroupingConfig = {
             "id": DEFAULT_GROUPING_CONFIG,

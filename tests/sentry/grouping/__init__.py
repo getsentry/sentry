@@ -91,7 +91,7 @@ class GroupingInput:
         grouping_config["enhancements"] = Enhancements.from_config_string(
             self.data.get("_grouping", {}).get("enhancements", ""),
             bases=Enhancements.loads(grouping_config["enhancements"]).bases,
-        ).dumps()
+        ).base64_string
         fingerprinting_config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
             bases=CONFIGURATIONS[config_name].fingerprinting_bases,

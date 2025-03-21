@@ -639,7 +639,7 @@ def test_apply_new_stack_trace_rules(
             "enhancements": Enhancements.from_config_string(
                 "function:c -group",
                 bases=[],
-            ).dumps(),
+            ).base64_string,
         },
     ):
         # Reprocess
