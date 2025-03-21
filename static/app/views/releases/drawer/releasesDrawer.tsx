@@ -20,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {ReleasesDrawerDetails} from 'sentry/views/releases/drawer/releasesDrawerDetails';
 import {ReleasesDrawerList} from 'sentry/views/releases/drawer/releasesDrawerList';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {useReleaseDetails} from 'sentry/views/releases/utils/useReleaseDetails';
 
 type Without<T, U> = {[P in Exclude<keyof T, keyof U>]?: never};
@@ -102,9 +103,15 @@ export function ReleasesDrawer({
 
           {releaseOrSelected && (
             <Button
-              to={normalizeUrl(
-                `/organizations/${organization.slug}/releases/${releaseOrSelected}/`
-              )}
+              to={normalizeUrl({
+                pathname: makeReleasesPathname({
+                  path: `/${encodeURIComponent(releaseOrSelected)}/`,
+                  organization,
+                }),
+                query: {
+                  project: selectedRelease?.projectId,
+                },
+              })}
               size="xs"
               onClick={() => {
                 closeDrawer();
