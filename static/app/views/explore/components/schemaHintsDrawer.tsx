@@ -12,6 +12,7 @@ import type {Tag} from 'sentry/types/group';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
 import {
   useExploreQuery,
   useSetExploreQuery,
@@ -29,7 +30,12 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(exploreQuery);
-    return filterQuery.getFilterKeys();
+    const allKeys = filterQuery.getFilterKeys();
+    // When there is a filter with a negation, it stores the negation in the key.
+    // To ensure all the keys are represented correctly in the drawer, we must
+    // take these into account.
+    const keysWithoutNegation = allKeys.map(key => key.replace('!', ''));
+    return [...new Set(keysWithoutNegation)];
   }, [exploreQuery]);
 
   const sortedSelectedHints = useMemo(() => {
@@ -46,7 +52,6 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       ...new Set([
         ...sortedSelectedHints,
         ...hints.toSorted((a, b) => {
-          // may need to fix this if we don't want to ignore the prefix
           const aWithoutPrefix = prettifyTagKey(a.key).replace(/^_/, '');
           const bWithoutPrefix = prettifyTagKey(b.key).replace(/^_/, '');
           return aWithoutPrefix.localeCompare(bWithoutPrefix);
@@ -70,20 +75,19 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
       const filterQuery = new MutableSearch(exploreQuery);
-      if (filterQuery.getFilterKeys().includes(hint.key)) {
+      if (
+        filterQuery.getFilterKeys().includes(hint.key) ||
+        filterQuery.getFilterKeys().includes(`!${hint.key}`)
+      ) {
+        // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(hint.key);
+        filterQuery.removeFilter(`!${hint.key}`);
       } else {
         const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
-        filterQuery.addFilterValue(
-          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ||
-            hint.kind === FieldKind.MEASUREMENT
-            ? hint.key
-            : `!${hint.key}`,
+        addFilterToQuery(
+          filterQuery,
+          hint,
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-            ? 'True'
-            : hint.kind === FieldKind.MEASUREMENT
-              ? '>0'
-              : 'null'
         );
       }
       setExploreQuery(filterQuery.formatString());
