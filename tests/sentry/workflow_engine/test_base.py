@@ -187,6 +187,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         project: Project | None = None,
         event: Event | None = None,
         occurrence: IssueOccurrence | None = None,
+        environment: str | None = None,
         fingerprint="test_fingerprint",
         group_type_id: int | None = None,
     ) -> tuple[Group, Event, GroupEvent]:
@@ -195,6 +196,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             project.id,
             datetime.now(),
             fingerprint,
+            environment,
         )
 
         if group_type_id:
