@@ -44,6 +44,8 @@ REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.
 # chunks are 1 min max with additional 10% buffer
 MAX_DURATION_SAMPLE_V2 = 66000
 
+UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
+
 
 @instrumented_task(
     name="sentry.profiles.task.process_profile",
@@ -862,7 +864,11 @@ def get_event_id(profile: Profile) -> str:
 
 def get_data_category(profile: Profile) -> DataCategory:
     if profile.get("version") == "2":
-        return DataCategory.PROFILE_CHUNK
+        return (
+            DataCategory.PROFILE_CHUNK_UI
+            if profile["platform"] in UI_PROFILE_PLATFORMS
+            else DataCategory.PROFILE_CHUNK
+        )
     return DataCategory.PROFILE_INDEXED
 
 
@@ -993,7 +999,7 @@ def _track_duration_outcome(
         timestamp=datetime.now(timezone.utc),
         category=(
             DataCategory.PROFILE_DURATION_UI
-            if profile["platform"] in {"cocoa", "android", "javascript"}
+            if profile["platform"] in UI_PROFILE_PLATFORMS
             else DataCategory.PROFILE_DURATION
         ),
         quantity=duration_ms,
