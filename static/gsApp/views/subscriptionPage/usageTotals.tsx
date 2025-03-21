@@ -189,6 +189,7 @@ export function calculateCategoryPrepaidUsage(
         prepaidTotal = prepaid * GIGABYTE;
         break;
       case DataCategory.PROFILE_DURATION:
+      case DataCategory.PROFILE_DURATION_UI:
         prepaidTotal = prepaid * MILLISECONDS_IN_HOUR;
         break;
       default:

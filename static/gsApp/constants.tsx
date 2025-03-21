@@ -33,6 +33,7 @@ export const MAX_ADMIN_CATEGORY_GIFTS = {
   [DataCategory.UPTIME]: 10_000,
   [DataCategory.SPANS]: 1_000_000_000,
   [DataCategory.PROFILE_DURATION]: 10_000, // TODO(continuous profiling): confirm max amount
+  [DataCategory.PROFILE_DURATION_UI]: 10_000, // TODO(continuous profiling): confirm max amount
 };
 
 // While we no longer offer or support unlimited ondemand we still
@@ -56,4 +57,6 @@ export const PRODUCT_TRIAL_CATEGORIES: DataCategory[] = [
   DataCategory.REPLAYS,
   DataCategory.SPANS,
   DataCategory.TRANSACTIONS,
+  DataCategory.PROFILE_DURATION,
+  DataCategory.PROFILE_DURATION_UI,
 ];
