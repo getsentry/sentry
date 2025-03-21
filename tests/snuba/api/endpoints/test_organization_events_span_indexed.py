@@ -3176,6 +3176,51 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
         assert meta["dataset"] == self.dataset
 
+    def test_count_starts(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {"app_start_warm": {"value": 200}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"app_start_warm": {"value": 100}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"app_start_cold": {"value": 10}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "count_starts(measurements.app_start_warm)",
+                    "count_starts(measurements.app_start_cold)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["count_starts(measurements.app_start_warm)"] == 2
+        assert data[0]["count_starts(measurements.app_start_cold)"] == 1
+        assert meta["dataset"] == self.dataset
+
     @pytest.mark.skip(reason="replay id alias not migrated over")
     def test_replay_id(self):
         super().test_replay_id()
