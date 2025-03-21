@@ -38,7 +38,7 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
   }, [rootEvent.data]);
 
   const organization = useOrganization();
-  const showLinkedTraces = organization?.features.includes('trace-view-connected-traces');
+  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
 
   return (
     <Container>
