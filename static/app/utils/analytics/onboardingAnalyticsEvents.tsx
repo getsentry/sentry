@@ -1,5 +1,6 @@
 export type OnboardingEventParameters = {
   'onboarding.back_button_clicked': {
+    browserBackButton: boolean;
     from: string;
     to: string;
   };
