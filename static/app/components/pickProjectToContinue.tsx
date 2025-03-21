@@ -3,7 +3,7 @@ import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
-import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import useRouter from 'sentry/utils/useRouter';
 
 type Project = {
   id: string;
@@ -22,17 +22,16 @@ type Props = {
    */
   noProjectRedirectPath: LocationDescriptor;
   projects: Project[];
-  router: InjectedRouter;
   allowAllProjectsSelection?: boolean;
 };
 
 function PickProjectToContinue({
   noProjectRedirectPath,
   nextPath,
-  router,
   projects,
   allowAllProjectsSelection = false,
 }: Props) {
+  const router = useRouter();
   const nextPathQuery = nextPath.query;
   let navigating = false;
   let path = `${nextPath.pathname}?project=`;
