@@ -12,9 +12,10 @@ from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.constants import (
     DURATION_UNITS,
+    HAS_FILTER_ERROR_MESSAGE,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -623,10 +624,16 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
+    # Disallow the use of the has filter. Used for datasets that do not support `has` filters.
+    allow_has_filter: bool = True
+
     @overload
     @classmethod
     def create_from[
-        TBool: (Literal[True], Literal[False])
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
     ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
@@ -638,7 +645,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     @overload
     @classmethod
     def create_from[
-        TBool: (Literal[True], Literal[False])
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
     ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
@@ -660,7 +670,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     # a way to represent positional-heterogenous lists -- but they are
     # actually lists
 
-    unwrapped_exceptions = (InvalidSearchQuery,)
+    unwrapped_exceptions = (InvalidSearchQuery, IncompatibleMetricsQuery)
 
     def __init__(
         self,
@@ -1220,6 +1230,9 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     ) -> SearchFilter:
         # the key is has here, which we don't need
         negation, _, _, _, (search_key,) = children
+
+        if not self.config.allow_has_filter and search_key.name != TEAM_KEY_TRANSACTION_ALIAS:
+            raise IncompatibleMetricsQuery(HAS_FILTER_ERROR_MESSAGE)
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):

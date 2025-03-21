@@ -4,6 +4,9 @@ from typing import Literal, TypedDict
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
+HAS_FILTER_ERROR_MESSAGE = """
+"has" filter is not supported in this search.
+"""
 RATE_LIMIT_ERROR_MESSAGE = """
 Rate limit exceeded. Please try your query with a smaller date range or fewer projects.
 """
