@@ -63,16 +63,15 @@ function FormPanel({
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
   return (
-    <Panel
-      id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}
-      onClick={collapsible ? handleCollapseToggle : undefined}
-      style={collapsible ? {cursor: 'pointer'} : undefined}
-      role={collapsible ? 'button' : undefined}
-      aria-label={collapsible ? t('Expand Options') : t('Panel')}
-      aria-expanded={!collapsed}
-    >
+    <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
       {title && (
-        <PanelHeader>
+        <PanelHeader
+          onClick={collapsible ? handleCollapseToggle : undefined}
+          style={collapsible ? {cursor: 'pointer'} : undefined}
+          role={collapsible ? 'button' : undefined}
+          aria-label={collapsible ? t('Expand Options') : t('Panel')}
+          aria-expanded={!collapsed}
+        >
           {title}
           {collapsible && (
             <Collapse
