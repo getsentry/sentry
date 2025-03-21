@@ -30,10 +30,10 @@ export const TagPill = chonkStyled('div')<{
 }>`
   ${p => ({...makeTagPillTheme(p.type, p.theme)})};
 
+  height: 20px;
   font-size: ${p => p.theme.fontSizeSmall};
   display: inline-flex;
   align-items: center;
-  height: 20px;
   border-radius: ${p => p.theme.radius.mini};
   padding: 0 ${space(1)};
   max-width: 166px;
