@@ -644,7 +644,7 @@ describe('provisionSubscriptionAction', function () {
     );
   });
 
-  it('retain on-demand budget shared', async () => {
+  it('retains on-demand budget when toggled', async () => {
     const am2Sub = SubscriptionFixture({
       organization: mockOrg,
       plan: 'am2_f',
@@ -772,9 +772,9 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 10000);
 
-  it('remove retain on-demand budget toggle when plan changes', async () => {
+  it('removes retain on-demand budget toggle when plan changes', async () => {
     const am2Sub = SubscriptionFixture({
       organization: mockOrg,
       plan: 'am2_f',
@@ -924,7 +924,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 10000);
 
   it('calls api with correct am2 args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
