@@ -51,7 +51,7 @@ class BaseMetricAlertHandler(ABC):
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.metric_alert.invoke_legacy_registry"
         ):
-            event = job["event"]
+            event = job.event
             if not event.occurrence:
                 raise ValueError("Event occurrence is required for alert context")
 
