@@ -79,6 +79,9 @@ export type Project = {
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
+  performanceIssueCreationRate?: number;
+  performanceIssueCreationThroughPlatform?: boolean;
+  performanceIssueSendToPlatform?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
   sessionStats?: {
