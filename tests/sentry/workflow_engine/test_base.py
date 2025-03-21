@@ -166,11 +166,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
     ) -> tuple[DataConditionGroup, Action]:
         action_group = self.create_data_condition_group(logic_type="any-short")
 
-        action = self.create_action(
-            type=Action.Type.SLACK,
-            data={"notes": "bufos are great", "tags": "bufo-bot"},
-            **kwargs,
-        )
+        action = self.create_action()
 
         self.create_data_condition_group_action(
             condition_group=action_group,
