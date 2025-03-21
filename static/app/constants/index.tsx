@@ -286,8 +286,6 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Attachments'),
     uid: 4,
     isBilledCategory: true,
-    singularUnit: 'GB',
-    pluralUnit: 'GB',
   },
   [DataCategoryExact.PROFILE]: {
     name: DataCategoryExact.PROFILE,
