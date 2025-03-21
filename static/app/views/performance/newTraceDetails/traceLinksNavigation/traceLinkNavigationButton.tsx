@@ -15,18 +15,23 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {isEmptyTrace} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
-import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-function useIsTraceAvailable(traceLink?: SpanLink): {
+// Currently, we only support previous but component can be used for 'next trace' in the future
+type ConnectedTraceConnection = 'previous'; // | 'next';
+
+const LINKED_TRACE_MAX_DURATION = 3600; // 1h in seconds
+
+function useIsTraceAvailable(
+  traceLink?: SpanLink,
+  previousTraceTimestamp?: number
+): {
   isAvailable: boolean;
   isLoading: boolean;
 } {
-  const queryParams = useTraceQueryParams();
-
   const trace = useTrace({
     traceSlug: traceLink?.trace_id,
-    timestamp: queryParams.timestamp,
+    timestamp: previousTraceTimestamp,
   });
 
   const isAvailable = useMemo(() => {
@@ -44,8 +49,8 @@ function useIsTraceAvailable(traceLink?: SpanLink): {
 }
 
 type TraceLinkNavigationButtonProps = {
-  // Currently, we only support previous but component can be used for 'next trace' in the future
-  direction: 'previous'; // | 'next';
+  currentTraceTimestamps: {end?: number; start?: number};
+  direction: ConnectedTraceConnection;
   isLoading?: boolean;
   traceContext?: TraceContextType;
 };
@@ -54,6 +59,7 @@ export function TraceLinkNavigationButton({
   direction,
   traceContext,
   isLoading,
+  currentTraceTimestamps,
 }: TraceLinkNavigationButtonProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -62,12 +68,23 @@ export function TraceLinkNavigationButton({
     link => link.attributes?.['sentry.link.type'] === `${direction}_trace`
   );
 
+  // We connect traces over a 1h period - As we don't have timestamps of the linked trace, it is calculated based on this timeframe
+  const linkedTraceTimestamp =
+    direction === 'previous' && currentTraceTimestamps.start
+      ? currentTraceTimestamps.start - LINKED_TRACE_MAX_DURATION // Earliest start times of previous trace
+      : // : direction === 'next' && currentTraceTimestamps.end
+        // ? currentTraceTimestamps.end + LINKED_TRACE_MAX_DURATION
+        undefined;
+
   const dateSelection = useMemo(
     () => normalizeDateTimeParams(location.query),
     [location.query]
   );
 
-  const {isAvailable: isLinkedTraceAvailable} = useIsTraceAvailable(traceLink);
+  const {isAvailable: isLinkedTraceAvailable} = useIsTraceAvailable(
+    traceLink,
+    linkedTraceTimestamp
+  );
 
   if (isLoading) {
     // We don't show a placeholder/skeleton here as it would cause layout shifts most of the time.
@@ -83,7 +100,7 @@ export function TraceLinkNavigationButton({
           traceSlug: traceLink.trace_id,
           spanId: traceLink.span_id,
           dateSelection,
-          // todo: timestamp
+          timestamp: linkedTraceTimestamp,
           location,
           organization,
         })}

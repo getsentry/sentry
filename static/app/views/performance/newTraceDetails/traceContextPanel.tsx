@@ -125,6 +125,10 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
           direction={'previous'}
           isLoading={rootEvent.isLoading}
           traceContext={rootEvent.data?.contexts.trace}
+          currentTraceTimestamps={{
+            start: rootEvent.data?.startTimestamp,
+            end: rootEvent.data?.endTimestamp,
+          }}
         />
       </TraceLinksNavigationContainer>
 
