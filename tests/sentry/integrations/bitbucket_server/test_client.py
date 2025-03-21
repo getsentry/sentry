@@ -1,3 +1,9 @@
+from copy import deepcopy
+from dataclasses import asdict
+from datetime import datetime, timezone
+from typing import Any
+from unittest import mock
+
 import orjson
 import pytest
 import responses
@@ -7,6 +13,11 @@ from requests import Request
 from fixtures.bitbucket_server import REPO
 from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration
 from sentry.integrations.bitbucket_server.utils import BitbucketServerAPIPath
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -229,3 +240,275 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             self.config.repository, ref=self.config.default_branch
         )
         assert result == BITBUCKET_SERVER_CODEOWNERS
+
+
+@control_silo_test
+class BitbucketServerClientBlameForFilesTest(BitbucketServerClientTest):
+    def setUp(self):
+        super().setUp()
+
+        self.file_1 = SourceLineInfo(
+            path="example_1.txt",
+            lineno=1,
+            ref="master",
+            repo=self.repo,
+            code_mapping=mock.ANY,
+        )
+        self.file_2 = SourceLineInfo(
+            path="example_2.txt",
+            lineno=3,
+            ref="master",
+            repo=self.repo,
+            code_mapping=mock.ANY,
+        )
+        self.file_3 = SourceLineInfo(
+            path="example_3.txt",
+            lineno=5,
+            ref="master",
+            repo=self.repo,
+            code_mapping=mock.ANY,
+        )
+
+        self.blame_1 = FileBlameInfo(
+            **asdict(self.file_1),
+            commit=CommitInfo(
+                commitId="first",
+                commitMessage="first commit message",
+                committedDate=datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                commitAuthorEmail="first@user.com",
+                commitAuthorName="First User",
+            ),
+        )
+        self.blame_2 = FileBlameInfo(
+            **asdict(self.file_2),
+            commit=CommitInfo(
+                commitId="second",
+                commitMessage="second commit message",
+                committedDate=datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                commitAuthorEmail="second@user.com",
+                commitAuthorName="Second User",
+            ),
+        )
+        self.blame_3 = FileBlameInfo(
+            **asdict(self.file_3),
+            commit=CommitInfo(
+                commitId="third",
+                commitMessage="third commit message",
+                committedDate=datetime(2025, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+                commitAuthorEmail="third@user.com",
+                commitAuthorName="Third User",
+            ),
+        )
+
+    def set_up_success_blame_responses(self):
+        responses.add(
+            responses.GET,
+            url=self.make_blame_url(self.file_1),
+            json=self.make_blame_response(path="example_1.txt"),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_blame_url(self.file_2),
+            json=self.make_blame_response(path="example_2.txt"),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_blame_url(self.file_3),
+            json=self.make_blame_response(path="example_3.txt"),
+            status=200,
+        )
+
+    def set_up_success_commit_responses(self):
+        responses.add(
+            responses.GET,
+            url=self.make_commit_url(self.file_1, commit="first"),
+            json=self.make_commit_response(message="first commit message"),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_commit_url(self.file_2, commit="second"),
+            json=self.make_commit_response(message="second commit message"),
+            status=200,
+        )
+        responses.add(
+            responses.GET,
+            url=self.make_commit_url(self.file_3, commit="third"),
+            json=self.make_commit_response(message="third commit message"),
+            status=200,
+        )
+
+    def make_blame_url(self, file: SourceLineInfo) -> str:
+        return f"{self.bb_server_client.base_url}{BitbucketServerAPIPath.get_browse(
+            project=self.repo.config["project"],
+            repo=self.repo.config["repo"],
+            path=file.path,
+            sha=file.ref,
+            blame=True,
+            no_content=True,
+        )}"
+
+    def make_blame_response(self, path: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "author": {
+                    "name": "First User",
+                    "emailAddress": "first@user.com",
+                },
+                "authorTimestamp": 1735689600000,
+                "committer": {
+                    "name": "First User",
+                    "emailAddress": "first@user.com",
+                },
+                "committerTimestamp": 1735689600000,
+                "commitHash": "first",
+                "displayCommitHash": "first",
+                "commitId": "first",
+                "commitDisplayId": "first",
+                "fileName": path,
+                "lineNumber": 1,
+                "spannedLines": 2,
+            },
+            {
+                "author": {
+                    "name": "Second User",
+                    "emailAddress": "second@user.com",
+                },
+                "authorTimestamp": 1735689600000,
+                "committer": {
+                    "name": "Second User",
+                    "emailAddress": "second@user.com",
+                },
+                "committerTimestamp": 1735689600000,
+                "commitHash": "second",
+                "displayCommitHash": "second",
+                "commitId": "second",
+                "commitDisplayId": "second",
+                "fileName": path,
+                "lineNumber": 3,
+                "spannedLines": 2,
+            },
+            {
+                "author": {
+                    "name": "Third User",
+                    "emailAddress": "third@user.com",
+                },
+                "authorTimestamp": 1735689600000,
+                "committer": {
+                    "name": "Third User",
+                    "emailAddress": "third@user.com",
+                },
+                "committerTimestamp": 1735689600000,
+                "commitHash": "third",
+                "displayCommitHash": "third",
+                "commitId": "third",
+                "commitDisplayId": "third",
+                "fileName": path,
+                "lineNumber": 5,
+                "spannedLines": 2,
+            },
+        ]
+
+    def make_commit_url(self, file: SourceLineInfo, commit: str) -> str:
+        return f"{self.bb_server_client.base_url}{BitbucketServerAPIPath.repository_commit.format(
+            project=file.repo.config["project"],
+            repo=file.repo.config["repo"],
+            commit=commit,
+        )}"
+
+    def make_commit_response(self, message: str) -> dict:
+        return {
+            "message": message,
+        }
+
+    @responses.activate
+    def test_success_single_file(self):
+        self.set_up_success_blame_responses()
+        self.set_up_success_commit_responses()
+
+        resp = self.bb_server_client.get_blame_for_files(files=[self.file_1], extra={})
+
+        assert resp == [self.blame_1]
+
+    @responses.activate
+    def test_success_multiple_files(self):
+        self.set_up_success_blame_responses()
+        self.set_up_success_commit_responses()
+
+        resp = self.bb_server_client.get_blame_for_files(
+            files=[self.file_1, self.file_2, self.file_3], extra={}
+        )
+
+        assert resp == [self.blame_1, self.blame_2, self.blame_3]
+
+    @mock.patch(
+        "sentry.integrations.bitbucket_server.blame.logger.warning",
+    )
+    @responses.activate
+    def test_failure_blame_404(self, mock_logger_warning):
+        responses.add(
+            responses.GET, self.make_blame_url(self.file_1), status=404, body="No file found"
+        )
+
+        resp = self.bb_server_client.get_blame_for_files(files=[self.file_1], extra={})
+
+        assert resp == []
+        mock_logger_warning.assert_any_call(
+            "blame_file.browse.api_error",
+            extra={
+                "provider": "bitbucket_server",
+                "org_integration_id": self.bb_server_client.integration_id,
+                "code": 404,
+                "error_message": "No file found",
+                "repo_name": self.repo.name,
+                "file_path": self.file_1.path,
+                "branch_name": self.file_1.ref,
+                "file_lineno": self.file_1.lineno,
+            },
+        )
+        mock_logger_warning.assert_any_call(
+            "fetch_file_blames.no_blame",
+            extra={
+                "provider": "bitbucket_server",
+                "org_integration_id": self.bb_server_client.integration_id,
+                "repo_name": self.repo.name,
+                "file_path": self.file_1.path,
+                "branch_name": self.file_1.ref,
+                "file_lineno": self.file_1.lineno,
+            },
+        )
+
+    @mock.patch(
+        "sentry.integrations.bitbucket_server.blame.logger.warning",
+    )
+    @responses.activate
+    def test_success_commit_404(self, mock_logger_warning):
+        self.set_up_success_blame_responses()
+        responses.add(
+            responses.GET,
+            self.make_commit_url(self.file_1, commit="first"),
+            status=404,
+            body="No file found",
+        )
+
+        resp = self.bb_server_client.get_blame_for_files(files=[self.file_1], extra={})
+
+        blame = deepcopy(self.blame_1)
+        blame.commit.commitMessage = None
+        assert resp == [blame]
+        mock_logger_warning.assert_any_call(
+            "blame_file.commit.api_error",
+            extra={
+                "provider": "bitbucket_server",
+                "org_integration_id": self.bb_server_client.integration_id,
+                "code": 404,
+                "error_message": "No file found",
+                "commit_id": "first",
+                "repo_name": self.repo.name,
+                "file_path": self.file_1.path,
+                "branch_name": self.file_1.ref,
+                "file_lineno": self.file_1.lineno,
+            },
+        )

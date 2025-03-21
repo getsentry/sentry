@@ -26,6 +26,7 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.metrics import (
@@ -251,7 +252,7 @@ class OAuthCallbackView(PipelineView):
                 )
 
 
-class BitbucketServerIntegration(RepositoryIntegration):
+class BitbucketServerIntegration(RepositoryIntegration, CommitContextIntegration):
     """
     IntegrationInstallation implementation for Bitbucket Server
     """
