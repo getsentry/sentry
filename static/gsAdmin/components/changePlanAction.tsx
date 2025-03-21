@@ -5,6 +5,7 @@ import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indica
 import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NavTabs from 'sentry/components/navTabs';
+import ConfigStore from 'sentry/stores/configStore';
 
 import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
 import PlanList from 'admin/components/planList';
@@ -74,6 +75,10 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       ['am2BillingConfig', `/customers/${this.props.orgId}/billing-config/?tier=am2`],
       ['am3BillingConfig', `/customers/${this.props.orgId}/billing-config/?tier=am3`],
     ];
+  }
+
+  hasProvisionPermission() {
+    return ConfigStore.get('user')?.permissions?.has?.('billing.provision');
   }
 
   handleConfirm = async () => {
@@ -250,18 +255,28 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       planList = am3BillingConfig.planList;
     }
 
-    planList = planList
-      .sort((a, b) => a.reservedMinimum - b.reservedMinimum)
-      .filter(
-        p =>
-          p.price &&
-          p.contractInterval === contractInterval &&
-          p.billingInterval === billingInterval &&
-          (p.userSelectable || p.checkoutType === CheckoutType.BUNDLE) &&
-          // Plan id on partner sponsored subscriptions is not modifiable so only including
-          // the existing plan in the list
-          (partnerPlanId === null || partnerPlanId === p.id)
-      );
+    if (activeTier === PlanTier.TEST) {
+      // For TEST tier, combine all available plan lists and display only test plans
+      planList = [
+        ...(mm2BillingConfig?.planList || []),
+        ...(am1BillingConfig?.planList || []),
+        ...(am2BillingConfig?.planList || []),
+        ...(am3BillingConfig?.planList || []),
+      ].filter(p => p.isTestPlan && p.billingInterval === billingInterval);
+    } else {
+      planList = planList
+        .sort((a, b) => a.reservedMinimum - b.reservedMinimum)
+        .filter(
+          p =>
+            p.price &&
+            p.contractInterval === contractInterval &&
+            p.billingInterval === billingInterval &&
+            (p.userSelectable || p.checkoutType === CheckoutType.BUNDLE) &&
+            // Plan id on partner sponsored subscriptions is not modifiable so only including
+            // the existing plan in the list
+            (partnerPlanId === null || partnerPlanId === p.id)
+        );
+    }
 
     // Plan for partner sponsored subscriptions is not modifiable so skipping
     // the navigation that will allow modifying billing cycle and plan tier
@@ -330,6 +345,23 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
               MM2
             </a>
           </li>
+          {this.hasProvisionPermission() && (
+            <li className={activeTier === PlanTier.TEST ? 'active' : ''}>
+              <a
+                data-test-id="test-tier"
+                onClick={() =>
+                  this.setState({
+                    activeTier: PlanTier.TEST,
+                    billingInterval: MONTHLY,
+                    contractInterval: MONTHLY,
+                    plan: null,
+                  })
+                }
+              >
+                TEST
+              </a>
+            </li>
+          )}
         </NavTabs>
         <ul className="nav nav-pills">
           <li

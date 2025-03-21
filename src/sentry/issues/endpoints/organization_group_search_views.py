@@ -263,7 +263,6 @@ def _update_existing_view(
         gsv.name = view["name"]
         gsv.query = view["query"]
         gsv.query_sort = view["querySort"]
-        gsv.position = position
         gsv.is_all_projects = view.get("isAllProjects", False)
 
         if "projects" in view:
@@ -300,7 +299,6 @@ def _create_view(
         name=view["name"],
         query=view["query"],
         query_sort=view["querySort"],
-        position=position,
         is_all_projects=view.get("isAllProjects", False),
         environments=view.get("environments", []),
         time_filters=view.get("timeFilters", {"period": "14d"}),

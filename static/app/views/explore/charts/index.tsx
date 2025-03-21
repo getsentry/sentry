@@ -364,7 +364,7 @@ export function useExtrapolationMeta({
 const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChartLabel = styled('div')`
