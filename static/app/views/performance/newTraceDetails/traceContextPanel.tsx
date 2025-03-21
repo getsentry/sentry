@@ -8,6 +8,7 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
@@ -36,19 +37,24 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
     );
   }, [rootEvent.data]);
 
+  const organization = useOrganization();
+  const showLinkedTraces = organization?.features.includes('trace-view-connected-traces');
+
   return (
     <Container>
-      <TraceLinksNavigationContainer>
-        <TraceLinkNavigationButton
-          direction={'previous'}
-          isLoading={rootEvent.isLoading}
-          traceContext={rootEvent.data?.contexts.trace}
-          currentTraceTimestamps={{
-            start: rootEvent.data?.startTimestamp,
-            end: rootEvent.data?.endTimestamp,
-          }}
-        />
-      </TraceLinksNavigationContainer>
+      {showLinkedTraces && (
+        <TraceLinksNavigationContainer>
+          <TraceLinkNavigationButton
+            direction={'previous'}
+            isLoading={rootEvent.isLoading}
+            traceContext={rootEvent.data?.contexts.trace}
+            currentTraceTimestamps={{
+              start: rootEvent.data?.startTimestamp,
+              end: rootEvent.data?.endTimestamp,
+            }}
+          />
+        </TraceLinksNavigationContainer>
+      )}
 
       <VitalMetersContainer>
         <TraceContextVitals tree={tree} />
