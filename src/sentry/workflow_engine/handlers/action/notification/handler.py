@@ -65,7 +65,7 @@ def execute_via_issue_alert_handler(job: WorkflowJob, action: Action, detector: 
 class NotificationActionHandler(ActionHandler, ABC):
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for Ticketing Actions",
+        "description": "The configuration schema for Notification Actions",
         "type": "object",
         "properties": {
             "target_identifier": {
@@ -81,26 +81,7 @@ class NotificationActionHandler(ActionHandler, ABC):
         },
     }
 
-    data_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "type": "object",
-        "description": "Schema for ticket creation action data blob",
-        "properties": {
-            "dynamic_form_fields": {
-                "type": "array",
-                "description": "Dynamic form fields from customer configuration",
-                "items": {"type": "object"},
-                "default": [],
-            },
-            "additional_fields": {
-                "type": "object",
-                "description": "Additional fields that aren't part of standard fields",
-                "additionalProperties": True,
-                "default": {},
-            },
-        },
-        "additionalProperties": False,
-    }
+    data_schema = {}
 
     @staticmethod
     def execute(
@@ -130,7 +111,26 @@ class TicketingActionHandler(ActionHandler, ABC):
         },
     }
 
-    data_schema = {}
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for ticket creation action data blob",
+        "properties": {
+            "dynamic_form_fields": {
+                "type": "array",
+                "description": "Dynamic form fields from customer configuration",
+                "items": {"type": "object"},
+                "default": [],
+            },
+            "additional_fields": {
+                "type": "object",
+                "description": "Additional fields that aren't part of standard fields",
+                "additionalProperties": True,
+                "default": {},
+            },
+        },
+        "additionalProperties": False,
+    }
 
     @staticmethod
     def execute(
