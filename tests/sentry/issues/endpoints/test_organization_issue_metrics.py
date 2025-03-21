@@ -44,7 +44,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         self.create_group(project=project2, status=2, first_seen=prev, type=FeedbackGroup.type_id)
 
         response = self.client.get(
-            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error"
+            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=issue"
         )
         response_json = response.json()
         assert response_json["timeseries"] == [
@@ -110,7 +110,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
             },
         ]
 
-    def test_get_errors_by_project(self):
+    def test_get_issues_by_project(self):
         """Assert the project filter works."""
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
@@ -122,7 +122,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
 
         response = self.client.get(
             self.url
-            + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error&project={project1.id}"
+            + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=issue&project={project1.id}"
         )
         response_json = response.json()
         assert response_json["timeseries"] == [
@@ -262,6 +262,13 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         assert response.status_code == 400
         assert response.json() == {"detail": "Interval must be greater than 1000 milliseconds."}
 
+    def test_get_invalid_category(self):
+        response = self.client.get(self.url + "?category=foo")
+        assert response.status_code == 400
+        assert response.json() == {
+            "detail": "Invalid issue category. Valid options are 'issue' and 'feedback'."
+        }
+
     def test_other_grouping(self):
         project1 = self.create_project(teams=[self.team], slug="foo")
         project2 = self.create_project(teams=[self.team], slug="bar")
@@ -284,7 +291,7 @@ class OrganizationIssueMetricsTestCase(APITestCase):
         self.create_group(project=project1, status=0, first_seen=curr, first_release=sixth, type=1)
 
         response = self.client.get(
-            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=error"
+            self.url + f"?start={prev.isoformat()[:-6]}&end={curr.isoformat()[:-6]}&category=issue"
         )
         response_json = response.json()
         assert response_json["timeseries"] == [
