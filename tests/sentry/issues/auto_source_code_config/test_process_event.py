@@ -81,7 +81,8 @@ class BaseDeriveCodeMappings(TestCase):
         expected_source_root: str,
         expected_repo_name: str = REPO1,
         expected_num_code_mappings: int = 1,
-    ) -> None:
+        expected_in_app_stack_trace_rules: list[str] | None = None,
+    ) -> GroupEvent:
         with (
             patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
@@ -94,8 +95,9 @@ class BaseDeriveCodeMappings(TestCase):
             repositories_count = Repository.objects.all().count()
             code_mappings_count = RepositoryProjectPathConfig.objects.all().count()
             event = self.create_event(frames, platform)
-            process_event(self.project.id, event.group_id, event.event_id)
-
+            _, in_app_stack_trace_rules = process_event(
+                self.project.id, event.group_id, event.event_id
+            )
             code_mappings = RepositoryProjectPathConfig.objects.all()
             assert len(code_mappings) == expected_num_code_mappings
             code_mapping = code_mappings.filter(
@@ -118,6 +120,12 @@ class BaseDeriveCodeMappings(TestCase):
                 mock_incr.assert_any_call(
                     key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                 )
+            if expected_in_app_stack_trace_rules is not None:
+                # XXX: Grab it from the option
+                assert expected_in_app_stack_trace_rules == in_app_stack_trace_rules
+
+            # Returning this is useful to inspect hash changes
+            return event
 
     def _process_and_assert_no_code_mapping(
         self,
@@ -125,7 +133,7 @@ class BaseDeriveCodeMappings(TestCase):
         repo_trees: Mapping[str, Sequence[str]],
         frames: Sequence[Mapping[str, str | bool]],
         platform: str,
-    ) -> list[CodeMapping]:
+    ) -> tuple[list[CodeMapping], list[str]]:
         with (
             patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
@@ -136,7 +144,9 @@ class BaseDeriveCodeMappings(TestCase):
             patch("sentry.utils.metrics.incr") as mock_incr,
         ):
             event = self.create_event(frames, platform)
-            code_mappings = process_event(self.project.id, event.group_id, event.event_id)
+            code_mappings, in_app_stack_trace_rules = process_event(
+                self.project.id, event.group_id, event.event_id
+            )
             assert not RepositoryProjectPathConfig.objects.exists()
             platform_config = PlatformConfig(platform)
             dry_run = platform_config.is_dry_run_platform()
@@ -152,7 +162,7 @@ class BaseDeriveCodeMappings(TestCase):
                     tags={"platform": event.platform, "dry_run": dry_run},
                     sample_rate=1.0,
                 )
-            return code_mappings
+            return code_mappings, in_app_stack_trace_rules
 
     def frame(self, filename: str, in_app: bool | None = True) -> dict[str, str | bool]:
         frame: dict[str, str | bool] = {"filename": filename}
@@ -242,7 +252,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             patch(f"{CODE_ROOT}.utils.PlatformConfig.is_dry_run_platform", return_value=True),
         ):
             # No code mapping will be stored, however, we get what would have been created
-            code_mappings = self._process_and_assert_no_code_mapping(
+            code_mappings, _ = self._process_and_assert_no_code_mapping(
                 repo_trees={REPO1: [file_in_repo]},
                 frames=[self.frame(frame_filename, True)],
                 platform=platform,
@@ -591,7 +601,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
     def test_very_short_module_name(self) -> None:
         # No code mapping will be stored, however, we get what would have been created
-        code_mappings = self._process_and_assert_no_code_mapping(
+        code_mappings, in_app_stack_trace_rules = self._process_and_assert_no_code_mapping(
             repo_trees={REPO1: ["src/a/SomeShortPackageNameClass.java"]},
             frames=[
                 {
@@ -604,10 +614,11 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         assert len(code_mappings) == 1
         assert code_mappings[0].stacktrace_root == "a/"
         assert code_mappings[0].source_path == "src/a/"
+        assert in_app_stack_trace_rules == ["stack.module:a.** +app"]
 
     def test_handles_dollar_sign_in_module(self) -> None:
         # No code mapping will be stored, however, we get what would have been created
-        code_mappings = self._process_and_assert_no_code_mapping(
+        code_mappings, in_app_stack_trace_rules = self._process_and_assert_no_code_mapping(
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
             frames=[{"module": "com.example.foo.Bar$InnerClass", "abs_path": "Bar.kt"}],
             platform=self.platform,
