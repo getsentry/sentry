@@ -18,7 +18,8 @@ type LimitName =
   | 'reservedMonitorSeats'
   | 'reservedUptime'
   | 'reservedSpans'
-  | 'reservedProfileDuration';
+  | 'reservedProfileDuration'
+  | 'reservedProfileDurationUI';
 
 type Props = {
   onLimitChange: (limit: LimitName, value: number) => void;
@@ -29,6 +30,7 @@ type Props = {
   reservedErrors: null | number;
   reservedMonitorSeats: null | number;
   reservedProfileDuration: null | number;
+  reservedProfileDurationUI: null | number;
   reservedReplays: null | number;
   reservedSpans: null | number;
   reservedTransactions: null | number;
@@ -44,6 +46,7 @@ const configurableCategories: DataCategory[] = [
   DataCategory.UPTIME,
   DataCategory.SPANS,
   DataCategory.PROFILE_DURATION,
+  DataCategory.PROFILE_DURATION_UI,
 ];
 
 function PlanList({
@@ -56,6 +59,7 @@ function PlanList({
   reservedMonitorSeats,
   reservedUptime,
   reservedProfileDuration,
+  reservedProfileDurationUI,
   reservedSpans,
   onPlanChange,
   onLimitChange,
@@ -154,6 +158,9 @@ function PlanList({
                     break;
                   case DataCategory.PROFILE_DURATION:
                     fieldValue = reservedProfileDuration;
+                    break;
+                  case DataCategory.PROFILE_DURATION_UI:
+                    fieldValue = reservedProfileDurationUI;
                     break;
                   case DataCategory.UPTIME:
                     fieldValue = reservedUptime;

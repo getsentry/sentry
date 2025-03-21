@@ -7,7 +7,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.REAPPEARED_EVENT)
 class ReappearedEventConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.WORKFLOW_TRIGGER]
+    group = DataConditionHandler.Group.WORKFLOW_TRIGGER
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod

@@ -1,10 +1,12 @@
 import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Button} from 'sentry/components/core/button';
+import useDrawer from 'sentry/components/globalDrawer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -26,10 +28,13 @@ import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
+import SchemaHintsList, {
+  SCHEMA_HINTS_DRAWER_WIDTH,
+} from 'sentry/views/explore/components/schemaHintsList';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -44,6 +49,7 @@ import {
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -84,6 +90,14 @@ export function SpansTabContentImpl({
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
+
+  const {isDrawerOpen: isSchemaHintsDrawerOpen} = useDrawer();
+  const theme = useTheme();
+  const isLargeScreen = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const isSchemaHintsDrawerOpenOnLargeScreen =
+    isSchemaHintsDrawerOpen &&
+    isLargeScreen &&
+    organization.features.includes('traces-schema-hints');
 
   const toolbarExtras = [
     ...(organization?.features?.includes('visibility-explore-dataset')
@@ -140,6 +154,7 @@ export function SpansTabContentImpl({
   );
 
   const [expanded, setExpanded] = useState(true);
+  const [interval] = useChartInterval();
 
   useAnalytics({
     queryType,
@@ -147,6 +162,7 @@ export function SpansTabContentImpl({
     spansTableResult,
     tracesTableResult,
     timeseriesResult,
+    interval,
   });
 
   const resultsLength =
@@ -169,6 +185,9 @@ export function SpansTabContentImpl({
     <Body
       withToolbar={expanded}
       withHints={organization.features.includes('traces-schema-hints')}
+      thirdColumnWidth={
+        isSchemaHintsDrawerOpenOnLargeScreen ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'
+      }
     >
       <TopSection>
         <StyledPageFilterBar condensed>
@@ -219,7 +238,7 @@ export function SpansTabContentImpl({
         )}
       </TopSection>
       <Feature features="organizations:traces-schema-hints">
-        <HintsSection>
+        <HintsSection withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}>
           <SchemaHintsList
             supportedAggregates={
               mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
@@ -338,13 +357,17 @@ function checkIsAllowedSelection(
   return selectedMinutes <= maxPickableMinutes;
 }
 
-const Body = styled(Layout.Body)<{withHints: boolean; withToolbar: boolean}>`
+const Body = styled(Layout.Body)<{
+  thirdColumnWidth: string;
+  withHints: boolean;
+  withToolbar: boolean;
+}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     ${p =>
       p.withToolbar
-        ? `grid-template-columns: 300px minmax(100px, auto);`
-        : `grid-template-columns: 0px minmax(100px, auto);`}
+        ? `grid-template-columns: 300px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`
+        : `grid-template-columns: 0px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`}
     grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
@@ -370,7 +393,7 @@ const SideSection = styled('aside')<{withToolbar: boolean}>`
   }
 `;
 
-const HintsSection = styled('div')`
+const HintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
   display: grid;
   /* This is to ensure the hints section spans all the columns */
   grid-column: 1/-1;
@@ -379,7 +402,8 @@ const HintsSection = styled('div')`
   height: fit-content;
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr ${p =>
+        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
     margin-bottom: 0;
     margin-top: 0;
   }

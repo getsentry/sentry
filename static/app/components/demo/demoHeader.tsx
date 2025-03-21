@@ -10,10 +10,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
-  isDemoModeEnabled,
-  openDemoEmailModal,
+  isDemoModeActive,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
+import {openDemoEmailModal} from 'sentry/utils/demoMode/utils';
 
 export const DEMO_HEADER_HEIGHT_PX = 70;
 
@@ -22,7 +22,7 @@ export default function DemoHeader() {
     openDemoEmailModal();
   }, []);
 
-  if (!isDemoModeEnabled()) {
+  if (!isDemoModeActive()) {
     return null;
   }
 

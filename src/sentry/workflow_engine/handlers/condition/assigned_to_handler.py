@@ -12,7 +12,8 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.ASSIGNED_TO)
 class AssignedToConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.ACTION_FILTER]
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",

@@ -1662,6 +1662,49 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock.call(ClustererNamespace.TRANSACTIONS, self.project, "wait")
         ]
 
+    def test_first_insight_span(self) -> None:
+        event_data = make_event(
+            transaction="test_transaction",
+            contexts={
+                "trace": {
+                    "parent_span_id": "bce14471e0e9654d",
+                    "op": "foobar",
+                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                    "span_id": "bf5be759039ede9a",
+                }
+            },
+            spans=[
+                {
+                    "trace_id": "a0fa8803753e40fd8124b21eeb2986b5",
+                    "parent_span_id": "bf5be759039ede9a",
+                    "span_id": "a" * 16,
+                    "start_timestamp": 0,
+                    "timestamp": 1,
+                    "same_process_as_parent": True,
+                    "op": "db.redis",
+                    "description": "EXEC *",
+                    "sentry_tags": {
+                        "description": "EXEC *",
+                        "category": "db",
+                        "op": "db.redis",
+                        "transaction": "/app/index",
+                    },
+                }
+            ],
+            timestamp="2019-06-14T14:01:40Z",
+            start_timestamp="2019-06-14T14:01:40Z",
+            type="transaction",
+        )
+
+        assert not self.project.flags.has_insights_db
+
+        manager = EventManager(event_data)
+        manager.normalize()
+        manager.save(self.project.id)
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_insights_db
+
     def test_sdk(self) -> None:
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
         manager.normalize()
@@ -3380,13 +3423,13 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
-        group, created = save_grouphash_and_group(self.project, event, group_hash)
+        group, created, _ = save_grouphash_and_group(self.project, event, group_hash)
         assert created
-        group_2, created = save_grouphash_and_group(self.project, event, group_hash)
+        group_2, created, _ = save_grouphash_and_group(self.project, event, group_hash)
         assert group.id == group_2.id
         assert not created
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
-        group_3, created = save_grouphash_and_group(self.project, event, "new_hash")
+        group_3, created, _ = save_grouphash_and_group(self.project, event, "new_hash")
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1

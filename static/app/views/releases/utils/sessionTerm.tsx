@@ -87,7 +87,6 @@ function getTermDescriptions(platform: PlatformKey | null) {
   const technology =
     platform === 'react-native' ||
     platform === 'java-spring' ||
-    platform === 'apple-ios' ||
     platform === 'dotnet-aspnetcore'
       ? platform
       : platform?.split('-')[0];
@@ -119,12 +118,14 @@ function getTermDescriptions(platform: PlatformKey | null) {
           'An unhandled exception that resulted in the application crashing'
         ),
       };
-
     case 'apple': {
       return {
         ...commonTermsDescription,
         ...mobileTermsDescription,
         [SessionTerm.CRASHED]: t('An error that resulted in the application crashing'),
+        [SessionTerm.ANR_RATE]: t(
+          'Percentage of unique users that experienced a fatal App Hang.'
+        ),
       };
     }
     case 'node':
@@ -142,7 +143,6 @@ function getTermDescriptions(platform: PlatformKey | null) {
         [SessionTerm.UNHANDLED]:
           "An error was captured by the global 'onerror' or 'onunhandledrejection' handler.",
       };
-    case 'apple-ios':
     case 'minidump':
     case 'native':
     case 'nintendo-switch':

@@ -19,50 +19,42 @@ export function useIsLaravelInsightsAvailable() {
 
   const selectedProjects = getSelectedProjectList(selection.projects, projects);
 
-  return selectedProjects.length === 1 && hasLaravelInsightsFeature(organization);
+  const isOnlyLaravelSelected = selectedProjects.every(
+    project => project.platform === 'php-laravel'
+  );
+
+  return hasLaravelInsightsFeature(organization) && isOnlyLaravelSelected;
 }
+
+// It started out as a dictionary of project IDs, but as we now want a global toggle we use a special key
+// to represent all projects. (This user option is a temporary feature and will be removed in the future.)
+const ALL_PROJECTS_KEY = 'all';
 
 export function useIsLaravelInsightsEnabled() {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const {selection} = usePageFilters();
   const user = useUser();
-
-  const selectedProjects = getSelectedProjectList(selection.projects, projects);
-  const isSingleProject = selectedProjects.length === 1;
-  const selectedProject = selectedProjects[0];
-
-  // The new experience is enabled by default for Laravel projects
-  const defaultValue = Boolean(
-    selectedProject && selectedProject.platform === 'php-laravel'
-  );
+  const isAvailable = useIsLaravelInsightsAvailable();
 
   const isEnabled = Boolean(
-    hasLaravelInsightsFeature(organization) &&
-      isSingleProject &&
-      selectedProject &&
-      (user.options.prefersSpecializedProjectOverview[selectedProject.id] ?? defaultValue)
+    isAvailable &&
+      (user.options.prefersSpecializedProjectOverview[ALL_PROJECTS_KEY] ?? true)
   );
 
   const {mutate: mutateUserOptions} = useMutateUserOptions();
 
   const setIsEnabled = useCallback(
     (enabled: boolean) => {
-      if (
-        !isSingleProject ||
-        !selectedProject ||
-        !hasLaravelInsightsFeature(organization)
-      ) {
+      if (!hasLaravelInsightsFeature(organization)) {
         return;
       }
 
       mutateUserOptions({
         prefersSpecializedProjectOverview: {
-          [selectedProject.id]: enabled,
+          [ALL_PROJECTS_KEY]: enabled,
         },
       });
     },
-    [mutateUserOptions, selectedProject, isSingleProject, organization]
+    [mutateUserOptions, organization]
   );
 
   return [isEnabled, setIsEnabled] as const;

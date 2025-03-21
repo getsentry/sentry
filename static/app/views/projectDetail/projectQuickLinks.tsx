@@ -50,6 +50,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
   const hasPerfLandingRemovalFlag = organization.features?.includes(
     'insights-performance-landing-removal'
   );
+  const hasNewFeedback = organization.features.includes('user-feedback-ui');
   const domainView: DomainView | undefined = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
     : 'backend';
@@ -58,7 +59,9 @@ function ProjectQuickLinks({organization, project, location}: Props) {
     {
       title: t('User Feedback'),
       to: {
-        pathname: `/organizations/${organization.slug}/user-feedback/`,
+        pathname: hasNewFeedback
+          ? `/organizations/${organization.slug}/feedback/`
+          : `/organizations/${organization.slug}/user-feedback/`,
         query: {project: project?.id},
       },
     },

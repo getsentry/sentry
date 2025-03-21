@@ -26,14 +26,13 @@ import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
+import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {Aliases, LegendSelection, Release} from '../common/types';
+import type {LegendSelection, Release} from '../common/types';
 
-import {formatSeriesName} from './formatters/formatSeriesName';
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
@@ -50,9 +49,11 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   plottables: Plottable[];
   /**
-   * A mapping of time series fields to their user-friendly labels, if needed
+  /**
+   * Disables navigating to release details when clicked
+   * TODO(billy): temporary until we implement route based nav
    */
-  aliases?: Aliases;
+  disableReleaseNavigation?: boolean;
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
@@ -105,17 +106,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const latestTimeStamp = allBoundaries.at(-1);
 
   const {
-    createReleaseBubbleHighlighter,
+    connectReleaseBubbleChartRef,
     releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRef,
     chartRenderer: ({start: trimStart, end: trimEnd}) => {
       return (
         <TimeSeriesWidgetVisualization
           {...props}
+          disableReleaseNavigation
           plottables={props.plottables.map(plottable =>
             plottable.constrain(trimStart, trimEnd)
           )}
@@ -137,6 +138,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           theme,
           props.releases,
           function onReleaseClick(release: Release) {
+            if (props.disableReleaseNavigation) {
+              return;
+            }
             navigate(
               makeReleasesPathname({
                 organization,
@@ -162,14 +166,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       registerWithWidgetSyncContext(echartsInstance);
 
       if (hasReleaseBubblesSeries) {
-        createReleaseBubbleHighlighter(echartsInstance);
+        connectReleaseBubbleChartRef(e);
       }
     },
-    [
-      hasReleaseBubblesSeries,
-      createReleaseBubbleHighlighter,
-      registerWithWidgetSyncContext,
-    ]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
   );
 
   const chartZoomProps = useChartZoom({
@@ -182,17 +182,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
 
   // Sort the field types by how many plottables use each one
-  const axisTypes = (
-    Object.keys(fieldTypeCounts).filter(key => {
-      // JavaScript objects cannot have `undefined` or `null` as keys. lodash
-      // `groupBy` casts those cases to strings. This is _very_ rare, since it
-      // indicates a backend failure to provide the correct data type, but it
-      // happens sometimes. Filter those out. It would be cleaner to use a type
-      // predicate here, but consistently enforcing plottable values is a lot of
-      // work
-      return !['undefined', 'null'].includes(key);
-    }) as AggregationOutputType[]
-  )
+  const axisTypes = Object.keys(fieldTypeCounts)
     .toSorted(
       // `dataTypes` is extracted from `dataTypeCounts`, so the counts are guaranteed to exist
       (a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!
@@ -200,7 +190,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     .filter(axisType => !!axisType); // `TimeSeries` allows for a `null` data type , though it's not likely
 
   // Assign most popular field type to left axis
-  const leftYAxisType = axisTypes.at(0) ?? FALLBACK_TYPE;
+  const leftYAxisType = axisTypes.at(0)!;
 
   // Assign the rest of the field types to right
   const rightYAxisTypes = axisTypes.slice(1);
@@ -215,6 +205,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       : rightYAxisTypes.length > 2
         ? FALLBACK_TYPE
         : undefined;
+
+  if (leftYAxisType === FALLBACK_TYPE && rightYAxisType !== FALLBACK_TYPE) {
+    warn(
+      '`TimeSeriesWidgetVisualization` assigned fallback to left Y axis instead of right Y axis',
+      {
+        labels: props.plottables.map(plottable => plottable.label),
+        leftYAxisType,
+        rightYAxisType,
+      }
+    );
+  }
 
   // Create a map of used units by plottable data type
   const unitsByType = mapValues(plottablesByType, plottables =>
@@ -341,9 +342,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
       },
-      nameFormatter: seriesName => {
-        return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
-      },
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -383,7 +381,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     if (plottable.dataType === leftYAxisType) {
       // This plottable matches the left axis
       yAxisPosition = 'left';
-    } else if (rightYAxisTypes.includes(plottable.dataType ?? FALLBACK_TYPE)) {
+    } else if (rightYAxisTypes.includes(plottable.dataType)) {
       // This plottable matches the right axis
       yAxisPosition = 'right';
     } else {
@@ -401,8 +399,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           rightAxisType: rightYAxisType,
         });
       });
-
-      yAxisPosition = leftYAxisType === FALLBACK_TYPE ? 'left' : 'right';
     }
 
     // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
@@ -450,7 +446,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               left: 0,
               formatter(seriesName: string) {
                 return truncationFormatter(
-                  props.aliases?.[seriesName] ?? formatSeriesName(seriesName),
+                  seriesName,
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.

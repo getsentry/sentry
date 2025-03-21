@@ -745,25 +745,45 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     )
     @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.logger")
     def test_seer_call_null_aggregation_value(self, mock_logger, mock_seer_request):
+        seer_return_value: DetectAnomaliesResponse = {
+            "success": True,
+            "timeseries": [
+                {
+                    "anomaly": {
+                        "anomaly_score": 0.9,
+                        "anomaly_type": AnomalyType.HIGH_CONFIDENCE.value,
+                    },
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ],
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         processor = SubscriptionProcessor(self.sub)
+        processor.alert_rule = self.dynamic_rule
         result = get_anomaly_data_from_seer(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
-            aggregation_value="NULL_VALUE",  # type: ignore[arg-type]
+            aggregation_value=None,
         )
         logger_extra = {
             "subscription_id": self.sub.id,
             "organization_id": self.sub.project.organization.id,
             "project_id": self.sub.project_id,
             "alert_rule_id": self.dynamic_rule.id,
-            "aggregation_value": "NULL_VALUE",
+            "threshold_type": self.dynamic_rule.threshold_type,
+            "sensitivity": self.dynamic_rule.sensitivity,
+            "seasonality": self.dynamic_rule.seasonality,
+            "aggregation_value": None,
+            "dataset": "events",
         }
-        assert result is None
         mock_logger.warning.assert_called_with(
-            "Aggregation value not integer or snuba query is empty",
+            "Aggregation value is none",
             extra=logger_extra,
         )
+        assert result is not None
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")
@@ -953,7 +973,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             last_update=processor.last_update.timestamp(),
             aggregation_value=10,
         )
-        mock_logger.error.assert_called_with(
+        mock_logger.info.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
             extra={
                 "subscription_id": self.sub.id,

@@ -50,9 +50,22 @@ from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import QueryTooManySimultaneous, RateLimitExceeded, bulk_snuba_queries
+from sentry.utils.snuba import (
+    QueryExecutionError,
+    QueryTooManySimultaneous,
+    RateLimitExceeded,
+    SnubaError,
+    UnexpectedResponseError,
+    bulk_snuba_queries,
+)
 
-SNUBA_RETRY_EXCEPTIONS = (RateLimitExceeded, QueryTooManySimultaneous)
+SNUBA_RETRY_EXCEPTIONS = (
+    RateLimitExceeded,
+    QueryTooManySimultaneous,
+    SnubaError,
+    QueryExecutionError,
+    UnexpectedResponseError,
+)
 NODESTORE_RETRY_EXCEPTIONS = (ServiceUnavailable, DeadlineExceeded)
 
 logger = logging.getLogger(__name__)

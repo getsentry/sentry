@@ -47,6 +47,14 @@ class WorkflowJob(EventJob, total=False):
 
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
+    data_schema: ClassVar[dict[str, Any]]
+
+    class Group(StrEnum):
+        NOTIFICATION = "notification"
+        TICKET_CREATION = "ticket_creation"
+        OTHER = "other"
+
+    group: ClassVar[Group]
 
     @staticmethod
     def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
@@ -64,12 +72,18 @@ class DataSourceTypeHandler(Generic[T]):
 
 
 class DataConditionHandler(Generic[T]):
-    class Type(StrEnum):
+    class Group(StrEnum):
         DETECTOR_TRIGGER = "detector_trigger"
         WORKFLOW_TRIGGER = "workflow_trigger"
         ACTION_FILTER = "action_filter"
 
-    type: ClassVar[list[Type]]
+    class Subgroup(StrEnum):
+        ISSUE_ATTRIBUTES = "issue_attributes"
+        FREQUENCY = "frequency"
+        EVENT_ATTRIBUTES = "event_attributes"
+
+    group: ClassVar[Group]
+    subgroup: ClassVar[Subgroup]
     comparison_json_schema: ClassVar[dict[str, Any]] = {}
 
     @staticmethod

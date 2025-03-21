@@ -7,7 +7,7 @@ from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 @condition_handler_registry.register(Condition.ANOMALY_DETECTION)
 class AnomalyDetectionHandler(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.DETECTOR_TRIGGER]
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod

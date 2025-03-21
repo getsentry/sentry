@@ -170,7 +170,7 @@ export function useWrappedDiscoverQuery<T>({
     cursor,
     limit,
     options: {
-      enabled: enabled && pageFiltersReady,
+      enabled: enabled && pageFiltersReady, // TODO this has a bug: if enabled is undefined, this short-circuits to undefined, which becomes true, regardless of pageFiltersReady
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,

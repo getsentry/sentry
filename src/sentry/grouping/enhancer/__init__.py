@@ -6,7 +6,7 @@ import os
 import zlib
 from collections import Counter
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Any, Literal, NotRequired, TypedDict
 
 import msgpack
 import sentry_sdk
@@ -23,7 +23,7 @@ from sentry.utils.safe import get_path, set_path
 from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
-from .rules import EnhancementRule
+from .rules import EnhancementRule, EnhancementRuleDict
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +82,7 @@ def parse_rust_enhancements(
         raise InvalidEnhancerConfig(str(e))
 
 
+# TODO: Convert this into a typeddict in ophio
 RustExceptionData = dict[str, bytes | None]
 
 
@@ -94,11 +95,15 @@ def make_rust_exception_data(
         "value": e.get("value"),
         "mechanism": get_path(e, "mechanism", "type"),
     }
-    for key in e.keys():
-        value = e[key]
+    for key, value in e.items():
         if isinstance(value, str):
             e[key] = value.encode("utf-8")
-    return e
+
+    return RustExceptionData(
+        ty=e["ty"],
+        value=e["value"],
+        mechanism=e["mechanism"],
+    )
 
 
 def is_valid_profiling_matcher(matchers: list[str]) -> bool:
@@ -126,6 +131,13 @@ def keep_profiling_rules(config: str) -> str:
     return "\n".join(filtered_rules)
 
 
+class EnhancementsDict(TypedDict):
+    id: str | None
+    bases: list[str]
+    latest: bool
+    rules: NotRequired[list[EnhancementRuleDict]]
+
+
 class Enhancements:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
@@ -133,18 +145,19 @@ class Enhancements:
     # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
 
     def __init__(
-        self, rules, rust_enhancements: RustEnhancements, version=None, bases=None, id=None
+        self,
+        rules: list[EnhancementRule],
+        rust_enhancements: RustEnhancements,
+        version: int | None = None,
+        bases: list[str] | None = None,
+        id: str | None = None,
     ):
         self.id = id
         self.rules = rules
-        if version is None:
-            version = LATEST_VERSION
-        self.version = version
-        if bases is None:
-            bases = []
-        self.bases = bases
+        self.version = version or LATEST_VERSION
+        self.bases = bases or []
 
-        self.rust_enhancements = merge_rust_enhancements(bases, rust_enhancements)
+        self.rust_enhancements = merge_rust_enhancements(self.bases, rust_enhancements)
 
     def apply_category_and_updated_in_app_to_frames(
         self,
@@ -160,7 +173,8 @@ class Enhancements:
         also be persisted in the saved event, so they can be used in the UI and when determining
         things like suspect commits and suggested assignees.
         """
-        match_frames = [create_match_frame(frame, platform) for frame in frames]
+        # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
+        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
         category_and_in_app_results = self.rust_enhancements.apply_modifications_to_frames(
             match_frames, make_rust_exception_data(exception_data)
@@ -188,16 +202,17 @@ class Enhancements:
 
         This also handles cases where the entire stacktrace should be discarded.
         """
-        match_frames = [create_match_frame(frame, platform) for frame in frames]
+        # TODO: Fix this type to list[MatchFrame] once it's fixed in ophio
+        match_frames: list[Any] = [create_match_frame(frame, platform) for frame in frames]
 
-        rust_components = [RustComponent(contributes=c.contributes) for c in frame_components]
+        rust_frame_components = [RustComponent(contributes=c.contributes) for c in frame_components]
 
         # Modify the rust components by applying +group/-group rules and getting hints for both
         # those changes and the `in_app` changes applied by earlier in the ingestion process by
         # `apply_category_and_updated_in_app_to_frames`. Also, get `hint` and `contributes` values
         # for the overall stacktrace (returned in `rust_results`).
         rust_results = self.rust_enhancements.assemble_stacktrace_component(
-            match_frames, make_rust_exception_data(exception_data), rust_components
+            match_frames, make_rust_exception_data(exception_data), rust_frame_components
         )
 
         # Tally the number of each type of frame in the stacktrace. Later on, this will allow us to
@@ -206,7 +221,7 @@ class Enhancements:
         frame_counts: Counter[str] = Counter()
 
         # Update frame components with results from rust
-        for py_component, rust_component in zip(frame_components, rust_components):
+        for py_component, rust_component in zip(frame_components, rust_frame_components):
             # TODO: Remove the first condition once we get rid of the legacy config
             if (
                 not (self.bases and self.bases[0].startswith("legacy"))
@@ -276,8 +291,8 @@ class Enhancements:
 
         return stacktrace_component
 
-    def as_dict(self, with_rules=False):
-        rv = {
+    def as_dict(self, with_rules: bool = False) -> EnhancementsDict:
+        rv: EnhancementsDict = {
             "id": self.id,
             "bases": self.bases,
             "latest": projectoptions.lookup_well_known_key(
@@ -289,11 +304,12 @@ class Enhancements:
             rv["rules"] = [x.as_dict() for x in self.rules]
         return rv
 
-    def _to_config_structure(self):
+    def _to_config_structure(self) -> list[Any]:
+        # TODO: Can we switch this to a tuple so we can type it more exactly?
         return [
             self.version,
             self.bases,
-            [x._to_config_structure(self.version) for x in self.rules],
+            [rule._to_config_structure(self.version) for rule in self.rules],
         ]
 
     def dumps(self) -> str:
@@ -302,19 +318,23 @@ class Enhancements:
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")
 
     @classmethod
-    def _from_config_structure(cls, data, rust_enhancements: RustEnhancements) -> Enhancements:
+    def _from_config_structure(
+        cls,
+        data: list[Any],
+        rust_enhancements: RustEnhancements,
+    ) -> Enhancements:
         version, bases, rules = data
         if version not in VERSIONS:
             raise ValueError("Unknown version")
         return cls(
-            rules=[EnhancementRule._from_config_structure(x, version=version) for x in rules],
+            rules=[EnhancementRule._from_config_structure(rule, version=version) for rule in rules],
             rust_enhancements=rust_enhancements,
             version=version,
             bases=bases,
         )
 
     @classmethod
-    def loads(cls, data) -> Enhancements:
+    def loads(cls, data: str | bytes) -> Enhancements:
         if isinstance(data, str):
             data = data.encode("ascii", "ignore")
         padded = data + b"=" * (4 - (len(data) % 4))
@@ -334,7 +354,9 @@ class Enhancements:
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_config_string(cls, s, bases=None, id=None) -> Enhancements:
+    def from_config_string(
+        cls, s: str, bases: list[str] | None = None, id: str | None = None
+    ) -> Enhancements:
         rust_enhancements = parse_rust_enhancements("config_string", s)
 
         rules = parse_enhancements(s)
@@ -348,17 +370,19 @@ class Enhancements:
 
 
 def _load_configs() -> dict[str, Enhancements]:
-    rv = {}
-    base = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
-    for fn in os.listdir(base):
-        if fn.endswith(".txt"):
-            with open(os.path.join(base, fn), encoding="utf-8") as f:
+    enhancement_bases = {}
+    configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
+    for filename in os.listdir(configs_dir):
+        if filename.endswith(".txt"):
+            with open(os.path.join(configs_dir, filename), encoding="utf-8") as f:
+                # Strip the extension
+                filename = filename.replace(".txt", "")
                 # We cannot use `:` in filenames on Windows but we already have ids with
                 # `:` in their names hence this trickery.
-                fn = fn.replace("@", ":")
-                enhancements = Enhancements.from_config_string(f.read(), id=fn[:-4])
-                rv[fn[:-4]] = enhancements
-    return rv
+                filename = filename.replace("@", ":")
+                enhancements = Enhancements.from_config_string(f.read(), id=filename)
+                enhancement_bases[filename] = enhancements
+    return enhancement_bases
 
 
 ENHANCEMENT_BASES = _load_configs()

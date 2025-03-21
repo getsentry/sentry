@@ -43,7 +43,10 @@ export function SolutionsSectionCtaButton({
   const openButtonRef = useRef<HTMLButtonElement>(null);
 
   const {isPending: isAutofixPending} = useAutofixData({groupId: group.id});
-  const {autofixData} = useAiAutofix(group, event);
+  const {autofixData} = useAiAutofix(group, event, {
+    isSidebar: true,
+    pollInterval: 1500,
+  });
 
   const openSolutionsDrawer = useOpenSolutionsDrawer(
     group,
