@@ -2201,14 +2201,19 @@ class Factories:
         data: dict[str, Any] | None = None,
         **kwargs,
     ) -> Action:
+        if config is None and type is None and data is None:
+            # Default to a slack action with nice defaults so someone can just do
+            # self.create_action() and have a sane default
+            config = {
+                "target_identifier": "1",
+                "target_display": "Sentry User",
+                "target_type": ActionTarget.SPECIFIC,
+            }
+
+            data = {"notes": "bufos are great", "tags": "bufo-bot"}
+
         if config is None:
             config = {}
-            if type == Action.Type.SLACK:
-                config = {
-                    "target_identifier": "1",
-                    "target_display": "Sentry User",
-                    "target_type": ActionTarget.SPECIFIC,
-                }
 
         if data is None:
             data = {}
