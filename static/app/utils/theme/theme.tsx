@@ -913,6 +913,7 @@ const dataCategory: Record<
     DataCategory,
     | 'profiles'
     | 'profileChunks'
+    | 'profileChunksUI'
     | 'profileDuration'
     | 'profileDurationUI'
     | 'spans'
