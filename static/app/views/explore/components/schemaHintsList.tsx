@@ -57,6 +57,17 @@ function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
   return keys.map(key => tags[key]).filter(tag => !!tag);
 }
 
+export function addFilterToQuery(
+  filterQuery: MutableSearch,
+  tag: Tag,
+  isBoolean: boolean
+) {
+  filterQuery.addFilterValue(
+    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
+  );
+}
+
 function SchemaHintsList({
   supportedAggregates,
   numberTags,
@@ -225,10 +236,7 @@ function SchemaHintsList({
       const isBoolean =
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
-      newSearchQuery.addFilterValue(
-        hint.key,
-        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
-      );
+      addFilterToQuery(newSearchQuery, hint, isBoolean);
       setExploreQuery(newSearchQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
