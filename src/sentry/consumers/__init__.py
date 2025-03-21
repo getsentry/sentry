@@ -461,6 +461,7 @@ def get_stream_processor(
     stale_threshold_sec: int | None = None,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
+    max_dlq_buffer_length: int | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -594,7 +595,7 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             dlq_producer,
             None,
-            None,
+            max_dlq_buffer_length,
         )
 
     else:
