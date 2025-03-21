@@ -104,10 +104,10 @@ describe('gcpfunctions onboarding docs', function () {
 
     // Should have start and stop profiling calls
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfileSession/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.startProfiler/))
     ).toBeInTheDocument();
     expect(
-      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfileSession/))
+      screen.getByText(textWithMarkupMatcher(/Sentry.profiler.stopProfiler/))
     ).toBeInTheDocument();
   });
 });
