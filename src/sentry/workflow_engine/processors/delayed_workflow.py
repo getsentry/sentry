@@ -308,8 +308,13 @@ def parse_dcg_group_event_data(
 
     for workflow_group_dcg, instance_data in workflow_event_dcg_data.items():
         data = workflow_group_dcg.split(":")
-        event_data = json.loads(instance_data)
 
+        group_id = int(data[1])
+        if group_id not in groups_to_dcg_ids:
+            # the group did not trigger any workflows
+            continue
+
+        event_data = json.loads(instance_data)
         event_id = event_data.get("event_id")
         if event_id:
             event_ids.add(event_id)
@@ -318,7 +323,6 @@ def parse_dcg_group_event_data(
         if occurrence_id:
             occurrence_ids.add(occurrence_id)
 
-        group_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
 
         for dcg_id in dcg_ids:
