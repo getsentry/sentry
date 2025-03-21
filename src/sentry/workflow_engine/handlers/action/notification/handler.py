@@ -93,14 +93,104 @@ class NotificationActionHandler(ActionHandler, ABC):
 class DiscordActionHandler(NotificationActionHandler):
     group = NotificationActionHandler.Group.NOTIFICATION
 
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Discord Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {"type": "string"},
+            "target_display": {
+                "type": ["null"],
+            },
+            "target_type": {
+                "type": ["integer"],
+                "enum": [*ActionTarget],
+            },
+        },
+    }
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for Discord action data blob",
+        "properties": {
+            "tags": {
+                "type": "string",
+                "description": "Tags to add to the Discord message",
+            },
+        },
+        "additionalProperties": False,
+    }
+
 
 @action_handler_registry.register(Action.Type.SLACK)
 class SlackActionHandler(NotificationActionHandler):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Slack Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {
+                "type": ["string"],
+            },
+            "target_display": {
+                "type": ["string"],
+            },
+            "target_type": {
+                "type": ["integer"],
+                "enum": [*ActionTarget],
+            },
+        },
+    }
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for Slack action data blob",
+        "properties": {
+            "tags": {
+                "type": "string",
+                "description": "Tags to add to the Slack message",
+            },
+            "notes": {
+                "type": "string",
+                "description": "Notes to add to the Slack message",
+            },
+        },
+        "additionalProperties": False,
+    }
+
     group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.MSTEAMS)
 class MsteamsActionHandler(NotificationActionHandler):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a MSTeams Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {
+                "type": ["string"],
+            },
+            "target_display": {
+                "type": ["string"],
+            },
+            "target_type": {
+                "type": ["integer"],
+                "enum": [*ActionTarget],
+            },
+        },
+    }
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for MSTeams action data blob",
+        "properties": {},
+        "additionalProperties": False,
+    }
+
     group = ActionHandler.Group.NOTIFICATION
 
 
