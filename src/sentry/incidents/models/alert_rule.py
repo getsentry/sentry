@@ -475,7 +475,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             try:
                 return OrganizationMember.objects.get(
                     user_id=int(self.target_identifier),
-                    organization=self.alert_rule_trigger.alert_rule.organization.id,
+                    organization=self.alert_rule_trigger.alert_rule.organization_id,
                 )
             except OrganizationMember.DoesNotExist:
                 pass
