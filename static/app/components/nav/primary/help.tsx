@@ -11,8 +11,6 @@ import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
 
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
-
 function getContactSupportItem({
   organization,
 }: {
@@ -30,7 +28,7 @@ function getContactSupportItem({
       label: t('Contact Support'),
       onAction() {
         activateZendesk();
-        trackGetsentryAnalytics('zendesk_link.clicked', {
+        trackAnalytics('zendesk_link.clicked', {
           organization,
           source: 'sidebar',
         });
