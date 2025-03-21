@@ -94,6 +94,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedUptime,
       reservedSpans,
       reservedProfileDuration,
+      reservedProfileDurationUI,
     } = this.state;
     const api = new Client();
 
@@ -125,6 +126,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedReplays: number | null;
       reservedUptime: number | null;
       reservedProfileDuration?: number | null;
+      reservedProfileDurationUI?: number | null;
       reservedSpans?: number | null;
       reservedTransactions?: number | null;
     } = {
@@ -135,6 +137,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedMonitorSeats,
       reservedUptime,
       reservedProfileDuration,
+      reservedProfileDurationUI,
     };
     if (reservedSpans) {
       data.reservedSpans = reservedSpans;
@@ -169,6 +172,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedUptime,
       reservedSpans,
       reservedProfileDuration,
+      reservedProfileDurationUI,
       am2BillingConfig,
       am3BillingConfig,
     } = this.state;
@@ -190,6 +194,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedMonitorSeats &&
       reservedUptime &&
       (profileDurationTier ? reservedProfileDuration >= 0 : true) &&
+      (profileDurationTier ? reservedProfileDurationUI >= 0 : true) &&
       (reservedTransactions || reservedSpans)
     );
   }
@@ -209,7 +214,8 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       | 'reservedMonitorSeats'
       | 'reservedUptime'
       | 'reservedSpans'
-      | 'reservedProfileDuration',
+      | 'reservedProfileDuration'
+      | 'reservedProfileDurationUI',
     value: number
   ) => {
     this.setState({[limit]: value}, () => {
@@ -228,6 +234,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedUptime,
       reservedSpans,
       reservedProfileDuration,
+      reservedProfileDurationUI,
       activeTier,
       loading,
       billingInterval,
@@ -434,6 +441,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
           reservedMonitorSeats={reservedMonitorSeats}
           reservedUptime={reservedUptime}
           reservedProfileDuration={reservedProfileDuration}
+          reservedProfileDurationUI={reservedProfileDurationUI}
           plans={planList}
           onPlanChange={this.handlePlanChange}
           onLimitChange={this.handleLimitChange}
