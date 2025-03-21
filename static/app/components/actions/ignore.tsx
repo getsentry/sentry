@@ -247,9 +247,10 @@ function IgnoreActions({
   });
 
   return (
-    <ButtonBar className={className} merged>
+    <ButtonBar merged>
       <IgnoreButton
         size={size}
+        className={className}
         tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
@@ -261,6 +262,7 @@ function IgnoreActions({
       </IgnoreButton>
       <DropdownMenu
         size="sm"
+        className={className}
         trigger={triggerProps => (
           <DropdownTrigger
             {...triggerProps}

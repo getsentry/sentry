@@ -134,9 +134,10 @@ function ArchiveActions({
   });
 
   return (
-    <ButtonBar className={className} merged>
+    <ButtonBar merged>
       <ArchiveButton
         size={size}
+        className={className}
         tooltipProps={{delay: 1000, disabled, isHoverable: true}}
         title={tct(
           'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab. [docs:Read the docs]',
@@ -152,8 +153,9 @@ function ArchiveActions({
         {t('Archive')}
       </ArchiveButton>
       <DropdownMenu
-        minMenuWidth={270}
         size="sm"
+        className={className}
+        minMenuWidth={270}
         trigger={(triggerProps, isOpen) => (
           <DropdownTrigger
             {...triggerProps}
