@@ -1430,28 +1430,13 @@ function buildRoutes() {
     </Fragment>
   );
 
+  // XXX(epurkhiser): This is legacy until we remove crons from the sidebar
   const cronsRoutes = (
     <Route
       path="/crons/"
       component={make(() => import('sentry/views/monitors'))}
       withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
-      <Route
-        path="create/"
-        component={make(() => import('sentry/views/monitors/create'))}
-      />
-      <Redirect from=":monitorSlug/" to="/crons/" />
-      <Redirect from=":monitorSlug/edit/" to="/crons/" />
-      <Route
-        path=":projectId/:monitorSlug/"
-        component={make(() => import('sentry/views/monitors/details'))}
-      />
-      <Route
-        path=":projectId/:monitorSlug/edit/"
-        component={make(() => import('sentry/views/monitors/edit'))}
-      />
-    </Route>
+    />
   );
 
   const replayChildRoutes = (
@@ -2016,6 +2001,10 @@ function buildRoutes() {
         {releasesChildRoutes}
       </Route>
       <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
+      <Route
+        path="saved-queries/"
+        component={make(() => import('sentry/views/explore/savedQueries'))}
+      />
     </Route>
   );
 

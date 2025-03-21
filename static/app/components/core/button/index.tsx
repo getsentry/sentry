@@ -52,10 +52,6 @@ interface CommonButtonProps {
    */
   analyticsParams?: Record<string, any>;
   /**
-   * Used by ButtonBar to determine active status.
-   */
-  barId?: string;
-  /**
    * Removes borders from the button.
    */
   borderless?: boolean;

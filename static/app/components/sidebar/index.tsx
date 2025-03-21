@@ -232,6 +232,18 @@ function Sidebar() {
     </Feature>
   );
 
+  const savedQueries = hasOrganization && (
+    <Feature features="performance-saved-queries" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="saved-queries">{t('All Queries')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/saved-queries/`}
+        id="performance-saved-queries"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
   const hasPerfLandingRemovalFlag = organization?.features.includes(
     'insights-performance-landing-removal'
   );
@@ -426,6 +438,7 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover}
+      {savedQueries}
     </SidebarAccordion>
   );
 
