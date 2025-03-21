@@ -62,7 +62,7 @@ import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudget
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
-import SetBudgetAndReserves from 'getsentry/views/amCheckout/steps/setBudgetAndReserves';
+import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
@@ -248,15 +248,16 @@ class AMCheckout extends Component<Props, State> {
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetBudgetAndReserves, ReviewAndConfirm];
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
       }
-      return [PlanSelect, SetBudgetAndReserves, ContractSelect, ReviewAndConfirm];
+      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
     }
 
     // Display for AM3 tiers and above
     return [
       PlanSelect,
-      SetBudgetAndReserves,
+      SetPayAsYouGo,
+      AddDataVolume,
       ContractSelect,
       AddPaymentMethod,
       AddBillingDetails,

@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
 import {
   hasPartnerMigrationFeature,
@@ -26,8 +27,6 @@ import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {getTotalBudget} from 'getsentry/views/onDemandBudgets/utils';
 
-const PAYG_BUSINESS_DEFAULT = 300_00;
-const PAYG_TEAM_DEFAULT = 100_00;
 const INCREMENT_STEP = 25_00;
 
 function SetPayAsYouGo({
@@ -45,6 +44,7 @@ function SetPayAsYouGo({
   const [currentBudget, setCurrentBudget] = useState<number>(
     formData.onDemandBudget ? getTotalBudget(formData.onDemandBudget) : 0
   );
+  const [hasShownSuggestedAmount, setHasShownSuggestedAmount] = useState<boolean>(false);
 
   const checkoutCategories = useMemo(() => {
     return activePlan.checkoutCategories;
@@ -63,33 +63,46 @@ function SetPayAsYouGo({
   const isNewPayingCustomer =
     isDeveloperPlan(subscription.planDetails) || hasPartnerMigrationFeature(organization);
 
-  useEffect(() => {
-    if (isNewPayingCustomer) {
-      setCurrentBudget(suggestedBudgetForPlan);
-    }
-  }, [isNewPayingCustomer, suggestedBudgetForPlan]);
-
-  const handleBudgetChange = (value: OnDemandBudgets, fromButton = false) => {
-    // NOTE: `value` is always a SharedOnDemandBudget here because we don't support per-category budgets
-    // on AM3 but we use getTotalBudget anyway to be type safe
-    const totalBudget = getTotalBudget(value);
-    onUpdate({
-      ...formData,
-      onDemandBudget: value,
-      onDemandMaxSpend: totalBudget,
-    });
-
-    if (organization) {
-      trackGetsentryAnalytics('checkout.payg_changed', {
-        organization,
-        subscription,
-        plan: formData.plan,
-        cents: totalBudget || 0,
-        method: fromButton ? 'button' : 'textbox',
+  const handleBudgetChange = useCallback(
+    (value: OnDemandBudgets, fromButton = false) => {
+      // NOTE: `value` is always a SharedOnDemandBudget here because we don't support per-category budgets
+      // on AM3 but we use getTotalBudget anyway to be type safe
+      const totalBudget = getTotalBudget(value);
+      onUpdate({
+        ...formData,
+        onDemandBudget: value,
+        onDemandMaxSpend: totalBudget,
       });
+
+      if (organization) {
+        trackGetsentryAnalytics('checkout.payg_changed', {
+          organization,
+          subscription,
+          plan: formData.plan,
+          cents: totalBudget || 0,
+          method: fromButton ? 'button' : 'textbox',
+        });
+      }
+      setCurrentBudget(totalBudget);
+    },
+    [onUpdate, organization, subscription, formData]
+  );
+
+  useEffect(() => {
+    if (isNewPayingCustomer && !hasShownSuggestedAmount && isActive) {
+      handleBudgetChange({
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: suggestedBudgetForPlan,
+      });
+      setHasShownSuggestedAmount(true);
     }
-    setCurrentBudget(totalBudget);
-  };
+  }, [
+    isNewPayingCustomer,
+    suggestedBudgetForPlan,
+    handleBudgetChange,
+    hasShownSuggestedAmount,
+    isActive,
+  ]);
 
   const coerceValue = (value: number): string => {
     return (value / 100).toString();
