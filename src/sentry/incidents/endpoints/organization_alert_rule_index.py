@@ -385,7 +385,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             intermediaries.append(CombinedQuerysetIntermediary(issue_rules, rule_sort_key))
         if has_type("uptime"):
             intermediaries.append(CombinedQuerysetIntermediary(uptime_rules, sort_key))
-        if has_type("monitor") and features.has("organizations:insights-crons", organization):
+        if has_type("monitor"):
             intermediaries.append(CombinedQuerysetIntermediary(crons_rules, sort_key))
 
         response = self.paginate(

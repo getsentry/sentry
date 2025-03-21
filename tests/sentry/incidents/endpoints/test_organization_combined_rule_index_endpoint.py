@@ -455,7 +455,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {"project": [self.project.id]}
@@ -480,7 +479,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {"project": [self.project2.id]}
@@ -663,7 +661,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -688,7 +685,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -816,7 +812,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -932,7 +927,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -1042,7 +1036,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -1076,7 +1069,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -1104,7 +1096,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             [
                 "organizations:incidents",
                 "organizations:performance-view",
-                "organizations:insights-crons",
             ]
         ):
             request_data = {
@@ -1329,7 +1320,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
         features = [
             "organizations:incidents",
             "organizations:performance-view",
-            "organizations:insights-crons",
         ]
 
         # Everything comes back without the query parameter
