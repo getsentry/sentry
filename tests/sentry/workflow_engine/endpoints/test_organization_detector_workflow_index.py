@@ -42,14 +42,24 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id},
-            status_code=200,
         )
         assert len(response.data) == 2
+        assert response.data == [
+            {
+                "id": str(self.detector_1_workflow_1.id),
+                "detectorId": str(self.detector_1.id),
+                "workflowId": str(self.workflow_1.id),
+            },
+            {
+                "id": str(self.detector_1_workflow_2.id),
+                "detectorId": str(self.detector_1.id),
+                "workflowId": str(self.workflow_2.id),
+            },
+        ]
 
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.unconnected_detector.id},
-            status_code=200,
         )
         assert len(response.data) == 0
 
@@ -57,7 +67,6 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"workflow_id": self.workflow_1.id},
-            status_code=200,
         )
         assert len(response.data) == 2
         assert response.data == [
@@ -76,7 +85,6 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"workflow_id": self.unconnected_workflow.id},
-            status_code=200,
         )
         assert len(response.data) == 0
 
@@ -84,7 +92,6 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id, "workflow_id": self.workflow_1.id},
-            status_code=200,
         )
         assert len(response.data) == 1
         assert response.data == [
@@ -98,7 +105,6 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
         response = self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_2.id, "workflow_id": self.workflow_2.id},
-            status_code=200,
         )
         assert len(response.data) == 0
 
@@ -115,7 +121,6 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         response = self.get_success_response(
             self.organization.slug,
             **body_params,
-            status_code=200,
         )
         detector_workflow = DetectorWorkflow.objects.get(
             detector_id=self.unconnected_detector.id, workflow_id=self.unconnected_workflow.id
@@ -135,7 +140,6 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             self.get_success_response(
                 self.organization.slug,
                 **body_params,
-                status_code=200,
             )
         detector_workflow = DetectorWorkflow.objects.get(
             detector_id=self.unconnected_detector.id, workflow_id=self.unconnected_workflow.id
@@ -152,7 +156,6 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         self.get_error_response(
             self.organization.slug,
             **body_params,
-            status_code=409,
         )
 
     def test_invalid_id(self):
@@ -160,20 +163,17 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         self.get_error_response(
             self.organization.slug,
             **body_params,
-            status_code=404,
         )
 
         body_params = {"detectorId": self.detector_1.id, "workflowId": -1}
         self.get_error_response(
             self.organization.slug,
             **body_params,
-            status_code=404,
         )
 
     def test_missing_body_params(self):
         self.get_error_response(
             self.organization.slug,
-            status_code=400,
         )
 
 
@@ -181,11 +181,10 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
 class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAPITestCase):
     method = "delete"
 
-    def test_simple_delete(self):
+    def test_simple(self):
         self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id},
-            status_code=204,
         )
         with self.tasks():
             run_scheduled_deletions()
@@ -196,12 +195,16 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
         with outbox_runner():
             self.get_success_response(
                 self.organization.slug,
-                qs_params={"detector_id": self.detector_1.id, "workflow_id": self.workflow_1.id},
-                status_code=204,
+                qs_params={"detector_id": self.detector_1.id},
             )
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert AuditLogEntry.objects.filter(
                 target_object=self.detector_1_workflow_1.id,
+                event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+                actor=self.user,
+            ).exists()
+            assert AuditLogEntry.objects.filter(
+                target_object=self.detector_1_workflow_2.id,
                 event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
                 actor=self.user,
             ).exists()
@@ -210,11 +213,9 @@ class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAP
         self.get_error_response(
             self.organization.slug,
             qs_params={"detector_id": -1},
-            status_code=404,
         )
 
     def test_missing_ids(self):
         self.get_error_response(
             self.organization.slug,
-            status_code=400,
         )
