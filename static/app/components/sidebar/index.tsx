@@ -209,7 +209,7 @@ function Sidebar() {
   );
 
   const traces = hasOrganization && (
-    <Feature features="performance-trace-explorer">
+    <Feature features={['performance-trace-explorer', 'performance-view']}>
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
@@ -227,6 +227,18 @@ function Sidebar() {
         label={<GuideAnchor target="logs">{t('Logs')}</GuideAnchor>}
         to={`/organizations/${organization?.slug}/explore/logs/`}
         id="ourlogs"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
+  );
+
+  const savedQueries = hasOrganization && (
+    <Feature features="performance-saved-queries" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="saved-queries">{t('All Queries')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/saved-queries/`}
+        id="performance-saved-queries"
         icon={<SubitemDot collapsed />}
       />
     </Feature>
@@ -426,6 +438,7 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover}
+      {savedQueries}
     </SidebarAccordion>
   );
 
