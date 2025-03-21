@@ -270,12 +270,12 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
                 {
                     "name": "New query",
                     "projects": self.project_ids,
-                    "fields": [],
+                    "query": [{"fields": []}],
                     "range": "24h",
                 },
             )
         assert response.status_code == 400, response.content
-        assert "This field is required." == response.data["mode"][0]
+        assert "This field is required." == response.data["query"]["mode"][0]
 
     def test_post_success(self):
         with self.feature(self.feature_name):
