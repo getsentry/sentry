@@ -47,6 +47,30 @@ export default function useCrashFreeSessions() {
     };
   }
 
+  // No data to report, just map the intervals to a value of 0
+  if (!sessionData.groups.length) {
+    return {
+      series: [
+        {
+          seriesName: 'crash_free_session_rate',
+          data: sessionData.intervals.map(interval => ({
+            name: interval,
+            value: 0,
+          })),
+          meta: {
+            fields: {
+              [`crash_free_session_rate`]: 'percentage' as const,
+              time: 'date' as const,
+            },
+            units: {},
+          },
+        },
+      ],
+      isPending,
+      error,
+    };
+  }
+
   // Maps release to its API response groups
   const releaseGroupMap = new Map<string, typeof sessionData.groups>();
 
