@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -56,12 +57,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         self.group, self.event, self.group_event = self.create_group_event()
         self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "group_state": GroupState(
-                    id=1, is_new=False, is_regression=True, is_new_group_environment=False
-                ),
-            }
+            event=self.group_event,
+            group_state=GroupState(
+                id=1, is_new=False, is_regression=True, is_new_group_environment=False
+            ),
         )
 
     def test_skips_disabled_workflows(self):
@@ -103,16 +102,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             extra={
                 "workflow_id": self.error_workflow.id,
                 "rule_id": rule.id,
-                "payload": {
-                    "event": self.group_event,
-                    "group_state": {
-                        "id": 1,
-                        "is_new": False,
-                        "is_regression": True,
-                        "is_new_group_environment": False,
-                    },
-                    "workflow": self.error_workflow,
-                },
+                "payload": asdict(self.job),
                 "group_id": self.group.id,
                 "event_id": self.event.event_id,
             },
@@ -124,12 +114,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         self.group, self.event, self.group_event = self.create_group_event(environment=env.name)
         self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "group_state": GroupState(
-                    id=1, is_new=False, is_regression=True, is_new_group_environment=False
-                ),
-            }
+            event=self.group_event,
+            group_state=GroupState(
+                id=1, is_new=False, is_regression=True, is_new_group_environment=False
+            ),
         )
 
         # only processes workflows with the same env or no env specified
@@ -222,7 +210,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_no_metrics_triggered(self, mock_logger, mock_incr):
-        self.job["event"].project_id = 0
+        self.job.event.project_id = 0
 
         process_workflows(self.job)
         mock_incr.assert_called_once_with("workflow_engine.process_workflows.error")
@@ -274,7 +262,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = WorkflowJob(event=self.group_event)
 
     def test_workflow_trigger(self):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
@@ -359,7 +347,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = WorkflowJob(event=self.group_event)
         self.create_workflow_action(self.workflow)
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -486,7 +474,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = WorkflowJob(event=self.group_event)
 
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)

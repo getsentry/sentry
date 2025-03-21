@@ -90,17 +90,15 @@ class TestEventAttributeCondition(ConditionTestCase):
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
         self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "group_state": GroupState(
-                    {
-                        "id": 1,
-                        "is_regression": False,
-                        "is_new": False,
-                        "is_new_group_environment": False,
-                    }
-                ),
-            }
+            event=self.group_event,
+            group_state=GroupState(
+                {
+                    "id": 1,
+                    "is_regression": False,
+                    "is_new": False,
+                    "is_new_group_environment": False,
+                }
+            ),
         )
 
     def error_setup(self):

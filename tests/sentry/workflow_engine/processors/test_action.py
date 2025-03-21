@@ -25,7 +25,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = WorkflowJob(event=self.group_event)
 
     def test(self):
         # test default frequency when no workflow.config set

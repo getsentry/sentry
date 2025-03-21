@@ -41,17 +41,15 @@ class TestRegressionEventCondition(ConditionTestCase):
 
     def test(self):
         job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "group_state": GroupState(
-                    {
-                        "id": 1,
-                        "is_regression": True,
-                        "is_new": False,
-                        "is_new_group_environment": False,
-                    }
-                ),
-            }
+            event=self.group_event,
+            group_state=GroupState(
+                {
+                    "id": 1,
+                    "is_regression": True,
+                    "is_new": False,
+                    "is_new_group_environment": False,
+                }
+            ),
         )
         dc = self.create_data_condition(
             type=self.condition,
@@ -61,5 +59,6 @@ class TestRegressionEventCondition(ConditionTestCase):
 
         self.assert_passes(dc, job)
 
-        job["group_state"]["is_regression"] = False
+        assert job.group_state
+        job.group_state["is_regression"] = False
         self.assert_does_not_pass(dc, job)
