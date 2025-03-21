@@ -77,9 +77,7 @@ describe('InvoiceDetails', function () {
       method: 'GET',
       body: basicInvoice,
     });
-    render(
-      <InvoiceDetails {...routerProps} params={params} organization={organization} />
-    );
+    render(<InvoiceDetails {...routerProps} params={params} />);
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
@@ -97,13 +95,7 @@ describe('InvoiceDetails', function () {
       body: creditInvoice,
     });
     const creditParams = {invoiceGuid: creditInvoice.id};
-    render(
-      <InvoiceDetails
-        {...routerProps}
-        params={creditParams}
-        organization={organization}
-      />
-    );
+    render(<InvoiceDetails {...routerProps} params={creditParams} />);
     await waitFor(() => expect(mockapi).toHaveBeenCalled());
 
     expect(await screen.findByText('Sentry')).toBeInTheDocument();
@@ -194,16 +186,9 @@ describe('InvoiceDetails', function () {
     });
 
     renderGlobalModal();
-    render(
-      <InvoiceDetails
-        {...routerProps}
-        params={pastDueParams}
-        organization={organization}
-      />,
-      {
-        router,
-      }
-    );
+    render(<InvoiceDetails {...routerProps} params={pastDueParams} />, {
+      router,
+    });
 
     await waitFor(() => expect(mockapiInvoice).toHaveBeenCalled());
     await waitFor(() => expect(mockapiPayments).toHaveBeenCalled());
