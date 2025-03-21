@@ -22,6 +22,7 @@ export const GIFT_CATEGORIES: string[] = [
   DataCategory.SPANS,
   DataCategory.SPANS_INDEXED,
   DataCategory.PROFILE_DURATION,
+  DataCategory.PROFILE_DURATION_UI,
   DataCategory.UPTIME,
 ];
 
