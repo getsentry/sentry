@@ -162,7 +162,6 @@ module = [
     "sentry.release_health.metrics_sessions_v2",
     "sentry.rules.actions.integrations.create_ticket.utils",
     "sentry.rules.history.preview",
-    "sentry.scim.endpoints.teams",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.filter_aliases",
