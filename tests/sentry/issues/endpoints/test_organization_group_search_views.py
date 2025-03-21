@@ -2,7 +2,6 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.groupsearchview import GroupSearchView
@@ -44,7 +43,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -60,7 +58,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -75,7 +72,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -90,7 +86,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -105,7 +100,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=self.user_2.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -136,7 +130,12 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data == serialize(objs["user_one_views"])
+        assert response.data[0]["id"] == str(objs["user_one_views"][0].id)
+        assert response.data[0]["position"] == 0
+        assert response.data[1]["id"] == str(objs["user_one_views"][1].id)
+        assert response.data[1]["position"] == 1
+        assert response.data[2]["id"] == str(objs["user_one_views"][2].id)
+        assert response.data[2]["position"] == 2
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -169,7 +168,10 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
         self.login_as(user=self.user_2)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data == serialize(objs["user_two_views"])
+        assert response.data[0]["id"] == str(objs["user_two_views"][0].id)
+        assert response.data[0]["position"] == 0
+        assert response.data[1]["id"] == str(objs["user_two_views"][1].id)
+        assert response.data[1]["position"] == 1
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -277,6 +279,23 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             assert starred_views[idx].position == idx
             assert starred_views[idx].position == view["position"]
             assert str(starred_views[idx].group_search_view.id) == view["id"]
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    @freeze_time("2025-03-07T00:00:00Z")
+    def test_response_with_last_visited(self) -> None:
+        GroupSearchViewLastVisited.objects.create(
+            user_id=self.user.id,
+            organization=self.organization,
+            group_search_view=self.base_data["user_one_views"][0],
+            last_visited=timezone.now(),
+        )
+
+        views = self.client.get(self.url).data
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        assert response.data[0]["lastVisited"] == timezone.now()
+        assert response.data[1]["lastVisited"] is None
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -476,7 +495,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             time_filters={"period": "14d"},
             environments=[],
         )
@@ -494,7 +512,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
             time_filters={"period": "7d"},
             environments=["staging", "production"],
         )
@@ -512,7 +529,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
             time_filters={"period": "30d"},
             environments=["development"],
         )
@@ -685,7 +701,6 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
             user_id=self.user.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             time_filters={"period": "14d"},
             environments=["production"],
         )
@@ -753,7 +768,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
@@ -772,7 +786,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
             is_all_projects=False,
             time_filters={"period": "7d"},
             environments=["staging", "production"],
@@ -791,7 +804,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
             is_all_projects=True,
             time_filters={"period": "30d"},
             environments=["development"],
@@ -810,7 +822,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
@@ -829,7 +840,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=self.user_4.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],

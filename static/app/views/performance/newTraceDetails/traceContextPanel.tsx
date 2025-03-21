@@ -1,9 +1,8 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
@@ -15,15 +14,6 @@ import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/trace
 import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
-import {
-  DEFAULT_TRACE_VIEW_PREFERENCES,
-  loadTraceViewPreferences,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-
-const MIN_HEIGHT = 0;
-const DEFAULT_HEIGHT = 150;
-const MAX_HEIGHT = 700;
 
 type Props = {
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
@@ -31,74 +21,6 @@ type Props = {
 };
 
 export function TraceContextPanel({tree, rootEvent}: Props) {
-  const [height, setHeight] = useState(DEFAULT_HEIGHT);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const traceDispatch = useTraceStateDispatch();
-
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('trace-view-preferences') ||
-      DEFAULT_TRACE_VIEW_PREFERENCES,
-    []
-  );
-
-  useEffect(() => {
-    const loadedHeight = preferences.drawer.sizes['trace context height'];
-
-    if (containerRef.current && loadedHeight !== undefined) {
-      setHeight(loadedHeight);
-      containerRef.current.style.setProperty('--panel-height', `${loadedHeight}px`);
-    }
-  }, [preferences.drawer.sizes, containerRef]);
-
-  const handleMouseDown = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
-
-      if (!containerRef.current) {
-        return;
-      }
-
-      const startY = event.clientY;
-      const startHeight = height;
-
-      function handleMouseMove(moveEvent: MouseEvent) {
-        if (!containerRef.current) {
-          return;
-        }
-
-        const deltaY = moveEvent.clientY - startY;
-        const newHeight = Math.max(
-          MIN_HEIGHT,
-          Math.min(startHeight - deltaY, MAX_HEIGHT)
-        );
-
-        containerRef.current.style.setProperty('--panel-height', `${newHeight}px`);
-      }
-
-      function handleMouseUp() {
-        if (!containerRef.current) {
-          return;
-        }
-
-        const finalHeight = parseInt(
-          getComputedStyle(containerRef.current).getPropertyValue('--panel-height'),
-          10
-        );
-
-        setHeight(finalHeight);
-        traceDispatch({type: 'set trace context height', payload: finalHeight});
-
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      }
-
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    },
-    [height, traceDispatch]
-  );
-
   const renderTags = useCallback(() => {
     if (!rootEvent.data) {
       return null;
@@ -116,10 +38,6 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
 
   return (
     <Container>
-      <GrabberContainer onMouseDown={handleMouseDown}>
-        <IconGrabbable color="gray500" />
-      </GrabberContainer>
-
       <TraceLinksNavigationContainer>
         <TraceLinkNavigationButton
           direction={'previous'}
@@ -132,21 +50,19 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
         />
       </TraceLinksNavigationContainer>
 
-      <TraceContextContainer ref={containerRef}>
-        <VitalMetersContainer>
-          <TraceContextVitals tree={tree} />
-        </VitalMetersContainer>
+      <VitalMetersContainer>
+        <TraceContextVitals tree={tree} />
+      </VitalMetersContainer>
+      <TraceTagsContainer>
+        <FoldSection sectionKey={'trace_tags' as SectionKey} title={t('Trace Tags')}>
+          {renderTags()}
+        </FoldSection>
+      </TraceTagsContainer>
+      <Feature features={['ourlogs-enabled']}>
         <TraceTagsContainer>
-          <FoldSection sectionKey={'trace_tags' as SectionKey} title={t('Trace Tags')}>
-            {renderTags()}
-          </FoldSection>
+          <TraceViewLogsSection />
         </TraceTagsContainer>
-        <Feature features={['ourlogs-enabled']}>
-          <TraceTagsContainer>
-            <TraceViewLogsSection />
-          </TraceTagsContainer>
-        </Feature>
-      </TraceContextContainer>
+      </Feature>
     </Container>
   );
 }
@@ -157,35 +73,6 @@ const Container = styled('div')`
   flex-direction: column;
   justify-content: center;
   gap: ${space(1)};
-`;
-
-const TraceContextContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  --panel-height: ${DEFAULT_HEIGHT}px;
-  height: var(--panel-height);
-
-  &[style*='--panel-height: 0px'] {
-    display: none;
-  }
-`;
-
-const GrabberContainer = styled(Container)`
-  align-items: center;
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  display: flex;
-
-  width: 100%;
-  cursor: row-resize;
-  padding: ${space(0.5)};
-
-  & > svg {
-    transform: rotate(90deg);
-  }
 `;
 
 const VitalMetersContainer = styled('div')`
@@ -202,7 +89,6 @@ const TraceTagsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
-  margin-bottom: ${space(2)};
 `;
 
 const TraceLinksNavigationContainer = styled('div')`

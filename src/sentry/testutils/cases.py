@@ -1389,6 +1389,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "start_timestamp_precise": timestamp.timestamp(),
             "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "exclusive_time_ms": int(exclusive_time),
+            "description": transaction,
             "is_segment": True,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),

@@ -985,15 +985,19 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Note: This is based on US volume. Since other regions are lower-traffic, this effectively means
+# the circuit breaker is disabled for any region without its own values configured (you can hardly
+# have 33K Seer errors if you don't even have 33K events, so the breaker will never be tripped in
+# smaller regions relying on the default).
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 33250,
+        "error_limit": 33250,  # 95% error rate * avg volume of ~35K events with new hashes/10 min
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -2975,6 +2979,17 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Configures the list of public IP addresses that are returned from the
+# `uptime-ips` API. This does NOT control what actual IPs are used to make the
+# check, we simply have this as an option so that we can quickly update this
+# list without the need for a code-change.
+register(
+    "uptime.uptime-ips-api-response",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "releases.no_snuba_for_release_creation",
@@ -3113,4 +3128,12 @@ register(
     "sentry.demo_mode.sync_artifact_bundles.lookback_days",
     default=1,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskbroker flags
+
+register(
+    "taskworker.route.overrides",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

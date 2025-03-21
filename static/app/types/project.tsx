@@ -229,6 +229,7 @@ export type PlatformKey =
   | 'javascript-solidstart'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
+  | 'javascript-tanstackstart-react'
   | 'javascript-vue'
   | 'kotlin'
   | 'minidump'

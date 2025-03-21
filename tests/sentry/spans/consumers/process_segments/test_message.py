@@ -18,11 +18,20 @@ class TestSpansTask(TestCase):
         self.project = self.create_project()
 
     def generate_basic_spans(self):
-        segment_span = build_mock_span(project_id=self.project.id)
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            sentry_tags={
+                "browser.name": "Google Chrome",
+                "transaction": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
+                "transaction.method": "GET",
+                "transaction.op": "http.server",
+                "user": "id:1",
+            },
+        )
         child_span = build_mock_span(
             project_id=self.project.id,
             description="mock_test",
-            is_segment=False,
             parent_span_id=segment_span["span_id"],
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
@@ -32,12 +41,14 @@ class TestSpansTask(TestCase):
         return [child_span, segment_span]
 
     def generate_n_plus_one_spans(self):
-        segment_span = build_mock_span(project_id=self.project.id)
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
         child_span = build_mock_span(
             project_id=self.project.id,
             description="OrganizationNPlusOne.get",
-            is_segment=False,
-            parent_span_id="b35b839c02985f33",
+            parent_span_id=segment_span["span_id"],
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
             start_timestamp_precise=1707953018.867,
@@ -46,7 +57,6 @@ class TestSpansTask(TestCase):
             project_id=self.project.id,
             span_op="db",
             description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
-            is_segment=False,
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
@@ -59,7 +69,6 @@ class TestSpansTask(TestCase):
                 project_id=self.project.id,
                 span_op="db",
                 description=repeating_span_description,
-                is_segment=False,
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,
@@ -70,6 +79,33 @@ class TestSpansTask(TestCase):
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
         return spans
+
+    def test_enrich_spans(self):
+        spans = self.generate_basic_spans()
+        processed_spans = process_segment(spans)
+
+        assert len(processed_spans) == len(spans)
+        child_span, segment_span = processed_spans
+        child_tags = child_span["sentry_tags"]
+        segment_tags = segment_span["sentry_tags"]
+
+        assert child_tags["transaction"] == segment_tags["transaction"]
+        assert child_tags["transaction.method"] == segment_tags["transaction.method"]
+        assert child_tags["transaction.op"] == segment_tags["transaction.op"]
+        assert child_tags["user"] == segment_tags["user"]  # type: ignore[typeddict-item]
+
+    def test_enrich_spans_no_segment(self):
+        spans = self.generate_basic_spans()
+        for span in spans:
+            span["is_segment"] = False
+            del span["sentry_tags"]
+
+        processed_spans = process_segment(spans)
+        assert len(processed_spans) == len(spans)
+        for i, span in enumerate(processed_spans):
+            assert span["span_id"] == spans[i]["span_id"]
+            assert span["op"]
+            assert span["hash"]
 
     def test_create_models(self):
         spans = self.generate_basic_spans()
@@ -85,20 +121,6 @@ class TestSpansTask(TestCase):
             version="backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
         )
         assert release.date_added.timestamp() == spans[0]["end_timestamp_precise"]
-
-    def test_empty_defaults(self):
-        spans = self.generate_basic_spans()
-        for span in spans:
-            del span["sentry_tags"]
-
-        processed_spans = process_segment(spans)
-        assert len(processed_spans) == len(spans)
-        assert processed_spans[0]["span_id"] == spans[0]["span_id"]
-        assert processed_spans[1]["span_id"] == spans[1]["span_id"]
-
-        # double-check that we actually ran through processing. The "op"
-        # attribute does not exist in the original spans.
-        assert processed_spans[0]["op"]
 
     @override_options(
         {
