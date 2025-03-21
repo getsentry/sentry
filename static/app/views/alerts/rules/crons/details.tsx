@@ -20,23 +20,23 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DetailsSidebar} from 'sentry/views/monitors/components/detailsSidebar';
-import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
-import {MonitorCheckIns} from 'sentry/views/monitors/components/monitorCheckIns';
-import {MonitorHeader} from 'sentry/views/monitors/components/monitorHeader';
-import {MonitorIssues} from 'sentry/views/monitors/components/monitorIssues';
-import {MonitorStats} from 'sentry/views/monitors/components/monitorStats';
-import {MonitorOnboarding} from 'sentry/views/monitors/components/onboarding';
-import {MonitorProcessingErrors} from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
-import {makeMonitorErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
-import {StatusToggleButton} from 'sentry/views/monitors/components/statusToggleButton';
+import {DetailsSidebar} from 'sentry/views/insights/crons/components/detailsSidebar';
+import {DetailsTimeline} from 'sentry/views/insights/crons/components/detailsTimeline';
+import {MonitorCheckIns} from 'sentry/views/insights/crons/components/monitorCheckIns';
+import {MonitorHeader} from 'sentry/views/insights/crons/components/monitorHeader';
+import {MonitorIssues} from 'sentry/views/insights/crons/components/monitorIssues';
+import {MonitorStats} from 'sentry/views/insights/crons/components/monitorStats';
+import {MonitorOnboarding} from 'sentry/views/insights/crons/components/onboarding';
+import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorErrorsQueryKey} from 'sentry/views/insights/crons/components/processingErrors/utils';
+import {StatusToggleButton} from 'sentry/views/insights/crons/components/statusToggleButton';
 import type {
   CheckinProcessingError,
   Monitor,
   MonitorBucket,
   ProcessingErrorType,
-} from 'sentry/views/monitors/types';
-import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
+} from 'sentry/views/insights/crons/types';
+import {makeMonitorDetailsQueryKey} from 'sentry/views/insights/crons/utils';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
@@ -144,12 +144,7 @@ function MonitorDetails({params, location}: Props) {
   return (
     <Layout.Page>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
-      <MonitorHeader
-        linkToAlerts
-        monitor={monitor}
-        orgSlug={organization.slug}
-        onUpdate={onUpdate}
-      />
+      <MonitorHeader monitor={monitor} orgSlug={organization.slug} onUpdate={onUpdate} />
       <Layout.Body>
         <Layout.Main>
           <StyledPageFilterBar condensed>

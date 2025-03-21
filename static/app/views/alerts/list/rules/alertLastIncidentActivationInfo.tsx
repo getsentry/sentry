@@ -10,7 +10,7 @@ import {
   type MetricAlert,
   type UptimeAlert,
 } from 'sentry/views/alerts/types';
-import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props {
   rule: CombinedAlerts;

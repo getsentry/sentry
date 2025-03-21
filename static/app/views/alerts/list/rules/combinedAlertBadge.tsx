@@ -9,7 +9,7 @@ import {
   IncidentStatus,
 } from 'sentry/views/alerts/types';
 import {isIssueAlert} from 'sentry/views/alerts/utils';
-import {MonitorStatus} from 'sentry/views/monitors/types';
+import {MonitorStatus} from 'sentry/views/insights/crons/types';
 
 interface Props {
   rule: CombinedAlerts;

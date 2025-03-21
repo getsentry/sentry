@@ -141,12 +141,10 @@ export const getAlertWizardCategories = (org: Organization) => {
       });
     }
 
-    if (org.features.includes('insights-crons')) {
-      result.push({
-        categoryHeading: t('Cron Monitoring'),
-        options: ['crons_monitor'],
-      });
-    }
+    result.push({
+      categoryHeading: t('Cron Monitoring'),
+      options: ['crons_monitor'],
+    });
 
     result.push({
       categoryHeading: t('Custom'),

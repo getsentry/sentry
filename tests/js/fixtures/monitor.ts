@@ -2,7 +2,7 @@ import {
   type Monitor,
   MonitorStatus,
   ScheduleType,
-} from 'sentry/views/monitors/types';
+} from 'sentry/views/insights/crons/types';
 
 import {ActorFixture} from './actor';
 import {ProjectFixture} from './project';

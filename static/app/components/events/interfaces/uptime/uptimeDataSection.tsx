@@ -30,6 +30,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {ResolutionSelector} from 'sentry/views/insights/crons/components/overviewTimeline/resolutionSelector';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -38,7 +39,6 @@ import {
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
 
 interface Props {
   event: Event;

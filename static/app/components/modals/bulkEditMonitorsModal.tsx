@@ -23,10 +23,10 @@ import {
   MonitorSortOption,
   MonitorSortOrder,
   SortSelector,
-} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
-import type {Monitor} from 'sentry/views/monitors/types';
-import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
-import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
+} from 'sentry/views/insights/crons/components/overviewTimeline/sortSelector';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props extends ModalRenderProps {}
 
