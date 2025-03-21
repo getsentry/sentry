@@ -105,7 +105,7 @@ function ViewSpecificCharts({
           </ModuleLayout.Third>
 
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="error" />
+            <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
@@ -126,7 +126,7 @@ function ViewSpecificCharts({
             <CrashFreeSessionsChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="error" />
+            <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
           <ModuleLayout.Third>Coming soon: New issues per release</ModuleLayout.Third>
 

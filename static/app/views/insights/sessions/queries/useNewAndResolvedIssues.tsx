@@ -5,7 +5,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function useNewAndResolvedIssues({type}: {type: 'error' | 'feedback'}) {
+export default function useNewAndResolvedIssues({type}: {type: 'issue' | 'feedback'}) {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
