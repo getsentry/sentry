@@ -282,10 +282,6 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             time_window=time_window,
         )
         with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
-            resp = Mock()
-            resp.status = 202
-            resp.data = b'\n"0/a92bba96a12e11ef8b0eaeb51d7f1da4'
-
             create_subscription_in_snuba(sub.id)
 
             rpc_request_body = urlopen.call_args[1]["body"]
