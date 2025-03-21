@@ -140,7 +140,37 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                     {"timestamp": int(prev.timestamp()), "value": 0},
                     {"timestamp": int(curr.timestamp()), "value": 1},
                 ],
-            }
+            },
+            {
+                "axis": "resolved_issues_count",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
+                ],
+            },
         ]
 
     def test_get_feedback(self):
@@ -196,6 +226,21 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 1},
                     {"timestamp": int(curr.timestamp()), "value": 1},
+                ],
+            },
+            {
+                "axis": "new_issues_count_by_release",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
                 ],
             },
         ]
@@ -256,6 +301,21 @@ class OrganizationIssueMetricsTestCase(APITestCase):
                 "values": [
                     {"timestamp": int(prev.timestamp()), "value": 0},
                     {"timestamp": int(curr.timestamp()), "value": 6},
+                ],
+            },
+            {
+                "axis": "resolved_issues_count",
+                "groupBy": [],
+                "meta": {
+                    "interval": 3600000,
+                    "isOther": False,
+                    "order": 0,
+                    "valueType": "integer",
+                    "valueUnit": None,
+                },
+                "values": [
+                    {"timestamp": int(prev.timestamp()), "value": 0},
+                    {"timestamp": int(curr.timestamp()), "value": 0},
                 ],
             },
             {
