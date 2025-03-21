@@ -766,7 +766,8 @@ class SearchResolver:
                 )
 
             if (
-                argument_definition.attribute_types is not None
+                isinstance(argument_definition, AttributeArgumentDefinition)
+                and argument_definition.attribute_types is not None
                 and parsed_argument.search_type not in argument_definition.attribute_types
             ):
                 raise InvalidSearchQuery(
