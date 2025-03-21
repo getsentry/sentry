@@ -25,6 +25,8 @@ import {IconDownload, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,10 +39,7 @@ import GroupFeatureFlagsDrawerContent from 'sentry/views/issueDetails/groupFeatu
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
 import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {
-  type GroupTag,
-  useGroupTags,
-} from 'sentry/views/issueDetails/groupTags/useGroupTags';
+import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -84,28 +83,70 @@ function getHeaderTitle(
 }
 
 function DrawerContent({
-  displayTags,
   group,
+  organization,
+  project,
   environments,
   search,
-  isLoading,
-  isError,
-  refetch,
   tab,
   tagKey,
-  data,
 }: {
-  data: GroupTag[];
-  displayTags: GroupTag[];
   environments: string[];
   group: Group;
-  isError: boolean;
-  isLoading: boolean;
-  refetch: () => void;
+  organization: Organization;
+  project: Project;
   search: string;
   tab: DrawerTab;
   tagKey: string | undefined;
 }) {
+  const {
+    data = [],
+    isPending,
+    isError,
+    refetch,
+  } = useGroupTags(
+    {
+      groupId: group.id,
+      environment: environments,
+    },
+    {enabled: !tagKey && tab !== DrawerTab.FEATURE_FLAGS}
+  );
+
+  const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+
+  const highlightTagKeys = useMemo(() => {
+    return detailedProject?.highlightTags ?? project?.highlightTags ?? [];
+  }, [detailedProject, project]);
+
+  const tagValues = useMemo(
+    () =>
+      data.reduce<Record<string, string>>((valueMap, tag) => {
+        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
+        return valueMap;
+      }, {}),
+    [data]
+  );
+
+  const displayTags = useMemo(() => {
+    const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
+    const orderedHighlightTags = highlightTags.sort(
+      (a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key)
+    );
+    const remainingTags = data.filter(tag => !highlightTagKeys.includes(tag.key));
+    const sortedTags = remainingTags.sort((a, b) => a.key.localeCompare(b.key));
+    const orderedTags = [...orderedHighlightTags, ...sortedTags];
+    const searchedTags = orderedTags.filter(
+      tag =>
+        tag.key.includes(search) ||
+        tag.name.includes(search) ||
+        tagValues[tag.key]?.includes(search)
+    );
+    return searchedTags;
+  }, [data, search, tagValues, highlightTagKeys]);
+
   if (tagKey) {
     return tab === DrawerTab.TAGS ? (
       <TagDetailsDrawerContent group={group} />
@@ -124,7 +165,7 @@ function DrawerContent({
     );
   }
 
-  if (isLoading) {
+  if (isPending || isHighlightsPending) {
     return <LoadingIndicator />;
   }
 
@@ -175,6 +216,7 @@ export function GroupTagsDrawer({
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
+
   const [isExportDisabled, setIsExportDisabled] = useState(false);
   const {baseUrl} = useGroupDetailsRoute();
   const handleDataExport = useDataExport({
@@ -189,51 +231,6 @@ export function GroupTagsDrawer({
   });
   const [search, setSearch] = useState('');
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
-
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupTags({
-    groupId: group.id,
-    environment: environments,
-  });
-
-  const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
-
-  const highlightTagKeys = useMemo(() => {
-    return detailedProject?.highlightTags ?? project?.highlightTags ?? [];
-  }, [detailedProject, project]);
-
-  const tagValues = useMemo(
-    () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
-        return valueMap;
-      }, {}),
-    [data]
-  );
-
-  const displayTags = useMemo(() => {
-    const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
-    const orderedHighlightTags = highlightTags.sort(
-      (a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key)
-    );
-    const remainingTags = data.filter(tag => !highlightTagKeys.includes(tag.key));
-    const sortedTags = remainingTags.sort((a, b) => a.key.localeCompare(b.key));
-    const orderedTags = [...orderedHighlightTags, ...sortedTags];
-    const searchedTags = orderedTags.filter(
-      tag =>
-        tag.key.includes(search) ||
-        tag.name.includes(search) ||
-        tagValues[tag.key]?.includes(search)
-    );
-    return searchedTags;
-  }, [data, search, tagValues, highlightTagKeys]);
 
   const headerActions = tagKey ? (
     <DropdownMenu
@@ -357,16 +354,13 @@ export function GroupTagsDrawer({
       </EventNavigator>
       <EventDrawerBody>
         <DrawerContent
-          displayTags={displayTags}
           group={group}
+          organization={organization}
+          project={project}
           environments={environments}
           search={search}
-          isLoading={isPending || isHighlightsPending}
-          isError={isError}
-          refetch={refetch}
           tab={tab as DrawerTab}
           tagKey={tagKey}
-          data={data}
         />
       </EventDrawerBody>
     </EventDrawerContainer>
