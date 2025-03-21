@@ -111,7 +111,7 @@ class BaseIssueAlertHandler(ABC):
         :param job: WorkflowJob
         :return: Rule instance
         """
-        workflow = job.get("workflow")
+        workflow = job.workflow
         environment_id = None
         if workflow and workflow.environment:
             environment_id = workflow.environment.id
@@ -147,7 +147,7 @@ class BaseIssueAlertHandler(ABC):
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.issue_alert.invoke_legacy_registry.activate_downstream_actions"
         ):
-            grouped_futures = activate_downstream_actions(rule, job["event"], notification_uuid)
+            grouped_futures = activate_downstream_actions(rule, job.event, notification_uuid)
             return grouped_futures.values()
 
     @staticmethod
@@ -165,7 +165,7 @@ class BaseIssueAlertHandler(ABC):
             op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
         ):
             for callback, futures in futures:
-                safe_execute(callback, job["event"], futures)
+                safe_execute(callback, job.event, futures)
 
     @classmethod
     def invoke_legacy_registry(
