@@ -52,30 +52,21 @@ def generate_token():
     return secrets.token_hex(nbytes=32)
 
 
-# Causes a circular import error when importing
-# from sentry.api.serializers.models.organization_member.response
-_OrganizationMemberFlags = TypedDict(
-    "_OrganizationMemberFlags",
-    {
-        "idp:provisioned": bool,
-        "idp:role-restricted": bool,
-        "sso:linked": bool,
-        "sso:invalid": bool,
-        "member-limit:restricted": bool,
-        "partnership:restricted": bool,
-    },
-)
-
-
 class OrganizationMemberInviteResponse(TypedDict):
     id: str
     email: str
     orgRole: str
     expired: bool
-    flags: _OrganizationMemberFlags
+    idpProvisioned: bool
+    idpRoleRestricted: bool
+    ssoLinked: bool
+    ssoInvalid: bool
+    memberLimitRestricted: bool
+    partnershipRestricted: bool
     dateCreated: datetime
     inviteStatus: str
     inviterName: str | None
+    teams: list[str]
 
 
 @region_silo_model
@@ -156,9 +147,7 @@ class OrganizationMemberInvite(DefaultFieldsModel):
 
     @property
     def token_expired(self):
-        if self.token_expires_at > timezone.now():
-            return False
-        return True
+        return self.token_expires_at <= timezone.now()
 
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags

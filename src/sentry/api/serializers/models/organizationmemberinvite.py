@@ -18,6 +18,7 @@ class OrganizationMemberInviteSerializer(Serializer):
     def get_attrs(
         self,
         item_list: Sequence[OrganizationMemberInvite],
+        user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> MutableMapping[OrganizationMemberInvite, MutableMapping[str, Any]]:
         inviters_set = sorted({omi.inviter_id for omi in item_list if omi.inviter_id})
@@ -51,14 +52,12 @@ class OrganizationMemberInviteSerializer(Serializer):
             "email": obj.email,
             "orgRole": obj.role,
             "expired": obj.token_expired,
-            "flags": {
-                "idp:provisioned": obj.idp_provisioned,
-                "idp:role-restricted": obj.idp_role_restricted,
-                "sso:linked": obj.sso_linked,
-                "sso:invalid": obj.sso_invalid,
-                "member-limit:restricted": obj.member_limit_restricted,
-                "partnership:restricted": obj.partnership_restricted,
-            },
+            "idpProvisioned": obj.idp_provisioned,
+            "idpRoleRestricted": obj.idp_role_restricted,
+            "ssoLinked": obj.sso_linked,
+            "ssoInvalid": obj.sso_invalid,
+            "memberLimitRestricted": obj.member_limit_restricted,
+            "partnershipRestricted": obj.partnership_restricted,
             "teams": obj.organization_member_team_data,
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
