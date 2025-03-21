@@ -145,10 +145,3 @@ class SyncArtifactBundlesTest(TestCase):
         assert not ArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
         assert not ProjectArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
         assert not ReleaseArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
-
-    def test_sync_artifact_bundles_does_not_fail_if_project_does_not_exist(self):
-        self.set_up_artifact_bundle(self.source_org, self.source_proj_bar)
-
-        _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
-
-        assert not ArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()

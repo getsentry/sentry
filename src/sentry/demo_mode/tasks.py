@@ -111,6 +111,9 @@ def _sync_project_artifact_bundle(
         target_artifact_bundle.organization_id,
     )
 
+    if not target_project:
+        return
+
     ProjectArtifactBundle.objects.create(
         project_id=target_project.id,
         artifact_bundle_id=target_artifact_bundle.id,
@@ -147,10 +150,6 @@ def _find_matching_project(project_id, organization_id):
             slug=source_project.slug,
         )
     except Project.DoesNotExist:
-        sentry_sdk.capture_message(
-            "No matching project found",
-            extras={
-                "project_id": project_id,
-            },
-        )
-        raise IntegrityError("No matching project found")
+        sentry_sdk.set_context("project_id", project_id)
+        sentry_sdk.set_context("organization_id", organization_id)
+        raise
