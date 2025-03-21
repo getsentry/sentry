@@ -1,13 +1,9 @@
 import {LinkButton} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
-  organization: Organization;
-};
-
-function OnboardingWizardHelp({organization}: Props) {
+function OnboardingWizardHelp() {
+  const organization = useOrganization();
   return (
     <LinkButton
       priority="primary"
@@ -19,4 +15,4 @@ function OnboardingWizardHelp({organization}: Props) {
   );
 }
 
-export default withOrganization(OnboardingWizardHelp);
+export default OnboardingWizardHelp;
