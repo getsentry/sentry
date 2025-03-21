@@ -282,9 +282,9 @@ export function getSavedQueryDataset(
   return SavedQueryDatasets.DISCOVER;
 }
 
-export function getSavedQueryWithDataset(
-  savedQuery?: SavedQuery | NewQuery
-): SavedQuery | NewQuery | undefined {
+export function getSavedQueryWithDataset<T extends SavedQuery | NewQuery>(
+  savedQuery?: T
+): T | undefined {
   if (!savedQuery) {
     return undefined;
   }

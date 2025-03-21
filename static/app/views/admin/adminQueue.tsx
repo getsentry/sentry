@@ -77,9 +77,14 @@ export default function AdminQueue() {
       <Header>
         <h3>t{'Queue Overview'}</h3>
 
-        <ButtonBar merged active={state.timeWindow}>
+        <ButtonBar merged>
           {TIME_WINDOWS.map(r => (
-            <Button size="sm" barId={r} onClick={() => changeWindow(r)} key={r}>
+            <Button
+              size="sm"
+              priority={r === state.timeWindow ? 'primary' : 'default'}
+              onClick={() => changeWindow(r)}
+              key={r}
+            >
               {r}
             </Button>
           ))}

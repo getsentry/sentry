@@ -18,31 +18,37 @@ class TestSpansTask(TestCase):
         self.project = self.create_project()
 
     def generate_basic_spans(self):
-        segment_span = build_mock_span(project_id=self.project.id)
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+            sentry_tags={
+                "browser.name": "Google Chrome",
+                "transaction": "/api/0/organizations/{organization_id_or_slug}/n-plus-one/",
+                "transaction.method": "GET",
+                "transaction.op": "http.server",
+                "user": "id:1",
+            },
+        )
         child_span = build_mock_span(
             project_id=self.project.id,
             description="mock_test",
-            is_segment=False,
             parent_span_id=segment_span["span_id"],
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
             start_timestamp_precise=1707953018.867,
         )
 
-        del child_span["sentry_tags"]["transaction"]
-        del child_span["sentry_tags"]["transaction.method"]
-        del child_span["sentry_tags"]["transaction.op"]
-        del child_span["sentry_tags"]["user"]
-
         return [child_span, segment_span]
 
     def generate_n_plus_one_spans(self):
-        segment_span = build_mock_span(project_id=self.project.id)
+        segment_span = build_mock_span(
+            project_id=self.project.id,
+            is_segment=True,
+        )
         child_span = build_mock_span(
             project_id=self.project.id,
             description="OrganizationNPlusOne.get",
-            is_segment=False,
-            parent_span_id="b35b839c02985f33",
+            parent_span_id=segment_span["span_id"],
             span_id="940ce942561548b5",
             start_timestamp_ms=1707953018867,
             start_timestamp_precise=1707953018.867,
@@ -51,7 +57,6 @@ class TestSpansTask(TestCase):
             project_id=self.project.id,
             span_op="db",
             description='SELECT "sentry_project"."id", "sentry_project"."slug", "sentry_project"."name", "sentry_project"."forced_color", "sentry_project"."organization_id", "sentry_project"."public", "sentry_project"."date_added", "sentry_project"."status", "sentry_project"."first_event", "sentry_project"."flags", "sentry_project"."platform" FROM "sentry_project"',
-            is_segment=False,
             parent_span_id="940ce942561548b5",
             span_id="a974da4671bc3857",
             start_timestamp_ms=1707953018867,
@@ -64,7 +69,6 @@ class TestSpansTask(TestCase):
                 project_id=self.project.id,
                 span_op="db",
                 description=repeating_span_description,
-                is_segment=False,
                 parent_span_id="940ce942561548b5",
                 span_id=uuid.uuid4().hex[:16],
                 start_timestamp_ms=1707953018869,

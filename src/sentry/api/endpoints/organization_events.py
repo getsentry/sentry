@@ -443,6 +443,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         # Only works when dataset == spans
         use_rpc = request.GET.get("useRpc", "0") == "1"
         sentry_sdk.set_tag("performance.use_rpc", use_rpc)
+        debug = request.user.is_superuser and "debug" in request.GET
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -459,6 +460,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     offset=offset,
                     limit=limit,
                     referrer=referrer,
+                    debug=debug,
                     config=SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
@@ -490,6 +492,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     actor=request.user,
                 ),
                 query_source=query_source,
+                debug=debug,
             )
 
         @sentry_sdk.tracing.trace

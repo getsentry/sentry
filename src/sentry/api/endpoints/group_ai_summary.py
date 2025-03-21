@@ -193,8 +193,11 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
                 continue
             if e.group_id not in issue_ids:
                 issue_ids.add(e.group_id)
-                if e.group:
-                    connected_issues.append(e.group)
+                try:
+                    if e.group:
+                        connected_issues.append(e.group)
+                except Group.DoesNotExist:
+                    continue
         return connected_issues
 
     def post(self, request: Request, group: Group) -> Response:
@@ -222,23 +225,31 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
 
         # get recommended event for each connected issue
         serialized_events_for_connected_issues = []
+        filtered_connected_issues = []
         for issue in connected_issues:
             serialized_connected_event, _ = self._get_event(issue, request.user)
             if serialized_connected_event:
                 serialized_events_for_connected_issues.append(serialized_connected_event)
+                filtered_connected_issues.append(issue)
 
         issue_summary = self._call_seer(
-            group, serialized_event, connected_issues, serialized_events_for_connected_issues
+            group,
+            serialized_event,
+            filtered_connected_issues,
+            serialized_events_for_connected_issues,
         )
 
         if features.has(
             "organizations:trigger-autofix-on-issue-summary", group.organization, actor=request.user
         ):
             # This is a temporary feature flag to allow us to trigger autofix on issue summary
-            # It adds ~1.5s to the latency, but this is acceptable for the time being, later we will run this async.
-            # Timing this to see how long it actually takes to run in prod.
             with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-                issue_summary = self._generate_fixability_score(group.id)
+                try:
+                    issue_summary = self._generate_fixability_score(group.id)
+                except Exception:
+                    logger.exception(
+                        "Error generating fixability score", extra={"group_id": group.id}
+                    )
 
             if issue_summary.scores.is_fixable:
                 with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):

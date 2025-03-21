@@ -15,7 +15,7 @@ from sentry.grouping.enhancer import (
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.enhancer.matchers import _cached, create_match_frame
+from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.testutils.cases import TestCase
 
 
@@ -496,7 +496,7 @@ def test_cached_with_kwargs():
 
     foo = mock.Mock()
 
-    cache: dict[object, object] = {}
+    cache: ReturnValueCache = {}
     _cached(cache, foo, kw1=1, kw2=2)
     assert foo.call_count == 1
 
