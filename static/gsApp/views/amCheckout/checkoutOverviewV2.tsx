@@ -4,7 +4,6 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import Panel from 'sentry/components/panels/panel';
-import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -48,7 +47,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
 
   const renderPlanDetails = () => {
     return (
-      <div>
+      <PanelChild>
         <Subtitle>{t('Plan Type')}</Subtitle>
         <SpaceBetweenRow>
           <div>
@@ -65,50 +64,47 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
             {`/${shortInterval}`}
           </Title>
         </SpaceBetweenRow>
-      </div>
+      </PanelChild>
     );
   };
 
   const renderPayAsYouGoBudget = (paygBudgetTotal: number) => {
     return (
-      <Fragment>
-        <div>
-          <Subtitle>{t('Overage Limit')}</Subtitle>
-          <SpaceBetweenRow style={{alignItems: 'start'}}>
-            <Column>
-              <Title>{t('Pay-as-you-go (PAYG) Budget')}</Title>
-              <Description>
-                {t('Charges are applied at the end of your monthly usage cycle.')}
-              </Description>
-            </Column>
-            <Column justifyItems="end">
-              <Title>
-                {paygBudgetTotal > 0 ? t('up to ') : null}
-                {`${utils.displayPrice({cents: paygBudgetTotal})}/mo`}
-              </Title>
-              <AnimatePresence>
-                {isDefaultPaygAmount && (
-                  <motion.div
-                    initial={{opacity: 0}}
-                    animate={{opacity: 1}}
-                    exit={{opacity: 0}}
-                    transition={{
-                      type: 'spring',
-                      duration: 0.4,
-                      bounce: 0.1,
-                    }}
-                  >
-                    <DefaultAmountTag icon={<IconSentry />} type="info">
-                      {t('Default Amount')}
-                    </DefaultAmountTag>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </Column>
-          </SpaceBetweenRow>
-        </div>
-        <Separator />
-      </Fragment>
+      <PanelChild>
+        <Subtitle>{t('Overage Limit')}</Subtitle>
+        <SpaceBetweenRow style={{alignItems: 'start'}}>
+          <Column>
+            <Title>{t('Pay-as-you-go (PAYG) Budget')}</Title>
+            <Description>
+              {t('Charges are applied at the end of your monthly usage cycle.')}
+            </Description>
+          </Column>
+          <Column justifyItems="end">
+            <Title>
+              {paygBudgetTotal > 0 ? t('up to ') : null}
+              {`${utils.displayPrice({cents: paygBudgetTotal})}/mo`}
+            </Title>
+            <AnimatePresence>
+              {isDefaultPaygAmount && (
+                <motion.div
+                  initial={{opacity: 0}}
+                  animate={{opacity: 1}}
+                  exit={{opacity: 0}}
+                  transition={{
+                    type: 'spring',
+                    duration: 0.4,
+                    bounce: 0.1,
+                  }}
+                >
+                  <DefaultAmountTag icon={<IconSentry />} type="info">
+                    {t('Default Amount')}
+                  </DefaultAmountTag>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Column>
+        </SpaceBetweenRow>
+      </PanelChild>
     );
   };
 
@@ -210,7 +206,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
 
   const renderTotals = (committedTotal: number, paygMonthlyBudget: number) => {
     return (
-      <div>
+      <SubscriptionTotal>
         <SpaceBetweenRow>
           <Column>
             <Subtitle>{t('Subscription Total')}</Subtitle>
@@ -240,7 +236,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
             />
           </AdditionalMonthlyCharge>
         ) : null}
-      </div>
+      </SubscriptionTotal>
     );
   };
 
@@ -252,18 +248,21 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
       {renderPlanDetails()}
       <Separator />
       {renderPayAsYouGoBudget(paygMonthlyBudget)}
-      {renderProductBreakdown()}
       <Separator />
+      {renderProductBreakdown()}
+      <TotalSeparator />
       {renderTotals(committedTotal, paygMonthlyBudget)}
     </StyledPanel>
   );
 }
 
 const StyledPanel = styled(Panel)`
-  display: grid;
-  grid-template-rows: repeat(2, auto);
-  gap: ${space(1.5)};
-  padding: ${space(2)} ${space(2)} ${space(4)};
+  display: flex;
+  flex-direction: column;
+`;
+
+const PanelChild = styled('div')`
+  margin: ${space(2)};
 `;
 
 const Column = styled('div')<{justifyItems?: string}>`
@@ -312,13 +311,19 @@ const ReservedItem = styled(Title)`
   color: ${p => p.theme.subText};
 `;
 
-const Section = styled(PanelBody)`
+const Section = styled(PanelChild)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const Separator = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
+  margin: 0 ${space(2)};
+`;
+
+const TotalSeparator = styled(Separator)`
+  margin: 0;
+  border-color: ${p => p.theme.border};
 `;
 
 const Price = styled('div')`
@@ -352,6 +357,12 @@ const DefaultAmountTag = styled(Tag)`
   display: flex;
   align-items: center;
   line-height: normal;
+`;
+
+const SubscriptionTotal = styled(PanelChild)`
+  background-color: ${p => p.theme.backgroundSecondary};
+  margin: 0;
+  padding: ${space(1.5)} ${space(2)} ${space(2)};
 `;
 
 export default CheckoutOverviewV2;
