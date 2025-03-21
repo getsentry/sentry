@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/core/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
@@ -30,7 +30,7 @@ type Props = {
   referrer: string;
   source: string;
   subscription: Subscription;
-  buttonProps?: Partial<React.ComponentProps<typeof Button>>;
+  buttonProps?: Partial<ButtonProps>;
   eventTypes?: EventType[];
   handleRequestSent?: () => void;
   notificationType?: 'overage_warning' | 'overage_critical';
@@ -65,7 +65,7 @@ function AddEventsCTA(props: Props) {
   };
 
   const action = getBestActionToIncreaseEventLimits(organization, subscription);
-  const commonProps: Partial<React.ComponentProps<typeof Button>> & {
+  const commonProps: Partial<ButtonProps> & {
     'data-test-id'?: string;
   } = {
     size: 'xs',
