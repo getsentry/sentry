@@ -66,7 +66,7 @@ class OrganizationMemberInviteResponse(TypedDict):
     dateCreated: datetime
     inviteStatus: str
     inviterName: str | None
-    teams: list[str]
+    teams: list[dict]
 
 
 @region_silo_model
