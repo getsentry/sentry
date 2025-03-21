@@ -311,7 +311,7 @@ def parse_dcg_group_event_data(
 
         group_id = int(data[1])
         if group_id not in groups_to_dcg_ids:
-            # the group did not trigger any workflows
+            # the group did not trigger any data condition groups
             continue
 
         event_data = json.loads(instance_data)
