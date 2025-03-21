@@ -231,7 +231,7 @@ class FunctionDefinition:
     processor: Callable[[Any], Any] | None = None
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -323,7 +323,7 @@ class FormulaDefinition(FunctionDefinition):
     is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ArgumentDefinition | AttributeAggregation]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
