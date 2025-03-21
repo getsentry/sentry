@@ -49,7 +49,8 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def get(self, request, organization):
         """
-        Returns a list of connected detector and workflows
+        Returns a list of connected detector and workflows.
+        Can optionally filter by detector_id and/or workflow_id.
         """
         detector_id = request.GET.get("detector_id")
         workflow_id = request.GET.get("workflow_id")
@@ -85,7 +86,7 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
     )
     def post(self, request, organization):
         """
-        Creates a connection between a detector and workflow
+        Creates a connection between a detector and workflow.
         """
         validator = DetectorWorkflowValidator(
             data=request.data, context={"organization": organization, "request": request}
@@ -99,7 +100,11 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
 
     def delete(self, request, organization):
         """
-        Deletes connections between detectors and workflows
+        Deletes connections between detectors and workflows.
+        Must provide either detector_id or workflow_id.
+        Specifying detector_id deletes all associations for the detector.
+        Specifying workflow_id deletes all associations for the workflow.
+        Specifying both deletes the specific connection between the detector and workflow.
         """
         detector_id = request.GET.get("detector_id")
         workflow_id = request.GET.get("workflow_id")

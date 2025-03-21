@@ -1,10 +1,10 @@
+from unittest import mock
+from unittest.mock import call
+
 from sentry import audit_log
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.models.auditlogentry import AuditLogEntry
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 
 
@@ -113,7 +113,8 @@ class OrganizationDetectorWorkflowIndexGetTest(OrganizationDetectorWorkflowAPITe
 class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPITestCase):
     method = "post"
 
-    def test_simple(self):
+    @mock.patch("sentry.workflow_engine.endpoints.validators.detector_workflow.create_audit_entry")
+    def test_simple(self, mock_audit):
         body_params = {
             "detectorId": self.unconnected_detector.id,
             "workflowId": self.unconnected_workflow.id,
@@ -130,26 +131,14 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
             "detectorId": str(self.unconnected_detector.id),
             "workflowId": str(self.unconnected_workflow.id),
         }
-
-    def test_audit_entry(self):
-        body_params = {
-            "detectorId": self.unconnected_detector.id,
-            "workflowId": self.unconnected_workflow.id,
-        }
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                **body_params,
-            )
-        detector_workflow = DetectorWorkflow.objects.get(
-            detector_id=self.unconnected_detector.id, workflow_id=self.unconnected_workflow.id
+        # verify audit log
+        mock_audit.assert_called_once_with(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=detector_workflow.id,
+            event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
+            data=detector_workflow.get_audit_log_data(),
         )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuditLogEntry.objects.filter(
-                target_object=detector_workflow.id,
-                event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
-                actor=self.user,
-            ).exists()
 
     def test_duplicate(self):
         body_params = {"detectorId": self.detector_1.id, "workflowId": self.workflow_1.id}
@@ -172,6 +161,19 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
         )
 
     def test_missing_body_params(self):
+        # missing detectorId
+        body_params = {"workflowId": self.workflow_1.id}
+        self.get_error_response(
+            self.organization.slug,
+            **body_params,
+        )
+        # missing workflowId
+        body_params = {"detectorId": self.detector_1.id}
+        self.get_error_response(
+            self.organization.slug,
+            **body_params,
+        )
+        # missing both params
         self.get_error_response(
             self.organization.slug,
         )
@@ -181,33 +183,62 @@ class OrganizationDetectorWorkflowIndexPostTest(OrganizationDetectorWorkflowAPIT
 class OrganizationDetectorWorkflowIndexDeleteTest(OrganizationDetectorWorkflowAPITestCase):
     method = "delete"
 
-    def test_simple(self):
+    @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_detector_workflow_index.create_audit_entry"
+    )
+    def test_simple(self, mock_audit):
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"detector_id": self.detector_1.id, "workflow_id": self.workflow_1.id},
+        )
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not DetectorWorkflow.objects.filter(
+            detector_id=self.detector_1.id, workflow_id=self.workflow_1.id
+        ).exists()
+
+        # verify audit log
+        mock_audit.assert_called_once_with(
+            request=mock.ANY,
+            organization=self.organization,
+            target_object=self.detector_1_workflow_1.id,
+            event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+            data=self.detector_1_workflow_1.get_audit_log_data(),
+        )
+
+    @mock.patch(
+        "sentry.workflow_engine.endpoints.organization_detector_workflow_index.create_audit_entry"
+    )
+    def test_batch_delete(self, mock_audit):
         self.get_success_response(
             self.organization.slug,
             qs_params={"detector_id": self.detector_1.id},
         )
         with self.tasks():
             run_scheduled_deletions()
+
         assert not DetectorWorkflow.objects.filter(detector_id=self.detector_1.id).exists()
         assert DetectorWorkflow.objects.filter(detector_id=self.detector_2.id).exists()
 
-    def test_audit_entry(self):
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug,
-                qs_params={"detector_id": self.detector_1.id},
-            )
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            assert AuditLogEntry.objects.filter(
+        # verify audit log
+        expected_calls = [
+            call(
+                request=mock.ANY,
+                organization=self.organization,
                 target_object=self.detector_1_workflow_1.id,
                 event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
-                actor=self.user,
-            ).exists()
-            assert AuditLogEntry.objects.filter(
+                data=self.detector_1_workflow_1.get_audit_log_data(),
+            ),
+            call(
+                request=mock.ANY,
+                organization=self.organization,
                 target_object=self.detector_1_workflow_2.id,
                 event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
-                actor=self.user,
-            ).exists()
+                data=self.detector_1_workflow_2.get_audit_log_data(),
+            ),
+        ]
+        mock_audit.assert_has_calls(expected_calls)
 
     def test_invalid_id(self):
         self.get_error_response(
