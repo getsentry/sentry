@@ -316,24 +316,22 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23 TB');
   });
 
-  it('returns correct string for Profile Duration', function () {
-    expect(formatUsageWithUnits(0, DataCategory.PROFILE_DURATION)).toBe('0');
-    expect(formatUsageWithUnits(1, DataCategory.PROFILE_DURATION)).toBe('0');
-    expect(formatUsageWithUnits(360000, DataCategory.PROFILE_DURATION)).toBe('0.1');
-    expect(
-      formatUsageWithUnits(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
-    ).toBe('1');
-    expect(
-      formatUsageWithUnits(5.23 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
-    ).toBe('5.2');
-    expect(
-      formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
-    ).toBe('1,000');
-    expect(
-      formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION, {
-        isAbbreviated: true,
-      })
-    ).toBe('1K');
+  it('returns correct string for continuous profiling', function () {
+    [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].forEach(
+      (cat: DataCategory) => {
+        expect(formatUsageWithUnits(0, cat)).toBe('0');
+        expect(formatUsageWithUnits(1, cat)).toBe('0');
+        expect(formatUsageWithUnits(360000, cat)).toBe('0.1');
+        expect(formatUsageWithUnits(MILLISECONDS_IN_HOUR, cat)).toBe('1');
+        expect(formatUsageWithUnits(5.23 * MILLISECONDS_IN_HOUR, cat)).toBe('5.2');
+        expect(formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat)).toBe('1,000');
+        expect(
+          formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat, {
+            isAbbreviated: true,
+          })
+        ).toBe('1K');
+      }
+    );
   });
 });
 

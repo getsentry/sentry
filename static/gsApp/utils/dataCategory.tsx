@@ -219,3 +219,20 @@ export function hasCategoryFeature(
   }
   return feature ? organization.features.includes(feature) : true;
 }
+
+export function isContinuousProfiling(category: DataCategory | string) {
+  return (
+    category === DataCategory.PROFILE_DURATION ||
+    category === DataCategory.PROFILE_DURATION_UI
+  );
+}
+
+export function getChunkCategoryFromDuration(category: DataCategory) {
+  if (category === DataCategory.PROFILE_DURATION) {
+    return DataCategory.PROFILE_CHUNKS;
+  }
+  if (category === DataCategory.PROFILE_DURATION_UI) {
+    return DataCategory.PROFILE_CHUNKS_UI;
+  }
+  return '';
+}
