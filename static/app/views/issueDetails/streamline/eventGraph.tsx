@@ -274,9 +274,10 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
           />
         );
       },
-      minTime: eventSeries.length && (eventSeries[0]!.name as number),
+      desiredBuckets: eventSeries.length,
+      minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
       maxTime:
-        eventSeries.length && (eventSeries[eventSeries.length - 1]!.name as number),
+        eventSeries.length && (eventSeries.at(eventSeries.length - 1)?.name as number),
       releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
     });
 
