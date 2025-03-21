@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
@@ -32,17 +33,19 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 
-class EventJob(TypedDict):
+@dataclass(frozen=True)
+class EventJob:
     event: GroupEvent
 
 
-class WorkflowJob(EventJob, total=False):
-    group_state: GroupState
-    is_reprocessed: bool
-    has_reappeared: bool
-    has_alert: bool
-    has_escalated: bool
-    workflow: Workflow
+@dataclass(frozen=True)
+class WorkflowJob(EventJob):
+    group_state: GroupState | None = None
+    is_reprocessed: bool | None = None
+    has_reappeared: bool | None = None
+    has_alert: bool | None = None
+    has_escalated: bool | None = None
+    workflow: Workflow | None = None
 
 
 class ActionHandler:
