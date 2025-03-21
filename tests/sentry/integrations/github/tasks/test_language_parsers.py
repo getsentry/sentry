@@ -409,7 +409,7 @@ class JavascriptParserTestCase(TestCase):
  import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
  import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
  import {Button} from 'sentry/components/button';
-+import ButtonBar from 'sentry/components/buttonBar';
++import {ButtonBar} from 'sentry/components/buttonBar';
  import Card from 'sentry/components/card';
  import Carousel from 'sentry/components/carousel';
  import {openConfirmModal} from 'sentry/components/confirm';

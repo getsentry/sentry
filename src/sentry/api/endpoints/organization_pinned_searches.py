@@ -59,7 +59,6 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         default_view, created = GroupSearchView.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,
-            position=0,
             values={
                 "name": "Default Search",
                 "query": result["query"],
