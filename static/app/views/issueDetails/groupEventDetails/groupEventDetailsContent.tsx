@@ -408,9 +408,11 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       <CombinedBreadcrumbsAndLogsSection event={event} group={group} project={project} />
-      {hasStreamlinedUI && event.contexts.trace?.trace_id && (
-        <EventTraceView group={group} event={event} organization={organization} />
-      )}
+      {hasStreamlinedUI &&
+        event.contexts.trace?.trace_id &&
+        organization.features.includes('performance-view') && (
+          <EventTraceView group={group} event={event} organization={organization} />
+        )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
