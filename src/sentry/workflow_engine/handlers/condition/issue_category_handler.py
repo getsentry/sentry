@@ -21,7 +21,7 @@ class IssueCategoryConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        group = job["event"].group
+        group = job.event.group
 
         try:
             value: GroupCategory = GroupCategory(int(comparison["value"]))

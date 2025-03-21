@@ -12,7 +12,7 @@ class ReappearedEventConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        has_reappeared = job.get("has_reappeared")
+        has_reappeared = job.has_reappeared
         if has_reappeared is None:
             return False
 

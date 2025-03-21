@@ -11,7 +11,7 @@ class EventCreatedByDetectorConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+        event = job.event
         if event.occurrence is None or event.occurrence.evidence_data is None:
             return False
 

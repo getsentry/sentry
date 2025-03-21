@@ -12,7 +12,7 @@ class RegressionEventConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        state = job.get("group_state")
+        state = job.group_state
         if state is None:
             return False
 

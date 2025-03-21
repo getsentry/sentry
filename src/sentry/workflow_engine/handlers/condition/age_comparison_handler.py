@@ -30,7 +30,7 @@ class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+        event = job.event
         first_seen = event.group.first_seen
         current_time = timezone.now()
         comparison_type = comparison["comparison_type"]

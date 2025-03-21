@@ -11,5 +11,5 @@ class EventSeenCountConditionHandler(DataConditionHandler[WorkflowJob]):
 
     @staticmethod
     def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+        event = job.event
         return event.group.times_seen == comparison
