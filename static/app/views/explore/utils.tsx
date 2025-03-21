@@ -25,6 +25,8 @@ export function getExploreUrl({
   groupBy,
   sort,
   field,
+  id,
+  title,
 }: {
   interval: string;
   organization: Organization;
@@ -32,9 +34,11 @@ export function getExploreUrl({
   visualize: Array<Omit<Visualize, 'label'>>;
   field?: string[];
   groupBy?: string[];
+  id?: number;
   mode?: Mode;
   query?: string;
   sort?: string;
+  title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
@@ -53,6 +57,8 @@ export function getExploreUrl({
     sort,
     field,
     utc,
+    id,
+    title,
   };
 
   return (

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import MutableMapping
 from enum import StrEnum
 from typing import Any
 
@@ -176,9 +177,8 @@ def create_repos_and_code_mappings(
         raise InstallationNotFoundError
 
     organization_id = organization_integration.organization_id
-    with metrics.timer(
-        f"{METRIC_PREFIX}.create_configurations.duration", tags={"platform": platform}
-    ):
+    tags: MutableMapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
+    with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
         for code_mapping in code_mappings:
             repository = (
                 Repository.objects.filter(
@@ -187,39 +187,22 @@ def create_repos_and_code_mappings(
                 .order_by("-date_added")
                 .first()
             )
-
             if not repository:
+                created = False
                 if not dry_run:
-                    repository = Repository.objects.create(
+                    repository, created = Repository.objects.get_or_create(
                         name=code_mapping.repo.name,
                         organization_id=organization_id,
                         integration_id=organization_integration.integration_id,
                     )
-                metrics.incr(
-                    key=f"{METRIC_PREFIX}.repository.created",
-                    tags={"platform": platform, "dry_run": dry_run},
-                    sample_rate=1.0,
-                )
+                if created or dry_run:
+                    metrics.incr(
+                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                    )
 
-            extra = {
-                "project_id": project.id,
-                "stack_root": code_mapping.stacktrace_root,
-                "repository_name": code_mapping.repo.name,
-            }
-            # The project and stack_root are unique together
-            existing_code_mappings = RepositoryProjectPathConfig.objects.filter(
-                project=project, stack_root=code_mapping.stacktrace_root
-            )
-            if existing_code_mappings.exists():
-                logger.warning("Investigate.", extra=extra)
-                continue
-
+            created = False
             if not dry_run:
-                if repository is None:  # This is mostly to appease the type checker
-                    logger.warning("Investigate.", extra=extra)
-                    continue
-
-                RepositoryProjectPathConfig.objects.create(
+                _, created = RepositoryProjectPathConfig.objects.get_or_create(
                     project=project,
                     stack_root=code_mapping.stacktrace_root,
                     repository=repository,
@@ -230,9 +213,7 @@ def create_repos_and_code_mappings(
                     default_branch=code_mapping.repo.branch,
                     automatically_generated=True,
                 )
-
-            metrics.incr(
-                key=f"{METRIC_PREFIX}.code_mapping.created",
-                tags={"platform": platform, "dry_run": dry_run},
-                sample_rate=1.0,
-            )
+            if created or dry_run:
+                metrics.incr(
+                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                )

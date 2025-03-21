@@ -75,6 +75,11 @@ export default function ExploreNavigation({children}: Props) {
             >
               {t('Releases')}
             </SecondaryNav.Item>
+            <Feature features="performance-saved-queries">
+              <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
+                {t('All Queries')}
+              </SecondaryNav.Item>
+            </Feature>
           </SecondaryNav.Section>
         </SecondaryNav.Body>
       </SecondaryNav>
