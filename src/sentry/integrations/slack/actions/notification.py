@@ -131,9 +131,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
             ts = response.get("ts")
             message_identifier = str(ts) if ts is not None else None
-            if message_identifier is not None:
+            if message_identifier is None:
                 sentry_sdk.capture_message(
-                    f"Slack message sent with ts: {message_identifier}",
+                    "Received no thread_ts from Slack",
                     level="info",
                 )
 
@@ -394,18 +394,26 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             open_period_start = open_period_start_for_group(event.group)
             new_notification_message_object.open_period_start = open_period_start
 
+        thread_ts = None
         with MessagingInteractionEvent(
             MessagingInteractionType.GET_PARENT_NOTIFICATION, SlackMessagingSpec()
         ).capture() as lifecycle:
-            thread_ts = NotificationActionThreadUtils._get_notification_action_thread_ts(
-                lifecycle=lifecycle,
-                event=event,
-                new_notification_message_object=new_notification_message_object,
-                organization=self.project.organization,
-                action=action,
-                open_period_start=open_period_start,
-                thread_option_default=ISSUE_ALERTS_THREAD_DEFAULT,
+            parent_notification_message = (
+                NotificationActionThreadUtils._get_notification_action_for_notification_action(
+                    lifecycle=lifecycle,
+                    action=action,
+                    group=event.group,
+                    organization=self.project.organization,
+                    open_period_start=open_period_start,
+                    thread_option_default=ISSUE_ALERTS_THREAD_DEFAULT,
+                )
             )
+
+            if parent_notification_message is not None:
+                new_notification_message_object.parent_notification_message_id = (
+                    parent_notification_message.id
+                )
+                thread_ts = parent_notification_message.message_identifier
 
         self._send_notification(
             event=event,

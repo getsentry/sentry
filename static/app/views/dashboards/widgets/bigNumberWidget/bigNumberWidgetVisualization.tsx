@@ -10,8 +10,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
 import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
 import type {
-  Meta,
-  TableData,
+  TabularRow,
+  TabularValueType,
+  TabularValueUnit,
   Thresholds,
 } from 'sentry/views/dashboards/widgets/common/types';
 
@@ -24,10 +25,11 @@ export interface BigNumberWidgetVisualizationProps {
   field: string;
   value: number | string;
   maximumValue?: number;
-  meta?: Meta;
   preferredPolarity?: Polarity;
   previousPeriodValue?: number | string;
   thresholds?: Thresholds;
+  type?: TabularValueType;
+  unit?: TabularValueUnit;
 }
 
 export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualizationProps) {
@@ -37,7 +39,8 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     previousPeriodValue,
     maximumValue = Number.MAX_VALUE,
     preferredPolarity,
-    meta,
+    type,
+    unit,
   } = props;
 
   if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
@@ -46,9 +49,6 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
 
   const location = useLocation();
   const organization = useOrganization();
-
-  const unit = meta?.unit;
-  const type = meta?.type;
 
   // Create old-school renderer meta, so we can pass it to field renderers
   const rendererMeta: MetaType = {
@@ -63,9 +63,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     };
   }
 
-  const fieldRenderer = meta
-    ? getFieldRenderer(field, rendererMeta, false)
-    : (renderableValue: any) => renderableValue.toString();
+  const fieldRenderer = getFieldRenderer(field, rendererMeta, false);
 
   const baggage = {
     location,
@@ -140,7 +138,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               previousPeriodValue={previousPeriodValue}
               field={field}
               preferredPolarity={preferredPolarity}
-              renderer={(previousDatum: TableData[number]) =>
+              renderer={(previousDatum: TabularRow) =>
                 fieldRenderer(previousDatum, baggage)
               }
             />

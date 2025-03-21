@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan as SchemaSpan
 
 from sentry import options
 from sentry.constants import INSIGHT_MODULE_FILTERS
@@ -24,6 +23,12 @@ from sentry.receivers.onboarding import (
     record_first_transaction,
     record_release_received,
 )
+from sentry.spans.consumers.process_segments.enrichment import (
+    match_schemas,
+    set_exclusive_time,
+    set_shared_tags,
+)
+from sentry.spans.consumers.process_segments.types import Span, UnprocessedSpan
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
@@ -32,48 +37,9 @@ from sentry.utils.performance_issues.performance_detection import detect_perform
 logger = logging.getLogger(__name__)
 
 
-# Keys in `sentry_tags` that are shared across all spans in a segment. This list
-# is taken from `extract_shared_tags` in Relay.
-SHARED_TAG_KEYS = (
-    "release",
-    "user",
-    "user.id",
-    "user.ip",
-    "user.username",
-    "user.email",
-    "user.geo.country_code",
-    "user.geo.subregion",
-    "environment",
-    "transaction",
-    "transaction.method",
-    "transaction.op",
-    "trace.status",
-    "mobile",
-    "os.name",
-    "device.class",
-    "browser.name",
-    "profiler_id",
-    "sdk.name",
-    "sdk.version",
-    "platform",
-    "thread.id",
-    "thread.name",
-)
-
-MOBILE_MAIN_THREAD_NAME = "main"
-
-
-class Span(SchemaSpan, total=False):
-    start_timestamp_precise: float  # Missing in schema
-    end_timestamp_precise: float  # Missing in schema
-    op: str | None  # Added in enrichment
-    hash: str | None  # Added in enrichment
-
-
-def process_segment(spans: list[Span]) -> list[Span]:
-    segment_span = _find_segment_span(spans)
-    _enrich_spans(segment_span, spans)
-
+@metrics.wraps("spans.consumers.process_segments.process_segment")
+def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
+    segment_span, spans = _enrich_spans(unprocessed_spans)
     if segment_span is None:
         return spans
 
@@ -106,80 +72,32 @@ def _find_segment_span(spans: list[Span]) -> Span | None:
     return None
 
 
-# The default span.op to assume if it is missing on the span. This should be
-# normalized by Relay, but we defensively apply the same fallback as the op is
-# not guaranteed in typing.
-DEFAULT_SPAN_OP = "default"
-
-
 @metrics.wraps("spans.consumers.process_segments.enrich_spans")
-def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
-    for span in spans:
-        # TODO: TEST THAT THIS RUNS WITHOUT A SEGMENT SPAN!
-        sentry_tags = span.setdefault("sentry_tags", {})
-        span["op"] = sentry_tags.get("op") or DEFAULT_SPAN_OP
-        # TODO: port set_span_exclusive_time
+def _enrich_spans(unprocessed_spans: list[UnprocessedSpan]) -> tuple[Span | None, list[Span]]:
+    """
+    Enriches all spans with data derived from the span tree and the segment.
 
+    This includes normalizations that need access to the spans' children, such
+    as inferring `exclusive_time`, as well as normalizations that need access to
+    the segment, such as extracting shared or conditional attributes.
+
+    Returns the segment span, if any, and the list of enriched spans.
+    """
+
+    spans = cast(list[Span], unprocessed_spans)
+    segment = _find_segment_span(spans)
+
+    match_schemas(spans)
+    set_exclusive_time(spans)
     if segment:
-        _set_shared_tags(segment, spans)
+        set_shared_tags(segment, spans)
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
     groupings = config.execute_strategy_standalone(spans)
     groupings.write_to_spans(spans)
 
-
-def _set_shared_tags(segment: Span, spans: list[Span]) -> None:
-    # Assume that Relay has extracted the shared tags into `sentry_tags` on the
-    # root span. Once `sentry_tags` is removed, the logic from
-    # `extract_shared_tags` should be moved here.
-    segment_tags = segment.get("sentry_tags", {})
-    shared_tags = {k: v for k, v in segment_tags.items() if k in SHARED_TAG_KEYS}
-
-    is_mobile = segment_tags.get("mobile") == "true"
-    mobile_start_type = _get_mobile_start_type(segment)
-    ttid_ts = _timestamp_by_op(spans, "ui.load.initial_display")
-    ttfd_ts = _timestamp_by_op(spans, "ui.load.full_display")
-
-    for span in spans:
-        span_tags = cast(dict[str, Any], span["sentry_tags"])
-
-        if is_mobile:
-            if span_tags.get("thread.name") == MOBILE_MAIN_THREAD_NAME:
-                span_tags["main_thread"] = "true"
-            if not span_tags.get("app_start_type") and mobile_start_type:
-                span_tags["app_start_type"] = mobile_start_type
-
-        if ttid_ts is not None and span["end_timestamp_precise"] <= ttid_ts:
-            span_tags["ttid"] = "ttid"
-        if ttfd_ts is not None and span["end_timestamp_precise"] <= ttfd_ts:
-            span_tags["ttfd"] = "ttfd"
-
-        for key, value in shared_tags.items():
-            if span_tags.get(key) is None:
-                span_tags[key] = value
-
-
-def _get_mobile_start_type(segment: Span) -> str | None:
-    """
-    Check the measurements on the span to determine what kind of start type the
-    event is.
-    """
-    measurements = segment.get("measurements") or {}
-
-    if "app_start_cold" in measurements:
-        return "cold"
-    if "app_start_warm" in measurements:
-        return "warm"
-
-    return None
-
-
-def _timestamp_by_op(spans: list[Span], op: str) -> float | None:
-    for span in spans:
-        if span["op"] == op:
-            return span["end_timestamp_precise"]
-    return None
+    return segment, spans
 
 
 @metrics.wraps("spans.consumers.process_segments.create_models")

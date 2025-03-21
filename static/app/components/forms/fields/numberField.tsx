@@ -66,6 +66,8 @@ function createFieldWithSuffix({suffix}: {suffix: React.ReactNode}) {
           onChange={e => onChange(e.target.value, e)}
           name={name}
           {...rest}
+          // Do not forward required to `input` to avoid default browser behavior
+          required={undefined}
         />
         <SuffixWrapper {...{size, monospace, alignRight}}>
           <HiddenValue aria-hidden>{rest.value || rest.placeholder}</HiddenValue>

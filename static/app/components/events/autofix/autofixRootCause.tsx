@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
   type AutofixFeedback,
   type AutofixRepository,
@@ -21,14 +22,13 @@ import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconFocus, IconInput, IconThumb} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -144,59 +144,6 @@ export function useSelectCause({groupId, runId}: {groupId: string; runId: string
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when selecting the root cause.'));
-    },
-  });
-}
-
-export function useUpdateRootCauseFeedback({
-  groupId,
-  runId,
-}: {
-  groupId: string;
-  runId: string;
-}) {
-  const api = useApi();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (params: {action: 'root_cause_thumbs_up' | 'root_cause_thumbs_down'}) => {
-      return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
-        method: 'POST',
-        data: {
-          run_id: runId,
-          payload: {
-            type: 'feedback',
-            action: params.action,
-          },
-        },
-      });
-    },
-    onMutate: params => {
-      queryClient.setQueryData(makeAutofixQueryKey(groupId), (data: AutofixResponse) => {
-        if (!data || !data.autofix) {
-          return data;
-        }
-
-        return {
-          ...data,
-          autofix: {
-            ...data.autofix,
-            feedback: {
-              ...data.autofix.feedback,
-              root_cause_thumbs_up: params.action === 'root_cause_thumbs_up',
-              root_cause_thumbs_down: params.action === 'root_cause_thumbs_down',
-            },
-          },
-        };
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: makeAutofixQueryKey(groupId),
-      });
-    },
-    onError: () => {
-      addErrorMessage(t('Something went wrong when updating the root cause feedback.'));
     },
   });
 }
@@ -326,64 +273,6 @@ function CopyRootCauseButton({
   );
 }
 
-function ThumbsUpDownButtons({
-  feedback,
-  groupId,
-  runId,
-}: {
-  groupId: string;
-  runId: string;
-  feedback?: AutofixFeedback;
-}) {
-  const {mutate: handleUpdateRootCauseFeedback} = useUpdateRootCauseFeedback({
-    groupId,
-    runId,
-  });
-  const openForm = useFeedbackForm();
-
-  return (
-    <ButtonBar>
-      <Button
-        size="sm"
-        borderless
-        onClick={() => handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_up'})}
-        title={t('This root cause analysis is helpful')}
-      >
-        {
-          <IconThumb
-            color={feedback?.root_cause_thumbs_up ? 'green400' : 'gray300'}
-            size="sm"
-            direction="up"
-            fill="red"
-          />
-        }
-      </Button>
-      <Button
-        size="sm"
-        borderless
-        onClick={() => {
-          handleUpdateRootCauseFeedback({action: 'root_cause_thumbs_down'});
-          openForm?.({
-            messagePlaceholder: t('How can we make Autofix better for you?'),
-            tags: {
-              ['feedback.source']: 'issue_details_ai_autofix_root_cause',
-              ['feedback.owner']: 'ml-ai',
-            },
-          });
-        }}
-        title={t('This root cause is incorrect or not helpful')}
-      >
-        {
-          <IconThumb
-            color={feedback?.root_cause_thumbs_down ? 'red400' : 'gray300'}
-            size="sm"
-            direction="down"
-          />
-        }
-      </Button>
-    </ButtonBar>
-  );
-}
 function AutofixRootCauseDisplay({
   causes,
   groupId,
@@ -441,7 +330,12 @@ function AutofixRootCauseDisplay({
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
-            <ThumbsUpDownButtons feedback={feedback} groupId={groupId} runId={runId} />
+            <AutofixThumbsUpDownButtons
+              thumbsUpDownType="root_cause"
+              feedback={feedback}
+              groupId={groupId}
+              runId={runId}
+            />
             <DividerWrapper>
               <Divider />
             </DividerWrapper>

@@ -176,7 +176,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             user_id=request.user.id,
             group_search_view_id__in=[view.id for view in new_view_state],
         )
-        last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
+        last_visited_map = {lv.group_search_view_id: lv.last_visited for lv in last_visited_views}
 
         return self.paginate(
             request=request,
@@ -263,7 +263,6 @@ def _update_existing_view(
         gsv.name = view["name"]
         gsv.query = view["query"]
         gsv.query_sort = view["querySort"]
-        gsv.position = position
         gsv.is_all_projects = view.get("isAllProjects", False)
 
         if "projects" in view:
@@ -300,7 +299,6 @@ def _create_view(
         name=view["name"],
         query=view["query"],
         query_sort=view["querySort"],
-        position=position,
         is_all_projects=view.get("isAllProjects", False),
         environments=view.get("environments", []),
         time_filters=view.get("timeFilters", {"period": "14d"}),

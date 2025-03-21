@@ -1,4 +1,4 @@
-import {CheckInStatus} from 'sentry/views/monitors/types';
+import {CheckInStatus} from 'sentry/views/insights/crons/types';
 
 import {getAggregateStatus} from './getAggregateStatus';
 import {generateTestStats, testStatusPrecedent} from './testUtils';

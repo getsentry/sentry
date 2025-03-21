@@ -203,7 +203,9 @@ export function SpanDescription({
           <MissingFrame />
         )}
       </CodeSnippetWrapper>
-    ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
+    ) : hasNewSpansUIFlag &&
+      resolvedModule === ModuleName.RESOURCE &&
+      span.op === 'resource.img' ? (
       <ResourceImageDescription formattedDescription={formattedDescription} node={node} />
     ) : (
       <DescriptionWrapper>
@@ -286,7 +288,7 @@ function ResourceImageDescription({
       ) : (
         <DisabledImages
           onClickShowLinks={() => setShowLinks(true)}
-          projectSlug={span.project_slug}
+          projectSlug={span.project_slug ?? node.event?.projectSlug}
         />
       )}
     </StyledDescriptionWrapper>

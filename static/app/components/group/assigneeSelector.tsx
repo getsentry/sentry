@@ -92,8 +92,8 @@ export function AssigneeSelector({
       trigger={(props, isOpen) => (
         <StyledDropdownButton
           {...props}
-          borderless
           aria-label={t('Modify issue assignee')}
+          borderless
           size="zero"
         >
           <AssigneeBadge
