@@ -67,6 +67,10 @@ def test_global_config():
     if not config["options"]["relay.span-normalization.allowed_hosts"]:
         del config["options"]["relay.span-normalization.allowed_hosts"]
 
+    # The sentry_relay's normalize_global_config doesn't handle relay.drop-transaction-attachments option yet
+    if "relay.drop-transaction-attachments" in config["options"]:
+        del config["options"]["relay.drop-transaction-attachments"]
+
     assert normalized == config
 
 
