@@ -20,7 +20,12 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
-from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiHostError,
+    ApiRetryError,
+    ApiUnauthorized,
+)
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -29,6 +34,8 @@ if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
+
+GITLAB_CLOUD_BASE_URL = "https://gitlab.com"
 
 
 class GitLabSetupApiClient(IntegrationProxyClient):
@@ -366,8 +373,18 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
     ) -> list[FileBlameInfo]:
         metrics.incr("sentry.integrations.gitlab.get_blame_for_files")
-        return fetch_file_blames(
-            self,
-            files,
-            extra={**extra, "provider": "gitlab", "org_integration_id": self.org_integration_id},
-        )
+        try:
+            return fetch_file_blames(
+                self,
+                files,
+                extra={
+                    **extra,
+                    "provider": "gitlab",
+                    "org_integration_id": self.org_integration_id,
+                },
+            )
+        except ApiRetryError as e:
+            if self.base_url != GITLAB_CLOUD_BASE_URL:
+                raise ApiHostError(e)
+            else:
+                raise
