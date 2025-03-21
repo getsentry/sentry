@@ -122,10 +122,8 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
-                    *constants.DURATION_TYPE,
-                },
+            AttributeArgumentDefinition(
+                attribute_types={*constants.DURATION_TYPE},
                 validator=literal_validator(
                     ["measurements.app_start_warm", "measurements.app_start_cold"]
                 ),

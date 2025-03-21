@@ -406,7 +406,7 @@ SPAN_FORMULA_DEFINITIONS = {
     "division": FormulaDefinition(
         default_search_type="number",
         arguments=[
-            ArgumentDefinition(
+            AttributeArgumentDefinition(
                 argument_types={
                     "duration",
                     "number",
@@ -415,8 +415,8 @@ SPAN_FORMULA_DEFINITIONS = {
                     *constants.DURATION_TYPE,
                 },
             ),
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
