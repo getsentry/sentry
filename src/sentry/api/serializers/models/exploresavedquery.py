@@ -30,6 +30,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     expired: bool
     dateAdded: str
     dateUpdated: str
+    lastVisited: str
     createdBy: UserSerializerResponse
 
 
@@ -78,6 +79,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
+            "lastVisited": obj.last_visited,
             "createdBy": attrs.get("created_by"),
         }
 

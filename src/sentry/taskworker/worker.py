@@ -466,6 +466,7 @@ class TaskWorker:
             return None
 
         if not activation:
+            metrics.incr("taskworker.worker.fetch_task.not_found")
             logger.debug("taskworker.fetch_task.not_found")
 
             self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)

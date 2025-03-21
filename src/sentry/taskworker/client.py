@@ -96,29 +96,31 @@ class TaskworkerClient:
         num_brokers: int | None = None,
         max_tasks_before_rebalance: int = DEFAULT_REBALANCE_AFTER,
     ) -> None:
-        hosts = [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
+        self._hosts: list[str] = (
+            [host] if not num_brokers else self._get_all_hosts(host, num_brokers)
+        )
 
         grpc_config = options.get("taskworker.grpc_service_config")
-        grpc_options = []
+        self._grpc_options = []
         if grpc_config:
-            grpc_options = [("grpc.service_config", grpc_config)]
+            self._grpc_options = [("grpc.service_config", grpc_config)]
 
-        stubs: list[ConsumerServiceStub] = []
-
-        for host in hosts:
-            logger.info("Connecting to %s with options %s", host, grpc_options)
-            channel = grpc.insecure_channel(host, options=grpc_options)
-            if settings.TASKWORKER_SHARED_SECRET:
-                channel = grpc.intercept_channel(
-                    channel, RequestSignatureInterceptor(settings.TASKWORKER_SHARED_SECRET)
-                )
-            stubs.append(ConsumerServiceStub(channel))
-
-        self._stubs = stubs
-        self._cur_stubs = random.randint(0, len(stubs) - 1)
+        self._cur_stub_idx = random.randint(0, len(self._hosts) - 1)
+        self._stubs: dict[int, ConsumerServiceStub] = {
+            self._cur_stub_idx: self._connect_to_host(self._hosts[self._cur_stub_idx])
+        }
         self._max_tasks_before_rebalance = max_tasks_before_rebalance
         self._num_tasks_before_rebalance = max_tasks_before_rebalance
         self._task_id_to_stub_idx: dict[str, int] = {}
+
+    def _connect_to_host(self, host: str) -> ConsumerServiceStub:
+        logger.info("Connecting to %s with options %s", host, self._grpc_options)
+        channel = grpc.insecure_channel(host, options=self._grpc_options)
+        if settings.TASKWORKER_SHARED_SECRET:
+            channel = grpc.intercept_channel(
+                channel, RequestSignatureInterceptor(settings.TASKWORKER_SHARED_SECRET)
+            )
+        return ConsumerServiceStub(channel)
 
     def _get_all_hosts(self, pattern: str, num_brokers: int) -> list[str]:
         """
@@ -133,10 +135,16 @@ class TaskworkerClient:
 
     def _get_cur_stub(self) -> tuple[int, ConsumerServiceStub]:
         if self._num_tasks_before_rebalance == 0:
-            self._cur_stubs = random.randint(0, len(self._stubs) - 1)
+            new_stub_idx = random.randint(0, len(self._stubs) - 1)
+            if new_stub_idx != self._cur_stub_idx:
+                self._cur_stub_idx = new_stub_idx
+                self._stubs[self._cur_stub_idx] = self._stubs.get(
+                    self._cur_stub_idx, self._connect_to_host(self._hosts[self._cur_stub_idx])
+                )
             self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
+
         self._num_tasks_before_rebalance -= 1
-        return self._cur_stubs, self._stubs[self._cur_stubs]
+        return self._cur_stub_idx, self._stubs[self._cur_stub_idx]
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
         """

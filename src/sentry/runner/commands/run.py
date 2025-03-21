@@ -546,6 +546,11 @@ def cron(**options: Any) -> None:
         "offsets mean data-loss.\n\n"
     ),
 )
+@click.option(
+    "--max-dlq-buffer-length",
+    type=int,
+    help="The maximum number of messages to buffer in the dlq before dropping messages. Defaults to unbounded.",
+)
 @configuration
 def basic_consumer(
     consumer_name: str, consumer_args: tuple[str, ...], topic: str | None, **options: Any
