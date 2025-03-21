@@ -7,6 +7,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
 
@@ -71,7 +72,7 @@ export default function CustomIgnoreDurationModal(props: Props) {
         <form className="form-horizontal">
           <div className="control-group">
             <h6 className="nav-header">{t('Date')}</h6>
-            <input
+            <Input
               className="form-control"
               type="date"
               id="snooze-until-date"
@@ -83,7 +84,7 @@ export default function CustomIgnoreDurationModal(props: Props) {
           </div>
           <div className="control-group m-b-1">
             <h6 className="nav-header">{t('Time (UTC)')}</h6>
-            <input
+            <Input
               className="form-control"
               type="time"
               id="snooze-until-time"
