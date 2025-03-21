@@ -40,6 +40,10 @@ export const MAX_ADMIN_CATEGORY_GIFTS = {
 // need to render billing history records that have unlimited ondemand.
 export const UNLIMITED_ONDEMAND = -1;
 
+// Default PAYG budgets for Business and Team plans
+export const PAYG_BUSINESS_DEFAULT = 300_00;
+export const PAYG_TEAM_DEFAULT = 100_00;
+
 export const DEFAULT_TRIAL_DAYS = 14;
 
 export enum AllocationTargetTypes {
