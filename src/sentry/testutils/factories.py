@@ -2198,15 +2198,25 @@ class Factories:
     def create_action(
         config: dict[str, Any] | None = None,
         type: Action.Type | None = None,
+        data: dict[str, Any] | None = None,
         **kwargs,
     ) -> Action:
         if config is None:
             config = {}
+            if type == Action.Type.SLACK:
+                config = {
+                    "target_identifier": "1",
+                    "target_display": "Sentry User",
+                    "target_type": ActionTarget.SPECIFIC,
+                }
+
+        if data is None:
+            data = {}
 
         if type is None:
             type = Action.Type.SLACK
 
-        return Action.objects.create(type=type, config=config, **kwargs)
+        return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

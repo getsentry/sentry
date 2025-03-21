@@ -107,6 +107,8 @@ class DiscordActionHandler(NotificationActionHandler):
                 "enum": [*ActionTarget],
             },
         },
+        "required": ["target_identifier", "target_type"],
+        "additionalProperties": False,
     }
 
     data_schema = {
@@ -130,17 +132,15 @@ class SlackActionHandler(NotificationActionHandler):
         "description": "The configuration schema for a Slack Action",
         "type": "object",
         "properties": {
-            "target_identifier": {
-                "type": ["string"],
-            },
-            "target_display": {
-                "type": ["string"],
-            },
+            "target_identifier": {"type": ["string"]},
+            "target_display": {"type": ["string"]},
             "target_type": {
                 "type": ["integer"],
                 "enum": [*ActionTarget],
             },
         },
+        "required": ["target_identifier", "target_display", "target_type"],
+        "additionalProperties": False,
     }
 
     data_schema = {
@@ -170,17 +170,15 @@ class MsteamsActionHandler(NotificationActionHandler):
         "description": "The configuration schema for a MSTeams Action",
         "type": "object",
         "properties": {
-            "target_identifier": {
-                "type": ["string"],
-            },
-            "target_display": {
-                "type": ["string"],
-            },
+            "target_identifier": {"type": ["string"]},
+            "target_display": {"type": ["string"]},
             "target_type": {
                 "type": ["integer"],
                 "enum": [*ActionTarget],
             },
         },
+        "required": ["target_identifier", "target_display", "target_type"],
+        "additionalProperties": False,
     }
 
     data_schema = {

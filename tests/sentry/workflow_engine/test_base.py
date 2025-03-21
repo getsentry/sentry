@@ -168,7 +168,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
 
         action = self.create_action(
             type=Action.Type.SLACK,
-            data={"message": "test"},
+            data={"notes": "bufos are great", "tags": "bufo-bot"},
             **kwargs,
         )
 
