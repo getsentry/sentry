@@ -30,6 +30,7 @@ from sentry.models.activity import Activity
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.exceptions import ReleaseCommitError
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import SemverFilter
@@ -287,7 +288,19 @@ class OrganizationReleasesEndpoint(
         # health data in the last 24 hours.
         debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(organization=organization)
+        filtered_releases = (
+            ReleaseProjectEnvironment.objects.filter(
+                project_id__in=filter_params["project_id"],
+                **(
+                    {"environment__name__in": filter_params.get("environment")}
+                    if "environment" in filter_params
+                    else {}
+                ),
+            )
+            .values_list("release", flat=True)
+            .distinct()
+        )
+        queryset = Release.objects.filter(id__in=filtered_releases)
 
         if status_filter:
             try:
@@ -302,7 +315,6 @@ class OrganizationReleasesEndpoint(
 
         queryset = queryset.annotate(date=F("date_added"))
 
-        queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
@@ -312,13 +324,7 @@ class OrganizationReleasesEndpoint(
                     status=400,
                 )
 
-        select_extra = {}
-
         queryset = queryset.distinct()
-        if flatten:
-            select_extra["_for_project_id"] = "sentry_release_project.project_id"
-
-        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
@@ -404,7 +410,9 @@ class OrganizationReleasesEndpoint(
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
-        queryset = queryset.extra(select=select_extra)
+        if flatten:
+            queryset = queryset.annotate(_for_project_id=F("releaseproject__project_id"))
+
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
         return self.paginate(
