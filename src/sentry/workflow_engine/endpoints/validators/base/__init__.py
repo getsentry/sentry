@@ -4,6 +4,7 @@ __all__ = [
     "BaseDataConditionValidator",
     "BaseDataSourceValidator",
     "BaseDetectorTypeValidator",
+    "BaseWorkflowValidator",
     "DataSourceCreator",
     "NumericComparisonConditionValidator",
 ]
@@ -16,3 +17,4 @@ from .data_condition import (
 )
 from .data_source import BaseDataSourceValidator, DataSourceCreator
 from .detector import BaseDetectorTypeValidator
+from .workflow import BaseWorkflowValidator
