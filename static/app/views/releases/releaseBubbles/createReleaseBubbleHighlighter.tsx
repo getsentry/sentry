@@ -12,6 +12,13 @@ interface LegendSelectChangedParams {
   selected: Record<string, boolean>;
 }
 
+interface Callbacks {
+  /**
+   * Callback for when the Releases legend item is changed
+   */
+  onLegendChange: (selected: boolean) => void;
+}
+
 // This needs to be debounced because some charts (e.g. in TimeseriesWidgets)
 // are in a group and share events. Thus on a page with 4 widgets, clicking on
 // a legend item would result in 4 events.
@@ -30,7 +37,10 @@ const trackLegend = debounce((params: LegendSelectChangedParams) => {
  * contain events when the mouse interacts with a data item. This needs to
  * listen to zrender (i.e. the `getZr()`) events.
  */
-export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance) {
+export function createReleaseBubbleHighlighter(
+  echartsInstance: EChartsInstance,
+  {onLegendChange}: Callbacks
+) {
   const highlightedBuckets = new Set();
   function handleMouseMove(params: ElementEvent) {
     // Tracks movement across the chart and highlights the corresponding release bubble
@@ -92,6 +102,8 @@ export function createReleaseBubbleHighlighter(echartsInstance: EChartsInstance)
     if (params.name !== 'Releases' || !('Releases' in params.selected)) {
       return;
     }
+
+    onLegendChange(params.selected.Releases);
 
     trackLegend(params);
   });
