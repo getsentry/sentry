@@ -1197,6 +1197,63 @@ describe('TraceTree', () => {
         tree.expand(siblingAutogroup!, expanded);
         expect(TraceTree.HasVisibleChildren(siblingAutogroup!)).toBe(expanded);
       });
+
+      it("doesn't auto-group sibling spans with default op", () => {
+        const siblingSpans = [
+          makeSpan({
+            op: 'pageload',
+            description: 'parent',
+            start_timestamp: start,
+            timestamp: start + 1,
+            span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        TraceTree.FromSpans(tree.root.children[0]!, siblingSpans, makeEventTransaction());
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+
+        const siblingAutogroup = TraceTree.Find(tree.root, node =>
+          isSiblingAutogroupedNode(node)
+        );
+        expect(siblingAutogroup).toBeNull();
+      });
     });
 
     describe('parent autogroup', () => {
@@ -1216,6 +1273,28 @@ describe('TraceTree', () => {
 
         tree.expand(parentAutogroup!, expanded);
         expect(TraceTree.HasVisibleChildren(parentAutogroup!)).toBe(expanded);
+      });
+
+      it("does't auto-group child spans with default op", () => {
+        const childSpans = [
+          makeSpan({op: 'default', description: 'desc1', span_id: '0000'}),
+          makeSpan({
+            op: 'default',
+            description: 'desc2',
+            span_id: '0001',
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        TraceTree.FromSpans(tree.root.children[0]!, childSpans, makeEventTransaction());
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
+        const parentAutogroup = TraceTree.Find(tree.root, node =>
+          isParentAutogroupedNode(node)
+        );
+        expect(parentAutogroup).toBeNull();
       });
     });
 

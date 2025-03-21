@@ -777,6 +777,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tail &&
         tail.children.length === 1 &&
         isSpanNode(tail.children[0]!) &&
+        // skip `op: default` spans as `default` is added to op-less spans:
+        tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
       ) {
         start = Math.min(start, tail.space[0]);
@@ -922,6 +924,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           isSpanNode(next) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
+          // skip `op: default` spans as `default` is added to op-less spans
+          next.value.op !== 'default' &&
           next.value.op === current.value.op &&
           next.value.description === current.value.description
         ) {
