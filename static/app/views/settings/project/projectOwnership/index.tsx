@@ -9,7 +9,7 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconEdit} from 'sentry/icons';
+import {IconEdit, IconGithub} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
@@ -121,12 +121,13 @@ export default function ProjectOwnership({project}: {project: Project}) {
               <Access access={['org:integrations']} project={project}>
                 {({hasAccess}) => (
                   <Button
-                    onClick={handleAddCodeOwner}
                     size="sm"
+                    onClick={handleAddCodeOwner}
                     data-test-id="add-codeowner-button"
                     disabled={!hasAccess}
+                    icon={<IconGithub />}
                   >
-                    {t('Import CODEOWNERS')}
+                    {t('Import Codeowners')}
                   </Button>
                 )}
               </Access>
