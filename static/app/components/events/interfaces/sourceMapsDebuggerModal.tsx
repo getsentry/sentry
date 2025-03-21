@@ -255,7 +255,7 @@ function SentryWizardCallout({
     <Fragment>
       <WizardInstructionParagraph>
         {tct(
-          'Have you run the Sentry Wizard with [code:sourcemaps] in your project terminal? It\'s the easiest way to set up source maps:',
+          "Have you run the Sentry Wizard with [code:sourcemaps] in your project terminal? It's the easiest way to set up source maps:",
           {
             code: <code />,
           }
@@ -1733,9 +1733,7 @@ function ChecklistDoneNote() {
     <CompletionNoteContainer>
       <IconCheckmark size="md" color="green200" />
       <p>
-        {t(
-          'All steps completed. Capture a new event to verify your setup!'
-        )}
+        {t('All steps completed. Capture a new event to verify your setup!')}
         {isSelfHosted
           ? ' ' +
             tct(
