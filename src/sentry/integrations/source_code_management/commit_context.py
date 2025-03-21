@@ -32,7 +32,11 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiInvalidRequestError, ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiInvalidRequestError,
+    ApiRateLimitedError,
+    ApiRetryError,
+)
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -125,6 +129,14 @@ class CommitContextIntegration(ABC):
                 return []
             except ApiInvalidRequestError as e:
                 # Ignore invalid request errors for GitLab
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                if self.integration_name == ExternalProviderEnum.GITLAB.value:
+                    lifecycle.record_halt(e)
+                    return []
+                else:
+                    raise
+            except ApiRetryError as e:
+                # Ignore retry errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if self.integration_name == ExternalProviderEnum.GITLAB.value:
                     lifecycle.record_halt(e)
