@@ -1,5 +1,3 @@
-import 'intersection-observer'; // polyfill
-
 import {createContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';

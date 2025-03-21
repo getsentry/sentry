@@ -8,6 +8,7 @@ from django.db.models import Q
 from sentry import buffer, features
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.eventstore.models import GroupEvent
+from sentry.models.environment import Environment
 from sentry.utils import json, metrics
 from sentry.workflow_engine.models import (
     Action,
@@ -156,17 +157,40 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         logger.exception("Detector not found for event", extra={"event_id": job["event"].event_id})
         return set()
 
+    try:
+        environment = job["event"].get_environment()
+    except Environment.DoesNotExist:
+        metrics.incr("workflow_engine.process_workflows.error")
+        logger.exception("Missing environment for event", extra={"event_id": job["event"].event_id})
+        return set()
+
     # TODO: remove fetching org, only used for FF check
     organization = detector.project.organization
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
+    environment = job["event"].get_environment()
     workflows = set(
         Workflow.objects.filter(
-            (Q(environment_id=None) | Q(environment_id=job["event"].get_environment())),
+            (Q(environment_id=None) | Q(environment_id=environment.id)),
             detectorworkflow__detector_id=detector.id,
             enabled=True,
         ).distinct()
     )
+
+    if features.has(
+        "organizations:workflow-engine-process-workflows-logs",
+        organization,
+    ):
+        logger.info(
+            "workflow_engine.process_workflows.process_event",
+            extra={
+                "payload": job,
+                "group_id": job["event"].group_id,
+                "event_id": job["event"].event_id,
+                "event_environment_id": environment.id,
+                "workflows": [workflow.id for workflow in workflows],
+            },
+        )
 
     if workflows:
         metrics.incr(

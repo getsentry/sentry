@@ -8,6 +8,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   event: Event;
+  disableCollapsePersistence?: boolean;
   group?: Group;
 };
 
@@ -70,7 +71,7 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
   return items;
 }
 
-export function EventContexts({event, group}: Props) {
+export function EventContexts({event, group, disableCollapsePersistence}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
   const {contexts, sdk} = event;
@@ -87,5 +88,12 @@ export function EventContexts({event, group}: Props) {
     }
   }, [usingOtel, sdk]);
 
-  return <ContextDataSection event={event} group={group} project={project} />;
+  return (
+    <ContextDataSection
+      event={event}
+      group={group}
+      project={project}
+      disableCollapsePersistence={disableCollapsePersistence}
+    />
+  );
 }

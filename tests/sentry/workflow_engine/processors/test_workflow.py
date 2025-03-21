@@ -6,6 +6,7 @@ import pytest
 from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.models.environment import Environment
 from sentry.models.rule import Rule
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import with_feature
@@ -118,6 +119,19 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
     def test_same_environment_only(self):
+        env = self.create_environment(project=self.project)
+        other_env = self.create_environment(project=self.project)
+
+        self.group, self.event, self.group_event = self.create_group_event(environment=env.name)
+        self.job = WorkflowJob(
+            {
+                "event": self.group_event,
+                "group_state": GroupState(
+                    id=1, is_new=False, is_regression=True, is_new_group_environment=False
+                ),
+            }
+        )
+
         # only processes workflows with the same env or no env specified
         self.error_workflow.update(environment=None)
 
@@ -133,11 +147,19 @@ class TestProcessWorkflows(BaseWorkflowTest):
         dcg = self.create_data_condition_group()
         matching_env_workflow = self.create_workflow(
             when_condition_group=dcg,
-            environment=self.group_event.get_environment(),
+            environment=env,
         )
         self.create_detector_workflow(
             detector=self.error_detector,
             workflow=matching_env_workflow,
+        )
+
+        mismatched_env_workflow = self.create_workflow(
+            when_condition_group=dcg, environment=other_env
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=mismatched_env_workflow,
         )
 
         triggered_workflows = process_workflows(self.job)
@@ -180,6 +202,20 @@ class TestProcessWorkflows(BaseWorkflowTest):
         mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
         mock_logger.exception.assert_called_once_with(
             "Detector not found for event",
+            extra={"event_id": self.event.event_id},
+        )
+
+    @patch("sentry.workflow_engine.processors.workflow.metrics")
+    @patch("sentry.workflow_engine.processors.workflow.logger")
+    def test_no_environment(self, mock_logger, mock_metrics):
+        Environment.objects.all().delete()
+        triggered_workflows = process_workflows(self.job)
+
+        assert not triggered_workflows
+
+        mock_metrics.incr.assert_called_once_with("workflow_engine.process_workflows.error")
+        mock_logger.exception.assert_called_once_with(
+            "Missing environment for event",
             extra={"event_id": self.event.event_id},
         )
 
@@ -241,6 +277,13 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.job = WorkflowJob({"event": self.group_event})
 
     def test_workflow_trigger(self):
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        assert triggered_workflows == {self.workflow}
+
+    def test_workflow_trigger__no_conditions(self):
+        assert self.workflow.when_condition_group
+        self.workflow.when_condition_group.conditions.all().delete()
+
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
         assert triggered_workflows == {self.workflow}
 

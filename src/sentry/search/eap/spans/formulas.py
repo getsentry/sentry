@@ -38,6 +38,17 @@ TOTAL_SPAN_COUNT = Column(
 )
 
 
+def division(args: ResolvedArguments) -> Column.BinaryFormula:
+    dividend = cast(AttributeKey, args[0])
+    divisor = cast(AttributeKey, args[1])
+
+    return Column.BinaryFormula(
+        left=Column(key=dividend, label="dividend"),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(key=divisor, label="divisor"),
+    )
+
+
 def avg_compare(args: ResolvedArguments) -> Column.BinaryFormula:
     attribute = cast(AttributeKey, args[0])
     comparison_attribute = cast(AttributeKey, args[1])
@@ -401,6 +412,31 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=avg_compare,
+        is_aggregate=True,
+    ),
+    "division": FormulaDefinition(
+        default_search_type="number",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+            ArgumentDefinition(
+                argument_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+            ),
+        ],
+        formula_resolver=division,
         is_aggregate=True,
     ),
 }

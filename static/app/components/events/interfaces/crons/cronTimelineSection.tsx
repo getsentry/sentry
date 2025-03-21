@@ -24,17 +24,17 @@ import type {Project} from 'sentry/types/project';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
-import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
-import {CronServiceIncidents} from 'sentry/views/monitors/components/serviceIncidents';
+import {ResolutionSelector} from 'sentry/views/insights/crons/components/overviewTimeline/resolutionSelector';
+import {CronServiceIncidents} from 'sentry/views/insights/crons/components/serviceIncidents';
 import {
   checkInStatusPrecedent,
   statusToText,
   tickStyle,
-} from 'sentry/views/monitors/utils';
-import {selectCheckInData} from 'sentry/views/monitors/utils/selectCheckInData';
-import {useMonitorStats} from 'sentry/views/monitors/utils/useMonitorStats';
+} from 'sentry/views/insights/crons/utils';
+import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
+import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 interface Props {
   event: Event;
