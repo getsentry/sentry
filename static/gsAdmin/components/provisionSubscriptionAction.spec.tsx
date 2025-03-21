@@ -692,7 +692,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('Reserved Profile Hours', '100');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
     await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
@@ -844,7 +844,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('Reserved Profile Hours', '100');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
     await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
@@ -986,7 +986,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('Reserved Profile Hours', '100');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
@@ -1114,7 +1114,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('Reserved Profile Hours', '100');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Spans', '1000');
     await typeNum('Price for Replays', '1500');
@@ -1227,7 +1227,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('Reserved Profile Hours', '100');
     await typeNum('Reserved Cost-Per-Event Accepted Spans', '1');
     await typeNum('Reserved Cost-Per-Event Stored Spans', '2');
     await typeNum('Price for Errors', '3000');
@@ -1350,7 +1350,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours (in hours)', '100');
+    await typeNum('Reserved Profile Hours', '100');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');

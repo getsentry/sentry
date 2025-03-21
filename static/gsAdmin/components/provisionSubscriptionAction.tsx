@@ -763,9 +763,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                             title: true,
                             hadCustomDynamicSampling: isAm3Ds,
                           });
-                          const suffix = categoryInfo.pluralUnit
-                            ? ` (in ${categoryInfo.pluralUnit})`
-                            : '';
+                          const suffix =
+                            category === DataCategory.ATTACHMENTS ? ' (in GB)' : '';
                           const capitalizedApiName = this.capitalizeForApiName(
                             categoryInfo.plural
                           );

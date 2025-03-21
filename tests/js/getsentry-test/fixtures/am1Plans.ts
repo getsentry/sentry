@@ -2544,6 +2544,7 @@ const AM1_PLANS: Record<string, Plan> = {
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am1_business',
+    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,

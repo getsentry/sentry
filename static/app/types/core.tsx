@@ -118,12 +118,6 @@ export interface DataCategoryInfo {
   productName: string;
   titleName: string;
   uid: number;
-  /**
-   * The specific terminology used for the unit of measure in the UI.
-   * If not provided, defaults to "events" or "units".
-   */
-  pluralUnit?: string;
-  singularUnit?: string;
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';

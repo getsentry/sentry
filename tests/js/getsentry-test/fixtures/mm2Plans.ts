@@ -632,6 +632,7 @@ const MM2_PLANS: Record<string, Plan> = {
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am2_business',
+    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,

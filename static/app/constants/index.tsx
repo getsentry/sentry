@@ -378,8 +378,6 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Continuous Profiling'),
     uid: 17,
     isBilledCategory: true,
-    singularUnit: 'hour',
-    pluralUnit: 'hours',
   },
   [DataCategoryExact.PROFILE_DURATION_UI]: {
     name: DataCategoryExact.PROFILE_DURATION_UI,
@@ -390,8 +388,6 @@ export const DATA_CATEGORY_INFO = {
     productName: t('UI Profiling'),
     uid: 25,
     isBilledCategory: true,
-    singularUnit: 'hour',
-    pluralUnit: 'hours',
   },
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,
