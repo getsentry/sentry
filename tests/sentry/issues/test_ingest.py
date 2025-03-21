@@ -458,6 +458,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):
             "platform": event.platform,
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
+            # Should truncate the culprit to max allowable length
             "culprit": f"{occurrence.culprit[:MAX_CULPRIT_LENGTH-3]}...",
             "last_seen": event.datetime,
             "first_seen": event.datetime,
