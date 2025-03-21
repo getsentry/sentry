@@ -67,7 +67,7 @@ export function TraceLinkNavigationButton({
     [location.query]
   );
 
-  const isLinkedTraceAvailable = useIsTraceAvailable(traceLink);
+  const {isAvailable: isLinkedTraceAvailable} = useIsTraceAvailable(traceLink);
 
   if (isLoading) {
     // We don't show a placeholder/skeleton here as it would cause layout shifts most of the time.
@@ -75,11 +75,26 @@ export function TraceLinkNavigationButton({
     return null;
   }
 
-  if (!traceLink || !isLinkedTraceAvailable) {
-    return null;
+  if (traceLink && isLinkedTraceAvailable) {
+    return (
+      <TraceLink
+        color="gray500"
+        to={getTraceDetailsUrl({
+          traceSlug: traceLink.trace_id,
+          spanId: traceLink.span_id,
+          dateSelection,
+          // todo: timestamp
+          location,
+          organization,
+        })}
+      >
+        <IconChevron direction="left" />
+        <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
+      </TraceLink>
+    );
   }
 
-  if (!traceLink.sampled) {
+  if (traceLink?.sampled === false) {
     return (
       <StyledTooltip
         position="right"
@@ -92,21 +107,8 @@ export function TraceLinkNavigationButton({
     );
   }
 
-  return (
-    <TraceLink
-      color="gray500"
-      to={getTraceDetailsUrl({
-        traceSlug: traceLink.trace_id,
-        spanId: traceLink.span_id,
-        dateSelection,
-        location,
-        organization,
-      })}
-    >
-      <IconChevron direction="left" />
-      <TraceLinkText>{t('Go to Previous Trace')}</TraceLinkText>
-    </TraceLink>
-  );
+  // If there is no linked trace or an undefined sampling decision
+  return null;
 }
 
 const StyledTooltip = styled(Tooltip)`
