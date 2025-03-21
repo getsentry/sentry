@@ -22,6 +22,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     def get_issue_url(self, key: str) -> str:
         match = ISSUE_EXTERNAL_KEY_FORMAT.match(key)
+        assert match is not None
         project, issue_id = match.group(1), match.group(2)
         return "{}/{}/issues/{}".format(self.model.metadata["base_url"], project, issue_id)
 
@@ -34,10 +35,10 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         # XXX: In GitLab repositories are called projects but get_repository_choices
         # expects the param to be called 'repo', so we need to rename it here.
         # Django QueryDicts are immutable, so we need to copy it first.
-        params = params.copy()
-        params["repo"] = params.get("project") or defaults.get("project")
+        params_mut = dict(params)
+        params_mut["repo"] = params.get("project") or defaults.get("project")
 
-        default_project, project_choices = self.get_repository_choices(group, params, **kwargs)
+        default_project, project_choices = self.get_repository_choices(group, params_mut, **kwargs)
         return default_project, project_choices
 
     def create_default_repo_choice(self, default_repo):

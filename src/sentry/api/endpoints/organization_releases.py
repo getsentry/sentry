@@ -88,21 +88,20 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == RELEASE_ALIAS:
             query_q = Q()
-            raw_value = search_filter.value.raw_value
-            if search_filter.value.is_wildcard():
-                if raw_value.endswith("*") and raw_value.startswith("*"):
-                    query_q = Q(version__contains=raw_value[1:-1])
-                elif raw_value.endswith("*"):
-                    query_q = Q(version__startswith=raw_value[:-1])
-                elif raw_value.startswith("*"):
-                    query_q = Q(version__endswith=raw_value[1:])
+            kind, value_o = search_filter.value.classify_and_format_wildcard()
+            if kind == "infix":
+                query_q = Q(version__contains=value_o)
+            elif kind == "suffix":
+                query_q = Q(version__endswith=value_o)
+            elif kind == "prefix":
+                query_q = Q(version__startswith=value_o)
             elif search_filter.operator == "!=":
-                query_q = ~Q(version=search_filter.value.value)
+                query_q = ~Q(version=value_o)
             elif search_filter.operator == "NOT IN":
-                query_q = ~Q(version__in=raw_value)
+                query_q = ~Q(version__in=value_o)
             elif search_filter.operator == "IN":
-                query_q = Q(version__in=raw_value)
-            elif raw_value == "latest":
+                query_q = Q(version__in=value_o)
+            elif value_o == "latest":
                 latest_releases = get_latest_release(
                     projects=filter_params["project_id"],
                     environments=filter_params.get("environment"),

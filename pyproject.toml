@@ -190,7 +190,6 @@ disable_error_code = [
     "assignment",
     "attr-defined",
     "call-overload",
-    "index",
     "misc",
     "operator",
     "override",
