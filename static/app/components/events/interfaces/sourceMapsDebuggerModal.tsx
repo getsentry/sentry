@@ -456,6 +456,11 @@ export function SourceMapsDebuggerModal({
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
+    // If the SDK supports Debug IDs, the Debug IDs tab should be shown by default
+    if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
+      return 'debug-ids';
+    }
+
     const possibleTabs = [
       {tab: 'debug-ids', progress: sourceResolutionResults.debugIdProgressPercent},
       {tab: 'release', progress: sourceResolutionResults.releaseProgressPercent},
@@ -500,9 +505,7 @@ export function SourceMapsDebuggerModal({
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
-          onChange={tab => {
-            setActiveTab(tab);
-          }}
+          onChange={setActiveTab}
         >
           <TabList>
             <TabList.Item
