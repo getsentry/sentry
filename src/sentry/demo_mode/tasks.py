@@ -111,9 +111,6 @@ def _sync_project_artifact_bundle(
         target_artifact_bundle.organization_id,
     )
 
-    if not target_project:
-        raise IntegrityError("No matching project found")
-
     ProjectArtifactBundle.objects.create(
         project_id=target_project.id,
         artifact_bundle_id=target_artifact_bundle.id,
@@ -156,4 +153,4 @@ def _find_matching_project(project_id, organization_id):
                 "project_id": project_id,
             },
         )
-        return None
+        raise IntegrityError("No matching project found")
