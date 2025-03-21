@@ -8,7 +8,7 @@ import NavTabs from 'sentry/components/navTabs';
 import ConfigStore from 'sentry/stores/configStore';
 
 import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
-import PlanList from 'admin/components/planList';
+import PlanList, {type LimitName} from 'admin/components/planList';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig} from 'getsentry/types';
 import {CheckoutType, PlanTier} from 'getsentry/types';
@@ -200,18 +200,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
     });
   };
 
-  handleLimitChange = (
-    limit:
-      | 'reservedErrors'
-      | 'reservedTransactions'
-      | 'reservedReplays'
-      | 'reservedAttachments'
-      | 'reservedMonitorSeats'
-      | 'reservedUptime'
-      | 'reservedSpans'
-      | 'reservedProfileDuration',
-    value: number
-  ) => {
+  handleLimitChange = (limit: LimitName, value: number) => {
     this.setState({[limit]: value}, () => {
       this.props.disableConfirmButton(!this.canSubmit());
     });
