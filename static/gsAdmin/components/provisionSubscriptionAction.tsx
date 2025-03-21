@@ -177,7 +177,7 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   }
 
   initializeState() {
-    const {subscription, billingConfig, canProvisionDsPlan} = this.props;
+    const {subscription, billingConfig, canProvisionDsPlan = false} = this.props;
 
     const provisionablePlans = billingConfig
       ? billingConfig.planList.reduce(
