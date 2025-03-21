@@ -12,6 +12,7 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
@@ -21,6 +22,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
@@ -29,6 +31,8 @@ import {
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+
+export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
 
 interface SchemaHintsListProps {
   numberTags: TagCollection;
@@ -40,6 +44,12 @@ interface SchemaHintsListProps {
 const seeFullListTag: Tag = {
   key: 'seeFullList',
   name: t('See full list'),
+  kind: undefined,
+};
+
+const hideListTag: Tag = {
+  key: 'hideList',
+  name: t('Hide list'),
   kind: undefined,
 };
 
@@ -68,8 +78,8 @@ function SchemaHintsList({
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
-
-  const {openDrawer, isDrawerOpen} = useDrawer();
+  const organization = useOrganization();
+  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -147,7 +157,10 @@ function SchemaHintsList({
         lastVisibleIndex = items.length;
       }
 
-      setVisibleHints([...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]);
+      setVisibleHints([
+        ...filterTagsSorted.slice(0, lastVisibleIndex),
+        isDrawerOpen ? hideListTag : seeFullListTag,
+      ]);
 
       // Remove the temporary div
       document.body.removeChild(measureDiv);
@@ -162,7 +175,7 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [filterTagsSorted]);
+  }, [filterTagsSorted, isDrawerOpen]);
 
   const onHintClick = useCallback(
     (hint: Tag) => {
@@ -176,7 +189,13 @@ function SchemaHintsList({
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
-              drawerWidth: '35vw',
+              drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              transitionProps: {
+                key: 'schema-hints-drawer',
+                type: 'tween',
+                duration: 0.7,
+                ease: 'easeOut',
+              },
               shouldCloseOnLocationChange: newLocation => {
                 return (
                   location.pathname !== newLocation.pathname ||
@@ -187,8 +206,28 @@ function SchemaHintsList({
                   )
                 );
               },
+              onOpen: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: true,
+                  organization,
+                });
+              },
+
+              onClose: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: false,
+                  organization,
+                });
+              },
             }
           );
+        }
+        return;
+      }
+
+      if (hint.key === hideListTag.key) {
+        if (isDrawerOpen) {
+          closeDrawer();
         }
         return;
       }
@@ -199,12 +238,27 @@ function SchemaHintsList({
         FieldValueType.BOOLEAN;
       addFilterToQuery(newSearchQuery, hint, isBoolean);
       setExploreQuery(newSearchQuery.formatString());
+      trackAnalytics('trace.explorer.schema_hints_click', {
+        hint_key: hint.key,
+        source: 'list',
+        organization,
+      });
     },
-    [exploreQuery, setExploreQuery, isDrawerOpen, openDrawer, filterTagsSorted, location]
+    [
+      exploreQuery,
+      setExploreQuery,
+      isDrawerOpen,
+      organization,
+      openDrawer,
+      filterTagsSorted,
+      location.pathname,
+      location.query,
+      closeDrawer,
+    ]
   );
 
   const getHintText = (hint: Tag) => {
-    if (hint.key === seeFullListTag.key) {
+    if (hint.key === seeFullListTag.key || hint.key === hideListTag.key) {
       return hint.name;
     }
 

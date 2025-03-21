@@ -92,7 +92,12 @@ export class IssuesTraceTree extends TraceTree {
     return Promise.resolve();
   }
 
-  collapseList(preserveLeafNodes: TraceTreeNode[]) {
+  /**
+   * Collapse the list of nodes to only include the preserveLeafNodes and the surrounding nodes.
+   * @param preserveLeafNodes - The nodes to preserve.
+   * @param numSurroundingNodes - The number of surrounding nodes to preserve.
+   */
+  collapseList(preserveLeafNodes: TraceTreeNode[], numSurroundingNodes = 3) {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
@@ -108,18 +113,18 @@ export class IssuesTraceTree extends TraceTree {
         continue;
       }
 
-      // Preserve the previous 2 nodes
+      // Preserve the previous n nodes
       let i = Math.max(index - 1, 0);
-      while (i > index - 3) {
+      while (i > index - numSurroundingNodes) {
         if (this.list[i]) {
           preserveNodes.add(this.list[i]!);
         }
         i--;
       }
 
-      // Preserve the next 2 nodes
+      // Preserve the next n nodes
       let j = Math.min(index + 1, this.list.length - 1);
-      while (j < index + 3) {
+      while (j < index + numSurroundingNodes) {
         if (this.list[j]) {
           preserveNodes.add(this.list[j]!);
         }

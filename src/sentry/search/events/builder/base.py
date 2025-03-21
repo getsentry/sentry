@@ -222,7 +222,7 @@ class BaseQueryBuilder:
         self.raw_equations = equations
         self.raw_orderby = orderby
         self.query = query
-        self.selected_columns = selected_columns
+        self.selected_columns = selected_columns or []
         self.groupby_columns = groupby_columns
         self.tips: dict[str, set[str]] = {
             "query": set(),

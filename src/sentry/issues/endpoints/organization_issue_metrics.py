@@ -17,7 +17,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -35,9 +35,9 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         start, end = get_date_range_from_params(request.GET)
         issue_category = request.GET.get("category", "error")
         type_filter = (
-            ~Q(type=GroupCategory.FEEDBACK)
+            ~Q(type=FeedbackGroup.type_id)
             if issue_category == "error"
-            else Q(type=GroupCategory.FEEDBACK)
+            else Q(type=FeedbackGroup.type_id)
         )
 
         try:
