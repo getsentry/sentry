@@ -118,6 +118,7 @@ def test_resolve_rdap_network_details(mock_resolve_hostname):
         json=SIMPLE_RDAP_RESPONSE,
     )
     details = resolve_rdap_network_details("abc.com")
+    assert details is not None
 
     mock_resolve_hostname.assert_called_with("abc.com")
     assert details["handle"] == "CC-3517"

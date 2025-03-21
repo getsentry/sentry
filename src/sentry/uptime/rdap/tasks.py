@@ -33,5 +33,8 @@ def fetch_subscription_rdap_info(subscription_id: int):
         return
 
     details = resolve_rdap_network_details(parsed_url.hostname)
+    if details is None:
+        logger.info("rdap_resolve_network_details_failure", extra={"url": sub.url})
+        return
 
     sub.update(host_provider_id=details["handle"], host_provider_name=details["owner_name"])
