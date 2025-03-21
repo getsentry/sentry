@@ -262,7 +262,7 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             {
                 "name": "Custom View Four",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
                 "projects": [],
                 "isAllProjects": False,
                 "environments": [],
@@ -429,7 +429,7 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             {
                 "name": f"Custom View {i}",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
                 "projects": [],
                 "environments": [],
                 "timeFilters": {"period": "14d"},
@@ -597,7 +597,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             {
                 "name": "New View",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
                 "projects": [],
                 "isAllProjects": False,
                 "environments": [],
@@ -733,7 +733,7 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
                         "id": issue_view_one.id,
                         "name": issue_view_one.name,
                         "query": issue_view_one.query,
-                        "query_sort": issue_view_one.query_sort,
+                        "querySort": issue_view_one.query_sort,
                         "position": issue_view_one.position,
                         "timeFilters": issue_view_one.time_filters,
                         "environments": issue_view_one.environments,
@@ -1011,7 +1011,7 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
             {
                 "name": "Custom View Two",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
                 "projects": [],
                 "isAllProjects": False,
                 "environments": [],
