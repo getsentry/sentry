@@ -16,6 +16,9 @@ from sentry.api.endpoints.organization_member import get_allowed_org_roles
 from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organizationmemberinvite import (
+    OrganizationMemberInviteSerializer,
+)
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.roles import organization_roles
@@ -116,7 +119,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         members_can_only_invite_to_members_teams = (
             not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
         )
-        has_teams = bool(result.get("teamRoles") or result.get("teams"))
+        has_teams = bool(result.get("teams"))
 
         if is_member and members_can_only_invite_to_members_teams and has_teams:
             requester_teams = set(
@@ -126,12 +129,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
                     user_is_active=True,
                 ).values_list("teams__slug", flat=True)
             )
-            team_slugs = list(
-                set(
-                    [team.slug for team, _ in result.get("teamRoles", [])]
-                    + [team.slug for team in result.get("teams", [])]
-                )
-            )
+            team_slugs = [team.slug for team in result.get("teams", [])]
             # ensure that the requester is a member of all teams they are trying to assign
             if not requester_teams.issuperset(team_slugs):
                 return Response(
@@ -158,16 +156,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             for omi in existing_invite:
                 omi.delete()
 
-            if "teamRoles" in result or "teams" in result:
-                teams = (
-                    [team for team, _ in result.get("teamRoles")]
-                    if "teamRoles" in result and result["teamRoles"]
-                    else result.get("teams")
-                )
-            else:
-                # TODO: change JSON field to list and not dict
-                # team roles are not set on invite
-                teams = []
+            teams = [team.id for team in result.get("teams", [])]
 
             omi = OrganizationMemberInvite(
                 organization=organization,
@@ -177,8 +166,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
                 teams=teams,
             )
 
-            # OrganizationMemberIndexEndpoint has a check for settings.SENTRY_ENABLE_INVITES before
-            # generating token and saving. Do we need to account for this?
             omi.save()
 
         if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
