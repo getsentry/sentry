@@ -232,7 +232,7 @@ function SchemaHintsList({
       setExploreQuery(newSearchQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
-        schema_hints_drawer_open: isDrawerOpen,
+        source: 'list',
         organization,
       });
     },

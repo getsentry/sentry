@@ -30,7 +30,7 @@ export type TracingEventParameters = {
     empty_buckets_percentage?: number[];
   };
   'trace.explorer.schema_hints_click': {
-    schema_hints_drawer_open: boolean;
+    source: 'list' | 'drawer';
     hint_key?: string;
   };
   'trace.explorer.schema_hints_drawer': {

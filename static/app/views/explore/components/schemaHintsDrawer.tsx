@@ -88,7 +88,7 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       setExploreQuery(filterQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
-        schema_hints_drawer_open: true,
+        source: 'drawer',
         organization,
       });
     },
