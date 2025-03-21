@@ -130,10 +130,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         arguments=[
             ArgumentDefinition(
                 argument_types={
-                    "duration",
-                    "number",
-                    "percentage",
-                    *constants.SIZE_TYPE,
                     *constants.DURATION_TYPE,
                 },
                 validator=literal_validator(
