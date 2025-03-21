@@ -30,7 +30,7 @@ function FeedbackButton() {
         openForm?.({
           messagePlaceholder: t('How can we make logs work better for you?'),
           tags: {
-            ['feedback.source']: 'trace-view',
+            ['feedback.source']: 'logs-listing',
             ['feedback.owner']: 'performance',
           },
         })
