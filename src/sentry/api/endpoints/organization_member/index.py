@@ -136,15 +136,15 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
                 )
 
         # check for OrganizationMemberInvites
-        queryset = OrganizationMemberInvite.objects.filter(
+        invite_queryset = OrganizationMemberInvite.objects.filter(
             Q(email=email),
             organization=self.context["organization"],
         )
-        if queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
+        if invite_queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
             raise MemberConflictValidationError("The user %s has already been invited" % email)
 
         if not self.context.get("allow_existing_invite_request"):
-            if queryset.filter(
+            if invite_queryset.filter(
                 Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
                 | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
             ).exists():

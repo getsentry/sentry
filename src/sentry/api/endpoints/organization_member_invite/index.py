@@ -165,7 +165,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
                 email=result["email"],
                 role=result["role"],
                 inviter_id=request.user.id,
-                teams=teams,
+                organization_member_team_data=teams,
             )
 
             omi.save()
