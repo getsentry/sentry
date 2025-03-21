@@ -34,16 +34,10 @@ ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 
 @dataclass(frozen=True)
-class EventJob:
+class WorkflowEventData:
     event: GroupEvent
-
-
-@dataclass(frozen=True)
-class WorkflowJob(EventJob):
     group_state: GroupState | None = None
-    is_reprocessed: bool | None = None
     has_reappeared: bool | None = None
-    has_alert: bool | None = None
     has_escalated: bool | None = None
     workflow: Workflow | None = None
 
@@ -60,7 +54,7 @@ class ActionHandler:
     group: ClassVar[Group]
 
     @staticmethod
-    def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
+    def execute(job: WorkflowEventData, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 

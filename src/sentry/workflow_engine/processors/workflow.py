@@ -22,7 +22,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def enqueue_workflow(
     )
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
+def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowEventData) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
 
     for workflow in workflows:
@@ -80,7 +80,7 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> se
 
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
-    job: WorkflowJob,
+    job: WorkflowEventData,
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
@@ -116,7 +116,7 @@ def evaluate_workflows_action_filters(
     return filter_recently_fired_workflow_actions(filtered_action_groups, job.event.group)
 
 
-def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowJob) -> None:
+def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowEventData) -> None:
     # go from actions to workflows
     action_ids = {action.id for action in actions}
     action_conditions = DataConditionGroup.objects.filter(
@@ -144,7 +144,7 @@ def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowJob) 
         )
 
 
-def process_workflows(job: WorkflowJob) -> set[Workflow]:
+def process_workflows(job: WorkflowEventData) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,

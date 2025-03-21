@@ -7,7 +7,7 @@ from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -17,7 +17,7 @@ class TestFirstSeenEventCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
+        self.job = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 {

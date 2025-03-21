@@ -4,7 +4,7 @@ from jsonschema import ValidationError
 from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -40,7 +40,7 @@ class TestRegressionEventCondition(ConditionTestCase):
             dc.save()
 
     def test(self):
-        job = WorkflowJob(
+        job = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 {

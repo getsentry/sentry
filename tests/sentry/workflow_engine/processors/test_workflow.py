@@ -32,7 +32,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     process_workflows,
 )
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
@@ -56,7 +56,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowJob(
+        self.job = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
@@ -113,7 +113,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         other_env = self.create_environment(project=self.project)
 
         self.group, self.event, self.group_event = self.create_group_event(environment=env.name)
-        self.job = WorkflowJob(
+        self.job = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
@@ -262,7 +262,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = WorkflowJob(event=self.group_event)
+        self.job = WorkflowEventData(event=self.group_event)
 
     def test_workflow_trigger(self):
         triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
@@ -347,7 +347,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = WorkflowJob(event=self.group_event)
+        self.job = WorkflowEventData(event=self.group_event)
         self.create_workflow_action(self.workflow)
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -474,7 +474,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.job = WorkflowJob(event=self.group_event)
+        self.job = WorkflowEventData(event=self.group_event)
 
     def test_basic__no_filter(self):
         triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)

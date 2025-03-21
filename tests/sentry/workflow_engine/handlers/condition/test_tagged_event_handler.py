@@ -5,7 +5,7 @@ from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.tagged_event import TaggedEventFilter
 from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -33,7 +33,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         self.event = self.get_event()
         self.group = self.create_group(project=self.project)
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(event=self.group_event)
+        self.job = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},

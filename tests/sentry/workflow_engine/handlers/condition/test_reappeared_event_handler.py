@@ -5,7 +5,7 @@ from jsonschema import ValidationError
 
 from sentry.rules.conditions.reappeared_event import ReappearedEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -41,7 +41,7 @@ class TestReappearedEventCondition(ConditionTestCase):
             dc.save()
 
     def test(self):
-        job = WorkflowJob(event=self.group_event, has_reappeared=True)
+        job = WorkflowEventData(event=self.group_event, has_reappeared=True)
         dc = self.create_data_condition(
             type=self.condition,
             comparison=True,

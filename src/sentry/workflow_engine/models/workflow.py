@@ -11,7 +11,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.owner_base import OwnerModel
 from sentry.workflow_engine.models.data_condition import DataCondition, is_slow_condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 from .json_config import JSONConfigBase
 
@@ -68,7 +68,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name}
 
-    def evaluate_trigger_conditions(self, job: WorkflowJob) -> tuple[bool, list[DataCondition]]:
+    def evaluate_trigger_conditions(
+        self, job: WorkflowEventData
+    ) -> tuple[bool, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
         If there aren't any workflow trigger conditions, the workflow is considered triggered.
