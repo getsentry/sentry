@@ -156,7 +156,9 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             for omi in existing_invite:
                 omi.delete()
 
-            teams = [team.id for team in result.get("teams", [])]
+            teams = []
+            for team in result.get("teams", []):
+                teams.append({"id": team.id, "slug": team.slug})
 
             omi = OrganizationMemberInvite(
                 organization=organization,
