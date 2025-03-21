@@ -2,9 +2,12 @@ import {useMemo} from 'react';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
+import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
 import {
   Container,
@@ -61,6 +64,15 @@ export default function GroupFeatureFlagsDrawerContent({
     return searchedTags;
   }, [data, search, tagValues]);
 
+  const {projects} = useProjects();
+  const project = projects.find(p => p.slug === group.project.slug)!;
+
+  const showCTA =
+    data.length === 0 &&
+    project &&
+    !project.hasFlags &&
+    featureFlagOnboardingPlatforms.includes(project.platform ?? 'other');
+
   return isPending ? (
     <LoadingIndicator />
   ) : isError ? (
@@ -68,6 +80,8 @@ export default function GroupFeatureFlagsDrawerContent({
       message={t('There was an error loading feature flags.')}
       onRetry={refetch}
     />
+  ) : showCTA ? (
+    <FlagDrawerCTA />
   ) : displayTags.length === 0 ? (
     <StyledEmptyStateWarning withIcon>
       {data.length === 0

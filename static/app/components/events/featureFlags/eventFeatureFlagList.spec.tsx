@@ -217,7 +217,7 @@ describe('EventFeatureFlagList', function () {
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('renders empty state', function () {
+  it('renders empty state if project has flags', function () {
     render(<EventFeatureFlagList {...EMPTY_STATE_SECTION_PROPS} />);
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
