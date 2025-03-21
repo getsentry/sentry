@@ -1697,11 +1697,34 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         self.wait_for_metric_count(self.project, 2)
         response = self.do_request(query)
-
-        # Since this is on the metrics enhanced dataset, it falls back to indexed data
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["isMetricsData"] is False
-        assert response.data["meta"]["datasetReason"] == constants.HAS_FILTER_ERROR_MESSAGE
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "<< unparameterized >>"
+        assert data[0]["p50(transaction.duration)"] == 1
+        assert data[1]["transaction"] == "foo_transaction"
+        assert data[1]["p50(transaction.duration)"] == 100
+        assert meta["isMetricsData"]
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "p50(transaction.duration)",
+            "field": [
+                "transaction",
+                "p50(transaction.duration)",
+            ],
+            "query": "!has:transaction",
+            "statsPeriod": "24h",
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(
+            query, features={"organizations:performance-discover-dataset-selector": True}
+        )
+        assert response.status_code == 400, response.content
 
     def test_apdex_transaction_threshold(self):
         ProjectTransactionThresholdOverride.objects.create(
@@ -2199,8 +2222,30 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             }
         )
 
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == constants.HAS_FILTER_ERROR_MESSAGE
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50()"] == 1
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p50()",
+                ],
+                "query": "has:transaction.status",
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50()"] == 1
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
 
     def test_not_has_filter(self):
         self.store_transaction_metric(
@@ -2215,13 +2260,27 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "transaction",
                     "p50()",
                 ],
+                # Doing !has on the metrics dataset doesn't really make sense
                 "query": "!has:transaction.status",
                 "dataset": "metrics",
             }
         )
 
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == constants.HAS_FILTER_ERROR_MESSAGE
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "p50()",
+                ],
+                # Doing !has on the metrics dataset doesn't really make sense
+                "query": "!has:measurements.frames_frozen_rate",
+                "dataset": "metrics",
+            }
+        )
+
+        assert response.status_code == 400, response.content
 
     def test_p50_with_count(self):
         """Implicitly test the fact that percentiles are their own 'dataset'"""
@@ -3608,12 +3667,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             "interval": "1d",
             "dataset": "metricsEnhanced",
         }
-        response = self.do_request(query)
+        response = self.do_request(
+            query,
+        )
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
 
-        # The request fell back to indexed data because the tag doesn't exist in the metrics indexer
+        # The request fell back to indexed data because !has is not supported in metrics
         assert response.data["meta"]["isMetricsData"] is False
 
         # First bucket, where the transaction should be

@@ -15,7 +15,7 @@ from parsimonious.nodes import Node, NodeVisitor
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.constants import (
     DURATION_UNITS,
-    HAS_FILTER_ERROR_MESSAGE,
+    NOT_HAS_FILTER_ERROR_MESSAGE,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -624,8 +624,8 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
-    # Disallow the use of the has filter. Used for datasets that do not support `has` filters.
-    allow_has_filter: bool = True
+    # Disallow the use of the !has filter
+    allow_not_has_filter: bool = True
 
     @overload
     @classmethod
@@ -1231,8 +1231,15 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         # the key is has here, which we don't need
         negation, _, _, _, (search_key,) = children
 
-        if not self.config.allow_has_filter and search_key.name != TEAM_KEY_TRANSACTION_ALIAS:
-            raise IncompatibleMetricsQuery(HAS_FILTER_ERROR_MESSAGE)
+        # Some datasets do not support the !has filter, but we allow
+        # team_key_transaction because we control that field and special
+        # case the way it's processed in search
+        if (
+            not self.config.allow_not_has_filter
+            and is_negated(negation)
+            and search_key.name != TEAM_KEY_TRANSACTION_ALIAS
+        ):
+            raise IncompatibleMetricsQuery(NOT_HAS_FILTER_ERROR_MESSAGE)
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
