@@ -11,9 +11,8 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {type DataCategory, Outcome} from 'sentry/types/core';
+import {DataCategory, Outcome} from 'sentry/types/core';
 
 export const generateThemeAliases = (colors: Colors) => ({
   /**
@@ -911,21 +910,21 @@ const iconSizes: Sizes = {
 const dataCategory: Record<
   Exclude<
     DataCategory,
-    | 'profiles'
-    | 'profileChunks'
-    | 'profileDuration'
-    | 'profileDurationUI'
-    | 'spans'
-    | 'spansIndexed'
-    | 'uptime'
+    | DataCategory.PROFILES
+    | DataCategory.PROFILE_CHUNKS
+    | DataCategory.PROFILE_DURATION
+    | DataCategory.PROFILE_DURATION_UI
+    | DataCategory.SPANS
+    | DataCategory.SPANS_INDEXED
+    | DataCategory.UPTIME
   >,
   string
 > = {
-  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
-  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
-  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
-  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
+  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
+  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
+  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
+  [DataCategory.REPLAYS]: CHART_PALETTE[4][4],
+  [DataCategory.MONITOR_SEATS]: '#a397f7',
 };
 
 /**
@@ -1152,6 +1151,8 @@ export type StrictCSSObject = {
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
 } & Partial<{
   [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
+  [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
 }>;
 
 /**

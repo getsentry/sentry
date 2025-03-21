@@ -44,7 +44,7 @@ type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
   {key: 'release', name: 'release', width: 400},
-  {key: 'error_count', name: 'new issues'},
+  {key: 'error_count', name: 'new issues', width: 110},
   {key: 'date', name: 'created'},
 ];
 

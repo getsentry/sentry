@@ -8,6 +8,7 @@ const MM2_CATEGORY_DISPLAY_NAMES = {
 
 const MM2_PLANS: Record<string, Plan> = {
   mm2_a_100k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -61,6 +62,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_100k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -114,6 +116,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_100k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -167,6 +170,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_500k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -220,6 +224,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_500k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -273,6 +278,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_a_500k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -326,6 +332,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_100k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -368,6 +375,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_100k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -410,6 +418,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_100k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -452,6 +461,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_500k: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -495,6 +505,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_500k_ac: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -537,6 +548,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_b_500k_auf: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',
@@ -579,6 +591,7 @@ const MM2_PLANS: Record<string, Plan> = {
     ],
   },
   mm2_f: {
+    isTestPlan: false,
     availableCategories: [],
     basePrice: 0,
     description: '',

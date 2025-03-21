@@ -98,6 +98,7 @@ export type Plan = {
   hasOnDemandModes: boolean;
 
   id: string;
+  isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
   onDemandCategories: string[];
@@ -831,6 +832,10 @@ export enum PlanTier {
    * No specified tier
    */
   ALL = 'all',
+  /**
+   * Test plans
+   */
+  TEST = 'test',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/

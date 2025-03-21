@@ -102,7 +102,7 @@ const configureAdditionalInfo = tct(
 const getVerifySnippet = () => `
 child: ElevatedButton(
   onPressed: () {
-    throw Exception('This is test exception');
+    throw StateError('This is test exception');
   },
   child: const Text('Verify Sentry Setup'),
 )

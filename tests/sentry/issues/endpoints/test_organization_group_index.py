@@ -2377,7 +2377,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         default_view = GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=0,
             name="Default View",
             query="ZeroDivisionError",
             query_sort="date",
@@ -2422,7 +2421,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=0,
             name="Default View",
             query="TypeError",
             query_sort="date",
@@ -2431,7 +2429,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         view = GroupSearchView.objects.create(
             organization=self.organization,
             user_id=self.user.id,
-            position=1,
             name="Custom View",
             query="ZeroDivisionError",
             query_sort="date",

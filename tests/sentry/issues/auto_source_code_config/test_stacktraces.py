@@ -13,6 +13,9 @@ def _stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
     return {"stacktrace": {"frames": frames}}
 
 
+BASIC_FRAME = {"in_app": True, "filename": "foo"}
+
+
 @pytest.mark.parametrize(
     "frames, platform, expected",
     [
@@ -83,7 +86,8 @@ def test_get_frames_to_process(
         (None, []),
         ([None], []),
         ([], []),
-        ([{"in_app": True}], []),
+        ([{"in_app": True}], []),  # Both in_app and filename are required
+        ([BASIC_FRAME, None], [BASIC_FRAME]),  # Handle intermixing of None and dicts
     ],
 )
 def test_with_invalid_frames(frames: list[dict[str, Any]], expected: list[str]) -> None:
