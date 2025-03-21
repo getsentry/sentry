@@ -1,10 +1,19 @@
-import {Fragment, type ReactElement} from 'react';
+import {
+  Fragment,
+  type MutableRefObject,
+  type ReactElement,
+  useCallback,
+  useRef,
+} from 'react';
 import styled from '@emotion/styled';
+import type {SeriesOption} from 'echarts';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
 
@@ -38,6 +47,9 @@ interface ReleasesDrawerListProps {
     end: Date;
     releases: ReleaseMetaBasic[];
     start: Date;
+    ref?:
+      | MutableRefObject<ReactEchartsRef | null>
+      | ((e: ReactEchartsRef | null) => void);
   }) => ReactElement;
 }
 
@@ -54,6 +66,75 @@ export function ReleasesDrawerList({
 }: ReleasesDrawerListProps) {
   const start = new Date(startTs);
   const end = new Date(endTs);
+  const chartRef = useRef<ReactEchartsRef | null>(null);
+
+  const handleMouseOverRelease = useCallback((release: string) => {
+    if (!chartRef.current) {
+      return;
+    }
+
+    const echartsInstance = chartRef.current.getEchartsInstance();
+    const opts = echartsInstance.getOption();
+    const releaseSeries = (opts.series as SeriesOption[]).find(
+      ({id}) => id === 'release-lines'
+    );
+    const updatedData = releaseSeries?.markLine.data.map((d: SeriesDataUnit) => {
+      // Update the style of the series that is
+      // currently being hovered over so that it
+      // is more visible than other series on the
+      // chart
+      if (d.name === formatVersion(release, true)) {
+        return {
+          ...d,
+          lineStyle: {
+            width: 2,
+            opacity: 1,
+          },
+        };
+      }
+      return d;
+    });
+    echartsInstance.setOption({
+      series: {
+        id: 'release-lines',
+        markLine: {
+          data: updatedData,
+        },
+      },
+    });
+  }, []);
+
+  const handleMouseOutRelease = useCallback((release: string) => {
+    if (!chartRef.current) {
+      return;
+    }
+
+    const echartsInstance = chartRef.current.getEchartsInstance();
+    const opts = echartsInstance.getOption();
+    const releaseSeries = (opts.series as SeriesOption[]).find(
+      ({id}) => id === 'release-lines'
+    );
+
+    const updatedData = releaseSeries?.markLine.data.map((d: SeriesDataUnit) => {
+      // Only need to update the line style of the
+      // release that was un-mouseover'ed.
+      if (d.name === formatVersion(release, true)) {
+        return {
+          ...d,
+          lineStyle: {},
+        };
+      }
+      return d;
+    });
+    echartsInstance.setOption({
+      series: {
+        id: 'release-lines',
+        markLine: {
+          data: updatedData,
+        },
+      },
+    });
+  }, []);
 
   return (
     <Fragment>
@@ -67,6 +148,7 @@ export function ReleasesDrawerList({
               </Fragment>
             }
             Visualization={chartRenderer?.({
+              ref: chartRef,
               releases,
               start,
               end,
@@ -78,6 +160,8 @@ export function ReleasesDrawerList({
         start={start.toISOString()}
         end={end.toISOString()}
         onSelectRelease={onSelectRelease}
+        onMouseOverRelease={handleMouseOverRelease}
+        onMouseOutRelease={handleMouseOutRelease}
       />
     </Fragment>
   );

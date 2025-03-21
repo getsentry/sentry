@@ -1,4 +1,4 @@
-import {type ReactElement, useCallback, useRef} from 'react';
+import {type MutableRefObject, type ReactElement, useCallback, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -335,6 +335,9 @@ interface UseReleaseBubblesParams {
     end: Date;
     releases: ReleaseMetaBasic[];
     start: Date;
+    ref?:
+      | MutableRefObject<ReactEchartsRef | null>
+      | ((e: ReactEchartsRef | null) => void);
   }) => ReactElement;
   maxTime?: number;
   minTime?: number;
