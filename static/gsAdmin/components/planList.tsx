@@ -10,7 +10,7 @@ import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import titleCase from 'getsentry/utils/titleCase';
 
-type LimitName =
+export type LimitName =
   | 'reservedErrors'
   | 'reservedAttachments'
   | 'reservedReplays'
@@ -30,11 +30,11 @@ type Props = {
   reservedErrors: null | number;
   reservedMonitorSeats: null | number;
   reservedProfileDuration: null | number;
-  reservedProfileDurationUI: null | number;
   reservedReplays: null | number;
   reservedSpans: null | number;
   reservedTransactions: null | number;
   reservedUptime: null | number;
+  reservedProfileDurationUI?: null | number;
 };
 
 const configurableCategories: DataCategory[] = [

@@ -72,7 +72,7 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: yarn tsc -p config/tsconfig.ci.json
+        run: yarn tsc -p tsconfig.json
 
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
