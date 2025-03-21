@@ -121,12 +121,12 @@ export default function ProjectOwnership({project}: {project: Project}) {
               <Access access={['org:integrations']} project={project}>
                 {({hasAccess}) => (
                   <Button
-                    onClick={handleAddCodeOwner}
                     size="sm"
+                    onClick={handleAddCodeOwner}
                     data-test-id="add-codeowner-button"
                     disabled={!hasAccess}
                   >
-                    {t('Import CODEOWNERS')}
+                    {t('Import Codeowners')}
                   </Button>
                 )}
               </Access>
