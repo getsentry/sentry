@@ -110,7 +110,7 @@ export function MockTimelineVisualization({schedule}: Props) {
             timeWindowConfig={timeWindowConfig}
           />
           <MockCheckInTimeline
-            mockTimestamps={mockTimestamps.slice(1, mockTimestamps.length - 1)}
+            mockTimestamps={mockTimestamps.slice(1, -1)}
             status={CheckInStatus.IN_PROGRESS}
             statusStyle={tickStyle}
             statusLabel={statusToText}

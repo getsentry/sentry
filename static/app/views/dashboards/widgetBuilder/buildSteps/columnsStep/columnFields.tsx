@@ -65,7 +65,7 @@ export function ColumnFields({
         // renders for is TOP_N, where the n - 1 fields
         // are columns and the nth field is the y-axis
         <ColumnCollectionEdit
-          columns={fields.slice(0, fields.length - 1)}
+          columns={fields.slice(0, -1)}
           onChange={newColumns => {
             onChange([...newColumns, fields[fields.length - 1]!]);
           }}
