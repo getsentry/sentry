@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Any
 
 from django.conf import settings
@@ -79,9 +80,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True, []
 
-        job["workflow"] = self
+        workflow_job = replace(job, workflow=self)
         (evaluation, _), remaining_conditions = process_data_condition_group(
-            self.when_condition_group.id, job
+            self.when_condition_group.id, workflow_job
         )
         return evaluation, remaining_conditions
 
