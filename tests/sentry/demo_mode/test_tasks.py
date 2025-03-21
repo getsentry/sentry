@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
+from unittest import mock
 
-import pytest
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from sentry.demo_mode.tasks import _sync_artifact_bundles
@@ -135,12 +136,19 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_release_bundle.release_name == source_release_bundle.release_name
         assert target_release_bundle.organization_id == self.target_org.id
 
-    def test_sync_artifact_bunles_rolls_back_on_error(self):
-        self.set_up_artifact_bundle(self.source_org, self.source_proj_bar)
+    @mock.patch("sentry.demo_mode.tasks._sync_release_artifact_bundle", side_effect=IntegrityError)
+    def test_sync_artifact_bundles_rolls_back_on_error(self, _):
+        self.set_up_artifact_bundle(self.source_org, self.source_proj_foo)
 
-        with pytest.raises(Project.DoesNotExist):
-            _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
+        _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
 
         assert not ArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
         assert not ProjectArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
         assert not ReleaseArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
+
+    def test_sync_artifact_bundles_does_not_fail_if_project_does_not_exist(self):
+        self.set_up_artifact_bundle(self.source_org, self.source_proj_bar)
+
+        _sync_artifact_bundles(source_org=self.source_org, target_org=self.target_org)
+
+        assert not ArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
