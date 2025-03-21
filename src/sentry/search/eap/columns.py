@@ -85,21 +85,19 @@ class BaseArgumentDefinition:
     default_arg: str | None = None
     # Validator to check if the value is allowed for this argument
     validator: Callable[[str], bool] | None = None
+    # Whether this argument is completely ignored, used for `count()`
+    ignored: bool = False
 
 
 @dataclass
 class ArgumentDefinition(BaseArgumentDefinition):
     argument_types: set[constants.SearchType] | None = None
-    # Whether this argument is completely ignored, used for `count()`
-    ignored: bool = False
 
 
 @dataclass
 class AttributeArgumentDefinition(BaseArgumentDefinition):
     # the allowed types of data stored in the attribute
     attribute_types: set[constants.SearchType] | None = None
-    # Whether this argument is completely ignored, used for `count()`
-    ignored: bool = False
 
 
 @dataclass
