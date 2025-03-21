@@ -26,7 +26,6 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
       <UserFeedbackButton
         type="button"
         priority="link"
-        size="zero"
         icon={<IconMegaphone size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
