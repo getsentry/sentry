@@ -418,19 +418,19 @@ function MetaFrameworkConfigInfo({
       )}
       <InstructionCodeSnippet language="javascript" dark filename="vite.config.(js|ts)">
         {`export default {
-plugins: [
-  sentrySvelteKit({
-    // If you use environment variables,
-    // you don't need to specify these options
-    org: "${orgSlug}",
-    project: "${projectSlug}",
-    // Set this to true, or omit it entirely
-    autoUploadSourceMaps: true,
-    // ... rest of your sentrySvelteKit
-  }),
-  sveltekit(),
-],
-// ... rest of your Vite config
+  plugins: [
+    sentrySvelteKit({
+      // If you use environment variables,
+      // you don't need to specify these options
+      org: "${orgSlug}",
+      project: "${projectSlug}",
+      // Set this to true, or omit it entirely
+      autoUploadSourceMaps: true,
+      // ... rest of your sentrySvelteKit
+    }),
+    sveltekit(),
+  ],
+  // ... rest of your Vite config
 };`}
       </InstructionCodeSnippet>
     </p>
@@ -456,6 +456,11 @@ export function SourceMapsDebuggerModal({
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
 
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
+    // If the SDK supports Debug IDs, the Debug IDs tab should be shown by default
+    if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
+      return 'debug-ids';
+    }
+
     const possibleTabs = [
       {tab: 'debug-ids', progress: sourceResolutionResults.debugIdProgressPercent},
       {tab: 'release', progress: sourceResolutionResults.releaseProgressPercent},
@@ -500,9 +505,7 @@ export function SourceMapsDebuggerModal({
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
-          onChange={tab => {
-            setActiveTab(tab);
-          }}
+          onChange={setActiveTab}
         >
           <TabList>
             <TabList.Item

@@ -277,11 +277,11 @@ describe('Discover > Homepage', () => {
       {router: initialData.router, organization: initialData.organization}
     );
 
-    expect(mockHomepage).toHaveBeenCalled();
-    expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
     await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
+      expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
     });
+
+    expect(measurementsMetaMock).toHaveBeenCalled();
   });
 
   it('follows absolute date selection', async () => {

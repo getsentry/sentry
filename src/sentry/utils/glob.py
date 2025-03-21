@@ -2,8 +2,8 @@ from sentry_relay.processing import is_glob_match
 
 
 def glob_match(
-    value: str | None,
-    pat: str,
+    value: str | bytes | None,
+    pat: str | bytes,
     doublestar: bool = False,
     ignorecase: bool = False,
     path_normalize: bool = False,

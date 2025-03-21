@@ -14,7 +14,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
-import type {LegendSelection, Meta, Release, TimeSeries} from '../common/types';
+import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -640,7 +640,7 @@ function hasTimestamp(release: Partial<Release>): release is Release {
   return Boolean(release?.timestamp);
 }
 
-const NULL_META: Meta = {
+const NULL_META: TimeSeriesMeta = {
   type: null,
   unit: null,
 };

@@ -13,7 +13,6 @@ from concurrent.futures import ThreadPoolExecutor
 from multiprocessing.context import ForkProcess
 from multiprocessing.synchronize import Event
 from typing import Any
-from uuid import uuid4
 
 import grpc
 import orjson
@@ -30,6 +29,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.taskworker.client import TaskworkerClient
+from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER, DEFAULT_WORKER_QUEUE_SIZE
 from sentry.taskworker.registry import taskregistry
 from sentry.taskworker.task import Task
 from sentry.utils import metrics
@@ -242,20 +242,19 @@ class TaskWorker:
         self,
         rpc_host: str,
         num_brokers: int | None,
-        max_task_count: int | None = None,
+        max_child_task_count: int | None = None,
         namespace: str | None = None,
         concurrency: int = 1,
-        child_tasks_queue_maxsize: int = 1,
-        result_queue_maxsize: int = 5,
+        child_tasks_queue_maxsize: int = DEFAULT_WORKER_QUEUE_SIZE,
+        result_queue_maxsize: int = DEFAULT_WORKER_QUEUE_SIZE,
+        rebalance_after: int = DEFAULT_REBALANCE_AFTER,
         **options: dict[str, Any],
     ) -> None:
         self.options = options
-        self._execution_count = 0
-        self._worker_id = uuid4().hex
-        self._max_task_count = max_task_count
+        self._max_child_task_count = max_child_task_count
         self._namespace = namespace
         self._concurrency = concurrency
-        self.client = TaskworkerClient(rpc_host, num_brokers)
+        self.client = TaskworkerClient(rpc_host, num_brokers, rebalance_after)
         self._child_tasks: multiprocessing.Queue[TaskActivation] = mp_context.Queue(
             maxsize=child_tasks_queue_maxsize
         )
@@ -446,7 +445,7 @@ class TaskWorker:
                     self._child_tasks,
                     self._processed_tasks,
                     self._shutdown_event,
-                    self._max_task_count,
+                    self._max_child_task_count,
                 ),
             )
             process.start()
@@ -467,6 +466,7 @@ class TaskWorker:
             return None
 
         if not activation:
+            metrics.incr("taskworker.worker.fetch_task.not_found")
             logger.debug("taskworker.fetch_task.not_found")
 
             self._gettask_backoff_seconds = min(self._gettask_backoff_seconds + 1, 10)
