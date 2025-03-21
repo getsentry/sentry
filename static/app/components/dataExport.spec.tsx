@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
 import type {Organization} from 'sentry/types/organization';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -27,26 +27,23 @@ const mockContext = (organization: Organization) => {
 
 describe('DataExport', function () {
   it('should not render anything for an unauthorized organization', function () {
-    render(<WrappedDataExport payload={mockPayload} />, {
+    render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockUnauthorizedOrg),
     });
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('should render the button for an authorized organization', function () {
-    render(<WrappedDataExport payload={mockPayload} />, {
+    render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
   it('should render custom children if provided', function () {
-    render(
-      <WrappedDataExport payload={mockPayload}>
-        This is an example string
-      </WrappedDataExport>,
-      {...mockContext(mockAuthorizedOrg)}
-    );
+    render(<DataExport payload={mockPayload}>This is an example string</DataExport>, {
+      ...mockContext(mockAuthorizedOrg),
+    });
     expect(screen.getByText(/This is an example string/)).toBeInTheDocument();
   });
 
@@ -57,7 +54,7 @@ describe('DataExport', function () {
       body: {id: 721},
     });
 
-    render(<WrappedDataExport payload={mockPayload} disabled />, {
+    render(<DataExport payload={mockPayload} disabled />, {
       ...mockContext(mockAuthorizedOrg),
     });
 
@@ -72,7 +69,7 @@ describe('DataExport', function () {
       method: 'POST',
       body: {id: 721},
     });
-    render(<WrappedDataExport payload={mockPayload} />, {
+    render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockAuthorizedOrg),
     });
 
@@ -103,7 +100,7 @@ describe('DataExport', function () {
       body: {id: 721},
     });
 
-    const {rerender} = render(<WrappedDataExport payload={mockPayload} />, {
+    const {rerender} = render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockAuthorizedOrg),
     });
 
@@ -113,9 +110,7 @@ describe('DataExport', function () {
     });
 
     rerender(
-      <WrappedDataExport
-        payload={{...mockPayload, queryType: ExportQueryType.DISCOVER}}
-      />
+      <DataExport payload={{...mockPayload, queryType: ExportQueryType.DISCOVER}} />
     );
 
     await waitFor(() => {
@@ -130,7 +125,7 @@ describe('DataExport', function () {
       statusCode: 400,
     });
 
-    render(<WrappedDataExport payload={mockPayload} />, {
+    render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockAuthorizedOrg),
     });
 
@@ -155,7 +150,7 @@ describe('DataExport', function () {
       body: {detail: 'uh oh'},
     });
 
-    render(<WrappedDataExport payload={mockPayload} />, {
+    render(<DataExport payload={mockPayload} />, {
       ...mockContext(mockAuthorizedOrg),
     });
 
