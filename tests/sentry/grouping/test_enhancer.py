@@ -27,7 +27,13 @@ def dump_obj(obj):
     for key, value in obj.__dict__.items():
         if key.startswith("_"):
             continue
-        elif key == "rust_enhancements":
+        elif key in [
+            "rust_enhancements",
+            "is_classifier",
+            "sets_contributes",
+            "has_classifier_actions",
+            "has_contributes_actions",
+        ]:
             continue
         elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
