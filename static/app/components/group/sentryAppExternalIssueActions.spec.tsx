@@ -176,7 +176,7 @@ describe('SentryAppExternalIssueActions', () => {
     );
   });
 
-  it('renders with an external issue linked', () => {
+  it('renders with an external issue linked', async () => {
     render(
       <SentryAppExternalIssueActions
         event={EventFixture()}
@@ -187,11 +187,16 @@ describe('SentryAppExternalIssueActions', () => {
         externalIssue={externalIssue}
       />
     );
+    renderGlobalModal();
 
     // Renders a link to the external issue
     const link = screen.getByRole('link', {name: externalIssue.displayName});
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('href', externalIssue.webUrl);
+
+    // Clicking the link does not open the modal
+    await userEvent.click(link);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Renders the remove issue button
     expect(screen.getByLabelText('Remove')).toBeInTheDocument();
