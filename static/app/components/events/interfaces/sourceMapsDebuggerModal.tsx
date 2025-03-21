@@ -255,7 +255,7 @@ function SentryWizardCallout({
     <Fragment>
       <WizardInstructionParagraph>
         {tct(
-          'Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project’s terminal? It’s the easiest way to get source maps set up:',
+          'Have you run the Sentry Wizard with [code:sourcemaps] in your project terminal? It\'s the easiest way to set up source maps:',
           {
             code: <code />,
           }
@@ -482,7 +482,7 @@ export function SourceMapsDebuggerModal({
       <Body>
         <p>
           {t(
-            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
+            "The original source code for this stack frame couldn't be determined. To view the original code, Sentry needs properly configured source maps."
           )}
         </p>
         {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
@@ -500,7 +500,7 @@ export function SourceMapsDebuggerModal({
         )}
         <p>
           {t(
-            "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+            "Let's go through a checklist to help you troubleshoot why source maps aren't showing up:"
           )}
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
@@ -569,7 +569,7 @@ export function SourceMapsDebuggerModal({
             <TabPanels.Item key="debug-ids">
               <p>
                 {tct(
-                  '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                  '[link:Debug IDs] help match your source files to source maps. Follow these steps to get readable stack traces:',
                   {
                     link: defined(sourceMapsDocLinks.artifactBundles) ? (
                       <ExternalLinkWithIcon href={sourceMapsDocLinks.artifactBundles} />
@@ -612,7 +612,7 @@ export function SourceMapsDebuggerModal({
             <TabPanels.Item key="release">
               <p>
                 {tct(
-                  'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
+                  'You can match your stack trace to your source code using [link:Releases] and artifact names. Follow these steps:',
                   {
                     link: (
                       <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
@@ -649,7 +649,7 @@ export function SourceMapsDebuggerModal({
             <TabPanels.Item key="fetching">
               <p>
                 {tct(
-                  'Sentry will fetch your source files and source maps if you [link:host them publicly].',
+                  'Sentry can fetch your source files and source maps if you [link:host them publicly].',
                   {
                     link: defined(sourceMapsDocLinks.hostingPublicly) ? (
                       <ExternalLinkWithIcon href={sourceMapsDocLinks.hostingPublicly} />
@@ -1720,7 +1720,7 @@ function VerifyAgainNote() {
       <IconRefresh size="lg" color="gray300" />
       <p>
         {t(
-          'Once you changed your configuration, redeploy your app and capture a new event to verify your changes!'
+          'After changing your configuration, redeploy your app and capture a new event to verify your changes.'
         )}
       </p>
     </CompletionNoteContainer>
@@ -1734,12 +1734,12 @@ function ChecklistDoneNote() {
       <IconCheckmark size="md" color="green200" />
       <p>
         {t(
-          'You completed all of the steps above. Capture a new event to verify your setup!'
+          'All steps completed. Capture a new event to verify your setup!'
         )}
         {isSelfHosted
           ? ' ' +
             tct(
-              'If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
+              'If the newly captured event is still not sourcemapped, check the logs of the [symbolicator] service in your self-hosted instance.',
               {
                 symbolicator: <MonoBlock>symbolicator</MonoBlock>,
               }
