@@ -11,6 +11,7 @@ from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
     ArgumentDefinition,
+    AttributeArgumentDefinition,
     ConditionalAggregateDefinition,
     ResolvedArguments,
 )
@@ -69,15 +70,15 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
-        arguments=[ArgumentDefinition(argument_types={"string"}, is_attribute=False)],
+        arguments=[AttributeArgumentDefinition(attribute_types={"string"})],
         aggregate_resolver=resolve_count_op,
     ),
     "avg_if": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -85,15 +86,8 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                     *constants.DURATION_TYPE,
                 },
             ),
-            ArgumentDefinition(
-                argument_types={
-                    "string",
-                },
-            ),
-            ArgumentDefinition(
-                argument_types={"string"},
-                is_attribute=False,
-            ),
+            AttributeArgumentDefinition(attribute_types={"string"}),
+            ArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
     ),
@@ -101,8 +95,8 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -121,8 +115,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_SUM,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -136,8 +130,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -152,8 +146,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_AVG,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -171,8 +165,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         processor=count_processor,
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -188,8 +182,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         default_search_type="integer",
         processor=count_processor,
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -204,8 +198,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_P50,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -219,8 +213,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_P50,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -235,8 +229,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_P75,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -250,8 +244,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_P90,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -265,8 +259,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_P95,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -280,8 +274,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_P99,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -295,8 +289,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_MAX,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     *constants.SIZE_TYPE,
@@ -310,8 +304,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_MAX,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -326,8 +320,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_MIN,
         default_search_type="duration",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -344,8 +338,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         infer_search_type_from_arguments=False,
         processor=count_processor,
         arguments=[
-            ArgumentDefinition(
-                argument_types={"string"},
+            AttributeArgumentDefinition(
+                attribute_types={"string"},
             )
         ],
     ),
@@ -353,8 +347,8 @@ SPAN_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_AVG,
         default_search_type="integer",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
