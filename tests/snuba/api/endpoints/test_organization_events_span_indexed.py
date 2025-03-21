@@ -3088,6 +3088,41 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
         assert meta["dataset"] == self.dataset
 
+    def test_division(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.slow": {"value": 10},
+                            "frames.frozen": {"value": 20},
+                        }
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "division(mobile.frames_slow,mobile.frames_total)",
+                    "division(mobile.frames_frozen,mobile.frames_total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["division(mobile.frames_slow,mobile.frames_total)"] == 10 / 100
+        assert data[0]["division(mobile.frames_frozen,mobile.frames_total)"] == 20 / 100
+        assert meta["dataset"] == self.dataset
+
     def test_opportunity_score(self):
         self.store_spans(
             [
