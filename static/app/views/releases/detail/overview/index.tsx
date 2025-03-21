@@ -663,5 +663,4 @@ const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
   color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 
-ReleaseOverview.contextType = ReleaseContext;
 export default ReleaseOverview;
