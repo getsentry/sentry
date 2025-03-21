@@ -57,6 +57,16 @@ def resolve_key_eq_value_filter(args: ResolvedArguments) -> tuple[AttributeKey, 
     return (aggregate_key, filter)
 
 
+def resolve_count_starts(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
+    attribute = cast(AttributeKey, args[0])
+    filter = TraceItemFilter(
+        exists_filter=ExistsFilter(
+            key=attribute,
+        )
+    )
+    return (attribute, filter)
+
+
 # TODO: We should eventually update the frontend to query the ratio column directly
 def resolve_count_scores(args: ResolvedArguments) -> tuple[AttributeKey, TraceItemFilter]:
     score_attribute = cast(AttributeKey, args[0])
@@ -107,6 +117,21 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             )
         ],
         aggregate_resolver=resolve_count_scores,
+    ),
+    "count_starts": ConditionalAggregateDefinition(
+        internal_function=Function.FUNCTION_COUNT,
+        default_search_type="integer",
+        arguments=[
+            ArgumentDefinition(
+                argument_types={
+                    *constants.DURATION_TYPE,
+                },
+                validator=literal_validator(
+                    ["measurements.app_start_warm", "measurements.app_start_cold"]
+                ),
+            )
+        ],
+        aggregate_resolver=resolve_count_starts,
     ),
 }
 
