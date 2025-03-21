@@ -9,9 +9,11 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import {
   useExploreQuery,
   useSetExploreQuery,
@@ -24,7 +26,7 @@ type SchemaHintsDrawerProps = {
 function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
-
+  const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedFilterKeys = useMemo(() => {
@@ -84,8 +86,13 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
         );
       }
       setExploreQuery(filterQuery.formatString());
+      trackAnalytics('trace.explorer.schema_hints_click', {
+        hint_key: hint.key,
+        source: 'drawer',
+        organization,
+      });
     },
-    [exploreQuery, setExploreQuery]
+    [exploreQuery, organization, setExploreQuery]
   );
 
   const noAttributesMessage = (

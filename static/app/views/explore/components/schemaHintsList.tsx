@@ -12,6 +12,7 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
@@ -21,6 +22,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
@@ -65,7 +67,7 @@ function SchemaHintsList({
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
-
+  const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
   const functionTags = useMemo(() => {
@@ -193,6 +195,19 @@ function SchemaHintsList({
                   )
                 );
               },
+              onOpen: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: true,
+                  organization,
+                });
+              },
+
+              onClose: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: false,
+                  organization,
+                });
+              },
             }
           );
         }
@@ -215,11 +230,17 @@ function SchemaHintsList({
         isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
       );
       setExploreQuery(newSearchQuery.formatString());
+      trackAnalytics('trace.explorer.schema_hints_click', {
+        hint_key: hint.key,
+        source: 'list',
+        organization,
+      });
     },
     [
       exploreQuery,
       setExploreQuery,
       isDrawerOpen,
+      organization,
       openDrawer,
       filterTagsSorted,
       location.pathname,
