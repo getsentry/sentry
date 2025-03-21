@@ -205,13 +205,15 @@ def create_repos_and_code_mappings(
                 _, created = RepositoryProjectPathConfig.objects.get_or_create(
                     project=project,
                     stack_root=code_mapping.stacktrace_root,
-                    repository=repository,
-                    organization_integration_id=organization_integration.id,
-                    integration_id=organization_integration.integration_id,
-                    organization_id=organization_integration.organization_id,
-                    source_root=code_mapping.source_path,
-                    default_branch=code_mapping.repo.branch,
-                    automatically_generated=True,
+                    defaults={
+                        "repository": repository,
+                        "organization_integration_id": organization_integration.id,
+                        "integration_id": organization_integration.integration_id,
+                        "organization_id": organization_integration.organization_id,
+                        "source_root": code_mapping.source_path,
+                        "default_branch": code_mapping.repo.branch,
+                        "automatically_generated": True,
+                    },
                 )
             if created or dry_run:
                 metrics.incr(
