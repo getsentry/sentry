@@ -167,11 +167,9 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     def get_audit_log_data(self):
         teams = self.organization_member_team_data
         return {
-            "email": self.get_email(),
-            "user": self.user_id,
+            "email": self.email,
             "teams": [t["id"] for t in teams],
             "teams_slugs": [t["slug"] for t in teams],
-            "has_global_access": self.has_global_access,
             "role": self.role,
             "invite_status": (
                 invite_status_names[self.invite_status] if self.invite_status is not None else None
