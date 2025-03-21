@@ -1,4 +1,3 @@
-from django.db import IntegrityError
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -9,7 +8,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -23,9 +21,7 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.serializers import DetectorWorkflowSerializer
 from sentry.workflow_engine.endpoints.validators.detector_workflow import DetectorWorkflowValidator
-from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.models.workflow import Workflow
 
 
 @region_silo_endpoint
@@ -70,7 +66,7 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             order_by="id",
-            on_results=lambda x: serialize(x, request.user, DetectorWorkflowSerializer()),
+            on_results=lambda x: serialize(x, request.user),
         )
 
     @extend_schema(
@@ -91,39 +87,15 @@ class OrganizationDetectorWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Creates a connection between a detector and workflow
         """
-        serializer = DetectorWorkflowValidator(data=request.data)
-        if not serializer.is_valid():
-            raise serializers.ValidationError(serializer.errors)
-
-        result = serializer.validated_data
-
-        try:
-            detector = Detector.objects.get(
-                project__organization=organization, id=result["detector_id"]
-            )
-            workflow = Workflow.objects.get(organization=organization, id=result["workflow_id"])
-        except (Detector.DoesNotExist, Workflow.DoesNotExist):
-            raise ResourceDoesNotExist
-
-        try:
-            detector_workflow = DetectorWorkflow.objects.create(
-                detector=detector, workflow=workflow
-            )
-        except IntegrityError:
-            return Response(
-                {"detail": "Duplicate detector and workflow connection."},
-                status=status.HTTP_409_CONFLICT,
-            )
-
-        create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=detector_workflow.id,
-            event=audit_log.get_event_id("DETECTOR_WORKFLOW_ADD"),
-            data=detector_workflow.get_audit_log_data(),
+        validator = DetectorWorkflowValidator(
+            data=request.data, context={"organization": organization, "request": request}
         )
+        if not validator.is_valid():
+            raise serializers.ValidationError(validator.errors)
 
-        return Response(serialize(detector_workflow, request.user, DetectorWorkflowSerializer()))
+        detector_workflow = validator.save()
+
+        return Response(serialize(detector_workflow, request.user))
 
     def delete(self, request, organization):
         """

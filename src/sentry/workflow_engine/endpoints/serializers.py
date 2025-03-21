@@ -291,10 +291,11 @@ class DetectorWorkflowResponse(TypedDict):
     workflowId: str
 
 
+@register(DetectorWorkflow)
 class DetectorWorkflowSerializer(Serializer):
     def serialize(
         self, obj: DetectorWorkflow, attrs: Mapping[str, Any], user, **kwargs
-    ) -> dict[str, Any]:
+    ) -> DetectorWorkflowResponse:
         return {
             "id": str(obj.id),
             "detectorId": str(obj.detector.id),
