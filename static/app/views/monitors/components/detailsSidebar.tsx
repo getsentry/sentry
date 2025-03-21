@@ -116,6 +116,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
               {t('Unknown Status')}
               <QuestionTooltip
                 size="sm"
+                isHoverable
                 title={tct(
                   'Sentry was unable to determine the check-in status. [link:Learn More].',
                   {
@@ -132,6 +133,22 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <KeyValueTable>
         <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
+        <KeyValueTableRow
+          keyName={t('Failure tolerance')}
+          value={tn(
+            '%s check-in',
+            '%s check-ins',
+            monitor.config.failure_issue_threshold ?? 1
+          )}
+        />
+        <KeyValueTableRow
+          keyName={t('Recovery tolerance')}
+          value={tn(
+            '%s check-in',
+            '%s check-ins',
+            monitor.config.recovery_threshold ?? 1
+          )}
+        />
         <KeyValueTableRow
           keyName={t('Owner')}
           value={
