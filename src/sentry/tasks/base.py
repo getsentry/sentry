@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from collections.abc import Callable, Iterable
 from datetime import datetime
 from functools import wraps
@@ -10,6 +11,7 @@ from celery import current_task
 from django.conf import settings
 from django.db.models import Model
 
+from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
@@ -69,7 +71,14 @@ def load_model_from_db(
     return instance_or_id
 
 
-def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=False, **kwargs):
+def instrumented_task(
+    name,
+    stat_suffix=None,
+    silo_mode=None,
+    record_timing=False,
+    taskworker_config=None,
+    **kwargs,
+):
     """
     Decorator for defining celery tasks.
 
@@ -129,7 +138,25 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
         # being OOM killed.
         kwargs["trail"] = False
-        task = app.task(name=name, **kwargs)(_wrapped)
+
+        option_flag = f"taskworker.{taskworker_config.namespace.name}.rollout"
+        if not options.isset(option_flag):
+            rollout = 0
+        else:
+            rollout = options.get(option_flag)
+
+        random.seed(datetime.now().timestamp())
+        if taskworker_config and rollout > random.random():
+            task = taskworker_config.namespace.register(
+                name=name,
+                retry=taskworker_config.retry,
+                expires=taskworker_config.expires,
+                processing_deadline_duration=taskworker_config.processing_deadline_duration,
+                at_most_once=taskworker_config.at_most_once,
+                wait_for_delivery=taskworker_config.wait_for_delivery,
+            )(func)
+        else:
+            task = app.task(name=name, **kwargs)(_wrapped)
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
