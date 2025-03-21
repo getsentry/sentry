@@ -116,6 +116,21 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             else:
                 new_grouped_series = grouped_series
 
+            # Return a default empty state if nothing found.
+            if len(new_grouped_series) == 0:
+                return [
+                    make_timeseries_result(
+                        axis=axis,
+                        group=[],
+                        start=start,
+                        end=end,
+                        interval=interval,
+                        is_other=False,
+                        order=0,
+                        values=[],
+                    )
+                ]
+
             return [
                 make_timeseries_result(
                     axis=axis,
