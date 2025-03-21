@@ -14,7 +14,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.utils.registry import Registry
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 
 class BaseMetricAlertHandler(ABC):
@@ -43,7 +43,7 @@ class BaseMetricAlertHandler(ABC):
 
     def invoke_legacy_registry(
         cls,
-        job: WorkflowJob,
+        job: WorkflowEventData,
         action: Action,
         detector: Detector,
     ) -> None:
@@ -51,7 +51,7 @@ class BaseMetricAlertHandler(ABC):
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.metric_alert.invoke_legacy_registry"
         ):
-            event = job["event"]
+            event = job.event
             if not event.occurrence:
                 raise ValueError("Event occurrence is required for alert context")
 

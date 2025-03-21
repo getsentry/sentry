@@ -12,7 +12,7 @@ from sentry.workflow_engine.handlers.action.notification.handler import (
     NotificationHandlerException,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -23,7 +23,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = WorkflowEventData(event=self.group_event)
 
     def test_execute_without_group_type(self):
         """Test that execute does nothing when detector has no group_type"""
@@ -90,7 +90,7 @@ class TestIssueAlertRegistryInvoker(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = WorkflowEventData(event=self.group_event)
 
     @mock.patch(
         "sentry.workflow_engine.handlers.action.notification.handler.issue_alert_handler_registry.get"
@@ -128,7 +128,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowJob({"event": self.group_event})
+        self.job = WorkflowEventData(event=self.group_event)
 
     @mock.patch(
         "sentry.workflow_engine.handlers.action.notification.handler.metric_alert_handler_registry.get"
