@@ -6,11 +6,11 @@ from sentry.rules.age import AgeComparisonType, age_comparison_map
 from sentry.rules.filters.age_comparison import timeranges
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.AGE_COMPARISON)
-class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
+class AgeComparisonConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
@@ -29,7 +29,7 @@ class AgeComparisonConditionHandler(DataConditionHandler[WorkflowJob]):
     }
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
         event = job.event
         first_seen = event.group.first_seen
         current_time = timezone.now()

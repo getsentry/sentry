@@ -53,7 +53,7 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
 )
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -768,11 +768,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
         assert mock_trigger.call_count == 2
         assert mock_trigger.call_args_list[0][0] == (
-            WorkflowJob(event=self.event1.for_group(self.group1)),
+            WorkflowEventData(event=self.event1.for_group(self.group1)),
             self.detector,
         )
         assert mock_trigger.call_args_list[1][0] == (
-            WorkflowJob(event=self.event2.for_group(self.group2)),
+            WorkflowEventData(event=self.event2.for_group(self.group2)),
             self.detector,
         )
 

@@ -4,7 +4,7 @@ from jsonschema import ValidationError
 from sentry.models.groupassignee import GroupAssignee
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -18,7 +18,7 @@ class TestAssignedToCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(event=self.group_event)
+        self.job = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={

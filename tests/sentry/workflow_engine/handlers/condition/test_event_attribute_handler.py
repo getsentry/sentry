@@ -9,7 +9,7 @@ from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.match import MatchType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -89,7 +89,7 @@ class TestEventAttributeCondition(ConditionTestCase):
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowJob(
+        self.job = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 {

@@ -17,7 +17,7 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.registry import Registry
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -102,13 +102,13 @@ class BaseIssueAlertHandler(ABC):
         cls,
         action: Action,
         detector: Detector,
-        job: WorkflowJob,
+        job: WorkflowEventData,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
         :param action: Action
         :param detector: Detector
-        :param job: WorkflowJob
+        :param job: WorkflowEventData
         :return: Rule instance
         """
         workflow = job.workflow
@@ -136,7 +136,7 @@ class BaseIssueAlertHandler(ABC):
 
     @staticmethod
     def get_rule_futures(
-        job: WorkflowJob,
+        job: WorkflowEventData,
         rule: Rule,
         notification_uuid: str,
     ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
@@ -152,7 +152,7 @@ class BaseIssueAlertHandler(ABC):
 
     @staticmethod
     def execute_futures(
-        job: WorkflowJob,
+        job: WorkflowEventData,
         futures: Collection[
             tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
         ],
@@ -170,7 +170,7 @@ class BaseIssueAlertHandler(ABC):
     @classmethod
     def invoke_legacy_registry(
         cls,
-        job: WorkflowJob,
+        job: WorkflowEventData,
         action: Action,
         detector: Detector,
     ) -> None:

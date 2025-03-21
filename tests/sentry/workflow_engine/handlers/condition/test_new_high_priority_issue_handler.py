@@ -6,7 +6,7 @@ from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssue
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -16,7 +16,7 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
+        self.job = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 {
