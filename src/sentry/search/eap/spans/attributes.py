@@ -264,6 +264,11 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="messaging.message.retry.count",
             search_type="number",
         ),
+        ResolvedAttribute(
+            public_alias="spans.http",
+            internal_name="sentry.span_ops.ops.http",
+            search_type="percentage",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
