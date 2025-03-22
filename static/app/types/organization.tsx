@@ -398,3 +398,28 @@ export enum SessionStatus {
   ERRORED = 'errored',
   CRASHED = 'crashed',
 }
+
+interface IssuesMetricsTimeseries {
+  axis: 'new_issues_count' | 'resolved_issues_count' | 'new_issues_count_by_release';
+  groupBy: string[];
+  meta: {
+    interval: number;
+    isOther: boolean;
+    order: number;
+    valueType: string;
+    valueUnit: null | string;
+  };
+  values: Array<{
+    timestamp: number;
+    value: number;
+  }>;
+}
+
+export interface IssuesMetricsApiResponse {
+  meta: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+  timeseries: IssuesMetricsTimeseries[];
+}
