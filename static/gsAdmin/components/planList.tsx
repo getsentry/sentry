@@ -5,7 +5,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 
-import type {Plan} from 'getsentry/types';
+import type {Plan, Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import titleCase from 'getsentry/utils/titleCase';
@@ -29,12 +29,11 @@ type Props = {
   reservedAttachments: null | number;
   reservedErrors: null | number;
   reservedMonitorSeats: null | number;
-  reservedProfileDuration: null | number;
   reservedReplays: null | number;
   reservedSpans: null | number;
   reservedTransactions: null | number;
   reservedUptime: null | number;
-  reservedProfileDurationUI?: null | number;
+  currentSubscription?: Subscription | null;
 };
 
 const configurableCategories: DataCategory[] = [
@@ -45,8 +44,6 @@ const configurableCategories: DataCategory[] = [
   DataCategory.MONITOR_SEATS,
   DataCategory.UPTIME,
   DataCategory.SPANS,
-  DataCategory.PROFILE_DURATION,
-  DataCategory.PROFILE_DURATION_UI,
 ];
 
 function PlanList({
@@ -58,11 +55,10 @@ function PlanList({
   reservedAttachments,
   reservedMonitorSeats,
   reservedUptime,
-  reservedProfileDuration,
-  reservedProfileDurationUI,
   reservedSpans,
   onPlanChange,
   onLimitChange,
+  currentSubscription,
 }: Props) {
   const changeValue = {
     6000000: '6M',
@@ -82,6 +78,43 @@ function PlanList({
     };
   }
   const activePlan = plans.find(plan => plan.id === planId);
+
+  // Helper to get current value display for a category
+  const getCurrentValueDisplay = (category: DataCategory, fieldName: LimitName) => {
+    if (!currentSubscription) return null;
+
+    // Check if categories exist
+    if (currentSubscription.categories) {
+      // Get the category data using type assertion to allow string indexing
+      const categories = currentSubscription.categories as Record<
+        string,
+        {reserved?: number}
+      >;
+      const categoryKey = category.toLowerCase();
+
+      if (categories[categoryKey] && categories[categoryKey].reserved !== undefined) {
+        const reservedValue = categories[categoryKey].reserved;
+
+        return (
+          <CurrentValueText>
+            Current: {reservedValue.toLocaleString()}{' '}
+            {category === DataCategory.ATTACHMENTS ? 'GB' : ''}
+          </CurrentValueText>
+        );
+      }
+    }
+
+    // Fallback to the old method if categories data is not available
+    const currentValue = (currentSubscription as Record<string, any>)[fieldName];
+    if (currentValue === null || currentValue === undefined) return null;
+
+    return (
+      <CurrentValueText>
+        Current: {currentValue.toLocaleString()}{' '}
+        {category === DataCategory.ATTACHMENTS ? 'GB' : ''}
+      </CurrentValueText>
+    );
+  };
 
   return (
     <Fragment>
@@ -137,52 +170,77 @@ function PlanList({
                     ? `${titleCategory} (GB)`
                     : titleCategory;
                 let fieldValue: any;
+                let currentValueDisplay = null;
                 switch (category) {
                   case DataCategory.ERRORS:
                     fieldValue = reservedErrors;
+                    currentValueDisplay = getCurrentValueDisplay(
+                      category,
+                      'reservedErrors'
+                    );
                     break;
                   case DataCategory.TRANSACTIONS:
                     fieldValue = reservedTransactions;
+                    currentValueDisplay = getCurrentValueDisplay(
+                      category,
+                      'reservedTransactions'
+                    );
                     break;
                   case DataCategory.SPANS:
                     fieldValue = reservedSpans;
+                    currentValueDisplay = getCurrentValueDisplay(
+                      category,
+                      'reservedSpans'
+                    );
                     break;
                   case DataCategory.REPLAYS:
                     fieldValue = reservedReplays;
+                    currentValueDisplay = getCurrentValueDisplay(
+                      category,
+                      'reservedReplays'
+                    );
                     break;
                   case DataCategory.ATTACHMENTS:
                     fieldValue = reservedAttachments;
+                    currentValueDisplay = getCurrentValueDisplay(
+                      category,
+                      'reservedAttachments'
+                    );
                     break;
                   case DataCategory.MONITOR_SEATS:
                     fieldValue = reservedMonitorSeats;
-                    break;
-                  case DataCategory.PROFILE_DURATION:
-                    fieldValue = reservedProfileDuration;
-                    break;
-                  case DataCategory.PROFILE_DURATION_UI:
-                    fieldValue = reservedProfileDurationUI;
+                    currentValueDisplay = getCurrentValueDisplay(
+                      category,
+                      'reservedMonitorSeats'
+                    );
                     break;
                   case DataCategory.UPTIME:
                     fieldValue = reservedUptime;
+                    currentValueDisplay = getCurrentValueDisplay(
+                      category,
+                      'reservedUptime'
+                    );
                     break;
                   default:
                     throw new Error(`Category ${category} is not supported`);
                 }
                 return (
-                  <SelectField
-                    key={`test-${category}`}
-                    inline={false}
-                    stacked
-                    name={`${reserved}`}
-                    label={label}
-                    value={fieldValue}
-                    options={(activePlan.planCategories[category] || []).map(level => ({
-                      label: level.events.toLocaleString(),
-                      value: level.events,
-                    }))}
-                    required
-                    onChange={handleLimitChange(reserved as LimitName)}
-                  />
+                  <SelectFieldWrapper key={`test-${category}`}>
+                    <SelectField
+                      inline={false}
+                      stacked
+                      name={`${reserved}`}
+                      label={label}
+                      value={fieldValue}
+                      options={(activePlan.planCategories[category] || []).map(level => ({
+                        label: level.events.toLocaleString(),
+                        value: level.events,
+                      }))}
+                      required
+                      onChange={handleLimitChange(reserved as LimitName)}
+                    />
+                    {currentValueDisplay}
+                  </SelectFieldWrapper>
                 );
               })}
           </div>
@@ -205,6 +263,18 @@ const PlanLabel = styled('label')`
 const SubText = styled('small')`
   font-weight: normal;
   color: #999;
+`;
+
+const SelectFieldWrapper = styled('div')`
+  position: relative;
+`;
+
+const CurrentValueText = styled('div')`
+  color: #666;
+  font-size: 0.9em;
+  margin-top: -8px;
+  margin-bottom: 10px;
+  font-style: italic;
 `;
 
 export default PlanList;
