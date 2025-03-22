@@ -571,6 +571,7 @@ class TriggersChart extends PureComponent<Props, State> {
     if (isOnDemandMetricAlert) {
       const {sampleRate} = this.state;
       const baseProps: EventsRequestProps = {
+        includeAllArgs: false,
         api,
         organization,
         query,
