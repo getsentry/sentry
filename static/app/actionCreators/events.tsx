@@ -61,7 +61,7 @@ type Options = {
   yAxis?: string | string[];
 };
 
-export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Options;
+export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Options;
 
 /**
  * Make requests to `events-stats` endpoint
@@ -83,7 +83,15 @@ export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Optio
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
-export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
+export function doEventsRequest(
+  api: Client,
+  options: EventsStatsOptions<false>
+): Promise<EventsStats | MultiSeriesEventsStats>;
+export function doEventsRequest(
+  api: Client,
+  options: EventsStatsOptions<true>
+): Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>;
+export function doEventsRequest<IncludeAllArgsType extends boolean = false>(
   api: Client,
   {
     organization,
@@ -112,11 +120,9 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     dataset,
     useRpc,
   }: EventsStatsOptions<IncludeAllArgsType>
-): IncludeAllArgsType extends true
-  ? Promise<
-      [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
-    >
-  : Promise<EventsStats | MultiSeriesEventsStats> => {
+):
+  | Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
+  | Promise<EventsStats | MultiSeriesEventsStats> {
   const pathname =
     generatePathname?.(organization) ??
     `/organizations/${organization.slug}/events-stats/`;
@@ -161,8 +167,8 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     return queryBatching.batchRequest(api, pathname, queryObject);
   }
 
-  return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
-};
+  return api.requestPromise(pathname, queryObject);
+}
 
 export type EventQuery = {
   field: string[];

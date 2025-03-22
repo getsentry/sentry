@@ -657,13 +657,28 @@ export class Client {
     return request;
   }
 
-  requestPromise<IncludeAllArgsType extends boolean>(
+  requestPromise<Data = any>(path: string): Promise<Data>;
+  requestPromise<Data = any>(
+    path: string,
+    options: Readonly<RequestOptions> & {includeAllArgs?: undefined}
+  ): Promise<Data>;
+  requestPromise<Data = any>(
+    path: string,
+    options: Readonly<RequestOptions> & {includeAllArgs: false}
+  ): Promise<Data>;
+  requestPromise<Data = any>(
+    path: string,
+    options: Readonly<RequestOptions> & {includeAllArgs: true}
+  ): Promise<ApiResult<Data>>;
+  requestPromise<Data = any>(
     path: string,
     {
       includeAllArgs,
       ...options
-    }: {includeAllArgs?: IncludeAllArgsType} & Readonly<RequestOptions> = {}
-  ): Promise<IncludeAllArgsType extends true ? ApiResult : any> {
+    }: {includeAllArgs?: boolean | undefined} & Readonly<RequestOptions> = {
+      includeAllArgs: false,
+    }
+  ): Promise<ApiResult<Data> | Data> {
     // Create an error object here before we make any async calls so that we
     // have a helpful stack trace if it errors
     //

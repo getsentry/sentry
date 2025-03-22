@@ -7,12 +7,12 @@ import {defined} from 'sentry/utils';
 
 export type DoReleaseHealthRequestOptions = {
   field: string[];
+  includeAllArgs: boolean;
   orgSlug: Organization['slug'];
   cursor?: string;
   end?: DateString;
   environment?: readonly string[];
   groupBy?: string[];
-  includeAllArgs?: boolean;
   includeSeries?: number;
   includeTotals?: number;
   interval?: string;
