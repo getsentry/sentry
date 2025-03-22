@@ -26,10 +26,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.two_days_ago = self.day_ago - timedelta(days=1)
-        self.DEFAULT_METRIC_TIMESTAMP = self.day_ago
 
         self.url = reverse(
-            "sentry-api-0-organization-events-stats",
+            self.endpoint,
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
@@ -669,8 +668,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.status_code == 200, response.content
 
 
-class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
+class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
+    is_rpc = True
 
     def test_count_extrapolation(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -709,11 +709,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsE
         rows = data[0:6]
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0] * 10
-
-
-class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
-    is_eap = True
-    is_rpc = True
 
     def test_extrapolation_count(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -1135,7 +1130,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         )
         assert response.status_code == 400, response.content
 
-    @pytest.mark.xfail(reason="division by 0 error in snuba")
     def test_handle_nans_from_snuba_top_n(self):
         super().test_handle_nans_from_snuba_top_n()
 

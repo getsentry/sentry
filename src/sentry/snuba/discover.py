@@ -578,7 +578,7 @@ def top_events_timeseries(
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
-            results[result_key] = {"order": index, "data": []}
+            results[result_key] = {"order": index, "data": [], "is_other": False}
         for row in result["data"]:
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
@@ -607,7 +607,7 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
-                    "groupby": item.get("groupby", []),
+                    "groupby": item.get("groupby", None),
                     "meta": result["meta"],
                     "order": item["order"],
                 },
