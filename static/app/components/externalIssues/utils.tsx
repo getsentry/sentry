@@ -84,14 +84,14 @@ export function getOptions({
   field,
   input,
   model,
-  dynamicFieldValues,
   successCallback,
+  dynamicFieldValues = {},
 }: {
-  dynamicFieldValues: Record<string, FieldValue | null>;
   field: IssueConfigField;
   input: string;
   model: FormModel;
-  successCallback: ({
+  dynamicFieldValues?: Record<string, FieldValue | null>;
+  successCallback?: ({
     field,
     result,
   }: {
@@ -111,11 +111,11 @@ export function getOptions({
           reject(err);
         } else {
           result = ensureCurrentOption({field, result, model});
-          successCallback({field, result});
+          successCallback?.({field, result});
           resolve(result);
         }
       },
-      dynamicFieldValues: dynamicFieldValues || {},
+      dynamicFieldValues,
     });
   });
 }
@@ -133,22 +133,18 @@ export function getDefaultOptions({
 
 /**
  * Convert IntegrationIssueConfig to an object that maps field names to the
- * values of fields where `updatesFrom` is true. The paramConfig will be
- * preferred over stateConfig.
+ * values of fields where `updatesForm` is true.
  * @returns Object of field names to values.
  */
 export function getDynamicFields({
   action,
-  paramConfig,
-  stateConfig,
+  integrationDetails,
 }: {
   action: ExternalIssueAction;
-  paramConfig?: IntegrationIssueConfig;
-  stateConfig?: IntegrationIssueConfig | null;
+  integrationDetails?: IntegrationIssueConfig | null;
 }): {
   [key: string]: FieldValue | null;
 } {
-  const integrationDetails = paramConfig || stateConfig;
   const config = integrationDetails?.[getConfigName(action)];
   return Object.fromEntries(
     (config || [])
