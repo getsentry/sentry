@@ -123,6 +123,41 @@ class CommitContextIntegrationTest(TestCase):
         assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_retry_error(self, mock_record):
+        """Test retry error records failure"""
+        from sentry.shared_integrations.exceptions import ApiHostError
+
+        self.integration.client.get_blame_for_files = Mock(
+            side_effect=ApiHostError(text="Host error")
+        )
+
+        with pytest.raises(ApiHostError):
+            self.integration.get_blame_for_files([self.source_line], {})
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert_failure_metric(mock_record, ApiHostError(text="Host error"))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_get_blame_for_files_retry_error_gitlab(self, mock_record):
+        """Test retry error for GitLab records halt"""
+        from sentry.shared_integrations.exceptions import ApiHostError
+
+        class MockGitlabIntegration(MockCommitContextIntegration):
+            integration_name = "gitlab"
+
+        self.integration = MockGitlabIntegration()
+
+        self.integration.client.get_blame_for_files = Mock(
+            side_effect=ApiHostError(text="Host error")
+        )
+
+        result = self.integration.get_blame_for_files([self.source_line], {})
+
+        assert result == []
+        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+        assert_halt_metric(mock_record, ApiHostError(text="Host error"))
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_commit_context_all_frames(self, mock_record):
         """Test get_commit_context_all_frames records correct lifecycle events"""
         self.integration.client.get_blame_for_files.return_value = []
