@@ -5,6 +5,7 @@ from typing import Any, ClassVar
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -95,7 +96,9 @@ class AbstractOnboardingTask(Model):
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    project = FlexibleForeignKey(
+        "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
+    )
     # INVITE_MEMBER { invited_member: user.id }
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 

@@ -140,6 +140,16 @@ class OrganizationOnboardingTaskTest(TestCase):
             status=OnboardingTaskStatus.COMPLETE,
         )
         assert task is not None
+        second_project = self.create_project(first_event=now)
+        project_created.send(project=second_project, user=self.user, sender=type(project))
+
+        second_project.delete()
+        task = OrganizationOnboardingTask.objects.get(
+            organization=project.organization,
+            task=OnboardingTask.FIRST_PROJECT,
+            status=OnboardingTaskStatus.COMPLETE,
+        )
+        assert task is not None
 
     def test_project_created__default_rule(self):
         project = self.create_project()
