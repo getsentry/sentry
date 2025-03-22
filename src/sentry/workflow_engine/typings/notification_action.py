@@ -328,10 +328,6 @@ class MSTeamsActionTranslator(BaseActionTranslator):
     def target_type(self) -> ActionTarget:
         return ActionTarget.SPECIFIC
 
-    @property
-    def blob_type(self) -> type[DataBlob]:
-        return OnCallDataBlob
-
 
 @issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["id"])
 class PagerDutyActionTranslator(BaseActionTranslator):

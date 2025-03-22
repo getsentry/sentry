@@ -5,6 +5,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -68,7 +69,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
@@ -118,11 +119,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         }
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
-
-    def test_create_rule_instance_from_action_missing_action_properties_raises_value_error(self):
-        action = self.create_action(type=Action.Type.DISCORD)
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(action, self.detector, self.job)
 
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
@@ -183,7 +179,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         # self.project = self.create_project()
@@ -226,6 +222,7 @@ class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": "channel789",
                 "target_display": "General Channel",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
 
@@ -253,6 +250,7 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": "channel789",
                 "target_display": "#general",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
 
