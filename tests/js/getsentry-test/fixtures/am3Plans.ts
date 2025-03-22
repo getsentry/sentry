@@ -672,7 +672,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
         {
           events: 20000000,
-          unitPrice: 0.0003,
+          unitPrice: 0.00032,
           price: 3200,
           onDemandPrice: 0.0004,
         },
