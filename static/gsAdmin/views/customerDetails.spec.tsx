@@ -613,6 +613,11 @@ function renderMocks(
     },
   });
   MockApiClient.addMockResponse({
+    url: `/customers/${organization.slug}/billing-config/?tier=all`,
+    body: BillingConfigFixture(PlanTier.ALL),
+  });
+  // TODO(isabella): remove this once all billing config api calls are updated to use tier=all
+  MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/billing-config/?tier=mm2`,
     body: BillingConfigFixture(PlanTier.MM2),
   });

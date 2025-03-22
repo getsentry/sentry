@@ -344,7 +344,9 @@ describe('PendingChanges', function () {
 
     const {container} = render(<PendingChanges subscription={subscription} />);
 
-    expect(container).toHaveTextContent('Plan changes — Business → Business');
+    expect(container).toHaveTextContent(
+      'Plan changes — Business → Enterprise (Business)'
+    );
     expect(container).toHaveTextContent(
       'Reserved accepted spans — 10,000,000 → reserved budget'
     );
@@ -369,7 +371,6 @@ describe('PendingChanges', function () {
       pendingChanges: PendingChangesFixture({
         planDetails: PlanDetailsLookupFixture('am3_business_ent_auf'),
         plan: 'am3_business_ent_auf',
-        planName: 'Business',
         reserved: {
           spans: 10_000_000,
         },
@@ -378,7 +379,9 @@ describe('PendingChanges', function () {
 
     const {container} = render(<PendingChanges subscription={subscription} />);
 
-    expect(container).toHaveTextContent('Plan changes — Business → Business');
+    expect(container).toHaveTextContent(
+      'Plan changes — Enterprise (Business) → Enterprise (Business)'
+    );
     expect(container).toHaveTextContent(
       'Reserved accepted spans — reserved budget → 10,000,000 spans'
     );

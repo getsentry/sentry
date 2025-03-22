@@ -4568,7 +4568,7 @@ const AM2_PLANS: Record<string, Plan> = {
   },
   am2_business_ent_auf: {
     id: 'am2_business_ent_auf',
-    name: 'Business',
+    name: 'Enterprise (Business)',
     description: '',
     price: 0,
     basePrice: 0,
@@ -4582,6 +4582,84 @@ const AM2_PLANS: Record<string, Plan> = {
     features: AM2_BUSINESS_FEATURES,
     billingInterval: ANNUAL,
     contractInterval: ANNUAL,
+    onDemandEventPrice: 0,
+    allowOnDemand: true,
+    reservedMinimum: 0,
+    allowAdditionalReservedEvents: true,
+    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    categories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CATEGORIES,
+    availableCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_CATEGORIES,
+    hasOnDemandModes: false,
+    planCategories: {
+      errors: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      transactions: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      replays: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      attachments: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      monitorSeats: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      uptime: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+    },
+  },
+  am2_business_ent: {
+    id: 'am2_business_ent',
+    name: 'Enterprise (Business)',
+    description: '',
+    price: 0,
+    basePrice: 0,
+    totalPrice: 0,
+    trialPlan: 'am2_business',
+    isTestPlan: false,
+    maxMembers: null,
+    retentionDays: 90,
+    userSelectable: false,
+    checkoutType: CheckoutType.STANDARD,
+    features: AM2_BUSINESS_FEATURES,
+    billingInterval: MONTHLY,
+    contractInterval: MONTHLY,
     onDemandEventPrice: 0,
     allowOnDemand: true,
     reservedMinimum: 0,

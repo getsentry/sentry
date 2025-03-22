@@ -213,9 +213,9 @@ function ReservedData({customer}: ReservedDataProps) {
               </DetailLabel>
               {customer.onDemandInvoicedManual && (
                 <DetailLabel title={`Pay-as-you-go Cost-Per-Event ${categoryName}`}>
-                  {typeof categoryHistory.onDemandCpe === 'number'
+                  {typeof categoryHistory.paygCpe === 'number'
                     ? displayPriceWithCents({
-                        cents: categoryHistory.onDemandCpe,
+                        cents: categoryHistory.paygCpe,
                         minimumFractionDigits: 8,
                         maximumFractionDigits: 8,
                       })
