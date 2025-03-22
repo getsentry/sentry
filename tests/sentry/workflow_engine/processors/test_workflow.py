@@ -108,6 +108,55 @@ class TestProcessWorkflows(BaseWorkflowTest):
             },
         )
 
+    @patch("sentry.workflow_engine.processors.workflow.filter_recently_fired_workflow_actions")
+    def test_populate_workflow_env_for_filters(self, mock_filter):
+        # this should not pass because the environment is not None
+        self.error_workflow.update(environment=self.group_event.get_environment())
+        error_workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        self.create_data_condition(
+            condition_group=error_workflow_filters,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.error_workflow, condition_group=error_workflow_filters
+        )
+
+        workflow_triggers = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        workflow_filters = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        # this should pass because the environment is None
+        self.create_data_condition(
+            condition_group=workflow_filters,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        workflow = self.create_workflow(
+            name="testy",
+            when_condition_group=workflow_triggers,
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=workflow,
+        )
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=workflow_filters
+        )
+
+        assert self.job.group_state
+        self.job.group_state["is_new"] = True
+
+        process_workflows(self.job)
+
+        mock_filter.assert_called_with({workflow_filters}, self.group)
+
     def test_same_environment_only(self):
         env = self.create_environment(project=self.project)
         other_env = self.create_environment(project=self.project)
