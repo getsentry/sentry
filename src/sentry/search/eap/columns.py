@@ -80,16 +80,24 @@ class ResolvedAttribute(ResolvedColumn):
 
 
 @dataclass
-class ArgumentDefinition:
-    argument_types: set[constants.SearchType] | None = None
+class BaseArgumentDefinition:
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
-    # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
-    is_attribute: bool = True
     # Validator to check if the value is allowed for this argument
     validator: Callable[[str], bool] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
+
+
+@dataclass
+class ArgumentDefinition(BaseArgumentDefinition):
+    argument_types: set[constants.SearchType] | None = None
+
+
+@dataclass
+class AttributeArgumentDefinition(BaseArgumentDefinition):
+    # the allowed types of data stored in the attribute
+    attribute_types: set[constants.SearchType] | None = None
 
 
 @dataclass
@@ -210,7 +218,7 @@ class FunctionDefinition:
     """
 
     # The list of arguments for this function
-    arguments: list[ArgumentDefinition]
+    arguments: list[ArgumentDefinition | AttributeArgumentDefinition]
     # The search_type the argument should be the default type for this column
     default_search_type: constants.SearchType
     # Try to infer the search type from the function arguments
@@ -223,7 +231,7 @@ class FunctionDefinition:
     processor: Callable[[Any], Any] | None = None
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -315,7 +323,7 @@ class FormulaDefinition(FunctionDefinition):
     is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
