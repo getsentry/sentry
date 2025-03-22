@@ -9,6 +9,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
@@ -668,7 +669,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.create_data_condition_group_action(
@@ -682,6 +683,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             config={
                 "target_identifier": "channel789",
                 "target_display": "#general",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
         self.create_data_condition_group_action(
