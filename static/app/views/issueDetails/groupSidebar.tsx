@@ -299,11 +299,11 @@ export default function GroupSidebar({
           environments={environments}
           groupId={group.id}
           tagKeys={
-            isMobilePlatform(project?.platform)
+            isMobilePlatform(project.platform)
               ? MOBILE_TAGS
-              : frontend.includes(project?.platform)
+              : frontend.includes(project.platform ?? 'other')
                 ? FRONTEND_TAGS
-                : backend.includes(project?.platform)
+                : backend.includes(project.platform ?? 'other')
                   ? BACKEND_TAGS
                   : DEFAULT_TAGS
           }

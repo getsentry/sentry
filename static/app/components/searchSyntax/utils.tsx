@@ -1,6 +1,6 @@
 import type {LocationRange} from 'peggy';
 
-import type {TokenResult} from './parser';
+import type {TermOperator, TokenResult} from './parser';
 import {allOperators, Token} from './parser';
 
 /**
@@ -296,8 +296,8 @@ export function isWithinToken(
   return position >= node.location.start.offset && position <= node.location.end.offset;
 }
 
-export function isOperator(value: string) {
-  return allOperators.includes(value);
+export function isOperator(value: string): value is TermOperator {
+  return allOperators.includes(value as TermOperator);
 }
 
 function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {

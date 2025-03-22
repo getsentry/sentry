@@ -252,11 +252,11 @@ export default function IssueTagsPreview({
       .filter(tag => highlightTagKeys.includes(tag.key))
       .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
 
-    const priorityTags = isMobilePlatform(project?.platform)
+    const priorityTags = isMobilePlatform(project.platform)
       ? MOBILE_TAGS
-      : frontend.includes(project?.platform)
+      : frontend.includes(project.platform ?? 'other')
         ? FRONTEND_TAGS
-        : backend.includes(project?.platform)
+        : backend.includes(project.platform ?? 'other')
           ? BACKEND_TAGS
           : DEFAULT_TAGS;
     // Sort tags based on priority order defined in priorityTags array
@@ -268,7 +268,7 @@ export default function IssueTagsPreview({
     const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
     const uniqueTags = [...new Set(orderedTags)];
     return uniqueTags.slice(0, 4);
-  }, [tags, project?.platform, highlightTagKeys]);
+  }, [tags, project.platform, highlightTagKeys]);
 
   if (isPending || isHighlightPending) {
     return (
