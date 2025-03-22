@@ -148,7 +148,7 @@ describe('ProjectEnvironments', function () {
       });
 
       hideMock = MockApiClient.addMockResponse({
-        url: `${baseUrl}%25app_env%25/`,
+        url: `${baseUrl}%2525app_env%2525/`,
         method: 'PUT',
       });
 
@@ -157,7 +157,7 @@ describe('ProjectEnvironments', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Hide'}));
 
       expect(hideMock).toHaveBeenCalledWith(
-        `${baseUrl}%25app_env%25/`,
+        `${baseUrl}%2525app_env%2525/`,
         expect.objectContaining({
           data: expect.objectContaining({isHidden: true}),
         })
