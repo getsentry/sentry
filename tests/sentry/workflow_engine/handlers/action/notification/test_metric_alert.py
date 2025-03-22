@@ -16,7 +16,7 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
@@ -113,6 +113,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         new_status: IncidentStatus,
         metric_value: float | None = None,
         subscription: QuerySubscription | None = None,
+        group: Group | None = None,
     ):
         assert asdict(metric_issue_context) == {
             "id": metric_issue_context.id,
@@ -121,6 +122,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "subscription": subscription,
             "new_status": new_status,
             "metric_value": metric_value,
+            "group": group,
         }
 
 
@@ -300,6 +302,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            group=self.group_event.group,
         )
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
@@ -412,4 +415,5 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            group=self.group_event.group,
         )
