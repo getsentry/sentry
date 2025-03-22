@@ -10,8 +10,7 @@ def is_new_event(job: WorkflowEventData) -> bool:
     if state is None:
         return False
 
-    workflow = job.workflow
-    if workflow is None or workflow.environment_id is None:
+    if job.workflow_env is None:
         return state["is_new"]
 
     return state["is_new_group_environment"]
