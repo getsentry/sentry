@@ -6,11 +6,10 @@ import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfac
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
 import DeprecatedLine from '../../frame/deprecatedLine';
@@ -45,7 +44,6 @@ type Props = {
   mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
   newestFirst?: boolean;
-  organization?: Organization;
   threadId?: number;
 } & Partial<DefaultProps>;
 
@@ -63,10 +61,10 @@ function Content({
   hideIcon,
   threadId,
   lockAddress,
-  organization,
   frameSourceMapDebuggerData,
   hideSourceMapDebugger,
 }: Props) {
+  const organization = useOrganization();
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
   const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
@@ -333,4 +331,4 @@ const StyledList = styled('ul')`
   list-style: none;
 `;
 
-export default withOrganization(Content);
+export default Content;
