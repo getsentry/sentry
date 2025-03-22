@@ -1,6 +1,23 @@
-import {SelectAsync} from 'sentry/components/core/select/async';
-import SelectField from 'sentry/components/deprecatedforms/selectField';
+import {
+  SelectAsync,
+  type SelectAsyncControlProps,
+} from 'sentry/components/core/select/async';
+import {
+  SelectField,
+  type SelectFieldProps,
+} from 'sentry/components/deprecatedforms/selectField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 
+export interface SelectAsyncFieldProps
+  extends SelectFieldProps,
+    Omit<SelectAsyncControlProps, 'value' | 'forwardedRef' | 'onQuery' | 'onResults'> {
+  onQuery?: SelectAsyncControlProps['onQuery'];
+  onResults?: SelectAsyncControlProps['onResults'];
+}
+
+/**
+ * @deprecated Do not use this
+ */
 class SelectAsyncField extends SelectField {
   static defaultProps = {
     ...SelectField.defaultProps,
@@ -38,4 +55,9 @@ class SelectAsyncField extends SelectField {
   }
 }
 
-export default SelectAsyncField;
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(SelectAsyncField) as React.ComponentType<
+  Omit<SelectAsyncFieldProps, 'formContext'>
+>;

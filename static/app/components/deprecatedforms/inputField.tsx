@@ -1,7 +1,9 @@
 import {Input} from 'sentry/components/core/input';
-import FormField from 'sentry/components/deprecatedforms/formField';
+import FormField, {
+  type FormFieldProps,
+} from 'sentry/components/deprecatedforms/formField';
 
-type InputFieldProps = FormField['props'] & {
+type InputFieldProps = FormFieldProps & {
   autoComplete?: string;
   inputStyle?: Record<PropertyKey, unknown>;
   min?: number;

@@ -7,11 +7,14 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
-import DateTimeField from 'sentry/components/deprecatedforms/dateTimeField';
+import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
 import Form from 'sentry/components/deprecatedforms/form';
 import InputField from 'sentry/components/deprecatedforms/inputField';
-import NumberField from 'sentry/components/deprecatedforms/numberField';
+import NumberField, {
+  NumberField as NumberFieldNoContext,
+} from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 import {space} from 'sentry/styles/space';
 import withApi from 'sentry/utils/withApi';
 
@@ -28,19 +31,21 @@ import {
 const CPE_DECIMAL_PRECISION = 8;
 
 // TODO: replace with modern fields so we don't need these workarounds
-class DateField extends DateTimeField {
+class DateFieldNoContext extends DateTimeField {
   getType() {
     return 'date';
   }
 }
 
+const DateField = withFormContext(DateFieldNoContext);
+
 type DollarsAndCentsFieldProps = {
   max?: number;
   min?: number;
   step?: any;
-} & NumberField['props'];
+} & NumberFieldNoContext['props'];
 
-class DollarsField extends NumberField {
+class DollarsFieldNoContext extends NumberFieldNoContext {
   getField() {
     return (
       <div className="dollars-field-container">
@@ -51,7 +56,9 @@ class DollarsField extends NumberField {
   }
 }
 
-class DollarsAndCentsField extends InputField<DollarsAndCentsFieldProps> {
+const DollarsField = withFormContext(DollarsFieldNoContext);
+
+class DollarsAndCentsFieldNoContext extends InputField<DollarsAndCentsFieldProps> {
   getField() {
     return (
       <div className="dollars-cents-field-container">
@@ -80,6 +87,8 @@ class DollarsAndCentsField extends InputField<DollarsAndCentsFieldProps> {
     };
   }
 }
+
+const DollarsAndCentsField = withFormContext(DollarsAndCentsFieldNoContext);
 
 type Props = {
   api: Client;
