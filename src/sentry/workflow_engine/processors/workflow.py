@@ -18,6 +18,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -93,6 +94,12 @@ def evaluate_workflows_action_filters(
         )
         .prefetch_related("workflowdataconditiongroup_set")
         .distinct()
+    )
+
+    workflow_to_dcg = dict(
+        WorkflowDataConditionGroup.objects.filter(
+            condition_group_id__in=action_conditions
+        ).values_list("condition_group_id", "workflow_id")
     )
 
     for action_condition in action_conditions:
