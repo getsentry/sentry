@@ -200,7 +200,7 @@ class CommitContextIntegration(ABC):
             try:
                 client = self.get_client()
                 merge_commit_sha = client.get_merge_commit_sha_from_commit(
-                    repo=repo.name, sha=commit.key
+                    repo=repo, sha=commit.key
                 )
             except Exception as e:
                 sentry_sdk.capture_exception(e)
@@ -313,7 +313,7 @@ class CommitContextIntegration(ABC):
         ).capture():
             if pr_comment is None:
                 resp = client.create_comment(
-                    repo=repo.name,
+                    repo=repo,
                     issue_id=str(pr_key),
                     data=(
                         {
@@ -348,7 +348,7 @@ class CommitContextIntegration(ABC):
                     )
             else:
                 resp = client.update_comment(
-                    repo=repo.name,
+                    repo=repo,
                     issue_id=str(pr_key),
                     comment_id=pr_comment.external_id,
                     data=(
@@ -385,15 +385,15 @@ class CommitContextClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_comment(self, repo: Repository, issue_id: str, data: Mapping[str, Any]) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def update_comment(
-        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+        self, repo: Repository, issue_id: str, comment_id: str, data: Mapping[str, Any]
     ) -> Any:
         raise NotImplementedError
 
     @abstractmethod
-    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+    def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         raise NotImplementedError
