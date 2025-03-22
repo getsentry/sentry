@@ -313,7 +313,7 @@ class CommitContextIntegration(ABC):
         ).capture():
             if pr_comment is None:
                 resp = client.create_comment(
-                    repo=repo.name,
+                    repo=repo,
                     issue_id=str(pr_key),
                     data=(
                         {
@@ -348,7 +348,7 @@ class CommitContextIntegration(ABC):
                     )
             else:
                 resp = client.update_comment(
-                    repo=repo.name,
+                    repo=repo,
                     issue_id=str(pr_key),
                     comment_id=pr_comment.external_id,
                     data=(
@@ -385,12 +385,12 @@ class CommitContextClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_comment(self, repo: Repository, issue_id: str, data: Mapping[str, Any]) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def update_comment(
-        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+        self, repo: Repository, issue_id: str, comment_id: str, data: Mapping[str, Any]
     ) -> Any:
         raise NotImplementedError
 
