@@ -2,18 +2,27 @@ from __future__ import annotations
 
 import datetime
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
 
+from sentry.integrations.base import IntegrationFeatureNotImplementedError
+from sentry.integrations.bitbucket.blame import fetch_file_blames
+from sentry.integrations.bitbucket.utils import BitbucketAPIPath
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import patch_to_file_changes
 
@@ -22,31 +31,7 @@ BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
 logger = logging.getLogger(__name__)
 
 
-class BitbucketAPIPath:
-    """
-    All UUID's must be surrounded by curlybraces.
-
-    repo is the fully qualified slug containing 'username/repo_slug'
-
-    repo_slug - repository slug or UUID
-    username - username or UUID
-    """
-
-    issue = "/2.0/repositories/{repo}/issues/{issue_id}"
-    issues = "/2.0/repositories/{repo}/issues"
-    issue_comments = "/2.0/repositories/{repo}/issues/{issue_id}/comments"
-
-    repository = "/2.0/repositories/{repo}"
-    repositories = "/2.0/repositories/{username}"
-    repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
-    repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
-    repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
-    repository_hooks = "/2.0/repositories/{repo}/hooks"
-
-    source = "/2.0/repositories/{repo}/src/{sha}/{path}"
-
-
-class BitbucketApiClient(ApiClient, RepositoryClient):
+class BitbucketApiClient(ApiClient, RepositoryClient, CommitContextClient):
     """
     The API Client for the Bitbucket Integration
 
@@ -104,6 +89,11 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         return self.post(
             path=BitbucketAPIPath.issue_comments.format(repo=repo, issue_id=issue_id), data=data
         )
+
+    def update_comment(
+        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+    ) -> Any:
+        raise NotImplementedError
 
     def get_repo(self, repo):
         return self.get(BitbucketAPIPath.repository.format(repo=repo))
@@ -191,3 +181,16 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
             raw_response=True,
         )
         return response.text
+
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> list[FileBlameInfo]:
+        metrics.incr("integrations.bitbucket.get_blame_for_files")
+        return fetch_file_blames(
+            self,
+            files,
+            extra={**extra, "provider": "bitbucket", "org_integration_id": self.integration_id},
+        )
+
+    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+        raise IntegrationFeatureNotImplementedError
