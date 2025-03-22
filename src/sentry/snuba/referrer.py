@@ -727,6 +727,7 @@ class Referrer(StrEnum):
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
+    GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"

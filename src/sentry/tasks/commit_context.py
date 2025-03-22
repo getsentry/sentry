@@ -38,7 +38,7 @@ PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 
 # TODO: replace this with isinstance(installation, CommitContextIntegration)
-PR_COMMENT_SUPPORTED_PROVIDERS = {"github"}
+PR_COMMENT_SUPPORTED_PROVIDERS = {"github", "gitlab"}
 
 logger = logging.getLogger(__name__)
 
