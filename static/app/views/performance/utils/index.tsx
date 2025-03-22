@@ -176,7 +176,7 @@ export function platformAndConditionsToPerformanceType(
   if (performanceType === ProjectPerformanceType.FRONTEND) {
     const conditions = new MutableSearch(eventView.query);
     const ops = conditions.getFilterValues('!transaction.op');
-    if (ops.some(op => op === 'pageload')) {
+    if (ops.includes('pageload')) {
       return ProjectPerformanceType.FRONTEND_OTHER;
     }
   }

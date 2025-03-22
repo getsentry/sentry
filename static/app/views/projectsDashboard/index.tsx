@@ -123,7 +123,7 @@ function Dashboard() {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const includeMyTeams = isAllTeams || selectedTeams.some(team => team === 'myteams');
+  const includeMyTeams = isAllTeams || selectedTeams.includes('myteams');
   const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
   const myTeams = includeMyTeams ? userTeams : [];
   const otherTeams = isAllTeams

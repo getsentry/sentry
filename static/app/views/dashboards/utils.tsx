@@ -451,9 +451,11 @@ export function isWidgetUsingTransactionName(widget: Widget) {
         }
         return acc;
       }, []);
-      const transactionSelected = [...aggregateArgs, ...columns, ...(fields ?? [])].some(
-        field => field === 'transaction'
-      );
+      const transactionSelected = [
+        ...aggregateArgs,
+        ...columns,
+        ...(fields ?? []),
+      ].includes('transaction');
       const transactionUsedInFilter = parseSearch(conditions)?.some(
         parsedCondition =>
           parsedCondition.type === Token.FILTER &&
