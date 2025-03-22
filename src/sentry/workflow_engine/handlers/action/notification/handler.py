@@ -76,7 +76,7 @@ ONCALL_ACTION_CONFIG_SCHEMA = {
     "type": "object",
     "properties": {
         "target_identifier": {"type": ["string"]},
-        "target_display": {"type": ["null"]},
+        "target_display": {"type": ["string", "null"]},
         "target_type": {
             "type": ["integer"],
             "enum": [*ActionTarget],

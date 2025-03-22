@@ -291,7 +291,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id="1234567890",
-            config={"target_identifier": "service789"},
+            config={"target_identifier": "service789", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
 
@@ -327,7 +327,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id="1234567890",
-            config={"target_identifier": "team789"},
+            config={"target_identifier": "team789", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
 

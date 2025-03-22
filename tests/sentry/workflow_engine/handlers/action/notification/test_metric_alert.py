@@ -344,7 +344,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id=1234567890,
-            config={"target_identifier": "service123"},
+            config={"target_identifier": "service123", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
         self.snuba_query = self.create_snuba_query()
