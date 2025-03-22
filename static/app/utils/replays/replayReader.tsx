@@ -685,29 +685,25 @@ export default class ReplayReader {
   });
 
   getWebVitalFrames = memoize(() => {
-    if (this._featureFlags?.includes('session-replay-web-vitals')) {
-      // sort by largest timestamp first to easily find the last CLS in a burst
-      const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
-      let lastTimestamp = 0;
-      const groupedCls: WebVitalFrame[] = [];
+    // sort by largest timestamp first to easily find the last CLS in a burst
+    const allWebVitals = this._sortedSpanFrames.filter(isWebVitalFrame).reverse();
+    let lastTimestamp = 0;
+    const groupedCls: WebVitalFrame[] = [];
 
-      for (const frame of allWebVitals) {
-        if (isCLSFrame(frame)) {
-          if (lastTimestamp === frame.timestampMs) {
-            groupedCls.push(frame);
-          } else {
-            lastTimestamp = frame.timestampMs;
-          }
+    for (const frame of allWebVitals) {
+      if (isCLSFrame(frame)) {
+        if (lastTimestamp === frame.timestampMs) {
+          groupedCls.push(frame);
+        } else {
+          lastTimestamp = frame.timestampMs;
         }
       }
-      return allWebVitals
-        .filter(
-          frame =>
-            !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
-        )
-        .reverse();
     }
-    return [];
+    return allWebVitals
+      .filter(
+        frame => !groupedCls.includes(frame) && frame.description !== 'first-input-delay'
+      )
+      .reverse();
   });
 
   getVideoEvents = () => this._videoEvents;
