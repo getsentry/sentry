@@ -654,7 +654,6 @@ export async function doOnDemandMetricsRequest(
     ) {
       const meta: any = response[0].meta ?? {};
       meta.discoverSplitDecision = 'transaction-like';
-
       response[0] = {...response[0], ...{meta}};
     }
 

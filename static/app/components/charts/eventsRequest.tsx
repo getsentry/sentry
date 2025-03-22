@@ -104,7 +104,6 @@ type DefaultProps = {
    * e.g. 24h, 7d, 30d
    */
   period?: string | null;
-
   /**
    * Absolute start date for query
    */
