@@ -30,6 +30,10 @@ class TestActionSerializer(TestCase):
             action_id=self.action.id,
             alert_rule_trigger_action_id=self.trigger_action.id,
         )
+        self.data_condition_group = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition_group_action(
+            action=self.action, condition_group=self.data_condition_group
+        )
 
     def test_simple(self) -> None:
         serialized_action = serialize(self.action, self.user, WorkflowEngineActionSerializer())

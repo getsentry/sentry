@@ -17,7 +17,6 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.users.services.user.service import user_service
 
 
 class IncidentGetForSubscriptionTest(TestCase):
@@ -196,16 +195,23 @@ class AlertRuleFetchForOrganizationTest(TestCase):
 
 
 class AlertRuleTriggerActionTargetTest(TestCase):
+    def setUp(self):
+        self.metric_alert = self.create_alert_rule()
+        self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
+
     def test_user(self):
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
-        assert trigger.target == user_service.get_user(user_id=self.user.id)
+        assert trigger.target.user_id == self.user.id
 
     def test_invalid_user(self):
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.USER.value, target_identifier="10000000"
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="10000000",
         )
         assert trigger.target is None
 
