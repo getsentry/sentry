@@ -96,6 +96,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -420,6 +421,21 @@ class Factories:
             for team in teams:
                 Factories.create_team_membership(team=team, member=om, role=teamRole)
         return om
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_member_invite(
+        organization: Organization | None = None,
+        email: str | None = None,
+        **kwargs,
+    ) -> OrganizationMemberInvite:
+        if organization is None:
+            organization = Factories.create_organization()
+        if email is None:
+            email = f"{petname.generate().title()}@email.com"
+        return OrganizationMemberInvite.objects.create(
+            organization=organization, email=email, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

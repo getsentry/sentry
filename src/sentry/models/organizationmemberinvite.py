@@ -1,12 +1,14 @@
 import secrets
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import TypedDict
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+# from sentry.api.serializers.models.organization_member.response import _OrganizationMemberFlags
 from sentry.backup.dependencies import ImportKind
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -48,6 +50,23 @@ def default_expiration():
 
 def generate_token():
     return secrets.token_hex(nbytes=32)
+
+
+class OrganizationMemberInviteResponse(TypedDict):
+    id: str
+    email: str
+    orgRole: str
+    expired: bool
+    idpProvisioned: bool
+    idpRoleRestricted: bool
+    ssoLinked: bool
+    ssoInvalid: bool
+    memberLimitRestricted: bool
+    partnershipRestricted: bool
+    dateCreated: datetime
+    inviteStatus: str
+    inviterName: str | None
+    teams: list[dict]
 
 
 @region_silo_model
@@ -126,6 +145,10 @@ class OrganizationMemberInvite(DefaultFieldsModel):
     def requested_to_be_invited(self):
         return self.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
+    @property
+    def token_expired(self):
+        return self.token_expires_at <= timezone.now()
+
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
@@ -140,3 +163,15 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             return (self.pk, ImportKind.Existing)
 
         return super().write_relocation_import(scope, flags)
+
+    def get_audit_log_data(self):
+        teams = self.organization_member_team_data
+        return {
+            "email": self.email,
+            "teams": [t["id"] for t in teams],
+            "teams_slugs": [t["slug"] for t in teams],
+            "role": self.role,
+            "invite_status": (
+                invite_status_names[self.invite_status] if self.invite_status is not None else None
+            ),
+        }

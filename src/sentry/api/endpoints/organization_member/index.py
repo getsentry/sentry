@@ -12,6 +12,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberAndStaffPermission
+from sentry.api.endpoints.organization_member.utils import (
+    ERR_RATE_LIMITED,
+    ROLE_CHOICES,
+    MemberConflictValidationError,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
@@ -23,6 +28,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
@@ -32,40 +38,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments
-
-ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
-# has the wrong descriptions, includes deprecated admin, and excludes billing
-ROLE_CHOICES = [
-    ("billing", "Can manage payment and compliance details."),
-    (
-        "member",
-        "Can view and act on events, as well as view most other data within the organization.",
-    ),
-    (
-        "manager",
-        """Has full management access to all teams and projects. Can also manage
-        the organization's membership.""",
-    ),
-    (
-        "owner",
-        """Has unrestricted access to the organization, its data, and its
-        settings. Can add, modify, and delete projects and members, as well as
-        make billing and plan changes.""",
-    ),
-    (
-        "admin",
-        """Can edit global integrations, manage projects, and add/remove teams.
-        They automatically assume the Team Admin role for teams they join.
-        Note: This role can no longer be assigned in Business and Enterprise plans. Use `TeamRoles` instead.
-        """,
-    ),
-]
-
-
-class MemberConflictValidationError(serializers.ValidationError):
-    pass
 
 
 @extend_schema_serializer(
@@ -109,6 +81,8 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
     regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
+        # TODO (mifu67): once we remove invite fields from OrganizationMember model,
+        # remove all checks for these fields on the model
         users = user_service.get_many_by_email(
             emails=[email],
             is_active=True,
@@ -131,6 +105,24 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
                 raise MemberConflictValidationError(
                     "There is an existing invite request for %s" % email
                 )
+
+        # check for OrganizationMemberInvites
+        invite_queryset = OrganizationMemberInvite.objects.filter(
+            Q(email=email),
+            organization=self.context["organization"],
+        )
+        if invite_queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
+            raise MemberConflictValidationError("The user %s has already been invited" % email)
+
+        if not self.context.get("allow_existing_invite_request"):
+            if invite_queryset.filter(
+                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
+            ).exists():
+                raise MemberConflictValidationError(
+                    "There is an existing invite request for %s" % email
+                )
+
         return email
 
     def validate_role(self, role):
