@@ -56,6 +56,8 @@ export function getChonkButtonStyles(
   const type = chonkPriorityToType(p.priority);
   const size = chonkSizeMapping(p.size);
 
+  const translate = size === 'medium' || size === 'small' ? 4 : 3;
+
   return {
     position: 'relative',
     display: 'inline-block',
@@ -121,15 +123,15 @@ export function getChonkButtonStyles(
       justifyContent: 'center',
       whiteSpace: 'nowrap',
       transform: 'translateY(-2px)',
-      transition: 'transform 0.1s ease-in-out',
+      transition: 'transform 0.06s ease-in-out',
     },
 
     '&:hover': {
       '&::after': {
-        transform: 'translateY(-3px)',
+        transform: `translateY(-${translate}px)`,
       },
       '> span:last-child': {
-        transform: 'translateY(-3px)',
+        transform: `translateY(-${translate}px)`,
       },
     },
 
@@ -152,6 +154,11 @@ export function getChonkButtonStyles(
       '> span:last-child': {
         transform: 'translateY(0px)',
       },
+    },
+
+    // Hides the interaction state layer
+    '> span:first-child': {
+      display: 'none',
     },
 
     // Link buttons do not have interaction state layer
