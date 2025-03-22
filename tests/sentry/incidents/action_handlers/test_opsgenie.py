@@ -95,7 +95,9 @@ class OpsgenieActionHandlerTest(FireTest):
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
             metric_issue_context=MetricIssueContext.from_legacy_models(
-                incident, IncidentStatus(incident.status), metric_value
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
             ),
             organization=incident.organization,
         )
