@@ -35,6 +35,7 @@ describe('Events ActionCreator', function () {
   it('requests events stats with relative period', async function () {
     await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: false,
       period: '7d',
       partial: true,
@@ -55,6 +56,7 @@ describe('Events ActionCreator', function () {
   it('sets useRpc param', async function () {
     await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: false,
       period: '7d',
       partial: true,
@@ -76,6 +78,7 @@ describe('Events ActionCreator', function () {
   it('requests events stats with relative period including previous period', async function () {
     await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: true,
       period: '7d',
       partial: true,
@@ -98,6 +101,7 @@ describe('Events ActionCreator', function () {
     const end = new Date('2017-10-17T00:00:00.000Z');
     await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: false,
       start,
       end,
@@ -123,6 +127,7 @@ describe('Events ActionCreator', function () {
     const end = new Date('2017-10-17T00:00:00.000Z');
     await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: true,
       start,
       end,
@@ -145,6 +150,7 @@ describe('Events ActionCreator', function () {
   it('spreads query extras', async function () {
     await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       queryExtras: {useOnDemandMetrics: 'true'},
       partial: true,
     });

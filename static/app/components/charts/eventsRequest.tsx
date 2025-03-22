@@ -65,6 +65,7 @@ export type RenderProps = LoadingStatus &
   };
 
 type DefaultProps = {
+  includeAllArgs: false;
   /**
    * Include data for previous period
    */
@@ -103,6 +104,7 @@ type DefaultProps = {
    * e.g. 24h, 7d, 30d
    */
   period?: string | null;
+
   /**
    * Absolute start date for query
    */
@@ -277,6 +279,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     comparisonDelta: undefined,
     limit: 15,
     query: '',
+    includeAllArgs: false,
     includePrevious: true,
     includeTransformedData: true,
   };

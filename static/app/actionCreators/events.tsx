@@ -61,7 +61,7 @@ type Options = {
   yAxis?: string | string[];
 };
 
-export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Options;
+export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Options;
 
 /**
  * Make requests to `events-stats` endpoint
@@ -83,7 +83,7 @@ export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Optio
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
-export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
+export const doEventsRequest = <IncludeAllArgsType extends boolean>(
   api: Client,
   {
     organization,
