@@ -4,55 +4,29 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {Tooltip} from 'sentry/components/tooltip';
-import {tn} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/project';
-import getPlatformName from 'sentry/utils/getPlatformName';
 
 type Props = {
   className?: string;
-  /**
-   * Will set container width to be size of having `this.props.max` icons
-   * This is good for lists where the project name is displayed
-   */
-  consistentWidth?: boolean;
-  direction?: 'right' | 'left';
   /**
    * Maximum number of platform icons to display
    */
   max?: number;
   platforms?: PlatformKey[];
   /**
-   * If true and if the number of children is greater than the max prop,
-   * a counter will be displayed at the end of the stack
-   */
-  showCounter?: boolean;
-  /**
    * Platform icon size in pixels
    */
   size?: number;
 };
 
-type WrapperProps = Required<
-  Pick<Props, 'showCounter' | 'size' | 'direction' | 'consistentWidth' | 'max'>
->;
+type WrapperProps = Required<Pick<Props, 'size'>>;
 
 export const PlatformList = forwardRef(
   (
-    {
-      platforms = [],
-      direction = 'right',
-      max = 3,
-      size = 16,
-      consistentWidth = false,
-      showCounter = false,
-      className,
-    }: Props,
+    {platforms = [], max = 3, size = 16, className}: Props,
     ref: React.Ref<HTMLDivElement>
   ) => {
     const visiblePlatforms = platforms.slice(0, max);
-    const numNotVisiblePlatforms = platforms.length - visiblePlatforms.length;
-    const displayCounter = showCounter && !!numNotVisiblePlatforms;
 
     function renderContent() {
       if (!platforms.length) {
@@ -60,37 +34,6 @@ export const PlatformList = forwardRef(
       }
 
       const platformIcons = visiblePlatforms.slice().reverse();
-
-      if (displayCounter) {
-        return (
-          <InnerWrapper>
-            <PlatformIcons>
-              {platformIcons.map((visiblePlatform, index) => (
-                <Tooltip
-                  key={visiblePlatform + index}
-                  title={getPlatformName(visiblePlatform)}
-                  containerDisplayMode="inline-flex"
-                >
-                  <StyledPlatformIcon platform={visiblePlatform} size={size} />
-                </Tooltip>
-              ))}
-            </PlatformIcons>
-            <Tooltip
-              title={tn(
-                '%s other platform',
-                '%s other platforms',
-                numNotVisiblePlatforms
-              )}
-              containerDisplayMode="inline-flex"
-            >
-              <Counter>
-                {numNotVisiblePlatforms}
-                <Plus>{'\u002B'}</Plus>
-              </Counter>
-            </Tooltip>
-          </InnerWrapper>
-        );
-      }
 
       return (
         <PlatformIcons>
@@ -107,15 +50,7 @@ export const PlatformList = forwardRef(
     }
 
     return (
-      <Wrapper
-        ref={ref}
-        consistentWidth={consistentWidth}
-        className={className}
-        size={size}
-        showCounter={displayCounter}
-        direction={direction}
-        max={max}
-      >
+      <Wrapper ref={ref} className={className} size={size}>
         {renderContent()}
       </Wrapper>
     );
@@ -144,10 +79,6 @@ const InnerWrapper = styled('div')`
   position: relative;
 `;
 
-const Plus = styled('span')`
-  font-size: 10px;
-`;
-
 const StyledPlatformIcon = styled(PlatformIcon)`
   ${p => commonStyles(p)};
 `;
@@ -170,25 +101,14 @@ const Counter = styled('div')`
 const Wrapper = styled('div')<WrapperProps>`
   display: flex;
   flex-shrink: 0;
-  justify-content: ${p => (p.direction === 'right' ? 'flex-end' : 'flex-start')};
-  ${p =>
-    p.consistentWidth && `width: ${p.size + (p.max - 1) * getOverlapWidth(p.size)}px;`};
+  justify-content: flex-end;
 
   ${PlatformIcons} {
-    ${p =>
-      p.showCounter
-        ? css`
-            z-index: 1;
-            flex-direction: row-reverse;
-            > * :not(:first-child) {
-              margin-right: ${p.size * -1 + getOverlapWidth(p.size)}px;
-            }
-          `
-        : css`
-            > * :not(:first-child) {
-              margin-left: ${p.size * -1 + getOverlapWidth(p.size)}px;
-            }
-          `}
+    ${p => css`
+      > * :not(:first-child) {
+        margin-left: ${p.size * -1 + getOverlapWidth(p.size)}px;
+      }
+    `}
   }
 
   ${InnerWrapper} {
