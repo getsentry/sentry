@@ -24,8 +24,8 @@ class EnhancementRule:
                 self._other_matchers.append(matcher)
 
         self.actions = actions
-        self._is_updater = any(action.is_updater for action in actions)
-        self._is_modifier = any(action.is_modifier for action in actions)
+        self.has_classifier_actions = any(action.is_classifier for action in actions)
+        self.has_contributes_actions = any(action.sets_contributes for action in actions)
 
     @property
     def matcher_description(self) -> str:
@@ -33,15 +33,15 @@ class EnhancementRule:
         actions = " ".join(str(action) for action in self.actions)
         return f"{matchers} {actions}"
 
-    def _as_modifier_rule(self) -> EnhancementRule | None:
-        actions = [action for action in self.actions if action.is_modifier]
+    def as_classifier_rule(self) -> EnhancementRule | None:
+        actions = [action for action in self.actions if action.is_classifier]
         if actions:
             return EnhancementRule(self.matchers, actions)
         else:
             return None
 
-    def _as_updater_rule(self) -> EnhancementRule | None:
-        actions = [action for action in self.actions if action.is_updater]
+    def as_contributes_rule(self) -> EnhancementRule | None:
+        actions = [action for action in self.actions if action.sets_contributes]
         if actions:
             return EnhancementRule(self.matchers, actions)
         else:
