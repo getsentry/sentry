@@ -306,7 +306,7 @@ class GitHubApiClientTest(TestCase):
                 "author_association": "COLLABORATOR",
             },
         )
-        self.github_client.create_comment(repo=self.repo.name, issue_id="1", data={"body": "hello"})
+        self.github_client.create_comment(repo=self.repo, issue_id="1", data={"body": "hello"})
 
         responses.add(
             method=responses.PATCH,
@@ -325,7 +325,7 @@ class GitHubApiClientTest(TestCase):
         )
 
         self.github_client.update_comment(
-            repo=self.repo.name, issue_id="1", comment_id="1", data={"body": "world"}
+            repo=self.repo, issue_id="1", comment_id="1", data={"body": "world"}
         )
         assert responses.calls[1].response.status_code == 200
         assert responses.calls[1].request.body == b'{"body": "world"}'
