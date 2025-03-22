@@ -194,7 +194,6 @@ class CommitContextIntegration(ABC):
             scope = sentry_sdk.Scope.get_isolation_scope()
             scope.set_tag("queue_comment_check.merge_commit_sha", commit.key)
             scope.set_tag("queue_comment_check.organization_id", commit.organization_id)
-            from sentry.integrations.github.tasks.pr_comment import github_comment_workflow
 
             # client will raise an Exception if the request is not successful
             try:
@@ -276,9 +275,11 @@ class CommitContextIntegration(ABC):
 
                     cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
 
-                    github_comment_workflow.delay(
-                        pullrequest_id=pr.id, project_id=group_owner.project_id
-                    )
+                    self.queue_comment_workflow(pr=pr, group_owner=group_owner)
+
+    @abstractmethod
+    def queue_comment_workflow(self, pr: PullRequest, group_owner: GroupOwner):
+        raise NotImplementedError
 
     def create_or_update_comment(
         self,
@@ -312,9 +313,9 @@ class CommitContextIntegration(ABC):
             pull_request_id=pullrequest_id,
         ).capture():
             if pr_comment is None:
-                resp = client.create_comment(
+                resp = client.create_pr_comment(
                     repo=repo,
-                    issue_id=str(pr_key),
+                    pr_key=str(pr_key),
                     data=(
                         {
                             "body": comment_body,
@@ -347,9 +348,9 @@ class CommitContextIntegration(ABC):
                         language=(language or "not found"),
                     )
             else:
-                resp = client.update_comment(
+                resp = client.update_pr_comment(
                     repo=repo,
-                    issue_id=str(pr_key),
+                    pr_key=str(pr_key),
                     comment_id=pr_comment.external_id,
                     data=(
                         {
@@ -385,11 +386,21 @@ class CommitContextClient(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def create_comment(self, repo: Repository, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def create_pr_comment(self, repo: Repository, pr_key: str, data: Mapping[str, Any]) -> Any:
         raise NotImplementedError
 
     @abstractmethod
-    def update_comment(
+    def create_issue_comment(self, repo: Repository, issue_id: str, data: Mapping[str, Any]) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_pr_comment(
+        self, repo: Repository, pr_key: str, comment_id: str, data: Mapping[str, Any]
+    ) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_issue_comment(
         self, repo: Repository, issue_id: str, comment_id: str, data: Mapping[str, Any]
     ) -> Any:
         raise NotImplementedError

@@ -419,18 +419,32 @@ class GitHubBaseClient(GithubProxyClient, RepositoryClient, CommitContextClient,
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
-    def create_comment(self, repo: Repository, issue_id: str, data: Mapping[str, Any]) -> Any:
+    def _create_comment(self, repo: Repository, issue_id: str, data: Mapping[str, Any]) -> Any:
         """
         https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
         """
         endpoint = f"/repos/{repo.name}/issues/{issue_id}/comments"
         return self.post(endpoint, data=data)
 
-    def update_comment(
-        self, repo: Repository, issue_id: str, comment_id: str, data: Mapping[str, Any]
-    ) -> Any:
+    def create_pr_comment(self, repo: Repository, pr_key: str, data: Mapping[str, Any]) -> Any:
+        return self._create_comment(repo, pr_key, data)
+
+    def create_issue_comment(self, repo: Repository, issue_id: str, data: Mapping[str, Any]) -> Any:
+        return self._create_comment(repo, issue_id, data)
+
+    def _update_comment(self, repo: Repository, comment_id: str, data: Mapping[str, Any]) -> Any:
         endpoint = f"/repos/{repo.name}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
+
+    def update_pr_comment(
+        self, repo: Repository, pr_key: str, comment_id: str, data: Mapping[str, Any]
+    ) -> Any:
+        return self._update_comment(repo, comment_id, data)
+
+    def update_issue_comment(
+        self, repo: Repository, issue_id: str, comment_id: str, data: Mapping[str, Any]
+    ) -> Any:
+        return self._update_comment(repo, comment_id, data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> Any:
         endpoint = f"/repos/{repo}/issues/comments/{comment_id}"

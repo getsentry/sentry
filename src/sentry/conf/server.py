@@ -770,6 +770,7 @@ CELERY_IMPORTS = (
     "sentry.incidents.tasks",
     "sentry.integrations.github.tasks",
     "sentry.integrations.github.tasks.pr_comment",
+    "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
     "sentry.integrations.opsgenie.tasks",
     "sentry.sentry_apps.tasks",

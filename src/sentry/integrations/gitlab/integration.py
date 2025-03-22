@@ -22,6 +22,8 @@ from sentry.integrations.base import (
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.models.groupowner import GroupOwner
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import (
@@ -182,6 +184,11 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         resp = client.search_project_issues(project_id, query, iids)
         assert isinstance(resp, list)
         return resp
+
+    def queue_comment_workflow(self, pr: PullRequest, group_owner: GroupOwner):
+        from sentry.integrations.gitlab.tasks.pr_comment import gitlab_comment_workflow
+
+        gitlab_comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 class InstallationForm(forms.Form):

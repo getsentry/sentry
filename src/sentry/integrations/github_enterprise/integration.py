@@ -26,6 +26,8 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
+from sentry.models.groupowner import GroupOwner
+from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
@@ -231,6 +233,9 @@ class GitHubEnterpriseIntegration(
     def has_repo_access(self, repo: RpcRepository) -> bool:
         # TODO: define this, used to migrate repositories
         return False
+
+    def queue_comment_workflow(self, pr: PullRequest, group_owner: GroupOwner):
+        raise NotImplementedError
 
 
 class InstallationForm(forms.Form):

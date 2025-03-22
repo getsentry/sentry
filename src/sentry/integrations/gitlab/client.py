@@ -9,7 +9,6 @@ from django.urls import reverse
 from requests import PreparedRequest
 
 from sentry.identity.services.identity.model import RpcIdentity
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
 from sentry.integrations.source_code_management.commit_context import (
@@ -226,31 +225,49 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.post(GitLabApiClientPath.issues.format(project=project), data=data)
 
-    def create_comment(self, repo: Repository, issue_id: str, data: dict[str, Any]):
+    def create_pr_comment(self, repo: Repository, pr_key: str, data: dict[str, Any]):
+        """Create a PR note/comment
+
+        See https://docs.gitlab.com/api/notes/#create-new-merge-request-note
+        """
+        project_id = repo.config["project_id"]
+        url = GitLabApiClientPath.create_pr_note.format(project=project_id, pr_key=pr_key)
+        return self.post(url, data=data)
+
+    def create_issue_comment(self, repo: Repository, issue_id: str, data: dict[str, Any]):
         """Create an issue note/comment
 
-        See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
+        See https://docs.gitlab.com/api/notes/#create-new-issue-note
         """
-        return self.post(
-            GitLabApiClientPath.create_note.format(
-                project=repo.config["project_id"], issue_id=issue_id
-            ),
-            data=data,
-        )
+        project_id = repo.config["project_id"]
+        url = GitLabApiClientPath.create_issue_note.format(project=project_id, issue_id=issue_id)
+        return self.post(url, data=data)
 
-    def update_comment(
+    def update_pr_comment(
+        self, repo: Repository, pr_key: str, comment_id: str, data: Mapping[str, Any]
+    ) -> Any:
+        """Update a PR note/comment
+
+        See https://docs.gitlab.com/api/notes/#modify-existing-merge-request-note
+        """
+        project_id = repo.config["project_id"]
+        url = GitLabApiClientPath.update_pr_note.format(
+            project=project_id, pr_key=pr_key, note_id=comment_id
+        )
+        return self.put(url, data=data)
+
+    def update_issue_comment(
         self, repo: Repository, issue_id: str, comment_id: str, data: dict[str, Any]
     ):
         """Modify existing issue note
 
-        See https://docs.gitlab.com/ee/api/notes.html#modify-existing-issue-note
+        See https://docs.gitlab.com/api/notes/#modify-existing-issue-note
         """
-        return self.put(
-            GitLabApiClientPath.update_note.format(
-                project=repo.config["project_id"], issue_id=issue_id, note_id=comment_id
-            ),
-            data=data,
+        project_id = repo.config["project_id"]
+        url = GitLabApiClientPath.update_issue_note.format(
+            project=project_id, issue_id=issue_id, note_id=comment_id
         )
+        return self.put(url, data=data)
 
     def search_project_issues(self, project_id, query, iids=None):
         """Search issues in a project
@@ -315,7 +332,26 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return self.get_cached(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
 
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
-        raise IntegrationFeatureNotImplementedError
+        """
+        Get the merge commit sha from a commit sha
+        See https://docs.gitlab.com/api/commits/#list-merge-requests-associated-with-a-commit
+        """
+        project_id = repo.config["project_id"]
+        path = GitLabApiClientPath.commit_merge_requests.format(project=project_id, sha=sha)
+        response = self.get(path)
+
+        # Filter out non-merged merge requests
+        merge_requests = []
+        for merge_request in response:
+            if merge_request["state"] == "merged":
+                merge_requests.append(merge_request)
+
+        if len(merge_requests) != 1:
+            # the response should return a single merged PR, returning None if multiple
+            return None
+
+        merge_request = merge_requests[0]
+        return merge_request["merge_commit_sha"] or merge_request["squash_commit_sha"]
 
     def compare_commits(self, project_id, start_sha, end_sha):
         """Compare commits between two SHAs
