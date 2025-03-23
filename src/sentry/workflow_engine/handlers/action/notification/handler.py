@@ -72,7 +72,7 @@ NOTES_SCHEMA = {
 
 ONCALL_ACTION_CONFIG_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "description": "The configuration schema for a On-call Action",
+    "description": "The configuration schema for a on-call Action",
     "type": "object",
     "properties": {
         "target_identifier": {"type": ["string"]},
