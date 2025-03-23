@@ -8,7 +8,6 @@ from sentry.eventstore.models import GroupEvent
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -28,7 +27,7 @@ class AlertContext:
     threshold_type: AlertRuleThresholdType | None
     detection_type: AlertRuleDetectionType
     comparison_delta: int | None
-    sensitivity: AlertRuleSensitivity | None
+    sensitivity: str | None
     resolve_threshold: float | None
 
     @classmethod
