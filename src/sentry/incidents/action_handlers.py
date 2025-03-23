@@ -498,9 +498,7 @@ def generate_incident_trigger_email_context(
 ):
     snuba_query = metric_issue_context.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
-    is_threshold_type_above = (
-        alert_context.threshold_type.value == AlertRuleThresholdType.ABOVE.value
-    )
+    is_threshold_type_above = alert_context.threshold_type == AlertRuleThresholdType.ABOVE
     subscription = metric_issue_context.subscription
     alert_link_params = {
         "referrer": "metric_alert_email",
