@@ -6,63 +6,15 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueTagsPreview from './issueTagsPreview';
 
-function mockTagResponses(groupId: string, topValues: number[], totalValues: number) {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/issues/${groupId}/tags/`,
-    body: [
-      {
-        topValues: topValues.map((count, index) => ({
-          count,
-          name: `Chrome${index}`,
-          value: `Chrome${index}`,
-          lastSeen: '2018-11-16T22:52:24Z',
-          key: 'browser',
-          firstSeen: '2018-05-06T03:48:28.855Z',
-        })),
-        name: 'Browser',
-        key: 'browser',
-        totalValues,
-      },
-    ],
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/issues/${groupId}/tags/browser/values/`,
-    body: topValues.map((count, index) => ({
-      count,
-      name: `Chrome${index}`,
-      value: `Chrome${index}`,
-      lastSeen: '2018-11-16T22:52:24Z',
-      key: 'browser',
-      firstSeen: '2018-05-06T03:48:28.855Z',
-    })),
-  });
-
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/issues/${groupId}/tags/browser/`,
-    body: {
-      topValues: topValues.map((count, index) => ({
-        count,
-        name: `Chrome${index}`,
-        value: `Chrome${index}`,
-        lastSeen: '2018-11-16T22:52:24Z',
-        key: 'browser',
-        firstSeen: '2018-05-06T03:48:28.855Z',
-      })),
-      name: 'Browser',
-      key: 'browser',
-      totalValues,
-    },
-  });
-}
-
 describe('IssueTagsPreview', () => {
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       body: [ProjectFixture()],
     });
   });
+
   it('renders preview tags', async () => {
     const group = GroupFixture();
     MockApiClient.addMockResponse({
@@ -166,3 +118,53 @@ describe('IssueTagsPreview', () => {
     expect(await screen.findByText('<1%')).toBeInTheDocument();
   });
 });
+
+function mockTagResponses(groupId: string, topValues: number[], totalValues: number) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/tags/`,
+    body: [
+      {
+        topValues: topValues.map((count, index) => ({
+          count,
+          name: `Chrome${index}`,
+          value: `Chrome${index}`,
+          lastSeen: '2018-11-16T22:52:24Z',
+          key: 'browser',
+          firstSeen: '2018-05-06T03:48:28.855Z',
+        })),
+        name: 'Browser',
+        key: 'browser',
+        totalValues,
+      },
+    ],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/tags/browser/values/`,
+    body: topValues.map((count, index) => ({
+      count,
+      name: `Chrome${index}`,
+      value: `Chrome${index}`,
+      lastSeen: '2018-11-16T22:52:24Z',
+      key: 'browser',
+      firstSeen: '2018-05-06T03:48:28.855Z',
+    })),
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/tags/browser/`,
+    body: {
+      topValues: topValues.map((count, index) => ({
+        count,
+        name: `Chrome${index}`,
+        value: `Chrome${index}`,
+        lastSeen: '2018-11-16T22:52:24Z',
+        key: 'browser',
+        firstSeen: '2018-05-06T03:48:28.855Z',
+      })),
+      name: 'Browser',
+      key: 'browser',
+      totalValues,
+    },
+  });
+}
