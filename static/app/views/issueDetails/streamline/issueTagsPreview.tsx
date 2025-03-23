@@ -53,7 +53,7 @@ type Segment = {
 const bgColor = (index: number) =>
   Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
-  percentage < 1 ? '<1%' : `${Math.round(percentage)}%`;
+  percentage < 0.4 ? '<1%' : `${Math.round(percentage)}%`;
 
 function SegmentedBar({segments}: {segments: Segment[]}) {
   return (

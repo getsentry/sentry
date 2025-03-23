@@ -6,6 +6,56 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import IssueTagsPreview from './issueTagsPreview';
 
+function mockTagResponses(groupId: string, topValues: number[], totalValues: number) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/tags/`,
+    body: [
+      {
+        topValues: topValues.map((count, index) => ({
+          count,
+          name: `Chrome${index}`,
+          value: `Chrome${index}`,
+          lastSeen: '2018-11-16T22:52:24Z',
+          key: 'browser',
+          firstSeen: '2018-05-06T03:48:28.855Z',
+        })),
+        name: 'Browser',
+        key: 'browser',
+        totalValues,
+      },
+    ],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/tags/browser/values/`,
+    body: topValues.map((count, index) => ({
+      count,
+      name: `Chrome${index}`,
+      value: `Chrome${index}`,
+      lastSeen: '2018-11-16T22:52:24Z',
+      key: 'browser',
+      firstSeen: '2018-05-06T03:48:28.855Z',
+    })),
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/tags/browser/`,
+    body: {
+      topValues: topValues.map((count, index) => ({
+        count,
+        name: `Chrome${index}`,
+        value: `Chrome${index}`,
+        lastSeen: '2018-11-16T22:52:24Z',
+        key: 'browser',
+        firstSeen: '2018-05-06T03:48:28.855Z',
+      })),
+      name: 'Browser',
+      key: 'browser',
+      totalValues,
+    },
+  });
+}
+
 describe('IssueTagsPreview', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
@@ -42,97 +92,77 @@ describe('IssueTagsPreview', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders tags edge case correctly with prefetching', async () => {
+  it('renders tag distribution topValues [2, 1], totalValues 3', async () => {
     const group = GroupFixture();
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/tags/`,
-      body: [
-        {
-          topValues: [
-            {
-              count: 2,
-              name: 'Chrome',
-              value: 'Chrome',
-              lastSeen: '2018-11-16T22:52:24Z',
-              key: 'browser',
-              firstSeen: '2018-05-06T03:48:28.855Z',
-            },
-            {
-              count: 1,
-              name: 'Firefox',
-              value: 'Firefox',
-              lastSeen: '2018-12-20T23:32:25Z',
-              key: 'browser',
-              firstSeen: '2018-12-20T23:32:43.811Z',
-            },
-          ],
-          name: 'Browser',
-          key: 'browser',
-          totalValues: 3,
-        },
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/tags/browser/values/`,
-      body: [
-        {
-          count: 2,
-          name: 'Chrome',
-          value: 'Chrome',
-          lastSeen: '2018-11-16T22:52:24Z',
-          key: 'browser',
-          firstSeen: '2018-05-06T03:48:28.855Z',
-        },
-        {
-          count: 1,
-          name: 'Firefox',
-          value: 'Firefox',
-          lastSeen: '2018-12-20T23:32:25Z',
-          key: 'browser',
-          firstSeen: '2018-12-20T23:32:43.811Z',
-        },
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/issues/${group.id}/tags/browser/`,
-      body: {
-        topValues: [
-          {
-            count: 2,
-            name: 'Chrome',
-            value: 'Chrome',
-            lastSeen: '2018-11-16T22:52:24Z',
-            key: 'browser',
-            firstSeen: '2018-05-06T03:48:28.855Z',
-          },
-          {
-            count: 1,
-            name: 'Firefox',
-            value: 'Firefox',
-            lastSeen: '2018-12-20T23:32:25Z',
-            key: 'browser',
-            firstSeen: '2018-12-20T23:32:43.811Z',
-          },
-        ],
-        name: 'Browser',
-        key: 'browser',
-        totalValues: 3,
-      },
-    });
-
+    mockTagResponses(group.id, [2, 1], 3);
     render(
       <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
     );
 
-    expect(await screen.findByText('Chrome')).toBeInTheDocument();
+    expect(await screen.findByText('Chrome0')).toBeInTheDocument();
     expect(await screen.findByText('67%')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByText('Chrome'));
-    expect(await screen.findByText('Firefox')).toBeInTheDocument(); // tooltip description
+    await userEvent.hover(screen.getByText('Chrome0')); // trigger tooltip
+    expect(await screen.findByText('Chrome1')).toBeInTheDocument();
     expect(await screen.findByText('33%')).toBeInTheDocument();
 
     expect(screen.queryByText('Other')).not.toBeInTheDocument();
+  });
+
+  it('renders tag distribution topValues [500, 490, 5], totalValues 1000', async () => {
+    const group = GroupFixture();
+    mockTagResponses(group.id, [500, 490, 5], 1000);
+    render(
+      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+    );
+
+    expect(await screen.findByText('Chrome0')).toBeInTheDocument();
+    expect(await screen.findByText('50%')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Chrome0')); // trigger tooltip
+    expect(await screen.findByText('Chrome1')).toBeInTheDocument();
+    expect(await screen.findByText('49%')).toBeInTheDocument();
+    expect(await screen.findByText('Chrome2')).toBeInTheDocument();
+    expect(await screen.findByText('1%')).toBeInTheDocument();
+    expect(await screen.findByText('Other')).toBeInTheDocument();
+    expect(await screen.findByText('<1%')).toBeInTheDocument();
+  });
+
+  it('renders tag distribution topValues [500, 490, 3], totalValues 1000', async () => {
+    const group = GroupFixture();
+    mockTagResponses(group.id, [500, 490, 3], 1000);
+    render(
+      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+    );
+
+    expect(await screen.findByText('Chrome0')).toBeInTheDocument();
+    expect(await screen.findByText('50%')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Chrome0')); // trigger tooltip
+    expect(await screen.findByText('Chrome1')).toBeInTheDocument();
+    expect(await screen.findByText('49%')).toBeInTheDocument();
+    expect(await screen.findByText('Chrome2')).toBeInTheDocument();
+    expect(await screen.findByText('<1%')).toBeInTheDocument();
+    expect(await screen.findByText('Other')).toBeInTheDocument();
+    expect(await screen.findByText('1%')).toBeInTheDocument();
+  });
+
+  it('renders tag distribution topValues [500, 480, 15], totalValues 1000', async () => {
+    const group = GroupFixture();
+    mockTagResponses(group.id, [500, 480, 15], 1000);
+    render(
+      <IssueTagsPreview groupId={group.id} environments={[]} project={group.project} />
+    );
+
+    expect(await screen.findByText('Chrome0')).toBeInTheDocument();
+    expect(await screen.findByText('50%')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Chrome0')); // trigger tooltip
+    expect(await screen.findByText('Chrome1')).toBeInTheDocument();
+    expect(await screen.findByText('48%')).toBeInTheDocument();
+    expect(await screen.findByText('Chrome2')).toBeInTheDocument();
+    expect(await screen.findByText('2%')).toBeInTheDocument();
+    expect(await screen.findByText('Other')).toBeInTheDocument();
+    expect(await screen.findByText('<1%')).toBeInTheDocument();
   });
 });
