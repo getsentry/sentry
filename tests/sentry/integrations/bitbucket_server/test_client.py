@@ -5,8 +5,8 @@ from django.test import override_settings
 from requests import Request
 
 from fixtures.bitbucket_server import REPO
-from sentry.integrations.bitbucket_server.client import BitbucketServerAPIPath
 from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegration
+from sentry.integrations.bitbucket_server.utils import BitbucketServerAPIPath
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
@@ -111,7 +111,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
     def test_check_file(self):
         path = "src/sentry/integrations/bitbucket_server/client.py"
         version = "master"
-        url = self.bb_server_client.base_url + BitbucketServerAPIPath.source.format(
+        url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_source(
             project=self.repo.config["project"],
             repo=self.repo.config["repo"],
             path=path,
@@ -132,7 +132,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
     def test_check_no_file(self):
         path = "src/santry/integrations/bitbucket_server/client.py"
         version = "master"
-        url = self.bb_server_client.base_url + BitbucketServerAPIPath.source.format(
+        url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_source(
             project=self.repo.config["project"],
             repo=self.repo.config["repo"],
             path=path,
@@ -152,7 +152,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
     def test_get_file(self):
         path = "src/sentry/integrations/bitbucket_server/client.py"
         version = "master"
-        url = self.bb_server_client.base_url + BitbucketServerAPIPath.raw.format(
+        url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_raw(
             project=self.repo.config["project"],
             repo=self.repo.config["repo"],
             path=path,
@@ -173,7 +173,7 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
     def test_get_stacktrace_link(self):
         path = "src/sentry/integrations/bitbucket/client.py"
         version = "master"
-        url = self.bb_server_client.base_url + BitbucketServerAPIPath.source.format(
+        url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_source(
             project=self.repo.config["project"],
             repo=self.repo.config["repo"],
             path=path,
@@ -200,13 +200,13 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         )
 
         path = ".bitbucket/CODEOWNERS"
-        source_url = self.bb_server_client.base_url + BitbucketServerAPIPath.source.format(
+        source_url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_source(
             project=self.repo.config["project"],
             repo=self.repo.config["repo"],
             path=path,
             sha=self.config.default_branch,
         )
-        raw_url = self.bb_server_client.base_url + BitbucketServerAPIPath.raw.format(
+        raw_url = self.bb_server_client.base_url + BitbucketServerAPIPath.build_raw(
             project=self.repo.config["project"],
             repo=self.repo.config["repo"],
             path=path,
