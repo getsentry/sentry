@@ -126,7 +126,10 @@ class TaskNamespace:
         return wrapped
 
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
-        metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
+        metrics.incr(
+            "taskworker.registry.send_task",
+            tags={"taskname": activation.taskname, "namespace": activation.namespace},
+        )
 
         topic = self.router.route_namespace(self.name)
         produce_future = self._producer(topic).produce(
