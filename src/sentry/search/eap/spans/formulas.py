@@ -377,6 +377,29 @@ def time_spent_percentage(
     )
 
 
+def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the period time"""
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    return Column.BinaryFormula(
+        left=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            aggregation=AttributeAggregation(
+                aggregate=Function.FUNCTION_COUNT,
+                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+    )
+
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
@@ -498,5 +521,8 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
+    ),
+    "spm": FormulaDefinition(
+        default_search_type="percentage", arguments=[], formula_resolver=spm, is_aggregate=True
     ),
 }
