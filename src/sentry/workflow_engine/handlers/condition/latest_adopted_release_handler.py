@@ -13,11 +13,11 @@ from sentry.workflow_engine.handlers.condition.latest_release_handler import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.LATEST_ADOPTED_RELEASE)
-class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
+class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowJob]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
 
@@ -33,12 +33,12 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventDat
     }
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
         release_age_type = comparison["release_age_type"]
         age_comparison = comparison["age_comparison"]
         environment_name = comparison["environment"]
 
-        event = job.event
+        event = job["event"]
 
         if follows_semver_versioning_scheme(event.organization.id, event.project.id):
             order_type = LatestReleaseOrders.SEMVER

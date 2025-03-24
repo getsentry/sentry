@@ -4,7 +4,7 @@ from jsonschema import ValidationError
 from sentry.eventstream.base import GroupState
 from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -40,16 +40,18 @@ class TestRegressionEventCondition(ConditionTestCase):
             dc.save()
 
     def test(self):
-        job = WorkflowEventData(
-            event=self.group_event,
-            group_state=GroupState(
-                {
-                    "id": 1,
-                    "is_regression": True,
-                    "is_new": False,
-                    "is_new_group_environment": False,
-                }
-            ),
+        job = WorkflowJob(
+            {
+                "event": self.group_event,
+                "group_state": GroupState(
+                    {
+                        "id": 1,
+                        "is_regression": True,
+                        "is_new": False,
+                        "is_new_group_environment": False,
+                    }
+                ),
+            }
         )
         dc = self.create_data_condition(
             type=self.condition,
@@ -59,6 +61,5 @@ class TestRegressionEventCondition(ConditionTestCase):
 
         self.assert_passes(dc, job)
 
-        assert job.group_state
-        job.group_state["is_regression"] = False
+        job["group_state"]["is_regression"] = False
         self.assert_does_not_pass(dc, job)
