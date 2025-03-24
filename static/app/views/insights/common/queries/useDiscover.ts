@@ -74,9 +74,10 @@ export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
   options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
+  const useEap = true;
   return useDiscover<Fields, SpanMetricsResponse>(
     options,
-    DiscoverDatasets.SPANS_METRICS,
+    useEap ? DiscoverDatasets.SPANS_EAP_RPC : DiscoverDatasets.SPANS_METRICS,
     referrer
   );
 };
