@@ -40,6 +40,7 @@ import {
   FRONTEND_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/frontend/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateFrontendOtherPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -79,6 +80,8 @@ export const FRONTEND_COLUMN_TITLES = [
 ];
 
 function FrontendOverviewPage() {
+  useOverviewPageTrackPageload();
+
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
