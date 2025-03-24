@@ -150,6 +150,12 @@ class UsageStatsOrganization<
       groupBy.push('category');
       category.push('span_indexed');
     }
+    if (['profile_duration', 'profile_duration_ui'].includes(dataCategoryApiName)) {
+      groupBy.push('category');
+      category.push(
+        dataCategoryApiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
+      );
+    }
 
     return {
       ...queryDatetime,

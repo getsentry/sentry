@@ -90,6 +90,7 @@ export function mapSeriesToChart({
     };
 
     let countAcceptedStored = 0;
+    const droppedChunksEstimate = 9000;
 
     orgStats.groups.forEach(group => {
       const {outcome, category} = group.by;
@@ -99,6 +100,13 @@ export function mapSeriesToChart({
       if (category === 'span_indexed') {
         if (outcome === Outcome.ACCEPTED) {
           countAcceptedStored += group.totals['sum(quantity)']!;
+        }
+      } else if (category === 'profile_chunk' || category === 'profile_chunk_ui') {
+        // For profile_chunk and profile_chunk_ui, we only want to count the non-accepted outcomes
+        // because they'll be used to estimate the dropped profile durations
+        if (outcome !== Outcome.ACCEPTED) {
+          (count as any)[outcome!] +=
+            group.totals['sum(quantity)']! * droppedChunksEstimate;
         }
       } else {
         if (outcome !== Outcome.CLIENT_DISCARD) {
@@ -113,6 +121,12 @@ export function mapSeriesToChart({
       }
 
       group.series['sum(quantity)']!.forEach((stat, i) => {
+        if (category === 'profile_chunk' || category === 'profile_chunk_ui') {
+          if (outcome === Outcome.ACCEPTED) {
+            return;
+          }
+          stat = stat * droppedChunksEstimate;
+        }
         const dataObject = {name: orgStats.intervals[i]!, value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');
