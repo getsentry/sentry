@@ -31,6 +31,14 @@ export function openDemoEmailModal() {
     return;
   }
 
+  const urlEmail = new URLSearchParams(window.location.search).get('email');
+  if (urlEmail) {
+    onAddedEmail(urlEmail);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('email');
+    window.history.replaceState({}, '', url.toString());
+  }
+
   demoEmailModal({
     onAddedEmail,
     onFailure: () => {
