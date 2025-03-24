@@ -80,7 +80,11 @@ def taskworker_override(
 
         random.seed(datetime.now().timestamp())
         if rollout > random.random():
+            metrics.incr(
+                "taskbroker.rollout.shimmed", tags={"namespace": namespace, "task_name": task_name}
+            )
             return taskworker_attr(*args, **kwargs)
+
         return celery_task_attr(*args, **kwargs)
 
     functools.update_wrapper(override, celery_task_attr)
