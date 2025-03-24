@@ -323,7 +323,7 @@ class FormulaDefinition(FunctionDefinition):
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     @property
-    def __resolver_settings(self) -> ResolverSettings:
+    def resolver_settings(self) -> ResolverSettings:
         return ResolverSettings(
             extrapolation_mode=(
                 ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
@@ -341,7 +341,7 @@ class FormulaDefinition(FunctionDefinition):
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_arguments, self.__resolver_settings),
+            formula=self.formula_resolver(resolved_arguments, self.resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
