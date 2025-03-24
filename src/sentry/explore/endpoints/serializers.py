@@ -13,6 +13,40 @@ class VisualizeSerializer(serializers.Serializer):
 
 
 @extend_schema_serializer(exclude_fields=["groupby"])
+class QuerySerializer(serializers.Serializer):
+    fields = ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="The fields that can be requested for the query.",
+    )  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
+    orderby = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="How to order the query results. Must be something in the `field` list, excluding equations.",
+    )
+    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
+    query = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Filters results by using [query syntax](/product/sentry-basics/search/).",
+    )
+    visualize = ListField(
+        child=VisualizeSerializer(),
+        required=False,
+        allow_null=True,
+        help_text="The visualizations to be plotted on the chart.",
+    )
+    mode = serializers.ChoiceField(
+        choices=[
+            "samples",
+            "aggregate",
+        ],
+        help_text="The mode of the query.",
+    )
+
+
 class ExploreSavedQuerySerializer(serializers.Serializer):
     name = serializers.CharField(
         required=True, max_length=255, help_text="The user-defined saved query name."
@@ -39,57 +73,16 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="The saved time range period for this saved query.",
     )
-    fields = ListField(
-        child=serializers.CharField(),
-        required=False,
-        allow_null=True,
-        help_text="""The fields, functions, or equations that can be requested for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
-- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property.
-    - example: `field=transaction`
-- A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
-    - example: `field=tag[isEnterprise]`
-- A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
-    - when a function is included, Discover will group by any tags or fields
-    - example: `field=count_if(transaction.duration,greater,300)`
-- An equation when prefixed with `equation|`. Read more about [equations here](/product/discover-queries/query-builder/query-equations/).
-    - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
-""",
-    )  # type: ignore[assignment]  # XXX: clobbers Serializer.fields
-    orderby = serializers.CharField(
-        required=False,
-        allow_null=True,
-        help_text="How to order the query results. Must be something in the `field` list, excluding equations.",
-    )
-
-    groupby = ListField(child=serializers.CharField(), required=False, allow_null=True)
     environment = ListField(
         child=serializers.CharField(),
         required=False,
         allow_null=True,
         help_text="The name of environments to filter by.",
     )
-    query = serializers.CharField(
-        required=False,
-        allow_null=True,
-        allow_blank=True,
-        help_text="Filters results by using [query syntax](/product/sentry-basics/search/).",
-    )
-    visualize = ListField(
-        child=VisualizeSerializer(),
-        required=False,
-        allow_null=True,
-        help_text="The visualizations to be plotted on the chart.",
-    )
     interval = serializers.CharField(
         required=False, allow_null=True, help_text="Resolution of the time series."
     )
-    mode = serializers.ChoiceField(
-        choices=[
-            "samples",
-            "aggregate",
-        ],
-        help_text="The mode of the query.",
-    )
+    query = ListField(child=QuerySerializer(), required=False, allow_null=True)
 
     def validate_projects(self, projects):
         from sentry.api.validators import validate_project_ids
@@ -100,20 +93,33 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         query = {}
         query_keys = [
             "environment",
-            "query",
-            "fields",
             "range",
             "start",
             "end",
-            "orderby",
-            "visualize",
             "interval",
+        ]
+
+        inner_query_keys = [
+            "query",
+            "fields",
+            "orderby",
+            "groupby",
+            "visualize",
             "mode",
         ]
 
         for key in query_keys:
             if data.get(key) is not None:
                 query[key] = data[key]
+
+        if "query" in data:
+            query["query"] = []
+            for q in data["query"]:
+                inner_query = {}
+                for key in inner_query_keys:
+                    if key in q:
+                        inner_query[key] = q[key]
+                query["query"].append(inner_query)
 
         if data["projects"] == ALL_ACCESS_PROJECTS:
             data["projects"] = []

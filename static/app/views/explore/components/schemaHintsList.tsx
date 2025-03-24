@@ -32,7 +32,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
+export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
 interface SchemaHintsListProps {
   numberTags: TagCollection;
@@ -55,6 +55,17 @@ const hideListTag: Tag = {
 
 function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
   return keys.map(key => tags[key]).filter(tag => !!tag);
+}
+
+export function addFilterToQuery(
+  filterQuery: MutableSearch,
+  tag: Tag,
+  isBoolean: boolean
+) {
+  filterQuery.addFilterValue(
+    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
+  );
 }
 
 function SchemaHintsList({
@@ -225,10 +236,7 @@ function SchemaHintsList({
       const isBoolean =
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
-      newSearchQuery.addFilterValue(
-        hint.key,
-        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
-      );
+      addFilterToQuery(newSearchQuery, hint, isBoolean);
       setExploreQuery(newSearchQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,

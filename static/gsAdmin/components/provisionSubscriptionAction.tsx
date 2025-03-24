@@ -7,11 +7,14 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
-import DateTimeField from 'sentry/components/deprecatedforms/dateTimeField';
+import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
 import Form from 'sentry/components/deprecatedforms/form';
 import InputField from 'sentry/components/deprecatedforms/inputField';
-import NumberField from 'sentry/components/deprecatedforms/numberField';
+import NumberField, {
+  NumberField as NumberFieldNoContext,
+} from 'sentry/components/deprecatedforms/numberField';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
@@ -40,19 +43,21 @@ import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 const CPE_DECIMAL_PRECISION = 8;
 
 // TODO: replace with modern fields so we don't need these workarounds
-class DateField extends DateTimeField {
+class DateFieldNoContext extends DateTimeField {
   getType() {
     return 'date';
   }
 }
 
+const DateField = withFormContext(DateFieldNoContext);
+
 type DollarsAndCentsFieldProps = {
   max?: number;
   min?: number;
   step?: any;
-} & NumberField['props'];
+} & NumberFieldNoContext['props'];
 
-class DollarsField extends NumberField {
+class DollarsFieldNoContext extends NumberFieldNoContext {
   getField() {
     return (
       <div className="dollars-field-container">
@@ -63,7 +68,9 @@ class DollarsField extends NumberField {
   }
 }
 
-class DollarsAndCentsField extends InputField<DollarsAndCentsFieldProps> {
+const DollarsField = withFormContext(DollarsFieldNoContext);
+
+class DollarsAndCentsFieldNoContext extends InputField<DollarsAndCentsFieldProps> {
   getField() {
     return (
       <div className="dollars-cents-field-container">
@@ -92,6 +99,8 @@ class DollarsAndCentsField extends InputField<DollarsAndCentsFieldProps> {
     };
   }
 }
+
+const DollarsAndCentsField = withFormContext(DollarsAndCentsFieldNoContext);
 
 type Props = {
   api: Client;
@@ -206,9 +215,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
     }));
 
     const existingPlanWithoutSuffix = subscription.plan.endsWith('_auf')
-      ? subscription.plan.slice(0, subscription.plan.length - 4)
+      ? subscription.plan.slice(0, -4)
       : subscription.plan.endsWith('_ac')
-        ? subscription.plan.slice(0, subscription.plan.length - 3)
+        ? subscription.plan.slice(0, -3)
         : subscription.plan;
     const existingPlanIsEnterprise = Object.keys(provisionablePlans).some(
       plan => plan === existingPlanWithoutSuffix

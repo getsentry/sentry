@@ -19,7 +19,12 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.search.eap import constants
-from sentry.search.eap.columns import ArgumentDefinition, FormulaDefinition, ResolvedArguments
+from sentry.search.eap.columns import (
+    AttributeArgumentDefinition,
+    FormulaDefinition,
+    ResolvedArguments,
+    ValueArgumentDefinition,
+)
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.utils import literal_validator
@@ -319,14 +324,28 @@ def ttid_contribution_rate(args: ResolvedArguments) -> Column.BinaryFormula:
     )
 
 
+def time_spent_percentage(args: ResolvedArguments) -> Column.BinaryFormula:
+    attribute = cast(AttributeKey, args[0])
+    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the total time"""
+
+    return Column.BinaryFormula(
+        left=Column(
+            aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=attribute)
+        ),
+        op=Column.BinaryFormula.OP_DIVIDE,
+        right=Column(
+            aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=attribute)
+        ),
+    )
+
+
 SPAN_FORMULA_DEFINITIONS = {
     "http_response_rate": FormulaDefinition(
         default_search_type="percentage",
         is_aggregate=True,
         arguments=[
-            ArgumentDefinition(
+            ValueArgumentDefinition(
                 argument_types={"integer"},
-                is_attribute=False,
                 validator=literal_validator(["1", "2", "3", "4", "5"]),
             )
         ],
@@ -342,9 +361,8 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         is_aggregate=True,
         arguments=[
-            ArgumentDefinition(
+            ValueArgumentDefinition(
                 argument_types={"string"},
-                is_attribute=False,
             )
         ],
         formula_resolver=trace_status_rate,
@@ -370,8 +388,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "opportunity_score": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                 },
@@ -384,8 +402,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -393,23 +411,9 @@ SPAN_FORMULA_DEFINITIONS = {
                     *constants.DURATION_TYPE,
                 },
             ),
-            ArgumentDefinition(
-                argument_types={
-                    "string",
-                },
-            ),
-            ArgumentDefinition(
-                argument_types={
-                    "string",
-                },
-                is_attribute=False,
-            ),
-            ArgumentDefinition(
-                argument_types={
-                    "string",
-                },
-                is_attribute=False,
-            ),
+            AttributeArgumentDefinition(attribute_types={"string"}),
+            ValueArgumentDefinition(argument_types={"string"}),
+            ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=avg_compare,
         is_aggregate=True,
@@ -417,8 +421,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "division": FormulaDefinition(
         default_search_type="number",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -426,8 +430,8 @@ SPAN_FORMULA_DEFINITIONS = {
                     *constants.DURATION_TYPE,
                 },
             ),
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -437,6 +441,24 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=division,
+        is_aggregate=True,
+    ),
+    "time_spent_percentage": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[
+            AttributeArgumentDefinition(
+                attribute_types={
+                    "duration",
+                    "number",
+                    "percentage",
+                    *constants.SIZE_TYPE,
+                    *constants.DURATION_TYPE,
+                },
+                default_arg="span.self_time",
+                validator=literal_validator(["span.self_time", "span.duration"]),
+            )
+        ],
+        formula_resolver=time_spent_percentage,
         is_aggregate=True,
     ),
 }

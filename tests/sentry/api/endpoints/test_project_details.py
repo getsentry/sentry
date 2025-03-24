@@ -1216,8 +1216,6 @@ class ProjectUpdateTest(APITestCase):
                 "type": "native",
             },
             "filters": {"filetypes": ["pe"]},
-            # FIXME: This is temporarily included for backwards compatibility.
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",
@@ -1231,8 +1229,6 @@ class ProjectUpdateTest(APITestCase):
                 "type": "native",
             },
             "filters": {"filetypes": ["pe"]},
-            # FIXME: This is temporarily included for backwards compatibility.
-            "filetypes": ["pe"],
             "type": "http",
             "url": "http://honk.beep",
             "username": "honkhonk",

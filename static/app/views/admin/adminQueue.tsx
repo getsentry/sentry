@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Select} from 'sentry/components/core/select';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import LoadingError from 'sentry/components/loadingError';
@@ -27,7 +27,7 @@ type State = {
 export default function AdminQueue() {
   const [state, setState] = useState<State>({
     timeWindow: '1w',
-    since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+    since: Date.now() / 1000 - 3600 * 24 * 7,
     resolution: '1h',
     activeTask: '',
   });
@@ -61,7 +61,7 @@ export default function AdminQueue() {
     }
     setState(prevState => ({
       ...prevState,
-      since: new Date().getTime() / 1000 - seconds,
+      since: Date.now() / 1000 - seconds,
       timeWindow,
     }));
   };

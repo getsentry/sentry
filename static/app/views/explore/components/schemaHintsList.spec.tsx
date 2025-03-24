@@ -99,7 +99,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Hint);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: 'stringTag1:""'}})
+      expect.objectContaining({query: {query: '!stringTag1:""'}})
     );
   });
 
@@ -164,7 +164,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(stringTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: 'stringTag1:""'}})
+      expect.objectContaining({query: {query: '!stringTag1:""'}})
     );
 
     const numberTag1Checkbox = screen.getByText('numberTag1');
@@ -188,7 +188,7 @@ describe('SchemaHintsList', () => {
         organization,
         router: {
           ...router,
-          location: {...router.location, query: {query: 'stringTag1:"" numberTag1:>0'}},
+          location: {...router.location, query: {query: '!stringTag1:"" numberTag1:>0'}},
         },
       }
     );
@@ -224,7 +224,7 @@ describe('SchemaHintsList', () => {
 
     router.push({
       ...router.location,
-      query: {query: 'stringTag1:""'},
+      query: {query: '!stringTag1:""'},
     });
 
     expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();

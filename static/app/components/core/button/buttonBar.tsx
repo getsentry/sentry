@@ -12,7 +12,7 @@ export interface ButtonBarProps
   merged?: boolean;
 }
 
-function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
+export function ButtonBar({children, merged = false, gap = 0, ...props}: ButtonBarProps) {
   return (
     <StyledButtonBar merged={merged} gap={gap} {...props}>
       {children}
@@ -96,5 +96,3 @@ const MergedButtonBarStyles = () => css`
     }
   }
 `;
-
-export default ButtonBar;
