@@ -67,35 +67,36 @@ class IssueLinkRequester:
 
     def run(self) -> dict[str, Any]:
         response: dict[str, str] = {}
+        event = SentryAppEventType(f"external_issue.{ACTION_TO_PAST_TENSE[self.action]}")
         with SentryAppInteractionEvent(
             operation_type=SentryAppInteractionType.EXTERNAL_REQUEST,
-            event_type=SentryAppEventType.EXTERNAL_ISSUE_LINKED,
+            event_type=event,
         ).capture() as lifecycle:
             extras: dict[str, Any] = {
                 "uri": self.uri,
                 "installation_uuid": self.install.uuid,
-                "sentry_app": self.sentry_app.slug,
-                "project": self.group.project.slug,
-                "group": self.group.id,
+                "sentry_app_slug": self.sentry_app.slug,
+                "project_slug": self.group.project.slug,
+                "group_id": self.group.id,
             }
             try:
                 request = send_and_save_sentry_app_request(
                     self._build_url(),
                     self.sentry_app,
                     self.install.organization_id,
-                    f"external_issue.{ACTION_TO_PAST_TENSE[self.action]}",
+                    event,
                     headers=self._build_headers(),
                     method="POST",
                     data=self.body,
                 )
-                body = safe_urlread(request)
-                extras["body"] = body
+                response_body = safe_urlread(request)
 
-                response = json.loads(body)
+                response = json.loads(response_body)
             except (json.JSONDecodeError, TypeError) as e:
                 halt_reason = FAILURE_REASON_BASE.format(
                     SentryAppExternalRequestHaltReason.BAD_RESPONSE
                 )
+                extras["response_body"] = response_body
                 lifecycle.record_halt(
                     halt_reason=e,
                     extra={"halt_reason": halt_reason, **extras},
@@ -126,7 +127,7 @@ class IssueLinkRequester:
                 halt_reason = FAILURE_REASON_BASE.format(
                     SentryAppExternalRequestHaltReason.BAD_RESPONSE
                 )
-                extras["error_message"] = response
+                extras["response"] = response
                 lifecycle.record_halt(
                     halt_reason=halt_reason,
                     extra={"halt_reason": halt_reason, **extras},
