@@ -21,7 +21,10 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
 
   function handleSetupButtonClick(e: any) {
     trackAnalytics('flags.setup_modal_opened', {organization});
-    trackAnalytics('flags.cta_setup_button_clicked', {organization});
+    trackAnalytics('flags.setup_sidebar_opened', {
+      organization,
+      surface: 'issue_details.flags_section',
+    });
     activateSidebar(e);
   }
 

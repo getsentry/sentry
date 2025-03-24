@@ -10,6 +10,9 @@ export type FeatureFlagEventParameters = {
     direction: 'next' | 'prev';
     surface: 'settings' | 'flag_drawer';
   };
+  'flags.setup_sidebar_opened': {
+    surface: 'issue_details.flags_section' | 'issue_details.flags_drawer';
+  };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
     numFlags: number;
@@ -29,6 +32,7 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.table_rendered': 'Flag Table Rendered',
   'flags.cta_setup_button_clicked': 'Flag CTA Setup Button Clicked',
   'flags.cta_dismissed': 'Flag CTA Dismissed',
+  'flags.setup_sidebar_opened': 'Feature Flag Setup Sidebar Opened',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
   'flags.view-setup-sidebar': 'Viewed Feature Flag Onboarding Sidebar',
 };
