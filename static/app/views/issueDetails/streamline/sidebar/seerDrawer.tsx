@@ -402,7 +402,7 @@ const StyledButton = styled(Button)`
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(3)};
