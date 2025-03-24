@@ -15,7 +15,7 @@ import {
   getFlagActionLabel,
   type RawFlag,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
