@@ -69,6 +69,7 @@ import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+import {useIssueDetailsTourAvailable} from 'sentry/views/issueDetails/useIssueDetailsTourAvailable';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -726,7 +727,6 @@ function GroupDetailsContent({
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
   const projectSlug = props.group?.project?.slug;
   const api = useApi();
-  const location = useLocation();
   const organization = useOrganization();
   const [injectedEvent, setInjectedEvent] = useState(null);
   const {
@@ -734,7 +734,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
   } = useProjects({slugs: projectSlug ? [projectSlug] : []});
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
@@ -754,15 +753,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     // Prevent tour from showing until assistant data is loaded
     return issueDetailsTourData?.seen ?? true;
   }, [assistantData]);
-  const isIssueDetailsTourAvailable = useMemo(() => {
-    if (!hasStreamlinedUI) {
-      return false;
-    }
-    return (
-      location.hash === '#tour' ||
-      organization.features.includes('issue-details-streamline-tour')
-    );
-  }, [hasStreamlinedUI, location.hash, organization.features]);
+  const isIssueDetailsTourAvailable = useIssueDetailsTourAvailable();
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
