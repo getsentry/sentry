@@ -184,6 +184,7 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -256,6 +257,8 @@ def query(
     result = builder.process_results(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
+    if debug:
+        result["meta"]["query"] = str(builder.get_snql_query().query)
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -395,7 +398,10 @@ def create_result_key(
 ) -> str:
     """Create the string key to be used in the top events result dictionary"""
     groupby = create_groupby_dict(result_row, fields, issues)
-    result = ",".join(groupby.values())
+    groupby_values: list[str] = []
+    for value in groupby:
+        groupby_values.extend(value.values())
+    result = ",".join(groupby_values)
     # If the result would be identical to the other key, include the field name
     # only need the first field since this would only happen with a single field
     if result == OTHER_KEY:
@@ -405,16 +411,16 @@ def create_result_key(
 
 def create_groupby_dict(
     result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
-) -> dict[str, str]:
-    values = {}
+) -> list[dict[str, str]]:
+    values = []
     for field in fields:
         if field == "issue.id":
             issue_id = issues.get(result_row["issue.id"], "unknown")
             if issue_id is None:
                 issue_id = "unknown"
-            values[field] = issue_id
+            values.append({field: issue_id})
         elif field == "transaction.status":
-            values[field] = SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")
+            values.append({field: SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")})
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -422,7 +428,7 @@ def create_groupby_dict(
                     value = value[-1]
                 else:
                     value = ""
-            values[field] = str(value)
+            values.append({field: str(value)})
     return values
 
 

@@ -14,6 +14,8 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 
+import {getChonkButtonStyles} from './index.chonk';
+
 /**
  * Default sizes to use for SVGIcon
  */
@@ -49,10 +51,6 @@ interface CommonButtonProps {
    * Adds extra parameters to the analytics tracking
    */
   analyticsParams?: Record<string, any>;
-  /**
-   * Used by ButtonBar to determine active status.
-   */
-  barId?: string;
   /**
    * Removes borders from the button.
    */
@@ -283,47 +281,39 @@ function BaseButton({
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
   // *Note* you must still handle tabindex manually.
-  const button = (
-    <StyledButton
-      aria-label={accessibleLabel}
-      aria-disabled={disabled}
-      busy={busy}
-      disabled={disabled}
-      to={disabled ? undefined : to}
-      href={disabled ? undefined : href}
-      replace={replace}
-      size={size}
-      priority={priority}
-      borderless={borderless}
-      translucentBorder={translucentBorder}
-      type={type}
-      {...buttonProps}
-      onClick={handleClick}
-      role="button"
-    >
-      {priority !== 'link' && (
-        <InteractionStateLayer
-          higherOpacity={priority && ['primary', 'danger'].includes(priority)}
-        />
-      )}
-      <ButtonLabel size={size} borderless={borderless}>
-        {icon && (
-          <Icon size={size} hasChildren={hasChildren}>
-            <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
-          </Icon>
-        )}
-        {children}
-      </ButtonLabel>
-    </StyledButton>
-  );
-
-  if (!title) {
-    return button;
-  }
-
   return (
-    <Tooltip skipWrapper {...tooltipProps} title={title}>
-      {button}
+    <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
+      <StyledButton
+        aria-label={accessibleLabel}
+        aria-disabled={disabled}
+        busy={busy}
+        disabled={disabled}
+        to={disabled ? undefined : to}
+        href={disabled ? undefined : href}
+        replace={replace}
+        size={size}
+        priority={priority}
+        borderless={borderless}
+        translucentBorder={translucentBorder}
+        type={type}
+        {...buttonProps}
+        onClick={handleClick}
+        role="button"
+      >
+        {priority !== 'link' && (
+          <InteractionStateLayer
+            higherOpacity={priority && ['primary', 'danger'].includes(priority)}
+          />
+        )}
+        <ButtonLabel size={size} borderless={borderless}>
+          {icon && (
+            <Icon size={size} hasChildren={hasChildren}>
+              <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
+            </Icon>
+          )}
+          {children}
+        </ButtonLabel>
+      </StyledButton>
     </Tooltip>
   );
 }
@@ -397,7 +387,7 @@ export const StyledButton = styled(
       (typeof prop === 'string' && isPropValid(prop)),
   }
 )<ButtonProps>`
-  ${getButtonStyles}
+  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p))}
 `;
 
 const getBoxShadow = ({

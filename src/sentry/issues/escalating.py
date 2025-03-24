@@ -4,13 +4,11 @@ This is later used for generating group forecasts for determining when a group m
 
 from __future__ import annotations
 
-import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
-import jsonschema
 from django.db.models.signals import post_save
 from snuba_sdk import (
     Column,
@@ -35,12 +33,7 @@ from sentry.issues.priority import PriorityChangeReason, auto_update_priority
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
-from sentry.models.groupinbox import (
-    INBOX_REASON_DETAILS,
-    GroupInboxReason,
-    InboxReasonDetails,
-    add_group_to_inbox,
-)
+from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.types.activity import ActivityType
@@ -382,14 +375,6 @@ def manage_issue_states(
             if data and activity_data and has_forecast:  # Redundant checks needed for typing
                 data.update(activity_data)
             if data and snooze_details:
-                try:
-                    jsonschema.validate(snooze_details, INBOX_REASON_DETAILS)
-
-                except jsonschema.ValidationError:
-                    logging.exception(
-                        "Expired snooze_details invalid jsonschema", extra=snooze_details
-                    )
-
                 data.update({"expired_snooze": snooze_details})
 
             Activity.objects.create_group_activity(

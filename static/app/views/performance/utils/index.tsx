@@ -412,11 +412,12 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
   );
 }
 
-export function getPerformanceBaseUrl(orgSlug: string, view?: DomainView, bare = false) {
-  let url = 'performance';
-  if (view) {
-    url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
-  }
+export function getPerformanceBaseUrl(
+  orgSlug: string,
+  view: DomainView = 'backend',
+  bare = false
+) {
+  const url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
 
   return bare ? url : normalizeUrl(`/organizations/${orgSlug}/${url}`);
 }
