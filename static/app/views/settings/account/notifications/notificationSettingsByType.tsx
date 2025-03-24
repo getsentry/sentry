@@ -240,7 +240,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
           }).map(field => ({
             ...field,
             type: 'select' as const,
-            getData: (data: any) => {
+            getData: (data: Record<PropertyKey, unknown>) => {
               return {
                 type: field.name,
                 scopeType: 'user',
@@ -270,7 +270,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
           }).map(field => ({
             ...field,
             type: 'select' as const,
-            getData: (data: any) => {
+            getData: (data: Record<PropertyKey, unknown>) => {
               return {
                 type: field.name,
                 scopeType: 'user',
@@ -288,7 +288,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
         {
           help,
           defaultValue: 'always',
-          getData: (data: any) => {
+          getData: (data: Record<PropertyKey, unknown>) => {
             return {
               type: notificationType,
               scopeType: 'user',
@@ -312,7 +312,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
     const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
       choices,
-      getData: (data: any) => {
+      getData: (data: Record<PropertyKey, unknown>) => {
         return {
           type: notificationType,
           scopeType: 'user',
