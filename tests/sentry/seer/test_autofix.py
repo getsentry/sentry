@@ -53,7 +53,7 @@ class TestConvertProfileToExecutionTree(TestCase):
                 "stacks": [
                     [2, 1, 0]
                 ],  # One stack with three frames. In a call stack, the first function is the last frame
-                "samples": [{"stack_id": 0, "thread_id": "1"}],
+                "samples": [{"stack_id": 0, "thread_id": "1", "elapsed_since_start_ns": 10000000}],
                 "thread_metadata": {"1": {"name": "MainThread"}},
             }
         }
@@ -63,17 +63,17 @@ class TestConvertProfileToExecutionTree(TestCase):
         # Should only include in_app frames from MainThread
         assert len(execution_tree) == 1  # One root node
         root = execution_tree[0]
-        assert root["function"] == "helper"
-        assert root["module"] == "app.utils"
-        assert root["filename"] == "utils.py"
-        assert root["lineno"] == 20
+        assert root["function"] == "main"
+        assert root["module"] == "app.main"
+        assert root["filename"] == "main.py"
+        assert root["lineno"] == 10
         assert len(root["children"]) == 1
 
         child = root["children"][0]
-        assert child["function"] == "main"
-        assert child["module"] == "app.main"
-        assert child["filename"] == "main.py"
-        assert child["lineno"] == 10
+        assert child["function"] == "helper"
+        assert child["module"] == "app.utils"
+        assert child["filename"] == "utils.py"
+        assert child["lineno"] == 20
         assert len(child["children"]) == 0  # No children for the last in_app frame
 
     def test_convert_profile_to_execution_tree_non_main_thread(self):
@@ -90,7 +90,7 @@ class TestConvertProfileToExecutionTree(TestCase):
                     }
                 ],
                 "stacks": [[0]],
-                "samples": [{"stack_id": 0, "thread_id": "2"}],
+                "samples": [{"stack_id": 0, "thread_id": "2", "elapsed_since_start_ns": 10000000}],
                 "thread_metadata": {"2": {"name": "WorkerThread"}},
             }
         }
@@ -115,8 +115,8 @@ class TestConvertProfileToExecutionTree(TestCase):
                 ],
                 "stacks": [[0], [0]],  # Two stacks with the same frame
                 "samples": [
-                    {"stack_id": 0, "thread_id": "1"},
-                    {"stack_id": 1, "thread_id": "1"},
+                    {"stack_id": 0, "thread_id": "1", "elapsed_since_start_ns": 10000000},
+                    {"stack_id": 1, "thread_id": "1", "elapsed_since_start_ns": 20000000},
                 ],
                 "thread_metadata": {"1": {"name": "MainThread"}},
             }
@@ -127,6 +127,95 @@ class TestConvertProfileToExecutionTree(TestCase):
         # Should only have one node even though frame appears in multiple samples
         assert len(execution_tree) == 1
         assert execution_tree[0]["function"] == "main"
+
+    def test_convert_profile_to_execution_tree_calculates_durations(self):
+        """Test that durations are correctly calculated for nodes in the execution tree"""
+        profile_data = {
+            "profile": {
+                "frames": [
+                    {
+                        "function": "main",
+                        "module": "app.main",
+                        "filename": "main.py",
+                        "lineno": 10,
+                        "in_app": True,
+                    },
+                    {
+                        "function": "process_data",
+                        "module": "app.processing",
+                        "filename": "processing.py",
+                        "lineno": 25,
+                        "in_app": True,
+                    },
+                    {
+                        "function": "save_result",
+                        "module": "app.storage",
+                        "filename": "storage.py",
+                        "lineno": 50,
+                        "in_app": True,
+                    },
+                ],
+                # Three stacks representing a call sequence: main → process_data → save_result → process_data → main
+                "stacks": [
+                    [0],  # main only
+                    [1, 0],  # main → process_data
+                    [2, 1, 0],  # main → process_data → save_result
+                    [1, 0],  # main → process_data (returned from save_result)
+                    [0],  # main only (returned from process_data)
+                ],
+                # 5 samples at 10ms intervals
+                "samples": [
+                    {
+                        "stack_id": 0,
+                        "thread_id": "1",
+                        "elapsed_since_start_ns": 10000000,
+                    },  # 10ms: main
+                    {
+                        "stack_id": 1,
+                        "thread_id": "1",
+                        "elapsed_since_start_ns": 20000000,
+                    },  # 20ms: main → process_data
+                    {
+                        "stack_id": 2,
+                        "thread_id": "1",
+                        "elapsed_since_start_ns": 30000000,
+                    },  # 30ms: main → process_data → save_result
+                    {
+                        "stack_id": 1,
+                        "thread_id": "1",
+                        "elapsed_since_start_ns": 40000000,
+                    },  # 40ms: main → process_data
+                    {
+                        "stack_id": 0,
+                        "thread_id": "1",
+                        "elapsed_since_start_ns": 50000000,
+                    },  # 50ms: main
+                ],
+                "thread_metadata": {"1": {"name": "MainThread"}},
+            }
+        }
+
+        execution_tree = _convert_profile_to_execution_tree(profile_data)
+
+        # Should have one root node (main)
+        assert len(execution_tree) == 1
+        root = execution_tree[0]
+        assert root["function"] == "main"
+
+        # Check root duration - should span the entire profile (50ms - 10ms + 10ms interval = 50ms)
+        assert root["duration_ns"] == 50000000
+
+        # Check process_data duration - should be active from 20ms to 40ms (20ms + 10ms interval = 30ms)
+        assert len(root["children"]) == 1
+        process_data = root["children"][0]
+        assert process_data["function"] == "process_data"
+        assert process_data["duration_ns"] == 30000000
+
+        # Check save_result duration - should be active only at 30ms (10ms interval = 10ms)
+        assert len(process_data["children"]) == 1
+        save_result = process_data["children"][0]
+        assert save_result["function"] == "save_result"
+        assert save_result["duration_ns"] == 10000000
 
 
 @requires_snuba
@@ -827,7 +916,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     }
                 ],
                 "stacks": [[0]],
-                "samples": [{"stack_id": 0, "thread_id": "1"}],
+                "samples": [{"stack_id": 0, "thread_id": "1", "elapsed_since_start_ns": 10000000}],
                 "thread_metadata": {"1": {"name": "MainThread"}},
             }
         }
@@ -908,7 +997,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     }
                 ],
                 "stacks": [[0]],
-                "samples": [{"stack_id": 0, "thread_id": "1"}],
+                "samples": [{"stack_id": 0, "thread_id": "1", "elapsed_since_start_ns": 10000000}],
                 "thread_metadata": {"1": {"name": "MainThread"}},
             }
         }
@@ -1161,23 +1250,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         )
         # Verify _get_serialized_event was not called since we have no event
         mock_get_serialized_event.assert_not_called()
-
-    @patch("sentry.seer.autofix._get_serialized_event")
-    def test_trigger_autofix_without_stacktrace(self, mock_get_serialized_event):
-        """Tests error handling when the event doesn't have a stacktrace."""
-        # Mock an event without stacktrace entries
-        serialized_event = {"entries": [{"type": "request"}]}
-        mock_get_serialized_event.return_value = (serialized_event, Mock())
-
-        group = self.create_group()
-        user = Mock(spec=AnonymousUser)
-
-        response = trigger_autofix(
-            group=group, event_id="test-event-id", user=user, instruction="Test instruction"
-        )
-
-        assert response.status_code == 400
-        assert "Cannot fix issues without a stacktrace" in response.data["detail"]
 
 
 class TestCallAutofix(TestCase):

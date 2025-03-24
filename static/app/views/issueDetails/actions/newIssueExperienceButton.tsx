@@ -71,7 +71,7 @@ export function NewIssueExperienceButton() {
       isEnabled: !hasStreamlinedUI,
       organization,
       enforced_streamline_ui:
-        organization.features.includes('issue-details-streamline-enforced') &&
+        organization.features.includes('issue-details-streamline-enforce') &&
         userStreamlinePreference === null,
     });
   }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
@@ -153,9 +153,7 @@ export function NewIssueExperienceButton() {
       hidden: !openForm,
       onAction: () => {
         openForm?.({
-          messagePlaceholder: t(
-            'Excluding bribes, what would make you excited to use the new UI?'
-          ),
+          messagePlaceholder: t('Tell us what you think about the new UI'),
           tags: {
             ['feedback.source']: 'streamlined_issue_details',
             ['feedback.owner']: 'issues',

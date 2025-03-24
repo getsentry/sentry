@@ -10,6 +10,7 @@ import {
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
+import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,6 +65,22 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   const traceView = useMemo(() => new TraceViewModel(), []);
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
+  const problemSpans = useMemo((): ReturnType<typeof getProblemSpansForSpanTree> => {
+    if (props.event.type === 'transaction') {
+      const result = getProblemSpansForSpanTree(props.event);
+      if (result.affectedSpanIds.length > 4) {
+        // Too many spans to focus on, instead let them click into the preview
+        // n+1 will have hundreds of affected spans
+        return {
+          affectedSpanIds: result.affectedSpanIds.slice(0, 4),
+          focusedSpanIds: result.focusedSpanIds.slice(0, 4),
+        };
+      }
+      return result;
+    }
+
+    return {affectedSpanIds: [], focusedSpanIds: []};
+  }, [props.event]);
 
   const projectsRef = useRef<Project[]>(projects);
   projectsRef.current = projects;
@@ -235,7 +252,28 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         }
       }
 
-      props.tree.collapseList(preserveNodes);
+      start = 0;
+      // Preserve affectedSpanIds
+      while (start < props.tree.list.length) {
+        const currentNode = props.tree.list[start]!;
+        if (
+          currentNode.value &&
+          'span_id' in currentNode.value &&
+          // Not already in the preserveNodes array
+          !preserveNodes.includes(currentNode) &&
+          problemSpans.affectedSpanIds.includes(currentNode.value.span_id)
+        ) {
+          preserveNodes.push(currentNode);
+        }
+        start++;
+      }
+
+      // Performance issues are tighter to focus on the suspect spans (of which there may be many)
+      const numSurroundingNodes =
+        props.event.type === 'transaction'
+          ? PERFORMANCE_ISSUE_SURROUNDING_NODES
+          : TRACE_PREVIEW_SURROUNDING_NODES;
+      props.tree.collapseList(preserveNodes, numSurroundingNodes);
     }
 
     if (index === -1 || !node) {
@@ -283,6 +321,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     props.event,
     isLoadingSubscriptionDetails,
     hasExceededPerformanceUsageLimit,
+    problemSpans.affectedSpanIds,
   ]);
 
   useTraceTimelineChangeSync({
@@ -368,8 +407,10 @@ const IssuesPointerDisabled = styled('div')`
 const ROW_HEIGHT = 24;
 const MIN_ROW_COUNT = 1;
 const HEADER_HEIGHT = 38;
-const MAX_HEIGHT = 12 * ROW_HEIGHT + HEADER_HEIGHT;
+const MAX_HEIGHT = 24 * ROW_HEIGHT + HEADER_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
+const PERFORMANCE_ISSUE_SURROUNDING_NODES = 2;
+const TRACE_PREVIEW_SURROUNDING_NODES = 3;
 
 const IssuesTraceGrid = styled(TraceGrid)<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';

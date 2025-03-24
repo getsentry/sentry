@@ -1,11 +1,16 @@
 import {Fragment, useState} from 'react';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook('ButtonBar', story => {
+// eslint-disable-next-line import/no-webpack-loader-syntax
+import types from '!!type-loader!sentry/components/core/button/buttonBar';
+
+export default storyBook('ButtonBar', (story, APIReference) => {
+  APIReference(types.ButtonBar);
+
   story('Default', () => {
     const [active, setActive] = useState('One');
     const [merged, setMerged] = useState('One');

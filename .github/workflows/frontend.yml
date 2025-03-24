@@ -72,11 +72,11 @@ jobs:
 
       - name: tsc
         id: tsc
-        run: yarn tsc -p config/tsconfig.ci.json
+        run: yarn tsc -p tsconfig.json
 
   frontend-jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
-    needs: [files-changed, typescript]
+    needs: [files-changed]
     name: Jest
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.

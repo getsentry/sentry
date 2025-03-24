@@ -12,6 +12,7 @@ import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuil
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {
   type AggregationKey,
@@ -21,6 +22,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
@@ -30,7 +32,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
+export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
 interface SchemaHintsListProps {
   numberTags: TagCollection;
@@ -55,6 +57,17 @@ function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
   return keys.map(key => tags[key]).filter(tag => !!tag);
 }
 
+export function addFilterToQuery(
+  filterQuery: MutableSearch,
+  tag: Tag,
+  isBoolean: boolean
+) {
+  filterQuery.addFilterValue(
+    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
+  );
+}
+
 function SchemaHintsList({
   supportedAggregates,
   numberTags,
@@ -65,7 +78,7 @@ function SchemaHintsList({
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
-
+  const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
   const functionTags = useMemo(() => {
@@ -193,6 +206,19 @@ function SchemaHintsList({
                   )
                 );
               },
+              onOpen: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: true,
+                  organization,
+                });
+              },
+
+              onClose: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: false,
+                  organization,
+                });
+              },
             }
           );
         }
@@ -210,16 +236,19 @@ function SchemaHintsList({
       const isBoolean =
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
-      newSearchQuery.addFilterValue(
-        hint.key,
-        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
-      );
+      addFilterToQuery(newSearchQuery, hint, isBoolean);
       setExploreQuery(newSearchQuery.formatString());
+      trackAnalytics('trace.explorer.schema_hints_click', {
+        hint_key: hint.key,
+        source: 'list',
+        organization,
+      });
     },
     [
       exploreQuery,
       setExploreQuery,
       isDrawerOpen,
+      organization,
       openDrawer,
       filterTagsSorted,
       location.pathname,

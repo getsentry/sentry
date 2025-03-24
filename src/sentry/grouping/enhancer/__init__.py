@@ -6,6 +6,7 @@ import os
 import zlib
 from collections import Counter
 from collections.abc import Sequence
+from functools import cached_property
 from typing import Any, Literal, NotRequired, TypedDict
 
 import msgpack
@@ -312,7 +313,9 @@ class Enhancements:
             [rule._to_config_structure(self.version) for rule in self.rules],
         ]
 
-    def dumps(self) -> str:
+    @cached_property
+    def base64_string(self) -> str:
+        """A base64 string representation of the enhancements object"""
         encoded = msgpack.dumps(self._to_config_structure())
         compressed = zstandard.compress(encoded)
         return base64.urlsafe_b64encode(compressed).decode("ascii").strip("=")

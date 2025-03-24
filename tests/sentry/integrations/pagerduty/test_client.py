@@ -6,6 +6,7 @@ import responses
 from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
+from sentry.integrations.pagerduty.client import build_pagerduty_event_payload
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric
@@ -113,7 +114,13 @@ class PagerDutyClientTest(APITestCase):
         )
 
         client = self.installation.get_keyring_client(self.service["id"])
-        client.send_trigger(self.event, severity="default")
+        data = build_pagerduty_event_payload(
+            routing_key=self.integration_key,
+            event=self.event,
+            notification_uuid=None,
+            severity="default",
+        )
+        client.send_trigger(data=data)
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
@@ -168,7 +175,13 @@ class PagerDutyClientTest(APITestCase):
         )
 
         client = self.installation.get_keyring_client(self.service["id"])
-        client.send_trigger(self.event, severity="info")
+        data = build_pagerduty_event_payload(
+            routing_key=self.integration_key,
+            event=self.event,
+            notification_uuid=None,
+            severity="info",
+        )
+        client.send_trigger(data=data)
 
         assert len(responses.calls) == 1
         request = responses.calls[0].request
