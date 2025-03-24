@@ -138,9 +138,9 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
   componentDidMount() {
     const {subscription} = this.props;
     const existingPlanWithoutSuffix = subscription.plan.endsWith('_auf')
-      ? subscription.plan.slice(0, subscription.plan.length - 4)
+      ? subscription.plan.slice(0, -4)
       : subscription.plan.endsWith('_ac')
-        ? subscription.plan.slice(0, subscription.plan.length - 3)
+        ? subscription.plan.slice(0, -3)
         : subscription.plan;
     const existingPlanIsEnterprise = this.provisionablePlans.some(
       plan => plan[0] === existingPlanWithoutSuffix
