@@ -27,7 +27,6 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
                 user_id=self.user.id,
                 query=f"is:unresolved query:{i}",
                 query_sort="date",
-                position=i,
                 visibility=GroupSearchViewVisibility.OWNER,
             )
             self.views.append(view)
