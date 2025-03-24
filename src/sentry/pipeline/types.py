@@ -13,7 +13,7 @@ class PipelineRequestState:
     """Initial pipeline attributes from a request."""
 
     state: PipelineSessionStore
-    provider_model: Model
+    provider_model: Model | None
     organization: RpcOrganization | None
     provider_key: str
 

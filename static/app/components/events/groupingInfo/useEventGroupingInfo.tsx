@@ -76,7 +76,7 @@ export function useEventGroupingInfo({
 
   const groupInfo = hasPerformanceGrouping
     ? generatePerformanceGroupInfo({group, event})
-    : data ?? null;
+    : (data ?? null);
 
   return {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping};
 }

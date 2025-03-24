@@ -40,7 +40,7 @@ export function buildExceptionGroupTree(entry: EntryException) {
   return buildExceptionGroupTreeRecursive(values, undefined);
 }
 
-function getTreeHeightRecursive(tree: ExceptionGroupTreeItem[], maxHeight: number = 0) {
+function getTreeHeightRecursive(tree: ExceptionGroupTreeItem[], maxHeight = 0) {
   if (!tree.length) {
     return maxHeight;
   }
@@ -57,7 +57,7 @@ function getTreeHeightRecursive(tree: ExceptionGroupTreeItem[], maxHeight: numbe
 
 function getTreeWidthRecursive(
   tree: ExceptionGroupTreeItem[],
-  depth: number = 0,
+  depth = 0,
   widthByDepth: number[] = []
 ) {
   if (!tree.length) {

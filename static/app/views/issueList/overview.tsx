@@ -7,13 +7,13 @@ import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -26,7 +26,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel, SavedSearch} from 'sentry/types/group';
-import {GroupStatus, IssueCategory} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -38,6 +38,7 @@ import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
+import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
@@ -50,7 +51,7 @@ import usePrevious from 'sentry/utils/usePrevious';
 import IssueListTable from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
-import IssueViewsPFIssueListHeader from 'sentry/views/issueList/issueViewsHeaderPF';
+import LeftNavViewsHeader from 'sentry/views/issueList/leftNavViewsHeader';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import SavedIssueSearches from 'sentry/views/issueList/savedIssueSearches';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
@@ -64,7 +65,6 @@ import type {QueryCounts} from './utils';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
   FOR_REVIEW_QUERIES,
-  getTabs,
   getTabsWithCounts,
   isForReviewQuery,
   IssueSortOptions,
@@ -79,7 +79,10 @@ const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
 const MAX_ISSUES_COUNT = 100;
 
-type Props = RouteComponentProps<{}, {searchId?: string}>;
+type Props = RouteComponentProps<
+  Record<PropertyKey, string | undefined>,
+  {searchId?: string}
+>;
 
 interface EndpointParams extends Partial<PageFilters['datetime']> {
   environment: string[];
@@ -137,7 +140,7 @@ function useSavedSearches() {
   };
 }
 
-const parsePageQueryParam = (location: Location, defaultPage: number = 0) => {
+const parsePageQueryParam = (location: Location, defaultPage = 0) => {
   const page = location.query.page;
   const pageInt = Array.isArray(page)
     ? parseInt(page[0] ?? '', 10)
@@ -173,6 +176,8 @@ function IssueListOverview({router}: Props) {
   const undoRef = useRef(false);
   const pollerRef = useRef<CursorPoller | undefined>(undefined);
   const actionTakenRef = useRef(false);
+  const prefersStackedNav = usePrefersStackedNav();
+  const urlParams = useParams<{viewId?: string}>();
 
   const {savedSearch, savedSearchLoading, savedSearches, selectedSearchId} =
     useSavedSearches();
@@ -311,9 +316,10 @@ function IssueListOverview({router}: Props) {
       ...getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
-      savedSearch: savedSearchLoading
-        ? savedSearchLookupEnabled
-        : savedSearchLookupDisabled,
+      savedSearch:
+        savedSearchLoading && !prefersStackedNav
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled,
     };
 
     if (selectedSearchId) {
@@ -338,7 +344,13 @@ function IssueListOverview({router}: Props) {
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query, savedSearchLoading, selectedSearchId]);
+  }, [
+    getEndpointParams,
+    location.query,
+    savedSearchLoading,
+    selectedSearchId,
+    prefersStackedNav,
+  ]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -369,45 +381,6 @@ function IssueListOverview({router}: Props) {
       pollerRef.current?.enable();
     }
   }, [pageLinks, realtimeActive]);
-
-  const trackTabViewed = useCallback(
-    (newGroupIds: string[], data: Group[], numHits: number | null) => {
-      const endpointParams = getEndpointParams();
-      const tabQueriesWithCounts = getTabsWithCounts();
-      const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
-        ? endpointParams.query
-        : null;
-      const tab = getTabs().find(([tabQuery]) => currentTabQuery === tabQuery)?.[1];
-
-      const numPerfIssues = newGroupIds.filter(
-        groupId => GroupStore.get(groupId)?.issueCategory === IssueCategory.PERFORMANCE
-      ).length;
-      // First and last seen are only available after the group has fetched stats
-      // Number of issues shown whose first seen is more than 30 days ago
-      const numOldIssues = data.filter((group: BaseGroup) =>
-        moment(new Date(group.firstSeen)).isBefore(moment().subtract(30, 'd'))
-      ).length;
-      // number of issues shown whose first seen is less than 7 days
-      const numNewIssues = data.filter((group: BaseGroup) =>
-        moment(new Date(group.firstSeen)).isAfter(moment().subtract(7, 'd'))
-      ).length;
-
-      trackAnalytics('issues_tab.viewed', {
-        organization,
-        tab: tab?.analyticsName,
-        page: parsePageQueryParam(location, 0),
-        query,
-        num_perf_issues: numPerfIssues,
-        num_old_issues: numOldIssues,
-        num_new_issues: numNewIssues,
-        num_issues: data.length,
-        total_issues_count: numHits,
-        issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
-        sort,
-      });
-    },
-    [organization, location, getEndpointParams, query, sort]
-  );
 
   const fetchCounts = useCallback(
     (currentQueryCount: number, fetchAllCounts: boolean) => {
@@ -499,7 +472,6 @@ function IssueListOverview({router}: Props) {
 
         if (data) {
           GroupStore.onPopulateStats(newGroupIds, data);
-          trackTabViewed(newGroupIds, data, queryCount);
         }
       } catch (e) {
         setError(parseApiError(e));
@@ -513,7 +485,7 @@ function IssueListOverview({router}: Props) {
         }
       }
     },
-    [getEndpointParams, api, organization.slug, trackTabViewed, queryCount]
+    [getEndpointParams, api, organization.slug]
   );
 
   const fetchData = useCallback(
@@ -592,7 +564,7 @@ function IssueListOverview({router}: Props) {
           setIssuesLoading(false);
           setQueryCount(newQueryCount);
           setQueryMaxCount(newQueryMaxCount);
-          setPageLinks(newPageLinks !== null ? newPageLinks : '');
+          setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
           fetchCounts(newQueryCount, fetchAllCounts);
 
@@ -641,10 +613,18 @@ function IssueListOverview({router}: Props) {
     ]
   );
 
+  useDisableRouteAnalytics(issuesLoading);
+  useRouteAnalyticsEventNames('issues.viewed', 'Issues: Viewed');
   useRouteAnalyticsParams({
+    page: parsePageQueryParam(location, 0),
+    query,
+    num_issues: groups.length,
+    total_issues_count: queryCount,
     issue_views_enabled: organization.features.includes('issue-stream-custom-views'),
+    sort,
+    realtime_active: realtimeActive,
+    is_view: urlParams.viewId ? true : false,
   });
-  useDisableRouteAnalytics();
 
   // Update polling status
   useEffect(() => {
@@ -752,7 +732,7 @@ function IssueListOverview({router}: Props) {
     const links = parseLinkHeader(pageLinks);
     const queryPageInt = parsePageQueryParam(location, 0);
     // Cursor must be present for the page number to be used
-    const page = !location.query.cursor ? 0 : queryPageInt;
+    const page = location.query.cursor ? queryPageInt : 0;
 
     let numPreviousIssues = Math.min(page * MAX_ITEMS, queryCount);
 
@@ -812,7 +792,11 @@ function IssueListOverview({router}: Props) {
         queryData.sort = newSavedSearch.sort;
       }
     } else {
-      path = `/organizations/${organization.slug}/issues/`;
+      if (prefersStackedNav) {
+        path = location.pathname;
+      } else {
+        path = `/organizations/${organization.slug}/issues/`;
+      }
     }
 
     if (
@@ -822,13 +806,10 @@ function IssueListOverview({router}: Props) {
       delete queryData.sort;
     }
 
-    if (path !== location.pathname || !isEqual(query, location.query)) {
-      navigate({
-        pathname: normalizeUrl(path),
-        query: queryData,
-      });
-      setIssuesLoading(true);
-    }
+    navigate({
+      pathname: normalizeUrl(path),
+      query: queryData,
+    });
   };
 
   const onSearch = (newQuery: string) => {
@@ -872,9 +853,9 @@ function IssueListOverview({router}: Props) {
     if (period !== getGroupStatsPeriod()) {
       const cursor = Array.isArray(location.query.cursor)
         ? location.query.cursor[0]
-        : location.query.cursor ?? undefined;
+        : (location.query.cursor ?? undefined);
       const queryPageInt = parsePageQueryParam(location, 0);
-      const page = !location.query.cursor ? 0 : queryPageInt;
+      const page = location.query.cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
@@ -961,7 +942,7 @@ function IssueListOverview({router}: Props) {
       // avoid showing an empty state - if not on the last page, just show a spinner
       const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
       transitionTo({cursor: shouldGoBackAPage ? links.previous!.cursor : undefined});
-      fetchCounts(newQueryCount, true);
+      fetchData(true);
     } else {
       fetchData(true);
     }
@@ -1067,17 +1048,11 @@ function IssueListOverview({router}: Props) {
   return (
     <NewTabContextProvider>
       <Layout.Page>
-        {organization.features.includes('issue-stream-custom-views') ? (
-          organization.features.includes('issue-views-page-filter') ? (
-            <ErrorBoundary message={'Failed to load custom tabs'} mini>
-              <IssueViewsPFIssueListHeader
-                router={router}
-                selectedProjectIds={selection.projects}
-                realtimeActive={realtimeActive}
-                onRealtimeChange={onRealtimeChange}
-              />
-            </ErrorBoundary>
-          ) : (
+        {prefersStackedNav && (
+          <LeftNavViewsHeader selectedProjectIds={selection.projects} />
+        )}
+        {!prefersStackedNav &&
+          (organization.features.includes('issue-stream-custom-views') ? (
             <ErrorBoundary message={'Failed to load custom tabs'} mini>
               <IssueViewsIssueListHeader
                 router={router}
@@ -1086,22 +1061,20 @@ function IssueListOverview({router}: Props) {
                 onRealtimeChange={onRealtimeChange}
               />
             </ErrorBoundary>
-          )
-        ) : (
-          <IssueListHeader
-            organization={organization}
-            query={query}
-            sort={sort}
-            queryCount={queryCount}
-            queryCounts={queryCounts}
-            realtimeActive={realtimeActive}
-            router={router}
-            displayReprocessingTab={showReprocessingTab}
-            selectedProjectIds={selection.projects}
-            onRealtimeChange={onRealtimeChange}
-          />
-        )}
-
+          ) : (
+            <IssueListHeader
+              organization={organization}
+              query={query}
+              sort={sort}
+              queryCount={queryCount}
+              queryCounts={queryCounts}
+              realtimeActive={realtimeActive}
+              router={router}
+              displayReprocessingTab={showReprocessingTab}
+              selectedProjectIds={selection.projects}
+              onRealtimeChange={onRealtimeChange}
+            />
+          ))}
         <StyledBody>
           <StyledMain>
             <IssuesDataConsentBanner source="issues" />

@@ -8,11 +8,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {Switch} from 'sentry/components/core/switch';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Switch from 'sentry/components/switchButton';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,11 +40,13 @@ export class InstalledPlugin extends Component<Props> {
   getConfirmMessage() {
     return (
       <Fragment>
-        <Alert type="error" showIcon>
-          {t(
-            'Deleting this installation will disable the integration for this project and remove any configurations.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t(
+              'Deleting this installation will disable the integration for this project and remove any configurations.'
+            )}
+          </Alert>
+        </Alert.Container>
       </Fragment>
     );
   }
@@ -88,7 +90,7 @@ export class InstalledPlugin extends Component<Props> {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
 
-  toggleEnablePlugin = async (projectId: string, status: boolean = true) => {
+  toggleEnablePlugin = async (projectId: string, status = true) => {
     try {
       addLoadingMessage(t('Enabling...'));
       await this.updatePluginEnableStatus(status);
@@ -158,11 +160,11 @@ export class InstalledPlugin extends Component<Props> {
                 </Confirm>
               </div>
               <Switch
-                isActive={projectItem.enabled}
-                toggle={() =>
+                checked={projectItem.enabled}
+                onChange={() =>
                   this.toggleEnablePlugin(projectItem.projectId, !projectItem.enabled)
                 }
-                isDisabled={!hasAccess}
+                disabled={!hasAccess}
               />
             </IntegrationFlex>
           )}

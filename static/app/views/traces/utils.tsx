@@ -1,7 +1,3 @@
-import type {Location, LocationDescriptor} from 'history';
-
-import type {Organization} from 'sentry/types/organization';
-
 import type {TraceResult} from './hooks/useTraces';
 import type {SpanResult} from './hooks/useTraceSpans';
 import type {Field} from './data';
@@ -45,48 +41,6 @@ export function areQueriesEmpty(queries: string[]): boolean {
 
 export function getSecondaryNameFromSpan(span: SpanResult<Field>) {
   return span['sdk.name'];
-}
-
-export function generateTracesRoute({orgSlug}: {orgSlug: Organization['slug']}): string {
-  return `/organizations/${orgSlug}/traces/`;
-}
-
-export function generateTracesRouteWithQuery({
-  orgSlug,
-  metric,
-  query,
-}: {
-  orgSlug: Organization['slug'];
-  metric?: {
-    mri: string;
-    op: string;
-    max?: number;
-    min?: number;
-    query?: string;
-  };
-  query?: Location['query'];
-}): LocationDescriptor {
-  const {
-    mri,
-    op: metricsOp,
-    query: metricsQuery,
-    max: metricsMax,
-    min: metricsMin,
-  } = metric || {};
-
-  const pathname = generateTracesRoute({orgSlug});
-
-  return {
-    pathname,
-    query: {
-      ...query,
-      metricsMax,
-      metricsMin,
-      metricsOp,
-      metricsQuery,
-      mri,
-    },
-  };
 }
 
 export function getShortenedSdkName(sdkName: string | null) {

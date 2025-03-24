@@ -3,16 +3,16 @@ export type FeedbackEventParameters = {
     integration_key: string;
   };
   'feedback.feedback-item-not-found': {feedbackId: string};
-  'feedback.feedback-item-rendered': {};
-  'feedback.index-setup-viewed': {};
-  'feedback.list-item-selected': {};
+  'feedback.feedback-item-rendered': Record<string, unknown>;
+  'feedback.index-setup-viewed': Record<string, unknown>;
+  'feedback.list-item-selected': Record<string, unknown>;
   'feedback.list-view-setup-sidebar': {platform: string};
   'feedback.mark-spam-clicked': {type: 'bulk' | 'details'};
-  'feedback.trace-section.crash-report-dup': {};
-  'feedback.trace-section.error': {};
+  'feedback.trace-section.crash-report-dup': Record<string, unknown>;
+  'feedback.trace-section.error': Record<string, unknown>;
   'feedback.trace-section.loaded': {numEvents: number};
-  'feedback.whats-new-banner-dismissed': {};
-  'feedback.whats-new-banner-viewed': {};
+  'feedback.whats-new-banner-dismissed': Record<string, unknown>;
+  'feedback.whats-new-banner-viewed': Record<string, unknown>;
 };
 
 export type FeedbackEventKey = keyof FeedbackEventParameters;

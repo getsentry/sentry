@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -25,11 +25,11 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {DisabledNotice} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
+import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 // installationId present for Github flow
-type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
+type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}>;
 
 type State = DeprecatedAsyncComponent['state'] & {
   installationData?: GitHubIntegrationInstallation;
@@ -254,7 +254,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
                 >
                   {t('Install %s', provider.name)}
                 </Button>
-                {disabled && <DisabledNotice reason={disabledReason} />}
+                {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
               </ButtonWrapper>
             )}
           </AddIntegration>
@@ -273,17 +273,19 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     return (
       <Fragment>
         {selectedOrgSlug && organization && !this.hasAccess() && (
-          <Alert type="error" showIcon>
-            <p>
-              {tct(
-                `You do not have permission to install integrations in
+          <Alert.Container>
+            <Alert type="error" showIcon>
+              <p>
+                {tct(
+                  `You do not have permission to install integrations in
                 [organization]. Ask an organization owner or manager to
                 visit this page to finish installing this integration.`,
-                {organization: <strong>{organization.slug}</strong>}
-              )}
-            </p>
-            <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
-          </Alert>
+                  {organization: <strong>{organization.slug}</strong>}
+                )}
+              </p>
+              <InstallLink>{generateOrgSlugUrl(selectedOrgSlug)}</InstallLink>
+            </Alert>
+          </Alert.Container>
         )}
 
         {provider && organization && this.hasAccess() && FeatureList && (
@@ -320,11 +322,13 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
       }
 
       return (
-        <Alert type="warning" showIcon>
-          {t(
-            'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="warning" showIcon>
+            {t(
+              'We could not verify the authenticity of the installation request. We recommend restarting the installation process.'
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -354,9 +358,11 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
     );
 
     return (
-      <Alert type="info" showIcon>
-        {alertText}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon>
+          {alertText}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -391,7 +397,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncComponen
         </p>
 
         <FieldGroup label={t('Organization')} inline={false} stacked required>
-          <SelectControl
+          <Select
             // @ts-expect-error TS(7031): Binding element 'orgSlug' implicitly has an 'any' ... Remove this comment to see the full error message
             onChange={({value: orgSlug}) => this.onSelectOrg(orgSlug)}
             value={selectedOrgSlug}

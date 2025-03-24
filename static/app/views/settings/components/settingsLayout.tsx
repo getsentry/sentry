@@ -1,7 +1,7 @@
 import {isValidElement, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -17,7 +17,7 @@ import SettingsSearch from './settingsSearch';
 type Props = {
   children: React.ReactNode;
   renderNavigation?: (opts: {isMobileNavVisible: boolean}) => React.ReactNode;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 function SettingsLayout(props: Props) {
   // This is used when the screen is small enough that the navigation should be

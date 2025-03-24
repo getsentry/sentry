@@ -45,8 +45,17 @@ export function isSentryContinuousProfile(
 
 export function isSentryContinuousProfileChunk(
   profile: any
-): profile is Profiling.SentryContinousProfileChunk {
-  return 'chunk_id' in profile;
+): profile is
+  | Profiling.SentryContinousProfileChunk
+  | Profiling.SentryAndroidContinuousProfileChunk {
+  // Temporary fix to check for profiler_id in the chunk
+  return 'chunk_id' in profile || 'profiler_id' in profile;
+}
+
+export function isSentryAndroidContinuousProfileChunk(
+  profile: any
+): profile is Profiling.SentryAndroidContinuousProfileChunk {
+  return 'platform' in profile && profile.platform === 'android';
 }
 
 export function isContinuousProfileReference(

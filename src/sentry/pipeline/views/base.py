@@ -1,26 +1,27 @@
+from __future__ import annotations
+
 import abc
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from rest_framework.request import Request
 
 from sentry.utils import json
-from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 if TYPE_CHECKING:
     from sentry.pipeline.base import Pipeline
 
 
-class PipelineView(BaseView, abc.ABC):
+class PipelineView(abc.ABC):
     """
     A class implementing the PipelineView may be used in a PipelineProviders
     get_pipeline_views list.
     """
 
     @abc.abstractmethod
-    def dispatch(self, request: Request, pipeline: "Pipeline") -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         """
         Called on request, the active pipeline is passed in which can and
         should be used to bind data and traverse the pipeline.
@@ -28,7 +29,7 @@ class PipelineView(BaseView, abc.ABC):
 
     @staticmethod
     def render_react_view(
-        request: Request,
+        request: HttpRequest,
         pipeline_name: str,
         props: Mapping[str, Any],
     ) -> HttpResponseBase:

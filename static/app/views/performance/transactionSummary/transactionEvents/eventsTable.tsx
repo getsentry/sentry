@@ -5,7 +5,7 @@ import type {Location, LocationDescriptor, LocationDescriptorObject} from 'histo
 import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import type {GridColumn} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -131,7 +131,7 @@ class EventsTable extends Component<Props, State> {
   replayLinkGenerator = generateReplayLink(this.props.routes);
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, location, organization, excludedTags, applyEnvironmentFilter} =
         this.props;
 
@@ -217,7 +217,7 @@ class EventsTable extends Component<Props, State> {
 
     if (field === 'id' || field === 'trace') {
       const {issueId, isRegressionIssue} = this.props;
-      const isIssue: boolean = !!issueId;
+      const isIssue = !!issueId;
       let target: LocationDescriptor = {};
       const locationWithTab = {...location, query: {...location.query, tab: Tab.EVENTS}};
       // TODO: set referrer properly
@@ -448,16 +448,16 @@ class EventsTable extends Component<Props, State> {
     const containsSpanOpsBreakdown = !!eventView
       .getColumns()
       .find(
-        (col: TableColumn<React.ReactText>) =>
+        (col: TableColumn<string | number>) =>
           col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
       );
 
     const columnOrder = eventView
       .getColumns()
-      .filter((col: TableColumn<React.ReactText>) =>
+      .filter((col: TableColumn<string | number>) =>
         shouldRenderColumn(containsSpanOpsBreakdown, col.name)
       )
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<string | number>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }

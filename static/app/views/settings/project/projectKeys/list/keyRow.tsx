@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import Confirm from 'sentry/components/confirm';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -24,7 +24,7 @@ type Props = {
   orgId: string;
   project: Project;
   projectId: string;
-} & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
+} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
 function KeyRow({
   data,

@@ -1,5 +1,5 @@
 export type SettingsEventParameters = {
-  'notification_settings.index_page_viewed': {};
+  'notification_settings.index_page_viewed': Record<string, unknown>;
   'notification_settings.tuning_page_viewed': {
     notification_type: string;
   };

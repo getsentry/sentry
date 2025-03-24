@@ -9,7 +9,7 @@ from typing import Any, DefaultDict, NamedTuple
 from celery import Task
 from django.db.models import OuterRef, Subquery
 
-from sentry import buffer, nodestore
+from sentry import buffer, features, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -464,9 +464,26 @@ def fire_rules(
             notification_uuid = str(uuid.uuid4())
             groupevent = group_to_groupevent[group]
             rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
-            for callback, futures in activate_downstream_actions(
-                rule, groupevent, notification_uuid, rule_fire_history
-            ).values():
+
+            if features.has(
+                "organizations:workflow-engine-process-workflows-logs",
+                project.organization,
+            ):
+                logger.info(
+                    "post_process.delayed_processing.triggered_rule",
+                    extra={
+                        "rule_id": rule.id,
+                        "group_id": group.id,
+                        "event_id": groupevent.event_id,
+                    },
+                )
+
+            callback_and_futures = activate_downstream_actions(
+                rule, groupevent, notification_uuid, rule_fire_history, is_post_process=False
+            ).values()
+
+            # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
+            for callback, futures in callback_and_futures:
                 safe_execute(callback, groupevent, futures)
 
 
@@ -537,6 +554,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
 @delayed_processing_registry.register("delayed_processing")  # default delayed processing
 class DelayedRule(DelayedProcessingBase):
     buffer_key = PROJECT_ID_BUFFER_LIST_KEY
+    option = None
 
     @property
     def hash_args(self) -> BufferHashKeys:

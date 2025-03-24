@@ -3,8 +3,8 @@ import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
@@ -335,14 +335,14 @@ export function SpanBreakdownSliceRenderer({
   const sliceColor = stylingSliceName ? pickBarColor(stylingSliceName) : theme.gray100;
 
   const sliceWidth =
-    sliceNumberWidth !== undefined
-      ? pixelsPerSlice * sliceNumberWidth
-      : pixelsPerSlice * Math.ceil(BREAKDOWN_SLICES * (sliceDuration / traceDuration));
+    sliceNumberWidth === undefined
+      ? pixelsPerSlice * Math.ceil(BREAKDOWN_SLICES * (sliceDuration / traceDuration))
+      : pixelsPerSlice * sliceNumberWidth;
   const sliceOffset =
-    sliceNumberStart !== undefined
-      ? pixelsPerSlice * sliceNumberStart
-      : pixelsPerSlice *
-        Math.floor((BREAKDOWN_SLICES * relativeSliceStart) / traceDuration);
+    sliceNumberStart === undefined
+      ? pixelsPerSlice *
+        Math.floor((BREAKDOWN_SLICES * relativeSliceStart) / traceDuration)
+      : pixelsPerSlice * sliceNumberStart;
 
   return (
     <BreakdownSlice
@@ -597,7 +597,7 @@ export function StatusTag({status, onClick}: {status: string; onClick?: () => vo
     return null;
   }
   return (
-    <StyledTag type={tagType} onClick={onClick} borderStyle="solid">
+    <StyledTag type={tagType} onClick={onClick}>
       {status}
     </StyledTag>
   );

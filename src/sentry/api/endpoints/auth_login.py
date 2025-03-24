@@ -12,7 +12,7 @@ from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
-from sentry.web.frontend.base import OrganizationMixin
+from sentry.web.frontend.base import OrganizationMixin, determine_active_organization
 
 
 @control_silo_endpoint
@@ -25,7 +25,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     permission_classes = ()
 
     def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
-        self.determine_active_organization(request)
+        self.active_organization = determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 
     def post(

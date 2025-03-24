@@ -2,8 +2,8 @@ import {Fragment, lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {LinkButton} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import LazyLoad from 'sentry/components/lazyLoad';

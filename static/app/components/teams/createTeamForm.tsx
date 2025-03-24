@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
 
 type Payload = {
@@ -13,7 +13,11 @@ type Payload = {
 type Props = {
   organization: Organization;
   formProps?: Partial<typeof Form>;
-  onSubmit?: (data: Payload, onSuccess: Function, onError: Function) => void;
+  onSubmit?: (
+    data: Payload,
+    onSuccess: (team: Team) => void,
+    onError: (team: Team) => void
+  ) => void;
   onSuccess?: (data: Payload) => void;
 };
 

@@ -3,7 +3,12 @@ from django.test import TestCase, override_settings
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.testutils.helpers import override_options
-from sentry.uptime.subscriptions.regions import get_active_region_configs, get_region_config
+from sentry.uptime.models import UptimeSubscriptionRegion
+from sentry.uptime.subscriptions.regions import (
+    UptimeRegionWithMode,
+    get_active_regions,
+    get_region_config,
+)
 
 
 class TestBase(TestCase):
@@ -30,16 +35,41 @@ class TestBase(TestCase):
         ]
 
 
-class GetActiveRegionConfigsTest(TestBase):
+class GetActiveRegionsTest(TestBase):
     def test_returns_only_enabled_regions(self):
         with (
             override_settings(UPTIME_REGIONS=self.test_regions),
-            override_options({"uptime.disabled-checker-regions": ["eu"]}),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE.value
+                    }
+                }
+            ),
         ):
-            active_regions = get_active_region_configs()
-            assert len(active_regions) == 2
-            assert all(region.enabled for region in active_regions)
-            assert {region.slug for region in active_regions} == {"us", "ap"}
+            active_regions = get_active_regions()
+            assert set(active_regions) == {
+                UptimeRegionWithMode("us", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                UptimeRegionWithMode("ap", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+            }
+
+        with (
+            override_settings(UPTIME_REGIONS=self.test_regions),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "eu": UptimeSubscriptionRegion.RegionMode.INACTIVE.value,
+                        "us": UptimeSubscriptionRegion.RegionMode.ACTIVE.value,
+                        "ap": UptimeSubscriptionRegion.RegionMode.SHADOW.value,
+                    }
+                }
+            ),
+        ):
+            active_regions = get_active_regions()
+            assert set(active_regions) == {
+                UptimeRegionWithMode("us", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                UptimeRegionWithMode("ap", UptimeSubscriptionRegion.RegionMode.SHADOW),
+            }
 
 
 class GetRegionConfigTest(TestBase):
@@ -49,9 +79,3 @@ class GetRegionConfigTest(TestBase):
             assert region is not None
             assert region.slug == "us"
             assert region.name == "United States"
-
-    def test_returns_first_active_region_for_invalid_slug(self):
-        with override_settings(UPTIME_REGIONS=self.test_regions):
-            region = get_region_config("invalid")
-            assert region is not None
-            assert region.slug == "us"  # First active region

@@ -65,7 +65,9 @@ class _UserOptions(TypedDict):
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
-    prefersIssueDetailsStreamlinedUI: bool
+    prefersIssueDetailsStreamlinedUI: bool | None
+    prefersSpecializedProjectOverview: dict[str, bool]
+    prefersStackedNavigation: bool
     quickStartDisplay: dict[str, int]
 
 
@@ -197,8 +199,12 @@ class UserSerializer(Serializer):
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
                 "prefersIssueDetailsStreamlinedUI": options.get(
-                    "prefers_issue_details_streamlined_ui", False
+                    "prefers_issue_details_streamlined_ui"
                 ),
+                "prefersSpecializedProjectOverview": options.get(
+                    "prefers_specialized_project_overview", {}
+                ),
+                "prefersStackedNavigation": options.get("prefers_stacked_navigation", False),
                 "quickStartDisplay": options.get("quick_start_display") or {},
             }
 

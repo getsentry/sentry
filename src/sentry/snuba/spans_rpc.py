@@ -1,20 +1,33 @@
 import logging
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
-from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
+    Expression,
+    TimeSeries,
+    TimeSeriesRequest,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.eap.columns import ResolvedColumn, ResolvedFunction
-from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
+from sentry.search.eap.columns import (
+    ResolvedAggregate,
+    ResolvedAttribute,
+    ResolvedConditionalAggregate,
+    ResolvedFormula,
+)
+from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, VALID_GRANULARITIES
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_columns import SPAN_DEFINITIONS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
+from sentry.search.eap.utils import transform_binary_formula_to_expression
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
@@ -23,6 +36,31 @@ from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+
+
+def categorize_aggregate(
+    column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+) -> Expression:
+    if isinstance(column, ResolvedFormula):
+        # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
+        return Expression(
+            formula=transform_binary_formula_to_expression(column.proto_definition),
+            label=column.public_alias,
+        )
+    if isinstance(column, ResolvedAggregate):
+        return Expression(aggregation=column.proto_definition, label=column.public_alias)
+    if isinstance(column, ResolvedConditionalAggregate):
+        return Expression(
+            conditional_aggregation=column.proto_definition, label=column.public_alias
+        )
+
+
+@dataclass
+class ProcessedTimeseries:
+    timeseries: SnubaData = field(default_factory=list)
+    confidence: SnubaData = field(default_factory=list)
+    sampling_rate: SnubaData = field(default_factory=list)
+    sample_count: SnubaData = field(default_factory=list)
 
 
 def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchResolver:
@@ -44,6 +82,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
+    debug: bool = False,
 ) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         query_string,
@@ -53,6 +92,7 @@ def run_table_query(
         limit,
         referrer,
         search_resolver or get_resolver(params, config),
+        debug,
     )
 
 
@@ -65,11 +105,15 @@ def get_timeseries_query(
     config: SearchResolverConfig,
     granularity_secs: int,
     extra_conditions: TraceItemFilter | None = None,
-) -> tuple[TimeSeriesRequest, list[ResolvedFunction], list[ResolvedColumn]]:
+) -> tuple[
+    TimeSeriesRequest,
+    list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
+    list[ResolvedAttribute],
+]:
     resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
-    (aggregations, _) = resolver.resolve_aggregates(y_axes)
+    (functions, _) = resolver.resolve_functions(y_axes)
     (groupbys, _) = resolver.resolve_attributes(groupby)
     if extra_conditions is not None:
         if query is not None:
@@ -81,11 +125,7 @@ def get_timeseries_query(
         TimeSeriesRequest(
             meta=meta,
             filter=query,
-            aggregations=[
-                agg.proto_definition
-                for agg in aggregations
-                if isinstance(agg.proto_definition, AttributeAggregation)
-            ],
+            expressions=[categorize_aggregate(fn) for fn in functions if fn.is_aggregate],
             group_by=[
                 groupby.proto_definition
                 for groupby in groupbys
@@ -93,7 +133,7 @@ def get_timeseries_query(
             ],
             granularity_secs=granularity_secs,
         ),
-        aggregations,
+        functions,
         groupbys,
     )
 
@@ -134,25 +174,22 @@ def run_timeseries_query(
     rpc_response = snuba_rpc.timeseries_rpc([rpc_request])[0]
 
     """Process the results"""
-    result: SnubaData = []
-    confidences: SnubaData = []
+    result = ProcessedTimeseries()
     final_meta: EventsMeta = EventsMeta(fields={})
     for resolved_field in aggregates + groupbys:
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
     for timeseries in rpc_response.result_timeseries:
-        processed, confidence = _process_all_timeseries([timeseries], params, granularity_secs)
-        if len(result) == 0:
+        processed = _process_all_timeseries([timeseries], params, granularity_secs)
+        if len(result.timeseries) == 0:
             result = processed
-            confidences = confidence
         else:
-            for existing, new in zip(result, processed):
-                existing.update(new)
-            for existing, new in zip(confidences, confidence):
-                existing.update(new)
-    if len(result) == 0:
+            for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
+                for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
+                    existing.update(new)
+    if len(result.timeseries) == 0:
         # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
-        result = zerofill(
+        result.timeseries = zerofill(
             [],
             params.start_date,
             params.end_date,
@@ -161,7 +198,7 @@ def run_timeseries_query(
         )
 
     if comparison_delta is not None:
-        if len(rpc_request.aggregations) != 1:
+        if len(rpc_request.expressions) != 1:
             raise InvalidSearchQuery("Only one column can be selected for comparison queries")
 
         comp_query_params = params.copy()
@@ -177,15 +214,15 @@ def run_timeseries_query(
 
         if comp_rpc_response.result_timeseries:
             timeseries = comp_rpc_response.result_timeseries[0]
-            processed, _ = _process_all_timeseries([timeseries], params, granularity_secs)
-            for existing, new in zip(result, processed):
+            processed = _process_all_timeseries([timeseries], params, granularity_secs)
+            for existing, new in zip(result.timeseries, processed.timeseries):
                 existing["comparisonCount"] = new[timeseries.label]
         else:
-            for existing in result:
+            for existing in result.timeseries:
                 existing["comparisonCount"] = 0
 
     return SnubaTSResult(
-        {"data": result, "confidence": confidences, "meta": final_meta},
+        {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
         params.start,
         params.end,
         granularity_secs,
@@ -288,7 +325,7 @@ def run_top_events_timeseries_query(
         params,
         query_string,
         y_axes,
-        [],  # in the other series, we want eveything in a single group, so remove the group by
+        [],  # in the other series, we want eveything in a single group, so the group by
         referrer,
         config,
         granularity_secs,
@@ -324,15 +361,15 @@ def run_top_events_timeseries_query(
     # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
     for index, row in enumerate(top_events["data"]):
         result_key = create_result_key(row, groupby_columns, {})
-        result_data, result_confidence = _process_all_timeseries(
+        result = _process_all_timeseries(
             map_result_key_to_timeseries[result_key],
             params,
             granularity_secs,
         )
         final_result[result_key] = SnubaTSResult(
             {
-                "data": result_data,
-                "confidence": result_confidence,
+                "data": result.timeseries,
+                "processed_timeseries": result,
                 "order": index,
                 "meta": final_meta,
             },
@@ -341,15 +378,15 @@ def run_top_events_timeseries_query(
             granularity_secs,
         )
     if other_response.result_timeseries:
-        result_data, result_confidence = _process_all_timeseries(
+        result = _process_all_timeseries(
             [timeseries for timeseries in other_response.result_timeseries],
             params,
             granularity_secs,
         )
         final_result[OTHER_KEY] = SnubaTSResult(
             {
-                "data": result_data,
-                "confidence": result_confidence,
+                "data": result.timeseries,
+                "processed_timeseries": result,
                 "order": limit,
                 "meta": final_meta,
             },
@@ -365,23 +402,88 @@ def _process_all_timeseries(
     params: SnubaParams,
     granularity_secs: int,
     order: int | None = None,
-) -> tuple[SnubaData, SnubaData]:
-    result: SnubaData = []
-    confidence: SnubaData = []
+) -> ProcessedTimeseries:
+    result = ProcessedTimeseries()
 
     for timeseries in all_timeseries:
         label = timeseries.label
-        if result:
+        if result.timeseries:
             for index, bucket in enumerate(timeseries.buckets):
-                assert result[index]["time"] == bucket.seconds
-                assert confidence[index]["time"] == bucket.seconds
+                assert result.timeseries[index]["time"] == bucket.seconds
+                assert result.confidence[index]["time"] == bucket.seconds
+                assert result.sampling_rate[index]["time"] == bucket.seconds
+                assert result.sample_count[index]["time"] == bucket.seconds
         else:
             for bucket in timeseries.buckets:
-                result.append({"time": bucket.seconds})
-                confidence.append({"time": bucket.seconds})
+                result.timeseries.append({"time": bucket.seconds})
+                result.confidence.append({"time": bucket.seconds})
+                result.sampling_rate.append({"time": bucket.seconds})
+                result.sample_count.append({"time": bucket.seconds})
 
         for index, data_point in enumerate(timeseries.data_points):
-            result[index][label] = process_value(data_point.data)
-            confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+            result.timeseries[index][label] = process_value(data_point.data)
+            result.confidence[index][label] = CONFIDENCES.get(data_point.reliability, None)
+            result.sampling_rate[index][label] = data_point.avg_sampling_rate
+            result.sample_count[index][label] = data_point.sample_count
 
-    return result, confidence
+    return result
+
+
+def run_trace_query(
+    trace_id: str,
+    params: SnubaParams,
+    referrer: str,
+    config: SearchResolverConfig,
+) -> list[dict[str, Any]]:
+    trace_attributes = [
+        "parent_span",
+        "description",
+        "span.op",
+        "is_transaction",
+        "transaction.span_id",
+        "transaction",
+        "precise.start_ts",
+        "precise.finish_ts",
+        "project.id",
+        "span.duration",
+    ]
+    resolver = get_resolver(params=params, config=SearchResolverConfig())
+    columns, _ = resolver.resolve_attributes(trace_attributes)
+    meta = resolver.resolve_meta(referrer=referrer)
+    request = GetTraceRequest(
+        meta=meta,
+        trace_id=trace_id,
+        items=[
+            GetTraceRequest.TraceItem(
+                item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                attributes=[col.proto_definition for col in columns],
+            )
+        ],
+    )
+    response = snuba_rpc.get_trace_rpc(request)
+    spans = []
+    columns_by_name = {col.proto_definition.name: col for col in columns}
+    for item_group in response.item_groups:
+        for span_item in item_group.items:
+            span: dict[str, Any] = {
+                "id": span_item.id,
+                "children": [],
+                "errors": [],
+                "event_type": "span",
+            }
+            for attribute in span_item.attributes:
+                resolved_column = columns_by_name[attribute.key.name]
+                if resolved_column.proto_definition.type == STRING:
+                    span[resolved_column.public_alias] = attribute.value.val_str
+                elif resolved_column.proto_definition.type == DOUBLE:
+                    span[resolved_column.public_alias] = attribute.value.val_double
+                elif resolved_column.search_type == "boolean":
+                    span[resolved_column.public_alias] = attribute.value.val_int == 1
+                elif resolved_column.proto_definition.type == INT:
+                    span[resolved_column.public_alias] = attribute.value.val_int
+                    if resolved_column.public_alias == "project.id":
+                        span["project.slug"] = resolver.params.project_id_map.get(
+                            span[resolved_column.public_alias], "Unknown"
+                        )
+            spans.append(span)
+    return spans

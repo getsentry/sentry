@@ -47,11 +47,11 @@ function GlobalSelectionLink(props: Props) {
   }
 
   if (location) {
-    const toWithGlobalQuery: LocationDescriptor = !hasGlobalQuery
-      ? {}
-      : typeof to === 'string'
+    const toWithGlobalQuery: LocationDescriptor = hasGlobalQuery
+      ? typeof to === 'string'
         ? {pathname: to, query}
-        : {...to, query};
+        : {...to, query}
+      : {};
 
     if (toWithGlobalQuery.query && Object.keys(toWithGlobalQuery.query).length === 0) {
       delete toWithGlobalQuery.query;

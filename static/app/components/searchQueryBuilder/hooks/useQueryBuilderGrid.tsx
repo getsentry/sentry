@@ -26,8 +26,8 @@ export function useQueryBuilderGrid({
   undo,
 }: {
   props: UseQueryBuilderGridProps;
-  ref: React.RefObject<HTMLDivElement>;
-  selectionKeyHandlerRef: React.RefObject<HTMLInputElement>;
+  ref: React.RefObject<HTMLDivElement | null>;
+  selectionKeyHandlerRef: React.RefObject<HTMLInputElement | null>;
   state: ListState<ParseResultToken>;
   undo: () => void;
 }): {

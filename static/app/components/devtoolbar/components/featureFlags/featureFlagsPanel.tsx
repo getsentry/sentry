@@ -1,8 +1,8 @@
 import {type Dispatch, Fragment, type SetStateAction, useState} from 'react';
 import {css} from '@emotion/react';
 
+import {Input} from 'sentry/components/core/input';
 import {resetButtonCss, resetFlexRowCss} from 'sentry/components/devtoolbar/styles/reset';
-import Input from 'sentry/components/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -20,7 +20,8 @@ import PanelLayout from '../panelLayout';
 
 import CustomOverride from './customOverride';
 import FeatureFlagItem from './featureFlagItem';
-import {FeatureFlagsContextProvider, useFeatureFlagsContext} from './featureFlagsContext';
+import {useFeatureFlagsContext} from './featureFlagsContext';
+import FlagOverridesBadge from './flagOverridesBadge';
 
 type Prefilter = 'all' | 'overrides';
 
@@ -30,90 +31,88 @@ export default function FeatureFlagsPanel() {
   const [isAddFlagActive, setIsAddFlagActive] = useState(false);
 
   return (
-    <FeatureFlagsContextProvider>
-      <PanelLayout
-        title="Feature Flags"
-        titleRight={
-          <button
-            aria-label="Override Flag"
-            css={[resetButtonCss, panelHeadingRightCss]}
-            title="Override Flag"
-            onClick={() => setIsAddFlagActive(!isAddFlagActive)}
-          >
-            <span css={buttonRightCss}>
-              {isAddFlagActive ? (
-                <IconChevron direction="up" size="xs" />
-              ) : (
-                <IconChevron direction="down" size="xs" />
-              )}
-              Override
-            </span>
-          </button>
-        }
+    <PanelLayout
+      title="Feature Flags"
+      titleRight={
+        <button
+          aria-label="Override Flag"
+          css={[resetButtonCss, panelHeadingRightCss]}
+          title="Override Flag"
+          onClick={() => setIsAddFlagActive(!isAddFlagActive)}
+        >
+          <span css={buttonRightCss}>
+            {isAddFlagActive ? (
+              <IconChevron direction="up" size="xs" />
+            ) : (
+              <IconChevron direction="down" size="xs" />
+            )}
+            Override
+          </span>
+        </button>
+      }
+    >
+      {isAddFlagActive && (
+        <div
+          css={[
+            smallCss,
+            panelSectionCss,
+            panelInsetContentCss,
+            css`
+              background: var(--surface200);
+              padding: var(--space150);
+            `,
+          ]}
+        >
+          <AnalyticsProvider keyVal="custom-override" nameVal="Custom Override">
+            <CustomOverride setComponentActive={setIsAddFlagActive} />
+          </AnalyticsProvider>
+        </div>
+      )}
+      <div
+        css={css`
+          display: grid;
+          grid-template-rows: auto auto 1fr auto;
+          flex-grow: 1;
+        `}
       >
-        {isAddFlagActive && (
-          <div
-            css={[
-              smallCss,
-              panelSectionCss,
-              panelInsetContentCss,
-              css`
-                background: var(--surface200);
-                padding: var(--space150);
-              `,
-            ]}
-          >
-            <AnalyticsProvider keyVal="custom-override" nameVal="Custom Override">
-              <CustomOverride setComponentActive={setIsAddFlagActive} />
-            </AnalyticsProvider>
-          </div>
-        )}
+        <IsDirtyMessage />
+        <div
+          css={[
+            smallCss,
+            panelSectionCssNoBorder,
+            panelInsetContentCss,
+            css`
+              display: grid;
+              grid-template-areas: 'search segments';
+              gap: var(--space100);
+            `,
+          ]}
+        >
+          <Filters
+            setPrefilter={setPrefilter}
+            prefilter={prefilter}
+            setSearchTerm={setSearchTerm}
+          />
+        </div>
         <div
           css={css`
-            display: grid;
-            grid-template-rows: auto auto 1fr auto;
-            flex-grow: 1;
+            contain: strict;
+            flex-direction: column;
+            align-items: stretch;
           `}
         >
-          <IsDirtyMessage />
-          <div
-            css={[
-              smallCss,
-              panelSectionCssNoBorder,
-              panelInsetContentCss,
-              css`
-                display: grid;
-                grid-template-areas: 'search segments';
-                gap: var(--space100);
-              `,
-            ]}
-          >
-            <Filters
-              setPrefilter={setPrefilter}
-              prefilter={prefilter}
-              setSearchTerm={setSearchTerm}
-            />
-          </div>
           <div
             css={css`
-              contain: strict;
-              flex-direction: column;
-              align-items: stretch;
+              overflow: auto;
             `}
           >
-            <div
-              css={css`
-                overflow: auto;
-              `}
-            >
-              <AnalyticsProvider keyVal="flag-table" nameVal="Flag Table">
-                <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
-              </AnalyticsProvider>
-            </div>
+            <AnalyticsProvider keyVal="flag-table" nameVal="Flag Table">
+              <FlagTable searchTerm={searchTerm} prefilter={prefilter} />
+            </AnalyticsProvider>
           </div>
         </div>
-      </PanelLayout>
-    </FeatureFlagsContextProvider>
+      </div>
+    </PanelLayout>
   );
 }
 
@@ -154,10 +153,22 @@ function Filters({
           grid-area: segments;
         `}
       >
-        <SegmentedControl<Prefilter> onChange={setPrefilter} size="xs" value={prefilter}>
-          <SegmentedControl.Item key="all">All</SegmentedControl.Item>
-          <SegmentedControl.Item key="overrides">Overrides</SegmentedControl.Item>
-        </SegmentedControl>
+        <div
+          css={css`
+            position: relative;
+            display: grid;
+          `}
+        >
+          <SegmentedControl<Prefilter>
+            onChange={setPrefilter}
+            size="xs"
+            value={prefilter}
+          >
+            <SegmentedControl.Item key="all">All</SegmentedControl.Item>
+            <SegmentedControl.Item key="overrides">Overrides</SegmentedControl.Item>
+          </SegmentedControl>
+          <FlagOverridesBadge />
+        </div>
       </div>
       <Input
         css={css`

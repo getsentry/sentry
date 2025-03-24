@@ -82,7 +82,7 @@ class SpanTree {
   root: SpanTreeNode;
   orphanedSpans: SpanType[] = [];
   transaction: EventTransaction;
-  injectMissingInstrumentationSpans: boolean = true;
+  injectMissingInstrumentationSpans = true;
 
   constructor(transaction: EventTransaction, spans: SpanType[]) {
     this.transaction = transaction;

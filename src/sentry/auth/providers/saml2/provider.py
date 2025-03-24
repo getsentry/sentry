@@ -9,6 +9,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
 from django.http.request import HttpRequest
+from django.http.response import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
@@ -20,6 +21,7 @@ from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -72,7 +74,7 @@ class SAML2LoginView(AuthView):
         saml_config = build_saml_config(provider.config, helper.organization.slug)
         auth = build_auth(request, saml_config)
 
-        return self.redirect(auth.login())
+        return HttpResponseRedirect(auth.login())
 
 
 # With SAML, the SSO request can be initiated by both the Service Provider
@@ -308,7 +310,7 @@ class SAML2Provider(Provider, abc.ABC):
             "name": name,
         }
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         # Nothing to refresh
         return
 

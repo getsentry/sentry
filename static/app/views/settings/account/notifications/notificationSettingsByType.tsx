@@ -120,15 +120,15 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     );
     // if no match, fall back to the
     let defaultValue: string;
-    if (!matchedOption) {
+    if (matchedOption) {
+      defaultValue = matchedOption.value;
+    } else {
       if (defaultSettings) {
         defaultValue = defaultSettings.typeDefaults[notificationType]!;
       } else {
         // should never happen
         defaultValue = 'never';
       }
-    } else {
-      defaultValue = matchedOption.value;
     }
     // if we have child types, map the default
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -199,9 +199,15 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
       organization.features?.includes('am2-tier')
     );
 
+    // Check if any organization has the continuous-profiling-billing feature flag
+    const hasOrgWithContinuousProfilingBilling = organizations.some(organization =>
+      organization.features?.includes('continuous-profiling-billing')
+    );
+
     const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
     const includeSpans = hasOrgWithAm3;
-    const includeProfileDuration = hasOrgWithAm2 || hasOrgWithAm3;
+    const includeProfileDuration =
+      (hasOrgWithAm2 || hasOrgWithAm3) && hasOrgWithContinuousProfilingBilling;
 
     // if a quota notification is not disabled, add in our dependent fields
     // but do not show the top level controller
@@ -219,7 +225,10 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             if (field.name === 'quotaTransactions' && excludeTransactions) {
               return false;
             }
-            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
+            if (
+              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
+              !includeProfileDuration
+            ) {
               return false;
             }
             return true;
@@ -246,7 +255,10 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             if (field.name === 'quotaTransactions' && excludeTransactions) {
               return false;
             }
-            if (field.name === 'quotaProfileDuration' && !includeProfileDuration) {
+            if (
+              ['quotaProfileDuration', 'quotaProfileDurationUI'].includes(field.name) &&
+              !includeProfileDuration
+            ) {
               return false;
             }
             return true;

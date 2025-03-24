@@ -1,5 +1,5 @@
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
@@ -17,7 +17,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 type RouteParams = {
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
   project: Project;
 };

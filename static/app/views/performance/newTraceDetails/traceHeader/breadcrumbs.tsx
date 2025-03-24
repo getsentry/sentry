@@ -9,7 +9,10 @@ import type {
   RoutableModuleNames,
   URLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {
+  DOMAIN_VIEW_BASE_TITLE,
+  DOMAIN_VIEW_BASE_URL,
+} from 'sentry/views/insights/pages/settings';
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -57,16 +60,30 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   mobile_screens_module: ModuleName.MOBILE_VITALS,
 };
 
-export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+// Remove this when the new navigation is GA'd
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY: Partial<
   Record<TraceViewSources, string>
 > = {
   traces: 'traces',
   metrics: 'metrics',
   discover: 'discover',
   profiling_flamegraph: 'profiling',
-  performance_transaction_summary: 'performance',
+  performance_transaction_summary: 'traces',
   issue_details: 'issues',
   feedback_details: 'feedback',
+  dashboards: 'dashboards',
+};
+
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+  Record<TraceViewSources, string>
+> = {
+  traces: 'explore/traces',
+  metrics: 'metrics',
+  discover: 'explore/discover',
+  profiling_flamegraph: 'explore/profiling',
+  performance_transaction_summary: 'explore/traces',
+  issue_details: 'issues',
+  feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
 };
 
@@ -89,13 +106,24 @@ function getPerformanceBreadCrumbs(
 ) {
   const crumbs: Crumb[] = [];
 
+  const hasPerfLandingRemovalFlag = organization.features.includes(
+    'insights-performance-landing-removal'
+  );
+
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
   const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
-  crumbs.push({
-    label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
-    to: getBreadCrumbTarget(performanceUrl, location.query, organization),
-  });
+  if (!view && hasPerfLandingRemovalFlag) {
+    crumbs.push({
+      label: DOMAIN_VIEW_BASE_TITLE,
+      to: undefined,
+    });
+  } else {
+    crumbs.push({
+      label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
+      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
+    });
+  }
 
   switch (location.query.tab) {
     case Tab.EVENTS:
@@ -137,16 +165,6 @@ function getPerformanceBreadCrumbs(
       }
       break;
     }
-    case Tab.AGGREGATE_WATERFALL:
-      crumbs.push({
-        label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/aggregateWaterfall`,
-          location.query,
-          organization
-        ),
-      });
-      break;
     default:
       crumbs.push({
         label: t('Transaction Summary'),

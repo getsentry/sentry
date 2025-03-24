@@ -11,4 +11,4 @@ class Config(AppConfig):
 
         from .provider import ActiveDirectorySAML2Provider
 
-        register(ACTIVE_DIRECTORY_PROVIDER_NAME, ActiveDirectorySAML2Provider)
+        register(ActiveDirectorySAML2Provider)

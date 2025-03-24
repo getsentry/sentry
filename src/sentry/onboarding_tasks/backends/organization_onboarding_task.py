@@ -39,6 +39,9 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend[OrganizationOnboar
             OrganizationOnboardingTask.objects.filter(
                 Q(organization_id=organization_id)
                 & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
+                & Q(
+                    completion_seen__isnull=False
+                )  # For a task to be considered complete, it must have been marked as seen.
             ).values_list("task", flat=True)
         )
 

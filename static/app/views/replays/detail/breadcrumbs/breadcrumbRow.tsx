@@ -58,8 +58,8 @@ const BreadcrumbRow = forwardRef<HTMLDivElement, Props>(function BreadcrumbRow(
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
-        beforeHoverTime: currentHoverTime !== undefined ? isBeforeHover : undefined,
-        afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
+        beforeHoverTime: currentHoverTime === undefined ? undefined : isBeforeHover,
+        afterHoverTime: currentHoverTime === undefined ? undefined : !isBeforeHover,
       })}
       style={style}
       frame={frame}

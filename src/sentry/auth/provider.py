@@ -51,15 +51,10 @@ class Provider(PipelineProvider, abc.ABC):
     # All auth providers by default require the sso-basic feature
     required_feature = "organizations:sso-basic"
 
-    def __init__(self, key: str, **config: Any) -> None:
+    def __init__(self, **config: Any) -> None:
         super().__init__()
-        self._key = key
         self.config = config
         self.logger = logging.getLogger(f"sentry.auth.{self.key}")
-
-    @property
-    def key(self) -> str:
-        return self._key
 
     def get_configure_view(
         self,

@@ -5,12 +5,12 @@ import time
 
 import orjson
 from django.http import HttpResponse
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -27,7 +27,7 @@ class GitHubIntegrationsInstallationEndpoint(Endpoint):
     }
     owner = ApiOwner.ENTERPRISE
 
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request, installation_id):
         try:

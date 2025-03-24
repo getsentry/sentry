@@ -51,7 +51,7 @@ function ThresholdsSection({
 
           if (newThresholds) {
             if (value) {
-              newThresholds.max_values[maxKey] = parseInt(value, 10);
+              newThresholds.max_values[maxKey] = Number(value);
             } else {
               delete newThresholds.max_values[maxKey];
             }

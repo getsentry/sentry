@@ -262,9 +262,9 @@ class MetricsQueryBuilder(BaseQueryBuilder):
         return bool(self._on_demand_metric_spec_map)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec]:
         if not self.builder_config.on_demand_metrics_enabled:
-            return None
+            return {}
 
         spec_map = {}
         for col in self.selected_columns:
@@ -1861,7 +1861,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         }
 
         seen_metrics_metas = {}
-        time_data_map = defaultdict(dict)
+        time_data_map: dict[str, dict[str, dict[str, str]]] = defaultdict(dict)
 
         for metrics_data in metrics_data_list:
             for meta in metrics_data["meta"]:
@@ -1906,11 +1906,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
 
 class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
-    # Kept for building on demand specs
-    timeseries_columns = []
-    # Needs to be kept for rebuilding where clause for on-demand metrics.
-    top_events = []
-
     def __init__(
         self,
         dataset: Dataset,
@@ -1975,9 +1970,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         return sorted(translated)
 
     @cached_property
-    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec] | None:
+    def _on_demand_metric_spec_map(self) -> dict[str, OnDemandMetricSpec]:
         if not self.builder_config.on_demand_metrics_enabled:
-            return None
+            return {}
 
         return {
             col: self._get_on_demand_metric_spec(col)

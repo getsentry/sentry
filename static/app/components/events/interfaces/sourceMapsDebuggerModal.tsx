@@ -5,8 +5,9 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Alert} from 'sentry/components/core/alert';
+import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -26,8 +27,11 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import useProjects from 'sentry/utils/useProjects';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -109,11 +113,13 @@ export interface FrameSourceMapDebuggerData {
   matchingSourceFileNames: string[];
   matchingSourceMapName: string | null;
   minDebugIdSdkVersion: string | null;
+  projectPlatform: PlatformKey | undefined;
   release: string | null;
   releaseHasSomeArtifact: boolean;
   releaseProgress: number;
   releaseProgressPercent: number;
   releaseSourceMapReference: string | null;
+  releaseUserAgent: string | null;
   scrapingProgress: number;
   scrapingProgressPercent: number;
   sdkDebugIdSupport: 'full' | 'needs-upgrade' | 'not-supported' | 'unofficial-sdk';
@@ -142,8 +148,295 @@ export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   analyticsParams: SourceMapWizardBlueThunderAnalyticsParams & {
     organization: Organization | null;
   };
+  projectId: string;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  orgSlug?: string;
 }
+
+const projectPlatformToDocsMap: Record<string, string> = {
+  'node-azurefunctions': 'azure-functions',
+  'node-cloudflare-pages': 'cloudflare',
+  'node-cloudflare-workers': 'cloudflare',
+  'node-connect': 'connect',
+  'node-express': 'express',
+  'node-fastify': 'fastify',
+  'node-gcpfunctions': 'gcp-functions',
+  'node-hapi': 'hapi',
+  'node-koa': 'koa',
+  'node-nestjs': 'nestjs',
+  'node-restify': 'restify',
+  'node-awslambda': 'aws-lambda',
+};
+
+function isReactNativeSDK({sdkName}: Pick<FrameSourceMapDebuggerData, 'sdkName'>) {
+  return sdkName === 'sentry.javascript.react-native';
+}
+
+function getPlatform({
+  sdkName,
+  projectPlatform,
+}: Pick<FrameSourceMapDebuggerData, 'sdkName' | 'projectPlatform'>) {
+  const platformBySdkName = defined(sdkName) ? sourceMapSdkDocsMap[sdkName] : undefined;
+  const platformByProjectName = defined(projectPlatform)
+    ? projectPlatformToDocsMap[projectPlatform]
+    : undefined;
+  return (
+    (platformBySdkName === 'node' ? platformByProjectName : platformBySdkName) ??
+    'javascript'
+  );
+}
+
+function getSourceMapsDocLinks(platform: string) {
+  if (platform === 'react-native') {
+    return {
+      sourcemaps: `https://docs.sentry.io/platforms/react-native/sourcemaps/`,
+      legacyUploadingMethods: `https://docs.sentry.io/platforms/react-native/sourcemaps/troubleshooting/legacy-uploading-methods/`,
+      sentryCli: `https://docs.sentry.io/platforms/react-native/sourcemaps/uploading/`,
+      bundlerPluginRepoLink: `https://docs.sentry.io/platforms/react-native/manual-setup/metro/`,
+    };
+  }
+
+  const basePlatformUrl =
+    platform === 'javascript'
+      ? 'https://docs.sentry.io/platforms/javascript'
+      : `https://docs.sentry.io/platforms/javascript/guides/${platform}`;
+
+  return {
+    sourcemaps: `${basePlatformUrl}/sourcemaps/`,
+    // Although we have a few specific sourcemap pages (see: https://github.com/getsentry/sentry-docs/tree/master/platform-includes/sourcemaps/primer),
+    // they don't include the Sentry bundler section. All the others just render content for JavaScript.
+    // Therefore, we have a static link here.
+    sentryBundleSupport: `https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support`,
+    // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
+    artifactBundles: ['cordova', 'capacitor'].includes(platform)
+      ? undefined
+      : `${basePlatformUrl}/sourcemaps/troubleshooting_js/artifact-bundles/`,
+    // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
+    legacyUploadingMethods: ['cordova', 'capacitor'].includes(platform)
+      ? undefined
+      : `${basePlatformUrl}/sourcemaps/troubleshooting_js/legacy-uploading-methods/`,
+    rewriteFrames: `${basePlatformUrl}/configuration/integrations/rewriteframes/`,
+    // nextjs, remix, solidstart, sveltekit, astro and nuxt are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c341c7679d84bc0fdb05335ebe150c2ca6469e1d/docs/platforms/javascript/common/sourcemaps/uploading/index.mdx?plain=1#L5-L11)
+    sentryCli: ['nextjs', 'remix', 'solidstart', 'sveltekit', 'astro', 'nuxt'].includes(
+      platform
+    )
+      ? undefined
+      : `${basePlatformUrl}/sourcemaps/uploading/cli/`,
+    // a few platforms are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c341c7679d84bc0fdb05335ebe150c2ca6469e1d/docs/platforms/javascript/common/sourcemaps/uploading/hosting-publicly.mdx?plain=1#L5-L16)
+    hostingPublicly: [
+      'node',
+      'aws-lambda',
+      'azure-functions',
+      'connect',
+      'express',
+      'fastify',
+      'gcp-functions',
+      'hapi',
+      'hono',
+      'koa',
+      'nestjs',
+    ].includes(platform)
+      ? undefined
+      : `${basePlatformUrl}/sourcemaps/uploading/hosting-publicly/`,
+    bundlerPluginRepoLink: `https://github.com/getsentry/sentry-javascript-bundler-plugins`,
+  };
+}
+
+function SentryWizardCallout({
+  analyticsParams,
+  orgSlug = 'example-org',
+  projectSlug = 'example-project',
+}: Pick<SourceMapsDebuggerModalProps, 'analyticsParams'> & {
+  orgSlug?: string;
+  projectSlug?: string;
+}) {
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  return (
+    <Fragment>
+      <WizardInstructionParagraph>
+        {tct(
+          'Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project’s terminal? It’s the easiest way to get source maps set up:',
+          {
+            code: <code />,
+          }
+        )}
+      </WizardInstructionParagraph>
+      <InstructionCodeSnippet
+        language="bash"
+        dark
+        onCopy={() => {
+          trackAnalytics(
+            'source_map_debug_blue_thunder.source_map_wizard_command_copied',
+            analyticsParams
+          );
+        }}
+        onSelectAndCopy={() => {
+          trackAnalytics(
+            'source_map_debug_blue_thunder.source_map_wizard_command_copied',
+            analyticsParams
+          );
+        }}
+      >
+        {`npx @sentry/wizard@latest -i sourcemaps${isSelfHosted ? '' : ' --saas'} --org ${orgSlug} --project ${projectSlug}`}
+      </InstructionCodeSnippet>
+    </Fragment>
+  );
+}
+
+const metaFrameworksWithSentryWizardInOnboarding = [
+  'nextjs',
+  'nuxt',
+  'remix',
+  'sveltekit',
+];
+
+function MetaFrameworkConfigInfo({
+  framework,
+  orgSlug = 'example-org',
+  projectSlug = 'example-project',
+}: {
+  framework: string;
+  orgSlug?: string;
+  projectSlug?: string;
+}) {
+  if (framework === 'nextjs') {
+    return (
+      <p>
+        {tct(
+          'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+          {
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional" />
+            ),
+          }
+        )}
+        <InstructionCodeSnippet
+          language="javascript"
+          dark
+          filename="next.config.(js|mjs)"
+        >
+          {`export default withSentryConfig(nextConfig, {
+  // If you use environment variables,
+  // you don't need to specify these options
+  org: "${orgSlug}",
+  project: "${projectSlug}",
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
+  // ... rest of your sentry config
+});`}
+        </InstructionCodeSnippet>
+      </p>
+    );
+  }
+
+  if (framework === 'nuxt') {
+    return (
+      <p>
+        {tct(
+          'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+          {
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload" />
+            ),
+          }
+        )}
+        <InstructionCodeSnippet language="javascript" dark filename="nuxt.config.ts">
+          {`export default defineNuxtConfig({
+  modules: ["@sentry/nuxt/module"],
+  sentry: {
+    sourceMapsUploadOptions: {
+      // If you use environment variables,
+      // you don't need to specify these options
+      org: "${orgSlug}",
+      project: "${projectSlug}",
+      // ... rest of your sourceMapsUploadOptions
+    }
+    // ... rest of your sentry config
+  },
+  // Enable it explicitly for the client-side
+  // The 'hidden' option functions the same as true
+  sourcemap: { client: "hidden" }
+  // ... rest of your Nuxt config
+});
+`}
+        </InstructionCodeSnippet>
+      </p>
+    );
+  }
+
+  if (framework === 'remix') {
+    return (
+      <p>
+        {tct(
+          'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+          {
+            vitePluginLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
+            ),
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/#using-vite-plugin-recommended" />
+            ),
+          }
+        )}
+        <InstructionCodeSnippet language="javascript" dark filename="vite.config.ts">
+          {`export default defineConfig({
+  plugins: [
+    remix({
+      // ... your Remix plugin options
+    }),
+    sentryVitePlugin({
+      // If you use environment variables,
+      // you don't need to specify these options
+      org: "${orgSlug}",
+      project: "${projectSlug}",
+      // ... rest of your sentryVitePlugin
+    }),
+    // ... rest of your plugins
+  ],
+  build: {
+    sourcemap: true,
+    // ... rest of your Vite build options
+  },
+  // ... rest of your Vite config
+});`}
+        </InstructionCodeSnippet>
+      </p>
+    );
+  }
+
+  // Sveltekit
+  return (
+    <p>
+      {tct(
+        'Firstly, make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
+        {
+          docLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload" />
+          ),
+        }
+      )}
+      <InstructionCodeSnippet language="javascript" dark filename="vite.config.(js|ts)">
+        {`export default {
+  plugins: [
+    sentrySvelteKit({
+      // If you use environment variables,
+      // you don't need to specify these options
+      org: "${orgSlug}",
+      project: "${projectSlug}",
+      // Set this to true, or omit it entirely
+      autoUploadSourceMaps: true,
+      // ... rest of your sentrySvelteKit
+    }),
+    sveltekit(),
+  ],
+  // ... rest of your Vite config
+};`}
+      </InstructionCodeSnippet>
+    </p>
+  );
+}
+type SourceMapsDocLinks = ReturnType<typeof getSourceMapsDocLinks>;
 
 export function SourceMapsDebuggerModal({
   Body,
@@ -151,10 +444,23 @@ export function SourceMapsDebuggerModal({
   Footer,
   sourceResolutionResults,
   analyticsParams,
+  orgSlug,
+  projectId,
 }: SourceMapsDebuggerModalProps) {
   const theme = useTheme();
 
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === projectId);
+
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
+
   const [activeTab, setActiveTab] = useState<'debug-ids' | 'release' | 'fetching'>(() => {
+    // If the SDK supports Debug IDs, the Debug IDs tab should be shown by default
+    if (sourceResolutionResults.sdkDebugIdSupport === 'full') {
+      return 'debug-ids';
+    }
+
     const possibleTabs = [
       {tab: 'debug-ids', progress: sourceResolutionResults.debugIdProgressPercent},
       {tab: 'release', progress: sourceResolutionResults.releaseProgressPercent},
@@ -179,39 +485,27 @@ export function SourceMapsDebuggerModal({
             "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
           )}
         </p>
-        <WizardInstructionParagraph>
-          {t(
-            'The easiest way to get started with source maps is by running the Sentry Source Map Wizard in the terminal inside your project:'
-          )}
-        </WizardInstructionParagraph>
-        <InstructionCodeSnippet
-          language="bash"
-          dark
-          onCopy={() => {
-            trackAnalytics(
-              'source_map_debug_blue_thunder.source_map_wizard_command_copied',
-              analyticsParams
-            );
-          }}
-          onSelectAndCopy={() => {
-            trackAnalytics(
-              'source_map_debug_blue_thunder.source_map_wizard_command_copied',
-              analyticsParams
-            );
-          }}
-        >
-          {'npx @sentry/wizard@latest -i sourcemaps'}
-        </InstructionCodeSnippet>
+        {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
+          <MetaFrameworkConfigInfo
+            framework={platform}
+            orgSlug={orgSlug}
+            projectSlug={project?.slug}
+          />
+        ) : (
+          <SentryWizardCallout
+            analyticsParams={analyticsParams}
+            orgSlug={orgSlug}
+            projectSlug={project?.slug}
+          />
+        )}
         <p>
           {t(
-            'There are multiple ways to configure source maps. The checklists below will help you set them up correctly. Choose one of the following processes:'
+            "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
           )}
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
-          onChange={tab => {
-            setActiveTab(tab);
-          }}
+          onChange={setActiveTab}
         >
           <TabList>
             <TabList.Item
@@ -219,6 +513,7 @@ export function SourceMapsDebuggerModal({
               textValue={`${t('Debug IDs')} (${
                 sourceResolutionResults.debugIdProgress
               }/4)`}
+              hidden={sourceResolutionResults.sdkDebugIdSupport === 'not-supported'}
             >
               <StyledProgressRing
                 progressColor={
@@ -230,9 +525,9 @@ export function SourceMapsDebuggerModal({
                 barWidth={4}
               />
               {`${t('Debug IDs')}${
-                sourceResolutionResults.sdkDebugIdSupport !== 'not-supported'
-                  ? ' ' + t('(recommended)')
-                  : ''
+                sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
+                  ? ''
+                  : ' ' + t('(recommended)')
               }`}
             </TabList.Item>
             <TabList.Item
@@ -257,9 +552,7 @@ export function SourceMapsDebuggerModal({
               }/4)`}
               hidden={
                 !sourceResolutionResults.hasScrapingData ||
-                !sourceResolutionResults.sdkName?.startsWith(
-                  'sentry.javascript.react-native'
-                )
+                isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
               }
             >
               <StyledProgressRing
@@ -278,8 +571,10 @@ export function SourceMapsDebuggerModal({
                 {tct(
                   '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
                   {
-                    link: (
-                      <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/" />
+                    link: defined(sourceMapsDocLinks.artifactBundles) ? (
+                      <ExternalLinkWithIcon href={sourceMapsDocLinks.artifactBundles} />
+                    ) : (
+                      <Fragment />
                     ),
                   }
                 )}
@@ -356,8 +651,10 @@ export function SourceMapsDebuggerModal({
                 {tct(
                   'Sentry will fetch your source files and source maps if you [link:host them publicly].',
                   {
-                    link: (
-                      <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/hosting-publicly/" />
+                    link: defined(sourceMapsDocLinks.hostingPublicly) ? (
+                      <ExternalLinkWithIcon href={sourceMapsDocLinks.hostingPublicly} />
+                    ) : (
+                      <Fragment />
                     ),
                   }
                 )}
@@ -381,8 +678,9 @@ export function SourceMapsDebuggerModal({
       </Body>
       <Footer>
         <Link
-          to=""
+          to="#"
           onClick={e => {
+            e.preventDefault();
             e.stopPropagation();
             openModal(modalProps => (
               <FeedbackModal
@@ -451,25 +749,25 @@ function InstalledSdkChecklistItem({
         <CheckListInstruction type="muted">
           <h6>{t('Outdated SDK')}</h6>
           <p>
-            {sourceResolutionResults.sdkVersion !== null
-              ? tct(
+            {sourceResolutionResults.sdkVersion === null
+              ? t(
+                  'You are using an outdated version of the Sentry SDK which does not support debug IDs.'
+                )
+              : tct(
                   'You are using version [currentVersion] of the Sentry SDK which does not support debug IDs.',
                   {
                     currentVersion: (
                       <MonoBlock>{sourceResolutionResults.sdkVersion}</MonoBlock>
                     ),
                   }
-                )
-              : t(
-                  'You are using an outdated version of the Sentry SDK which does not support debug IDs.'
                 )}{' '}
-            {sourceResolutionResults.minDebugIdSdkVersion !== null
-              ? tct('You should upgrade to version [targetVersion] or higher.', {
+            {sourceResolutionResults.minDebugIdSdkVersion === null
+              ? t('You should upgrade to the latest version.')
+              : tct('You should upgrade to version [targetVersion] or higher.', {
                   targetVersion: (
                     <MonoBlock>{sourceResolutionResults.minDebugIdSdkVersion}</MonoBlock>
                   ),
-                })
-              : t('You should upgrade to the latest version.')}
+                })}
           </p>
           <p>
             {tct(
@@ -524,6 +822,159 @@ function InstalledSdkChecklistItem({
   );
 }
 
+function getToolUsedToUploadSourceMaps({
+  releaseUserAgent,
+}: Pick<FrameSourceMapDebuggerData, 'releaseUserAgent'>) {
+  const tools = [
+    'sentry-cli',
+    'vite-plugin',
+    'webpack-plugin',
+    'rollup-plugin',
+    'esbuild-plugin',
+  ];
+
+  return tools.reduce(
+    (acc, tool) => {
+      const key = tool.replace(/-([a-z])/g, (_match, name) => name.toUpperCase());
+      acc[key] = releaseUserAgent?.includes(tool) ?? false;
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
+}
+
+type ToolUsedToUploadSourceMaps = ReturnType<typeof getToolUsedToUploadSourceMaps>;
+
+const pluginConfig: Record<
+  keyof Omit<ToolUsedToUploadSourceMaps, 'sentryCli'>,
+  {
+    configFile: string;
+    link: string;
+    name: string;
+  }
+> = {
+  vitePlugin: {
+    name: 'Vite',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/',
+    configFile: 'vite.config.(js|ts)',
+  },
+  webpackPlugin: {
+    name: 'Webpack',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/webpack/',
+    configFile: 'webpack.config.(js|ts)',
+  },
+  rollupPlugin: {
+    name: 'Rollup',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/rollup/',
+    configFile: 'rollup.config.(js|ts)',
+  },
+  esbuildPlugin: {
+    name: 'Esbuild',
+    link: 'https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/esbuild/',
+    configFile: 'esbuild.config.(js|ts)',
+  },
+};
+
+function SentryPluginMessage({
+  toolUsedToUploadSourceMaps,
+  sourceMapsDocLinks,
+}: {
+  sourceMapsDocLinks: SourceMapsDocLinks;
+  toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
+}) {
+  const activePlugin = Object.keys(pluginConfig).find(
+    key => toolUsedToUploadSourceMaps[key as keyof ToolUsedToUploadSourceMaps]
+  );
+
+  const plugin = activePlugin
+    ? pluginConfig[activePlugin as keyof typeof pluginConfig]
+    : undefined;
+
+  if (plugin) {
+    return (
+      <p>
+        {tct(
+          'For your Sentry [pluginNameAndLink] Plugin, check your [configFile] and ensure the plugin is active when building your production app. You cannot do two separate builds—one for uploading to Sentry with the plugin active, and one for deploying without it. The plugin needs to be active for every build.',
+          {
+            pluginNameAndLink: (
+              <ExternalLinkWithIcon href={plugin.link}>
+                {plugin.name}
+              </ExternalLinkWithIcon>
+            ),
+            configFile: <code>{plugin.configFile}</code>,
+          }
+        )}
+      </p>
+    );
+  }
+
+  return (
+    <p>
+      {tct(
+        'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+        {
+          bundlerPluginRepoLink: (
+            <ExternalLinkWithIcon href={sourceMapsDocLinks.bundlerPluginRepoLink} />
+          ),
+        }
+      )}
+    </p>
+  );
+}
+
+function SentryCliMessage({
+  sourceResolutionResults,
+  sourceMapsDocLinks,
+  toolUsedToUploadSourceMaps,
+}: {
+  sourceMapsDocLinks: SourceMapsDocLinks & {
+    sentryCli: NonNullable<SourceMapsDocLinks['sentryCli']>;
+  };
+  sourceResolutionResults: FrameSourceMapDebuggerData;
+  toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
+}) {
+  if (isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})) {
+    return (
+      <p>
+        {tct(
+          'When manually creating source maps, ensure that you upload the exact same files that were bundled into the application package. For details, see the [uploadingSourceMapsLink:Uploading Source Maps documentation]',
+          {
+            uploadingSourceMapsLink: (
+              <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />
+            ),
+          }
+        )}
+      </p>
+    );
+  }
+
+  if (toolUsedToUploadSourceMaps.sentryCli) {
+    return (
+      <p>
+        {tct(
+          'Since you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified.',
+          {
+            sentryCliLink: <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />,
+            injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
+          }
+        )}
+      </p>
+    );
+  }
+
+  return (
+    <p>
+      {tct(
+        'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified.',
+        {
+          sentryCliLink: <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryCli} />,
+          injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
+        }
+      )}
+    </p>
+  );
+}
+
 function HasDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
@@ -531,6 +982,8 @@ function HasDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Stack frame has Debug IDs');
   const errorMessage = t("Stack frame doesn't have Debug IDs");
 
@@ -559,43 +1012,66 @@ function HasDebugIdChecklistItem({
   }
 
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
+    const toolUsedToUploadSourceMaps = getToolUsedToUploadSourceMaps(
+      sourceResolutionResults
+    );
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
           <h6>Uploaded Files Not Deployed</h6>
-          <p>
-            {t(
-              "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that you didn't deploy the same files you injected the Debug IDs into. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
-            )}
-          </p>
-          <p>
-            {tct(
-              'If you are using a [bundlerPluginRepoLink:Sentry Plugin for your Bundler], the plugin needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
-              {
-                bundlerPluginRepoLink: (
-                  <ExternalLinkWithIcon href="https://github.com/getsentry/sentry-javascript-bundler-plugins" />
-                ),
-              }
-            )}
-          </p>
-          <p>
-            {tct(
-              'If you are utilizing [sentryCliLink:Sentry CLI], ensure that you deploy the exact files that the [injectCommand] command has modified!',
-              {
-                sentryCliLink: (
-                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/cli/" />
-                ),
-                injectCommand: <MonoBlock>sentry-cli sourcemaps inject</MonoBlock>,
-              }
-            )}
-          </p>
+          {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName}) ? (
+            <Fragment>
+              <p>
+                {t(
+                  "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that your application doesn't include the same files you uploaded to Sentry."
+                )}
+              </p>
+              <p>
+                {t(
+                  'For Sentry to be able to show your original source code, it is required that you build the application with the exact same files that you uploaded to Sentry.'
+                )}
+              </p>
+              <p>
+                {tct(
+                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+                  {
+                    bundlerPluginRepoLink: (
+                      <ExternalLinkWithIcon
+                        href={sourceMapsDocLinks.bundlerPluginRepoLink}
+                      />
+                    ),
+                  }
+                )}
+              </p>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <p>
+                {t(
+                  "It seems you already uploaded artifacts with Debug IDs, however, this event doesn't contain any Debug IDs yet. Generally this means that you didn't deploy the same files you injected the Debug IDs into. For Sentry to be able to show your original source code, it is required that you deploy the exact same files that you uploaded to Sentry."
+                )}
+              </p>
+              <SentryPluginMessage
+                toolUsedToUploadSourceMaps={toolUsedToUploadSourceMaps}
+                sourceMapsDocLinks={sourceMapsDocLinks}
+              />
+            </Fragment>
+          )}
+          {defined(sourceMapsDocLinks.sentryCli) && (
+            <SentryCliMessage
+              sourceMapsDocLinks={{
+                ...sourceMapsDocLinks,
+                sentryCli: sourceMapsDocLinks.sentryCli,
+              }}
+              sourceResolutionResults={sourceResolutionResults}
+              toolUsedToUploadSourceMaps={toolUsedToUploadSourceMaps}
+            />
+          )}
           <p>
             {tct(
               'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
               {
-                link: (
-                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-                ),
+                link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
               }
             )}
           </p>
@@ -612,9 +1088,7 @@ function HasDebugIdChecklistItem({
           {tct(
             "This event doesn't contain any Debug IDs. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
             {
-              link: (
-                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-              ),
+              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
             }
           )}
         </p>
@@ -630,6 +1104,8 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Source file with a matching Debug ID was uploaded');
   const errorMessage = t('Missing source file with a matching Debug ID');
 
@@ -675,9 +1151,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
           {tct(
             "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
             {
-              link: (
-                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-              ),
+              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
             }
           )}
         </p>
@@ -694,6 +1168,8 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Uploaded source map with a matching Debug ID');
   const errorMessage = t('Missing source map with a matching Debug ID');
 
@@ -740,9 +1216,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
           {tct(
             "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
             {
-              link: (
-                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-              ),
+              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
             }
           )}
         </p>
@@ -758,6 +1232,8 @@ function EventHasReleaseNameChecklistItem({
 }: {
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Event has release value');
   const errorMessage = t("Event doesn't have a release value");
 
@@ -780,16 +1256,18 @@ function EventHasReleaseNameChecklistItem({
   release: 'your-release-name'
 })`}
         </InstructionCodeSnippet>
-        <p>
-          {tct(
-            'Alternatively, you can configure one of our build tools to automatically inject a release value into your code: [link:Sentry Bundler Support]',
-            {
-              link: (
-                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support" />
-              ),
-            }
-          )}
-        </p>
+        {defined(sourceMapsDocLinks.sentryBundleSupport) && (
+          <p>
+            {tct(
+              'Alternatively, you can configure one of our build tools to automatically inject a release value into your code: [link:Sentry Bundler Support]',
+              {
+                link: (
+                  <ExternalLinkWithIcon href={sourceMapsDocLinks.sentryBundleSupport} />
+                ),
+              }
+            )}
+          </p>
+        )}
       </CheckListInstruction>
     </CheckListItem>
   );
@@ -802,14 +1280,10 @@ function ReleaseHasUploadedArtifactsChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Release has uploaded artifacts');
   const errorMessage = t("Release doesn't have uploaded artifacts");
-
-  const docsLink = sourceResolutionResults.sdkName?.startsWith(
-    'sentry.javascript.react-native'
-  )
-    ? 'https://docs.sentry.io/platforms/react-native/sourcemaps/'
-    : 'https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/legacy-uploading-methods/';
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -833,7 +1307,11 @@ function ReleaseHasUploadedArtifactsChecklistItem({
           {tct(
             'Read the [link:Sentry Source Maps Documentation] to learn how to to upload your build artifacts to Sentry.',
             {
-              link: <ExternalLinkWithIcon href={docsLink} />,
+              link: defined(sourceMapsDocLinks.legacyUploadingMethods) ? (
+                <ExternalLinkWithIcon href={sourceMapsDocLinks.legacyUploadingMethods} />
+              ) : (
+                <Fragment />
+              ),
             }
           )}
         </p>
@@ -849,6 +1327,8 @@ function ReleaseSourceFileMatchingChecklistItem({
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
 }) {
+  const platform = getPlatform(sourceResolutionResults);
+  const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Stack frame path matches a source file artifact name');
   const errorMessage = t("Stack frame path doesn't match a source file artifact name");
 
@@ -870,18 +1350,18 @@ function ReleaseSourceFileMatchingChecklistItem({
               'You uploaded a source file artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
             )}
           </p>
-          {sourceResolutionResults.dist !== null ? (
+          {sourceResolutionResults.dist === null ? (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
-                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
+                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
+                {dist: <MonoBlock>dist</MonoBlock>}
               )}
             </p>
           ) : (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
-                {dist: <MonoBlock>dist</MonoBlock>}
+                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
             </p>
           )}
@@ -936,28 +1416,28 @@ function ReleaseSourceFileMatchingChecklistItem({
         </InstructionList>
         <p>
           {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
-          {sourceResolutionResults.dist !== null
-            ? tct(
+          {sourceResolutionResults.dist === null
+            ? t(
+                "This event doesn't have a dist value. Please check that you uploaded your artifacts without dist value."
+              )
+            : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your artifacts with dist [dist].',
                 {
                   dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
                 }
-              )
-            : t(
-                "This event doesn't have a dist value. Please check that you uploaded your artifacts without dist value."
               )}
         </p>
         {/* TODO: Link to uploaded files for this release. */}
-        <p>
-          {tct(
-            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',
-            {
-              link: (
-                <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/configuration/integrations/rewriteframes/" />
-              ),
-            }
-          )}
-        </p>
+        {defined(sourceMapsDocLinks.rewriteFrames) && (
+          <p>
+            {tct(
+              'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',
+              {
+                link: <ExternalLinkWithIcon href={sourceMapsDocLinks.rewriteFrames} />,
+              }
+            )}
+          </p>
+        )}
       </CheckListInstruction>
     </CheckListItem>
   );
@@ -1014,18 +1494,18 @@ function ReleaseSourceMapMatchingChecklistItem({
               'You uploaded a source map artifact with the right name, however the dist value on this event does not match the dist value on the artifact.'
             )}
           </p>
-          {sourceResolutionResults.dist !== null ? (
+          {sourceResolutionResults.dist === null ? (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
-                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
+                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
+                {dist: <MonoBlock>dist</MonoBlock>}
               )}
             </p>
           ) : (
             <p>
               {tct(
-                'Upload your build artifacts to Sentry using a matching [dist] value or adjust the [dist] value in your SDK options.',
-                {dist: <MonoBlock>dist</MonoBlock>}
+                'Upload your build artifacts to Sentry using the dist [dist] or adjust the dist value in your SDK options.',
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
             </p>
           )}
@@ -1055,15 +1535,15 @@ function ReleaseSourceMapMatchingChecklistItem({
         </p>
         <p>
           {/* wrong-dist is not deterministically returned in the case of wrong dist values because of database restrictions */}
-          {sourceResolutionResults.dist !== null
-            ? tct(
+          {sourceResolutionResults.dist === null
+            ? t(
+                "This event doesn't have a dist value. Please check that you uploaded your sourcemaps without dist value."
+              )
+            : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your sourcemaps with dist [dist].',
                 {
                   dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
                 }
-              )
-            : t(
-                "This event doesn't have a dist value. Please check that you uploaded your sourcemaps without dist value."
               )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -1323,6 +1803,7 @@ const ListItemContentContainer = styled('div')`
   flex-grow: 1;
   margin-left: ${space(1.5)};
   padding-bottom: ${space(2)};
+  max-width: 100%;
 `;
 
 const CompletionNoteContainer = styled('div')`
@@ -1354,7 +1835,6 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
 const CheckListInstruction = styled(Alert)`
   width: 100%;
   margin-top: ${space(1)};
-  margin-bottom: 0;
   overflow-x: auto;
 
   h6 {

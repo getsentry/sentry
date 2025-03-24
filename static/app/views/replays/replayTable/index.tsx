@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
@@ -260,7 +260,6 @@ const StyledAlert = styled(Alert)`
   border-radius: 0;
   border-width: 1px 0 0 0;
   grid-column: 1/-1;
-  margin-bottom: 0;
 `;
 
 const Row = styled('div')<{

@@ -1,4 +1,12 @@
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
+import {useContext} from 'react';
+
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import {
+  findCompleteOrOverdueTasks,
+  findCompleteTasks,
+  taskIsDone,
+} from 'sentry/components/onboardingWizard/utils';
 import {
   type OnboardingTask,
   OnboardingTaskGroup,
@@ -6,6 +14,7 @@ import {
 } from 'sentry/types/onboarding';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 // Merge supported onboarding tasks with their completion status from the server.
 function mergeTasks({
@@ -24,34 +33,38 @@ function mergeTasks({
             serverTask.task === supportedTask.task ||
             serverTask.task === supportedTask.serverTask
         ),
-        requisiteTasks: [],
       }) as OnboardingTask
   );
 }
 
 // This hook polls the onboarding tasks endpoint every second until all supported tasks are complete and
 // returns the task groups: "allTasks", "gettingStartedTasks", "beyondBasicsTasks", and "completeTasks".
-export function useOnboardingTasks({
-  supportedTasks,
-  enabled,
-}: {
-  enabled: boolean;
-  supportedTasks: OnboardingTask[];
-}): {
+export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}): {
   allTasks: OnboardingTask[];
   beyondBasicsTasks: OnboardingTask[];
+  completeOrOverdueTasks: OnboardingTask[];
   completeTasks: OnboardingTask[];
   doneTasks: OnboardingTask[];
   gettingStartedTasks: OnboardingTask[];
   refetch: () => void;
 } {
   const organization = useOrganization();
+  const onboardingContext = useContext(OnboardingContext);
+  const {projects} = useProjects();
+  const supportedTasks = getMergedTasks({
+    organization,
+    projects,
+    onboardingContext,
+  }).filter(task => task.display);
+
+  const allTasksDone = supportedTasks.every(findCompleteTasks);
 
   const {data: serverTasks = {onboardingTasks: []}, refetch} = useApiQuery<{
     onboardingTasks: OnboardingTaskStatus[];
   }>([`/organizations/${organization.slug}/onboarding-tasks/`], {
     staleTime: 0,
-    enabled,
+    enabled:
+      !!organization.features?.includes('onboarding') && !allTasksDone && !disabled,
     refetchInterval: query => {
       const data = query.state.data?.[0]?.onboardingTasks;
       if (!data) {
@@ -73,6 +86,7 @@ export function useOnboardingTasks({
   return {
     allTasks: mergedTasks,
     completeTasks: mergedTasks.filter(findCompleteTasks),
+    completeOrOverdueTasks: mergedTasks.filter(findCompleteOrOverdueTasks),
     doneTasks: mergedTasks.filter(taskIsDone),
     gettingStartedTasks: mergedTasks.filter(
       task => task.group === OnboardingTaskGroup.GETTING_STARTED

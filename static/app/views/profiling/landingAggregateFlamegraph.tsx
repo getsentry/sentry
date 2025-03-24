@@ -2,10 +2,10 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -381,17 +381,7 @@ function AggregateFlamegraphFunctionBreakdown(
         {tct('Called By ([count])', {count: callers.length})}
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
-        {!callers.length ? (
-          <AggregateFlamegraphFunctionBreakdownEmptyState>
-            <Tooltip
-              title={t(
-                'When a function has no callers, it means that it is a root function.'
-              )}
-            >
-              {t('No callers detected.')}
-            </Tooltip>
-          </AggregateFlamegraphFunctionBreakdownEmptyState>
-        ) : (
+        {callers.length ? (
           callers.map((caller, c) => (
             <AggregateFlamegraphFunction
               key={c}
@@ -403,23 +393,23 @@ function AggregateFlamegraphFunctionBreakdown(
               profileGroup={profileGroup}
             />
           ))
+        ) : (
+          <AggregateFlamegraphFunctionBreakdownEmptyState>
+            <Tooltip
+              title={t(
+                'When a function has no callers, it means that it is a root function.'
+              )}
+            >
+              {t('No callers detected.')}
+            </Tooltip>
+          </AggregateFlamegraphFunctionBreakdownEmptyState>
         )}
       </AggregateFlamegraphSection>
       <AggregateFlamegraphSectionHeader>
         {tct('Calls ([count])', {count: callees.length})}
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
-        {!callees.length ? (
-          <AggregateFlamegraphFunctionBreakdownEmptyState>
-            <Tooltip
-              title={t(
-                'When a function has no callees, it likely means that it is a leaf function, or that the profiler did not collect any samples of its callees yet.'
-              )}
-            >
-              {t('No callees detected.')}
-            </Tooltip>
-          </AggregateFlamegraphFunctionBreakdownEmptyState>
-        ) : (
+        {callees.length ? (
           callees.map((callee, c) => (
             <AggregateFlamegraphFunction
               key={c}
@@ -431,6 +421,16 @@ function AggregateFlamegraphFunctionBreakdown(
               profileGroup={profileGroup}
             />
           ))
+        ) : (
+          <AggregateFlamegraphFunctionBreakdownEmptyState>
+            <Tooltip
+              title={t(
+                'When a function has no callees, it likely means that it is a leaf function, or that the profiler did not collect any samples of its callees yet.'
+              )}
+            >
+              {t('No callees detected.')}
+            </Tooltip>
+          </AggregateFlamegraphFunctionBreakdownEmptyState>
         )}
       </AggregateFlamegraphSection>
       <AggregateFlamegraphSectionHeader>
@@ -439,11 +439,7 @@ function AggregateFlamegraphFunctionBreakdown(
         </Tooltip>
       </AggregateFlamegraphSectionHeader>
       <AggregateFlamegraphSection>
-        {!example.profileIds?.length ? (
-          <AggregateFlamegraphFunctionBreakdownEmptyState>
-            {t('No profiles detected.')}
-          </AggregateFlamegraphFunctionBreakdownEmptyState>
-        ) : (
+        {example.profileIds?.length ? (
           example.profileIds?.map((e, i) => {
             return (
               <AggregateFlamegraphProfileReference
@@ -455,6 +451,10 @@ function AggregateFlamegraphFunctionBreakdown(
               />
             );
           })
+        ) : (
+          <AggregateFlamegraphFunctionBreakdownEmptyState>
+            {t('No profiles detected.')}
+          </AggregateFlamegraphFunctionBreakdownEmptyState>
         )}
       </AggregateFlamegraphSection>
     </AggregateFlamegraphFunctionBreakdownContainer>
@@ -680,7 +680,7 @@ function AggregateFlamegraphProfileReference(props: {
     <AggregateFlamegraphProfileReferenceContainer>
       <AggregateFlamegraphProfileReferenceProject>
         <ProjectAvatar project={project} />
-        {project.name || project.slug}
+        {project.slug}
       </AggregateFlamegraphProfileReferenceProject>
       <Link to={to}>
         <TextOverflow>{reference.substring(0, 8)}</TextOverflow>
@@ -864,7 +864,6 @@ const AggregateFlamegraphContainer = styled('div')`
   flex: 1 1 100%;
   height: 100%;
   width: 100%;
-  overflow: hidden;
   position: absolute;
   left: 0px;
   top: 0px;

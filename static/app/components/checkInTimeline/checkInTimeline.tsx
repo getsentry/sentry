@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
+import {tn} from 'sentry/locale';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
 import {getTickStyle} from './utils/getTickStyle';
@@ -35,6 +36,12 @@ export interface CheckInTimelineProps<Status extends string>
    * Represents each check-in tick as bucketed check-in data.
    */
   bucketedData: Array<CheckInBucket<Status>>;
+  /**
+   * Status unit. Displayed on the check-in tooltip.
+   *
+   * Defaults to 'check-ins'
+   */
+  makeUnit?: (count: number) => React.ReactNode;
 }
 
 function getBucketedCheckInsPosition(
@@ -54,6 +61,7 @@ export function CheckInTimeline<Status extends string>({
   statusPrecedent,
   className,
   style,
+  makeUnit = count => tn('check-in', 'check-ins', count),
 }: CheckInTimelineProps<Status>) {
   const jobTicks = mergeBuckets(
     statusPrecedent,
@@ -76,12 +84,13 @@ export function CheckInTimeline<Status extends string>({
             timeWindowConfig={timeWindowConfig}
             skipWrapper
             key={startTs}
+            makeUnit={makeUnit}
           >
             <JobTick
               style={{left, width}}
               css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft={isStarting}
-              roundedRight={isEnding}
+              roundedLeft={isStarting && left !== 0}
+              roundedRight={isEnding && left + width !== timeWindowConfig.timelineWidth}
               data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
@@ -141,6 +150,8 @@ export function MockCheckInTimeline<Status extends string>({
 const TimelineContainer = styled('div')`
   position: relative;
   height: 14px;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const JobTick = styled('div')<{
@@ -148,10 +159,8 @@ const JobTick = styled('div')<{
   roundedRight: boolean;
 }>`
   position: absolute;
-  top: calc(50% + 1px);
   width: 4px;
   height: 14px;
-  transform: translateY(-50%);
   opacity: 0.7;
 
   ${p =>

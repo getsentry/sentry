@@ -2,27 +2,26 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import Count from 'sentry/components/count';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconGlobe, IconInfo} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {TourElement} from 'sentry/components/tours/components';
+import {IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -30,12 +29,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
-import ShareIssueModal, {getShareUrl} from 'sentry/views/issueDetails/actions/shareModal';
 import {Divider} from 'sentry/views/issueDetails/divider';
 import GroupPriority from 'sentry/views/issueDetails/groupPriority';
-import {ShortIdBreadcrumb} from 'sentry/views/issueDetails/shortIdBreadcrumb';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/streamline/header/assigneeSelector';
 import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/attachmentsBadge';
+import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -57,6 +59,7 @@ export default function StreamlinedGroupHeader({
   const location = useLocation();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
+
   const {sort: _sort, ...query} = location.query;
   const {count: eventCount, userCount} = group;
   const {title: primaryTitle, subtitle} = getTitle(group);
@@ -68,7 +71,6 @@ export default function StreamlinedGroupHeader({
   ].includes(groupReprocessingStatus);
 
   const statusProps = getBadgeProperties(group.status, group.substatus);
-  const shareUrl = group?.shareId ? getShareUrl(group) : null;
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   const hasOnlyOneUIOption = defined(organization.streamlineOnly);
@@ -92,48 +94,10 @@ export default function StreamlinedGroupHeader({
                   },
                 },
                 {
-                  label: (
-                    <ShortIdBreadcrumb
-                      organization={organization}
-                      project={project}
-                      group={group}
-                    />
-                  ),
+                  label: <IssueIdBreadcrumb project={project} group={group} />,
                 },
               ]}
             />
-            {group.isPublic && shareUrl ? (
-              <Button
-                size="xs"
-                borderless
-                aria-label={t('View issue share settings')}
-                title={tct('This issue has been shared [link:with a public link].', {
-                  link: <ExternalLink href={shareUrl} />,
-                })}
-                tooltipProps={{isHoverable: true}}
-                icon={
-                  <IconGlobe
-                    size="xs"
-                    color="subText"
-                    onClick={() =>
-                      openModal(modalProps => (
-                        <ShareIssueModal
-                          {...modalProps}
-                          organization={organization}
-                          projectSlug={group.project.slug}
-                          groupId={group.id}
-                          onToggle={() =>
-                            trackAnalytics('issue.shared_publicly', {
-                              organization,
-                            })
-                          }
-                        />
-                      ))
-                    }
-                  />
-                }
-              />
-            ) : null}
           </Flex>
           <ButtonBar gap={0.5}>
             {!hasOnlyOneUIOption && (
@@ -201,7 +165,7 @@ export default function StreamlinedGroupHeader({
           <Flex gap={space(1)} align="center" justify="flex-start">
             <Fragment>
               {issueTypeConfig.logLevel.enabled && (
-                <ErrorLevel level={group.level} size={'10px'} />
+                <ErrorLevel level={group.level} size={10} />
               )}
               {group.isUnhandled && <UnhandledTag />}
               {(issueTypeConfig.logLevel.enabled || group.isUnhandled) && <Divider />}
@@ -221,9 +185,11 @@ export default function StreamlinedGroupHeader({
                 </Subtitle>
               </Fragment>
             )}
-            <AttachmentsBadge group={group} />
-            <UserFeedbackBadge group={group} project={project} />
-            <ReplayBadge group={group} project={project} />
+            <ErrorBoundary customComponent={null}>
+              <AttachmentsBadge group={group} />
+              <UserFeedbackBadge group={group} project={project} />
+              <ReplayBadge group={group} project={project} />
+            </ErrorBoundary>
           </Flex>
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
@@ -235,30 +201,40 @@ export default function StreamlinedGroupHeader({
           )}
         </HeaderGrid>
       </Header>
-      <ActionBar isComplete={isComplete} role="banner">
-        <GroupActions
-          group={group}
-          project={project}
-          disabled={disableActions}
-          event={event}
-        />
-        <WorkflowActions>
-          <Workflow>
-            {t('Priority')}
-            <GroupPriority group={group} />
-          </Workflow>
-          <GuideAnchor target="issue_sidebar_owners" position="left">
+      <TourElement<IssueDetailsTour>
+        tourContext={IssueDetailsTourContext}
+        id={IssueDetailsTour.WORKFLOWS}
+        title={t('Take action')}
+        description={t(
+          'Now that you’ve learned about this issue, it’s time to assign an owner, update priority, and take additional actions.'
+        )}
+        position="bottom-end"
+      >
+        <ActionBar isComplete={isComplete} role="banner">
+          <GroupActions
+            group={group}
+            project={project}
+            disabled={disableActions}
+            event={event}
+          />
+          <WorkflowActions>
             <Workflow>
-              {t('Assignee')}
-              <GroupHeaderAssigneeSelector
-                group={group}
-                project={project}
-                event={event}
-              />
+              {t('Priority')}
+              <GroupPriority group={group} />
             </Workflow>
-          </GuideAnchor>
-        </WorkflowActions>
-      </ActionBar>
+            <GuideAnchor target="issue_sidebar_owners" position="left">
+              <Workflow>
+                {t('Assignee')}
+                <GroupHeaderAssigneeSelector
+                  group={group}
+                  project={project}
+                  event={event}
+                />
+              </Workflow>
+            </GuideAnchor>
+          </WorkflowActions>
+        </ActionBar>
+      </TourElement>
     </Fragment>
   );
 }

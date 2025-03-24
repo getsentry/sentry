@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
@@ -13,9 +14,9 @@ type Props = {
 
 export default function ExploreNavigation({children}: Props) {
   const organization = useOrganization();
-  const hasNavigationV2 = organization?.features.includes('navigation-sidebar-v2');
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!hasNavigationV2) {
+  if (!prefersStackedNav) {
     return children;
   }
 
@@ -30,32 +31,55 @@ export default function ExploreNavigation({children}: Props) {
         </SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <Feature features="performance-trace-explorer">
-              <SecondaryNav.Item to={`${baseUrl}/traces/`}>
+            <Feature features={['performance-trace-explorer', 'performance-view']}>
+              <SecondaryNav.Item
+                to={`${baseUrl}/traces/`}
+                analyticsItemName="explore_traces"
+              >
                 {t('Traces')}
               </SecondaryNav.Item>
             </Feature>
             <Feature features="ourlogs-enabled">
-              <SecondaryNav.Item to={`${baseUrl}/logs/`}>{t('Logs')}</SecondaryNav.Item>
+              <SecondaryNav.Item to={`${baseUrl}/logs/`} analyticsItemName="explore_logs">
+                {t('Logs')}
+              </SecondaryNav.Item>
             </Feature>
             <Feature features="profiling">
-              <SecondaryNav.Item to={`${baseUrl}/profiling/`}>
+              <SecondaryNav.Item
+                to={`${baseUrl}/profiling/`}
+                analyticsItemName="explore_profiles"
+              >
                 {t('Profiles')}
               </SecondaryNav.Item>
             </Feature>
             <Feature features="session-replay-ui">
-              <SecondaryNav.Item to={`${baseUrl}/replays/`}>
+              <SecondaryNav.Item
+                to={`${baseUrl}/replays/`}
+                analyticsItemName="explore_replays"
+              >
                 {t('Replays')}
               </SecondaryNav.Item>
             </Feature>
             <Feature features="discover-basic">
-              <SecondaryNav.Item to={`${baseUrl}/discover/`}>
+              <SecondaryNav.Item
+                to={`${baseUrl}/discover/homepage/`}
+                activeTo={`${baseUrl}/discover/`}
+                analyticsItemName="explore_discover"
+              >
                 {t('Discover')}
               </SecondaryNav.Item>
             </Feature>
-            <SecondaryNav.Item to={`${baseUrl}/releases/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/releases/`}
+              analyticsItemName="explore_releases"
+            >
               {t('Releases')}
             </SecondaryNav.Item>
+            <Feature features="performance-saved-queries">
+              <SecondaryNav.Item to={`${baseUrl}/saved-queries/`}>
+                {t('All Queries')}
+              </SecondaryNav.Item>
+            </Feature>
           </SecondaryNav.Section>
         </SecondaryNav.Body>
       </SecondaryNav>

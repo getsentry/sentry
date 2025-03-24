@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -31,6 +32,10 @@ export interface DrawerOptions {
    * If true (default), closes the drawer when anywhere else is clicked
    */
   closeOnOutsideClick?: boolean;
+  /**
+   * Custom width for the drawer
+   */
+  drawerWidth?: string;
   /**
    * Custom content for the header of the drawer
    */
@@ -94,10 +99,10 @@ export function GlobalDrawer({children}: any) {
   >();
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
-    (renderer, options) => overwriteDrawerConfig({renderer, options}),
-    []
-  );
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
+    overwriteDrawerConfig({renderer, options});
+    options.onOpen?.();
+  }, []);
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
     () => overwriteDrawerConfig(undefined),
     []
@@ -148,12 +153,20 @@ export function GlobalDrawer({children}: any) {
   });
 
   // Close the drawer when escape is pressed and options allow it.
-  const handleEscapePress = useCallback(() => {
-    if (currentDrawerConfig?.options?.closeOnEscapeKeypress ?? true) {
-      handleClose();
-    }
-  }, [currentDrawerConfig, handleClose]);
-  useHotkeys([{match: 'Escape', callback: handleEscapePress}], [handleEscapePress]);
+  const globalDrawerHotkeys = useMemo(() => {
+    return [
+      {
+        match: 'Escape',
+        callback: () => {
+          if (currentDrawerConfig?.options?.closeOnEscapeKeypress ?? true) {
+            handleClose();
+          }
+        },
+      },
+    ];
+  }, [currentDrawerConfig?.options?.closeOnEscapeKeypress, handleClose]);
+
+  useHotkeys(globalDrawerHotkeys);
 
   const renderedChild = currentDrawerConfig?.renderer
     ? currentDrawerConfig.renderer({
@@ -172,6 +185,7 @@ export function GlobalDrawer({children}: any) {
               ref={panelRef}
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
               transitionProps={currentDrawerConfig?.options?.transitionProps}
+              drawerWidth={currentDrawerConfig?.options?.drawerWidth}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>

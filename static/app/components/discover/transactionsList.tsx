@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import type {CursorHandler} from 'sentry/components/pagination';
@@ -112,8 +112,8 @@ type Props = {
    * The callback to generate a cell action handler for a column
    */
   handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
+    c: TableColumn<string | number>
+  ) => (a: Actions, v: string | number) => void;
   /**
    * The callback for when View All Events is clicked.
    */
@@ -179,7 +179,7 @@ function TableRender({
     }
 
     if (
-      !hasResults === performanceAtScaleContext.transactionListTableData?.empty &&
+      hasResults !== performanceAtScaleContext.transactionListTableData?.empty &&
       query === performanceAtScaleContext.transactionListTableData?.query
     ) {
       return;
@@ -218,7 +218,7 @@ function TableRender({
         />
       </Header>
       {target ? (
-        <GuideAnchor target={target} position="top-start">
+        <GuideAnchor target={target} position="top-start" wrapperComponent={TableWrapper}>
           {content}
         </GuideAnchor>
       ) : (
@@ -515,6 +515,10 @@ const StyledPagination = styled(Pagination)`
 
 const InvestigationRuleWrapper = styled('div')`
   margin-right: ${space(1)};
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 function TransactionsList(

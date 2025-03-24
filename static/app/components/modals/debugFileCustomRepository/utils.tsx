@@ -139,12 +139,12 @@ export function getFormFieldsAndInitialData(
           commonFields.layoutType,
           commonFields.layoutCasing,
         ],
-        initialData: !initialData
-          ? undefined
-          : {
+        initialData: initialData
+          ? {
               ...initialData,
               secret_key: undefined,
-            },
+            }
+          : undefined,
       };
     case 'gcs':
       return {
@@ -199,12 +199,12 @@ export function getFormFieldsAndInitialData(
           commonFields.layoutType,
           commonFields.layoutCasing,
         ],
-        initialData: !initialData
-          ? undefined
-          : {
+        initialData: initialData
+          ? {
               ...initialData,
               private_key: undefined,
-            },
+            }
+          : undefined,
       };
     default: {
       Sentry.captureException(new Error('Unknown custom repository type'));

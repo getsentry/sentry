@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -11,6 +11,7 @@ import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
@@ -69,7 +70,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {!query ? t('Total Spans') : t('Matching Spans')}
+            {query ? t('Matching Spans') : t('Total Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
@@ -78,7 +79,10 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
             {t('Root Duration')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Timestamp')}
+            <Header>
+              {t('Timestamp')}
+              <IconArrow size="xs" direction="down" />
+            </Header>
           </StyledPanelHeader>
           {isPending && (
             <StyledPanelItem span={6} overflow>
@@ -279,6 +283,11 @@ function Breakdown({trace}: {trace: TraceResult}) {
     </BreakdownPanelItem>
   );
 }
+
+const Header = styled('span')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
 
 const StyledButton = styled(Button)`
   margin-right: ${space(0.5)};

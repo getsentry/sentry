@@ -19,10 +19,10 @@ class CursorPoller {
 
   api = new Client();
   options: Options;
-  pollingEndpoint: string = '';
+  pollingEndpoint = '';
   timeoutId: number | null = null;
   lastRequest: Request | null = null;
-  active: boolean = true;
+  active = true;
 
   reqsWithoutData = 0;
 

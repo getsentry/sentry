@@ -20,7 +20,7 @@ from sentry import constants, eventstore, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.serializers.models.event import get_tags_with_meta
+from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -169,7 +169,7 @@ FullResponse = TypedDict(
         "sdk_name": Optional[str],
         "span_id": str,
         "start_timestamp": str | int,
-        "tags": list[tuple[str, str]],
+        "tags": list[EventTag],
         "timestamp": str | int,
         "transaction": str,
         "transaction.duration": int,

@@ -32,6 +32,15 @@ export const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const size = legacySize ?? theme.iconSizes[providedSize];
 
   return (
-    <svg {...rest} viewBox={viewBox} fill={color} height={size} width={size} ref={ref} />
+    <svg
+      // The icons only ever contain a single graphic, so we can use the img role
+      role="img"
+      {...rest}
+      viewBox={viewBox}
+      fill={color}
+      height={size}
+      width={size}
+      ref={ref}
+    />
   );
 });

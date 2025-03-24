@@ -16,6 +16,7 @@ import type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
   SelectSection,
+  SelectSectionWithKey,
 } from './types';
 
 export function getEscapedKey<Value extends SelectKey | undefined>(value: Value): string {
@@ -104,7 +105,7 @@ export function getDisabledOptions<Value extends SelectKey>(
 export function getHiddenOptions<Value extends SelectKey>(
   items: Array<SelectOptionOrSectionWithKey<Value>>,
   search: string,
-  limit: number = Infinity,
+  limit = Infinity,
   filterOption?: (opt: SelectOption<Value>, search: string) => boolean
 ): Set<SelectKey> {
   //
@@ -322,4 +323,10 @@ export function HiddenSectionToggle({
       </button>
     </VisuallyHidden>
   );
+}
+
+export function itemIsSectionWithKey<T extends SelectKey>(
+  item: SelectOptionOrSectionWithKey<T>
+): item is SelectSectionWithKey<T> {
+  return 'options' in item;
 }

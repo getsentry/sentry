@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Select} from 'sentry/components/core/select';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -58,13 +58,11 @@ function ThresholdTypeForm({
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
     [
       AlertRuleComparisonType.CHANGE,
-      comparisonType !== AlertRuleComparisonType.CHANGE ? (
-        t('Percent Change: {x%} higher or lower compared to previous period')
-      ) : (
+      comparisonType === AlertRuleComparisonType.CHANGE ? (
         // Prevent default to avoid dropdown menu closing on click
         <ComparisonContainer onClick={e => e.preventDefault()}>
           {t('Percent Change: {x%} higher or lower compared to')}
-          <SelectControl
+          <Select
             name="comparisonDelta"
             styles={{
               container: (provided: {[x: string]: string | number | boolean}) => ({
@@ -91,6 +89,8 @@ function ThresholdTypeForm({
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </ComparisonContainer>
+      ) : (
+        t('Percent Change: {x%} higher or lower compared to previous period')
       ),
     ],
   ];
@@ -101,9 +101,11 @@ function ThresholdTypeForm({
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
         <FeatureBadge
-          type="alpha"
-          title="Anomaly detection is in alpha and may produce inaccurate results"
-          tooltipProps={{isHoverable: true}}
+          type="beta"
+          tooltipProps={{
+            title: t('Anomaly detection is in beta and may produce unexpected results'),
+            isHoverable: true,
+          }}
         />
       </ComparisonContainer>,
     ] as RadioOption);

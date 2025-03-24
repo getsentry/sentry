@@ -1,6 +1,5 @@
 import math
 from collections.abc import Mapping
-from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
@@ -17,7 +16,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.fields import DateArg
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -80,16 +78,13 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
         except NoProjects:
             return Response([])
 
-        all_tag_keys = None
-        tag_key = None
-
-        all_tag_keys = request.GET.get("allTagKeys")
+        all_tag_keys = bool(request.GET.get("allTagKeys"))
         tag_key = request.GET.get("tagKey")
 
         if tag_key in TAG_ALIASES:
             tag_key = TAG_ALIASES.get(tag_key)
 
-        def data_fn(offset, limit):
+        def data_fn(offset, limit: int):
             with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
                 referrer = "api.organization-events-facets-performance.top-tags"
                 tag_data = query_tag_data(
@@ -114,9 +109,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerfor
                     all_tag_keys=all_tag_keys,
                     tag_key=tag_key,
                 )
-
-                if not results:
-                    return {"data": []}
 
                 for row in results["data"]:
                     row["tags_value"] = tagstore.backend.get_tag_value_label(
@@ -153,16 +145,16 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
             return Response([])
 
         tag_key = request.GET.get("tagKey")
-        num_buckets_per_key = request.GET.get("numBucketsPerKey")
-        per_page = request.GET.get("per_page", DEFAULT_TAG_KEY_LIMIT)
+        num_buckets_per_key_s = request.GET.get("numBucketsPerKey")
+        per_page_s = request.GET.get("per_page", DEFAULT_TAG_KEY_LIMIT)
 
-        if not num_buckets_per_key:
+        if not num_buckets_per_key_s:
             raise ParseError(
                 detail="'numBucketsPerKey' must be provided for the performance histogram."
             )
         try:
-            per_page = int(per_page)
-            num_buckets_per_key = int(num_buckets_per_key)
+            per_page = int(per_page_s)
+            num_buckets_per_key = int(num_buckets_per_key_s)
         except ValueError:
             raise ParseError(detail="Bucket and tag key per_pages must be numeric.")
 
@@ -175,7 +167,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
             raise ParseError(detail="'tagKey' must be provided when using histograms.")
 
         if tag_key in TAG_ALIASES:
-            tag_key = TAG_ALIASES.get(tag_key)
+            tag_key = TAG_ALIASES[tag_key]
 
         def data_fn(offset, limit, raw_limit):
             with sentry_sdk.start_span(op="discover.endpoint", name="discover_query"):
@@ -313,7 +305,8 @@ def query_top_tags(
     orderby: list[str] | None,
     offset: int | None = None,
     aggregate_column: str | None = None,
-    filter_query: str | None = None,
+    *,
+    filter_query: str,
 ) -> list[Any] | None:
     """
     Fetch counts by tag value, finding the top tag values for a tag key by a limit.
@@ -373,12 +366,12 @@ def query_facet_performance(
     referrer: str,
     aggregate_column: str | None = None,
     filter_query: str | None = None,
-    orderby: str | None = None,
-    limit: int | None = None,
+    orderby: list[str] | None = None,
     offset: int | None = None,
     all_tag_keys: bool | None = None,
-    tag_key: bool | None = None,
-    include_count_delta: bool | None = None,
+    tag_key: str | None = None,
+    *,
+    limit: int,
 ) -> EventsResponse:
     # Dynamically sample so at least 50000 transactions are selected
     sample_start_count = 50000
@@ -409,34 +402,9 @@ def query_facet_performance(
             turbo=sample_rate is not None,
             limit=limit,
             offset=offset,
-            limitby=["tags_key", tag_key_limit] if not tag_key else None,
+            limitby=("tags_key", tag_key_limit) if not tag_key else None,
         )
     translated_aggregate_column = tag_query.resolve_column(aggregate_column)
-
-    if include_count_delta:
-        middle = snuba_params.start_date + timedelta(
-            seconds=(snuba_params.end_date - snuba_params.start_date).total_seconds() * 0.5
-        )
-        middle = datetime.strftime(middle, DateArg.date_format)
-
-        count_range_1 = tag_query.resolve_function(
-            f"count_range(lessOrEquals, {middle})", overwrite_alias="count_range_1"
-        )
-        count_range_total = tag_query.resolve_function(
-            "count()",
-            overwrite_alias="count_range_total",
-        )
-
-        count_delta = tag_query.resolve_division(
-            Function(
-                "minus", [Function("minus", [count_range_total, count_range_1]), count_range_1]
-            ),
-            count_range_1,
-            "count_delta",
-        )
-
-        tag_query.columns.extend([count_range_1, count_range_total, count_delta])
-        tag_query.aggregates.extend([count_range_1, count_range_total, count_delta])
 
     # Aggregate (avg) and count of all transactions for this query
     transaction_aggregate = tag_data["aggregate"]
@@ -493,9 +461,7 @@ def query_facet_performance(
         )
 
         # Need to wait for the custom functions to be added first since they can be orderby options
-        tag_query.orderby = tag_query.resolve_orderby(
-            ([] if orderby is None else orderby) + ["tags_key", "tags_value"]
-        )
+        tag_query.orderby = tag_query.resolve_orderby([*(orderby or []), "tags_key", "tags_value"])
 
         results = tag_query.process_results(tag_query.run_query(f"{referrer}.tag_values"))
 
@@ -510,7 +476,8 @@ def query_facet_performance_key_histogram(
     limit: int,
     referrer: str,
     aggregate_column: str,
-    filter_query: str | None = None,
+    *,
+    filter_query: str,
 ) -> dict:
     precision = 0
 

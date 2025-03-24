@@ -26,7 +26,6 @@ export function useWebVitalsDrawer({
     openDrawer(() => Component, {
       ariaLabel: t('%s Details', webVital),
       onClose,
-      transitionProps: {stiffness: 1000},
     });
   }, [openDrawer, isDrawerOpen, onClose, Component, webVital]);
 

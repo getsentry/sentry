@@ -7,6 +7,7 @@ SelectIdP = make_simple_setup(URLMetadataForm, "sentry_auth_auth0/select-idp.htm
 
 class Auth0SAML2Provider(SAML2Provider):
     name = "Auth0"
+    key = "auth0"
 
     def get_saml_setup_pipeline(self):
         return [SelectIdP()]

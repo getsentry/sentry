@@ -36,7 +36,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
   const environments = useEnvironmentsFromUrl();
 
   const lastSeen = issueTypeConfig.useOpenPeriodChecks
-    ? group.openPeriods?.[0]?.lastChecked ?? group.lastSeen
+    ? (group.openPeriods?.[0]?.lastChecked ?? group.lastSeen)
     : group.lastSeen;
 
   const shortEnvironmentLabel =
@@ -48,7 +48,7 @@ export default function FirstLastSeenSection({group}: {group: Group}) {
 
   const dateGlobal = issueTypeConfig.useOpenPeriodChecks
     ? lastSeen
-    : allEnvironments?.lastSeen ?? lastSeen;
+    : (allEnvironments?.lastSeen ?? lastSeen);
 
   return (
     <Flex column gap={space(0.75)}>

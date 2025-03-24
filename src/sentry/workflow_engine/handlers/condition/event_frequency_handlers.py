@@ -2,8 +2,12 @@ from typing import Any
 
 from sentry.rules.conditions.event_frequency import (
     COMPARISON_INTERVALS,
+    PERCENT_INTERVALS,
     STANDARD_INTERVALS,
     percent_increase,
+)
+from sentry.workflow_engine.handlers.condition.tagged_event_handler import (
+    TaggedEventConditionHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -13,11 +17,18 @@ from sentry.workflow_engine.types import DataConditionHandler, DataConditionResu
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
 class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
+
     comparison_json_schema = {
         "type": "object",
         "properties": {
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
             "value": {"type": "integer", "minimum": 0},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value"],
         "additionalProperties": False,
@@ -33,12 +44,19 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
+
     comparison_json_schema = {
         "type": "object",
         "properties": {
             "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
             "value": {"type": "integer", "minimum": 0},
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value", "comparison_interval"],
         "additionalProperties": False,
@@ -54,25 +72,38 @@ class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
 # Percent sessions values must be between 0-100 (%)
 @condition_handler_registry.register(Condition.PERCENT_SESSIONS_COUNT)
 class PercentSessionsCountHandler(EventFrequencyCountHandler):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
+            "interval": {"type": "string", "enum": list(PERCENT_INTERVALS.keys())},
             "value": {"type": "number", "minimum": 0, "maximum": 100},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value"],
         "additionalProperties": False,
     }
 
 
+# This percent value can be > 100 (%)
 @condition_handler_registry.register(Condition.PERCENT_SESSIONS_PERCENT)
 class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.FREQUENCY
     comparison_json_schema = {
         "type": "object",
         "properties": {
-            "interval": {"type": "string", "enum": list(STANDARD_INTERVALS.keys())},
-            "value": {"type": "number", "minimum": 0, "maximum": 100},
+            "interval": {"type": "string", "enum": list(PERCENT_INTERVALS.keys())},
+            "value": {"type": "number", "minimum": 0},
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
+            "filters": {
+                "type": "array",
+                "items": TaggedEventConditionHandler.comparison_json_schema,
+            },
         },
         "required": ["interval", "value", "comparison_interval"],
         "additionalProperties": False,

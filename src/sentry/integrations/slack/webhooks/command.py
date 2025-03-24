@@ -76,7 +76,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
-        logger_params = {}
+        logger_params: dict[str, int] = {}
 
         identity_user = slack_request.get_identity_user()
         if not identity_user:

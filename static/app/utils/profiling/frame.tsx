@@ -26,9 +26,9 @@ export class Frame {
 
   readonly isRoot: boolean;
 
-  totalWeight: number = 0;
-  selfWeight: number = 0;
-  aggregateDuration: number = 0;
+  totalWeight = 0;
+  selfWeight = 0;
+  aggregateDuration = 0;
 
   static Root = new Frame({
     key: ROOT_KEY,

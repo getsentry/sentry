@@ -747,18 +747,38 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
-        confidence = meta["accuracy"]["confidence"]
         assert len(data) == 6
         assert response.data["meta"]["dataset"] == self.dataset
 
         for expected, actual in zip(event_counts, data[0:6]):
             assert actual[1][0]["count"] == expected * 10
 
+        accuracy = meta["accuracy"]
+        confidence = accuracy["confidence"]
+        sample_count = accuracy["sampleCount"]
+        sample_rate = accuracy["samplingRate"]
         for expected, actual in zip(event_counts, confidence[0:6]):
             if expected != 0:
-                assert actual["count()"] == "low"
+                assert actual["value"] == "low"
             else:
-                assert actual["count()"] is None
+                assert actual["value"] is None
+
+        # Check old confidence format, TODO: remove this once frontend is updated
+        old_confidence = response.data["confidence"]
+        for expected, actual in zip(event_counts, old_confidence[0:6]):
+            if expected != 0:
+                assert actual[1][0]["count()"] == "low"
+            else:
+                assert actual[1][0]["count()"] is None
+
+        for expected, actual in zip(event_counts, sample_count[0:6]):
+            assert actual["value"] == expected
+
+        for expected, actual in zip(event_counts, sample_rate[0:6]):
+            if expected != 0:
+                assert actual["value"] == pytest.approx(0.1)
+            else:
+                assert actual["value"] is None
 
     def test_confidence_is_set(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -816,13 +836,31 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
                 else:
                     assert isinstance(row[1][0]["count"], (float, int)), y_axis
 
-            confidence = meta["accuracy"]["confidence"]
-            assert len(confidence) == len(event_counts)
-            for count, row in zip(event_counts, confidence):
-                if count == 0:
-                    assert row[y_axis] is None, y_axis
+            accuracy = meta["accuracy"]
+            confidence = accuracy["confidence"]
+            sample_count = accuracy["sampleCount"]
+            sample_rate = accuracy["samplingRate"]
+            for expected, actual in zip(event_counts, confidence[0:6]):
+                if expected != 0:
+                    assert actual["value"] in ("high", "low")
                 else:
-                    assert row[y_axis] in {"low", "high"}, y_axis
+                    assert actual["value"] is None
+
+            old_confidence = response.data["confidence"]
+            for expected, actual in zip(event_counts, old_confidence[0:6]):
+                if expected != 0:
+                    assert actual[1][0][y_axis] in ("high", "low")
+                else:
+                    assert actual[1][0][y_axis] is None
+
+            for expected, actual in zip(event_counts, sample_count[0:6]):
+                assert actual["value"] == expected
+
+            for expected, actual in zip(event_counts, sample_rate[0:6]):
+                if expected != 0:
+                    assert actual["value"] == pytest.approx(0.1)
+                else:
+                    assert actual["value"] is None
 
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -863,45 +901,68 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         for test in zip(event_counts, count_rows):
             assert test[1][1][0]["count"] == test[0] * 10
 
-        confidence = response.data["count()"]["meta"]["accuracy"]["confidence"]
-        for expected, actual in zip(event_counts, confidence[0:6]):
-            if expected != 0:
-                assert actual[1][0]["count"] == "low"
-            else:
-                assert actual[1][0]["count"] is None
+        for column in ["count()", "p95()"]:
+            accuracy = response.data[column]["meta"]["accuracy"]
+            confidence = accuracy["confidence"]
+            sample_count = accuracy["sampleCount"]
+            sample_rate = accuracy["samplingRate"]
+            for expected, actual in zip(event_counts, confidence[0:6]):
+                if expected != 0:
+                    assert actual["value"] in ("high", "low")
+                else:
+                    assert actual["value"] is None
+
+            old_confidence = response.data[column]["confidence"]
+            for expected, actual in zip(event_counts, old_confidence[0:6]):
+                if expected != 0:
+                    assert actual[1][0]["count"] in ("high", "low")
+                else:
+                    assert actual[1][0]["count"] is None
+
+            for expected, actual in zip(event_counts, sample_count[0:6]):
+                assert actual["value"] == expected
+
+            for expected, actual in zip(event_counts, sample_rate[0:6]):
+                if expected != 0:
+                    assert actual["value"] == pytest.approx(0.1)
+                else:
+                    assert actual["value"] is None
 
         p95_rows = p95_data[0:6]
         for test in zip(event_counts, p95_rows):
             assert test[1][1][0]["count"] == test[0]
 
-        confidence = response.data["p95()"]["meta"]["accuracy"]["confidence"]
-        for expected, actual in zip(event_counts, confidence[0:6]):
-            if expected != 0:
-                assert actual[1][0]["count"] == "low"
-            else:
-                assert actual[1][0]["count"] is None
-
     def test_top_events_with_extrapolation(self):
-        # Each of these denotes how many events to create in each minute
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    {
+                        "sentry_tags": {"transaction": "foo", "status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
                     start_ts=self.day_ago + timedelta(minutes=1),
                     duration=2000,
                 ),
                 self.create_span(
-                    {"sentry_tags": {"transaction": "bar", "status": "success"}},
+                    {
+                        "sentry_tags": {"transaction": "bar", "status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
                     start_ts=self.day_ago + timedelta(minutes=1),
                     duration=2000,
                 ),
                 self.create_span(
-                    {"segment_name": "baz", "sentry_tags": {"status": "success"}},
+                    {
+                        "segment_name": "baz",
+                        "sentry_tags": {"status": "success"},
+                        "measurements": {"client_sample_rate": {"value": 0.1}},
+                    },
                     start_ts=self.day_ago + timedelta(minutes=1),
                 ),
             ],
             is_eap=self.is_eap,
         )
+        event_counts = [0, 1, 0, 0, 0, 0]
 
         response = self._do_request(
             data={
@@ -924,9 +985,29 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert len(response.data["Other"]["data"]) == 6
         for key in ["Other", "foo", "bar"]:
             rows = response.data[key]["data"][0:6]
-            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
-                assert result[1][0]["count"] == expected, key
-        assert response.data["Other"]["meta"]["dataset"] == self.dataset
+            for expected, result in zip(event_counts, rows):
+                assert result[1][0]["count"] == expected * 10, key
+
+            meta = response.data[key]["meta"]
+            accuracy = meta["accuracy"]
+            confidence = accuracy["confidence"]
+            sample_count = accuracy["sampleCount"]
+            sample_rate = accuracy["samplingRate"]
+            for expected, actual in zip(event_counts, confidence[0:6]):
+                if expected != 0:
+                    assert actual["value"] == "low"
+                else:
+                    assert actual["value"] is None
+
+            for expected, actual in zip(event_counts, sample_count[0:6]):
+                assert actual["value"] == expected
+
+            for expected, actual in zip(event_counts, sample_rate[0:6]):
+                if expected != 0:
+                    assert actual["value"] == pytest.approx(0.1)
+                else:
+                    assert actual["value"] is None
+            assert response.data["Other"]["meta"]["dataset"] == self.dataset
 
     def test_comparison_delta(self):
         event_counts = [6, 0, 6, 4, 0, 4]
@@ -1147,3 +1228,206 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             rows = data[0:6]
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0]
+
+    def test_top_events_filters_out_groupby_even_when_its_just_one_row(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count(span.self_time)",
+                "field": ["transaction", "count(span.self_time)"],
+                "query": "count(span.self_time):>4",
+                "orderby": ["-count_span_self_time"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 5,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_interval_larger_than_period_uses_default_period(self):
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "12h",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 73
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_cache_miss_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "data": {"cache.hit": False},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": False},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "cache_miss_rate()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 1.0
+        assert data[2][1][0]["count"] == 0.25
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_trace_status_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "unauthenticated"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "unknown"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "trace_status_rate(ok)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 0.5
+        assert data[2][1][0]["count"] == 0.75
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_count_op(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count_op(queue.publish)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 2.0
+        assert data[2][1][0]["count"] == 1.0
+        assert response.data["meta"]["dataset"] == self.dataset

@@ -108,6 +108,9 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:team-roles": True,
         # Enable the uptime monitoring features
         "organizations:uptime": True,
+        # Feature flag for continuous profiling billing-related features.
+        # Separate from organizations:continuous-profiling feature flag.
+        "organizations:continuous-profiling-billing": False,
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": False,
         # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
@@ -119,6 +122,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
+        # Enable Vercel integration - there is a custom handler in getsentry
+        "organizations:integrations-vercel": True,
     }
 
     permanent_project_features = {

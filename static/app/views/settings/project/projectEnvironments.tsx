@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ListLink from 'sentry/components/links/listLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -30,7 +29,7 @@ type Props = {
   api: Client;
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}>;
 
 type State = {
   environments: null | Environment[];
@@ -196,14 +195,18 @@ class ProjectEnvironments extends Component<Props, State> {
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <NavTabs underlined>
-              <ListLink to={baseUrl} index isActive={() => !isHidden}>
-                {t('Environments')}
-              </ListLink>
-              <ListLink to={`${baseUrl}hidden/`} index isActive={() => isHidden}>
-                {t('Hidden')}
-              </ListLink>
-            </NavTabs>
+            <TabsContainer>
+              <Tabs value={isHidden ? 'hidden' : 'environments'}>
+                <TabList>
+                  <TabList.Item key="environments" to={baseUrl}>
+                    {t('Environments')}
+                  </TabList.Item>
+                  <TabList.Item key="hidden" to={`${baseUrl}hidden/`}>
+                    {t('Hidden')}
+                  </TabList.Item>
+                </TabList>
+              </Tabs>
+            </TabsContainer>
           }
         />
         <ProjectPermissionAlert project={project} />
@@ -263,6 +266,10 @@ function EnvironmentRow({
 const EnvironmentItem = styled(PanelItem)`
   align-items: center;
   justify-content: space-between;
+`;
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 const Name = styled('div')`

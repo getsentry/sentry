@@ -39,7 +39,9 @@ describe('Detail Layout component', function () {
   it('renders children and context values', function () {
     render(
       <Fixture>
-        <DetailLayout>children-test-value</DetailLayout>
+        <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
+          children-test-value
+        </DetailLayout>
       </Fixture>
     );
 
@@ -47,6 +49,9 @@ describe('Detail Layout component', function () {
     expect(screen.getByRole('button', {name: 'action-test-value'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'breadcrumb-test-value'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'title-test-value'})).toBeInTheDocument();
+    // displays project badge
+    expect(screen.getByRole('img')).toBeInTheDocument();
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('project-slug');
   });
 });
 

@@ -2,6 +2,9 @@ import dataclasses
 import logging
 from typing import Any
 
+from django.db import router, transaction
+from django.forms import ValidationError
+
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -13,9 +16,10 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
-from sentry.integrations.services.integration import integration_service
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.users.services.user import RpcUser
+from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -33,7 +37,11 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.typings.notification_action import OnCallDataBlob, SentryAppDataBlob
+from sentry.workflow_engine.typings.notification_action import (
+    OnCallDataBlob,
+    SentryAppDataBlob,
+    SentryAppIdentifier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +57,18 @@ PRIORITY_MAP = {
     "critical": DetectorPriorityLevel.HIGH,
 }
 
-LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_identifier", "target_type"]
-ACTION_DATA_FIELDS = ["type", "sentry_app_id", "sentry_app_config"]
+TYPE_TO_PROVIDER = {
+    ActionService.EMAIL.value: Action.Type.EMAIL,
+    ActionService.PAGERDUTY.value: Action.Type.PAGERDUTY,
+    ActionService.SLACK.value: Action.Type.SLACK,
+    ActionService.MSTEAMS.value: Action.Type.MSTEAMS,
+    ActionService.SENTRY_APP.value: Action.Type.SENTRY_APP,
+    ActionService.OPSGENIE.value: Action.Type.OPSGENIE,
+    ActionService.DISCORD.value: Action.Type.DISCORD,
+}
+
+# XXX: "target_identifier" is not here because there is special logic to handle it
+LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_type"]
 
 
 class MissingDataConditionGroup(Exception):
@@ -61,30 +79,12 @@ class UnresolvableResolveThreshold(Exception):
     pass
 
 
-class InvalidActionType(Exception):
-    pass
-
-
 class CouldNotCreateDataSource(Exception):
     pass
 
 
-def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> str | None:
-    if alert_rule_trigger_action.sentry_app_id:
-        return Action.Type.SENTRY_APP
-
-    elif alert_rule_trigger_action.integration_id:
-        integration = integration_service.get_integration(
-            integration_id=alert_rule_trigger_action.integration_id
-        )
-        if not integration:
-            return None
-        try:
-            return Action.Type(integration.provider)
-        except Exception:
-            return None
-    else:
-        return Action.Type.EMAIL
+def get_action_type(alert_rule_trigger_action: AlertRuleTriggerAction) -> Action.Type | None:
+    return TYPE_TO_PROVIDER.get(alert_rule_trigger_action.type, None)
 
 
 def build_sentry_app_data_blob(
@@ -131,11 +131,7 @@ def build_action_data_blob(
     elif action_type in (Action.Type.OPSGENIE, Action.Type.PAGERDUTY):
         return build_on_call_data_blob(alert_rule_trigger_action, action_type)
     else:
-        return {
-            "type": alert_rule_trigger_action.type,
-            "sentry_app_id": alert_rule_trigger_action.sentry_app_id,
-            "sentry_app_config": alert_rule_trigger_action.sentry_app_config,
-        }
+        return {}
 
 
 def get_target_identifier(
@@ -144,12 +140,25 @@ def get_target_identifier(
     if action_type == Action.Type.SENTRY_APP:
         # Ensure we have a valid sentry_app_id
         if not alert_rule_trigger_action.sentry_app_id:
-            raise InvalidActionType(
+            raise ValidationError(
                 f"sentry_app_id is required for Sentry App actions for alert rule trigger action {alert_rule_trigger_action.id}",
             )
         return str(alert_rule_trigger_action.sentry_app_id)
     # Ensure we have a valid target_identifier
     return alert_rule_trigger_action.target_identifier
+
+
+def build_action_config(
+    target_display: str | None, target_identifier: str | None, target_type: int
+) -> dict[str, str | int | None]:
+    base_config = {
+        "target_display": target_display,
+        "target_identifier": target_identifier,
+        "target_type": target_type,
+    }
+    if target_type == ActionTarget.SENTRY_APP.value:
+        base_config["sentry_app_identifier"] = SentryAppIdentifier.SENTRY_APP_ID
+    return base_config
 
 
 def get_detector_trigger(
@@ -218,20 +227,25 @@ def migrate_metric_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": alert_rule_trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {alert_rule_trigger_action.id}"
+        )
 
     # Ensure action_type is Action.Type before passing to functions
     action_type_enum = Action.Type(action_type)
     data = build_action_data_blob(alert_rule_trigger_action, action_type_enum)
     target_identifier = get_target_identifier(alert_rule_trigger_action, action_type_enum)
+    action_config = build_action_config(
+        alert_rule_trigger_action.target_display,
+        target_identifier,
+        alert_rule_trigger_action.target_type,
+    )
 
     action = Action.objects.create(
         type=action_type_enum,
         data=data,
         integration_id=alert_rule_trigger_action.integration_id,
-        target_display=alert_rule_trigger_action.target_display,
-        target_identifier=target_identifier,
-        target_type=alert_rule_trigger_action.target_type,
+        config=action_config,
     )
     data_condition_group_action = DataConditionGroupAction.objects.create(
         condition_group_id=action_filter.condition_group.id,
@@ -483,7 +497,8 @@ def migrate_alert_rule(
     detector_data_condition_group = create_data_condition_group(organization_id)
     detector = create_detector(alert_rule, project.id, detector_data_condition_group, user)
 
-    workflow = create_workflow(alert_rule.name, organization_id, user)
+    workflow_name = get_workflow_name(alert_rule)
+    workflow = create_workflow(workflow_name, organization_id, user)
 
     open_incident = Incident.objects.get_active_incident(alert_rule, project)
     if open_incident:
@@ -498,7 +513,7 @@ def migrate_alert_rule(
     data_source.detectors.set([detector])
     detector_state = DetectorState.objects.create(
         detector=detector,
-        active=False,
+        active=True if open_incident else False,
         state=state,
     )
     alert_rule_detector, alert_rule_workflow, detector_workflow = create_metric_alert_lookup_tables(
@@ -514,6 +529,26 @@ def migrate_alert_rule(
         alert_rule_workflow,
         detector_workflow,
     )
+
+
+def dual_write_alert_rule(alert_rule: AlertRule, user: RpcUser | None = None) -> None:
+    """
+    Comprehensively dual write the ACI objects corresponding to an alert rule, its triggers, and
+    its actions. All these objects will have been created before calling this method.
+    """
+    with transaction.atomic(router.db_for_write(Detector)):
+        # step 1: migrate the alert rule
+        migrate_alert_rule(alert_rule)
+        triggers = AlertRuleTrigger.objects.filter(alert_rule=alert_rule)
+        # step 2: migrate each trigger
+        for trigger in triggers:
+            migrate_metric_data_conditions(trigger)
+            trigger_actions = AlertRuleTriggerAction.objects.filter(alert_rule_trigger=trigger)
+            # step 3: for each trigger, migrate the actions
+            for trigger_action in trigger_actions:
+                migrate_metric_action(trigger_action)
+        # step 4: migrate alert rule resolution
+        migrate_resolve_threshold_data_conditions(alert_rule)
 
 
 def dual_update_migrated_alert_rule(alert_rule: AlertRule, updated_fields: dict[str, Any]) -> (
@@ -696,16 +731,22 @@ def dual_update_migrated_alert_rule_trigger_action(
             "Could not find a matching Action.Type for the trigger action",
             extra={"alert_rule_trigger_action_id": trigger_action.id},
         )
-        raise InvalidActionType
+        raise ValidationError(
+            f"Could not find a matching Action.Type for the trigger action {trigger_action.id}"
+        )
+    data = build_action_data_blob(trigger_action, action_type)
+    target_identifier = get_target_identifier(trigger_action, action_type)
     updated_action_fields["type"] = action_type
-    data = action.data.copy()
-    for field in LEGACY_ACTION_FIELDS:
-        if field in updated_fields:
-            updated_action_fields[field] = updated_fields[field]
-    for field in ACTION_DATA_FIELDS:
-        if field in updated_fields:
-            data[field] = updated_fields[field]
     updated_action_fields["data"] = data
+    updated_action_fields["config"] = {
+        "target_display": updated_fields.get("target_display", None),
+        "target_type": updated_fields.get("target_type", None),
+        "target_identifier": target_identifier,
+    }
+
+    for field in LEGACY_ACTION_FIELDS:
+        if field in updated_fields and field not in updated_action_fields["config"].keys():
+            updated_action_fields[field] = updated_fields[field]
 
     action.update(**updated_action_fields)
     return action
@@ -741,7 +782,7 @@ def dual_delete_migrated_alert_rule(
     except AlertRuleDetector.DoesNotExist:
         # NOTE: we run the dual delete even if the user isn't flagged into dual write
         logger.info(
-            "alert rule was not dual written, returning early",
+            "alert rule was not dual written or objects were already deleted, returning early",
             extra={"alert_rule_id": alert_rule.id},
         )
         return

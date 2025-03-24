@@ -32,12 +32,26 @@ class AutofixStatus(str, enum.Enum):
     WAITING_FOR_USER_RESPONSE = "WAITING_FOR_USER_RESPONSE"
 
 
+class FileChange(BaseModel):
+    path: str
+    content: str | None = None
+    is_deleted: bool = False
+
+
+class CodebaseState(BaseModel):
+    repo_external_id: str | None = None
+    file_changes: list[FileChange] = []
+    is_readable: bool | None = None
+    is_writeable: bool | None = None
+
+
 class AutofixState(BaseModel):
     run_id: int
     request: AutofixRequest
     updated_at: datetime.datetime
     status: AutofixStatus
     actor_ids: list[str] | None = None
+    codebases: dict[str, CodebaseState] = {}
 
     class Config:
         extra = "allow"
@@ -71,13 +85,14 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
 
 def get_autofix_state(
-    *, group_id: int | None = None, run_id: int | None = None
+    *, group_id: int | None = None, run_id: int | None = None, check_repo_access: bool = False
 ) -> AutofixState | None:
     path = "/v1/automation/autofix/state"
     body = orjson.dumps(
         {
             "group_id": group_id,
             "run_id": run_id,
+            "check_repo_access": check_repo_access,
         }
     )
 

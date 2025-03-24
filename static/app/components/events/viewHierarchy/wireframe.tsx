@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {
   calculateScale,
@@ -236,7 +236,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
     };
 
     const handleZoom =
-      (direction: 'in' | 'out', scalingFactor: number = 1.1, zoomOrigin?: vec2) =>
+      (direction: 'in' | 'out', scalingFactor = 1.1, zoomOrigin?: vec2) =>
       () => {
         const newScale = direction === 'in' ? scalingFactor : 1 / scalingFactor;
 

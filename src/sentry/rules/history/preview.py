@@ -190,7 +190,7 @@ def get_filters(
     Returns instantiated filter objects, the filter match function, and relevant snuba columns used for answering event filters
     """
     filter_objects = []
-    event_columns = defaultdict(list)
+    event_columns: dict[Dataset, list[str]] = defaultdict(list)
     for filter in filters:
         filter_cls = rules.get(filter["id"])
         if filter_cls is None:

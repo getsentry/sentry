@@ -43,7 +43,7 @@ export function useResizeCanvasObserver(canvases: Array<HTMLCanvasElement | null
 
 export function getHierarchyDimensions(
   hierarchies: ViewHierarchyWindow[],
-  useAbsolutePosition: boolean = false
+  useAbsolutePosition = false
 ): {
   maxHeight: number;
   maxWidth: number;
@@ -64,8 +64,8 @@ export function getHierarchyDimensions(
     const node = {
       node: child,
       rect: new Rect(
-        useAbsolutePosition ? child.x ?? 0 : (parent?.x ?? 0) + (child.x ?? 0),
-        useAbsolutePosition ? child.y ?? 0 : (parent?.y ?? 0) + (child.y ?? 0),
+        useAbsolutePosition ? (child.x ?? 0) : (parent?.x ?? 0) + (child.x ?? 0),
+        useAbsolutePosition ? (child.y ?? 0) : (parent?.y ?? 0) + (child.y ?? 0),
         child.width ?? 0,
         child.height ?? 0
       ),

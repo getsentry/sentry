@@ -66,12 +66,12 @@ type ReleasesTour = BaseTour & {project_id: string};
 
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
-  'alert_builder.noisy_warning_agreed': {};
-  'alert_builder.noisy_warning_viewed': {};
+  'alert_builder.noisy_warning_agreed': Record<string, unknown>;
+  'alert_builder.noisy_warning_viewed': Record<string, unknown>;
   'alert_details.viewed': {alert_id: number};
   'alert_rule_details.viewed': {alert: string; has_chartcuterie: string; rule_id: number};
   'alert_rules.viewed': {sort: string};
-  'alert_stream.viewed': {};
+  'alert_stream.viewed': Record<string, unknown>;
   'alert_wizard.option_selected': {alert_type: string};
   'edit_alert_rule.add_row': {
     name: string;
@@ -83,7 +83,7 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     type: string;
   };
-  'edit_alert_rule.incompatible_rule': {};
+  'edit_alert_rule.incompatible_rule': Record<string, unknown>;
   'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
   'issue_alert_rule_details.edit_clicked': {rule_id: number};
@@ -104,17 +104,17 @@ export type TeamInsightsEventParameters = {
     assigned_suggestion_reason?: string;
     assigned_type?: string;
   };
-  'issue_details.attachment_tab.screenshot_modal_deleted': {};
-  'issue_details.attachment_tab.screenshot_modal_download': {};
-  'issue_details.attachment_tab.screenshot_modal_opened': {};
-  'issue_details.attachment_tab.screenshot_title_clicked': {};
+  'issue_details.attachment_tab.screenshot_modal_deleted': Record<string, unknown>;
+  'issue_details.attachment_tab.screenshot_modal_download': Record<string, unknown>;
+  'issue_details.attachment_tab.screenshot_modal_opened': Record<string, unknown>;
+  'issue_details.attachment_tab.screenshot_title_clicked': Record<string, unknown>;
   'issue_details.event_json_clicked': {group_id: number; streamline: boolean};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
-  'issue_details.issue_tab.screenshot_dropdown_deleted': {};
-  'issue_details.issue_tab.screenshot_dropdown_download': {};
-  'issue_details.issue_tab.screenshot_modal_deleted': {};
-  'issue_details.issue_tab.screenshot_modal_download': {};
-  'issue_details.issue_tab.screenshot_modal_opened': {};
+  'issue_details.issue_tab.screenshot_dropdown_deleted': Record<string, unknown>;
+  'issue_details.issue_tab.screenshot_dropdown_download': Record<string, unknown>;
+  'issue_details.issue_tab.screenshot_modal_deleted': Record<string, unknown>;
+  'issue_details.issue_tab.screenshot_modal_download': Record<string, unknown>;
+  'issue_details.issue_tab.screenshot_modal_opened': Record<string, unknown>;
   'issue_details.issue_tab.trace_timeline_clicked': {
     event_id: string;
     group_id: string;
@@ -155,9 +155,9 @@ export type TeamInsightsEventParameters = {
     rule_ids: string[];
   };
   'project_detail.change_chart': {chart_index: number; metric: string};
-  'project_detail.open_anr_issues': {};
-  'project_detail.open_discover': {};
-  'project_detail.open_issues': {};
+  'project_detail.open_anr_issues': Record<string, unknown>;
+  'project_detail.open_discover': Record<string, unknown>;
+  'project_detail.open_issues': Record<string, unknown>;
   'project_detail.performance_tour.advance': BaseTour;
   'project_detail.performance_tour.close': BaseTour;
   'project_detail.releases_tour.advance': ReleasesTour;

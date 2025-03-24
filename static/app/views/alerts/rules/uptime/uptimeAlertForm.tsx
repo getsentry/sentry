@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {autorun} from 'mobx';
 import {Observer} from 'mobx-react';
 
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
@@ -156,7 +156,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             name="projectSlug"
             label={t('Project')}
             placeholder={t('Choose Project')}
-            hideLabel
             projects={projects}
             valueIsSlug
             inline={false}
@@ -169,7 +168,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
             label={t('Environment')}
             placeholder={t('Select an environment')}
             noOptionsMessage={() => t('Start typing to create an environment')}
-            hideLabel
             onCreateOption={(env: any) => {
               setNewEnvironment(env);
               formModel.setValue('environment', env);
@@ -283,16 +281,18 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
               flexibleControlStateSize
             />
           </ConfigurationPanel>
-          <Alert type="muted" showIcon>
-            {tct(
-              'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
-                ),
-              }
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="muted" showIcon>
+              {tct(
+                'By enabling uptime monitoring, you acknowledge that uptime check data may be stored outside your selected data region. [link:Learn more].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/organization/data-storage-location/#data-stored-in-us" />
+                  ),
+                }
+              )}
+            </Alert>
+          </Alert.Container>
           <Observer>
             {() => (
               <HTTPSnippet
@@ -315,7 +315,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <TextField
             name="name"
             label={t('Uptime rule name')}
-            hideLabel
             placeholder={t('Uptime rule name')}
             inline={false}
             flexibleControlStateSize
@@ -325,7 +324,6 @@ export function UptimeAlertForm({project, handleDelete, rule}: Props) {
           <SentryMemberTeamSelectorField
             name="owner"
             label={t('Owner')}
-            hideLabel
             menuPlacement="auto"
             inline={false}
             flexibleControlStateSize

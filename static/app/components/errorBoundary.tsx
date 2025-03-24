@@ -2,11 +2,10 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type DefaultProps = {
@@ -47,18 +46,6 @@ class ErrorBoundary extends Component<Props, State> {
     error: null,
   };
 
-  componentDidMount() {
-    this._isMounted = true;
-    // Listen for route changes so we can clear error
-    this.unlistenBrowserHistory = browserHistory.listen(() => {
-      // Prevent race between component unmount and browserHistory change
-      // Setting state on a component that is being unmounted throws an error
-      if (this._isMounted) {
-        this.setState({error: null});
-      }
-    });
-  }
-
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
 
@@ -80,16 +67,6 @@ class ErrorBoundary extends Component<Props, State> {
     });
   }
 
-  componentWillUnmount() {
-    this._isMounted = false;
-    if (this.unlistenBrowserHistory) {
-      this.unlistenBrowserHistory();
-    }
-  }
-
-  private unlistenBrowserHistory?: ReturnType<typeof browserHistory.listen>;
-  private _isMounted = false;
-
   render() {
     const {error} = this.state;
 
@@ -110,9 +87,11 @@ class ErrorBoundary extends Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert type="error" showIcon className={className}>
-          {message || t('There was a problem rendering this component')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon className={className}>
+            {message || t('There was a problem rendering this component')}
+          </Alert>
+        </Alert.Container>
       );
     }
 

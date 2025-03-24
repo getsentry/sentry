@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -28,11 +29,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
+import {
+  hasLaravelInsightsFeature,
+  useIsLaravelInsightsEnabled,
+} from 'sentry/views/insights/pages/backend/laravel/features';
+import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -56,7 +64,7 @@ import {
 } from 'sentry/views/performance/landing/widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import Onboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import Table from 'sentry/views/performance/table';
 import {
   getTransactionSearchQuery,
@@ -87,6 +95,11 @@ export const BACKEND_COLUMN_TITLES = [
 ];
 
 function BackendOverviewPage() {
+  const [isLaravelPageEnabled] = useIsLaravelInsightsEnabled();
+  return isLaravelPageEnabled ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
+}
+
+function GenericBackendOverviewPage() {
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -98,11 +111,7 @@ function BackendOverviewPage() {
   const {selection} = usePageFilters();
 
   const withStaticFilters = canUseMetricsData(organization);
-  const eventView = generateBackendPerformanceEventView(
-    location,
-    withStaticFilters,
-    organization
-  );
+  const eventView = generateBackendPerformanceEventView(location, withStaticFilters);
   const searchBarEventView = eventView.clone();
 
   // TODO - this should come from MetricsField / EAP fields
@@ -143,6 +152,7 @@ function BackendOverviewPage() {
 
   const existingQuery = new MutableSearch(eventView.query);
   existingQuery.addOp('(');
+  existingQuery.addOp('(');
   existingQuery.addFilterValues('!transaction.op', disallowedOps);
 
   if (selectedFrontendProjects.length > 0 || selectedMobileProjects.length > 0) {
@@ -157,6 +167,7 @@ function BackendOverviewPage() {
   existingQuery.addOp(')');
   existingQuery.addOp('OR');
   existingQuery.addDisjunctionFilterValues('transaction.op', OVERVIEW_PAGE_ALLOWED_OPS);
+  existingQuery.addOp(')');
 
   eventView.query = existingQuery.formatString();
 
@@ -165,6 +176,7 @@ function BackendOverviewPage() {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -229,7 +241,12 @@ function BackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
+        headerActions={
+          <Fragment>
+            <ViewTrendsButton />
+            <NewLaravelExperienceButton />
+          </Fragment>
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -285,7 +302,10 @@ function BackendOverviewPage() {
               )}
 
               {showOnboarding && (
-                <Onboarding project={onboardingProject} organization={organization} />
+                <LegacyOnboarding
+                  project={onboardingProject}
+                  organization={organization}
+                />
               )}
             </ModuleLayout.Full>
           </ModuleLayout.Layout>
@@ -296,8 +316,18 @@ function BackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
+  const organization = useOrganization();
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const {maxPickableDays} = limitMaxPickableDays(organization);
+
   return (
-    <DomainOverviewPageProviders>
+    <DomainOverviewPageProviders
+      maxPickableDays={
+        isLaravelInsightsEnabled && hasLaravelInsightsFeature(organization)
+          ? maxPickableDays
+          : undefined
+      }
+    >
       <BackendOverviewPage />
     </DomainOverviewPageProviders>
   );

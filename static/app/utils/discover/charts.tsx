@@ -59,7 +59,7 @@ export function tooltipFormatterUsingAggregateOutputType(
 export function axisLabelFormatter(
   value: number,
   outputType: AggregationOutputType,
-  abbreviation: boolean = false,
+  abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
   decimalPlaces?: number
@@ -80,10 +80,10 @@ export function axisLabelFormatter(
 export function axisLabelFormatterUsingAggregateOutputType(
   value: number,
   type: string,
-  abbreviation: boolean = false,
+  abbreviation = false,
   durationUnit?: number,
   rateUnit?: RateUnit,
-  decimalPlaces: number = 0
+  decimalPlaces = 0
 ): string {
   switch (type) {
     case 'integer':

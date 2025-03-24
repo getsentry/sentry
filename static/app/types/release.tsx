@@ -19,7 +19,7 @@ export type SourceMapsArchive = {
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
-  headers: {'Content-Type': string} | {};
+  headers: {'Content-Type': string} | Record<string, unknown>;
   id: string;
   name: string;
   sha1: string;
@@ -86,7 +86,7 @@ interface ReleaseData {
     sessionsLowerBound: string | null;
     sessionsUpperBound: string | null;
   };
-  data: {};
+  data: Record<string, unknown>;
   deployCount: number;
   fileCount: number | null;
   firstEvent: string;
@@ -129,6 +129,14 @@ export type ReleaseProject = {
   slug: string;
   hasHealthData?: boolean;
   healthData?: Health;
+};
+
+/**
+ * From the `/releases/stats/` endpoint
+ */
+export type ReleaseMetaBasic = {
+  date: string;
+  version: string;
 };
 
 export type ReleaseMeta = {

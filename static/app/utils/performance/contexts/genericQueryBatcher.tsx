@@ -66,13 +66,8 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   return mergeMap;
 }
 
-function requestFunction(api: Client, path: string, queryObject: QueryObject) {
-  return api.requestPromise(path, queryObject);
-}
-
 function _handleUnmergeableQuery(queryDefinition: BatchQueryDefinition) {
-  const result = requestFunction(
-    queryDefinition.api,
+  const result = queryDefinition.api.requestPromise(
     queryDefinition.path,
     queryDefinition.requestQueryObject
   );
@@ -130,8 +125,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
     requestQueryObject.query[batchProperty] = batchValues;
 
     queriesSent++;
-    const requestPromise = requestFunction(
-      exampleDefinition!.api,
+    const requestPromise = exampleDefinition!.api.requestPromise(
       exampleDefinition!.path,
       requestQueryObject
     );

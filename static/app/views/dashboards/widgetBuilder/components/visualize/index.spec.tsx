@@ -25,11 +25,9 @@ describe('Visualize', () => {
       features: ['dashboards-widget-builder-redesign', 'performance-view'],
     });
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
@@ -248,7 +246,7 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('transaction.duration');
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
   });
 
@@ -272,17 +270,46 @@ describe('Visualize', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'field (no aggregate)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'field'}));
 
-    await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
+    // The column selection is automatically opened for aggregates
     await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
 
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'transaction.duration'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
+  });
+
+  it('automatically opens the column selection for aggregates', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              field: ['count()'],
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.TABLE,
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'p50'}));
+
+    // Indicate that the column selection is open, and multiple options are available
+    expect(
+      screen.getByRole('option', {name: 'transaction.duration'})
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('option').length).toBeGreaterThan(1);
   });
 
   it('allows setting an equation in tables', async () => {
@@ -395,11 +422,7 @@ describe('Visualize', () => {
       'count'
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count()'],
-        }),
-      }),
+      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
       {replace: true}
     );
   });
@@ -435,9 +458,7 @@ describe('Visualize', () => {
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count_miserable(user,300)'],
-        }),
+        query: expect.objectContaining({field: ['count_miserable(user,300)']}),
       }),
       {replace: true}
     );
@@ -600,11 +621,9 @@ describe('Visualize', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
 
-    // Being unable to choose "field (no aggregate)" in the aggregate selection means that the
+    // Being unable to choose "field" in the aggregate selection means that the
     // individual field is not allowed, i.e. only aggregates appear.
-    expect(
-      screen.queryByRole('option', {name: 'field (no aggregate)'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'field'})).not.toBeInTheDocument();
   });
 
   it('updates only the selected field', async () => {
@@ -619,17 +638,17 @@ describe('Visualize', () => {
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.TABLE,
-              field: ['count_unique(user)'],
+              field: ['p50(transaction.duration)'],
             },
           }),
         }),
       }
     );
 
-    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent(
-      'count_unique'
+    expect(await screen.findByLabelText('Aggregate Selection')).toHaveTextContent('p50');
+    expect(screen.getByLabelText('Column Selection')).toHaveTextContent(
+      'transaction.duration'
     );
-    expect(screen.getByLabelText('Column Selection')).toHaveTextContent('user');
 
     // Add 3 fields
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
@@ -637,15 +656,15 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Column'}));
 
     // count() is the default aggregate when adding a field
-    expect(screen.getAllByText('count')).toHaveLength(3);
+    expect(screen.getAllByText('count_unique')).toHaveLength(3);
 
     // Change the last field
-    await userEvent.click(screen.getAllByText('count')[2]!);
+    await userEvent.click(screen.getAllByText('count_unique')[2]!);
     await userEvent.click(screen.getByRole('option', {name: 'epm'}));
 
     // The other fields should not be affected
-    expect(screen.getByText('count_unique')).toBeInTheDocument();
-    expect(screen.getAllByText('count')).toHaveLength(2);
+    expect(screen.getByText('p50')).toBeInTheDocument();
+    expect(screen.getAllByText('count_unique')).toHaveLength(2);
     expect(screen.getAllByText('epm')).toHaveLength(1);
   });
 
@@ -698,10 +717,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           }),
         }),
       }
@@ -769,9 +785,7 @@ describe('Visualize', () => {
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({
-          selectedAggregate: undefined,
-        }),
+        query: expect.objectContaining({selectedAggregate: undefined}),
       }),
       {replace: true}
     );
@@ -786,10 +800,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.RELEASE,
-              field: ['crash_free_rate(session)'],
-            },
+            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
       }
@@ -814,10 +825,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['transaction.duration'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
           }),
         }),
       }
@@ -894,10 +902,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['apdex(3000)'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(3000)']},
           }),
         }),
       }
@@ -921,10 +926,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['apdex(9999)'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
           }),
         }),
       }
@@ -992,10 +994,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['count()'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
           }),
         }),
       }
@@ -1006,7 +1005,7 @@ describe('Visualize', () => {
 
     // Component automatically populates the selection as a column
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'message'
@@ -1068,31 +1067,69 @@ describe('Visualize', () => {
     ).toHaveTextContent('crash_free_rate');
   });
 
+  it('shows all of the fields as columns but disables the ones that are not valid for the aggregate', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Visualize />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        router: RouterFixture({
+          location: LocationFixture({
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              field: ['p50(transaction.duration)'],
+            },
+          }),
+        }),
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
+    // Assert options that are strings, not typically valid for p50, are rendered but disabled
+    expect(screen.getByRole('option', {name: 'message'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'message'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    const options = screen.getAllByText('string');
+    expect(options.length).toBeGreaterThan(1);
+    expect(
+      new Set(options.map(option => option.closest('li')?.getAttribute('aria-disabled')))
+    ).toEqual(new Set(['true']));
+  });
+
   describe('spans', () => {
     beforeEach(() => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'span.duration': {
-              key: 'span.duration',
-              name: 'span.duration',
-              kind: 'measurement',
-            },
-            'tags[anotherNumericTag,number]': {
-              key: 'anotherNumericTag',
-              name: 'anotherNumericTag',
-              kind: 'measurement',
-            },
-          } as TagCollection;
+            tags: {
+              'span.duration': {
+                key: 'span.duration',
+                name: 'span.duration',
+                kind: 'measurement',
+              },
+              'tags[anotherNumericTag,number]': {
+                key: 'anotherNumericTag',
+                name: 'anotherNumericTag',
+                kind: 'measurement',
+              },
+            } as TagCollection,
+            isLoading: false,
+          };
         }
 
         return {
-          'span.description': {
-            key: 'span.description',
-            name: 'span.description',
-            kind: 'tag',
-          },
-        } as TagCollection;
+          tags: {
+            'span.description': {
+              key: 'span.description',
+              name: 'span.description',
+              kind: 'tag',
+            },
+          } as TagCollection,
+          isLoading: false,
+        };
       });
     });
 
@@ -1121,7 +1158,9 @@ describe('Visualize', () => {
 
       const listbox = await screen.findByRole('listbox', {name: 'Column Selection'});
       expect(within(listbox).getByText('anotherNumericTag')).toBeInTheDocument();
-      expect(within(listbox).queryByText('span.description')).not.toBeInTheDocument();
+      expect(
+        within(listbox).getByRole('option', {name: 'span.description'})
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('shows the correct aggregate options', async () => {
@@ -1222,21 +1261,17 @@ describe('Visualize', () => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'tags[count,number]': {
-              key: 'count',
-              name: 'count',
-              kind: 'measurement',
-            },
-          } as TagCollection;
+            tags: {
+              'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+            } as TagCollection,
+            isLoading: false,
+          };
         }
 
         return {
-          count: {
-            key: 'count',
-            name: 'count',
-            kind: 'tag',
-          },
-        } as TagCollection;
+          tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
+          isLoading: false,
+        };
       });
       render(
         <WidgetBuilderProvider>

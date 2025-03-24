@@ -1,14 +1,18 @@
-__all__ = ["DummyProvider"]
+from typing import Any
 
 from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.identity.base import Provider
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
+from sentry.users.models.identity import Identity
+
+__all__ = ("DummyProvider",)
 
 
 class AskEmail(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if "email" in request.POST:
             pipeline.bind_state("email", request.POST.get("email"))
             return pipeline.next_step()
@@ -22,11 +26,11 @@ class DummyProvider(Provider):
 
     TEMPLATE = '<form method="POST"><input type="email" name="email" /></form>'
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return [AskEmail()]
 
     def build_identity(self, state):
         return {"id": state["email"], "email": state["email"], "name": "Dummy"}
 
-    def refresh_identity(self, auth_identity, *args, **kwargs):
+    def refresh_identity(self, identity: Identity, **kwargs: Any) -> None:
         pass

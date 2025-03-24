@@ -741,6 +741,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     )
     @with_feature(["organizations:codecov-integration", "organizations:dynamic-sampling-custom"])
     def test_various_options(self, mock_get_repositories):
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
         initial = self.organization.get_audit_log_data()
         with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
@@ -860,6 +861,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
         assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
+        assert "to Default Mode" in log.data["samplingMode"]
 
     @responses.activate
     @patch(

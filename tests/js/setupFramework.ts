@@ -36,13 +36,6 @@ failOnConsole({
       return true;
     }
 
-    // TODO: Remove after either the removal of AsyncComponent or migrating the tests not to use contexts
-    if (
-      /uses the legacy contextTypes API which is no longer supported/.test(errorMessage)
-    ) {
-      return true;
-    }
-
     return false;
   },
 });

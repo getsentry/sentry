@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';

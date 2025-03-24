@@ -616,7 +616,7 @@ class CombinedQuerysetPaginator:
             ), "When sorting by a date, it must be the key used on all intermediaries"
 
     def key_from_item(self, item):
-        return self.model_key_map.get(type(item))[0]
+        return self.model_key_map[type(item)][0]
 
     def _prep_value(self, item, key, for_prev):
         """
@@ -664,10 +664,10 @@ class CombinedQuerysetPaginator:
         def _sort_combined_querysets(item):
             sort_keys = []
             sort_keys.append(self.get_item_key(item))
-            if len(self.model_key_map.get(type(item))) > 1:
+            if len(self.model_key_map[type(item)]) > 1:
                 # XXX: This doesn't do anything - it just uses a column name as the sort key. It should be pulling the
                 # value of the other keys out instead.
-                sort_keys.extend(iter(self.model_key_map.get(type(item))[1:]))
+                sort_keys.extend(iter(self.model_key_map[type(item)][1:]))
             sort_keys.append(type(item).__name__)
             return tuple(sort_keys)
 
@@ -743,7 +743,7 @@ class ChainPaginator:
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
-        results = []
+        results: list[object] = []
         # note: we shouldn't use itertools.islice(itertools.chain.from_iterable(self.sources))
         # because source may be a QuerySet which is much more efficient to slice directly
         for source in self.sources:

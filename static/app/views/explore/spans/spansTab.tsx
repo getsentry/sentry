@@ -1,10 +1,12 @@
 import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {Button} from 'sentry/components/core/button';
+import useDrawer from 'sentry/components/globalDrawer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -18,6 +20,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -25,9 +28,13 @@ import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
+import SchemaHintsList, {
+  SCHEMA_HINTS_DRAWER_WIDTH,
+} from 'sentry/views/explore/components/schemaHintsList';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -42,6 +49,7 @@ import {
   useSpanTags,
 } from 'sentry/views/explore/contexts/spanTagsContext';
 import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
@@ -54,6 +62,11 @@ import {
   type DefaultPeriod,
   type MaxPickableDays,
 } from 'sentry/views/explore/utils';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {Onboarding} from 'sentry/views/performance/onboarding';
+
+// eslint-disable-next-line no-restricted-imports
+import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
 
 export type SpanTabProps = {
   defaultPeriod: DefaultPeriod;
@@ -73,15 +86,28 @@ export function SpansTabContentImpl({
   const visualizes = useExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags, isLoading: numberTagsLoading} = useSpanTags('number');
+  const {tags: stringTags, isLoading: stringTagsLoading} = useSpanTags('string');
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
 
-  const toolbarExtras = organization?.features?.includes('visibility-explore-dataset')
-    ? ['dataset toggle' as const]
-    : [];
+  const {isDrawerOpen: isSchemaHintsDrawerOpen} = useDrawer();
+  const theme = useTheme();
+  const isLargeScreen = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const isSchemaHintsDrawerOpenOnLargeScreen =
+    isSchemaHintsDrawerOpen &&
+    isLargeScreen &&
+    organization.features.includes('traces-schema-hints');
+
+  const toolbarExtras = [
+    ...(organization?.features?.includes('visibility-explore-dataset')
+      ? ['dataset toggle' as const]
+      : []),
+    ...(organization?.features?.includes('visibility-explore-equations')
+      ? ['equations' as const]
+      : []),
+  ];
 
   const queryType: 'aggregate' | 'samples' | 'traces' =
     mode === Mode.AGGREGATE
@@ -128,15 +154,8 @@ export function SpansTabContentImpl({
     [timeseriesResult.data, visualizes]
   );
 
-  const tableError =
-    queryType === 'aggregate'
-      ? aggregatesTableResult.result.error?.message ?? ''
-      : queryType === 'traces'
-        ? tracesTableResult.result.error?.message ?? ''
-        : spansTableResult.result.error?.message ?? '';
-  const chartError = timeseriesResult.error?.message ?? '';
-
   const [expanded, setExpanded] = useState(true);
+  const [interval] = useChartInterval();
 
   useAnalytics({
     queryType,
@@ -144,10 +163,33 @@ export function SpansTabContentImpl({
     spansTableResult,
     tracesTableResult,
     timeseriesResult,
+    interval,
   });
 
+  const resultsLength =
+    {
+      aggregate: aggregatesTableResult.result.data?.length,
+      samples: spansTableResult.result.data?.length,
+      traces: tracesTableResult.result.data?.data?.length,
+    }[queryType] ?? 0;
+
+  const hasResults = !!resultsLength;
+
+  const resultsLoading =
+    queryType === 'aggregate'
+      ? aggregatesTableResult.result.isPending
+      : queryType === 'samples'
+        ? spansTableResult.result.isPending
+        : tracesTableResult.result.isPending;
+
   return (
-    <Body withToolbar={expanded}>
+    <Body
+      withToolbar={expanded}
+      withHints={organization.features.includes('traces-schema-hints')}
+      thirdColumnWidth={
+        isSchemaHintsDrawerOpenOnLargeScreen ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'
+      }
+    >
       <TopSection>
         <StyledPageFilterBar condensed>
           <ProjectPageFilter />
@@ -196,20 +238,27 @@ export function SpansTabContentImpl({
           />
         )}
       </TopSection>
+      <Feature features="organizations:traces-schema-hints">
+        <HintsSection withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}>
+          <SchemaHintsList
+            supportedAggregates={
+              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+            }
+            numberTags={numberTags}
+            stringTags={stringTags}
+            isLoading={numberTagsLoading || stringTagsLoading}
+          />
+        </HintsSection>
+      </Feature>
       <SideSection withToolbar={expanded}>
         <ExploreToolbar width={300} extras={toolbarExtras} />
       </SideSection>
       <section>
-        {(tableError || chartError) && (
-          <Alert type="error" showIcon>
-            {tableError || chartError}
-          </Alert>
-        )}
+        {!resultsLoading && !hasResults && <QuotaExceededAlert referrer="explore" />}
         <MainContent>
           <ExploreCharts
             canUsePreviousResults={canUsePreviousResults}
             confidences={confidences}
-            isAllowedSelection={isAllowedSelection}
             query={query}
             timeseriesResult={timeseriesResult}
           />
@@ -254,13 +303,47 @@ function ExploreTagsProvider({children}: any) {
   );
 }
 
+type OnboardingContentProps = SpanTabProps & {onboardingProject: Project};
+
+function OnboardingContent(props: OnboardingContentProps) {
+  const organization = useOrganization();
+
+  return (
+    <Layout.Body>
+      <TopSection>
+        <StyledPageFilterBar condensed>
+          <ProjectPageFilter />
+          <EnvironmentPageFilter />
+          <DatePageFilter
+            defaultPeriod={props.defaultPeriod}
+            maxPickableDays={props.maxPickableDays}
+            relativeOptions={({arbitraryOptions}) => ({
+              ...arbitraryOptions,
+              ...props.relativeOptions,
+            })}
+          />
+        </StyledPageFilterBar>
+      </TopSection>
+      <OnboardingContentSection>
+        <Onboarding project={props.onboardingProject} organization={organization} />
+      </OnboardingContentSection>
+    </Layout.Body>
+  );
+}
+
 export function SpansTabContent(props: SpanTabProps) {
   Sentry.setTag('explore.visited', 'yes');
+  const onboardingProject = useOnboardingProject();
+  const showOnboarding = onboardingProject !== undefined;
 
   return (
     <PageParamsProvider>
       <ExploreTagsProvider>
-        <SpansTabContentImpl {...props} />
+        {showOnboarding ? (
+          <OnboardingContent {...props} onboardingProject={onboardingProject} />
+        ) : (
+          <SpansTabContentImpl {...props} />
+        )}
       </ExploreTagsProvider>
     </PageParamsProvider>
   );
@@ -275,14 +358,18 @@ function checkIsAllowedSelection(
   return selectedMinutes <= maxPickableMinutes;
 }
 
-const Body = styled(Layout.Body)<{withToolbar: boolean}>`
+const Body = styled(Layout.Body)<{
+  thirdColumnWidth: string;
+  withHints: boolean;
+  withToolbar: boolean;
+}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     ${p =>
       p.withToolbar
-        ? `grid-template-columns: 300px minmax(100px, auto);`
-        : `grid-template-columns: 0px minmax(100px, auto);`}
-    grid-template-rows: auto 1fr;
+        ? `grid-template-columns: 300px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`
+        : `grid-template-columns: 0px minmax(100px, auto) ${p.withHints ? p.thirdColumnWidth : ''};`}
+    grid-template-rows: auto ${p => (p.withHints ? 'auto 1fr' : '1fr')};
     align-content: start;
     gap: ${space(2)} ${p => (p.withToolbar ? `${space(2)}` : '0px')};
     transition: 700ms;
@@ -307,6 +394,22 @@ const SideSection = styled('aside')<{withToolbar: boolean}>`
   }
 `;
 
+const HintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+  display: grid;
+  /* This is to ensure the hints section spans all the columns */
+  grid-column: 1/-1;
+  margin-bottom: ${space(2)};
+  margin-top: -4px;
+  height: fit-content;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr ${p =>
+        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
+    margin-bottom: 0;
+    margin-top: 0;
+  }
+`;
+
 const MainContent = styled('div')`
   position: relative;
   max-width: 100%;
@@ -314,6 +417,10 @@ const MainContent = styled('div')`
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   width: auto;
+`;
+
+const OnboardingContentSection = styled('section')`
+  grid-column: 1/3;
 `;
 
 const Toggle = styled('div')`

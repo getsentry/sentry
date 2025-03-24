@@ -34,7 +34,7 @@ function getRequestPayload({
 
 export default function MetricsCompatibilitySumsQuery({children, ...props}: QueryProps) {
   return (
-    <GenericDiscoverQuery<MetricsCompatibilitySumData, {}>
+    <GenericDiscoverQuery<MetricsCompatibilitySumData, Record<string, unknown>>
       route="metrics-compatibility"
       getRequestPayload={getRequestPayload}
       {...props}

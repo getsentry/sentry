@@ -5,7 +5,7 @@ import {motion} from 'framer-motion';
 
 import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
@@ -82,7 +82,7 @@ function TargetedOnboardingWelcome(props: StepProps) {
       source,
     });
 
-    activateSidebar();
+    activateSidebar({userClicked: false, source: 'targeted_onboarding_welcome_skip'});
   }, [organization, source, activateSidebar]);
 
   return (

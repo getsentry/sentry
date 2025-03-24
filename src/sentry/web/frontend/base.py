@@ -30,6 +30,7 @@ from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.organization import Organization, OrganizationStatus
@@ -128,118 +129,114 @@ class _HasRespond(Protocol):
     ) -> HttpResponseBase: ...
 
 
+def _find_implicit_slug(request: HttpRequest) -> str | None:
+    organization_slug = request.session.get("activeorg")
+    if request.subdomain is not None and request.subdomain != organization_slug:
+        # Customer domain is being used, set the subdomain as the requesting org slug.
+        organization_slug = request.subdomain
+    return organization_slug
+
+
+def _try_superuser_org_lookup(
+    organization_slug: str | None, request: HttpRequest
+) -> RpcUserOrganizationContext | None:
+    if organization_slug is not None and is_active_superuser(request):
+        return organization_service.get_organization_by_slug(
+            user_id=request.user.id, slug=organization_slug, only_visible=True
+        )
+    else:
+        return None
+
+
+def _try_finding_org_from_slug(
+    is_implicit: bool,
+    organization_slug: str,
+    organizations: list[RpcOrganizationMapping],
+    request: HttpRequest,
+) -> RpcUserOrganizationContext | None:
+    try:
+        backup_org = next(o for o in organizations if o.slug == organization_slug)
+    except StopIteration:
+        logger.info("Active organization [%s] not found in scope", organization_slug)
+        if is_implicit:
+            session = request.session
+            if session and "activeorg" in session:
+                del session["activeorg"]
+        backup_org = None
+
+    if backup_org is not None:
+        return organization_service.get_organization_by_id(
+            id=backup_org.id, user_id=request.user.id
+        )
+    return None
+
+
+def _lookup_organizations(
+    is_implicit: bool, organization_slug: str | None, request: HttpRequest
+) -> tuple[RpcUserOrganizationContext | None, RpcOrganizationSummary | None]:
+    active_organization = _try_superuser_org_lookup(organization_slug, request)
+    backup_organization: RpcOrganizationSummary | None = None
+    if active_organization is None and request.user.id is not None:
+        organizations = user_service.get_organizations(user_id=request.user.id, only_visible=True)
+
+        if organizations:
+            backup_organization = organizations[0]
+            if organization_slug:
+                active_organization = _try_finding_org_from_slug(
+                    is_implicit, organization_slug, organizations, request
+                )
+    return active_organization, backup_organization
+
+
+# TODO(dcramer): move the implicit organization logic into its own class
+# as it's only used in a single location and over complicates the rest of
+# the code
+def determine_active_organization(
+    request: HttpRequest, organization_slug: str | None = None
+) -> RpcUserOrganizationContext | None:
+    """
+    Using the current request and potentially optional organization_slug, 'determines'
+    the current session for this mixin object's scope, placing it into the active_organization attribute.
+
+    Generally this method only need be called once at the head of a request, as it can potentially have side
+    effects in the user's session.  That said, when login occurs during a request, this method should be called
+    be called again to refresh an active organization context.
+    """
+
+    if organization_slug is None:
+        is_implicit = True
+        organization_slug = _find_implicit_slug(request)
+    else:
+        is_implicit = False
+
+    active_organization, backup_organization = _lookup_organizations(
+        is_implicit, organization_slug, request
+    )
+
+    if active_organization is None and backup_organization:
+        if not is_implicit:
+            return None
+        active_organization = organization_service.get_organization_by_id(
+            id=backup_organization.id, user_id=request.user.id
+        )
+
+    if active_organization and active_organization.member:
+        auth.set_active_org(request, active_organization.organization.slug)
+
+    return active_organization
+
+
 class OrganizationMixin:
     # This attribute will only be set once determine_active_organization is called.  Subclasses should likely invoke
     # that method, passing along the organization_slug context that might exist (or might not).
     active_organization: RpcUserOrganizationContext | None
-
-    # TODO(dcramer): move the implicit organization logic into its own class
-    # as it's only used in a single location and over complicates the rest of
-    # the code
-    def determine_active_organization(
-        self, request: HttpRequest, organization_slug: str | None = None
-    ) -> None:
-        """
-        Using the current request and potentially optional organization_slug, 'determines'
-        the current session for this mixin object's scope, placing it into the active_organization attribute.
-
-        Generally this method only need be called once at the head of a request, as it can potentially have side
-        effects in the user's session.  That said, when login occurs during a request, this method should be called
-        be called again to refresh an active organization context.
-        """
-
-        if organization_slug is None:
-            is_implicit = True
-            organization_slug = self._find_implicit_slug(request)
-        else:
-            is_implicit = False
-
-        active_organization, backup_organization = self._lookup_organizations(
-            is_implicit, organization_slug, request
-        )
-
-        if active_organization is None and backup_organization:
-            if not is_implicit:
-                self.active_organization = None
-                return
-            active_organization = organization_service.get_organization_by_id(
-                id=backup_organization.id, user_id=request.user.id
-            )
-
-        if active_organization and active_organization.member:
-            auth.set_active_org(request, active_organization.organization.slug)
-
-        self.active_organization = active_organization
-
-    def _lookup_organizations(
-        self, is_implicit: bool, organization_slug: str | None, request: HttpRequest
-    ) -> tuple[RpcUserOrganizationContext | None, RpcOrganizationSummary | None]:
-        active_organization: RpcUserOrganizationContext | None = self._try_superuser_org_lookup(
-            organization_slug, request
-        )
-        backup_organization: RpcOrganizationSummary | None = None
-        if active_organization is None and request.user.id is not None:
-            organizations = user_service.get_organizations(
-                user_id=request.user.id, only_visible=True
-            )
-
-            if organizations:
-                backup_organization = organizations[0]
-                if organization_slug:
-                    active_organization = self._try_finding_org_from_slug(
-                        is_implicit, organization_slug, organizations, request
-                    )
-        return active_organization, backup_organization
-
-    def _try_finding_org_from_slug(
-        self,
-        is_implicit: bool,
-        organization_slug: str,
-        organizations: list[RpcOrganizationSummary],
-        request: HttpRequest,
-    ) -> RpcUserOrganizationContext | None:
-        try:
-            backup_org: RpcOrganizationSummary | None = next(
-                o for o in organizations if o.slug == organization_slug
-            )
-        except StopIteration:
-            logger.info("Active organization [%s] not found in scope", organization_slug)
-            if is_implicit:
-                session = request.session
-                if session and "activeorg" in session:
-                    del session["activeorg"]
-            backup_org = None
-
-        if backup_org is not None:
-            return organization_service.get_organization_by_id(
-                id=backup_org.id, user_id=request.user.id
-            )
-        return None
-
-    def _try_superuser_org_lookup(
-        self, organization_slug: str | None, request: HttpRequest
-    ) -> RpcUserOrganizationContext | None:
-        active_organization: RpcUserOrganizationContext | None = None
-        if organization_slug is not None:
-            if is_active_superuser(request):
-                active_organization = organization_service.get_organization_by_slug(
-                    user_id=request.user.id, slug=organization_slug, only_visible=True
-                )
-        return active_organization
-
-    def _find_implicit_slug(self, request: HttpRequest) -> str | None:
-        organization_slug = request.session.get("activeorg")
-        if request.subdomain is not None and request.subdomain != organization_slug:
-            # Customer domain is being used, set the subdomain as the requesting org slug.
-            organization_slug = request.subdomain
-        return organization_slug
 
     def is_not_2fa_compliant(
         self, request: HttpRequest, organization: RpcOrganization | Organization
     ) -> bool:
         return (
             organization.flags.require_2fa
-            and not request.user.has_2fa()
+            and (not request.user.is_authenticated or not request.user.has_2fa())
             and not is_active_superuser(request)
         )
 
@@ -249,7 +246,10 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_id_or_slug: int | str
+        self,
+        request: HttpRequest,
+        organization: RpcOrganization | Organization,
+        project_id_or_slug: int | str,
     ) -> Project | None:
         try:
             project = Project.objects.get(
@@ -266,23 +266,21 @@ class OrganizationMixin:
     def redirect_to_org(self: _HasRespond, request: HttpRequest) -> HttpResponseBase:
         from sentry import features
 
-        using_customer_domain = request and is_using_customer_domain(request)
-
         # TODO(dcramer): deal with case when the user cannot create orgs
         if self.active_organization:
             current_org_slug = self.active_organization.organization.slug
             url = Organization.get_url(current_org_slug)
-            if using_customer_domain:
+            if is_using_customer_domain(request):
                 url_prefix = generate_organization_url(request.subdomain)
                 url = absolute_uri(url, url_prefix=url_prefix)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
             url = reverse("sentry-organization-create")
-            if using_customer_domain:
+            if is_using_customer_domain(request):
                 url = absolute_uri(url)
 
-            if using_customer_domain and request.user and request.user.is_authenticated:
+            if is_using_customer_domain(request) and request.user and request.user.is_authenticated:
                 requesting_org_slug = request.subdomain
                 org_context = organization_service.get_organization_by_slug(
                     slug=requesting_org_slug,
@@ -355,11 +353,13 @@ class BaseView(View, OrganizationMixin):
         organization_slug = kwargs.get("organization_slug", None)
         if request and is_using_customer_domain(request) and not subdomain_is_region(request):
             organization_slug = request.subdomain
-        self.determine_active_organization(request, organization_slug)
+        self.active_organization = determine_active_organization(request, organization_slug)
 
         if self.csrf_protect:
-            if hasattr(self.dispatch.__func__, "csrf_exempt"):
-                delattr(self.dispatch.__func__, "csrf_exempt")
+            try:
+                del self.dispatch.__func__.csrf_exempt  # type: ignore[attr-defined]  # python/mypy#14123
+            except AttributeError:
+                pass
             response = self.test_csrf(request)
             if response:
                 return response
@@ -520,7 +520,7 @@ class AbstractOrganizationView(BaseView, abc.ABC):
     def has_permission(
         self,
         request: HttpRequest,
-        organization: RpcOrganization | Organization,
+        organization: RpcOrganization | Organization | None,
         *args: Any,
         **kwargs: Any,
     ) -> bool:
@@ -696,7 +696,7 @@ class ProjectView(OrganizationView):
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request: HttpRequest, organization: Organization, project: Project, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(self, request: HttpRequest, organization: Organization, project: Project | None, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         if project is None:
             return False
         rv = super().has_permission(request, organization)

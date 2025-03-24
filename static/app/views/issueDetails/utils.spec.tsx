@@ -67,7 +67,23 @@ describe('useHasStreamlinedUI', () => {
     expect(prefersStreamlineButQueryParamDisabled.current).toBe(false);
   });
 
-  it('ignores preferences if enforce flag is set', () => {
+  it('ignores preferences if enforce flag is set and user has not opted out', () => {
+    const enforceOrg = OrganizationFixture({
+      features: ['issue-details-streamline-enforce'],
+    });
+    jest.mocked(useOrganization).mockReturnValue(enforceOrg);
+
+    ConfigStore.init();
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = null;
+    act(() => ConfigStore.set('user', user));
+
+    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+    const {result} = renderHook(useHasStreamlinedUI);
+    expect(result.current).toBe(true);
+  });
+
+  it('respects preferences if enforce flag is set and user has opted out', () => {
     const enforceOrg = OrganizationFixture({
       features: ['issue-details-streamline-enforce'],
     });
@@ -80,10 +96,10 @@ describe('useHasStreamlinedUI', () => {
 
     jest.mocked(useLocation).mockReturnValue(LocationFixture());
     const {result} = renderHook(useHasStreamlinedUI);
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
-  it('ignores preferences if organization option is set', () => {
+  it('ignores preferences if organization option is set to true', () => {
     jest.mocked(useLocation).mockReturnValue(LocationFixture());
 
     const streamlineOrg = OrganizationFixture({streamlineOnly: true});
@@ -104,7 +120,7 @@ describe('useHasStreamlinedUI', () => {
     act(() => ConfigStore.set('user', user));
 
     const {result: legacyResult} = renderHook(useHasStreamlinedUI);
-    expect(legacyResult.current).toBe(false);
+    expect(legacyResult.current).toBe(true);
   });
 
   it('ignores the option if unset', () => {

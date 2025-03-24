@@ -21,7 +21,7 @@ export default function storyBook(
     name: string;
     render: StoryRenderFunction;
   }> = [];
-  const APIDocumentation: TypeLoader.ComponentDocWithFilename[] = [];
+  const APIDocumentation: Array<TypeLoader.ComponentDocWithFilename | undefined> = [];
 
   const storyFn: StoryContext = (name: string, render: StoryRenderFunction) => {
     stories.push({name, render});
@@ -30,9 +30,7 @@ export default function storyBook(
   const apiReferenceFn: (
     documentation: TypeLoader.ComponentDocWithFilename | undefined
   ) => void = (documentation: TypeLoader.ComponentDocWithFilename | undefined) => {
-    if (documentation) {
-      APIDocumentation.push(documentation);
-    }
+    APIDocumentation.push(documentation);
   };
 
   setup(storyFn, apiReferenceFn);
@@ -64,7 +62,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
   );
 }
 
-const StorySection = styled('section')`
+export const StorySection = styled('section')`
   margin-top: ${space(4)};
 
   & > p {

@@ -11,7 +11,7 @@ from sentry.utils.email import send_mail
 
 @all_silo_endpoint
 class InternalMailEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
@@ -19,6 +19,7 @@ class InternalMailEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
+        assert request.user.is_authenticated
         data = {
             "mailHost": options.get("mail.host"),
             "mailPassword": bool(options.get("mail.password")),
@@ -34,6 +35,7 @@ class InternalMailEndpoint(Endpoint):
         return Response(data)
 
     def post(self, request: Request) -> Response:
+        assert request.user.is_authenticated
         error = None
 
         body = (

@@ -30,15 +30,15 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
-import MonitorForm from 'sentry/views/monitors/components/monitorForm';
-import type {Monitor} from 'sentry/views/monitors/types';
+import MonitorForm from 'sentry/views/insights/crons/components/monitorForm';
+import type {Monitor} from 'sentry/views/insights/crons/types';
 
 type RouteParams = {
   alertType?: AlertRuleType;
   projectId?: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   members: Member[] | undefined;
   organization: Organization;

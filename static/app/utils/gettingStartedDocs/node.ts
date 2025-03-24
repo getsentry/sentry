@@ -152,7 +152,7 @@ export function getDefaultNodeImports({
 
 export function getImportInstrumentSnippet(
   defaultMode?: 'esm' | 'cjs',
-  fileExtension: string = 'js'
+  fileExtension = 'js'
 ): string {
   const filename = `instrument.${fileExtension}`;
 
@@ -219,9 +219,14 @@ Sentry.init({
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode !== 'continuous'
       ? `
-    // Set sampling rate for profiling - this is relative to tracesSampleRate
-    profilesSampleRate: 1.0,`
-      : ''
+    // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+    profileSessionSampleRate: 1.0,
+    // Trace lifecycle automatically enables profiling during active traces
+    profileLifecycle: 'trace',`
+      : `
+    // Set sampling rate for profiling - this is evaluated only once per SDK.init
+    profileSessionSampleRate: 1.0,
+    `
   }});${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
@@ -241,8 +246,8 @@ Sentry.startSpan({
 `
     : '// this code will be profiled'
 }
-// Calls to stopProfiling are optional - if you don't stop the profiler, it will keep profiling
-// your application until the process exits or stopProfiling is called.
+// Calls to stopProfiler are optional - if you don't stop the profile session, it will keep profiling
+// your application until the process exits or stopProfiler is called.
 Sentry.profiler.stopProfiler();`
       : ''
   }`;

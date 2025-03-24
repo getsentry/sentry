@@ -1,5 +1,6 @@
 import type {EventQuery} from 'sentry/actionCreators/events';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
+import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import type {
   DiscoverQueryProps,
   GenericChildrenProps,
@@ -21,7 +22,7 @@ export type TableDataRow = {
 
 export type TableData = {
   data: TableDataRow[];
-  meta: {};
+  meta: Record<string, ColumnValueType>;
 };
 
 /**

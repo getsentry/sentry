@@ -71,16 +71,16 @@ function ThreadSelector({threads, event, exception, activeThread, onChange}: Pro
           return isSortAscending ? threadA.id - threadB.id : threadB.id - threadA.id;
         case SortAttribute.NAME:
           return isSortAscending
-            ? threadA.name?.localeCompare(threadB.name ?? '') ?? 0
-            : threadB.name?.localeCompare(threadA.name ?? '') ?? 0;
+            ? (threadA.name?.localeCompare(threadB.name ?? '') ?? 0)
+            : (threadB.name?.localeCompare(threadA.name ?? '') ?? 0);
         case SortAttribute.LABEL:
           return isSortAscending
-            ? threadInfoA.label?.localeCompare(threadInfoB.label ?? '') ?? 0
-            : threadInfoB.label?.localeCompare(threadInfoA.label ?? '') ?? 0;
+            ? (threadInfoA.label?.localeCompare(threadInfoB.label ?? '') ?? 0)
+            : (threadInfoB.label?.localeCompare(threadInfoA.label ?? '') ?? 0);
         case SortAttribute.STATE:
           return isSortAscending
-            ? threadInfoA.state?.localeCompare(threadInfoB.state ?? '') ?? 0
-            : threadInfoB.state?.localeCompare(threadInfoA.state ?? '') ?? 0;
+            ? (threadInfoA.state?.localeCompare(threadInfoB.state ?? '') ?? 0)
+            : (threadInfoB.state?.localeCompare(threadInfoA.state ?? '') ?? 0);
         default:
           return 0;
       }

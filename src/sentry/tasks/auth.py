@@ -145,9 +145,14 @@ class OrganizationComplianceTask(abc.ABC):
         org_members = OrganizationMember.objects.filter(
             organization_id=org_id, user_id__isnull=False
         )
-        rpc_users = user_service.get_many_by_id(ids=[member.user_id for member in org_members])
+        rpc_users = user_service.get_many_by_id(
+            ids=[member.user_id for member in org_members if member.user_id is not None]
+        )
         rpc_users_dict = {user.id: user for user in rpc_users}
         for member in org_members:
+            if member.user_id is None:
+                continue
+
             user = rpc_users_dict.get(member.user_id, None)
             if user is None:
                 continue

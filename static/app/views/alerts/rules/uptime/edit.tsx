@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,7 +27,7 @@ type Props = {
   organization: Organization;
   project: Project;
   userTeamIds: string[];
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
 export function UptimeRulesEdit({params, onChangeTitle, organization, project}: Props) {
   const api = useApi();
@@ -59,9 +59,11 @@ export function UptimeRulesEdit({params, onChangeTitle, organization, project}: 
   if (isError) {
     if (error?.status === 404) {
       return (
-        <Alert type="error" showIcon>
-          {t('This alert rule could not be found.')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error" showIcon>
+            {t('This alert rule could not be found.')}
+          </Alert>
+        </Alert.Container>
       );
     }
 

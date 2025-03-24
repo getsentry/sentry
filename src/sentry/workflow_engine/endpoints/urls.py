@@ -1,5 +1,7 @@
 from django.urls import re_path
 
+from .organization_data_condition_index import OrganizationDataConditionIndexEndpoint
+from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_workflow_details import OrganizationWorkflowDetailsEndpoint
 from .organization_workflow_index import OrganizationWorkflowIndexEndpoint
 from .project_detector_details import ProjectDetectorDetailsEndpoint
@@ -9,7 +11,6 @@ from .project_detector_index import ProjectDetectorIndexEndpoint
 
 # Remaining Detector Endpoints
 #   - GET /detector w/ filters
-#   - PUT /detector/:id
 
 # Remaining Workflows Endpoints
 # - GET /workflow w/ filters
@@ -40,5 +41,15 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^\/]+)/workflows/(?P<workflow_id>[^\/]+)/$",
         OrganizationWorkflowDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-workflow-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/data-conditions/$",
+        OrganizationDataConditionIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-data-condition-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/detector_types/$",
+        OrganizationDetectorTypeIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-detector-type-index",
     ),
 ]

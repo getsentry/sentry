@@ -10,7 +10,7 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {type BaseButtonProps, Button} from 'sentry/components/button';
+import {type BaseButtonProps, Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -34,7 +34,7 @@ interface GuidedStepsContextState {
 interface StepProps {
   children: React.ReactNode;
   stepKey: string;
-  title: string;
+  title: React.ReactNode;
   isCompleted?: boolean;
   optional?: boolean;
 }

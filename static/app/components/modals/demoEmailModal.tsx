@@ -4,9 +4,10 @@ import styled from '@emotion/styled';
 
 import sandboxDemo from 'sentry-images/spot/sandbox.jpg';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EmailForm from 'sentry/utils/demoMode/emailForm';
@@ -49,7 +50,6 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
     async (email: string) => {
       const utmState = getUTMState();
 
-      // always save the email before the API call
       if (onAddedEmail) {
         onAddedEmail(email);
       }
@@ -64,6 +64,7 @@ export default function Modal({onAddedEmail, closeModal, onFailure}: Props) {
         });
 
         updateTouches(utmState);
+        ConfigStore.set('enableAnalytics', true);
       } catch (error) {
         onFailure();
       }

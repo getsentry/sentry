@@ -24,7 +24,7 @@ const projectRoutes = [
 ];
 
 describe('withDomainRedirect', function () {
-  type Props = RouteComponentProps<{orgId: string}, {}>;
+  type Props = RouteComponentProps<{orgId: string}>;
   function MyComponent(props: Props) {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;

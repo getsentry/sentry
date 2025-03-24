@@ -39,7 +39,7 @@ const renderAdminNavigation = () => (
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 function AdminLayout({children, ...props}: Props) {
   return (

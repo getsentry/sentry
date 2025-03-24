@@ -3,12 +3,12 @@ import logging
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework.permissions import IsAuthenticated
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.models.broadcast import Broadcast, BroadcastSeen
@@ -27,7 +27,7 @@ class BroadcastDetailsEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def _get_broadcast(self, request: Request, broadcast_id):
         if request.access.has_permission("broadcasts.admin"):

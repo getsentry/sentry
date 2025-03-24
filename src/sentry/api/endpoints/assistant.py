@@ -5,13 +5,13 @@ from django.db import IntegrityError
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.assistant import manager
 from sentry.models.assistant import AssistantActivity
 
@@ -62,7 +62,7 @@ class AssistantEndpoint(Endpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request: Request) -> Response:
         """Return all the guides with a 'seen' attribute if it has been 'viewed' or 'dismissed'."""

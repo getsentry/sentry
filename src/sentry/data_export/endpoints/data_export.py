@@ -18,6 +18,7 @@ from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 from sentry.utils import metrics
 from sentry.utils.snuba import MAX_FIELDS
 
@@ -108,8 +109,14 @@ class DataExportQuerySerializer(serializers.Serializer):
             )
             try:
                 query_builder_cls = DiscoverQueryBuilder
+                config = QueryBuilderConfig(
+                    auto_fields=True,
+                    auto_aggregations=True,
+                    has_metrics=has_metrics,
+                )
                 if dataset == "errors":
                     query_builder_cls = ErrorsQueryBuilder
+                    config.parser_config_overrides = PARSER_CONFIG_OVERRIDES
 
                 builder = query_builder_cls(
                     SUPPORTED_DATASETS[dataset],
@@ -118,11 +125,7 @@ class DataExportQuerySerializer(serializers.Serializer):
                     query=query_info["query"],
                     selected_columns=fields.copy(),
                     equations=equations,
-                    config=QueryBuilderConfig(
-                        auto_fields=True,
-                        auto_aggregations=True,
-                        has_metrics=has_metrics,
-                    ),
+                    config=config,
                 )
                 builder.get_snql_query()
             except InvalidSearchQuery as err:

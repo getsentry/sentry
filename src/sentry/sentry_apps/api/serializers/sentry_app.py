@@ -32,7 +32,7 @@ class OwnerResponseField(TypedDict):
 
 class SentryAppSerializerResponse(TypedDict):
     allowedOrigins: list[str]
-    avatars: SentryAppAvatarSerializerResponse
+    avatars: list[SentryAppAvatarSerializerResponse]
     events: set[str]
     featureData: list[str]
     isAlertable: bool

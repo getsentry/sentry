@@ -100,24 +100,6 @@ describe('Discover > Homepage', () => {
     });
   });
 
-  it('renders the Discover banner', async () => {
-    render(
-      <Homepage
-        organization={organization}
-        location={initialData.router.location}
-        router={initialData.router}
-        setSavedQuery={jest.fn()}
-        loading={false}
-      />,
-      {router: initialData.router, organization: initialData.organization}
-    );
-
-    await screen.findByText('Discover Trends');
-    screen.getByText('Get a Tour');
-
-    expect(screen.queryByText('Build a new query')).not.toBeInTheDocument();
-  });
-
   it('fetches from the homepage URL and renders fields, async page filters, async and chart information', async () => {
     render(
       <Homepage
@@ -295,11 +277,11 @@ describe('Discover > Homepage', () => {
       {router: initialData.router, organization: initialData.organization}
     );
 
-    expect(mockHomepage).toHaveBeenCalled();
-    expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
     await waitFor(() => {
-      expect(measurementsMetaMock).toHaveBeenCalled();
+      expect(screen.getByRole('button', {name: /set as default/i})).toBeDisabled();
     });
+
+    expect(measurementsMetaMock).toHaveBeenCalled();
   });
 
   it('follows absolute date selection', async () => {

@@ -221,7 +221,11 @@ function AlertRulesList() {
                   key="name"
                   role="columnheader"
                   aria-sort={
-                    sort.field !== 'name' ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    sort.field === 'name'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -239,7 +243,7 @@ function AlertRulesList() {
                   key="status"
                   role="columnheader"
                   aria-sort={
-                    !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    isAlertRuleSort ? (sort.asc ? 'ascending' : 'descending') : 'none'
                   }
                   to={{
                     pathname: location.pathname,

@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -85,8 +84,9 @@ public static MauiApp CreateMauiApp()
       // e.g. 0.2 means we want to profile 20 % of the captured transactions.
       // We recommend adjusting this value in production.
       options.ProfilesSampleRate = 1.0;${
-        platform !== DotNetPlatform.IOS_MACCATALYST
-          ? `
+        platform === DotNetPlatform.IOS_MACCATALYST
+          ? ''
+          : `
 
       // Requires NuGet package: Sentry.Profiling
       // Note: By default, the profiler is initialized asynchronously. This can
@@ -97,7 +97,6 @@ public static MauiApp CreateMauiApp()
           // prefer profiling to start asynchronously
           TimeSpan.FromMilliseconds(500)
       ));`
-          : ''
       }`
           : ''
       }
@@ -182,11 +181,11 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <AlertWithoutMarginBottom type="info">
+                  <Alert type="info">
                     {t(
                       'Profiling for .NET Framework and .NET on Android are not supported.'
                     )}
-                  </AlertWithoutMarginBottom>
+                  </Alert>
                 ),
               },
             ]
@@ -333,7 +332,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

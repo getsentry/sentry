@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -191,23 +191,25 @@ export function TransactionNodeDetails({
         onTabScrollToNode={onTabScrollToNode}
       />
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
-        {!node.canFetch ? (
-          <StyledAlert type="info" showIcon>
-            {tct(
-              'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
-              {
-                customInstrumentationLink: (
-                  <ExternalLink
-                    onClick={() => {
-                      traceAnalytics.trackMissingSpansDocLinkClicked(organization);
-                    }}
-                    href={getCustomInstrumentationLink(project)}
-                  />
-                ),
-              }
-            )}
-          </StyledAlert>
-        ) : null}
+        {node.canFetch ? null : (
+          <Alert.Container>
+            <StyledAlert type="info" showIcon>
+              {tct(
+                'This transaction does not have any child spans. You can add more child spans via [customInstrumentationLink:custom instrumentation].',
+                {
+                  customInstrumentationLink: (
+                    <ExternalLink
+                      onClick={() => {
+                        traceAnalytics.trackMissingSpansDocLinkClicked(organization);
+                      }}
+                      href={getCustomInstrumentationLink(project)}
+                    />
+                  ),
+                }
+              )}
+            </StyledAlert>
+          </Alert.Container>
+        )}
 
         <IssueList node={node} organization={organization} issues={issues} />
 
@@ -242,9 +244,11 @@ export function TransactionNodeDetails({
           event={event}
         />
 
-        <EventContexts event={event} />
+        <EventContexts event={event} disableCollapsePersistence />
 
-        {project ? <EventEvidence event={event} project={project} /> : null}
+        {project ? (
+          <EventEvidence event={event} project={project} disableCollapsePersistence />
+        ) : null}
 
         {replay ? null : <ReplayPreview event={event} organization={organization} />}
 
@@ -254,13 +258,20 @@ export function TransactionNodeDetails({
           <EventAttachments event={event} project={project} group={undefined} />
         ) : null}
 
-        {project ? <EventViewHierarchy event={event} project={project} /> : null}
+        {project ? (
+          <EventViewHierarchy
+            event={event}
+            project={project}
+            disableCollapsePersistence
+          />
+        ) : null}
 
         {event.projectSlug ? (
           <EventRRWebIntegration
             event={event}
             orgId={organization.slug}
             projectSlug={event.projectSlug}
+            disableCollapsePersistence
           />
         ) : null}
       </TraceDrawerComponents.BodyContainer>
@@ -300,7 +311,7 @@ function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
       <InterimSection
         title={t('Transaction Specific')}
         type="transaction_specifc"
-        initialCollapse
+        disableCollapsePersistence
       >
         <TraceDrawerComponents.SectionCardGroup>
           {hasSDKContext(event) || cacheMetrics.length > 0 ? (

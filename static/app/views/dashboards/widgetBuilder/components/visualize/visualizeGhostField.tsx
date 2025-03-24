@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,7 +14,6 @@ import {
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {
   AggregateCompactSelect,
-  ColumnCompactSelect,
   FieldBar,
   FieldExtras,
   FieldRow,
@@ -24,6 +23,7 @@ import {
   StyledArithmeticInput,
   StyledDeleteButton,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
+import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {type FieldValue, FieldValueKind} from 'sentry/views/discover/table/types';
 
 type VisualizeGhostFieldProps = {
@@ -105,7 +105,6 @@ function VisualizeGhostField({
               key="parameter:text"
               type="text"
               placeholder={t('Equation')}
-              required
               value={draggingField?.field ?? ''}
               onUpdate={() => {}}
             />
@@ -139,20 +138,22 @@ function VisualizeGhostField({
                       {
                         label:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field,
                         value:
                           draggingField?.kind === FieldValueKind.FUNCTION
-                            ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                                ?.arguments[0] ?? ''
+                            ? (parseFunction(
+                                fields?.map(generateFieldAsString)[activeId]!
+                              )?.arguments[0] ?? '')
                             : draggingField?.field!,
                       },
                     ]}
                     value={
                       draggingField?.kind === FieldValueKind.FUNCTION
-                        ? parseFunction(fields?.map(generateFieldAsString)[activeId]!)
-                            ?.arguments[0] ?? ''
+                        ? (parseFunction(fields?.map(generateFieldAsString)[activeId]!)
+                            ?.arguments[0] ?? '')
                         : draggingField?.field
                     }
                     onChange={() => {}}
@@ -240,5 +241,5 @@ const Ghost = styled('div')`
 `;
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;

@@ -6,7 +6,7 @@ import textStyles from 'sentry/styles/text';
 
 type Props = {
   children: React.ReactNode;
-  button?: JSX.Element;
+  button?: React.JSX.Element;
   subtitle?: string;
   title?: string;
 };

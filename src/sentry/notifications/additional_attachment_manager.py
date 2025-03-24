@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, MutableMapping
 
-from sentry.api.validators.integrations import validate_provider
+from sentry.integrations.api.parsers.integrations import validate_provider
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.message_builder.types import SlackBlock

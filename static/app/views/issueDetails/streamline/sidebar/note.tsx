@@ -11,8 +11,8 @@ import type {
   MentionChangeEvent,
   Mentioned,
 } from 'sentry/components/activity/note/types';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NoteType} from 'sentry/types/alerts';
@@ -108,13 +108,13 @@ function StreamlinedNoteInput({
   );
 
   const handleAddMember = useCallback(
-    (id: React.ReactText, display: string) =>
+    (id: string | number, display: string) =>
       setMemberMentions(existing => [...existing, [`${id}`, display]]),
     []
   );
 
   const handleAddTeam = useCallback(
-    (id: React.ReactText, display: string) =>
+    (id: string | number, display: string) =>
       setTeamMentions(existing => [...existing, [`${id}`, display]]),
     []
   );

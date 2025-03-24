@@ -729,11 +729,13 @@ class AuthHelper(Pipeline):
         self.organization: RpcOrganization = self.organization
         self.provider: Provider = self.provider
 
-    def get_provider(self, provider_key: str | None, **kwargs) -> PipelineProvider:
+    def get_provider(
+        self, provider_key: str | None, *, organization: RpcOrganization | None
+    ) -> PipelineProvider:
         if self.provider_model:
             return cast(PipelineProvider, self.provider_model.get_provider())
         elif provider_key:
-            return super().get_provider(provider_key)
+            return super().get_provider(provider_key, organization=organization)
         else:
             raise NotImplementedError
 
@@ -753,9 +755,6 @@ class AuthHelper(Pipeline):
         state = dict(super().get_initial_state())
         state.update({"flow": self.flow, "referrer": self.referrer})
         return state
-
-    def get_redirect_url(self) -> str:
-        return absolute_uri(reverse("sentry-auth-sso"))
 
     def dispatch_to(self, step: View) -> HttpResponseBase:
         return step.dispatch(request=self.request, helper=self)

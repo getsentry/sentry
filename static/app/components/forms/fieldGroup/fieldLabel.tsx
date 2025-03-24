@@ -10,7 +10,7 @@ interface FieldLabelProps extends Pick<FieldGroupProps, 'disabled'> {}
 export const FieldLabel = styled('div', {
   shouldForwardProp: p => p !== 'disabled' && isPropValid(p),
 })<FieldLabelProps>`
-  color: ${p => (!p.disabled ? p.theme.textColor : p.theme.disabled)};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
   display: flex;
   gap: ${space(0.5)};
   line-height: 16px;

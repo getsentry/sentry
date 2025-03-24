@@ -1,11 +1,5 @@
-import {setForceHide} from 'sentry/actionCreators/guides';
 import ConfigStore from 'sentry/stores/configStore';
-
-import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
-
-const SIGN_UP_MODAL_DELAY = 30_000;
-
-const DEMO_MODE_EMAIL_KEY = 'demo-mode:email';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 
 export function extraQueryParameter(): URLSearchParams {
   const extraQueryString = window.SandboxData?.extraQueryString || '';
@@ -30,39 +24,6 @@ export function urlAttachQueryParams(url: string, params: URLSearchParams): stri
   return url;
 }
 
-export function isDemoModeEnabled(): boolean {
-  return ConfigStore.get('demoMode');
-}
-
-export function openDemoSignupModal() {
-  if (!isDemoModeEnabled()) {
-    return;
-  }
-  setTimeout(() => {
-    demoSignupModal();
-  }, SIGN_UP_MODAL_DELAY);
-}
-
-export function openDemoEmailModal() {
-  if (!isDemoModeEnabled()) {
-    return;
-  }
-
-  // email already added
-  if (localStorage.getItem(DEMO_MODE_EMAIL_KEY)) {
-    return;
-  }
-
-  demoEmailModal({
-    onAddedEmail,
-    onFailure: () => {
-      setForceHide(false);
-    },
-  });
-}
-
-function onAddedEmail(email: string) {
-  setForceHide(false);
-  localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
-  openDemoSignupModal();
+export function isDemoModeActive(): boolean {
+  return ConfigStore.get('demoMode') && !isActiveSuperuser();
 }

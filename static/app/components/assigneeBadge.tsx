@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import {useTheme} from '@emotion/react';
+import {type DO_NOT_USE_ChonkTheme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Tag from 'sentry/components/badge/tag';
 import {Chevron} from 'sentry/components/chevron';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {SuggestedOwnerReason} from 'sentry/types/group';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
@@ -106,6 +107,7 @@ export function AssigneeBadge({
           )}
         </TooltipWrapper>
       }
+      skipWrapper
     >
       <StyledTag icon={makeAssignedIcon(assignedTo)} />
     </Tooltip>
@@ -128,8 +130,9 @@ export function AssigneeBadge({
           </TooltipSubtext>
         </TooltipWrapper>
       }
+      skipWrapper
     >
-      <StyledTag icon={unassignedIcon} borderStyle="dashed" />
+      <UnassignedTag icon={unassignedIcon} />
     </Tooltip>
   );
 }
@@ -144,18 +147,22 @@ const TooltipWrapper = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.5)};
-  }
-  & > div {
-    height: 24px;
-    padding: ${space(0.5)};
-    padding-right: ${space(0.25)};
-  }
+  gap: ${space(0.5)};
+  height: 24px;
+  padding: ${space(0.5)};
+  padding-right: ${space(0.25)};
   color: ${p => p.theme.subText};
 `;
+
+const UnassignedTag = withChonk(
+  styled(StyledTag)`
+    border-style: dashed;
+  `,
+  styled(StyledTag)<{theme: DO_NOT_USE_ChonkTheme}>`
+    border: 1px dashed ${p => p.theme.border};
+    background-color: transparent;
+  `
+);
 
 const TooltipSubtext = styled('div')`
   color: ${p => p.theme.subText};

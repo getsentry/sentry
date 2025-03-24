@@ -1,9 +1,12 @@
 from random import randint
 
 from sentry import ratelimits
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 
 # Produce faster tests by reducing the limits so we don't have to generate so many.
@@ -37,7 +40,8 @@ class ForOrganizationMemberTestCase(TestCase):
         )
 
     def test_by_api_token(self):
-        token = ApiToken(id=1)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = AuthenticatedToken.from_token(ApiToken(id=1))
         for n in range(5):
             assert not ratelimits.for_organization_member_invite(
                 Organization(id=randint(0, 100000)),

@@ -21,7 +21,7 @@ class ByReplyingRegionName(ByRegionName):
     parameter_name: str = "replying_region_name"
 
 
-# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this service fits into the entire SAAS->SAAS relocation workflow.
 class RegionRelocationExportService(RpcService):
     """
@@ -84,7 +84,7 @@ class RegionRelocationExportService(RpcService):
         pass
 
 
-# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# See the comment on /src/sentry/relocation/tasks/process.py::uploading_start for a detailed description of
 # how this service fits into the entire SAAS->SAAS relocation workflow.
 class ControlRelocationExportService(RpcService):
     """

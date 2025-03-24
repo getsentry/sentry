@@ -10,11 +10,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -46,11 +46,13 @@ import {
 import withProjects from 'sentry/utils/withProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
+import {OnDemandThresholdChecker} from 'sentry/views/alerts/rules/metric/onDemandThresholdChecker';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart, {ErrorChart} from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
+  determineIsSampled,
   determineMultiSeriesConfidence,
   determineSeriesConfidence,
 } from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
@@ -115,7 +117,7 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{projectId?: string; ruleId?: string}, {}> & {
+} & RouteComponentProps<{projectId?: string; ruleId?: string}> & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & DeprecatedAsyncComponent['props'];
 
@@ -147,6 +149,7 @@ type State = {
   comparisonDelta?: number;
   confidence?: Confidence;
   isExtrapolatedChartData?: boolean;
+  isSampled?: boolean | null;
   seasonality?: AlertRuleSeasonality;
 } & DeprecatedAsyncComponent['state'];
 
@@ -157,8 +160,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
   uuid: string | null = null;
 
-  constructor(props: any, context: any) {
-    super(props, context);
+  constructor(props: any) {
+    super(props);
     this.handleHistoricalTimeSeriesDataFetched =
       this.handleHistoricalTimeSeriesDataFetched.bind(this);
     this.handleConfidenceTimeSeriesDataFetched =
@@ -173,11 +176,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['span_metrics', 'eap_metrics'].includes(alertType)
+      ['span_metrics', 'eap_metrics'].includes(alertType)
         ? query
+        : query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
-        : query
     ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
@@ -218,7 +221,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO(issues): Does this need to be smarter about where its inserting the new filter?
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
-      : rule.query ?? '';
+      : (rule.query ?? '');
 
     return {
       ...super.getDefaultState(),
@@ -397,14 +400,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const isBelow = thresholdType === AlertRuleThresholdType.BELOW;
     let errorMessage = '';
 
-    if (typeof resolveThreshold !== 'number') {
-      errorMessage = isBelow
-        ? t('Resolution threshold must be greater than alert')
-        : t('Resolution threshold must be less than alert');
-    } else {
+    if (typeof resolveThreshold === 'number') {
       errorMessage = isBelow
         ? t('Alert threshold must be less than resolution')
         : t('Alert threshold must be greater than resolution');
+    } else {
+      errorMessage = isBelow
+        ? t('Resolution threshold must be greater than alert')
+        : t('Resolution threshold must be less than alert');
     }
 
     errors.set(triggerIndex, {
@@ -602,7 +605,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
         return {
           [name]: value,
-          alertType: alertType !== newAlertType ? 'custom_transactions' : alertType,
+          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
           dataset,
         };
       });
@@ -719,7 +722,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     await Sentry.withScope(async scope => {
       try {
         scope.setTag('type', AlertRuleType.METRIC);
-        scope.setTag('operation', !rule.id ? 'create' : 'edit');
+        scope.setTag('operation', rule.id ? 'edit' : 'create');
         for (const trigger of sanitizedTriggers) {
           for (const action of trigger.actions) {
             if (action.type === 'slack' || action.type === 'discord') {
@@ -988,7 +991,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const confidence = isEventsStats(data)
       ? determineSeriesConfidence(data)
       : determineMultiSeriesConfidence(data);
-    this.setState({confidence});
+    const isSampled = determineIsSampled(data);
+    this.setState({confidence, isSampled});
   }
 
   handleHistoricalTimeSeriesDataFetched(
@@ -1123,6 +1127,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartError,
       chartErrorMessage,
       confidence,
+      isSampled,
     } = this.state;
 
     if (chartError) {
@@ -1170,6 +1175,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
       confidence,
+      isSampled,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1277,7 +1283,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
     const hasAlertWrite = hasEveryAccess(['alerts:write'], {organization, project});
     const formDisabled = loading || !hasAlertWrite;
-    const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showErrorMigrationWarning =
       !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
@@ -1288,94 +1293,116 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         <ProjectPermissionAlert access={['alerts:write']} project={project} />
 
         {eventView && <IncompatibleAlertQuery eventView={eventView} />}
-        <Form
-          model={this.form}
-          apiMethod={ruleId ? 'PUT' : 'POST'}
-          apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-            ruleId ? `${ruleId}/` : ''
-          }`}
-          submitDisabled={submitDisabled}
-          initialData={{
-            name,
-            dataset,
-            eventTypes,
-            aggregate,
-            query,
-            timeWindow: rule.timeWindow,
-            environment: rule.environment || null,
-            owner: rule.owner,
-            projectId: project.id,
-            alertType,
-          }}
-          saveOnBlur={false}
-          onSubmit={this.handleSubmit}
-          onSubmitSuccess={onSubmitSuccess}
-          onCancel={this.handleCancel}
-          onFieldChange={this.handleFieldChange}
-          extraButton={
-            rule.id ? (
-              <Confirm
-                disabled={formDisabled}
-                message={t(
-                  'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
-                  rule.name
-                )}
-                header={<h5>{t('Delete Alert Rule?')}</h5>}
-                priority="danger"
-                confirmText={t('Delete Rule')}
-                onConfirm={this.handleDeleteRule}
-              >
-                <Button priority="danger">{t('Delete Rule')}</Button>
-              </Confirm>
-            ) : null
-          }
-          submitLabel={
-            isMigration && !triggersHaveChanged ? t('Looks good to me!') : t('Save Rule')
-          }
+        <OnDemandThresholdChecker
+          projectId={project.id}
+          isExtrapolatedChartData={!!isExtrapolatedChartData}
         >
-          <List symbol="colored-numeric">
-            <RuleConditionsForm
-              aggregate={aggregate}
-              alertType={alertType}
-              allowChangeEventTypes={
-                dataset === Dataset.ERRORS || alertType === 'custom_transactions'
-              }
-              comparisonDelta={comparisonDelta}
-              comparisonType={comparisonType}
-              dataset={dataset}
-              disableProjectSelector={disableProjectSelector}
-              disabled={formDisabled}
-              isEditing={Boolean(ruleId)}
-              isErrorMigration={showErrorMigrationWarning}
-              isExtrapolatedChartData={isExtrapolatedChartData}
-              isTransactionMigration={isMigration && !showErrorMigrationWarning}
-              onComparisonDeltaChange={value =>
-                this.handleFieldChange('comparisonDelta', value)
-              }
-              onFilterSearch={this.handleFilterUpdate}
-              onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
-              organization={organization}
-              project={project}
-              router={router}
-              thresholdChart={wizardBuilderChart}
-              timeWindow={timeWindow}
-            />
-            <AlertListItem>{t('Set thresholds')}</AlertListItem>
-            {thresholdTypeForm(formDisabled)}
-            {showErrorMigrationWarning && (
-              <Alert type="warning" showIcon>
-                {tct(
-                  "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
-                  {
-                    code: <code />,
-                  }
-                )}
-              </Alert>
-            )}
-            {triggerForm(formDisabled)}
-            {ruleNameOwnerForm(formDisabled)}
-          </List>
-        </Form>
+          {({isOnDemandLimitReached}) => {
+            const submitDisabled =
+              formDisabled ||
+              !this.state.isQueryValid ||
+              (isExtrapolatedChartData &&
+                isOnDemandQueryString(this.state.query) &&
+                isOnDemandLimitReached);
+            return (
+              <Form
+                model={this.form}
+                apiMethod={ruleId ? 'PUT' : 'POST'}
+                apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+                  ruleId ? `${ruleId}/` : ''
+                }`}
+                submitDisabled={submitDisabled}
+                initialData={{
+                  name,
+                  dataset,
+                  eventTypes,
+                  aggregate,
+                  query,
+                  timeWindow: rule.timeWindow,
+                  environment: rule.environment || null,
+                  owner: rule.owner,
+                  projectId: project.id,
+                  alertType,
+                }}
+                saveOnBlur={false}
+                onSubmit={this.handleSubmit}
+                onSubmitSuccess={onSubmitSuccess}
+                onCancel={this.handleCancel}
+                onFieldChange={this.handleFieldChange}
+                extraButton={
+                  rule.id ? (
+                    <Confirm
+                      disabled={formDisabled}
+                      message={t(
+                        'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
+                        rule.name
+                      )}
+                      header={<h5>{t('Delete Alert Rule?')}</h5>}
+                      priority="danger"
+                      confirmText={t('Delete Rule')}
+                      onConfirm={this.handleDeleteRule}
+                    >
+                      <Button priority="danger">{t('Delete Rule')}</Button>
+                    </Confirm>
+                  ) : null
+                }
+                submitLabel={
+                  isMigration && !triggersHaveChanged
+                    ? t('Looks good to me!')
+                    : t('Save Rule')
+                }
+              >
+                <List symbol="colored-numeric">
+                  <RuleConditionsForm
+                    aggregate={aggregate}
+                    alertType={alertType}
+                    allowChangeEventTypes={
+                      dataset === Dataset.ERRORS || alertType === 'custom_transactions'
+                    }
+                    comparisonDelta={comparisonDelta}
+                    comparisonType={comparisonType}
+                    dataset={dataset}
+                    disableProjectSelector={disableProjectSelector}
+                    disabled={formDisabled}
+                    isEditing={Boolean(ruleId)}
+                    isErrorMigration={showErrorMigrationWarning}
+                    isExtrapolatedChartData={isExtrapolatedChartData}
+                    isOnDemandLimitReached={isOnDemandLimitReached}
+                    isTransactionMigration={isMigration && !showErrorMigrationWarning}
+                    onComparisonDeltaChange={value =>
+                      this.handleFieldChange('comparisonDelta', value)
+                    }
+                    onFilterSearch={this.handleFilterUpdate}
+                    onTimeWindowChange={value =>
+                      this.handleFieldChange('timeWindow', value)
+                    }
+                    organization={organization}
+                    project={project}
+                    router={router}
+                    thresholdChart={wizardBuilderChart}
+                    timeWindow={timeWindow}
+                  />
+                  <AlertListItem>{t('Set thresholds')}</AlertListItem>
+                  {thresholdTypeForm(formDisabled)}
+                  {showErrorMigrationWarning && (
+                    <Alert.Container>
+                      <Alert type="warning" showIcon>
+                        {tct(
+                          "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
+                          {
+                            code: <code />,
+                          }
+                        )}
+                      </Alert>
+                    </Alert.Container>
+                  )}
+                  {triggerForm(formDisabled)}
+                  {ruleNameOwnerForm(formDisabled)}
+                </List>
+              </Form>
+            );
+          }}
+        </OnDemandThresholdChecker>
       </Main>
     );
   }
@@ -1385,9 +1412,9 @@ function formatStatsToHistoricalDataset(
   data: EventsStats | MultiSeriesEventsStats | null
 ): Array<[number, {count: number}]> {
   return Array.isArray(data?.data)
-    ? data.data.flatMap(([timestamp, entries]) =>
+    ? (data.data.flatMap(([timestamp, entries]) =>
         entries.map(entry => [timestamp, entry] as [number, {count: number}])
-      ) ?? []
+      ) ?? [])
     : [];
 }
 

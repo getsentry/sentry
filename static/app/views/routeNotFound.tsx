@@ -8,11 +8,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Sidebar from 'sentry/components/sidebar';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useLastKnownRoute} from 'sentry/views/lastKnownRouteContextProvider';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
-function RouteNotFound({router, location}: Props) {
+function RouteNotFound({location}: Props) {
+  const navigate = useNavigate();
   const {pathname, search, hash} = location;
   const lastKnownRoute = useLastKnownRoute();
 
@@ -21,7 +23,7 @@ function RouteNotFound({router, location}: Props) {
   useLayoutEffect(() => {
     // Attempt to fix trailing slashes first
     if (isMissingSlash) {
-      router.replace(`${pathname}/${search}${hash}`);
+      navigate(`${pathname}/${search}${hash}`, {replace: true});
       return;
     }
 
@@ -32,7 +34,7 @@ function RouteNotFound({router, location}: Props) {
       scope.setTag('lastKnownRoute', lastKnownRoute);
       Sentry.captureException(new Error('Route not found'));
     });
-  }, [pathname, search, hash, isMissingSlash, router, lastKnownRoute]);
+  }, [pathname, search, hash, isMissingSlash, lastKnownRoute, navigate]);
 
   if (isMissingSlash) {
     return null;

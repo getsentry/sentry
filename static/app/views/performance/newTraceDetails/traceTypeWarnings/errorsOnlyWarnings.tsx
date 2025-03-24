@@ -2,7 +2,7 @@ import {useEffect, useMemo} from 'react';
 
 import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
@@ -82,18 +82,20 @@ function PerformanceSetupBanner({
 
   if (projectsWithOnboardingChecklist.length === 0) {
     return (
-      <Alert type="info" showIcon>
-        {tct(
-          "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
-          {
-            documentationLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
-                {t('documentation')}
-              </ExternalLink>
-            ),
-          }
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info" showIcon>
+          {tct(
+            "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
+            {
+              documentationLink: (
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
+                  {t('documentation')}
+                </ExternalLink>
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

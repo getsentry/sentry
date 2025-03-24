@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import color from 'color';
 import {useReducedMotion} from 'framer-motion';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -287,7 +287,7 @@ function ClippedBox(props: ClippedBoxProps) {
         {props.title ? <Title>{props.title}</Title> : null}
         {props.children}
         {clipped
-          ? props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>
+          ? (props.clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>)
           : null}
       </div>
     </Wrapper>

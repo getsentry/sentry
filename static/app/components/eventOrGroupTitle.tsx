@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
-import {getMessage, getTitle, isTombstone} from 'sentry/utils/events';
+import {getTitle, isTombstone} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupPreviewTooltip from './groupPreviewTooltip';
@@ -31,7 +30,7 @@ function EventOrGroupTitle({
   const hasNewLayout =
     organization?.features.includes('issue-stream-table-layout') ?? false;
 
-  const secondaryTitle = hasNewLayout ? getMessage(data) : subtitle;
+  const secondaryTitle = hasNewLayout ? null : subtitle;
 
   if (hasNewLayout) {
     return (
@@ -47,12 +46,6 @@ function EventOrGroupTitle({
           </GroupPreviewTooltip>
         ) : (
           titleLabel
-        )}
-        {secondaryTitle && (
-          <Fragment>
-            <Spacer width={space(1)} />
-            <Message title={secondaryTitle}>{secondaryTitle}</Message>
-          </Fragment>
         )}
       </span>
     );
@@ -100,11 +93,6 @@ const Subtitle = styled('em')`
   color: ${p => p.theme.gray300};
   font-style: normal;
   height: 100%;
-`;
-
-const Message = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('span')`

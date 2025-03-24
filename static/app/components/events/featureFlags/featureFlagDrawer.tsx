@@ -1,8 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -22,7 +23,6 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
-import {InputGroup} from 'sentry/components/inputGroup';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
@@ -125,19 +125,30 @@ export const CardContainer = styled('div')<{numCols: number}>`
 
   div {
     border: none;
-    border-radius: 0;
+    border-radius: ${space(0.5)};
   }
 
   > * {
     padding-left: 0px;
-    :not(:first-child) {
-      border-left: 1.5px solid ${p => p.theme.innerBorder};
-      padding-left: ${space(2)};
-      margin-left: -1px;
+
+    &:first-child {
+      margin-left: -${space(1)};
     }
     :not(:last-child) {
       border-right: 1.5px solid ${p => p.theme.innerBorder};
       padding-right: ${space(2)};
+      div {
+        padding-left: ${space(0.5)};
+      }
+    }
+    :not(:first-child) {
+      border-left: 1.5px solid ${p => p.theme.innerBorder};
+      padding-left: ${space(2)};
+      padding-right: 0;
+      margin-left: -1px;
+      div {
+        padding-left: ${space(0.5)};
+      }
     }
   }
 `;

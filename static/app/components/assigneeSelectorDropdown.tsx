@@ -3,19 +3,19 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
-import {Button} from 'sentry/components/button';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
 } from 'sentry/components/compactSelect';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
@@ -586,7 +586,7 @@ export default function AssigneeSelectorDropdown({
   );
 }
 
-const AssigneeWrapper = styled('div')`
+export const AssigneeWrapper = styled('div')`
   display: flex;
   justify-content: flex-end;
 `;

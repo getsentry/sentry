@@ -2,7 +2,6 @@ import pickBy from 'lodash/pickBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
-import {getInterval} from 'sentry/components/charts/utils';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
 import type {
@@ -126,7 +125,6 @@ export const SpansConfig: DatasetConfig<
   getSeriesRequest,
   transformTable: transformEventsResponseToTable,
   transformSeries: transformEventsResponseToSeries,
-  filterTableOptions,
   filterAggregateParams,
   getCustomFieldRenderer: (field, meta, _organization) => {
     return getFieldRenderer(field, meta, false);
@@ -166,7 +164,7 @@ function getPrimaryFieldOptions(
   return {...baseFieldOptions, ...spanTags};
 }
 
-function filterTableOptions(option: FieldValueOption) {
+function _isNotNumericTag(option: FieldValueOption) {
   // Filter out numeric tags from primary options, they only show up in
   // the parameter fields for aggregate functions
   if ('dataType' in option.value.meta) {
@@ -221,6 +219,11 @@ function getEventsRequest(
     params.sort = toArray(query.orderby);
   }
 
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  eventView.query = `${eventView.query} !transaction.span_id:00`;
+
   return doDiscoverQuery<EventsTableData>(
     api,
     url,
@@ -253,7 +256,7 @@ function getGroupByFieldOptions(
   // The only options that should be returned as valid group by options
   // are string tags
   const filterGroupByOptions = (option: FieldValueOption) =>
-    filterTableOptions(option) && !yAxisFilter(option);
+    _isNotNumericTag(option) && !yAxisFilter(option);
 
   return pickBy(primaryFieldOptions, filterGroupByOptions);
 }
@@ -278,7 +281,11 @@ function getSeriesRequest(
   );
 
   requestData.useRpc = true;
-  requestData.interval = getInterval(pageFilters.datetime, 'spans');
+
+  // Filtering out all spans with op like 'ui.interaction*' which aren't
+  // embedded under transactions. The trace view does not support rendering
+  // such spans yet.
+  requestData.query = `${requestData.query} !transaction.span_id:00`;
 
   return doEventsRequest<true>(api, requestData);
 }

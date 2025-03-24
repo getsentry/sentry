@@ -2,6 +2,7 @@ from functools import cached_property
 
 from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
@@ -36,22 +37,19 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             visibility=Visibility.OWNER_PINNED,
         ).exists()
 
-        assert GroupSearchView.objects.filter(
+        # Errors out if no default view is found, inherently verifying existence.
+        default_view = GroupSearchView.objects.get(
             organization=self.organization,
             name="Default Search",
             user_id=self.member.id,
             query=query,
             query_sort=sort,
-            position=0,
-        ).exists()
-
-        assert GroupSearchView.objects.filter(
+        )
+        assert GroupSearchViewStarred.objects.filter(
             organization=self.organization,
             user_id=self.member.id,
-            position=1,
-            name="Prioritized",
-            query="is:unresolved issue.priority:[high, medium]",
-            query_sort="date",
+            group_search_view=default_view,
+            position=0,
         ).exists()
 
         query = "test_2"

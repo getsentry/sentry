@@ -10,7 +10,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceDetailsUrl, shouldForceRouteToOldView} from './utils';
 
 type Props = {
-  children: JSX.Element;
+  children: React.JSX.Element;
   event: Event;
 };
 

@@ -200,7 +200,7 @@ function getRelativeDate(
   const momentDate = moment(getDateObj(currentDateTime));
   const isFuture = momentDate.isAfter(moment());
 
-  let deltaText: string = '';
+  let deltaText = '';
 
   if (unitStyle === 'human') {
     // Moment provides a nice human relative date that uses "a few" for various units

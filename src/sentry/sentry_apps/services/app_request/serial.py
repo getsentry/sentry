@@ -1,9 +1,8 @@
-from typing import Any
-
 from sentry.sentry_apps.services.app_request.model import RpcSentryAppRequest
+from sentry.utils.sentry_apps.request_buffer import SentryAppRequest
 
 
-def serialize_rpc_sentry_app_request(request: dict[str, Any]) -> RpcSentryAppRequest:
+def serialize_rpc_sentry_app_request(request: SentryAppRequest) -> RpcSentryAppRequest:
     return RpcSentryAppRequest(
         date=request.get("date"),
         response_code=request.get("response_code"),

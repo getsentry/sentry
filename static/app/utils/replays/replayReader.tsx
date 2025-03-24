@@ -300,7 +300,7 @@ export default class ReplayReader {
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
   private _featureFlags: string[] | undefined = [];
-  private _fetching: boolean = true;
+  private _fetching = true;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -421,9 +421,9 @@ export default class ReplayReader {
       this.getRRWebFrames().length < 2
         ? `Replay has ${this.getRRWebFrames().length} frames`
         : null,
-      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
-        ? 'Missing Meta Frame'
-        : null,
+      this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+        ? null
+        : 'Missing Meta Frame',
     ].filter(defined);
   });
   hasProcessingErrors = () => {

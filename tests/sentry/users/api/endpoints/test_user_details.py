@@ -46,6 +46,7 @@ class UserDetailsGetTest(UserDetailsTest):
         assert resp.data["options"]["stacktraceOrder"] == -1
         assert not resp.data["options"]["clock24Hours"]
         assert not resp.data["options"]["prefersIssueDetailsStreamlinedUI"]
+        assert not resp.data["options"]["prefersStackedNavigation"]
         assert not resp.data["options"]["quickStartDisplay"]
 
     def test_superuser_simple(self):
@@ -117,6 +118,8 @@ class UserDetailsUpdateTest(UserDetailsTest):
                 "clock24Hours": True,
                 "extra": True,
                 "prefersIssueDetailsStreamlinedUI": True,
+                "prefersSpecializedProjectOverview": {"2": True},
+                "prefersStackedNavigation": True,
                 "quickStartDisplay": {self.organization.id: 1},
             },
         )
@@ -136,6 +139,13 @@ class UserDetailsUpdateTest(UserDetailsTest):
         assert UserOption.objects.get_value(user=self.user, key="clock_24_hours")
         assert UserOption.objects.get_value(
             user=self.user, key="prefers_issue_details_streamlined_ui"
+        )
+        assert UserOption.objects.get_value(user=self.user, key="prefers_stacked_navigation")
+        assert (
+            UserOption.objects.get_value(
+                user=self.user, key="prefers_specialized_project_overview"
+            ).get("2")
+            is True
         )
         assert (
             UserOption.objects.get_value(user=self.user, key="quick_start_display").get(
@@ -174,11 +184,11 @@ class UserDetailsUpdateTest(UserDetailsTest):
         self.login_as(user=user, superuser=False)
 
         self.create_useremail(user, "new@example.com", is_verified=True)
-        self.get_success_response("me", username="new@example.com")
-
+        response = self.get_success_response("me", username="new@example.com")
         user = User.objects.get(id=user.id)
 
         assert user.email == "c@example.com"
+        assert response.data["email"] == "c@example.com"
         assert user.username == "new@example.com"
 
     def test_change_username_when_same(self):
@@ -207,6 +217,42 @@ class UserDetailsUpdateTest(UserDetailsTest):
 
         assert user.email == "c@example.com"
         assert user.username == "c@example.com"
+
+    def test_saving_specialized_project_overview_option(self):
+        self.get_success_response(
+            "me",
+            options={"prefersSpecializedProjectOverview": {"1": False, "2": False}},
+        )
+
+        options = UserOption.objects.get_value(
+            user=self.user, key="prefers_specialized_project_overview"
+        )
+        assert options.get("1") is False
+        assert options.get("2") is False
+
+        # Test updating project 1 to True
+        self.get_success_response(
+            "me",
+            options={"prefersSpecializedProjectOverview": {"1": True}},
+        )
+        options = UserOption.objects.get_value(
+            user=self.user, key="prefers_specialized_project_overview"
+        )
+        assert options.get("1") is True
+        # Project 2 should not be affected
+        assert options.get("2") is False
+
+        # Enabled value is not a boolean
+        self.get_error_response(
+            "me",
+            options={"prefersSpecializedProjectOverview": {"1": "True"}},
+            status_code=400,
+        )
+        self.get_error_response(
+            "me",
+            options={"prefersSpecializedProjectOverview": {"1": 1}},
+            status_code=400,
+        )
 
     def test_saving_quick_start_display_option(self):
         org1_id = str(self.organization.id)

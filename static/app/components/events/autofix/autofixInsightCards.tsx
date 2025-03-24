@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
-import {IconAdd, IconChevron, IconClose, IconEdit, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconClose, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
@@ -133,11 +133,10 @@ function AutofixInsightCard({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsEditing(false);
-    const insightCardAboveIndex = index - 1 >= 0 ? index - 1 : null;
     updateInsight({
       message: editText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCardAboveIndex,
+      retain_insight_card_index: index,
     });
   };
 
@@ -214,7 +213,7 @@ function AutofixInsightCard({
               </EditContainer>
             ) : (
               <InsightCardRow
-                onClick={!isUserMessage ? toggleExpand : undefined}
+                onClick={isUserMessage ? undefined : toggleExpand}
                 isUserMessage={isUserMessage}
               >
                 <MiniHeader
@@ -242,7 +241,7 @@ function AutofixInsightCard({
                     size="zero"
                     borderless
                     onClick={handleEdit}
-                    icon={<IconEdit size="sm" />}
+                    icon={<IconRefresh size="sm" />}
                     aria-label={t('Edit insight')}
                     title={t('Replace insight and rethink')}
                   />
@@ -387,7 +386,7 @@ function AutofixInsightCards({
                 transition={{duration: 0.3}}
               >
                 {insights.map((insight, index) =>
-                  !insight ? null : (
+                  insight ? (
                     <AutofixInsightCard
                       key={index}
                       insight={insight}
@@ -399,7 +398,7 @@ function AutofixInsightCards({
                       runId={runId}
                       insightCount={validInsightCount}
                     />
-                  )
+                  ) : null
                 )}
               </motion.div>
             )}
@@ -448,7 +447,7 @@ export function useUpdateInsightCard({groupId, runId}: {groupId: string; runId: 
     },
     onSuccess: _ => {
       queryClient.invalidateQueries({queryKey: makeAutofixQueryKey(groupId)});
-      addSuccessMessage(t('Thanks, rethinking this...'));
+      addSuccessMessage(t('Rethinking this...'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Autofix your message.'));
@@ -483,7 +482,7 @@ function ChainLink({
     updateInsight({
       message: newInsightText,
       step_index: stepIndex,
-      retain_insight_card_index: insightCount - 1,
+      retain_insight_card_index: insightCount,
     });
     setNewInsightText('');
   };
@@ -536,7 +535,7 @@ function ChainLink({
               size="zero"
               borderless
               onClick={() => setIsAdding(true)}
-              icon={<IconAdd size="sm" />}
+              icon={<IconRefresh size="sm" />}
               title={t('Add insight and rethink')}
               aria-label={t('Add insight and rethink')}
             />
@@ -552,8 +551,7 @@ const InsightCardRow = styled('div')<{isUserMessage?: boolean}>`
   align-items: stretch;
   cursor: ${p => (p.isUserMessage ? 'default' : 'pointer')};
   &:hover {
-    background-color: ${p =>
-      !p.isUserMessage ? p.theme.backgroundSecondary : 'inherit'};
+    background-color: ${p => (p.isUserMessage ? 'inherit' : p.theme.backgroundSecondary)};
   }
 `;
 

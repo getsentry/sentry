@@ -6,6 +6,7 @@ from sentry.testutils.cases import UptimeCheckSnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.uptime.endpoints.organization_uptime_stats import add_extra_buckets_for_epoch_cutoff
+from sentry.uptime.types import IncidentStatus
 from sentry.utils import json
 from tests.sentry.uptime.endpoints.test_organization_uptime_alert_index import (
     OrganizationUptimeAlertIndexBaseEndpointTest,
@@ -37,6 +38,12 @@ class OrganizationUptimeCheckIndexEndpointTest(
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="success")
         self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
+        self.store_snuba_uptime_check(subscription_id=self.subscription_id, check_status="failure")
+        self.store_snuba_uptime_check(
+            subscription_id=self.subscription_id,
+            check_status="failure",
+            incident_status=IncidentStatus.IN_INCIDENT,
+        )
 
     def test_simple(self):
         """Test that the endpoint returns data for a simple uptime check."""
@@ -53,12 +60,14 @@ class OrganizationUptimeCheckIndexEndpointTest(
         data = json.loads(json.dumps(response.data))
         assert len(data[str(self.project_uptime_subscription.id)]) == 7
         assert data[str(self.project_uptime_subscription.id)][-1][1] == {
-            "failure": 3,
+            "failure": 4,
+            "failure_incident": 1,
             "success": 3,
             "missed_window": 0,
         }
         assert data[str(self.project_uptime_subscription.id)][0][1] == {
             "failure": 0,
+            "failure_incident": 0,
             "success": 0,
             "missed_window": 0,
         }
@@ -143,6 +152,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         assert len(data[str(project_uptime_subscription.id)]) == 89
         assert data[str(project_uptime_subscription.id)][-1][1] == {
             "failure": 1,
+            "failure_incident": 0,
             "success": 0,
             "missed_window": 0,
         }
@@ -150,6 +160,7 @@ class OrganizationUptimeCheckIndexEndpointTest(
         for i in range(88):
             assert data[str(project_uptime_subscription.id)][i][1] == {
                 "failure": 0,
+                "failure_incident": 0,
                 "success": 0,
                 "missed_window": 0,
             }
@@ -240,7 +251,7 @@ def test_add_extra_buckets_for_epoch_cutoff():
 
     # Added buckets should have zero counts
     for bucket in result[subscription_id][:12]:
-        assert bucket[1] == {"failure": 0, "success": 0, "missed_window": 0}
+        assert bucket[1] == {"failure": 0, "failure_incident": 0, "success": 0, "missed_window": 0}
 
     # Test when epoch cutoff is before start - should return original
     result = add_extra_buckets_for_epoch_cutoff(

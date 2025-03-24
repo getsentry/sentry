@@ -14,12 +14,12 @@ import type {OrgRole} from 'sentry/types/organization';
 export const ROOT_ELEMENT = 'blk_router';
 
 export const USING_CUSTOMER_DOMAIN =
-  typeof window !== 'undefined' ? Boolean(window?.__initialData?.customerDomain) : false;
+  typeof window === 'undefined' ? false : Boolean(window?.__initialData?.customerDomain);
 
 export const CUSTOMER_DOMAIN =
-  typeof window !== 'undefined'
-    ? window?.__initialData?.customerDomain?.subdomain
-    : undefined;
+  typeof window === 'undefined'
+    ? undefined
+    : window?.__initialData?.customerDomain?.subdomain;
 
 // This is considered the "default" route/view that users should be taken
 // to when the application does not have any further context
@@ -375,7 +375,17 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Profile Hours'),
     productName: t('Continuous Profiling'),
     uid: 17,
-    isBilledCategory: false, // TODO(Continuous Profiling GA): make true for launch to show spend notification toggle
+    isBilledCategory: true,
+  },
+  [DataCategoryExact.PROFILE_DURATION_UI]: {
+    name: DataCategoryExact.PROFILE_DURATION_UI,
+    apiName: 'profile_duration_ui',
+    plural: 'profileDurationUI',
+    displayName: 'UI profile hour',
+    titleName: t('UI Profile Hours'),
+    productName: t('UI Profiling'),
+    uid: 25,
+    isBilledCategory: true,
   },
   [DataCategoryExact.UPTIME]: {
     name: DataCategoryExact.UPTIME,

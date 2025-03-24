@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {t, tct} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';

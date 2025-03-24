@@ -176,9 +176,9 @@ function CustomRepositories({
                   {t('Custom Repositories')}
                   <Tooltip
                     title={
-                      !hasAccess
-                        ? t('You do not have permission to add custom repositories.')
-                        : undefined
+                      hasAccess
+                        ? undefined
+                        : t('You do not have permission to add custom repositories.')
                     }
                   >
                     <DropdownMenu
@@ -195,11 +195,7 @@ function CustomRepositories({
                   </Tooltip>
                 </PanelHeader>
                 <PanelBody>
-                  {!repositories.length ? (
-                    <EmptyStateWarning>
-                      <p>{t('No custom repositories configured')}</p>
-                    </EmptyStateWarning>
-                  ) : (
+                  {repositories.length ? (
                     repositories.map(repository => (
                       <Repository
                         key={repository.id}
@@ -210,6 +206,10 @@ function CustomRepositories({
                         onEdit={handleEditRepository}
                       />
                     ))
+                  ) : (
+                    <EmptyStateWarning>
+                      <p>{t('No custom repositories configured')}</p>
+                    </EmptyStateWarning>
                   )}
                 </PanelBody>
               </Panel>

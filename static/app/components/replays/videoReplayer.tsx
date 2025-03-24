@@ -46,7 +46,7 @@ export class VideoReplayer {
   private _startTimestamp: number;
   private _timer = new Timer();
   private _trackList: Array<[ts: number, index: number]>;
-  private _isPlaying: boolean = false;
+  private _isPlaying = false;
   private _listeners: RemoveListener[] = [];
   /**
    * Maps attachment index to the video element.
@@ -376,7 +376,7 @@ export class VideoReplayer {
     // TODO: Handle the case where relativeOffsetMs > length of the replay/seekbar (shouldn't happen)
     return {
       segment: isExactSegment ? result : undefined,
-      previousSegment: !isExactSegment ? result : undefined,
+      previousSegment: isExactSegment ? undefined : result,
     };
   }
 
@@ -428,7 +428,8 @@ export class VideoReplayer {
       else {
         videoElem.style.display = 'none';
         // resets the other videos to the beginning if it's ended so it starts from the beginning on restart
-        if (videoElem.ended) {
+        // we don't do this for videos that have a duration of 0 because this will incorrectly cause handleSegmentEnd to fire.
+        if (videoElem.ended && videoElem.duration > 0) {
           this.setVideoTime(videoElem, 0);
         }
       }
@@ -546,9 +547,7 @@ export class VideoReplayer {
    * segment's timestamp and duration. Displays the closest prior segment if
    * offset exists in a gap where there is no recorded segment.
    */
-  protected async loadSegmentAtTime(
-    videoOffsetMs: number = 0
-  ): Promise<number | undefined> {
+  protected async loadSegmentAtTime(videoOffsetMs = 0): Promise<number | undefined> {
     if (!this._trackList.length) {
       return undefined;
     }
@@ -560,11 +559,11 @@ export class VideoReplayer {
     // there is no segment, because we have the previous index, we know what
     // the next index will be since segments are expected to be sorted
     const nextSegmentIndex =
-      segmentIndex !== undefined
-        ? segmentIndex
-        : previousSegmentIndex !== undefined
-          ? previousSegmentIndex + 1
-          : undefined;
+      segmentIndex === undefined
+        ? previousSegmentIndex === undefined
+          ? undefined
+          : previousSegmentIndex + 1
+        : segmentIndex;
 
     // edge case where we have a gap between start of replay and first segment
     // wait until timer reaches the first segment before starting

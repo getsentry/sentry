@@ -158,15 +158,15 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         culprit: event.culprit,
         id: event.id,
         'issue.id': Number(event.groupID),
-        message: event.message,
         project: event.projectID,
         // The project name for current event is not used
         'project.name': '',
         timestamp: event.dateCreated!,
         title: event.title,
         transaction: '',
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        'event.type': event['event.type'],
+        'event.type': event.type === 'default' ? 'default' : 'error',
+        'error.value': [event.message],
+        'stack.function': [],
       });
     }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());

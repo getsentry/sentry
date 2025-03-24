@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {SeerLoadingIcon} from 'sentry/components/ai/SeerIcon';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {FlyingLinesEffect} from 'sentry/components/events/autofix/FlyingLinesEffect';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import Input from 'sentry/components/input';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -40,7 +41,6 @@ export function AutofixOutputStream({
   groupId,
   runId,
   responseRequired = false,
-  isProcessing = false,
 }: Props) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -48,11 +48,14 @@ export function AutofixOutputStream({
   const [displayedText, setDisplayedText] = useState('');
   const [displayedActiveLog, setDisplayedActiveLog] = useState('');
   const [message, setMessage] = useState('');
+  const seerIconRef = useRef<HTMLDivElement>(null);
 
   const previousText = useRef('');
   const previousActiveLog = useRef('');
   const currentIndexRef = useRef(0);
   const activeLogIndexRef = useRef(0);
+
+  const isInitializingRun = activeLog === 'Ingesting Sentry data...';
 
   const {mutate: send} = useMutation({
     mutationFn: (params: {message: string}) => {
@@ -126,7 +129,7 @@ export function AutofixOutputStream({
 
   const handleSend = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (activeLog === 'Ingesting Sentry data...') {
+    if (isInitializingRun) {
       // don't send message during loading state
       return;
     }
@@ -164,15 +167,20 @@ export function AutofixOutputStream({
           })}
         >
           <VerticalLine />
-          <Container layout required={responseRequired}>
+          <Container required={responseRequired}>
             {activeLog && (
               <ActiveLogWrapper>
+                <SeerIconContainer ref={seerIconRef}>
+                  <StyledAnimatedSeerIcon size="lg" />
+                  {seerIconRef.current && isInitializingRun && (
+                    <FlyingLinesEffect targetElement={seerIconRef.current} />
+                  )}
+                </SeerIconContainer>
                 <ActiveLog
                   dangerouslySetInnerHTML={{
                     __html: singleLineRenderer(displayedActiveLog),
                   }}
                 />
-                {isProcessing && <StyledLoadingIndicator mini size={14} />}
               </ActiveLogWrapper>
             )}
             {!responseRequired && stream && (
@@ -186,7 +194,6 @@ export function AutofixOutputStream({
                 placeholder={
                   responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
                 }
-                required={responseRequired}
               />
               <StyledButton
                 type="submit"
@@ -211,7 +218,6 @@ const Wrapper = styled(motion.div)`
   margin-bottom: ${space(1)};
   margin-right: ${space(2)};
   gap: ${space(1)};
-  overflow: hidden;
 `;
 
 const ScaleContainer = styled(motion.div)`
@@ -229,7 +235,6 @@ const Container = styled(motion.div)<{required: boolean}>`
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
-  overflow: hidden;
 
   &:before {
     content: '';
@@ -253,7 +258,7 @@ const StreamContent = styled('div')`
   white-space: pre-wrap;
   word-break: break-word;
   color: ${p => p.theme.subText};
-  height: 7rem;
+  max-height: 7rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column-reverse;
@@ -261,18 +266,18 @@ const StreamContent = styled('div')`
 
 const ActiveLogWrapper = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: ${space(1)};
-  padding-right: 0;
-  padding-left: ${space(2)};
   background: ${p => p.theme.backgroundSecondary};
   gap: ${space(1)};
+  overflow: visible;
 `;
 
 const ActiveLog = styled('div')`
   flex-grow: 1;
   word-break: break-word;
+  margin-top: ${space(0.5)};
 `;
 
 const VerticalLine = styled('div')`
@@ -312,7 +317,18 @@ const StyledButton = styled(Button)`
   z-index: 2;
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const SeerIconContainer = styled('div')`
   position: relative;
-  top: ${space(0.5)};
+  flex-shrink: 0;
+`;
+
+const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
+  position: relative;
+  opacity: 0.9;
+  transition: opacity 0.2s ease;
+  top: 0;
+  flex-shrink: 0;
+  color: ${p => p.theme.purple400};
+  filter: brightness(0.6);
+  z-index: 10000;
 `;

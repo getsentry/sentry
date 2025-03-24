@@ -24,13 +24,13 @@ type DataRowKeys =
   | SpanIndexedField.TRANSACTION_ID
   | SpanIndexedField.TRACE
   | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.CACHE_HIT
   | SpanIndexedField.CACHE_ITEM_SIZE;
 
 type ColumnKeys =
-  | SpanIndexedField.ID
+  | SpanIndexedField.SPAN_ID
   | SpanIndexedField.SPAN_DESCRIPTION
   | SpanIndexedField.CACHE_HIT
   | SpanIndexedField.CACHE_ITEM_SIZE
@@ -44,7 +44,7 @@ type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanIndexedField.SPAN_ID,
     name: t('Span ID'),
     width: 150,
   },
@@ -123,7 +123,7 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
-  if (column.key === SpanIndexedField.ID) {
+  if (column.key === SpanIndexedField.SPAN_ID) {
     return (
       <SpanIdCell
         moduleName={ModuleName.CACHE}
@@ -131,7 +131,7 @@ function renderBodyCell(
         traceId={row.trace}
         timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
-        spanId={row[SpanIndexedField.ID]}
+        spanId={row[SpanIndexedField.SPAN_ID]}
         source={TraceViewSources.CACHES_MODULE}
         location={location}
       />

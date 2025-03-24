@@ -1,41 +1,42 @@
+from __future__ import annotations
+
 import logging
-from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.db.models.fields.node import NodeData
 from sentry.utils.safe import get_path
 
+from .utils import PlatformConfig
+
 logger = logging.getLogger(__name__)
 
 
-class Stacktrace(TypedDict):
-    stacktrace: Mapping[str, Sequence[Mapping[str, Any]]]
-
-
-def identify_stacktrace_paths(data: NodeData | Stacktrace) -> list[str]:
-    """
-    Get the stacktrace_paths from the event data.
-    """
-    stacktraces = get_stacktrace(data)
-    stacktrace_paths = set()
+def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> list[dict[str, Any]]:
+    """It flattens all processableframes from the event's data."""
+    platform_config = PlatformConfig(platform)
+    stacktraces = get_stacktraces(data)
+    frames_to_process = []
     for stacktrace in stacktraces:
-        frames = stacktrace["frames"]
+        frames = stacktrace["frames"] or []
         for frame in frames:
             if frame is None:
                 continue
 
-            if frame.get("in_app") and frame.get("filename"):
-                stacktrace_paths.add(frame["filename"])
-    return list(stacktrace_paths)
+            if platform_config.creates_in_app_stack_trace_rules():
+                frames_to_process.append(frame)
+
+            elif frame.get("in_app") and frame.get("filename"):
+                frames_to_process.append(frame)
+
+    return list(frames_to_process)
 
 
-def get_stacktrace(data: NodeData | Stacktrace) -> list[Mapping[str, Any]]:
+def get_stacktraces(data: NodeData | dict[str, Any]) -> list[dict[str, Any]]:
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
-        return [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
+        return [
+            e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames", filter=True)
+        ]
 
-    stacktrace = data.get("stacktrace")
-    if stacktrace and stacktrace.get("frames"):
-        return [stacktrace]
-
-    return []
+    stacktrace = get_path(data, "stacktrace", filter=True)
+    return [stacktrace] if stacktrace else []

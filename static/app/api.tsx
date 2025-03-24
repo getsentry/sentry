@@ -13,6 +13,7 @@ import {
 import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
@@ -170,8 +171,10 @@ export const initApiClientErrorHandling = () =>
       return true;
     }
 
-    // Otherwise, the user has become unauthenticated. Send them to auth
-    Cookies.set('session_expired', '1');
+    if (!isDemoModeActive()) {
+      // Demo user can occasionally get 401s back. Otherwise, the user has become unauthenticated. Send them to auth
+      Cookies.set('session_expired', '1');
+    }
 
     if (EXPERIMENTAL_SPA) {
       browserHistory.replace('/auth/login/');
@@ -342,7 +345,7 @@ export class Client {
   wrapCallback<T extends any[]>(
     id: string,
     func: FunctionCallback<T> | undefined,
-    cleanup: boolean = false
+    cleanup = false
   ) {
     return (...args: T) => {
       const req = this.activeRequests[id];
@@ -506,7 +509,7 @@ export class Client {
         : undefined;
 
     // GET requests may not have a body
-    const body = method !== 'GET' ? data : undefined;
+    const body = method === 'GET' ? undefined : data;
 
     const requestHeaders = new Headers({...this.headers, ...options.headers});
 

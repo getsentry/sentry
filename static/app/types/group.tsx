@@ -59,6 +59,7 @@ export enum SavedSearchType {
   SPAN = 5,
   ERROR = 6,
   TRANSACTION = 7,
+  LOG = 8,
 }
 
 export enum IssueCategory {
@@ -431,7 +432,7 @@ export interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -454,7 +455,7 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -672,7 +673,7 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
 }
 
 interface GroupActivityDeletedAttachment extends GroupActivityBase {
-  data: {};
+  data: Record<string, string>;
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
@@ -779,7 +780,7 @@ export interface MarkReviewed {
 
 export interface GroupStatusResolution {
   status: GroupStatus.RESOLVED | GroupStatus.UNRESOLVED | GroupStatus.IGNORED;
-  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | {};
+  statusDetails: ResolvedStatusDetails | IgnoredStatusDetails | Record<string, unknown>;
   substatus?: GroupSubstatus | null;
 }
 
@@ -878,7 +879,7 @@ export interface GroupIgnored extends BaseGroup, GroupStats {
 
 export interface GroupUnresolved extends BaseGroup, GroupStats {
   status: GroupStatus.UNRESOLVED;
-  statusDetails: {};
+  statusDetails: Record<string, unknown>;
 }
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;

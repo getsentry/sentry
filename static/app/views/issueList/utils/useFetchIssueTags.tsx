@@ -32,6 +32,7 @@ import {
   ISSUE_PROPERTY_FIELDS,
 } from 'sentry/utils/fields';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import useFetchOrganizationFeatureFlags from 'sentry/views/issueList/utils/useFetchOrganizationFeatureFlags';
 
 type UseFetchIssueTagsParams = {
   org: Organization;
@@ -126,13 +127,11 @@ export const useFetchIssueTags = ({
 
   // For now, feature flag keys (see `flags` column of the ERRORS dataset) are exposed from the tags endpoint,
   // with query param useFlagsBackend=1. This is used for issue stream search suggestions.
-  const featureFlagTagsQuery = useFetchOrganizationTags(
+  const featureFlagTagsQuery = useFetchOrganizationFeatureFlags(
     {
       orgSlug: org.slug,
       projectIds,
-      dataset: Dataset.ERRORS,
       useCache,
-      useFlagsBackend: true, // Queries `flags` column instead of tags. Response format is the same.
       enabled: enabled && includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
       keepPreviousData,
       ...statsPeriodParams,
@@ -189,8 +188,8 @@ export const useFetchIssueTags = ({
     });
 
     featureFlagTags.forEach(tag => {
-      // Wrap with flags[] and if necessary, quote to escape ':', which is used by our search syntax.
-      const key = tag.key.includes(':') ? `flags["${tag.key}"]` : `flags[${tag.key}]`;
+      // Wrap with flags[""]. flags[] is required for the search endpoint and "" is used to escape special characters.
+      const key = `flags["${tag.key}"]`;
       if (allTagsCollection[key]) {
         allTagsCollection[key]!.totalValues =
           (allTagsCollection[key]!.totalValues ?? 0) + (tag.totalValues ?? 0);

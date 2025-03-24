@@ -23,18 +23,22 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     """
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=256)
     organization = FlexibleForeignKey("sentry.Organization")
 
     # If the workflow is not enabled, it will not be evaluated / invoke actions. This is how we "snooze" a workflow
     enabled = models.BooleanField(db_default=True)
 
     # Required as the 'when' condition for the workflow, this evalutes states emitted from the detectors
-    when_condition_group = FlexibleForeignKey("workflow_engine.DataConditionGroup", null=True)
+    when_condition_group = FlexibleForeignKey(
+        "workflow_engine.DataConditionGroup", null=True, blank=True
+    )
 
-    environment = FlexibleForeignKey("sentry.Environment", null=True)
+    environment = FlexibleForeignKey("sentry.Environment", null=True, blank=True)
 
-    created_by_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    created_by_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
+    )
 
     DEFAULT_FREQUENCY = 30
 
@@ -60,11 +64,8 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         app_label = "workflow_engine"
         db_table = "workflow_engine_workflow"
 
-        constraints = [
-            models.UniqueConstraint(
-                fields=["name", "organization"], name="unique_workflow_name_per_org"
-            )
-        ]
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {"name": self.name}
 
     def evaluate_trigger_conditions(self, job: WorkflowJob) -> tuple[bool, list[DataCondition]]:
         """

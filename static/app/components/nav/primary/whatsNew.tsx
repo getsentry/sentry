@@ -1,15 +1,14 @@
-import {Fragment, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 
-import useDrawer from 'sentry/components/globalDrawer';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {useNavContext} from 'sentry/components/nav/context';
 import {
-  NavButton,
-  SidebarItem,
-  SidebarItemBadge,
+  SidebarButton,
+  SidebarItemUnreadIndicator,
 } from 'sentry/components/nav/primary/components';
-import {NavLayout} from 'sentry/components/nav/types';
+import {
+  PrimaryButtonOverlay,
+  usePrimaryButtonOverlay,
+} from 'sentry/components/nav/primary/primaryButtonOverlay';
 import {BroadcastPanelItem} from 'sentry/components/sidebar/broadcastPanelItem';
 import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import {IconBroadcast} from 'sentry/icons';
@@ -113,43 +112,36 @@ function WhatsNewContent({unseenPostIds}: {unseenPostIds: string[]}) {
   );
 }
 
-export function WhatsNew() {
-  const ref = useRef<HTMLButtonElement>(null);
-  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+export function PrimaryNavigationWhatsNew() {
   const {data: broadcasts = []} = useFetchBroadcasts();
   const unseenPostIds = useMemo(
     () => broadcasts.filter(item => !item.hasSeen).map(item => item.id),
     [broadcasts]
   );
 
-  const {layout} = useNavContext();
-  const showLabel = layout === NavLayout.MOBILE;
+  const {
+    isOpen,
+    triggerProps: overlayTriggerProps,
+    overlayProps,
+  } = usePrimaryButtonOverlay();
 
   return (
-    <SidebarItem>
-      <NavButton
-        ref={ref}
-        onClick={() => {
-          if (isDrawerOpen) {
-            closeDrawer();
-          } else {
-            openDrawer(() => <WhatsNewContent unseenPostIds={unseenPostIds} />, {
-              ariaLabel: t("What's New"),
-              shouldCloseOnInteractOutside: el => !ref.current?.contains(el),
-            });
-          }
-        }}
-        aria-label={showLabel ? undefined : t("What's New")}
+    <Fragment>
+      <SidebarButton
+        analyticsKey="broadcasts"
+        label={t("What's New")}
+        buttonProps={overlayTriggerProps}
       >
-        <InteractionStateLayer />
         <IconBroadcast />
-        {showLabel && <span>{t("What's New")}</span>}
         {unseenPostIds.length > 0 && (
-          <SidebarItemBadge data-test-id="whats-new-badge">
-            {unseenPostIds.length}
-          </SidebarItemBadge>
+          <SidebarItemUnreadIndicator data-test-id="whats-new-unread-indicator" />
         )}
-      </NavButton>
-    </SidebarItem>
+      </SidebarButton>
+      {isOpen && (
+        <PrimaryButtonOverlay overlayProps={overlayProps}>
+          <WhatsNewContent unseenPostIds={unseenPostIds} />
+        </PrimaryButtonOverlay>
+      )}
+    </Fragment>
   );
 }

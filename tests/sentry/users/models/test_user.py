@@ -15,11 +15,14 @@ from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectbookmark import ProjectBookmark
@@ -331,6 +334,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSeen,
         GroupShare,
         GroupSearchView,
+        GroupSearchViewLastVisited,
+        GroupSearchViewStarred,
         GroupSubscription,
         IncidentActivity,
         Monitor,
@@ -371,6 +376,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSeen,
         GroupShare,
         GroupSearchView,
+        GroupSearchViewLastVisited,
+        GroupSearchViewStarred,
         GroupSubscription,
         IncidentActivity,
         Monitor,
@@ -422,4 +429,27 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             ).exists()
             assert OrganizationAccessRequest.objects.filter(
                 requester_id=to_user.id,
+            ).exists()
+
+    @expect_models(ORG_MEMBER_MERGE_TESTED, OrganizationMemberInvite)
+    def test_member_invite(self, expected_models: list[type[Model]]):
+        """
+        Member invite only depends on email and thus should not be transferred to the to user.
+        """
+        from_user = self.create_exhaustive_user("foo@example.com")
+        to_user = self.create_exhaustive_user("bar@example.com")
+        org_slug = "hojicha"
+        org = self.create_organization(name=org_slug)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationMemberInvite.objects.create(organization=org, email=from_user.email)
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert OrganizationMemberInvite.objects.filter(
+                organization=org, email=from_user.email
+            ).exists()
+            assert not OrganizationMemberInvite.objects.filter(
+                organization=org, email=to_user.email
             ).exists()

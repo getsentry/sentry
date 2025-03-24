@@ -6,7 +6,13 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/components/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/components/nav/constants';
@@ -48,6 +54,7 @@ describe('Nav', function () {
       <NavContextProvider>
         <Nav />
         <SecondaryNav group={PrimaryNavGroup.ISSUES}>
+          <SecondaryNav.Header>Issues</SecondaryNav.Header>
           <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
             Foo
           </SecondaryNav.Item>
@@ -117,7 +124,7 @@ describe('Nav', function () {
     });
 
     describe('collapse behavior', function () {
-      it('can collpase and expand secondary sidebar', async function () {
+      it('can collapse and expand secondary sidebar', async function () {
         renderNav();
 
         expect(
@@ -173,10 +180,12 @@ describe('Nav', function () {
         await userEvent.unhover(
           screen.getByRole('navigation', {name: 'Primary Navigation'})
         );
-        expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
-          'data-visible',
-          'false'
-        );
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'false'
+          );
+        });
       });
     });
   });
@@ -187,7 +196,7 @@ describe('Nav', function () {
       const issues = screen.getByRole('link', {name: 'Issues'});
       await userEvent.click(issues);
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.clicked_sidebar',
+        'navigation.primary_item_clicked',
         expect.objectContaining({
           item: 'issues',
         })
@@ -214,7 +223,9 @@ describe('Nav', function () {
       renderNav();
 
       // Should have a top-level header element with a home link and menu button
-      expect(screen.getByRole('link', {name: 'Sentry Home'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Open main menu'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Open main menu'}));

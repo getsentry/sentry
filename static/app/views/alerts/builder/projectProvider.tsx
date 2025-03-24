@@ -2,7 +2,7 @@ import {cloneElement, Fragment, isValidElement, useEffect, useState} from 'react
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -13,7 +13,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   hasMetricAlerts: boolean;
   organization: Organization;
   children?: React.ReactNode;
@@ -35,7 +35,7 @@ function AlertBuilderProjectProvider(props: Props) {
 
   const {projects, initiallyLoaded, fetching, fetchError} = useProjects();
   const project = useFirstProject
-    ? projects.find(p => p.isMember) ?? (projects.length && projects[0])
+    ? (projects.find(p => p.isMember) ?? (projects.length && projects[0]))
     : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
@@ -69,7 +69,11 @@ function AlertBuilderProjectProvider(props: Props) {
   // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
   if (!project || fetchError) {
     return (
-      <Alert type="warning">{t('The project you were looking for was not found.')}</Alert>
+      <Alert.Container>
+        <Alert type="warning">
+          {t('The project you were looking for was not found.')}
+        </Alert>
+      </Alert.Container>
     );
   }
 

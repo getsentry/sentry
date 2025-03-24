@@ -3,8 +3,8 @@ import {Fragment, useState} from 'react';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Alert} from 'sentry/components/alert';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import {Alert} from 'sentry/components/core/alert';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -175,15 +175,17 @@ function ProjectDataForwarding({project}: Props) {
             </TextBlock>
             <ProjectPermissionAlert project={project} />
 
-            <Alert showIcon type="info">
-              {tct(
-                `Sentry forwards [em:all applicable error events] to the provider, in
+            <Alert.Container>
+              <Alert showIcon type="info">
+                {tct(
+                  `Sentry forwards [em:all applicable error events] to the provider, in
                 some cases this may be a significant volume of data.`,
-                {
-                  em: <strong />,
-                }
-              )}
-            </Alert>
+                  {
+                    em: <strong />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
 
             {!hasFeature && (
               <FeatureDisabled

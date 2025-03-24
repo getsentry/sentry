@@ -8,11 +8,12 @@ import styled from '@emotion/styled';
 type Props = {
   shortId: string;
   avatar?: React.ReactNode;
+  className?: string;
 };
 
-function ShortId({shortId, avatar}: Props) {
+function ShortId({shortId, avatar, className}: Props) {
   return (
-    <Wrapper>
+    <Wrapper className={className}>
       <AvatarWrapper>{avatar}</AvatarWrapper>
       <IdWrapper>{shortId}</IdWrapper>
     </Wrapper>

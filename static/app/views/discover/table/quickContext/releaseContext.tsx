@@ -1,7 +1,7 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
@@ -79,15 +79,15 @@ function ReleaseContext(props: BaseContextProps) {
             commitCount,
             authorsCount,
           })
-        : commitCount !== 1
-          ? tct('[commitCount] commits by you and 1 other', {
-              commitCount,
-            })
-          : authorsCount !== 1
-            ? tct('1 commit by you and [authorsCount] others', {
+        : commitCount === 1
+          ? authorsCount === 1
+            ? t('1 commit by you and 1 other')
+            : tct('1 commit by you and [authorsCount] others', {
                 authorsCount,
               })
-            : t('1 commit by you and 1 other');
+          : tct('[commitCount] commits by you and 1 other', {
+              commitCount,
+            });
     }
 
     return (
@@ -97,15 +97,15 @@ function ReleaseContext(props: BaseContextProps) {
             commitCount,
             authorsCount,
           })
-        : commitCount !== 1
-          ? tct('[commitCount] commits by 1 author', {
-              commitCount,
-            })
-          : authorsCount !== 1
-            ? tct('1 commit by [authorsCount] authors', {
+        : commitCount === 1
+          ? authorsCount === 1
+            ? t('1 commit by 1 author')
+            : tct('1 commit by [authorsCount] authors', {
                 authorsCount,
               })
-            : t('1 commit by 1 author'))
+          : tct('[commitCount] commits by 1 author', {
+              commitCount,
+            }))
     );
   };
 
@@ -203,7 +203,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
   }
 `;
 
-const ReleaseBody = styled(ContextBody)<{}>`
+const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
   color: ${p => p.theme.subText};
 `;

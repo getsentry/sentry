@@ -37,7 +37,7 @@ interface SpanSearchQueryBuilderProps {
   projects?: PageFilters['projects'];
 }
 
-const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
+export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
   if (!supportedAggregates?.length) {
     return {};
   }
@@ -152,10 +152,11 @@ export function SpanSearchQueryBuilder({
   );
 }
 
-interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
+export interface EAPSpanSearchQueryBuilderProps extends SpanSearchQueryBuilderProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
   getFilterTokenWarning?: (key: string) => React.ReactNode;
+  portalTarget?: HTMLElement | null;
   supportedAggregates?: AggregationKey[];
 }
 
@@ -170,6 +171,7 @@ export function EAPSpanSearchQueryBuilder({
   getFilterTokenWarning,
   supportedAggregates = [],
   projects,
+  portalTarget,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -247,6 +249,7 @@ export function EAPSpanSearchQueryBuilder({
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
       showUnsubmittedIndicator
+      portalTarget={portalTarget}
     />
   );
 }

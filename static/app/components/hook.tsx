@@ -34,7 +34,7 @@ type HookState<H extends HookName> = {
  *   </Hook>
  */
 function Hook<H extends HookName>({name, ...props}: Props<H>) {
-  class HookComponent extends Component<{}, HookState<H>> {
+  class HookComponent extends Component<Record<string, unknown>, HookState<H>> {
     static displayName = `Hook(${name})`;
 
     state = {

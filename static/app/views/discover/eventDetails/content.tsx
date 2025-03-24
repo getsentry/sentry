@@ -2,9 +2,9 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';
@@ -53,7 +53,7 @@ import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 
-type Props = Pick<RouteComponentProps<{eventSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location'> & {
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
@@ -331,9 +331,11 @@ function EventDetailsContent(props: Props) {
     }
 
     return (
-      <Alert type="error" showIcon>
-        {error.message}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {error.message}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -359,7 +361,7 @@ function EventDetailsContent(props: Props) {
       orgSlug={organization.slug}
       projectSlug={projectSlug}
     >
-      {renderContent() as React.ReactChild}
+      {renderContent()}
     </SentryDocumentTitle>
   );
 }

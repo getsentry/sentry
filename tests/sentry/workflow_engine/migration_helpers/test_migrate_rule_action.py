@@ -12,6 +12,7 @@ from sentry.testutils.helpers.data_blobs import (
     GITHUB_ACTION_DATA_BLOBS,
     JIRA_ACTION_DATA_BLOBS,
     JIRA_SERVER_ACTION_DATA_BLOBS,
+    WEBHOOK_ACTION_DATA_BLOBS,
 )
 from sentry.workflow_engine.migration_helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
@@ -19,6 +20,8 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models.action import Action
 from sentry.workflow_engine.typings.notification_action import (
     EXCLUDED_ACTION_DATA_KEYS,
+    SentryAppDataBlob,
+    SentryAppIdentifier,
     TicketDataBlob,
     TicketFieldMappingKeys,
     issue_alert_action_translator_registry,
@@ -48,6 +51,24 @@ class TestNotificationActionMigrationUtils(TestCase):
                 and key != "id"
             ):
                 assert additional_fields.get(key) == value
+
+    def assert_sentry_app_form_config_data_blob(
+        self, action: Action, compare_dict: dict, exclude_keys: list[str]
+    ):
+        settings = action.data.get("settings", None)
+        settings_dict = compare_dict.get("settings", None)
+        if not settings or not settings_dict:
+            raise ValueError("Settings are required for SentryAppDataBlob")
+        for setting, setting_to_compare in zip(settings, settings_dict):
+            name = setting.get("name")
+            value = setting.get("value")
+            label = setting.get("label")
+            # Check that the name and value are present
+            if not name or not value:
+                raise ValueError("Name and value are required for SentryAppDataBlob")
+            assert name == setting_to_compare.get("name")
+            assert value == setting_to_compare.get("value")
+            assert label == setting_to_compare.get("label")
 
     def assert_action_data_blob(
         self,
@@ -81,6 +102,8 @@ class TestNotificationActionMigrationUtils(TestCase):
             # Special handling for TicketDataBlob which has additional_fields
             if translator.blob_type == TicketDataBlob:
                 self.assert_ticketing_action_data_blob(action, compare_dict, exclude_keys)
+            elif translator.blob_type == SentryAppDataBlob:
+                self.assert_sentry_app_form_config_data_blob(action, compare_dict, exclude_keys)
             else:
                 # Original logic for other blob types
                 for field in translator.blob_type.__dataclass_fields__:
@@ -109,7 +132,7 @@ class TestNotificationActionMigrationUtils(TestCase):
                     if (
                         action.type == Action.Type.EMAIL
                         and key == "fallthroughType"
-                        and action.target_type != ActionTarget.ISSUE_OWNERS
+                        and action.config.get("target_type") != ActionTarget.ISSUE_OWNERS
                     ):
                         # for email actions, fallthroughType should only be set for when targetType is ISSUE_OWNERS
                         continue
@@ -146,16 +169,19 @@ class TestNotificationActionMigrationUtils(TestCase):
             compare_val = compare_dict.get(target_identifier_key)
             # Handle both "None" string and None value
             if compare_val in ["None", None, ""]:
-                assert action.target_identifier is None
+                assert action.config.get("target_identifier") is None
             else:
-                assert action.target_identifier == compare_val
+                assert action.config.get("target_identifier") == str(compare_val)
 
         # Assert target_display matches if specified
         if target_display_key:
-            assert action.target_display == compare_dict.get(target_display_key)
+            assert action.config.get("target_display") == compare_dict.get(target_display_key)
 
         # Assert target_type matches
-        assert action.target_type == translator.target_type
+        if translator.target_type is not None:
+            assert action.config.get("target_type") == translator.target_type.value
+        else:
+            assert action.config.get("target_type") is None
 
     def assert_actions_migrated_correctly(
         self,
@@ -202,7 +228,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -221,7 +247,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -314,7 +340,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -367,7 +393,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -424,7 +450,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
         # Assert the logger was called with the correct arguments
         mock_logger.assert_called_with(
@@ -488,7 +514,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_opsgenie_action_migration(self):
         action_data = [
@@ -542,7 +568,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_github_action_migration(self):
         # Includes both, Github and Github Enterprise. We currently don't have any rules configured for Github Enterprise.
@@ -563,7 +589,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_azure_devops_migration(self):
         action_data = AZURE_DEVOPS_ACTION_DATA_BLOBS
@@ -580,7 +606,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_email_migration(self):
         action_data = EMAIL_ACTION_DATA_BLOBS
@@ -611,7 +637,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_plugin_action_migration(self):
         action_data = [
@@ -649,39 +675,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         self.assert_actions_migrated_correctly(actions, action_data, None, None, None)
 
     def test_webhook_action_migration(self):
-        action_data = [
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "bufo-bot-integration-1f946b",
-                "uuid": "02babf2f-d767-483c-bb5d-0eaae85c532a",
-            },
-            {
-                "service": "opsgenie",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "02b91e1d-a91c-4357-8190-a08c9e8c15c4",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "slack",
-                "uuid": "45a8b34b-325d-4efa-b5a1-0c6effc4eba1",
-            },
-            {
-                "service": "webhooks",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "722decb0-bad9-4f5e-ad06-865439169289",
-            },
-            {
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "service": "slack",
-                "uuid": "c19cdf39-8110-43fc-ad15-12b372332ac0",
-            },
-            {
-                "service": "chat-erwiuyhrwejkh",
-                "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
-                "uuid": "add56da2-be45-4182-800e-6b1b7fc4d012",
-            },
-        ]
-
+        action_data = WEBHOOK_ACTION_DATA_BLOBS
         actions = build_notification_actions_from_rule_data_actions(action_data)
         self.assert_actions_migrated_correctly(actions, action_data, None, "service", None)
 
@@ -701,9 +695,10 @@ class TestNotificationActionMigrationUtils(TestCase):
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
         assert len(actions) == 1
-        assert actions[0].type == Action.Type.SENTRY_APP
-        assert actions[0].target_identifier == str(app.id)
-        assert actions[0].target_type == ActionTarget.SENTRY_APP
+        # This will still be Webhook even though it's a Sentry App
+        assert actions[0].type == Action.Type.WEBHOOK
+        assert actions[0].config.get("target_identifier") == app.slug
+        assert actions[0].config.get("target_type") is None
         assert actions[0].data == {}
 
     def test_webhook_action_migration_malformed(self):
@@ -715,7 +710,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_action_types(self):
         """Test that all registered action translators have the correct action type set."""
@@ -922,7 +917,7 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_jira_server_action_migration(self):
         action_data = JIRA_SERVER_ACTION_DATA_BLOBS
@@ -951,10 +946,10 @@ class TestNotificationActionMigrationUtils(TestCase):
         ]
 
         with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+            build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
 
     def test_sentry_app_action_migration(self):
-        app = self.create_sentry_app(
+        self.create_sentry_app(
             organization=self.organization,
             name="Test Application",
             is_alertable=True,
@@ -1084,6 +1079,17 @@ class TestNotificationActionMigrationUtils(TestCase):
                     ],
                 },
             },
+            # Simple webhook sentry app with label
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": install.uuid,
+                "settings": [
+                    {"name": "destination", "value": "slack"},
+                    {"name": "systemid", "value": "test-system", "label": "System ID"},
+                ],
+                "hasSchemaFormConfig": True,
+                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
+            },
         ]
 
         actions = build_notification_actions_from_rule_data_actions(action_data)
@@ -1093,21 +1099,73 @@ class TestNotificationActionMigrationUtils(TestCase):
         # Verify that action type is set correctly
         for action in actions:
             assert action.type == Action.Type.SENTRY_APP
-            assert action.target_identifier == str(app.id)
+            assert action.config.get("target_identifier") == install.uuid
+            assert (
+                action.config.get("sentry_app_identifier")
+                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            )
 
-    def test_sentry_app_migration_with_form_config(self):
+    def test_dry_run_flag(self):
+        """Test that the dry_run flag prevents database writes."""
         action_data = [
             {
-                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "workspace": "1",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#test-channel",
+                "channel_id": "C123456",
+                "uuid": "test-uuid",
+            }
+        ]
+
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=True)
+        assert len(actions) == 1
+        assert Action.objects.count() == 0
+
+        # With dry_run=False (default)
+        actions = build_notification_actions_from_rule_data_actions(action_data)
+        assert len(actions) == 1
+        assert Action.objects.count() == 1
+
+        # Verify the actions passed to bulk_create
+        action = Action.objects.get(id=actions[0].id)
+        assert action.type == Action.Type.SLACK
+        assert action.config.get("target_display") == "#test-channel"
+        assert action.config.get("target_identifier") == "C123456"
+
+    def test_skip_failures_flag(self):
+        """Test that the skip_failures flag skips invalid actions."""
+        action_data: list[dict[str, str | Any]] = [
+            # Invalid action type, should skip
+            {
+                "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
+                "server": "123456",
+            },
+            # Invalid action type, should skip
+            {
+                "id": "sentry.rules.actions.nodsfsd.NotifyEventSentryAppAction",
                 "sentryAppInstallationUuid": "fake-uuid",
                 "settings": [
                     {"name": "destination", "value": "slack"},
                     {"name": "systemid", "value": "test-system"},
                 ],
-                "hasSchemaFormConfig": True,
-                "uuid": "a37dd837-d709-4d67-9442-b23d068a5b43",
+            },
+            # Valid action, should not skip
+            {
+                "workspace": "1",
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "#test",
+                "channel_id": "C123",
+                "uuid": "test-uuid",
             },
         ]
 
-        with pytest.raises(ValueError):
-            build_notification_actions_from_rule_data_actions(action_data)
+        actions = build_notification_actions_from_rule_data_actions(action_data, is_dry_run=False)
+        assert len(actions) == 1
+        assert Action.objects.count() == 1
+
+        # Verify the actions passed to bulk_create
+        action = Action.objects.get(id=actions[0].id)
+        assert action.type == Action.Type.SLACK
+        assert action.config.get("target_display") == "#test"
+        assert action.config.get("target_identifier") == "C123"
+        assert action.integration_id == 1

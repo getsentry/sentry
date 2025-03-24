@@ -49,7 +49,9 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
-            message = DiscordIssuesMessageBuilder(event.group, event=event, tags=tags, rules=rules)
+            message = DiscordIssuesMessageBuilder(
+                event.group, event=event, tags=tags, rules=rules
+            ).build(notification_uuid=notification_uuid)
 
             client = DiscordClient()
             with MessagingInteractionEvent(
@@ -58,7 +60,7 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             ).capture() as lifecycle:
                 try:
                     lifecycle.add_extras({"integration_id": integration.id, "channel": channel_id})
-                    client.send_message(channel_id, message, notification_uuid=notification_uuid)
+                    client.send_message(channel_id, message)
                 except ApiError as error:
                     # Errors that we recieve from the Discord API
                     record_lifecycle_termination_level(lifecycle, error)

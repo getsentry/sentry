@@ -62,7 +62,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 };
 
 const DEFAULT_FIELD: QueryFieldValue = {
-  function: ['count', '', undefined, undefined],
+  function: ['count_unique', 'user', undefined, undefined],
   kind: FieldValueKind.FUNCTION,
 };
 

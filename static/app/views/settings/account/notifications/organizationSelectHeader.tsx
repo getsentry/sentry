@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -49,7 +49,7 @@ export function OrganizationSelectHeader({
 }
 
 // Resetting styles because its in a panel header
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   text-transform: initial;
   font-weight: ${p => p.theme.fontWeightNormal};
 `;

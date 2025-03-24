@@ -3,29 +3,33 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
+  type AutofixFeedback,
   type AutofixRepository,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStatus,
   AutofixStepType,
+  type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
   type AutofixResponse,
   makeAutofixQueryKey,
 } from 'sentry/components/events/autofix/useAutofix';
-import {IconCheckmark, IconClose, IconEdit, IconFocus} from 'sentry/icons';
+import {IconCheckmark, IconClose, IconFocus, IconInput} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {AutofixTimeline} from './autofixTimeline';
@@ -37,6 +41,8 @@ type AutofixRootCauseProps = {
   repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
+  agentCommentThread?: CommentThread;
+  feedback?: AutofixFeedback;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
@@ -179,15 +185,17 @@ function RootCauseDescription({
             stepIndex={previousDefaultStepIndex ?? 0}
             retainInsightCardIndex={
               previousInsightCount !== undefined && previousInsightCount >= 0
-                ? previousInsightCount - 1
-                : -1
+                ? previousInsightCount
+                : null
             }
           />
         )}
       </AnimatePresence>
       <div ref={containerRef}>
         {cause.description && (
-          <p dangerouslySetInnerHTML={{__html: singleLineRenderer(cause.description)}} />
+          <Description
+            dangerouslySetInnerHTML={{__html: singleLineRenderer(cause.description)}}
+          />
         )}
         {cause.root_cause_reproduction && (
           <AutofixTimeline events={cause.root_cause_reproduction} />
@@ -197,7 +205,7 @@ function RootCauseDescription({
   );
 }
 
-function formatRootCauseText(
+export function formatRootCauseText(
   cause: AutofixRootCauseData | undefined,
   customRootCause?: string
 ) {
@@ -255,7 +263,14 @@ function CopyRootCauseButton({
     return null;
   }
   const text = formatRootCauseText(cause, customRootCause);
-  return <CopyToClipboardButton size="sm" text={text} borderless />;
+  return (
+    <CopyToClipboardButton
+      size="sm"
+      text={text}
+      borderless
+      title="Copy root cause as Markdown"
+    />
+  );
 }
 
 function AutofixRootCauseDisplay({
@@ -265,14 +280,21 @@ function AutofixRootCauseDisplay({
   rootCauseSelection,
   previousDefaultStepIndex,
   previousInsightCount,
+  agentCommentThread,
+  feedback,
 }: AutofixRootCauseProps) {
   const {mutate: handleContinue, isPending} = useSelectCause({groupId, runId});
   const [isEditing, setIsEditing] = useState(false);
   const [customRootCause, setCustomRootCause] = useState('');
   const cause = causes[0];
+  const iconFocusRef = useRef<HTMLDivElement>(null);
 
   if (!cause) {
-    return <Alert type="error">{t('No root cause available.')}</Alert>;
+    return (
+      <Alert.Container>
+        <Alert type="error">{t('No root cause available.')}</Alert>
+      </Alert.Container>
+    );
   }
 
   if (rootCauseSelection && 'custom_root_cause' in rootCauseSelection) {
@@ -281,7 +303,9 @@ function AutofixRootCauseDisplay({
         <CustomRootCausePadding>
           <HeaderWrapper>
             <HeaderText>
-              <IconFocus size="sm" />
+              <IconWrapper ref={iconFocusRef}>
+                <IconFocus size="sm" color="pink400" />
+              </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
             <CopyRootCauseButton
@@ -300,10 +324,21 @@ function AutofixRootCauseDisplay({
       <ClippedBox clipHeight={408}>
         <HeaderWrapper>
           <HeaderText>
-            <IconFocus size="sm" />
+            <IconWrapper ref={iconFocusRef}>
+              <IconFocus size="sm" color="pink400" />
+            </IconWrapper>
             {t('Root Cause')}
           </HeaderText>
           <ButtonBar>
+            <AutofixThumbsUpDownButtons
+              thumbsUpDownType="root_cause"
+              feedback={feedback}
+              groupId={groupId}
+              runId={runId}
+            />
+            <DividerWrapper>
+              <Divider />
+            </DividerWrapper>
             <CopyRootCauseButton cause={cause} isEditing={isEditing} />
             <EditButton
               size="sm"
@@ -319,7 +354,7 @@ function AutofixRootCauseDisplay({
                 }
               }}
             >
-              {isEditing ? <IconClose size="sm" /> : <IconEdit size="sm" />}
+              {isEditing ? <IconClose size="sm" /> : <IconInput size="sm" />}
             </EditButton>
             {isEditing && (
               <Button
@@ -339,6 +374,23 @@ function AutofixRootCauseDisplay({
             )}
           </ButtonBar>
         </HeaderWrapper>
+        <AnimatePresence>
+          {agentCommentThread && iconFocusRef.current && (
+            <AutofixHighlightPopup
+              selectedText=""
+              referenceElement={iconFocusRef.current}
+              groupId={groupId}
+              runId={runId}
+              stepIndex={previousDefaultStepIndex ?? 0}
+              retainInsightCardIndex={
+                previousInsightCount !== undefined && previousInsightCount >= 0
+                  ? previousInsightCount
+                  : null
+              }
+              isAgentComment
+            />
+          )}
+        </AnimatePresence>
         <Content>
           {isEditing ? (
             <TextArea
@@ -375,9 +427,11 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
       <AnimatePresence initial>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
-            <Alert type="warning">
-              {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {t('No root cause found.\n\n%s', props.terminationReason ?? '')}
+              </Alert>
+            </Alert.Container>
           </NoCausesPadding>
         </AnimationWrapper>
       </AnimatePresence>
@@ -392,6 +446,12 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
     </AnimatePresence>
   );
 }
+
+const Description = styled('div')`
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  padding-bottom: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
 
 const NoCausesPadding = styled('div')`
   padding: 0 ${space(2)};
@@ -418,6 +478,12 @@ const HeaderWrapper = styled('div')`
   padding-bottom: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(1)};
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const HeaderText = styled('div')`
@@ -457,4 +523,8 @@ const TextArea = styled('textarea')`
 
 const EditButton = styled(Button)`
   color: ${p => p.theme.subText};
+`;
+
+const DividerWrapper = styled('div')`
+  margin: 0 ${space(1)};
 `;

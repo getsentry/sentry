@@ -2,7 +2,6 @@ import {Component, Fragment, PureComponent} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {DEMO_HEADER_HEIGHT_PX} from 'sentry/components/demo/demoHeader';
 import {
   getDataPoints,
   MIN_DATA_POINTS,
@@ -25,7 +24,6 @@ import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
 import toPercent from 'sentry/utils/number/toPercent';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
@@ -52,15 +50,15 @@ type PropType = {
   event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   isEmbedded: boolean;
-  minimapInteractiveRef: React.RefObject<HTMLDivElement>;
+  minimapInteractiveRef: React.RefObject<HTMLDivElement | null>;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
   theme: Theme;
   trace: ParsedTraceType;
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
-  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement | null>;
 };
 
 type State = {
@@ -177,10 +175,7 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderFog(
-    dragProps: DragManagerChildrenProps,
-    hasProfileMeasurementsChart: boolean = false
-  ) {
+  renderFog(dragProps: DragManagerChildrenProps, hasProfileMeasurementsChart = false) {
     return (
       <Fragment>
         <Fog
@@ -379,7 +374,7 @@ class TraceViewHeader extends Component<PropType, State> {
     });
   }
 
-  renderSecondaryHeader(hasProfileMeasurementsChart: boolean = false) {
+  renderSecondaryHeader(hasProfileMeasurementsChart = false) {
     const {event} = this.props;
 
     const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
@@ -395,6 +390,7 @@ class TraceViewHeader extends Component<PropType, State> {
                 {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
                   return (
                     <ScrollbarContainer
+                      // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                       ref={this.props.virtualScrollBarContainerRef}
                       style={{
                         // the width of this component is shrunk to compensate for half of the width of the divider line
@@ -407,10 +403,12 @@ class TraceViewHeader extends Component<PropType, State> {
                           width: 0,
                           height: '1px',
                         }}
+                        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                         ref={scrollBarAreaRef}
                       />
                       <VirtualScrollbar
                         data-type="virtual-scrollbar"
+                        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                         ref={virtualScrollbarRef}
                         onMouseDown={onDragStart}
                       >
@@ -475,6 +473,7 @@ class TraceViewHeader extends Component<PropType, State> {
 
           return (
             <HeaderContainer
+              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={this.props.traceViewHeaderRef}
               hasProfileMeasurementsChart={hasProfileMeasurementsChart}
               isEmbedded={this.props.isEmbedded}
@@ -521,6 +520,7 @@ class TraceViewHeader extends Component<PropType, State> {
                           showCursorGuide,
                         }) => (
                           <RightSidePane
+                            // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                             ref={this.props.minimapInteractiveRef}
                             style={{
                               width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
@@ -757,7 +757,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
       }
 
       default: {
-        throw Error(`Invalid tick alignment: ${align}`);
+        throw new Error(`Invalid tick alignment: ${align}`);
       }
     }
   }};
@@ -815,7 +815,7 @@ export const HeaderContainer = styled('div')<{
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${() => (isDemoModeEnabled() ? DEMO_HEADER_HEIGHT_PX : 0)};
+  top: 0;
   z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};

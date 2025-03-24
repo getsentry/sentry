@@ -28,7 +28,7 @@ type FormatOptions = {
  * Note: usageQuantity for Attachments should be in BYTES
  */
 export function formatUsageWithUnits(
-  usageQuantity: number = 0,
+  usageQuantity = 0,
   dataCategory: DataCategoryInfo['plural'],
   options: FormatOptions = {isAbbreviated: false, useUnitScaling: false}
 ): string {

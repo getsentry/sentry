@@ -456,6 +456,13 @@ register(
     default=None,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Beta recording consumer rollout.
+register(
+    "replay.consumer.recording.beta-rollout",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Globally disables replay-video.
 register(
     "replay.replay-video.disabled",
@@ -533,6 +540,15 @@ register(
 register(
     "relay.ourlogs-breadcrumb-extraction.max-breadcrumbs-converted",
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Ingest only a random fraction of logs sent to relay. Used to roll out ourlogs ingestion.
+#
+# NOTE: Any value below 1.0 will cause customer data to not appear and can break the product. Do not override in production.
+register(
+    "relay.ourlogs-ingestion.sample-rate",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -854,7 +870,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 #  Percentage of orgs that will be put into a bucket using the split rate below.
 register(
     "issues.details.streamline-experiment-rollout-rate",
@@ -970,15 +985,19 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Note: This is based on US volume. Since other regions are lower-traffic, this effectively means
+# the circuit breaker is disabled for any region without its own values configured (you can hardly
+# have 33K Seer errors if you don't even have 33K events, so the breaker will never be tripped in
+# smaller regions relying on the default).
 register(
     "seer.similarity.circuit-breaker-config",
     type=Dict,
     default={
-        "error_limit": 33250,
+        "error_limit": 33250,  # 95% error rate * avg volume of ~35K events with new hashes/10 min
         "error_limit_window": 600,  # 10 min
         "broken_state_duration": 300,  # 5 min
     },
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(
@@ -1174,9 +1193,6 @@ register("relay.metric-bucket-distribution-encodings", default={}, flags=FLAG_AU
 
 # Controls the rollout rate in percent (`0.0` to `1.0`) for metric stats.
 register("relay.metric-stats.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Controls whether generic inbound filters are sent to Relay.
-register("relay.emit-generic-inbound-filters", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2086,8 +2102,12 @@ register(
 )
 
 # Killswitch for monitor check-ins
-register("crons.organization.disable-check-in", type=Sequence, default=[])
-
+register(
+    "crons.organization.disable-check-in",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Temporary killswitch to enable dispatching incident occurrences into the
 # incident_occurrence_consumer
@@ -2139,6 +2159,20 @@ register(
     "crons.system_incidents.tick_decision_window",
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Determines how many check-ins per-minute will be allowed per monitor. This is
+# used when computing the QuotaConfig for the DataCategory.MONITOR (check-ins)
+#
+# See the sentry.monitors.rate_limt module for more details.
+#
+# XXX(epurkhiser): Remember a single check-in may often consist of two check-in
+# messages, one for IN_PROGRESS and another for OK.
+register(
+    "crons.per_monitor_rate_limit",
+    type=Int,
+    default=6,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -2634,12 +2668,17 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "standalone-spans.detect-performance-issues-consumer.enable",
+    "standalone-spans.process-segments-consumer.enable",
     default=True,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "standalone-spans.send-occurrence-to-platform.enable",
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "standalone-spans.detect-performance-problems.enable",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2851,6 +2890,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "delayed_workflow.rollout",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "celery_split_queue_task_rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -2898,6 +2943,53 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "uptime.checker-regions-mode-override",
+    type=Dict,
+    default={},
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# When in active monitoring mode, overrides how many failures in a row we need to see to mark the monitor as down
+register(
+    "uptime.active-failure-threshold",
+    type=Int,
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When in active monitoring mode, how many successes in a row do we need to mark it as up
+register(
+    "uptime.active-recovery-threshold",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.date_cutoff_epoch_seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "uptime.snuba_uptime_results.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Configures the list of public IP addresses that are returned from the
+# `uptime-ips` API. This does NOT control what actual IPs are used to make the
+# check, we simply have this as an option so that we can quickly update this
+# list without the need for a code-change.
+register(
+    "uptime.uptime-ips-api-response",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "releases.no_snuba_for_release_creation",
@@ -2990,14 +3082,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# migrating send_alert_event task to not pass Event
-register(
-    "sentryapps.send_alert_event.use-eventid",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # allows us to disable indexing during maintenance events
 register(
     "sentry.similarity.indexing.enabled",
@@ -3015,23 +3099,9 @@ register(
 )
 
 register(
-    "uptime.snuba_uptime_results.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "taskworker.grpc_service_config",
     type=String,
     default="""{"loadBalancingConfig": [{"round_robin": {}}]}""",
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "uptime.date_cutoff_epoch_seconds",
-    type=Int,
-    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3040,5 +3110,30 @@ register(
     "sentry.save-event.title-char-limit-256.enabled",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry.demo_mode.sync_artifact_bundles.enable",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.source_org_id",
+    type=Int,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sentry.demo_mode.sync_artifact_bundles.lookback_days",
+    default=1,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Taskbroker flags
+
+register(
+    "taskworker.route.overrides",
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -232,10 +232,6 @@ class ProcessCandidateUrlTest(UptimeTestCase):
             assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
             mock_monitor_url_for_project.assert_not_called()
 
-        with self.feature(["organizations:uptime", "organizations:uptime-create-disabled"]):
-            assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
-            mock_monitor_url_for_project.assert_not_called()
-
     @with_feature(["organizations:uptime", "organizations:uptime-automatic-subscription-creation"])
     def test_succeeds_existing_subscription_other_project(self):
         other_project = self.create_project()

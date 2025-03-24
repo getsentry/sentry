@@ -1,10 +1,13 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   useExploreDataset,
   useExploreFields,
@@ -16,34 +19,55 @@ import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/vi
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
-export function useAnalytics({
+const {info, fmt} = Sentry._experiment_log;
+
+export function useTrackAnalytics({
   queryType,
   aggregatesTableResult,
   spansTableResult,
   tracesTableResult,
   timeseriesResult,
+  dataset,
+  title,
+  query,
+  fields,
+  visualizes,
+  page_source,
+  interval,
 }: {
   aggregatesTableResult: AggregatesTableResult;
+  dataset: DiscoverDatasets;
+  fields: string[];
+  interval: string;
+  page_source: 'explore' | 'compare';
+  query: string;
   queryType: 'aggregate' | 'samples' | 'traces';
   spansTableResult: SpansTableResult;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  tracesTableResult: TracesTableResult;
+  visualizes: Visualize[];
+  title?: string;
+  tracesTableResult?: TracesTableResult;
 }) {
   const organization = useOrganization();
-  const dataset = useExploreDataset();
-  const title = useExploreTitle();
-  const query = useExploreQuery();
-  const fields = useExploreFields();
-  const visualizes = useExploreVisualizes();
 
   const {
     data: {hasExceededPerformanceUsageLimit},
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails();
+
+  const tableError =
+    queryType === 'aggregate'
+      ? (aggregatesTableResult.result.error?.message ?? '')
+      : queryType === 'traces'
+        ? (tracesTableResult?.result.error?.message ?? '')
+        : (spansTableResult.result.error?.message ?? '');
+  const chartError = timeseriesResult.error?.message ?? '';
+  const query_status = tableError || chartError ? 'error' : 'success';
 
   useEffect(() => {
     if (
@@ -63,17 +87,41 @@ export function useAnalytics({
       result_mode: 'aggregates',
       columns,
       columns_count: columns.length,
-      query_status: aggregatesTableResult.result.status,
+      query_status,
       result_length: aggregatesTableResult.result.data?.length || 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
-      visualizes,
+      visualizes: visualizes.map(visualize => ({
+        chartType: visualize.chartType,
+        yAxes: visualize.yAxes,
+      })),
       visualizes_count: visualizes.length,
       title: title || '',
+      empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
+      interval,
     });
+
+    info(
+      fmt`trace.explorer.metadata:
+      organization: ${organization.slug}
+      dataset: ${dataset}
+      query: [omitted]
+      visualizes: ${visualizes.map(v => v.chartType).join(', ')}
+      title: ${title || ''}
+      queryType: ${queryType}
+      result_length: ${String(aggregatesTableResult.result.data?.length || 0)}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(String(search.tokens).length)}
+      visualizes_count: ${String(String(visualizes).length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
+      page_source: ${page_source}
+    `,
+      {isAnalytics: true}
+    );
   }, [
     organization,
     dataset,
@@ -90,6 +138,9 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
+    query_status,
+    page_source,
+    interval,
   ]);
 
   useEffect(() => {
@@ -109,7 +160,7 @@ export function useAnalytics({
       result_mode: 'span samples',
       columns: fields,
       columns_count: fields.length,
-      query_status: spansTableResult.result.status,
+      query_status,
       result_length: spansTableResult.result.data?.length || 0,
       result_missing_root: 0,
       user_queries: search.formatString(),
@@ -117,9 +168,27 @@ export function useAnalytics({
       visualizes,
       visualizes_count: visualizes.length,
       title: title || '',
+      empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
+      interval,
     });
+
+    info(fmt`trace.explorer.metadata:
+      organization: ${organization.slug}
+      dataset: ${dataset}
+      query: ${query}
+      visualizes: ${visualizes.map(v => v.chartType).join(', ')}
+      title: ${title || ''}
+      queryType: ${queryType}
+      result_length: ${String(spansTableResult.result.data?.length || 0)}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(search.tokens.length)}
+      visualizes_count: ${String(visualizes.length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
+      page_source: ${page_source}
+    `);
   }, [
     organization,
     dataset,
@@ -135,10 +204,16 @@ export function useAnalytics({
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
+    query_status,
+    page_source,
+    interval,
   ]);
+
+  const tracesTableResultDefined = defined(tracesTableResult);
 
   useEffect(() => {
     if (
+      !tracesTableResultDefined ||
       queryType !== 'traces' ||
       tracesTableResult.result.isPending ||
       timeseriesResult.isPending ||
@@ -157,7 +232,7 @@ export function useAnalytics({
       'timestamp',
     ];
     const resultMissingRoot =
-      tracesTableResult.result?.data?.data?.filter(trace => !defined(trace.name))
+      tracesTableResult?.result?.data?.data?.filter(trace => !defined(trace.name))
         .length ?? 0;
 
     trackAnalytics('trace.explorer.metadata', {
@@ -166,7 +241,7 @@ export function useAnalytics({
       result_mode: 'trace samples',
       columns,
       columns_count: columns.length,
-      query_status: tracesTableResult.result.status,
+      query_status,
       result_length: tracesTableResult.result.data?.data?.length || 0,
       result_missing_root: resultMissingRoot,
       user_queries: search.formatString(),
@@ -174,8 +249,11 @@ export function useAnalytics({
       visualizes,
       visualizes_count: visualizes.length,
       title: title || '',
+      empty_buckets_percentage: computeEmptyBuckets(visualizes, timeseriesResult.data),
       confidences: computeConfidence(visualizes, timeseriesResult.data),
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
+      interval,
     });
   }, [
     organization,
@@ -185,14 +263,97 @@ export function useAnalytics({
     visualizes,
     title,
     queryType,
-    tracesTableResult.result.isPending,
-    tracesTableResult.result.status,
-    tracesTableResult.result.data?.data,
+    tracesTableResult?.result.isPending,
+    tracesTableResult?.result.status,
+    tracesTableResult?.result.data?.data,
     timeseriesResult.isPending,
     timeseriesResult.data,
     hasExceededPerformanceUsageLimit,
     isLoadingSubscriptionDetails,
+    query_status,
+    page_source,
+    tracesTableResultDefined,
+    interval,
   ]);
+}
+
+export function useAnalytics({
+  queryType,
+  aggregatesTableResult,
+  spansTableResult,
+  tracesTableResult,
+  timeseriesResult,
+  interval,
+}: {
+  aggregatesTableResult: AggregatesTableResult;
+  interval: string;
+  queryType: 'aggregate' | 'samples' | 'traces';
+  spansTableResult: SpansTableResult;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  tracesTableResult: TracesTableResult;
+}) {
+  const dataset = useExploreDataset();
+  const title = useExploreTitle();
+  const query = useExploreQuery();
+  const fields = useExploreFields();
+  const visualizes = useExploreVisualizes();
+
+  return useTrackAnalytics({
+    queryType,
+    aggregatesTableResult,
+    spansTableResult,
+    tracesTableResult,
+    timeseriesResult,
+    dataset,
+    title,
+    query,
+    fields,
+    visualizes,
+    interval,
+    page_source: 'explore',
+  });
+}
+
+export function useCompareAnalytics({
+  query: queryParts,
+  index,
+  queryType,
+  aggregatesTableResult,
+  spansTableResult,
+  timeseriesResult,
+  interval,
+}: {
+  aggregatesTableResult: AggregatesTableResult;
+  index: number;
+  interval: string;
+  query: ReadableExploreQueryParts;
+  queryType: 'aggregate' | 'samples' | 'traces';
+  spansTableResult: SpansTableResult;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+}) {
+  const dataset = DiscoverDatasets.SPANS_EAP_RPC;
+  const query = queryParts.query;
+  const fields = queryParts.fields;
+  const visualizes = queryParts.yAxes.map(yAxis => {
+    return {
+      chartType: queryParts.chartType,
+      yAxes: [yAxis],
+      label: String(index),
+    } as Visualize;
+  });
+
+  return useTrackAnalytics({
+    queryType,
+    aggregatesTableResult,
+    spansTableResult,
+    timeseriesResult,
+    dataset,
+    query,
+    fields,
+    visualizes,
+    interval,
+    page_source: 'compare',
+  });
 }
 
 function computeConfidence(
@@ -202,6 +363,29 @@ function computeConfidence(
   return visualizes.map(visualize => {
     const dedupedYAxes = dedupeArray(visualize.yAxes);
     const series = dedupedYAxes.flatMap(yAxis => data[yAxis]).filter(defined);
-    return combineConfidenceForSeries(series);
+    return String(combineConfidenceForSeries(series));
+  });
+}
+
+export function computeEmptyBucketsForSeries(series: Pick<TimeSeries, 'data'>): number {
+  let emptyBucketsForSeries = 0;
+  for (const item of series.data) {
+    if (item.value === 0 || item.value === null) {
+      emptyBucketsForSeries += 1;
+    }
+  }
+  return Math.floor((emptyBucketsForSeries / series.data.length) * 100);
+}
+
+function computeEmptyBuckets(
+  visualizes: Visualize[],
+  data: ReturnType<typeof useSortedTimeSeries>['data']
+) {
+  return visualizes.flatMap(visualize => {
+    const dedupedYAxes = dedupeArray(visualize.yAxes);
+    return dedupedYAxes
+      .flatMap(yAxis => data[yAxis])
+      .filter(defined)
+      .map(computeEmptyBucketsForSeries);
   });
 }

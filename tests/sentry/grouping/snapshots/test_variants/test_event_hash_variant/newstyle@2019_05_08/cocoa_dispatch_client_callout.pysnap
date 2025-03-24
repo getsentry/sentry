@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:46.662151+00:00'
+created: '2025-02-26T00:33:17.988231+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -95,7 +95,7 @@ system:
           frame*
             function*
               "__NSBLOCKOPERATION_IS_CALLING_OUT_TO_A_BLOCK__"
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame*
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
           frame*

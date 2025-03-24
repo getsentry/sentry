@@ -10,7 +10,7 @@ const FUNCTION_FIELD_VALUE_EXTRACT_PATTERN = /(\d+)\)$/;
  */
 export function transformData(
   data: Array<Record<string, number>>,
-  useAggregateAlias: boolean = true
+  useAggregateAlias = true
 ) {
   const extractedData = Object.keys(data[0]!)
     .map((key: string) => {

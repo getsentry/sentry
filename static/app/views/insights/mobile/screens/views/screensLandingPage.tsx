@@ -192,7 +192,7 @@ export function ScreensLandingPage() {
       },
       sdkDocLinks: {
         Android:
-          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-initial-display',
+          'https://docs.sentry.io/platforms/android/tracing/instrumentation/automatic-instrumentation/#time-to-full-display',
         iOS: 'https://docs.sentry.io/platforms/apple/features/experimental-features/',
       },
       field: `avg(measurements.time_to_full_display)`,

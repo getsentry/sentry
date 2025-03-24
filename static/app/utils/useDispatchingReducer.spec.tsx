@@ -17,17 +17,16 @@ describe('useDispatchingReducer', () => {
     jest.useRealTimers();
   });
   it('initializes state with initializer', () => {
-    const reducer = jest.fn().mockImplementation(s => s) as () => {};
+    const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
     const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
     expect(result.current[0]).toBe(initialState);
   });
   it('initializes state with fn initializer arg', () => {
-    const reducer = jest.fn().mockImplementation(s => s) as () => {};
+    const reducer = jest.fn().mockImplementation(s => s);
     const initialState = {type: 'initial'};
     const {result} = renderHook(() =>
-      // @ts-expect-error force undfined
       useDispatchingReducer(reducer, undefined, () => initialState)
     );
 

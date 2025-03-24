@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import Access from 'sentry/components/acl/access';
-import {Alert, type AlertProps} from 'sentry/components/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 
@@ -21,13 +21,13 @@ export function OrganizationPermissionAlert({
     <Access access={access}>
       {({hasAccess}) =>
         !hasAccess && (
-          <Alert data-test-id="org-permission-alert" type="warning" showIcon {...props}>
-            {message}
-          </Alert>
+          <Alert.Container>
+            <Alert data-test-id="org-permission-alert" type="warning" showIcon {...props}>
+              {message}
+            </Alert>
+          </Alert.Container>
         )
       }
     </Access>
   );
 }
-
-export default OrganizationPermissionAlert;

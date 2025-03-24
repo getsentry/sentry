@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import Form from 'sentry/components/forms/form';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -42,11 +42,13 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
 
   if (isError) {
     return (
-      <Alert type="error" showIcon>
-        {t(
-          'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon>
+          {t(
+            'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 

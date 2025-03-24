@@ -8,15 +8,15 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 import type {TimeSeries} from '../dashboards/widgets/common/types';
 
 export function getExploreUrl({
-  orgSlug,
+  organization,
   selection,
   interval,
   mode,
@@ -25,16 +25,20 @@ export function getExploreUrl({
   groupBy,
   sort,
   field,
+  id,
+  title,
 }: {
   interval: string;
-  orgSlug: string;
+  organization: Organization;
   selection: PageFilters;
   visualize: Array<Omit<Visualize, 'label'>>;
   field?: string[];
   groupBy?: string[];
+  id?: number;
   mode?: Mode;
   query?: string;
   sort?: string;
+  title?: string;
 }) {
   const {start, end, period: statsPeriod, utc} = selection.datetime;
   const {environments, projects} = selection;
@@ -53,9 +57,15 @@ export function getExploreUrl({
     sort,
     field,
     utc,
+    id,
+    title,
   };
-  return normalizeUrl(
-    `/organizations/${orgSlug}/traces/?${qs.stringify(queryParams, {skipNull: true})}`
+
+  return (
+    makeTracesPathname({
+      organization,
+      path: '/',
+    }) + `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 
@@ -162,4 +172,11 @@ export function limitMaxPickableDays(organization: Organization): {
       ...Object.fromEntries(enabledOptions),
     },
   };
+}
+
+export function showConfidence(isSampled: boolean | null | undefined) {
+  if (defined(isSampled) && isSampled === false) {
+    return false;
+  }
+  return true;
 }

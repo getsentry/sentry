@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping
 from enum import StrEnum
 from typing import Any
 from urllib.parse import parse_qsl
 
-from django.http.response import HttpResponseBase
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
@@ -19,8 +19,10 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatures,
+    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
@@ -39,12 +41,13 @@ from sentry.integrations.utils.metrics import (
 )
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
+from sentry.web.frontend.base import determine_active_organization
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubApiClient, GitHubBaseClient
@@ -292,7 +295,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata
-    integration_cls = GitHubIntegration
+    integration_cls: type[IntegrationInstallation] = GitHubIntegration
     features = frozenset(
         [
             IntegrationFeatures.COMMITS,
@@ -313,8 +316,9 @@ class GitHubIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Mapping[str, Any] | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -339,7 +343,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
             }
         )
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> list[PipelineView | Callable[[], PipelineView]]:
         return [OAuthLoginView(), GitHubInstallation()]
 
     def get_installation_info(self, installation_id: str) -> Mapping[str, Any]:
@@ -347,7 +351,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
         resp: Mapping[str, Any] = client.get(f"/app/installations/{installation_id}")
         return resp
 
-    def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
         try:
             installation = self.get_installation_info(state["installation_id"])
         except ApiError as api_error:
@@ -355,7 +359,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 raise IntegrationError("The GitHub installation could not be found.")
             raise
 
-        integration = {
+        integration: IntegrationData = {
             "name": installation["account"]["login"],
             # TODO(adhiraj): This should be a constant representing the entire github cloud.
             "external_id": installation["id"],
@@ -402,9 +406,9 @@ def record_event(event: IntegrationPipelineViewType):
 
 
 class OAuthLoginView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.OAUTH_LOGIN).capture() as lifecycle:
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,
@@ -424,7 +428,7 @@ class OAuthLoginView(PipelineView):
                 redirect_uri = absolute_uri(
                     reverse("sentry-extension-setup", kwargs={"provider_id": "github"})
                 )
-                return self.redirect(
+                return HttpResponseRedirect(
                     f"{ghip.get_oauth_authorize_url()}?client_id={github_client_id}&state={state}&redirect_uri={redirect_uri}"
                 )
 
@@ -479,16 +483,16 @@ class GitHubInstallation(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with record_event(IntegrationPipelineViewType.GITHUB_INSTALLATION).capture() as lifecycle:
             installation_id = request.GET.get(
                 "installation_id", pipeline.fetch_state("installation_id")
             )
             if installation_id is None:
-                return self.redirect(self.get_app_url())
+                return HttpResponseRedirect(self.get_app_url())
 
             pipeline.bind_state("installation_id", installation_id)
-            self.determine_active_organization(request)
+            self.active_organization = determine_active_organization(request)
             lifecycle.add_extra(
                 "organization_id",
                 self.active_organization.organization.id if self.active_organization else None,

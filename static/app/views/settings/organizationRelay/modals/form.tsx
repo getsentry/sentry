@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Textarea from 'sentry/components/forms/controls/textarea';
+import {Input} from 'sentry/components/core/input';
+import {TextArea} from 'sentry/components/core/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
-import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -123,7 +123,7 @@ function Form({
         inline={false}
         stacked
       >
-        <Textarea
+        <TextArea
           name="description"
           placeholder={t('Description')}
           onChange={handleChange('description')}

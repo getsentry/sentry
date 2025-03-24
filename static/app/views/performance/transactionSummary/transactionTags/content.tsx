@@ -4,6 +4,7 @@ import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -12,7 +13,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -132,7 +132,7 @@ function InnerContent(
     (tagKey: string) => {
       if (lastTag.current !== tagKey) {
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           tagKey,
           [TAG_PAGE_TABLE_CURSOR]: undefined,
         });
@@ -159,7 +159,7 @@ function InnerContent(
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 

@@ -248,6 +248,8 @@ export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
+export type DataUnit = DurationUnit | SizeUnit | RateUnit | null;
+
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
     documentation: AGGREGATION_FIELDS[key].desc,
@@ -910,8 +912,8 @@ export function parseArguments(columnText: string): string[] {
   let inTag = false;
   let escaped = false;
 
-  let i: number = 0;
-  let j: number = 0;
+  let i = 0;
+  let j = 0;
 
   while (j < columnText?.length) {
     if (!inTag && i === j && columnText[j] === '"') {

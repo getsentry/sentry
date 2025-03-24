@@ -50,8 +50,7 @@ class MockResizeObserver {
   disconnect() {}
 }
 
-type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
-type ResponseType = Arguments<typeof MockApiClient.addMockResponse>[0];
+type ResponseType = Parameters<typeof MockApiClient.addMockResponse>[0];
 
 function mockQueryString(queryString: string) {
   Object.defineProperty(window, 'location', {
@@ -160,7 +159,7 @@ function mockTraceRootFacets(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     body: {},
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -184,7 +183,7 @@ function mockSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -198,7 +197,7 @@ function mockTransactionSpansResponse(
     method: 'GET',
     asyncDelay: 1,
     body,
-    ...(resp ?? {}),
+    ...resp,
   });
 }
 
@@ -207,17 +206,6 @@ const {router} = initializeOrg({
     params: {orgId: 'org-slug', traceSlug: 'trace-id'},
   },
 });
-
-function mockMetricsResponse() {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/metrics/query/',
-    method: 'POST',
-    body: {
-      data: [],
-      queries: [],
-    },
-  });
-}
 
 function mockEventsResponse() {
   MockApiClient.addMockResponse({
@@ -291,7 +279,6 @@ async function keyboardNavigationTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -351,7 +338,6 @@ async function pageloadTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -410,7 +396,6 @@ async function nestedTransactionsTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -469,7 +454,6 @@ async function searchTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -532,7 +516,6 @@ async function simpleTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   const value = render(<TraceView />, {router});
@@ -638,7 +621,6 @@ async function completeTestSetup() {
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
-  mockMetricsResponse();
   mockEventsResponse();
 
   MockApiClient.addMockResponse({
@@ -835,12 +817,12 @@ function printVirtualizedList(container: HTMLElement) {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join('\n'));
 }
 
 // @ts-expect-error ignore this line
-// eslint-disable-next-line
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function printTabs() {
   const tabs = screen.queryAllByTestId(DRAWER_TABS_TEST_ID);
   const stdout: string[] = [];
@@ -854,7 +836,7 @@ function printTabs() {
   }
 
   // This is a debug fn, we need it to log
-  // eslint-disable-next-line
+  // eslint-disable-next-line no-console
   console.log(stdout.join(' | '));
 }
 
@@ -907,7 +889,9 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
   it('renders error state if meta fails to load', async () => {
@@ -924,10 +908,17 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
-  it('renders empty state', async () => {
+  it('renders empty state for successfully ingested trace', async () => {
+    // set timestamp to 3 minutes ago
+    const threeMinutesAgoInSeconds = Math.floor(
+      new Date(Date.now() - 3 * 60 * 1000).getTime() / 1000
+    );
+
     mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse({
       body: {
@@ -939,9 +930,40 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    render(<TraceView />, {router});
+    window.location.search = `?timestamp=${threeMinutesAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
     expect(
-      await screen.findByText(/trace does not contain any data/i)
+      await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
+    ).toBeInTheDocument();
+  });
+
+  it('renders empty state for yet to be ingested trace', async () => {
+    // set timestamp to 1 minute ago
+    const oneMinuteAgoInSeconds = Math.floor(
+      new Date(Date.now() - 1 * 60 * 1000).getTime() / 1000
+    );
+
+    mockPerformanceSubscriptionDetailsResponse();
+    mockTraceResponse({
+      body: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    });
+    mockTraceMetaResponse();
+    mockTraceTagsResponse();
+    mockEventsResponse();
+
+    window.location.search = `?timestamp=${oneMinuteAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
+    expect(
+      await screen.findByText(
+        /We're still processing this trace. In a few seconds, refresh/i
+      )
     ).toBeInTheDocument();
   });
 
@@ -1640,7 +1662,7 @@ describe('trace view', () => {
       mockTraceRootFacets();
       mockTraceRootEvent('0');
       mockTraceEventDetails();
-      mockMetricsResponse();
+
       mockEventsResponse();
 
       mockTraceResponse({

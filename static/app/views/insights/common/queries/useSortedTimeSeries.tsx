@@ -6,6 +6,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -195,17 +196,17 @@ export function transformToSeriesMap(
           groupName
         );
 
-        if (!acc[seriesName]) {
-          acc[seriesName] = [series];
-        } else {
+        if (acc[seriesName]) {
           acc[seriesName].push(series);
+        } else {
+          acc[seriesName] = [series];
         }
       });
       return acc;
     }, {} as SeriesMap);
 }
 
-function convertEventsStatsToTimeSeriesData(
+export function convertEventsStatsToTimeSeriesData(
   seriesName: string,
   seriesData: EventsStats,
   alias?: string
@@ -219,14 +220,12 @@ function convertEventsStatsToTimeSeriesData(
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      fields: {
-        [label]: seriesData.meta?.fields?.[seriesName]!,
-      },
-      units: {
-        [label]: seriesData.meta?.units?.[seriesName]!,
-      },
+      type: seriesData.meta?.fields?.[seriesName]!,
+      unit: seriesData.meta?.units?.[seriesName] as DataUnit,
     },
     confidence: determineSeriesConfidence(seriesData),
+    sampleCount: seriesData.meta?.accuracy?.sampleCount,
+    samplingRate: seriesData.meta?.accuracy?.samplingRate,
   };
 
   return [seriesData.order ?? 0, serie];

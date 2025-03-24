@@ -9,6 +9,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {formatMetricUsingUnit} from 'sentry/utils/number/formatMetricUsingUnit';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
   Dataset,
   Datasource,
@@ -126,7 +127,7 @@ export function isSessionAggregate(aggregate: string) {
   return Object.values(SessionsAggregate).includes(aggregate as SessionsAggregate);
 }
 
-export const SESSION_AGGREGATE_TO_FIELD = {
+export const SESSION_AGGREGATE_TO_FIELD: Record<string, SessionFieldWithOperation> = {
   [SessionsAggregate.CRASH_FREE_SESSIONS]: SessionFieldWithOperation.SESSIONS,
   [SessionsAggregate.CRASH_FREE_USERS]: SessionFieldWithOperation.USERS,
 };
@@ -166,12 +167,15 @@ export function shouldScaleAlertChart(aggregate: string) {
 }
 
 export function alertDetailsLink(organization: Organization, incident: Incident) {
-  return `/organizations/${organization.slug}/alerts/rules/details/${
-    incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-    incident.alertRule.originalAlertRuleId
-      ? incident.alertRule.originalAlertRuleId
-      : incident.alertRule.id
-  }/`;
+  return makeAlertsPathname({
+    path: `/rules/details/${
+      incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+      incident.alertRule.originalAlertRuleId
+        ? incident.alertRule.originalAlertRuleId
+        : incident.alertRule.id
+    }/`,
+    organization,
+  });
 }
 
 /**

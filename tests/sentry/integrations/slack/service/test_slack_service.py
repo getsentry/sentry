@@ -102,7 +102,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 metadata={"access_token": "xoxb-access-token"},
             )
 
-        self.action = self.create_action(target_identifier=self.channel_id)
+        self.action = self.create_action(config={"target_identifier": self.channel_id})
 
         self.parent_notification_action = NotificationMessage.objects.create(
             message_identifier=self.message_identifier,
@@ -504,7 +504,7 @@ class TestSlackServiceMethods(TestCase):
             rule_fire_history=self.slack_rule_fire_history,
         )
 
-        self.action = self.create_action(target_identifier=self.channel_id)
+        self.action = self.create_action(config={"target_identifier": self.channel_id})
 
         self.parent_notification_action = NotificationActionNotificationMessage(
             id=123,
@@ -661,7 +661,7 @@ class TestSlackServiceMethods(TestCase):
         )
 
     def test_get_channel_id_from_parent_notification_notification_action_no_target_identifier(self):
-        self.action.target_identifier = None
+        self.action.config["target_identifier"] = None
         parent_notification = NotificationActionNotificationMessage(
             id=123,
             date_added=datetime.now(),

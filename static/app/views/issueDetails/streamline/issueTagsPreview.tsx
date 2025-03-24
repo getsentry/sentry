@@ -4,7 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -102,9 +102,12 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   }
 
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
-  const otherPercentage = segments.reduce((sum, s) => sum - s.percentage, 100);
-  const otherPercentageString =
-    otherPercentage === 0 ? null : getRoundedPercentage(otherPercentage);
+  const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < tag.totalValues;
+  const otherPercentage = Math.floor(
+    percent(tag.totalValues - totalVisible, tag.totalValues)
+  );
+  const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
     <TooltipLegend>
@@ -121,7 +124,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
             </LegendPercentage>
           </Fragment>
         ))}
-        {otherPercentageString && (
+        {hasOther && (
           <Fragment>
             <LegendColor style={{backgroundColor: theme.gray200}} />
             <LegendText>{t('Other')}</LegendText>
@@ -169,6 +172,9 @@ function IssueTagButton({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
+  const hasFlagsDistributions = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
 
   if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
@@ -182,7 +188,7 @@ function IssueTagButton({
         replace
         disabled={tags.length === 0}
       >
-        {t('View All Tags')}
+        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
       </VerticalIssueTagsButton>
     );
   }
@@ -197,7 +203,7 @@ function IssueTagButton({
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
     >
-      {t('View all tags')}
+      {hasFlagsDistributions ? t('View all tags and feature flags') : t('View all tags')}
     </IssueTagsLink>
   );
 }

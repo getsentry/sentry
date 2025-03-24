@@ -5,9 +5,11 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+explore: 0001_add_explore_saved_query_model
+
 feedback: 0004_index_together
 
-hybridcloud: 0018_add_alert_and_member_invite_scopes_to_sentry_apps
+hybridcloud: 0019_add_provider_webhook_payload
 
 nodestore: 0002_nodestore_no_dictfield
 
@@ -15,12 +17,12 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0832_make_grouphash_metadata_date_added_nullable
+sentry: 0844_remove_project_cascade_in_create_first_project
 
 social_auth: 0002_default_auto_field
 
-tempest: 0001_create_tempest_credentials_model
+tempest: 0002_make_message_type_nullable
 
-uptime: 0025_uptime_migrate_constraint
+uptime: 0031_translate_uptime_object_headers_to_lists_take_three
 
-workflow_engine: 0029_ds_query_id_to_pending
+workflow_engine: 0038_add_detector_workflow_unique_together

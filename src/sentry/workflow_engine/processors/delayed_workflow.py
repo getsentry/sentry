@@ -4,19 +4,27 @@ from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 
+from celery import Task
 from django.utils import timezone
 
-from sentry import buffer, nodestore
+from sentry import buffer, features, nodestore
+from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
+from sentry.rules.processing.buffer_processing import (
+    BufferHashKeys,
+    DelayedProcessingBase,
+    FilterKeys,
+    delayed_processing_registry,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -35,8 +43,12 @@ from sentry.workflow_engine.models.data_condition_group import get_slow_conditio
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import evaluate_data_conditions
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.processors.workflow import evaluate_workflows_action_filters
-from sentry.workflow_engine.types import DataConditionHandlerType, WorkflowJob
+from sentry.workflow_engine.processors.workflow import (
+    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+    evaluate_workflows_action_filters,
+    log_fired_workflows,
+)
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
 
@@ -61,6 +73,10 @@ class UniqueConditionQuery:
     interval: str
     environment_id: int | None
     comparison_interval: str | None = None
+    filters: list[dict[str, Any]] | None = None
+
+    def __repr__(self):
+        return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
 
 
 def fetch_project(project_id: int) -> Project | None:
@@ -89,19 +105,19 @@ def fetch_group_to_event_data(
 
 
 def get_dcg_group_workflow_detector_data(
-    workflow_event_dcg_data: dict[str, str]
-) -> tuple[DataConditionGroupGroups, dict[DataConditionHandlerType, dict[int, int]]]:
+    workflow_event_dcg_data: dict[str, str],
+) -> tuple[DataConditionGroupGroups, dict[DataConditionHandler.Group, dict[int, int]]]:
     """
     Parse the data in the buffer hash, which is in the form of {workflow/detector_id}:{group_id}:{dcg_id, ..., dcg_id}:{dcg_type}
     """
 
     dcg_to_groups: DataConditionGroupGroups = defaultdict(set)
-    trigger_type_to_dcg_model: dict[DataConditionHandlerType, dict[int, int]] = defaultdict(dict)
+    trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]] = defaultdict(dict)
 
     for workflow_group_dcg, _ in workflow_event_dcg_data.items():
         data = workflow_group_dcg.split(":")
         try:
-            dcg_type = DataConditionHandlerType(data[3])
+            dcg_group = DataConditionHandler.Group(data[3])
         except ValueError:
             continue
 
@@ -111,9 +127,9 @@ def get_dcg_group_workflow_detector_data(
         for dcg_id in dcg_ids:
             dcg_to_groups[dcg_id].add(group_id)
 
-            trigger_type_to_dcg_model[dcg_type][dcg_id] = int(data[0])
+            trigger_group_to_dcg_model[dcg_group][dcg_id] = int(data[0])
 
-    return dcg_to_groups, trigger_type_to_dcg_model
+    return dcg_to_groups, trigger_group_to_dcg_model
 
 
 def fetch_workflows_envs(
@@ -177,6 +193,7 @@ def generate_unique_queries(
             handler=handler,
             interval=condition.comparison["interval"],
             environment_id=environment_id,
+            filters=condition.comparison.get("filters"),
         )
     ]
     if condition_type in PERCENT_CONDITIONS:
@@ -186,6 +203,7 @@ def generate_unique_queries(
                 interval=condition.comparison["interval"],
                 environment_id=environment_id,
                 comparison_interval=condition.comparison.get("comparison_interval"),
+                filters=condition.comparison.get("filters"),
             )
         )
     return unique_queries
@@ -212,7 +230,7 @@ def get_condition_query_groups(
 
 
 def get_condition_group_results(
-    queries_to_groups: dict[UniqueConditionQuery, set[int]]
+    queries_to_groups: dict[UniqueConditionQuery, set[int]],
 ) -> dict[UniqueConditionQuery, dict[int, int]]:
     condition_group_results = {}
     current_time = timezone.now()
@@ -235,6 +253,7 @@ def get_condition_group_results(
             environment_id=unique_condition.environment_id,
             current_time=current_time,
             comparison_interval=comparison_interval,
+            filters=unique_condition.filters,
         )
         condition_group_results[unique_condition] = result or {}
 
@@ -289,8 +308,13 @@ def parse_dcg_group_event_data(
 
     for workflow_group_dcg, instance_data in workflow_event_dcg_data.items():
         data = workflow_group_dcg.split(":")
-        event_data = json.loads(instance_data)
 
+        group_id = int(data[1])
+        if group_id not in groups_to_dcg_ids:
+            # the group did not trigger any data condition groups
+            continue
+
+        event_data = json.loads(instance_data)
         event_id = event_data.get("event_id")
         if event_id:
             event_ids.add(event_id)
@@ -299,7 +323,6 @@ def parse_dcg_group_event_data(
         if occurrence_id:
             occurrence_ids.add(occurrence_id)
 
-        group_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
 
         for dcg_id in dcg_ids:
@@ -371,7 +394,7 @@ def get_group_to_groupevent(
 
 def fire_actions_for_groups(
     groups_to_fire: dict[int, set[DataConditionGroup]],
-    trigger_type_to_dcg_model: dict[DataConditionHandlerType, dict[int, int]],
+    trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]],
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
     for group, group_event in group_to_groupevent.items():
@@ -381,9 +404,9 @@ def fire_actions_for_groups(
         workflow_triggers: set[DataConditionGroup] = set()
         action_filters: set[DataConditionGroup] = set()
         for dcg in groups_to_fire[group.id]:
-            if dcg.id in trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER]:
+            if dcg.id in trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER]:
                 workflow_triggers.add(dcg)
-            elif dcg.id in trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER]:
+            elif dcg.id in trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER]:
                 action_filters.add(dcg)
 
         # process action filters
@@ -395,8 +418,46 @@ def fire_actions_for_groups(
         workflows = set(Workflow.objects.filter(when_condition_group_id__in=workflow_triggers))
         filtered_actions.extend(list(evaluate_workflows_action_filters(workflows, job)))
 
-        for action in filtered_actions:
-            action.trigger(job, detector)
+        # temporary fetching of organization, so not passing in as parameter
+        organization = group.project.organization
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows",
+            organization,
+        ):
+            metrics.incr(
+                "workflow_engine.delayed_workflow.triggered_actions",
+                amount=len(filtered_actions),
+                tags={"event_type": group_event.group.type},
+            )
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs",
+            organization,
+        ):
+            log_fired_workflows(
+                log_name="workflow_engine.delayed_workflow.fired_workflow",
+                actions=filtered_actions,
+                job=job,
+            )
+
+        if features.has(
+            "organizations:workflow-engine-trigger-actions",
+            organization,
+        ):
+            for action in filtered_actions:
+                action.trigger(job, detector)
+
+
+def cleanup_redis_buffer(
+    project_id: int, workflow_event_dcg_data: dict[str, str], batch_key: str | None
+) -> None:
+    hashes_to_delete = list(workflow_event_dcg_data.keys())
+    filters: dict[str, BufferField] = {"project_id": project_id}
+    if batch_key:
+        filters["batch_key"] = batch_key
+
+    buffer.backend.delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
 
 
 @instrumented_task(
@@ -421,20 +482,45 @@ def process_delayed_workflows(
     workflow_event_dcg_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
 
     # Get mappings from DataConditionGroups to other info
-    dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(
+    dcg_to_groups, trigger_group_to_dcg_model = get_dcg_group_workflow_detector_data(
         workflow_event_dcg_data
     )
-    dcg_to_workflow = trigger_type_to_dcg_model[DataConditionHandlerType.WORKFLOW_TRIGGER].copy()
-    dcg_to_workflow.update(trigger_type_to_dcg_model[DataConditionHandlerType.ACTION_FILTER])
+    dcg_to_workflow = trigger_group_to_dcg_model[DataConditionHandler.Group.WORKFLOW_TRIGGER].copy()
+    dcg_to_workflow.update(trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER])
 
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
+
+    logger.info(
+        "delayed_workflow.workflows",
+        extra={"data": workflow_event_dcg_data, "workflows": set(dcg_to_workflow.values())},
+    )
 
     # Get unique query groups to query Snuba
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+
+    if not condition_groups:
+        return
+
+    repr_condition_groups = {
+        repr(condition_group): group_ids for condition_group, group_ids in condition_groups.items()
+    }
+    logger.info(
+        "delayed_workflow.condition_query_groups",
+        extra={
+            "condition_groups": repr_condition_groups,
+            "num_condition_groups": len(condition_groups),
+            "project_id": project_id,
+        },
+    )
     condition_group_results = get_condition_group_results(condition_groups)
+
+    logger.info(
+        "delayed_workflow.condition_group_results",
+        extra={"results": condition_group_results},
+    )
 
     # Evaluate DCGs
     groups_to_dcgs = get_groups_to_fire(
@@ -445,6 +531,11 @@ def process_delayed_workflows(
         condition_group_results,
     )
 
+    logger.info(
+        "delayed_workflow.groups_to_fire",
+        extra={"groups_to_dcgs": groups_to_dcgs},
+    )
+
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
         workflow_event_dcg_data, groups_to_dcgs
     )
@@ -452,9 +543,20 @@ def process_delayed_workflows(
         dcg_group_to_event_data, list(groups_to_dcgs.keys()), event_ids, occurrence_ids, project_id
     )
 
-    fire_actions_for_groups(groups_to_dcgs, trigger_type_to_dcg_model, group_to_groupevent)
+    fire_actions_for_groups(groups_to_dcgs, trigger_group_to_dcg_model, group_to_groupevent)
 
-    # TODO(cathy): clean up redis buffer
+    cleanup_redis_buffer(project_id, workflow_event_dcg_data, batch_key)
 
 
-# TODO: add to registry
+@delayed_processing_registry.register("delayed_workflow")
+class DelayedWorkflow(DelayedProcessingBase):
+    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
+    option = "delayed_workflow.rollout"
+
+    @property
+    def hash_args(self) -> BufferHashKeys:
+        return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
+
+    @property
+    def processing_task(self) -> Task:
+        return process_delayed_workflows

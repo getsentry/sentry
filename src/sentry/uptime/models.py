@@ -1,12 +1,11 @@
 import enum
 from datetime import timedelta
-from typing import ClassVar, Literal, Self
+from typing import ClassVar, Literal, Self, cast
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
-from django.db.models.expressions import Value
-from django.db.models.functions import MD5, Coalesce
+from django.db.models import Count, Q
+from django.db.models.functions import Now
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
@@ -24,7 +23,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.types.actor import Actor
-from sentry.utils.function_cache import cache_func_for_models
+from sentry.utils.function_cache import cache_func, cache_func_for_models
 from sentry.utils.json import JSONEncoder
 
 headers_json_encoder = JSONEncoder(
@@ -90,8 +89,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
-    # Temporary column we'll use to migrate away from the url based unique constraint
-    migrated = models.BooleanField(db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -102,27 +99,25 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         app_label = "uptime"
         db_table = "uptime_uptimesubscription"
 
-        constraints = [
-            models.UniqueConstraint(
-                "url",
-                "interval_seconds",
-                "timeout_ms",
-                "method",
-                "trace_sampling",
-                MD5("headers"),
-                Coalesce(MD5("body"), Value("")),
-                condition=Q(migrated=False),
-                name="uptime_uptimesubscription_unique_subscription_check_4",
-            ),
-        ]
+        indexes = (models.Index(fields=("url_domain_suffix", "url_domain")),)
 
 
 @region_silo_model
 class UptimeSubscriptionRegion(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
+    class RegionMode(enum.StrEnum):
+        # Region is running as usual
+        ACTIVE = "active"
+        # Region is disabled and not running
+        INACTIVE = "inactive"
+        # Region is running in shadow mode. This means it is performing checks, but results are
+        # ignored.
+        SHADOW = "shadow"
+
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", related_name="regions")
     region_slug = models.CharField(max_length=255, db_index=True, db_default="")
+    mode = models.CharField(max_length=32, db_default=RegionMode.ACTIVE)
 
     class Meta:
         app_label = "uptime"
@@ -169,6 +164,8 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
     # (Likely) temporary column to keep track of the current uptime status of this monitor
+    uptime_status_update_date = models.DateTimeField(db_default=Now())
+    # Date of the last time we updated the status for this monitor
     name = models.TextField()
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
@@ -183,6 +180,7 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("project", "mode")),
+            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
         constraints = [
@@ -238,6 +236,47 @@ def get_active_auto_monitor_count_for_org(organization: Organization) -> int:
             ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
         ],
     ).count()
+
+
+@cache_func(cache_ttl=timedelta(hours=1))
+def get_top_hosting_provider_names(limit: int) -> set[str]:
+    return set(
+        cast(
+            list[str],
+            UptimeSubscription.objects.filter(status=UptimeSubscription.Status.ACTIVE.value)
+            .values("host_provider_name")
+            .annotate(total=Count("id"))
+            .order_by("-total")
+            .values_list("host_provider_name", flat=True)[:limit],
+        )
+    )
+
+
+@cache_func_for_models(
+    [(ProjectUptimeSubscription, lambda project_sub: (project_sub.uptime_subscription_id,))],
+    recalculate=False,
+    cache_ttl=timedelta(hours=4),
+)
+def get_project_subscriptions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[ProjectUptimeSubscription]:
+    return list(
+        ProjectUptimeSubscription.objects.filter(
+            uptime_subscription_id=uptime_subscription_id
+        ).select_related("project", "project__organization")
+    )
+
+
+@cache_func_for_models(
+    [(UptimeSubscriptionRegion, lambda region: (region.uptime_subscription_id,))],
+    recalculate=False,
+)
+def load_regions_for_uptime_subscription(
+    uptime_subscription_id: int,
+) -> list[UptimeSubscriptionRegion]:
+    return list(
+        UptimeSubscriptionRegion.objects.filter(uptime_subscription_id=uptime_subscription_id)
+    )
 
 
 class UptimeRegionScheduleMode(enum.StrEnum):

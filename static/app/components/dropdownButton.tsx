@@ -1,9 +1,9 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button, ButtonLabel} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button, ButtonLabel} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 
 export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {

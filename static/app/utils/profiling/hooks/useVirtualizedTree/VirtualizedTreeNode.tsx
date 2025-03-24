@@ -9,7 +9,7 @@ export class VirtualizedTreeNode<T> {
     node: T,
     parent: VirtualizedTreeNode<T> | null,
     depth: number,
-    expanded: boolean = false
+    expanded = false
   ) {
     this.node = node;
     this.parent = parent;

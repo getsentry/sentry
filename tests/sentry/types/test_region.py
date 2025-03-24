@@ -6,6 +6,7 @@ import pytest
 from django.db import router
 from django.test import RequestFactory, override_settings
 
+from sentry.conf.types.region_config import RegionConfig
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloLimit, SiloMode
@@ -28,7 +29,6 @@ from sentry.types.region import (
     load_from_config,
     subdomain_is_region,
 )
-from sentry.utils import json
 
 
 class RegionDirectoryTest(TestCase):
@@ -41,7 +41,7 @@ class RegionDirectoryTest(TestCase):
     utilities in testutils/silo.py and testutils/region.py.
     """
 
-    _INPUTS = (
+    _INPUTS: list[RegionConfig] = [
         {
             "name": "us",
             "snowflake_id": 1,
@@ -60,7 +60,7 @@ class RegionDirectoryTest(TestCase):
             "address": "http://acme.testserver",
             "category": RegionCategory.SINGLE_TENANT.name,
         },
-    )
+    ]
 
     _EXPECTED_OUTPUTS = (
         Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
@@ -94,12 +94,6 @@ class RegionDirectoryTest(TestCase):
             directory = load_from_config(self._INPUTS)
         assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
 
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_json_config_injection(self) -> None:
-        with override_settings(SENTRY_MONOLITH_REGION="us"):
-            directory = load_from_config(json.dumps(self._INPUTS))
-        assert directory.regions == frozenset(self._EXPECTED_OUTPUTS)
-
     @override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="us")
     def test_get_local_region(self) -> None:
         with override_settings(SENTRY_MONOLITH_REGION="us"):
@@ -110,7 +104,7 @@ class RegionDirectoryTest(TestCase):
     def test_get_generated_monolith_region(self) -> None:
         with (
             override_settings(SILO_MODE=SiloMode.MONOLITH, SENTRY_MONOLITH_REGION="defaultland"),
-            self._in_global_state(load_from_config(())),
+            self._in_global_state(load_from_config([])),
         ):
             local_region = get_local_region()
             assert local_region.name == "defaultland"
@@ -157,10 +151,9 @@ class RegionDirectoryTest(TestCase):
 
     @patch("sentry.types.region.sentry_sdk")
     def test_invalid_config(self, sentry_sdk_mock: MagicMock) -> None:
-        region_config = ["invalid"]
         assert sentry_sdk_mock.capture_exception.call_count == 0
         with pytest.raises(RegionConfigurationError):
-            load_from_config(region_config)
+            load_from_config(["invalid"])  # type: ignore[list-item]
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
     def test_invalid_historic_region_setting(self) -> None:
@@ -241,7 +234,7 @@ class RegionDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_find_all_multitenant_region_names_non_visible(self) -> None:
-        inputs = [
+        inputs: list[RegionConfig] = [
             *self._INPUTS,
             {
                 "name": "ja",
@@ -259,8 +252,13 @@ class RegionDirectoryTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_subdomain_is_region(self) -> None:
-        regions = [
-            Region("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT),
+        regions: list[RegionConfig] = [
+            {
+                "name": "us",
+                "snowflake_id": 1,
+                "address": "https://us.testserver",
+                "category": "MULTI_TENANT",
+            },
         ]
         rf = RequestFactory()
         with override_settings(SENTRY_MONOLITH_REGION="us"):

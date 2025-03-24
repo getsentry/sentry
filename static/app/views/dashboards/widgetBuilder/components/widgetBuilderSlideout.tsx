@@ -3,8 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -49,7 +49,7 @@ type WidgetBuilderSlideoutProps = {
   isWidgetInvalid: boolean;
   onClose: () => void;
   onQueryConditionChange: (valid: boolean) => void;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setIsPreviewDraggable: (draggable: boolean) => void;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
@@ -164,7 +164,28 @@ function WidgetBuilderSlideout({
         </CloseButton>
       </SlideoutHeaderWrapper>
       <SlideoutBodyWrapper>
-        {!openWidgetTemplates ? (
+        {openWidgetTemplates ? (
+          <Fragment>
+            <div ref={templatesPreviewRef}>
+              {isSmallScreen && (
+                <Section>
+                  <WidgetPreviewContainer
+                    dashboard={dashboard}
+                    dashboardFilters={dashboardFilters}
+                    isWidgetInvalid={isWidgetInvalid}
+                    onDataFetched={onDataFetched}
+                    openWidgetTemplates={openWidgetTemplates}
+                  />
+                </Section>
+              )}
+            </div>
+            <WidgetTemplatesList
+              onSave={onSave}
+              setOpenWidgetTemplates={setOpenWidgetTemplates}
+              setIsPreviewDraggable={setIsPreviewDraggable}
+            />
+          </Fragment>
+        ) : (
           <Fragment>
             <Section>
               <WidgetBuilderFilterBar />
@@ -223,27 +244,6 @@ function WidgetBuilderSlideout({
               <WidgetBuilderNameAndDescription error={error} setError={setError} />
             </Section>
             <SaveButton isEditing={isEditing} onSave={onSave} setError={setError} />
-          </Fragment>
-        ) : (
-          <Fragment>
-            <div ref={templatesPreviewRef}>
-              {isSmallScreen && (
-                <Section>
-                  <WidgetPreviewContainer
-                    dashboard={dashboard}
-                    dashboardFilters={dashboardFilters}
-                    isWidgetInvalid={isWidgetInvalid}
-                    onDataFetched={onDataFetched}
-                    openWidgetTemplates={openWidgetTemplates}
-                  />
-                </Section>
-              )}
-            </div>
-            <WidgetTemplatesList
-              onSave={onSave}
-              setOpenWidgetTemplates={setOpenWidgetTemplates}
-              setIsPreviewDraggable={setIsPreviewDraggable}
-            />
           </Fragment>
         )}
       </SlideoutBodyWrapper>

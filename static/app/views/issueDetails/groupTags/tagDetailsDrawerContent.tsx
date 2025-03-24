@@ -4,7 +4,7 @@ import type {LocationDescriptor} from 'history';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -158,7 +158,12 @@ function TagDetailsRow({
   const organization = useOrganization();
 
   const key = tagValue.key ?? tag.key;
-  const query = {query: tagValue.query || `${key}:"${tagValue.value}"`};
+  const query =
+    key === 'environment'
+      ? {
+          environment: tagValue.value,
+        }
+      : {query: tagValue.query || `${key}:"${tagValue.value}"`};
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     query,
@@ -340,9 +345,6 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
   margin: 0 ${space(1)};
 `;

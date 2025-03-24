@@ -33,6 +33,9 @@ S010_msg = "S010 Except handler does nothing and should be removed"
 
 S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
 
+# SentryIsAuthenticated extends from IsAuthenticated and provides additional checks for demo users
+S012_msg = "S012 Use ``from sentry.api.permissions import SentryIsAuthenticated`` instead"
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -64,6 +67,10 @@ class SentryVisitor(ast.NodeVisitor):
                 and "sentry.testutils" in node.module
             ):
                 self.errors.append((node.lineno, node.col_offset, S007_msg))
+            elif node.module == "rest_framework.permissions" and any(
+                x.name == "IsAuthenticated" for x in node.names
+            ):
+                self.errors.append((node.lineno, node.col_offset, S012_msg))
 
         self.generic_visit(node)
 

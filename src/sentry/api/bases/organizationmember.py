@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermissionMixin
@@ -30,7 +31,7 @@ class MemberPermission(OrganizationPermission):
     def has_object_permission(
         self,
         request: Request,
-        view: object,
+        view: APIView,
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         if not super().has_object_permission(request, view, organization):
@@ -108,7 +109,7 @@ class OrganizationMemberEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-        member_id: int | str,
+        member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
     ) -> OrganizationMember:
         kwargs: _FilterKwargs = {"organization": organization}

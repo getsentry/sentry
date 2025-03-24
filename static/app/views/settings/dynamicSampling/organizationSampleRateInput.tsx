@@ -2,7 +2,7 @@ import type React from 'react';
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';

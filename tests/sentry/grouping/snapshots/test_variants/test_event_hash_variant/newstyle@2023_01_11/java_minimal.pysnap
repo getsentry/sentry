@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:15.009899+00:00'
+created: '2025-02-26T00:34:08.057415+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -415,28 +415,28 @@ system:
     system*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (module:java.* -app))
+          frame
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "run"
-          frame (marked out of app by stack trace rule (module:org.apache.* -app))
+          frame
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
               "taskthread.java"
             function*
               "run"
-          frame (marked out of app by stack trace rule (module:java.* -app))
+          frame
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (module takes precedence)
               "threadpoolexecutor.java"
             function*
               "run"
-          frame (marked out of app by stack trace rule (module:java.* -app))
+          frame
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (module takes precedence)
@@ -765,7 +765,7 @@ system:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame (marked out of app by stack trace rule (module:java.* -app))
+          frame
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)

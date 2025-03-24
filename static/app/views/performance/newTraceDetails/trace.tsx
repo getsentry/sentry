@@ -66,6 +66,8 @@ import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvi
 import {
   isAutogroupedNode,
   isCollapsedNode,
+  isEAPSpanNode,
+  isEAPTraceNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -146,8 +148,10 @@ export function Trace({
   const rerenderRef = useRef<TraceProps['rerender']>(rerender);
   rerenderRef.current = rerender;
 
-  const treePromiseStatusRef =
-    useRef<Map<TraceTreeNode<TraceTree.NodeValue>, 'loading' | 'error' | 'success'>>();
+  const treePromiseStatusRef = useRef<Map<
+    TraceTreeNode<TraceTree.NodeValue>,
+    'loading' | 'error' | 'success'
+  > | null>(null);
 
   if (!treePromiseStatusRef.current) {
     treePromiseStatusRef.current = new Map();
@@ -664,7 +668,7 @@ function RenderTraceRow(props: {
     return <TraceTransactionRow {...rowProps} node={node} />;
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return <TraceSpanRow {...rowProps} node={node} />;
   }
 
@@ -680,7 +684,7 @@ function RenderTraceRow(props: {
     return <TraceErrorRow {...rowProps} node={node} />;
   }
 
-  if (isTraceNode(node)) {
+  if (isTraceNode(node) || isEAPTraceNode(node)) {
     return <TraceRootRow {...rowProps} node={node} />;
   }
 
@@ -1694,10 +1698,10 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceEmDash {
     margin-left: 4px;
-    margin-right: 4px;
   }
 
   .TraceDescription {
+    margin-left: 4px;
     white-space: nowrap;
   }
 `;

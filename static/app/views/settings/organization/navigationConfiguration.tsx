@@ -1,4 +1,5 @@
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
@@ -15,11 +16,7 @@ type ConfigParams = {
 export function getOrganizationNavigationConfiguration({
   organization: incomingOrganization,
 }: ConfigParams): NavigationSection[] {
-  const hasNavigationV2 = incomingOrganization?.features.includes(
-    'navigation-sidebar-v2'
-  );
-
-  if (incomingOrganization && hasNavigationV2) {
+  if (incomingOrganization && prefersStackedNav()) {
     return getUserOrgNavigationConfiguration({organization: incomingOrganization});
   }
 
@@ -131,15 +128,22 @@ export function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
           title: t('Dynamic Sampling'),
           description: t('Manage your sampling rate'),
-          badge: () => 'alpha',
+          badge: () => 'new',
           show: ({organization}) =>
             !!organization && hasDynamicSamplingCustomFeature(organization),
         },
         {
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
-          description: t('Set up your provider webhooks'),
-          badge: () => 'beta',
+          description: t('Set up feature flag integrations'),
+          badge: () => (
+            <FeatureBadge
+              type="beta"
+              tooltipProps={{
+                title: t('This feature is currently in open beta and may change'),
+              }}
+            />
+          ),
           show: ({organization}) =>
             !!organization && organization.features.includes('feature-flag-ui'),
         },
@@ -148,8 +152,7 @@ export function getOrganizationNavigationConfiguration({
           title: t('Stats & Usage'),
           description: t('View organization stats and usage'),
           id: 'stats',
-          show: ({organization}) =>
-            organization?.features.includes('navigation-sidebar-v2') ?? false,
+          show: () => prefersStackedNav(),
         },
       ],
     },

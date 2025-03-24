@@ -2,9 +2,9 @@ import {cloneElement, Component, Fragment, isValidElement} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {t} from 'sentry/locale';
 
 export type ConfirmMessageRenderProps = {
@@ -247,7 +247,7 @@ class ConfirmModal extends Component<ModalProps, ModalState> {
     this.props.onRender?.();
   }
 
-  confirming: boolean = false;
+  confirming = false;
 
   handleClose = () => {
     const {disableConfirmButton, onCancel, closeModal} = this.props;

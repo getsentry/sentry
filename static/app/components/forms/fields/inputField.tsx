@@ -1,9 +1,9 @@
+import type {InputProps} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
-import type {InputProps} from 'sentry/components/inputGroup';
-import {InputGroup} from 'sentry/components/inputGroup';
 
 export interface InputFieldProps
   extends Omit<FormFieldProps, 'children'>,
@@ -52,6 +52,8 @@ function defaultField({
         onChange={e => onChange(e.target.value, e)}
         name={name}
         {...rest}
+        // Do not forward required to `input` to avoid default browser behavior
+        required={undefined}
       />
       {!hideControlState && (
         <InputGroup.TrailingItems>

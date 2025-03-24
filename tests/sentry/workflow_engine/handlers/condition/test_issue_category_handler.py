@@ -14,7 +14,7 @@ class TestIssueCategoryCondition(ConditionTestCase):
     condition = Condition.ISSUE_CATEGORY
     payload = {
         "id": IssueCategoryFilter.id,
-        "value": 1,
+        "value": "1",
     }
 
     def setUp(self):

@@ -1,12 +1,13 @@
-import {LinkButton} from 'sentry/components/button';
-import {canCreateProject} from 'sentry/components/projects/canCreateProject';
+import {LinkButton} from 'sentry/components/core/button';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export default function CreateProjectButton() {
   const organization = useOrganization();
-  const canUserCreateProject = canCreateProject(organization);
+  const canUserCreateProject = useCanCreateProject();
 
   return (
     <LinkButton
@@ -14,11 +15,14 @@ export default function CreateProjectButton() {
       size="sm"
       disabled={!canUserCreateProject}
       title={
-        !canUserCreateProject
-          ? t('You do not have permission to create projects')
-          : undefined
+        canUserCreateProject
+          ? undefined
+          : t('You do not have permission to create projects')
       }
-      to={`/organizations/${organization.slug}/projects/new/`}
+      to={makeProjectsPathname({
+        path: '/new/',
+        orgSlug: organization.slug,
+      })}
       icon={<IconAdd isCircled />}
     >
       {t('Create Project')}

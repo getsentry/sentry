@@ -5,7 +5,7 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -120,13 +120,13 @@ function NoteInput({
   );
 
   const handleAddMember = useCallback(
-    (id: React.ReactText, display: string) =>
+    (id: string | number, display: string) =>
       setMemberMentions(existing => [...existing, [`${id}`, display]]),
     []
   );
 
   const handleAddTeam = useCallback(
-    (id: React.ReactText, display: string) =>
+    (id: string | number, display: string) =>
       setTeamMentions(existing => [...existing, [`${id}`, display]]),
     []
   );

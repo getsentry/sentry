@@ -36,7 +36,6 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (!filesByRepository[repoName]!.hasOwnProperty(filename)) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       filesByRepository[repoName]![filename] = {
         authors: {},
         types: new Set(),
@@ -44,12 +43,10 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (author.email) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      filesByRepository[repoName]![filename].authors[author.email] = author;
+      filesByRepository[repoName]![filename]!.authors![author.email] = author;
     }
 
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    filesByRepository[repoName]![filename].types.add(type);
+    filesByRepository[repoName]![filename]!.types!.add(type);
 
     return filesByRepository;
   }, {});
@@ -78,25 +75,16 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  activeRepository?: Repository;
   perPage?: number;
 };
 
-export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
+export function getQuery({location, perPage = 40}: GetQueryProps) {
   const query = {
     ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     per_page: perPage,
   };
 
-  if (!activeRepository) {
-    return query;
-  }
-
-  return {
-    ...query,
-    repo_id: activeRepository.externalId,
-    repo_name: activeRepository.name,
-  };
+  return query;
 }
 
 /**

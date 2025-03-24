@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
@@ -147,9 +146,9 @@ const onboarding: OnboardingConfig = {
                   }
                 )}
               </p>
-              <AlertWithoutMarginBottom type="info">
+              <Alert type="info">
                 engine-dir\Engine\Programs\CrashReportClient\Config\DefaultEngine.ini
-              </AlertWithoutMarginBottom>
+              </Alert>
             </Fragment>
           ),
           configurations: [
@@ -269,7 +268,3 @@ const docs: Docs = {
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

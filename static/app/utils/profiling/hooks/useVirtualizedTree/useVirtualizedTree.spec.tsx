@@ -32,7 +32,10 @@ class ResizeObserver {
 }
 
 window.ResizeObserver = ResizeObserver;
-window.requestAnimationFrame = (cb: Function) => cb();
+window.requestAnimationFrame = (cb: FrameRequestCallback) => {
+  cb(performance.now());
+  return 0;
+};
 
 const makeScrollContainerMock = ({height}: {height: number}) => {
   return {

@@ -12,7 +12,7 @@ interface DiscoverSplitAlertProps {
 export function useDiscoverSplitAlert({
   widget,
   onSetTransactionsDataset,
-}: DiscoverSplitAlertProps): JSX.Element | null {
+}: DiscoverSplitAlertProps): React.JSX.Element | null {
   if (
     widget?.datasetSource !== DatasetSource.FORCED ||
     widget?.widgetType !== WidgetType.ERRORS

@@ -11,9 +11,9 @@ import {
   IconClock,
   IconDelete,
   IconExclamation,
+  IconSliders,
   IconStar,
   IconTag,
-  IconToggle,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -75,7 +75,7 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
   // Change based on tagName and default to "icon-tag"
   switch (tagName) {
     case 'is':
-      return <IconToggle size="xs" />;
+      return <IconSliders size="xs" />;
     case 'assigned':
     case 'assigned_or_suggested':
     case 'bookmarks':

@@ -7,6 +7,12 @@ import {Profile} from './profile';
 import type {createFrameIndex} from './utils';
 import {resolveFlamegraphSamplesProfileIds} from './utils';
 
+/**
+ * HACK: we need to limit the number of references per node to avoid
+ * rendering too many references.
+ */
+const MAX_PROFILE_REFERENCES_PER_NODE = 100;
+
 function sortStacks(
   a: {stack: number[]; weight: number | undefined},
   b: {stack: number[]; weight: number | undefined}
@@ -267,12 +273,23 @@ export class SampledProfile extends Profile {
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {
         node = last;
+        if (resolvedProfileIds) {
+          const existingProfileIds = this.callTreeNodeProfileIdMap.get(node) || [];
+          existingProfileIds.push(...resolvedProfileIds);
+          this.callTreeNodeProfileIdMap.set(
+            node,
+            existingProfileIds.slice(0, MAX_PROFILE_REFERENCES_PER_NODE)
+          );
+        }
       } else {
         const parent = node;
         node = new CallTreeNode(frame, node);
         parent.children.push(node);
         if (resolvedProfileIds) {
-          this.callTreeNodeProfileIdMap.set(node, resolvedProfileIds);
+          this.callTreeNodeProfileIdMap.set(
+            node,
+            resolvedProfileIds.slice(0, MAX_PROFILE_REFERENCES_PER_NODE)
+          );
         }
       }
 

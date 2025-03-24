@@ -1,6 +1,8 @@
+import {Flex} from 'sentry/components/container/flex';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {useDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {ActionsFromContext} from 'sentry/components/workflowEngine/layout/actions';
+import {space} from 'sentry/styles/space';
 
 export interface WorkflowEngineListLayoutProps {
   /** The main content for this page */
@@ -22,7 +24,11 @@ function WorkflowEngineListLayout({children}: WorkflowEngineListLayoutProps) {
         <ActionsFromContext />
       </Layout.Header>
       <Layout.Body>
-        <Layout.Main fullWidth>{children}</Layout.Main>
+        <Layout.Main fullWidth>
+          <Flex column gap={space(1.5)}>
+            {children}
+          </Flex>
+        </Layout.Main>
       </Layout.Body>
     </Layout.Page>
   );

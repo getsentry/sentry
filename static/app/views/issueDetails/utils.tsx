@@ -10,6 +10,7 @@ import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupActivity, TagValue} from 'sentry/types/group';
@@ -38,6 +39,8 @@ export function markEventSeen(
     },
     {}
   );
+
+  IssueListCacheStore.markGroupAsSeen(groupId);
 }
 
 export function useDefaultIssueEvent() {
@@ -131,8 +134,7 @@ export function getSubscriptionReason(group: Group) {
     }
 
     if (reason && SUBSCRIPTION_REASONS.hasOwnProperty(reason)) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      return SUBSCRIPTION_REASONS[reason];
+      return SUBSCRIPTION_REASONS[reason as keyof typeof SUBSCRIPTION_REASONS];
     }
   }
 
@@ -189,7 +191,7 @@ export function useEnvironmentsFromUrl(): string[] {
   const envs = location.query.environment;
 
   const envsArray = useMemo(() => {
-    return typeof envs === 'string' ? [envs] : envs ?? [];
+    return typeof envs === 'string' ? [envs] : (envs ?? []);
   }, [envs]);
 
   return envsArray;
@@ -272,24 +274,28 @@ export function useHasStreamlinedUI() {
   const location = useLocation();
   const user = useUser();
   const organization = useOrganization();
+  const userStreamlinedUIOption = user?.options?.prefersIssueDetailsStreamlinedUI;
 
   // Allow query param to override all other settings to set the UI.
   if (defined(location.query.streamline)) {
     return location.query.streamline === '1';
   }
 
-  // If the organzation option is set, it determines which interface is used.
-  if (defined(organization.streamlineOnly)) {
-    return organization.streamlineOnly;
+  // If the organzation option is set to true, the new UI is used.
+  if (organization.streamlineOnly) {
+    return true;
   }
 
   // If the enforce flag is set for the organization, ignore user preferences and enable the UI
-  if (organization.features.includes('issue-details-streamline-enforce')) {
+  if (
+    userStreamlinedUIOption !== false &&
+    organization.features.includes('issue-details-streamline-enforce')
+  ) {
     return true;
   }
 
   // Apply the UI based on user preferences
-  return !!user?.options?.prefersIssueDetailsStreamlinedUI;
+  return userStreamlinedUIOption ?? false;
 }
 
 export function useIsSampleEvent(): boolean {

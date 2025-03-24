@@ -24,6 +24,8 @@ import {singleLineRenderer as markedSingleLine} from 'sentry/utils/marked';
 import withLatestContext from 'sentry/utils/withLatestContext';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import type {ChildProps, Result, ResultItem} from './types';
 import {strGetFn} from './utils';
@@ -61,9 +63,14 @@ async function createOrganizationResults(
 }
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
-  orgId?: string
+  organization?: Organization
 ): Promise<ResultItem[]> {
   const projects = (await projectsPromise) || [];
+
+  if (!organization) {
+    return [];
+  }
+
   return projects.flatMap(project => {
     const projectResults: ResultItem[] = [
       {
@@ -72,7 +79,7 @@ async function createProjectResults(
         model: project,
         sourceType: 'project',
         resultType: 'settings',
-        to: `/settings/${orgId}/projects/${project.slug}/`,
+        to: `/settings/${organization.slug}/projects/${project.slug}/`,
       },
       {
         title: t('%s Alerts', project.slug),
@@ -80,7 +87,11 @@ async function createProjectResults(
         model: project,
         sourceType: 'project',
         resultType: 'route',
-        to: `/organizations/${orgId}/alerts/rules/?project=${project.id}`,
+        to:
+          makeAlertsPathname({
+            path: '/rules/',
+            organization,
+          }) + `?project=${project.id}`,
       },
     ];
 
@@ -90,7 +101,11 @@ async function createProjectResults(
       model: project,
       sourceType: 'project',
       resultType: 'route',
-      to: `/organizations/${orgId}/projects/${project.slug}/?project=${project.id}`,
+      to:
+        makeProjectsPathname({
+          orgSlug: organization.slug,
+          path: `/${project.slug}/`,
+        }) + `?project=${project.id}`,
     });
 
     return projectResults;
@@ -263,7 +278,7 @@ async function createEventIdLookupResult(
   };
 }
 
-type Props = WithRouterProps<{}> & {
+type Props = WithRouterProps & {
   children: (props: ChildProps) => React.ReactElement;
   /**
    * search term
@@ -469,7 +484,7 @@ class ApiSource extends Component<Props, State> {
     ] = requests;
     const searchResults = await Promise.all([
       createOrganizationResults(organizations!),
-      createProjectResults(projects!, orgId),
+      createProjectResults(projects!, organization),
       createTeamResults(teams!, orgId),
       createMemberResults(members!, orgId),
       createIntegrationResults(integrations!, orgId),

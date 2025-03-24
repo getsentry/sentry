@@ -2,13 +2,15 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Badge} from 'sentry/components/core/badge';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import {TabList} from 'sentry/components/tabs';
 import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,8 +19,13 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
+import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {isModuleEnabled, isModuleVisible} from 'sentry/views/insights/pages/utils';
+import {
+  isModuleConsideredNew,
+  isModuleEnabled,
+  isModuleVisible,
+} from 'sentry/views/insights/pages/utils';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
@@ -50,6 +57,7 @@ export function DomainViewHeader({
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
 
   const crumbs: Crumb[] = [
     {
@@ -61,7 +69,7 @@ export function DomainViewHeader({
   ];
 
   const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
+    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = extractSelectionParameters(location?.query);
 
@@ -80,6 +88,7 @@ export function DomainViewHeader({
       .map(moduleName => ({
         key: moduleName,
         children: <TabLabel moduleName={moduleName} />,
+        textValue: moduleName,
         to: {
           pathname: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
           query: globalQuery,
@@ -96,7 +105,18 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
+            <FeedbackWidgetButton
+              optionOverrides={
+                isLaravelInsightsEnabled
+                  ? {
+                      tags: {
+                        ['feedback.source']: 'laravel-insights',
+                        ['feedback.owner']: 'telemetry-experience',
+                      },
+                    }
+                  : undefined
+              }
+            />
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
@@ -123,19 +143,21 @@ function TabLabel({moduleName}: TabLabelProps) {
   const moduleTitles = useModuleTitles();
   const organization = useOrganization();
   const showBusinessIcon = !isModuleEnabled(moduleName, organization);
-  if (showBusinessIcon) {
+
+  if (showBusinessIcon || isModuleConsideredNew(moduleName)) {
     return (
-      <TabWithIconContainer>
+      <TabContainer>
         {moduleTitles[moduleName]}
-        <IconBusiness />
-      </TabWithIconContainer>
+        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
+        {showBusinessIcon && <IconBusiness />}
+      </TabContainer>
     );
   }
 
-  return <Fragment>{moduleTitles[moduleName]}</Fragment>;
+  return moduleTitles[moduleName];
 }
 
-const TabWithIconContainer = styled('div')`
+const TabContainer = styled('div')`
   display: inline-flex;
   align-items: center;
   text-align: left;

@@ -2,9 +2,9 @@ import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button} from 'sentry/components/button';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -28,6 +28,8 @@ import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
@@ -390,7 +392,7 @@ function ProfileEventDetails({
             return (
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
-                <Link to={`/organizations/${organization.slug}/projects/`}>
+                <Link to={makeProjectsPathname({path: '/', orgSlug: organization.slug})}>
                   <span>
                     <OrganizationAvatar size={12} organization={organization} />{' '}
                     {organization.name}
@@ -427,7 +429,12 @@ function ProfileEventDetails({
               <DetailsRow key={key}>
                 <strong>{label}:</strong>
                 <Link
-                  to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+                  to={
+                    makeProjectsPathname({
+                      path: `/${project.slug}/`,
+                      orgSlug: organization.slug,
+                    }) + `?project=${project.id}`
+                  }
                 >
                   <FlexRow>
                     <ProjectAvatar project={project} size={12} /> {project.slug}
@@ -456,9 +463,10 @@ function ProfileEventDetails({
               <strong>{label}:</strong>
               <Link
                 to={{
-                  pathname: `/organizations/${
-                    organization.slug
-                  }/releases/${encodeURIComponent(release.version)}/`,
+                  pathname: makeReleasesPathname({
+                    organization,
+                    path: `/${encodeURIComponent(release.version)}/`,
+                  }),
                   query: {
                     project: profileGroup.metadata.projectID,
                   },

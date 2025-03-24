@@ -27,6 +27,7 @@ class WaitForCompletion(AuthView):
 
 class RipplingSAML2Provider(SAML2Provider):
     name = "Rippling"
+    key = "rippling"
 
     def get_saml_setup_pipeline(self):
         return [SelectIdP(), WaitForCompletion()]

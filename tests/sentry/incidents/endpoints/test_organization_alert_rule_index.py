@@ -50,7 +50,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction, AlertRuleDetector
+from sentry.workflow_engine.models.data_condition import DataCondition
 from tests.sentry.workflow_engine.migration_helpers.test_migrate_alert_rule import (
     assert_alert_rule_migrated,
     assert_alert_rule_resolve_trigger_migrated,
@@ -256,25 +257,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert_alert_rule_trigger_action_migrated(actions[0], Action.Type.EMAIL)
         assert_alert_rule_trigger_action_migrated(actions[1], Action.Type.EMAIL)
 
-    @with_feature("organizations:slack-metric-alert-description")
-    @with_feature("organizations:incidents")
-    def test_with_description(self):
-        data = {
-            **self.alert_rule_dict,
-            "description": "yeehaw",
-        }
-
-        with outbox_runner():
-            resp = self.get_success_response(
-                self.organization.slug,
-                status_code=201,
-                **data,
-            )
-        assert "id" in resp.data
-        alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        assert resp.data == serialize(alert_rule, self.user)
-        assert alert_rule.description == resp.data.get("description")
-
     @with_feature("organizations:incidents")
     def test_invalid_threshold_type(self):
         """
@@ -346,6 +328,32 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         assert alert_rule.seasonality == resp.data.get("seasonality")
         assert alert_rule.sensitivity == resp.data.get("sensitivity")
         assert mock_seer_request.call_count == 1
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:anomaly-detection-rollout")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert_not_dual_written(self, mock_seer_request):
+        """
+        For now, we want to skip dual writing the ACI objects for anomaly detection alerts. We
+        will repurpose this test once we have a plan in place to handle them.
+        """
+        data = self.dynamic_alert_rule_dict
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+
+        assert not AlertRuleDetector.objects.filter(alert_rule_id=resp.data["id"]).exists()
+        assert not DataCondition.objects.filter().exists()
+        assert not ActionAlertRuleTriggerAction.objects.filter().exists()
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:anomaly-detection-rollout")

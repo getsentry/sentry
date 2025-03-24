@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
 import type {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -349,7 +349,7 @@ const InlineInput = styled(Input)`
   width: 80px;
 `;
 
-const InlineSelectControl = styled(SelectControl)`
+const InlineSelectControl = styled(Select)`
   width: 160px;
 `;
 

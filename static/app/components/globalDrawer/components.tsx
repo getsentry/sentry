@@ -2,7 +2,7 @@ import {createContext, forwardRef, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 import type {AnimationProps} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -28,11 +28,12 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   headerContent: React.ReactNode;
   onClose: DrawerContentContextType['onClose'];
+  drawerWidth?: DrawerOptions['drawerWidth'];
   transitionProps?: AnimationProps['transition'];
 }
 
 export const DrawerPanel = forwardRef(function _DrawerPanel(
-  {ariaLabel, children, transitionProps, onClose}: DrawerPanelProps,
+  {ariaLabel, children, transitionProps, onClose, drawerWidth}: DrawerPanelProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   return (
@@ -43,6 +44,7 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
         collapsed={false}
         ref={ref}
         transitionProps={transitionProps}
+        panelWidth={drawerWidth}
       >
         {/*
           This provider allows data passed to openDrawer to be accessed by drawer components.

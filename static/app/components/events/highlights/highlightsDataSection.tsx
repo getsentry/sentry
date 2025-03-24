@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -42,7 +42,7 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 interface HighlightsDataSectionProps {
   event: Event;
   project: Project;
-  viewAllRef?: React.RefObject<HTMLElement>;
+  viewAllRef?: React.RefObject<HTMLElement | null>;
 }
 
 function useOpenEditHighlightsModal({
@@ -61,7 +61,7 @@ function useOpenEditHighlightsModal({
   const editProps = useMemo(
     () => ({
       disabled: !isProjectAdmin,
-      title: !isProjectAdmin ? t('Only Project Admins can edit highlights.') : undefined,
+      title: isProjectAdmin ? undefined : t('Only Project Admins can edit highlights.'),
     }),
     [isProjectAdmin]
   );
@@ -160,11 +160,11 @@ function HighlightsData({
 
   // if the id doesn't exist for either tag or context, it's rendered as '--'
   const replayId: string | undefined =
-    contextReplayId !== EMPTY_HIGHLIGHT_DEFAULT
-      ? contextReplayId
-      : tagReplayId !== EMPTY_HIGHLIGHT_DEFAULT
-        ? tagReplayId
-        : undefined;
+    contextReplayId === EMPTY_HIGHLIGHT_DEFAULT
+      ? tagReplayId === EMPTY_HIGHLIGHT_DEFAULT
+        ? undefined
+        : tagReplayId
+      : contextReplayId;
 
   const {fetchError: replayFetchError} = useReplayData({
     orgSlug: organization.slug,

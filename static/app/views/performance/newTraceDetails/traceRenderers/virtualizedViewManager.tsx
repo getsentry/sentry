@@ -61,7 +61,7 @@ export class VirtualizedViewManager {
   list: VirtualizedList | null = null;
 
   scrolling_source: 'list' | 'fake scrollbar' | null = null;
-  start_virtualized_index: number = 0;
+  start_virtualized_index = 0;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -102,9 +102,9 @@ export class VirtualizedViewManager {
     {ref: HTMLElement; space: [number, number]; text: string} | undefined
   > = [];
 
-  row_depth_padding: number = 22;
+  row_depth_padding = 22;
 
-  private scrollbar_width: number = 0;
+  private scrollbar_width = 0;
   // the transformation matrix that is used to render scaled elements to the DOM
   private span_to_px: mat3 = mat3.create();
   private readonly ROW_PADDING_PX = 16;
@@ -391,13 +391,13 @@ export class VirtualizedViewManager {
     index: number,
     indicator: TraceTree['indicators'][0]
   ) {
-    if (!ref) {
+    if (ref) {
+      this.indicators[index] = {ref, indicator};
+    } else {
       const element = this.indicators[index]?.ref;
       if (element) {
         element.removeEventListener('wheel', this.onWheel);
       }
-    } else {
-      this.indicators[index] = {ref, indicator};
     }
 
     if (ref) {
@@ -577,7 +577,7 @@ export class VirtualizedViewManager {
     const distance_width = this.view.trace_view.width - final_width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
+    const p = max_distance === 0 ? 1 : Math.log10(max_distance);
     // We need to clamp the duration to prevent the animation from being too slow,
     // sometimes the distances are very large as traces can be hours in duration
     const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
@@ -990,8 +990,8 @@ export class VirtualizedViewManager {
 
   scrollRowIntoViewHorizontally(
     node: TraceTreeNode<any>,
-    duration: number = 600,
-    offset_px: number = 0,
+    duration = 600,
+    offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
     const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
@@ -1756,8 +1756,8 @@ function computeTimelineIntervals(
 export class VirtualizedList {
   container: HTMLElement | null = null;
 
-  scrollHeight: number = 0;
-  scrollTop: number = 0;
+  scrollHeight = 0;
+  scrollTop = 0;
 
   scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
     if (!this.container) {

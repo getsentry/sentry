@@ -1,5 +1,5 @@
 ---
-created: '2025-01-30T21:49:11.604093+00:00'
+created: '2025-02-26T00:33:57.645767+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -50,7 +50,7 @@ system:
               "runApp"
             context-line*
               "return server.serve(port);"
-          frame* (marked out of app by stack trace rule (function:handleRequest -app +group))
+          frame*
             filename*
               "router.js"
             function*

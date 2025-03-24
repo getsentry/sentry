@@ -7,8 +7,8 @@ import {
   transferProject,
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -40,7 +40,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = DeprecatedAsyncComponent['props'] &
-  RouteComponentProps<{projectId: string}, {}> & {
+  RouteComponentProps<{projectId: string}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
@@ -262,6 +262,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
     const jsonFormProps = {
       additionalFieldProps: {
         organization,
+        project,
       },
       features: new Set(organization.features),
       access,
@@ -386,7 +387,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
 
 type ContainerProps = {
   organization: Organization;
-} & RouteComponentProps<{projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}>;
 
 class ProjectGeneralSettingsContainer extends Component<ContainerProps> {
   componentWillUnmount() {

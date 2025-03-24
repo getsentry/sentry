@@ -9,4 +9,4 @@ class Config(AppConfig):
 
         from .provider import Auth0SAML2Provider
 
-        register("auth0", Auth0SAML2Provider)
+        register(Auth0SAML2Provider)

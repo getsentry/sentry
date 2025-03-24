@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {IconAttachment} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -40,7 +40,6 @@ export function AttachmentsBadge({group}: {group: Group}) {
       <AttachmentButton
         type="button"
         priority="link"
-        size="zero"
         icon={<IconAttachment size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,

@@ -17,6 +17,7 @@ from .views import FetchUser, FlyOAuth2Login, fly_configure_view
 
 class FlyOAuth2Provider(OAuth2Provider):
     name = SPONSOR_OAUTH_NAME[ChannelName.FLY_IO]
+    key = ChannelName.FLY_IO.value
     is_partner = True
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
@@ -49,7 +50,7 @@ class FlyOAuth2Provider(OAuth2Provider):
             FetchUser(org=self.org),
         ]
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     @classmethod
@@ -100,4 +101,5 @@ class NonPartnerFlyOAuth2Provider(FlyOAuth2Provider):
     """
 
     name = SPONSOR_OAUTH_NAME[ChannelName.FLY_NON_PARTNER]
+    key = ChannelName.FLY_NON_PARTNER.value
     is_partner = False

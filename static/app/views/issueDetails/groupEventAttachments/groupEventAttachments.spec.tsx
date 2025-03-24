@@ -2,11 +2,12 @@ import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -14,9 +15,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import ModalStore from 'sentry/stores/modalStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 
@@ -152,27 +153,23 @@ describe('GroupEventAttachments', function () {
   });
 
   it('filters by date/query when using Streamlined UI', function () {
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      {
-        projects: [parseInt(project.id, 10)],
-        environments: ['staging'],
-        datetime: {
-          period: '3d',
-          start: null,
-          end: null,
-          utc: null,
+    ConfigStore.init();
+    const user = UserFixture();
+    user.options.prefersIssueDetailsStreamlinedUI = true;
+    act(() => ConfigStore.set('user', user));
+
+    render(<GroupEventAttachments project={project} group={group} />, {
+      disableRouterMocks: true,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/issues/group-id/',
+          query: {
+            statsPeriod: '3d',
+            query: 'user.email:leander.rodrigues@sentry.io',
+            environment: ['staging'],
+          },
         },
       },
-      new Set()
-    );
-
-    const testRouter = RouterFixture();
-    testRouter.location.query = {
-      query: 'user.email:leander.rodrigues@sentry.io',
-    };
-    render(<GroupEventAttachments project={project} group={group} />, {
-      router: testRouter,
       organization: {...organization, features: ['issue-details-streamline-enforce']},
     });
     expect(getAttachmentsMock).toHaveBeenCalledWith(

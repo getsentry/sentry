@@ -17,6 +17,7 @@ import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -42,6 +43,7 @@ export default function FeedbackListPage() {
 
   const pageFilters = usePageFilters();
   const projects = useProjects();
+  const prefersStackedNav = usePrefersStackedNav();
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -53,13 +55,12 @@ export default function FeedbackListPage() {
   );
 
   const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
-
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
       <FullViewport>
         <FeedbackQueryKeys organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('User Feedback')}
                 <PageHeadingQuestionTooltip

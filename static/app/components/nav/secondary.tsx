@@ -4,13 +4,18 @@ import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link, {type LinkProps} from 'sentry/components/links/link';
 import {useNavContext} from 'sentry/components/nav/context';
 import {NavLayout, type PrimaryNavGroup} from 'sentry/components/nav/types';
 import {isLinkActive} from 'sentry/components/nav/utils';
+import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type SecondaryNavProps = {
   children: ReactNode;
@@ -24,12 +29,14 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    * Will display the link as active under the given path.
    */
   activeTo?: To;
+  analyticsItemName?: string;
   /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
    */
   end?: boolean;
   isActive?: boolean;
+  leadingItems?: ReactNode;
   trailingItems?: ReactNode;
 }
 
@@ -52,13 +59,26 @@ export function SecondaryNav({children, group}: SecondaryNavProps) {
 }
 
 SecondaryNav.Header = function SecondaryNavHeader({children}: {children: ReactNode}) {
-  const {layout} = useNavContext();
+  const {isCollapsed, setIsCollapsed, layout} = useNavContext();
 
   if (layout === NavLayout.MOBILE) {
     return null;
   }
 
-  return <Header>{children}</Header>;
+  return (
+    <Header>
+      <div>{children}</div>
+      <div>
+        <Button
+          borderless
+          size="xs"
+          icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+          aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        />
+      </div>
+    </Header>
+  );
 };
 
 SecondaryNav.Body = function SecondaryNavBody({children}: {children: ReactNode}) {
@@ -86,16 +106,19 @@ SecondaryNav.Section = function SecondaryNavSection({
 };
 
 SecondaryNav.Item = function SecondaryNavItem({
+  analyticsItemName,
   children,
   to,
   activeTo = to,
   isActive: incomingIsActive,
   end = false,
+  leadingItems,
   trailingItems,
   ...linkProps
 }: SecondaryNavItemProps) {
+  const organization = useOrganization();
   const location = useLocation();
-  const isActive = incomingIsActive || isLinkActive(activeTo, location.pathname, {end});
+  const isActive = incomingIsActive ?? isLinkActive(activeTo, location.pathname, {end});
 
   const {layout} = useNavContext();
 
@@ -106,8 +129,17 @@ SecondaryNav.Item = function SecondaryNavItem({
       aria-current={isActive ? 'page' : undefined}
       aria-selected={isActive}
       layout={layout}
+      onClick={() => {
+        if (analyticsItemName) {
+          trackAnalytics('navigation.secondary_item_clicked', {
+            item: analyticsItemName,
+            organization,
+          });
+        }
+      }}
     >
-      <InteractionStateLayer hasSelectedBackground={isActive} />
+      {leadingItems}
+      <InteractionStateLayer data-isl hasSelectedBackground={isActive} />
       <ItemText>{children}</ItemText>
       {trailingItems}
     </Item>
@@ -121,9 +153,19 @@ SecondaryNav.Footer = function SecondaryNavFooter({children}: {children: ReactNo
 };
 
 const Header = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: ${space(2)} ${space(2)} ${space(1)} ${space(2)};
+  color: ${p => p.theme.subText};
+  padding: 0 ${space(1)} 0 ${space(2)};
+  height: 44px;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  button {
+    color: inherit;
+  }
 `;
 
 const Body = styled('div')<{layout: NavLayout}>`
@@ -148,7 +190,7 @@ const Section = styled('div')`
 const SectionTitle = styled('div')<{layout: NavLayout}>`
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
-  padding: 0 ${space(1.5)};
+  padding: 0 ${space(1)};
   margin: ${space(2)} 0 ${space(0.5)} 0;
 
   ${p =>
@@ -170,25 +212,29 @@ const SectionSeparator = styled('hr')`
 const Item = styled(Link)<{layout: NavLayout}>`
   position: relative;
   display: flex;
-  padding: 4px ${space(1.5)};
+  padding: 4px ${space(1)};
   height: 34px;
   align-items: center;
-  color: inherit;
+  color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 177.75%;
   border-radius: ${p => p.theme.borderRadius};
 
   &[aria-selected='true'] {
-    color: ${p => p.theme.gray500};
+    color: ${p => p.theme.purple400};
     font-weight: ${p => p.theme.fontWeightBold};
+
+    &:hover {
+      color: ${p => p.theme.purple400};
+    }
   }
 
   &:hover {
     color: inherit;
   }
 
-  ${InteractionStateLayer} {
+  [data-isl] {
     transform: translate(0, 0);
     top: 1px;
     bottom: 1px;
@@ -211,7 +257,7 @@ const ItemText = styled('span')`
 `;
 
 const Footer = styled('div')<{layout: NavLayout}>`
-  padding: ${space(1)} ${space(1.5)};
+  padding: ${space(1)} ${space(1)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 
   ${p =>

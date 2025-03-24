@@ -1,8 +1,8 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -96,7 +96,22 @@ export function PlatformIntegrationSetup({
           projectSlug={project.slug}
           title={t('Automatically instrument %s', platform.name)}
         />
-        {!installed ? (
+        {installed ? (
+          <Fragment>
+            <PostInstallCodeSnippet provider={provider} />
+            <FirstEventFooter
+              project={project}
+              organization={organization}
+              docsLink={
+                // TODO: make dynamic when adding more integrations
+                'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/'
+              }
+              docsOnClick={() =>
+                trackAnalytics('growth.onboarding_view_full_docs', {organization})
+              }
+            />
+          </Fragment>
+        ) : (
           <Fragment>
             <AddInstallationInstructions />
             <StyledButtonBar gap={1}>
@@ -125,21 +140,6 @@ export function PlatformIntegrationSetup({
                 {t('Manual Setup')}
               </Button>
             </StyledButtonBar>
-          </Fragment>
-        ) : (
-          <Fragment>
-            <PostInstallCodeSnippet provider={provider} />
-            <FirstEventFooter
-              project={project}
-              organization={organization}
-              docsLink={
-                // TODO: make dynamic when adding more integrations
-                'https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/'
-              }
-              docsOnClick={() =>
-                trackAnalytics('growth.onboarding_view_full_docs', {organization})
-              }
-            />
           </Fragment>
         )}
       </InnerWrapper>

@@ -856,6 +856,45 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
             orgRole="manager",
         )
 
+    @patch("sentry.quotas.base.Quota.on_role_change")
+    def test_on_role_change_called_when_role_updated(self, mock_on_role_change):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, member_om.id, role="manager")
+
+        mock_on_role_change.assert_called_once_with(
+            organization=self.organization,
+            organization_member=member_om,
+            previous_role="member",
+            new_role="manager",
+        )
+
+    @patch("sentry.quotas.base.Quota.on_role_change")
+    def test_on_role_change_not_called_when_role_unchanged(self, mock_on_role_change):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        # Update something else but keep role the same
+        self.get_success_response(self.organization.slug, member_om.id, teams=[])
+
+        mock_on_role_change.assert_not_called()
+
+    @patch("sentry.quotas.base.Quota.on_role_change")
+    def test_on_role_change_not_called_when_reinviting(self, mock_on_role_change):
+        member_om = self.create_member(
+            organization=self.organization, email="foo@example.com", role="member"
+        )
+
+        self.get_success_response(self.organization.slug, member_om.id, reinvite=1)
+
+        mock_on_role_change.assert_not_called()
+
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"

@@ -96,15 +96,15 @@ export function mapSeriesToChart({
 
       // For spans, we additionally query for `span_indexed` data
       // to get the `accepted_stored` count
-      if (category !== 'span_indexed') {
+      if (category === 'span_indexed') {
+        if (outcome === Outcome.ACCEPTED) {
+          countAcceptedStored += group.totals['sum(quantity)']!;
+        }
+      } else {
         if (outcome !== Outcome.CLIENT_DISCARD) {
           count.total += group.totals['sum(quantity)']!;
         }
         (count as any)[outcome!] += group.totals['sum(quantity)']!;
-      } else {
-        if (outcome === Outcome.ACCEPTED) {
-          countAcceptedStored += group.totals['sum(quantity)']!;
-        }
       }
 
       if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {

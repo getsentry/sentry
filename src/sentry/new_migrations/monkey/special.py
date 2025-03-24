@@ -10,7 +10,7 @@ class SafeRunSQL(RunSQL):
     def _run_sql(self, schema_editor, sqls):
         use_statement_timeout = (
             settings.ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT is not None
-            and self.use_statement_timeout  # type: ignore[unreachable]
+            and self.use_statement_timeout
         )
         use_lock_timeout = settings.ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT is not None
         if use_statement_timeout:

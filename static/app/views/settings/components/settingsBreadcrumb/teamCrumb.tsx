@@ -12,7 +12,7 @@ import BreadcrumbDropdown from './breadcrumbDropdown';
 import MenuItem from './menuItem';
 import {CrumbLink} from '.';
 
-type Props = RouteComponentProps<{teamId: string}, {}>;
+type Props = RouteComponentProps<{teamId: string}>;
 
 function TeamCrumb({routes, route, ...props}: Props) {
   const navigate = useNavigate();

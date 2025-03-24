@@ -8,16 +8,31 @@ family:native package:/private/var/containers/Bundle/Application/**  +app
 family:native package:**/Developer/CoreSimulator/Devices/**          +app
 family:native package:**/Containers/Bundle/Application/**            +app
 
+# well known path components for mac paths
+family:native package:**.app/Contents/**                             +app
+family:native package:/Users/**                                      +app
+
+# Unreal Engine
+
+## UE internal assertion handling
+family:native stack.function:FDebug::CheckVerifyFailedImpl*                v+app -app ^-app
+
+## UE internal ensure handling
+family:native stack.function:UE::Assert::Private::ExecCheckImplInternal*   v+app -app ^-app
+
+## UE SDK USentrySubsystem event capturing
+family:native stack.function:USentrySubsystem::CaptureMessage*             v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureMessageWithScope*    v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEvent*               v+app -app ^-app
+family:native stack.function:USentrySubsystem::CaptureEventWithScope*      v+app -app ^-app
+family:native stack.function:USentrySubsystem::*execCapture*               v+app -app ^-app
+
 # known well locations for unix paths
 family:native package:/lib/**                                        -app
 family:native package:/usr/lib/**                                    -app
 family:native path:/usr/local/lib/**                                 -app
 family:native path:/usr/local/Cellar/**                              -app
 family:native package:linux-gate.so*                                 -app
-
-# well known path components for mac paths
-family:native package:**.app/Contents/**                             +app
-family:native package:/Users/**                                      +app
 
 # rust common modules
 family:native function:std::*                                     -app
@@ -304,6 +319,9 @@ category:throw ^-group
 # raise() called by abort() should only group by abort()
 [ category:throw ] | category:throw category=internals
 
+# Frames from the OS should never be considered in-app
+category:system -app
+
 # Thread bases such as `main()` are just noise and are called by noise.
 category:threadbase -group v-group
 
@@ -367,6 +385,7 @@ family:native function:*.cold.1 category=indirection
 [ category:runtime ]    | category:system  category=internals
 [ category:runtime ]    | category:runtime category=internals
 [ category:dtor ]       | category:dtor    category=internals
+
 
 # SDK specific rules
 

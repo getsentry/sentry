@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from sentry.flags.models import PROVIDER_MAP
 from sentry.flags.providers import DeserializationError, GenericProvider
 
 
@@ -34,6 +35,7 @@ def test_handle():
     assert items[0]["created_by_type"] == 2
     assert items[0]["flag"] == "test"
     assert items[0]["organization_id"] == 123
+    assert items[0]["provider"] == PROVIDER_MAP["generic"]
     assert items[0]["tags"] == {}
 
 

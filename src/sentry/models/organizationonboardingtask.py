@@ -4,7 +4,8 @@ from typing import Any, ClassVar
 
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -58,17 +59,18 @@ class OnboardingTaskStatus:
 class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"]):
     def record(self, organization_id, task, **kwargs):
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
+
         if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                    self.create(organization_id=organization_id, task=task, **kwargs)
-                    return True
-            except IntegrityError:
-                pass
+            _, created = self.create_or_update(
+                organization_id=organization_id,
+                task=task,
+                values=kwargs,
+            )
 
             # Store marker to prevent running all the time
             cache.set(cache_key, 1, 3600)
-
+            if created:
+                return True
         return False
 
 
@@ -94,7 +96,9 @@ class AbstractOnboardingTask(Model):
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    project = FlexibleForeignKey(
+        "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
+    )
     # INVITE_MEMBER { invited_member: user.id }
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 

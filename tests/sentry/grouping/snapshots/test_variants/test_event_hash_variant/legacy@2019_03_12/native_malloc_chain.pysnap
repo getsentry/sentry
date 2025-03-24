@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:44.510989+00:00'
+created: '2025-02-26T00:33:52.381880+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -53,27 +53,27 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "application_frame"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             symbol (symbol is not used if module or filename are available)
               "malloc_zone_malloc"
             function (function name is not used if module or filename are available)
               "malloc_zone_malloc"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             symbol (symbol is not used if module or filename are available)
               "nanov2_malloc"
             function (function name is not used if module or filename are available)
               "nanov2_malloc"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate"
             function (function name is not used if module or filename are available)
               "nanov2_allocate"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate_from_block"
             function (function name is not used if module or filename are available)
               "nanov2_allocate_from_block"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             symbol (symbol is not used if module or filename are available)
               "nanov2_allocate_from_block.cold.1"
             function (function name is not used if module or filename are available)

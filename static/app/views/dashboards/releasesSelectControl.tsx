@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Badge from 'sentry/components/badge/badge';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Badge} from 'sentry/components/core/badge';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
@@ -101,7 +101,7 @@ function ReleasesSelectControl({
         <ButtonLabelWrapper>
           {triggerLabel}{' '}
           {activeReleases.length > 1 && (
-            <StyledBadge text={`+${activeReleases.length - 1}`} />
+            <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
           )}
         </ButtonLabelWrapper>
       }

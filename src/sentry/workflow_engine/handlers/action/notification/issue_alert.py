@@ -2,6 +2,7 @@ import logging
 import uuid
 from abc import ABC
 from collections.abc import Callable, Collection, Sequence
+from dataclasses import asdict
 from typing import Any
 
 import sentry_sdk
@@ -11,6 +12,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.processing.processor import activate_downstream_actions
+from sentry.sentry_apps.services.app import app_service
 from sentry.types.rules import RuleFuture
 from sentry.utils.registry import Registry
 from sentry.utils.safe import safe_execute
@@ -25,6 +27,9 @@ from sentry.workflow_engine.typings.notification_action import (
     EmailDataBlob,
     EmailFieldMappingKeys,
     OnCallDataBlob,
+    SentryAppDataBlob,
+    SentryAppFormConfigDataBlob,
+    SentryAppIdentifier,
     SlackDataBlob,
     TicketFieldMappingKeys,
     TicketingActionDataBlobHelper,
@@ -47,23 +52,24 @@ class BaseIssueAlertHandler(ABC):
         raise ValueError(f"No integration id key found for action type: {action.type}")
 
     @classmethod
-    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, organization_id: int
+    ) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
-            if action.target_identifier is None:
-                raise ValueError(f"No target identifier found for action type: {action.type}")
-            return {
-                mapping[
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]: action.target_identifier
-            }
-        raise ValueError(f"No target identifier key found for action type: {action.type}")
+            target_id = action.config.get("target_identifier")
+
+            if target_id is None:
+                raise ValueError(f"No target_identifier found for action type: {action.type}")
+            return {mapping[ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value]: target_id}
+        raise ValueError(f"No target_identifier key found for action type: {action.type}")
 
     @classmethod
     def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         if mapping.get(ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value):
-            if action.target_display is None:
+            target_display = action.config.get("target_display")
+            if target_display is None:
                 raise ValueError(f"No target display found for action type: {action.type}")
-            return {mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: action.target_display}
+            return {mapping[ActionFieldMappingKeys.TARGET_DISPLAY_KEY.value]: target_display}
         raise ValueError(f"No target display key found for action type: {action.type}")
 
     @classmethod
@@ -75,6 +81,7 @@ class BaseIssueAlertHandler(ABC):
     def build_rule_action_blob(
         cls,
         action: Action,
+        organization_id: int,
     ) -> dict[str, Any]:
         """Build the base action blob using the standard mapping"""
         mapping = ACTION_FIELD_MAPPINGS.get(Action.Type(action.type))
@@ -83,8 +90,9 @@ class BaseIssueAlertHandler(ABC):
         blob: dict[str, Any] = {
             "id": mapping["id"],
         }
+
         blob.update(cls.get_integration_id(action, mapping))
-        blob.update(cls.get_target_identifier(action, mapping))
+        blob.update(cls.get_target_identifier(action, mapping, organization_id))
         blob.update(cls.get_target_display(action, mapping))
         blob.update(cls.get_additional_fields(action, mapping))
         return blob
@@ -108,12 +116,18 @@ class BaseIssueAlertHandler(ABC):
         if workflow and workflow.environment:
             environment_id = workflow.environment.id
 
+        # TODO(iamrajjoshi): Remove the project null check once https://github.com/getsentry/sentry/pull/85240/files is merged
+        if detector.project is None:
+            raise ValueError(f"No project found for action type: {action.type}")
+
         rule = Rule(
             id=action.id,
             project=detector.project,
             environment_id=environment_id,
             label=detector.name,
-            data={"actions": [cls.build_rule_action_blob(action)]},
+            data={
+                "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)]
+            },
             status=ObjectStatus.ACTIVE,
             source=RuleSource.ISSUE,
         )
@@ -250,7 +264,9 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
         return {}
 
     @classmethod
-    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, organization_id: int
+    ) -> dict[str, Any]:
         return {}
 
     @classmethod
@@ -279,27 +295,25 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
         return {}
 
     @classmethod
-    def get_target_identifier(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, organization_id: int
+    ) -> dict[str, Any]:
+        target_id = action.config.get("target_identifier")
+        target_type = action.config.get("target_type")
+
         # this would be when the target_type is IssueOwners
-        if action.target_identifier is None:
-            if action.target_type != ActionTarget.ISSUE_OWNERS.value:
+        if target_id is None:
+            if target_type != ActionTarget.ISSUE_OWNERS.value:
                 raise ValueError(
-                    f"No target identifier found for {action.type} action {action.id}, target_type: {action.target_type}"
+                    f"No target identifier found for {action.type} action {action.id}, target_type: {target_type}"
                 )
             return {}
         else:
-            return {
-                mapping[
-                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
-                ]: action.target_identifier
-            }
+            return {mapping[ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value]: target_id}
 
     @classmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
-        if action.target_type is None:
-            raise ValueError(f"No target type found for {action.type} action {action.id}")
-
-        target_type = ActionTarget(action.target_type)
+        target_type = ActionTarget(action.config.get("target_type"))
 
         final_blob = {
             EmailFieldMappingKeys.TARGET_TYPE_KEY.value: EmailActionHelper.get_target_type_string(
@@ -312,3 +326,108 @@ class EmailIssueAlertHandler(BaseIssueAlertHandler):
             final_blob[EmailFieldMappingKeys.FALLTHROUGH_TYPE_KEY.value] = blob.fallthroughType
 
         return final_blob
+
+
+@issue_alert_handler_registry.register(Action.Type.PLUGIN)
+class PluginIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, organization_id: int
+    ) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+
+@issue_alert_handler_registry.register(Action.Type.WEBHOOK)
+class WebhookIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+
+@issue_alert_handler_registry.register(Action.Type.SENTRY_APP)
+class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
+    @classmethod
+    def get_integration_id(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_display(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        return {}
+
+    @classmethod
+    def get_target_identifier(
+        cls, action: Action, mapping: ActionFieldMapping, organization_id: int
+    ) -> dict[str, Any]:
+        if mapping.get(ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value):
+            target_identifier = action.config.get("target_identifier")
+            if target_identifier is None:
+                raise ValueError(f"No target identifier found for action type: {action.type}")
+
+            # Figure out what type of key we are dealing with
+            sentry_app_installations = None
+            if (
+                action.config.get("sentry_app_identifier")
+                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            ):
+                # It is a sentry app installation uuid
+                sentry_app_installations = app_service.get_many(
+                    filter=dict(
+                        uuids=[target_identifier],
+                    )
+                )
+            else:
+                # It is a sentry app id
+                sentry_app_installations = app_service.get_many(
+                    filter=dict(app_ids=[target_identifier], organization_id=organization_id)
+                )
+
+            if sentry_app_installations is None or len(sentry_app_installations) != 1:
+                raise ValueError(
+                    f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {target_identifier}, but got {len(sentry_app_installations)}"
+                )
+
+            sentry_app_installation = sentry_app_installations[0]
+
+            if sentry_app_installation is None:
+                raise ValueError(
+                    f"Sentry app not found for action type: {action.type}, target_identifier: {target_identifier}"
+                )
+
+            return {
+                mapping[
+                    ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
+                ]: sentry_app_installation.uuid
+            }
+        raise ValueError(f"No target identifier key found for action type: {action.type}")
+
+    @classmethod
+    def process_settings(cls, settings: list[SentryAppFormConfigDataBlob]) -> list[dict[str, Any]]:
+        # Process each setting, removing None labels
+        return [
+            {k: v for k, v in asdict(setting).items() if not (k == "label" and v is None)}
+            for setting in settings
+        ]
+
+    @classmethod
+    def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
+        # Need to check for the settings key, if it exists, then we need to return the settings
+        # It won't exist for legacy webhook actions, but will exist for sentry app actions
+        if settings_list := action.data.get("settings"):
+            if not isinstance(settings_list, list):
+                raise ValueError(f"Settings must be a list for action type: {action.type}")
+            blob = SentryAppDataBlob.from_list(settings_list)
+            settings = cls.process_settings(blob.settings)
+            return {"settings": settings}
+        return {}

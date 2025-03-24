@@ -1,7 +1,8 @@
+from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.auth.access import Access
 from sentry.incidents.logic import (
@@ -18,7 +19,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.workflow_engine.migration_helpers.alert_rule import migrate_metric_action
 
 
 class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
@@ -194,13 +194,15 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
     def create(self, validated_data):
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
-
         try:
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
         except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_str(e))
+        except ValidationError as e:
+            # invalid action type
+            raise serializers.ValidationError(str(e))
 
         analytics.record(
             "metric_alert_with_ui_component.created",
@@ -208,11 +210,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             alert_rule_id=getattr(self.context["alert_rule"], "id"),
             organization_id=getattr(self.context["organization"], "id"),
         )
-        if features.has(
-            "organizations:workflow-engine-metric-alert-dual-write",
-            action.alert_rule_trigger.alert_rule.organization,
-        ):
-            migrate_metric_action(action)
 
         return action
 

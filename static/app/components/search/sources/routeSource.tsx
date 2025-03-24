@@ -27,8 +27,8 @@ type Config = ((params: ConfigParams) => NavigationSection[]) | NavigationSectio
 // XXX(epurkhiser): We use the context in mapFunc to handle both producing the
 // NavigationSection list AND filtering out items in the sections that should
 // not be shown using the `show` attribute of the NavigationItem
-type Context = Parameters<Extract<Config, Function>>[0] &
-  Parameters<Extract<NavigationItem['show'], Function>>[0];
+type Context = Parameters<Extract<Config, (args: never) => unknown>>[0] &
+  Parameters<Extract<NavigationItem['show'], (args: never) => unknown>>[0];
 
 /**
  * navigation configuration can currently be either:
@@ -42,7 +42,7 @@ type Context = Parameters<Extract<Config, Function>>[0] &
  * of all navigation item objects
  */
 const mapFunc = (config: Config, context: Context | null = null) =>
-  (Array.isArray(config) ? config : context !== null ? config(context) : []).map(
+  (Array.isArray(config) ? config : context === null ? [] : config(context)).map(
     ({items}) =>
       items.filter(({show}) =>
         typeof show === 'function' && context !== null ? show(context) : true
@@ -56,7 +56,7 @@ type DefaultProps = {
   searchOptions: Fuse.IFuseOptions<NavigationItem>;
 };
 
-type Props = RouteComponentProps<{}, {}> &
+type Props = RouteComponentProps &
   DefaultProps & {
     /**
      * Render function that renders the route matches

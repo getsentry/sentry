@@ -411,18 +411,6 @@ class SubscriptionProcessor:
             )
 
         aggregation_value = self.get_aggregation_value(subscription_update)
-        if features.has(
-            "organizations:failure-rate-metric-alert-logging",
-            self.subscription.project.organization,
-        ):
-            logger.info(
-                "Update value in subscription processor",
-                extra={
-                    "result": subscription_update,
-                    "aggregation_value": aggregation_value,
-                    "rule_id": self.alert_rule.id,
-                },
-            )
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
@@ -435,6 +423,14 @@ class SubscriptionProcessor:
             has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
         ):
+            logger.info(
+                "Raw subscription update",
+                extra={
+                    "result": subscription_update,
+                    "aggregation_value": aggregation_value,
+                    "rule_id": self.alert_rule.id,
+                },
+            )
             with metrics.timer(
                 "incidents.subscription_processor.process_update.get_anomaly_data_from_seer"
             ):

@@ -19,9 +19,9 @@ class PipelineStep(PipelineView):
 class DummyProvider(PipelineProvider):
     key = "dummy"
     name = "dummy"
-    pipeline_views = [PipelineStep(), PipelineStep()]
+    pipeline_views: list[PipelineView] = [PipelineStep(), PipelineStep()]
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> list[PipelineView]:
         return self.pipeline_views
 
 

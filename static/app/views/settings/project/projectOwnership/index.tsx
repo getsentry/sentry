@@ -1,8 +1,8 @@
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -162,15 +162,17 @@ export default function ProjectOwnership({project}: {project: Project}) {
         )}
       </TextBlock>
       <ProjectPermissionAlert
-        access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
+        access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
         project={project}
       />
       {isCodeownersError && (
-        <Alert type="error">
-          {t(
-            "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error">
+            {t(
+              "There was an error loading this project's codeowners. If this issue persists, consider importing it again."
+            )}
+          </Alert>
+        </Alert.Container>
       )}
       <CodeOwnerErrors
         orgSlug={organization.slug}
@@ -244,7 +246,9 @@ export default function ProjectOwnership({project}: {project: Project}) {
           />
         </Form>
       ) : (
-        <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
+        <Alert.Container>
+          <Alert type="error">{t('There was an error issue owner settings.')}</Alert>
+        </Alert.Container>
       )}
     </SentryDocumentTitle>
   );

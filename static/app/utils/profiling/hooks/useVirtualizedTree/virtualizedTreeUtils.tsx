@@ -124,7 +124,7 @@ type AnimationTimeoutId = {
 };
 
 export function requestAnimationTimeout(
-  callback: Function,
+  callback: () => void,
   delay: number
 ): AnimationTimeoutId {
   let start: any;

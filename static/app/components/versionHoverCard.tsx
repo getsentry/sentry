@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
-import Tag from 'sentry/components/badge/tag';
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
@@ -132,16 +132,18 @@ function VersionHoverCard({
                 <div>
                   <h6>
                     {release.commitCount}{' '}
-                    {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')}{' '}
+                    {release.commitCount === 1 ? t('commit ') : t('commits ')} {t('by ')}{' '}
                     {release.authors.length}{' '}
-                    {release.authors.length !== 1 ? t('authors') : t('author')}{' '}
+                    {release.authors.length === 1 ? t('author') : t('authors')}{' '}
                   </h6>
-                  <AvatarList
-                    users={authors}
-                    avatarSize={25}
-                    tooltipOptions={{container: 'body'} as any}
-                    typeAvatars="authors"
-                  />
+                  <AvatarListContainer>
+                    <AvatarList
+                      users={authors}
+                      avatarSize={25}
+                      tooltipOptions={{container: 'body'} as any}
+                      typeAvatars="authors"
+                    />
+                  </AvatarListContainer>
                 </div>
               ) : null}
             </Flex>
@@ -158,9 +160,7 @@ function VersionHoverCard({
                     gap={space(1)}
                     justify="space-between"
                   >
-                    <Tag type="highlight" textMaxWidth={150}>
-                      {deploy.environment}
-                    </Tag>
+                    <Tag type="highlight">{deploy.environment}</Tag>
                     {deploy.dateFinished && (
                       <StyledTimeSince date={deploy.dateFinished} />
                     )}
@@ -243,4 +243,9 @@ const StyledVersion = styled(Version)`
 const CountSince = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.headerFontSize};
+`;
+
+const AvatarListContainer = styled('div')`
+  display: flex;
+  padding-left: ${space(0.5)};
 `;

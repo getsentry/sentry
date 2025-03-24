@@ -43,6 +43,8 @@ BASE64_ENCODED_PREFIXES = [
     "javascript;base64",
 ]
 
+IGNORED_FILENAMES = ["<compiler-generated>"]
+
 
 class ReferrerOptions(StrEnum):
     INGEST = "ingest"
@@ -239,6 +241,8 @@ def extract_filename(frame_dict: Mapping[str, Any]) -> str:
     Extract the filename from the frame dictionary. Fallback to module if filename is not present.
     """
     filename = frame_dict["filename"]
+    if filename in IGNORED_FILENAMES:
+        filename = ""
     if filename == "" and frame_dict["module"] != "":
         filename = frame_dict["module"]
     return filename

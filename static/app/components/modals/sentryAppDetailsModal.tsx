@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -163,7 +163,7 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
     return (
       <Fragment>
         <Heading>
-          <SentryAppIcon sentryApp={sentryApp} size={50} />
+          <SentryAppAvatar sentryApp={sentryApp} size={50} />
           <HeadingInfo>
             <Name>{sentryApp.name}</Name>
             {!!features.length && <Features>{this.featureTags(features)}</Features>}

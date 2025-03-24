@@ -7,6 +7,7 @@ import {
   useRef,
 } from 'react';
 import type {FeedbackModalIntegration} from '@sentry/core';
+import isEqual from 'lodash/isEqual';
 
 import {
   useFeedback,
@@ -48,11 +49,22 @@ export function useFeedbackForm() {
 
 function useOpenForm() {
   const formRef = useRef<FeedbackDialog | null>(null);
+  // The options that were used to create the currently created form instance
+  // This is used to determine if we should reuse the existing form instance
+  const formOptionsOverrideRef = useRef<UseFeedbackOptions | null>(null);
+
   const {feedback, options} = useFeedback({});
+
+  const close = useCallback(() => {
+    if (formRef.current) {
+      formRef.current.close();
+    }
+  }, []);
 
   const cleanup = useCallback(() => {
     try {
       if (formRef.current) {
+        formOptionsOverrideRef.current = null;
         formRef.current.close();
         formRef.current.removeFromDom();
         formRef.current = null;
@@ -68,21 +80,27 @@ function useOpenForm() {
         return;
       }
 
-      if (formRef.current) {
+      if (
+        formRef.current &&
+        isEqual(formOptionsOverrideRef.current, optionOverrides ?? null)
+      ) {
+        formRef.current.open();
+      } else {
         cleanup();
+
+        formRef.current = await feedback.createForm({
+          ...options,
+          ...optionOverrides,
+          onFormClose: close,
+          onFormSubmitted: cleanup,
+        });
+
+        formOptionsOverrideRef.current = optionOverrides ?? null;
+        formRef.current.appendToDom();
+        formRef.current.open();
       }
-
-      formRef.current = await feedback.createForm({
-        ...options,
-        ...optionOverrides,
-        onFormClose: cleanup,
-        onFormSubmitted: cleanup,
-      });
-
-      formRef.current.appendToDom();
-      formRef.current.open();
     },
-    [cleanup, feedback, options]
+    [cleanup, feedback, options, close]
   );
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import type React from 'react';
 import {createContext, Fragment, useCallback, useContext, useState} from 'react';
 import type {Theme} from '@emotion/react';
 
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import {IconClose} from 'sentry/icons';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
@@ -107,14 +107,16 @@ export function PageAlert() {
   };
 
   return (
-    <Alert
-      type={pageAlert.type}
-      data-test-id="page-error-alert"
-      showIcon
-      trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
-    >
-      <Fragment>{message}</Fragment>
-    </Alert>
+    <Alert.Container>
+      <Alert
+        type={pageAlert.type}
+        data-test-id="page-error-alert"
+        showIcon
+        trailingItems={dismissId && <IconClose size="sm" onClick={handleDismiss} />}
+      >
+        <Fragment>{message}</Fragment>
+      </Alert>
+    </Alert.Container>
   );
 }
 
