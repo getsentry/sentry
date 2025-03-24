@@ -28,7 +28,6 @@ from sentry.seer.similarity.utils import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 
 
@@ -168,53 +167,7 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @with_feature({"organizations:grouping-hybrid-fingerprint-seer-usage": True})
-    def test_obeys_custom_fingerprint_check_flag_on(self) -> None:
-        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
-
-        default_fingerprint_event = Event(
-            project_id=self.project.id,
-            event_id="11212012123120120415201309082013",
-            data={**self.event_data, "fingerprint": ["{{ default }}"]},
-        )
-        custom_fingerprint_event = Event(
-            project_id=self.project.id,
-            event_id="04152013090820131121201212312012",
-            data={**self.event_data, "fingerprint": ["charlie"]},
-        )
-        built_in_fingerprint_event = Event(
-            project_id=self.project.id,
-            event_id="09082013112120121231201204152013",
-            data={
-                **self.event_data,
-                "fingerprint": ["failedtofetcherror"],
-                "_fingerprint_info": {
-                    "matched_rule": {
-                        "is_builtin": True,
-                        "matchers": [["type", "FailedToFetchError"]],
-                        "fingerprint": ["failedtofetcherror"],
-                        "text": 'type:"FailedToFetchError" -> "failedtofetcherror"',
-                    }
-                },
-            },
-        )
-
-        for event, expected_result in [
-            (default_fingerprint_event, True),
-            (custom_fingerprint_event, False),
-            (built_in_fingerprint_event, False),
-        ]:
-            grouphash = GroupHash(
-                project_id=self.project.id, hash=hash_from_values(event.data["fingerprint"])
-            )
-            assert (
-                should_call_seer_for_grouping(event, event.get_grouping_variants(), grouphash)
-                is expected_result
-            ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
-
-    # TODO: Delete this once the hybrid fingerprint + seer change is fully rolled out
-    @with_feature({"organizations:grouping-hybrid-fingerprint-seer-usage": False})
-    def test_obeys_customized_fingerprint_check_flag_off(self) -> None:
+    def test_obeys_customized_fingerprint_check(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
         default_fingerprint_event = Event(
@@ -251,7 +204,7 @@ class ShouldCallSeerTest(TestCase):
 
         for event, expected_result in [
             (default_fingerprint_event, True),
-            (hybrid_fingerprint_event, False),
+            (hybrid_fingerprint_event, True),
             (custom_fingerprint_event, False),
             (built_in_fingerprint_event, False),
         ]:
@@ -346,7 +299,6 @@ class ShouldCallSeerTest(TestCase):
         assert event.data.get("stacktrace_string") is None
 
 
-@apply_feature_flag_on_cls("organizations:grouping-hybrid-fingerprint-seer-usage")
 class GetSeerSimilarIssuesTest(TestCase):
     def create_new_event(
         self,
