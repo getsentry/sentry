@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
@@ -29,11 +30,13 @@ function AddDataVolume({
   onUpdate,
   onCompleteStep,
 }: StepProps) {
-  if (organization) {
-    trackGetsentryAnalytics('checkout.data_sliders_viewed', {
-      organization,
-    });
-  }
+  useEffect(() => {
+    if (organization && isActive) {
+      trackGetsentryAnalytics('checkout.data_sliders_viewed', {
+        organization,
+      });
+    }
+  }, [organization, isActive]);
 
   const isLegacy =
     !checkoutTier ||
