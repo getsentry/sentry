@@ -15,7 +15,11 @@ from sentry.incidents.endpoints.serializers.incident import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    OpenPeriodContext,
+)
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.metric_alerts import (
     DiscordMetricAlertMessageBuilder,
@@ -75,12 +79,13 @@ def send_incident_alert_notification(
 
     message = DiscordMetricAlertMessageBuilder(
         alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-        open_period_identifier=incident.identifier,
-        snuba_query=incident.alert_rule.snuba_query,
+        metric_issue_context=MetricIssueContext.from_legacy_models(
+            incident=incident,
+            new_status=new_status,
+            metric_value=metric_value,
+        ),
         organization=incident.organization,
         date_started=incident.date_started,
-        new_status=new_status,
-        metric_value=metric_value,
         chart_url=chart_url,
     ).build(notification_uuid=notification_uuid)
 

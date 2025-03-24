@@ -533,6 +533,70 @@ describe('TraceTree', () => {
       // eap-span-2 is a span and should be expanded
       expect(findEAPSpanByEventId(tree, 'eap-span-2')?.expanded).toBe(true);
     });
+
+    it('correctly renders eap-transactions toggle state', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true, // is a transaction
+            parent_span_id: undefined,
+            children: [
+              makeEAPSpan({
+                event_id: 'eap-span-2',
+                start_timestamp: start + 1,
+                end_timestamp: start + 4,
+                is_transaction: false,
+                parent_span_id: 'eap-span-1',
+                children: [
+                  makeEAPSpan({
+                    event_id: 'eap-span-3',
+                    start_timestamp: start + 2,
+                    end_timestamp: start + 3,
+                    is_transaction: true, // is a transaction
+                    parent_span_id: 'eap-span-2',
+                    children: [
+                      makeEAPSpan({
+                        event_id: 'eap-span-4',
+                        start_timestamp: start + 3,
+                        end_timestamp: start + 4,
+                        is_transaction: false,
+                        parent_span_id: 'eap-span-3',
+                        children: [
+                          makeEAPSpan({
+                            event_id: 'eap-span-5',
+                            start_timestamp: start + 4,
+                            end_timestamp: start + 5,
+                            is_transaction: true, // is a transaction
+                            parent_span_id: 'eap-span-4',
+                            children: [],
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ]),
+        traceMetadata
+      );
+
+      // Assert initial state
+      expect(tree.build().serialize()).toMatchSnapshot();
+
+      // Assert expaneded state
+      const eapTxn = findEAPSpanByEventId(tree, 'eap-span-1');
+      tree.expand(eapTxn!, true);
+      expect(tree.build().serialize()).toMatchSnapshot();
+
+      // Assert state upon collapsing
+      tree.expand(eapTxn!, false);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
   });
 
   describe('events', () => {

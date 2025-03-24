@@ -9,6 +9,7 @@ import pytest
 from django.test import override_settings
 from google.protobuf.message import Message
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
+    TASK_ACTIVATION_STATUS_COMPLETE,
     TASK_ACTIVATION_STATUS_RETRY,
     FetchNextTask,
     GetTaskResponse,
@@ -236,6 +237,7 @@ def test_update_task_ok_with_next():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
+        client._task_id_to_stub_idx = {"abc123": 0}
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
         )
@@ -262,6 +264,7 @@ def test_update_task_ok_with_next_namespace():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
+        client._task_id_to_stub_idx = {"abc123": 0}
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace="testing")
         )
@@ -295,7 +298,111 @@ def test_update_task_not_found():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
+        client._task_id_to_stub_idx = {"abc123": 0}
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
         )
         assert result is None
+
+
+@django_db_all
+def test_client_loadbalance():
+    channel_0 = MockChannel()
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="0",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel_0.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        SetTaskStatusResponse(task=None),
+    )
+    channel_1 = MockChannel()
+    channel_1.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="1",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel_1.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        SetTaskStatusResponse(task=None),
+    )
+    channel_2 = MockChannel()
+    channel_2.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="2",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel_2.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        SetTaskStatusResponse(task=None),
+    )
+    channel_3 = MockChannel()
+    channel_3.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/GetTask",
+        GetTaskResponse(
+            task=TaskActivation(
+                id="3",
+                namespace="testing",
+                taskname="do_thing",
+                parameters="",
+                headers={},
+                processing_deadline_duration=10,
+            )
+        ),
+    )
+    channel_3.add_response(
+        "/sentry_protos.taskbroker.v1.ConsumerService/SetTaskStatus",
+        SetTaskStatusResponse(task=None),
+    )
+    with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
+        mock_channel.side_effect = [channel_0, channel_1, channel_2, channel_3]
+        with patch("sentry.taskworker.client.random.randint") as mock_randint:
+            mock_randint.side_effect = [0, 1, 2, 3]
+            client = TaskworkerClient(
+                "localhost:50051", num_brokers=4, max_tasks_before_rebalance=1
+            )
+
+            task_0 = client.get_task()
+            assert task_0 is not None and task_0.id == "0"
+            task_1 = client.get_task()
+            assert task_1 is not None and task_1.id == "1"
+            task_2 = client.get_task()
+            assert task_2 is not None and task_2.id == "2"
+            task_3 = client.get_task()
+            assert task_3 is not None and task_3.id == "3"
+
+            assert client._task_id_to_stub_idx == {"0": 0, "1": 1, "2": 2, "3": 3}
+
+            client.update_task(task_0.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
+            assert client._task_id_to_stub_idx == {"1": 1, "2": 2, "3": 3}
+            client.update_task(task_1.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
+            assert client._task_id_to_stub_idx == {"2": 2, "3": 3}
+            client.update_task(task_2.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
+            assert client._task_id_to_stub_idx == {"3": 3}
+            client.update_task(task_3.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
+            assert client._task_id_to_stub_idx == {}

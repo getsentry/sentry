@@ -75,6 +75,7 @@ export type AutofixData = {
   };
   completed_at?: string | null;
   error_message?: string;
+  feedback?: AutofixFeedback;
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
@@ -210,6 +211,13 @@ export type EventMetadataWithAutofix = EventMetadata & {
 
 export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
+};
+
+export type AutofixFeedback = {
+  root_cause_thumbs_down?: boolean;
+  root_cause_thumbs_up?: boolean;
+  solution_thumbs_down?: boolean;
+  solution_thumbs_up?: boolean;
 };
 
 export type FilePatch = {

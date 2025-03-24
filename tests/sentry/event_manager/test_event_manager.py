@@ -988,7 +988,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             function:in_app_function +app
             function:not_in_app_function -app
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -2226,7 +2226,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             function:foo2 category=bar
             category:bar -app
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
@@ -2301,7 +2301,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             function:foo category=foo_like
             category:foo_like -group
             """
-        ).dumps()
+        ).base64_string
 
         grouping_config: GroupingConfig = {
             "id": DEFAULT_GROUPING_CONFIG,
@@ -3423,13 +3423,13 @@ class TestSaveGroupHashAndGroup(TransactionTestCase):
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
-        group, created = save_grouphash_and_group(self.project, event, group_hash)
+        group, created, _ = save_grouphash_and_group(self.project, event, group_hash)
         assert created
-        group_2, created = save_grouphash_and_group(self.project, event, group_hash)
+        group_2, created, _ = save_grouphash_and_group(self.project, event, group_hash)
         assert group.id == group_2.id
         assert not created
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
-        group_3, created = save_grouphash_and_group(self.project, event, "new_hash")
+        group_3, created, _ = save_grouphash_and_group(self.project, event, "new_hash")
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1

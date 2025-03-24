@@ -1,15 +1,15 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
+import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
@@ -20,7 +20,7 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
+import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
@@ -229,54 +229,24 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      <Fragment>
-        <DropdownMenu
-          position="bottom-end"
-          triggerProps={{
-            showChevron: false,
-            icon: <IconSettings />,
-            'aria-label': t('Feature Flag Settings'),
-          }}
-          size="xs"
-          items={[
-            {
-              key: 'settings',
-              label: t('Set Up Change Tracking'),
-              details: (
-                <ChangeTrackingDetails>
-                  {t(
-                    'Listen for additions, removals, and modifications to your feature flags.'
-                  )}
-                </ChangeTrackingDetails>
-              ),
-              to: `/settings/${organization.slug}/feature-flags/change-tracking/`,
-            },
-            {
-              key: 'docs',
-              label: t('Read the Docs'),
-              externalHref:
-                'https://docs.sentry.io/product/issues/issue-details/feature-flags/',
-            },
-          ]}
-        />
-        {hasFlags && (
-          <Fragment>
-            <Button
-              aria-label={t('Open Feature Flag Search')}
-              icon={<IconSearch size="xs" />}
-              size="xs"
-              title={t('Open Search')}
-              onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-            />
-            <FeatureFlagSort
-              orderBy={orderBy}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              setOrderBy={setOrderBy}
-            />
-          </Fragment>
-        )}
-      </Fragment>
+      <FeatureFlagSettingsButton orgSlug={organization.slug} />
+      {hasFlags && (
+        <Fragment>
+          <Button
+            aria-label={t('Open Feature Flag Search')}
+            icon={<IconSearch size="xs" />}
+            size="xs"
+            title={t('Open Search')}
+            onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+          />
+          <FeatureFlagSort
+            orderBy={orderBy}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            setOrderBy={setOrderBy}
+          />
+        </Fragment>
+      )}
     </ButtonBar>
   );
 
@@ -331,11 +301,6 @@ export function EventFeatureFlagList({
     </InterimSection>
   );
 }
-
-const ChangeTrackingDetails = styled('div')`
-  max-width: 200px;
-  white-space: normal;
-`;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   border: ${p => p.theme.border} solid 1px;

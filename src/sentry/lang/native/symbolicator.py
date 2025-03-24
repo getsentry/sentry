@@ -166,13 +166,14 @@ class Symbolicator:
                 # Otherwise, we are done processing, yay
                 return json_response
 
-    def process_minidump(self, platform, minidump):
+    def process_minidump(self, platform, minidump, rewrite_first_module):
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
             "platform": orjson.dumps(platform).decode(),
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
+            "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
             "options": '{"dif_candidates": true}',
         }
 
