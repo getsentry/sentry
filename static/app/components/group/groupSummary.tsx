@@ -387,6 +387,11 @@ const TooltipWrapper = styled('div')`
   position: absolute;
   top: -${space(0.5)};
   right: 0;
+
+  ul {
+    max-height: none !important;
+    overflow: visible !important;
+  }
 `;
 
 const StyledIconEllipsis = styled(IconEllipsis)`
