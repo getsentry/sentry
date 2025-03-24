@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {Alert} from 'sentry/components/core/alert';
 import type {LinkButtonProps} from 'sentry/components/core/button';
@@ -12,11 +11,10 @@ import {
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
@@ -92,12 +90,7 @@ function ReplayClipPreviewPlayer({
   if (replayReaderResult.replayRecord?.is_archived) {
     return (
       <Alert.Container>
-        <Alert type="warning" data-test-id="replay-error">
-          <Flex gap={space(0.5)}>
-            <IconDelete color="gray500" size="sm" />
-            {t('The replay for this event has been deleted.')}
-          </Flex>
-        </Alert>
+        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
       </Alert.Container>
     );
   }
