@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,7 +5,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ExternalIssueForm from 'sentry/components/externalIssues/externalIssueForm';
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 
 jest.mock('lodash/debounce', () => {
   const debounceMap = new Map();
@@ -28,14 +32,17 @@ jest.mock('lodash/debounce', () => {
 });
 
 describe('ExternalIssueForm', () => {
-  let group!: ReturnType<typeof GroupFixture>;
-  let integration!: ReturnType<typeof GitHubIntegrationFixture>;
+  const group = GroupFixture();
+  const integration = GitHubIntegrationFixture({externalIssues: []});
+  const organization = OrganizationFixture();
+
   let formConfig!: any;
+
+  const closeModal = jest.fn();
   const onChange = jest.fn();
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    group = GroupFixture();
-    integration = GitHubIntegrationFixture({externalIssues: []});
   });
 
   afterEach(() => {
@@ -50,20 +57,20 @@ describe('ExternalIssueForm', () => {
       match: [MockApiClient.matchQuery({action: 'create'})],
     });
 
-    const styledWrapper = styled<any>((c: {children: React.ReactNode}) => c.children);
     const wrapper = render(
       <ExternalIssueForm
-        Body={styledWrapper()}
-        Footer={styledWrapper()}
-        organization={OrganizationFixture()}
-        Header={c => <span>{c.children}</span>}
+        Body={ModalBody}
+        Header={makeClosableHeader(closeModal)}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
+        closeModal={closeModal}
+        onChange={onChange}
         group={group}
         integration={integration}
-        onChange={onChange}
-        CloseButton={makeCloseButton(() => {})}
-        closeModal={() => {}}
-      />
+      />,
+      {organization}
     );
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
     await userEvent.click(screen.getByText(action));
     return wrapper;
   };
