@@ -2,8 +2,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
-    GITLAB_CLOUD_BASE_URL,
     CommitContextIntegration,
     SourceLineInfo,
 )

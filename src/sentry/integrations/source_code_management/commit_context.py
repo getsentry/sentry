@@ -12,6 +12,7 @@ from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
@@ -42,8 +43,6 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
-
-GITLAB_CLOUD_BASE_URL = "https://gitlab.com"
 
 
 def _debounce_pr_comment_cache_key(pullrequest_id: int) -> str:
