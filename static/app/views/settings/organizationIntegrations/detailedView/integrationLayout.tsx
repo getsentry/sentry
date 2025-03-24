@@ -10,6 +10,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDocs} from 'sentry/icons/iconDocs';
@@ -77,7 +78,7 @@ function TopSection({
   );
 }
 
-function Tabs({
+function IntegrationTabs({
   tabs,
   activeTab,
   onTabChange,
@@ -93,20 +94,26 @@ function Tabs({
     () => getTabDisplay ?? ((tab: IntegrationTab) => tab),
     [getTabDisplay]
   );
+
   return (
-    <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
-      {tabs.map(tab => (
-        <li
-          key={tab}
-          className={activeTab === tab ? 'active' : ''}
-          onClick={() => onTabChange?.(tab)}
-        >
-          <CapitalizedLink>{renderTab(tab)}</CapitalizedLink>
-        </li>
-      ))}
-    </ul>
+    <TabsContainer>
+      <Tabs value={activeTab} onChange={onTabChange}>
+        <TabList>
+          {tabs.map(tab => (
+            <TabList.Item key={tab}>
+              {<CapitalizedLink>{renderTab(tab)}</CapitalizedLink>}
+            </TabList.Item>
+          ))}
+        </TabList>
+      </Tabs>
+    </TabsContainer>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
 
 function Body({
   integrationName,
@@ -285,7 +292,7 @@ function ResourceIcon({title}: {title: string}) {
 
 const IntegrationLayout = {
   TopSection,
-  Tabs,
+  Tabs: IntegrationTabs,
   Body,
   EmptyConfigurations,
   DisabledNotice,
