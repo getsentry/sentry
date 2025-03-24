@@ -54,7 +54,7 @@ const EmptyMessage = styled(
 `;
 
 const IconWrapper = styled('div')`
-  color: ${p => p.theme.gray200};
+  color: ${p => (p.theme.isChonk ? p.theme.gray300 : p.theme.gray200)};
   margin-bottom: ${space(1)};
 `;
 
