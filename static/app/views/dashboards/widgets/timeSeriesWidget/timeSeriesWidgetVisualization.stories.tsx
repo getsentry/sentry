@@ -127,12 +127,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             stacked!
           </li>
           <li>
-            Bar charts are to your discretion, it's most an aesthetic choice. Generally,
-            bars communicate discrete buckets, and lines communicate continuous data. If
-            you are plotting something like duration, even if it's broken down by time
-            buckets, a line feels right. If you are plotting someting like throughput (a
-            naturally bucketed value) and the buckets are big, a bar chart might be
-            better. Bar charts are also great for comparing quantities.
+            Bar charts are to your discretion. Generally, bars communicate discrete
+            buckets, and lines communicate continuous data. If you are plotting something
+            like duration, even if it's broken down by time buckets, a line feels right.
+            If you are plotting someting like throughput (a naturally bucketed value) and
+            the buckets are big, a bar chart might be better. Generally, bar charts should
+            be bucketed by a pretty long interval, at least a day. Otherwise, there are
+            too many bars, they end up too skinny, and they're hard to understand and
+            interact with.
           </li>
           <li>Use line charts when in doubt! They are almost always the right choice</li>
         </ul>
