@@ -13,9 +13,11 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
+import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {
@@ -28,6 +30,7 @@ import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 export const MAX_QUERIES_ALLOWED = 5;
 
 function Content() {
+  const location = useLocation();
   const organization = useOrganization();
   const {saveQuery} = useSaveMultiQuery();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
@@ -35,6 +38,7 @@ function Content() {
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
+  const id = getIdFromLocation(location);
 
   return (
     <Layout.Body>
@@ -77,15 +81,19 @@ function Content() {
                   });
                 },
               },
-              {
-                key: 'update-query',
-                label: (
-                  <span>
-                    {t('Existing Query')}
-                    <FeatureBadge type="alpha" />
-                  </span>
-                ),
-              },
+              ...(id
+                ? [
+                    {
+                      key: 'update-query',
+                      label: (
+                        <span>
+                          {t('Existing Query')}
+                          <FeatureBadge type="alpha" />
+                        </span>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
             trigger={triggerProps => (
               <Button

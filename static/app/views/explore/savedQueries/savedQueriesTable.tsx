@@ -68,7 +68,6 @@ export function SavedQueriesTable({mode, perPage}: Props) {
                 ? getExploreMultiQueryUrl({
                     organization,
                     ...row,
-                    ...query,
                     queries: row.query.map(q => ({
                       ...q,
                       chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
