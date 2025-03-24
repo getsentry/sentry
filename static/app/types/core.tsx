@@ -83,6 +83,7 @@ export enum DataCategory {
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
   PROFILE_CHUNKS = 'profileChunks',
+  PROFILE_CHUNKS_UI = 'profileChunksUI',
   UPTIME = 'uptime',
 }
 

@@ -913,6 +913,7 @@ const dataCategory: Record<
     | DataCategory.PROFILES
     | DataCategory.PROFILE_CHUNKS
     | DataCategory.PROFILE_DURATION
+    | DataCategory.PROFILE_CHUNKS_UI
     | DataCategory.PROFILE_DURATION_UI
     | DataCategory.SPANS
     | DataCategory.SPANS_INDEXED
