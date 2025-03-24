@@ -137,8 +137,7 @@ class TaskNamespace:
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
         try:
-            producer_failure = produce_future.exception()
-            if producer_failure:
+            if produce_future.exception():
                 metrics.incr(
                     "taskworker.registry.send_task.failed",
                     tags={"namespace": activation.namespace},
