@@ -1,8 +1,10 @@
 import type {RefObject} from 'react';
-import {useCallback} from 'react';
+import {useCallback, useState} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import divide from 'sentry/utils/number/divide';
+import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import useMouseTracking from 'sentry/utils/useMouseTracking';
 
@@ -46,6 +48,13 @@ export function useTimelineScrubberMouseTracking<T extends Element>(
   scale: number
 ) {
   const {replay, currentTime} = useReplayContext();
+  console.log({replay, currentTime});
+
+  const replay2 = useReplayReader();
+  const [currentTime2, setCurrentTime2] = useState({timeMs: 0});
+  useReplayCurrentTime({callback: setCurrentTime2});
+  console.log({replay2, currentTime2});
+
   const [, setCurrentHoverTime] = useCurrentHoverTime();
   const durationMs = replay?.getDurationMs();
 

@@ -29,23 +29,25 @@ export default function ReplayPlayback() {
     <ReplayFullscreenWrapper>
       {toggleFullscreen => (
         <Flex column gap={space(2)}>
-          <StyledNegativeSpaceContainer style={{height: 500}}>
+          <StyledNegativeSpaceContainer>
             <ReplayPlayerMeasurer measure="both">
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </StyledNegativeSpaceContainer>
           <TimelineScaleContextProvider>
             <ReplayControlsGrid>
-              <ReplayPlayPauseButton style={{gridArea: 'left'}} priority="default" />
+              <div style={{gridArea: 'left'}}>
+                <ReplayPlayPauseButton priority="default" />
+              </div>
               <Numeric style={{gridArea: 'currentTime'}}>
                 <ReplayCurrentTime />
               </Numeric>
-              <div style={{width: '100%', gridArea: 'timeline'}}>
+              <FillWidth style={{gridArea: 'timeline'}}>
                 <ReplayTimeline />
-              </div>
-              <div style={{width: '100%', gridArea: 'scrubber'}}>
+              </FillWidth>
+              <FillWidth style={{gridArea: 'scrubber'}}>
                 <ReplayScrubber />
-              </div>
+              </FillWidth>
               <Numeric style={{gridArea: 'duration'}}>
                 <ReplayTotalTime />
               </Numeric>
@@ -81,6 +83,7 @@ const FullscreenBounds = styled('div')`
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  height: 500px;
 `;
 
 const ReplayControlsGrid = styled('div')`
@@ -94,12 +97,16 @@ const ReplayControlsGrid = styled('div')`
   align-items: center;
 `;
 
-const Numeric = styled('span')`
+const Numeric = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
   font-weight: ${p => p.theme.fontWeightBold};
   padding-inline: ${space(1.5)};
+`;
+
+const FillWidth = styled('div')`
+  width: 100%;
 `;
 
 function ReplayScrubber() {
