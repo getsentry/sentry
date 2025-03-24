@@ -56,7 +56,7 @@ describe('Performance > Transaction Spans', function () {
   let eventsSpansPerformanceMock: jest.Mock;
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

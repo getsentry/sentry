@@ -44,9 +44,6 @@ function MissingPerformanceButtons({organization}: Props) {
       duration,
     });
   }
-  const hasPerfLandingRemovalFlag = organization.features?.includes(
-    'insights-performance-landing-removal'
-  );
   const domainView: DomainView | undefined = platformToDomainView(
     projects,
     selectedProjects
@@ -66,7 +63,7 @@ function MissingPerformanceButtons({organization}: Props) {
             event.preventDefault();
             // TODO: add analytics here for this specific action.
             navigateTo(
-              `${hasPerfLandingRemovalFlag ? getPerformanceBaseUrl(organization.slug) : getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
+              `${getPerformanceBaseUrl(organization.slug, domainView)}/?project=:project#performance-sidequest`,
               router
             );
           }}

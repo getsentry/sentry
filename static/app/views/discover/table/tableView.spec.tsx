@@ -325,7 +325,7 @@ describe('TableView > CellActions', function () {
       'href',
       expect.stringMatching(
         new RegExp(
-          '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+          '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
         )
       )
     );

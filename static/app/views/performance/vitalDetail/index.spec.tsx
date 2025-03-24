@@ -305,7 +305,7 @@ describe('Performance > VitalDetail', function () {
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/performance/summary/`,
+      pathname: `/organizations/${organization.slug}/insights/summary/`,
       query: {
         transaction: 'something',
         project: undefined,
@@ -348,7 +348,7 @@ describe('Performance > VitalDetail', function () {
     );
 
     expect(newRouter.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/performance/summary/`,
+      pathname: `/organizations/${organization.slug}/insights/summary/`,
       query: {
         transaction: 'something',
         project: undefined,

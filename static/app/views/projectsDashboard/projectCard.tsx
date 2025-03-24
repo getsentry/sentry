@@ -127,9 +127,6 @@ class ProjectCard extends Component<Props> {
       transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const zeroTransactions = totalTransactions === 0;
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
-    const hasPerfLandingRemovalFlag = organization.features?.includes(
-      'insights-performance-landing-removal'
-    );
     const domainView: DomainView | undefined = project
       ? platformToDomainView([project], [parseInt(project.id, 10)])
       : 'backend';
@@ -169,11 +166,7 @@ class ProjectCard extends Component<Props> {
                       <em>|</em>
                       <TransactionsLink
                         data-test-id="project-transactions"
-                        to={`${
-                          hasPerfLandingRemovalFlag
-                            ? getPerformanceBaseUrl(organization.slug, domainView)
-                            : getPerformanceBaseUrl(organization.slug)
-                        }/?project=${project.id}`}
+                        to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
                       >
                         {t(
                           'Transactions: %s',

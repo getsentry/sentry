@@ -65,7 +65,7 @@ describe('Performance Transaction Events Content', function () {
       ...SPAN_OP_BREAKDOWN_FIELDS,
     ];
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',

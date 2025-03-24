@@ -41,13 +41,13 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
 
     await userEvent.click(keyTransactions);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/',
+      pathname: '/organizations/org-slug/insights/backend/',
       query: {project: '2'},
     });
 
     await userEvent.click(mostChangedTransactions);
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/trends/',
+      pathname: '/organizations/org-slug/insights/backend/trends/',
       query: {
         cursor: undefined,
         project: '2',

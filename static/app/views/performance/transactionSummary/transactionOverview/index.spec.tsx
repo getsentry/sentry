@@ -733,7 +733,7 @@ describe('Performance > TransactionSummary', function () {
 
       await userEvent.click(firstProjectOption);
       expect(spy).toHaveBeenCalledWith(
-        '/organizations/org-slug/performance/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1'
+        '/organizations/org-slug/insights/summary/?transaction=/performance&statsPeriod=14d&referrer=performance-transaction-summary&transactionCursor=1:0:0&project=1'
       );
     });
 

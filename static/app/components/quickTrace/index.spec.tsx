@@ -52,7 +52,7 @@ describe('Quick Trace', function () {
   }
 
   function makeTransactionHref(pid: string, eid: string, transaction: string) {
-    return `/organizations/${organization.slug}/performance/${pid}:${eid}/?transaction=${transaction}`;
+    return `/organizations/${organization.slug}/insights/backend/${pid}:${eid}/?transaction=${transaction}`;
   }
 
   beforeEach(function () {

@@ -177,7 +177,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     await userEvent.click(screen.getByText('Set up Tracing'));
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/performance/?project=2#performance-sidequest'
+      '/organizations/org-slug/insights/frontend/?project=2#performance-sidequest'
     );
   });
 
@@ -208,7 +208,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     await userEvent.click(screen.getByText('Set up Tracing'));
     expect(window.open).not.toHaveBeenCalled();
     expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/performance/?project=2#performance-sidequest'
+      '/organizations/org-slug/insights/frontend/?project=2#performance-sidequest'
     );
   });
 

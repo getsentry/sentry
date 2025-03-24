@@ -38,7 +38,7 @@ function initializeData({query} = {query: {}}) {
   });
 
   mockUseLocation.mockReturnValue({
-    pathname: '/organizations/org-slug/performance/summary/tags/',
+    pathname: '/organizations/org-slug/insights/summary/tags/',
     query: newQuery,
   } as any); // TODO - type this correctly
 
@@ -52,7 +52,7 @@ describe('Performance > Transaction Tags', function () {
 
   beforeEach(function () {
     mockUseLocation.mockReturnValue(
-      LocationFixture({pathname: '/organizations/org-slug/performance/summary/tags/'})
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary/tags/'})
     );
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -332,7 +332,7 @@ describe('Performance > Transaction Tags', function () {
 
     await waitFor(() =>
       expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/performance/summary/tags/',
+        pathname: '/organizations/org-slug/insights/summary/tags/',
         query: {
           project: '1',
           statsPeriod: '14d',
