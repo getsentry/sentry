@@ -350,9 +350,7 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.purple200,
         },
-        plugins: organization.features.includes('session-replay-enable-canvas-replayer')
-          ? [CanvasReplayerPlugin(events)]
-          : [],
+        plugins: [CanvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
         speed: initialPrefsRef.current.playbackSpeed,
       });
@@ -383,7 +381,6 @@ export function Provider({
       events,
       hasNewEvents,
       isFetching,
-      organization.features,
       setReplayFinished,
       theme.purple200,
     ]
