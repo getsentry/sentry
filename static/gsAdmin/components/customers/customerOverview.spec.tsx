@@ -115,31 +115,31 @@ describe('CustomerOverview', function () {
       categories: {
         errors: MetricHistoryFixture({
           customPrice: 300_000_00,
-          onDemandCpe: 12.345678,
+          paygCpe: 12.345678,
           order: 1,
         }),
         transactions: MetricHistoryFixture({
           category: DataCategory.TRANSACTIONS,
           customPrice: 400_000_00,
-          onDemandCpe: 100,
+          paygCpe: 100,
           order: 2,
         }),
         replays: MetricHistoryFixture({
           category: DataCategory.REPLAYS,
           customPrice: 100_000_00,
-          onDemandCpe: 50,
+          paygCpe: 50,
           order: 4,
         }),
         monitorSeats: MetricHistoryFixture({
           category: DataCategory.MONITOR_SEATS,
           customPrice: 10_000_00,
-          onDemandCpe: 7.55,
+          paygCpe: 7.55,
           order: 7,
         }),
         attachments: MetricHistoryFixture({
           category: DataCategory.ATTACHMENTS,
           customPrice: 150_000_00,
-          onDemandCpe: 20.3,
+          paygCpe: 20.3,
           order: 8,
         }),
       },
