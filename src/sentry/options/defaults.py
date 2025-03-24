@@ -2773,6 +2773,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for Postgres query timeout error handling
+register(
+    "api.postgres-query-timeout-error-handling.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO: remove once removed from options
 register(
     "issue_platform.use_kafka_partition_key",
