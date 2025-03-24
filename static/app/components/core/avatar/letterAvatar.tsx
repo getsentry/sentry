@@ -1,6 +1,7 @@
 import type React from 'react';
 import {forwardRef} from 'react';
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -21,6 +22,7 @@ export interface LetterAvatarProps
  */
 export const LetterAvatar = forwardRef<SVGSVGElement, LetterAvatarProps>(
   ({displayName, ...props}, ref) => {
+    const theme = useTheme();
     return (
       <LetterAvatarComponent ref={ref} viewBox="0 0 120 120" {...props}>
         <rect x="0" y="0" width="120" height="120" rx="15" ry="15" />
@@ -28,6 +30,7 @@ export const LetterAvatar = forwardRef<SVGSVGElement, LetterAvatarProps>(
           x="50%"
           y="50%"
           fontSize="65"
+          fontWeight={theme.isChonk ? 'bold' : 'inherit'}
           style={{dominantBaseline: 'central'}}
           textAnchor="middle"
         >
