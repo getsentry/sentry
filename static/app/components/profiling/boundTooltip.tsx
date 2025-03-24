@@ -42,17 +42,28 @@ function computeBestTooltipPlacement(
 
   const canvasBounds = canvas.canvas.getBoundingClientRect();
 
-  const left =
+  let left =
     // Cursor is relative to canvasBounds, not window
     cursorLeft + canvasBounds.left > window.innerWidth / 2
-      ? cursorLeft - tooltip.width
-      : cursorLeft + CURSOR_LEFT_OFFSET_PX;
+      ? cursorLeft - tooltip.width // place tooltip to the right of cursor
+      : cursorLeft + CURSOR_LEFT_OFFSET_PX; // placetooltip on the left of cursor
+
+  if (
+    // the tooltip is overflowing on the left
+    left + canvasBounds.left < WIDTH_OFFSET ||
+    // the tooltip is overflowing on the right
+    left + canvasBounds.left + tooltip.width >= window.innerWidth - WIDTH_OFFSET
+  ) {
+    // align the tooltip to the left edge, this means it's still possible that we
+    // overflow on the right in some cases
+    left = -canvasBounds.left + WIDTH_OFFSET;
+  }
 
   const top =
     // Cursor is relative to canvasBounds, not window
     cursorTop + canvasBounds.top > window.innerHeight / 2
-      ? cursorTop - tooltip.height
-      : cursorTop + CURSOR_TOP_OFFSET_PX;
+      ? cursorTop - tooltip.height // place tooltip above cursor
+      : cursorTop + CURSOR_TOP_OFFSET_PX; // place tooltip below cursor
 
   return `translate(${left}px, ${top}px)`;
 }
