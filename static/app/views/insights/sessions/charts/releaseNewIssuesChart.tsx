@@ -7,8 +7,8 @@ export default function ReleaseNewIssuesChart({type}: {type: 'issue' | 'feedback
 
   return (
     <InsightsLineChartWidget
-      title={t('Issues per Release')}
-      description={t('New issue counts over time, grouped by release.')}
+      title={type === 'issue' ? t('Issues per Release') : t('User Feedback per Release')}
+      description={t('New %s counts over time, grouped by release.', type)}
       series={series}
       isLoading={isPending}
       legendSelection={{
