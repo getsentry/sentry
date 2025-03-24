@@ -160,18 +160,18 @@ describe('ChangePlanAction', () => {
   it('loads the billing config and displays plan options', async () => {
     renderComponent();
 
-    // Wait for async data to load and verify that tabs are rendered
+    // Wait for async data to load
     await waitFor(() => {
-      // Verify the tabs are rendered
       expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
-      expect(screen.getByTestId('am2-tier')).toBeInTheDocument();
-      expect(screen.getByTestId('mm2-tier')).toBeInTheDocument();
-
-      // Verify at least one plan option is displayed
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
     });
+
+    // Verify the tabs are rendered
+    expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
+    expect(screen.getByTestId('am2-tier')).toBeInTheDocument();
+    expect(screen.getByTestId('mm2-tier')).toBeInTheDocument();
+
+    // Verify at least one plan option is displayed
+    expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
 
     // Test basic interaction - click on AM2 tier
     const am2Tab = screen.getByTestId('am2-tier');
@@ -274,13 +274,13 @@ describe('ChangePlanAction', () => {
   it('updates plan list when switching between tiers', async () => {
     renderComponent();
 
-    // Wait for component to load and verify AM3 tier plans are displayed
+    // Wait for component to load
     await waitFor(() => {
       expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
-      expect(
-        screen.getByTestId('change-plan-radio-btn-am3_business')
-      ).toBeInTheDocument();
     });
+
+    // Verify AM3 tier plans are displayed
+    expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
 
     // Switch to AM2 tier
     const am2Tab = screen.getByTestId('am2-tier');
@@ -328,12 +328,14 @@ describe('ChangePlanAction', () => {
     const testTierTab = screen.getByTestId('test-tier');
     await userEvent.click(testTierTab);
 
-    // Wait for the TEST tier to become active and verify plans
+    // Wait for the TEST tier to become active
     await waitFor(() => {
       const updatedParent = screen.getByTestId('test-tier').closest('li');
       expect(updatedParent).toHaveClass('active');
+    });
 
-      // Verify TEST tier plans are shown after clicking the TEST tier tab
+    // Verify TEST tier plans are shown after clicking the TEST tier tab
+    await waitFor(() => {
       const testPlans = screen.queryAllByTestId(
         'change-plan-radio-btn-test_test_monthly'
       );
