@@ -2198,15 +2198,30 @@ class Factories:
     def create_action(
         config: dict[str, Any] | None = None,
         type: Action.Type | None = None,
+        data: dict[str, Any] | None = None,
         **kwargs,
     ) -> Action:
+        if config is None and type is None and data is None:
+            # Default to a slack action with nice defaults so someone can just do
+            # self.create_action() and have a sane default
+            config = {
+                "target_identifier": "1",
+                "target_display": "Sentry User",
+                "target_type": ActionTarget.SPECIFIC,
+            }
+
+            data = {"notes": "bufos are great", "tags": "bufo-bot"}
+
         if config is None:
             config = {}
+
+        if data is None:
+            data = {}
 
         if type is None:
             type = Action.Type.SLACK
 
-        return Action.objects.create(type=type, config=config, **kwargs)
+        return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
