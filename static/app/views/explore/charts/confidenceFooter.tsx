@@ -27,7 +27,7 @@ function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
   const lowAccuracySampleCount = (
     <Tooltip
       title={t(
-        'You many not have enough samples for accuracy. Increase your sampling rates to get more samples and accurate trends.'
+        'You many not have enough samples for high accuracy. Increase your sampling rates to get more samples and accurate trends.'
       )}
     >
       <InsufficientSamples>
