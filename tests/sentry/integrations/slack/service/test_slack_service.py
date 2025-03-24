@@ -16,6 +16,7 @@ from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.activity import Activity
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -23,6 +24,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.workflow_engine.models import Action
 
 
 class TestGetNotificationMessageToSend(TestCase):
@@ -102,7 +104,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 metadata={"access_token": "xoxb-access-token"},
             )
 
-        self.action = self.create_action(config={"target_identifier": self.channel_id})
+        self.action = self.create_action()
 
         self.parent_notification_action = NotificationMessage.objects.create(
             message_identifier=self.message_identifier,
@@ -504,7 +506,14 @@ class TestSlackServiceMethods(TestCase):
             rule_fire_history=self.slack_rule_fire_history,
         )
 
-        self.action = self.create_action(config={"target_identifier": self.channel_id})
+        self.action = self.create_action(
+            type=Action.Type.SLACK,
+            config={
+                "target_identifier": self.channel_id,
+                "target_type": ActionTarget.SPECIFIC,
+                "target_display": "#test-notifications",
+            },
+        )
 
         self.parent_notification_action = NotificationActionNotificationMessage(
             id=123,

@@ -16,7 +16,6 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
-from sentry.workflow_engine.models import Action
 
 
 class TestInit(RuleTestCase):
@@ -64,9 +63,7 @@ class TestInit(RuleTestCase):
             notification_uuid=self.notification_uuid,
         )
 
-        self.action = self.create_action(
-            type=Action.Type.SLACK, config={"target_identifier": "C0123456789"}
-        )
+        self.action = self.create_action()
 
     def test_when_rule_fire_history_is_passed_in(self) -> None:
         instance = SlackNotifyServiceAction(

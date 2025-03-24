@@ -24,6 +24,53 @@ class NotificationHandlerException(Exception):
     pass
 
 
+MESSAGING_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a Messaging Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": ["string"]},
+        "target_display": {"type": ["string"]},
+        "target_type": {
+            "type": ["integer"],
+            "enum": [*ActionTarget],
+        },
+    },
+    "required": ["target_identifier", "target_display", "target_type"],
+    "additionalProperties": False,
+}
+
+# Main difference between the discord and slack action config schemas is that
+# the target_display is null
+DISCORD_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a Discord Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": "string"},
+        "target_display": {
+            "type": ["null"],
+        },
+        "target_type": {
+            "type": ["integer"],
+            "enum": [*ActionTarget],
+        },
+    },
+    "required": ["target_identifier", "target_type"],
+    "additionalProperties": False,
+}
+
+TAGS_SCHEMA = {
+    "type": "string",
+    "description": "Tags to add to the message",
+}
+
+NOTES_SCHEMA = {
+    "type": "string",
+    "description": "Notes to add to the message",
+}
+
+
 class LegacyRegistryInvoker(ABC):
     """
     Abstract base class that defines the interface for notification handlers.
@@ -148,14 +195,49 @@ class TicketingActionHandler(ActionHandler, ABC):
 class DiscordActionHandler(NotificationActionHandler):
     group = NotificationActionHandler.Group.NOTIFICATION
 
+    config_schema = DISCORD_ACTION_CONFIG_SCHEMA
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for Discord action data blob",
+        "properties": {
+            "tags": TAGS_SCHEMA,
+        },
+        "additionalProperties": False,
+    }
+
 
 @action_handler_registry.register(Action.Type.SLACK)
 class SlackActionHandler(NotificationActionHandler):
+    config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for Slack action data blob",
+        "properties": {
+            "tags": TAGS_SCHEMA,
+            "notes": NOTES_SCHEMA,
+        },
+        "additionalProperties": False,
+    }
+
     group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.MSTEAMS)
 class MsteamsActionHandler(NotificationActionHandler):
+    config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for MSTeams action data blob",
+        "properties": {},
+        "additionalProperties": False,
+    }
+
     group = ActionHandler.Group.NOTIFICATION
 
 
