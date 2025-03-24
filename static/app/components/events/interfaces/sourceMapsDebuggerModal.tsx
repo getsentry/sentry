@@ -1803,6 +1803,7 @@ const ListItemContentContainer = styled('div')`
   flex-grow: 1;
   margin-left: ${space(1.5)};
   padding-bottom: ${space(2)};
+  max-width: 100%;
 `;
 
 const CompletionNoteContainer = styled('div')`
