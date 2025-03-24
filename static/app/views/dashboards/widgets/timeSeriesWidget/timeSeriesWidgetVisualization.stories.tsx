@@ -434,8 +434,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(shiftedSampleDurationTimeSeries, {stack: 'all'}),
-                new Bars(shiftedSampleDurationTimeSeries2, {stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries, {delay, stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries2, {delay, stack: 'all'}),
               ]}
             />
           </MediumWidget>
