@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -12,6 +13,10 @@ import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
+import SchemaHintsList, {
+  SchemaHintsSection,
+} from 'sentry/views/explore/components/schemaHintsList';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsFields,
@@ -43,9 +48,12 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
   const tableData = useExploreLogsTable({});
+  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
-  const {attributes: stringTags} = useTraceItemAttributes('string');
-  const {attributes: numberTags} = useTraceItemAttributes('number');
+  const {attributes: stringTags, isLoading: stringTagsLoading} =
+    useTraceItemAttributes('string');
+  const {attributes: numberTags, isLoading: numberTagsLoading} =
+    useTraceItemAttributes('number');
 
   useLogAnalytics({
     logsTableResult: tableData,
@@ -67,7 +75,7 @@ export function LogsTabContent({
     );
   }, [fields, setFields, stringTags, numberTags]);
   return (
-    <Layout.Body>
+    <Layout.Body noRowGap>
       <Layout.Main fullWidth>
         <FilterBarContainer>
           <PageFilterBar condensed>
@@ -95,6 +103,20 @@ export function LogsTabContent({
             {t('Edit Table')}
           </Button>
         </FilterBarContainer>
+        <Feature features="organizations:traces-schema-hints">
+          <SchemaHintsSection
+            withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}
+          >
+            <SchemaHintsList
+              supportedAggregates={[]}
+              numberTags={numberTags}
+              stringTags={stringTags}
+              isLoading={numberTagsLoading || stringTagsLoading}
+              exploreQuery={logsSearch.formatString()}
+              setExploreQuery={setLogsQuery}
+            />
+          </SchemaHintsSection>
+        </Feature>
       </Layout.Main>
 
       <LogsTableContainer fullWidth>
@@ -107,8 +129,9 @@ export function LogsTabContent({
 const FilterBarContainer = styled('div')`
   display: flex;
   gap: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const LogsTableContainer = styled(Layout.Main)`
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;

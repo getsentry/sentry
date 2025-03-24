@@ -25,20 +25,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
-import {
-  PageParamsProvider,
-  useExploreQuery,
-  useSetExploreQuery,
-} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
-interface SchemaHintsListProps {
+interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   isLoading?: boolean;
+}
+
+export interface SchemaHintsPageParams {
+  exploreQuery: string;
+  setExploreQuery: (query: string) => void;
 }
 
 const seeFullListTag: Tag = {
@@ -73,10 +73,10 @@ function SchemaHintsList({
   numberTags,
   stringTags,
   isLoading,
+  exploreQuery,
+  setExploreQuery,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
-  const exploreQuery = useExploreQuery();
-  const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
@@ -183,9 +183,11 @@ function SchemaHintsList({
         if (!isDrawerOpen) {
           openDrawer(
             () => (
-              <PageParamsProvider>
-                <SchemaHintsDrawer hints={filterTagsSorted} />
-              </PageParamsProvider>
+              <SchemaHintsDrawer
+                hints={filterTagsSorted}
+                exploreQuery={exploreQuery}
+                setExploreQuery={setExploreQuery}
+              />
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
@@ -343,6 +345,22 @@ const SchemaHintOption = styled(Button)`
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
+  }
+`;
+
+export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+  display: grid;
+  /* This is to ensure the hints section spans all the columns */
+  grid-column: 1/-1;
+  margin-bottom: ${space(2)};
+  margin-top: -4px;
+  height: fit-content;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr ${p =>
+        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
+    margin-bottom: 0;
+    margin-top: 0;
   }
 `;
 
