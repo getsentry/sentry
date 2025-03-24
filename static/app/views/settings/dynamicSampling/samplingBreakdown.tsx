@@ -218,7 +218,7 @@ const LegendItem = styled('div')`
 `;
 
 const SubText = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
 `;
 
