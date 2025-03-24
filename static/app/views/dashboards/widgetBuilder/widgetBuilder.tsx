@@ -695,14 +695,8 @@ function WidgetBuilder({
 
       if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
-        newQuery.fields = [
-          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
-          ...fieldStrings,
-        ];
-        newQuery.aggregates = [
-          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
-          ...fieldStrings,
-        ];
+        newQuery.fields = [...(newQuery.fields?.slice(0, -1) ?? []), ...fieldStrings];
+        newQuery.aggregates = [...newQuery.aggregates.slice(0, -1), ...fieldStrings];
       } else {
         newQuery.fields = [...newQuery.columns, ...fieldStrings];
         newQuery.aggregates = fieldStrings;

@@ -48,7 +48,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     log_fired_workflows,
 )
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 logger = logging.getLogger("sentry.workflow_engine.processors.delayed_workflow")
 
@@ -398,7 +398,7 @@ def fire_actions_for_groups(
     group_to_groupevent: dict[Group, GroupEvent],
 ) -> None:
     for group, group_event in group_to_groupevent.items():
-        job = WorkflowJob({"event": group_event})
+        job = WorkflowEventData(event=group_event)
         detector = get_detector_by_event(job)
 
         workflow_triggers: set[DataConditionGroup] = set()

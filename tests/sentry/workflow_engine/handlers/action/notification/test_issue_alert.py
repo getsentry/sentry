@@ -27,7 +27,7 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     WebhookIssueAlertHandler,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     EXCLUDED_ACTION_DATA_KEYS,
@@ -72,7 +72,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -127,7 +127,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         workflow = self.create_workflow()
-        job = WorkflowJob(event=self.group_event, workflow=workflow)
+        job = WorkflowEventData(event=self.group_event, workflow=workflow)
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
         assert isinstance(rule, Rule)
@@ -168,11 +168,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.job["event"], "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY, self.job.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
         )
 
         # Verify callback execution
-        mock_safe_execute.assert_called_once_with(mock_callback, self.job["event"], mock_futures)
+        mock_safe_execute.assert_called_once_with(mock_callback, self.job.event, mock_futures)
 
 
 class TestDiscordIssueAlertHandler(BaseWorkflowTest):
@@ -189,7 +189,7 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
         # self.project = self.create_project()
         # self.detector = self.create_detector(project=self.project)
         # self.group, self.event, self.group_event = self.create_group_event()
-        # self.job = WorkflowJob(event=self.group_event)
+        # self.job = WorkflowEventData(event=self.group_event)
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Discord action data"""
