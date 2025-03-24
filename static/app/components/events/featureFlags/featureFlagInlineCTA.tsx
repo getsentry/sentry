@@ -52,16 +52,10 @@ export function FeatureFlagCTAContent({
 
 export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
-  const {activateSidebar} = useFeatureFlagOnboarding();
 
-  function handleSetupButtonClick(e: any) {
-    trackAnalytics('flags.setup_sidebar_opened', {
-      organization,
-      surface: 'issue_details.flags_section',
-    });
-    trackAnalytics('flags.cta_setup_button_clicked', {organization});
-    activateSidebar(e);
-  }
+  const {activateSidebar} = useFeatureFlagOnboarding({
+    analyticsSurface: 'issue_details.flags_section',
+  });
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_feature_flags_inline_onboarding',
@@ -112,7 +106,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
       actions={actions}
     >
       <BannerWrapper>
-        <FeatureFlagCTAContent handleSetupButtonClick={handleSetupButtonClick} />
+        <FeatureFlagCTAContent handleSetupButtonClick={activateSidebar} />
         <CloseDropdownMenu
           position="bottom-end"
           triggerProps={{

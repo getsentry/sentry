@@ -186,6 +186,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
       grid={{renderBodyCell, renderHeadCell}}
       columnOrder={ORDER}
       columnSortBy={[]}
+      bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
     />
   );
 }
