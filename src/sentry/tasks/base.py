@@ -15,7 +15,7 @@ from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.task import Task as TaskWorkerTask
+from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 from sentry.utils.sdk import Scope, capture_exception
@@ -80,9 +80,6 @@ def taskworker_override(
 
         random.seed(datetime.now().timestamp())
         if rollout > random.random():
-            metrics.incr(
-                "taskbroker.rollout.shimmed", tags={"namespace": namespace, "task_name": task_name}
-            )
             return taskworker_attr(*args, **kwargs)
 
         return celery_task_attr(*args, **kwargs)
@@ -93,12 +90,12 @@ def taskworker_override(
 
 def override_task(
     celery_task: Task,
-    taskworker_task: TaskWorkerTask,
+    taskworker_task: TaskworkerTask,
     taskworker_config: TaskworkerConfig,
     task_name: str,
 ) -> Task:
     """
-    This function is used to override SentryTasks methods with TaskWorkerTask methods
+    This function is used to override SentryTasks methods with TaskworkerTask methods
     depending on the rollout percentage set in sentry options.
 
     This is used to migrate tasks from celery to taskworker in a controlled manner.
@@ -107,7 +104,7 @@ def override_task(
     for attr_name in replacements:
         celery_task_attr = getattr(celery_task, attr_name)
         taskworker_attr = getattr(taskworker_task, attr_name)
-        if callable(celery_task_attr):
+        if callable(celery_task_attr) and callable(taskworker_attr):
             limited_attr = taskworker_override(
                 celery_task_attr,
                 taskworker_attr,
