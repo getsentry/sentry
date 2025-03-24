@@ -32,11 +32,11 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.api import event_search
-from sentry.api.event_search import SearchConfig
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
+    AttributeArgumentDefinition,
     ColumnDefinitions,
     ConditionalAggregateDefinition,
     FormulaDefinition,
@@ -164,7 +164,10 @@ class SearchResolver:
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
-                config=SearchConfig(wildcard_free_text=True),
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    wildcard_free_text=True,
+                ),
                 params=self.params.filter_params,
                 get_field_type=self.get_field_type,
                 get_function_result_type=self.get_field_type,
@@ -741,7 +744,7 @@ class SearchResolver:
                         raise InvalidSearchQuery(
                             f"{argument} is not a valid argument for {function}"
                         )
-                if argument_definition.is_attribute:
+                if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
                 else:
                     if argument_definition.argument_types is None:
@@ -763,11 +766,12 @@ class SearchResolver:
                 )
 
             if (
-                argument_definition.argument_types is not None
-                and parsed_argument.search_type not in argument_definition.argument_types
+                isinstance(argument_definition, AttributeArgumentDefinition)
+                and argument_definition.attribute_types is not None
+                and parsed_argument.search_type not in argument_definition.attribute_types
             ):
                 raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.argument_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                 )
             parsed_args.append(parsed_argument)
 

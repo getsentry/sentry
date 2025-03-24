@@ -179,7 +179,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
 
         event_node = {
             "event_id": event.event_id,
-            "datetime": event.datetime,
+            "datetime": event_data.get("start_timestamp", float("inf")),
             "span_id": event_data.get("contexts", {}).get("trace", {}).get("span_id"),
             "parent_span_id": event_data.get("contexts", {}).get("trace", {}).get("parent_span_id"),
             "is_transaction": is_transaction,
@@ -187,6 +187,7 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             "is_current_project": event.project_id == project.id,
             "project_slug": event.project.slug,
             "project_id": event.project_id,
+            "platform": event.platform,
             "children": [],
         }
 
@@ -223,7 +224,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             event_node.update(
                 {
                     "title": f"{op} - {transaction_title}" if op else transaction_title,
-                    "platform": event.platform,
                     "duration": duration_str,
                     "profile_id": profile_id,
                     "span_ids": span_ids,  # Store for later use
@@ -249,7 +249,6 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             event_node.update(
                 {
                     "title": error_title,
-                    "platform": event.platform,
                 }
             )
 
@@ -346,20 +345,10 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
     # Sort children at each level
     sorted_tree = [sort_tree(root) for root in root_events]
 
-    # Clean up temporary fields before returning
-    def cleanup_node(node):
-        if "span_ids" in node:
-            del node["span_ids"]
-        for child in node["children"]:
-            cleanup_node(child)
-        return node
-
-    cleaned_tree = [cleanup_node(root) for root in sorted_tree]
-
     return {
         "trace_id": event.trace_id,
         "org_id": project.organization_id,
-        "events": cleaned_tree,
+        "events": sorted_tree,
     }
 
 
@@ -367,70 +356,47 @@ def _get_profile_from_trace_tree(
     trace_tree: dict[str, Any] | None, event: Event | GroupEvent | None, project: Project
 ) -> dict[str, Any] | None:
     """
-    Finds the profile for the transaction that is a parent of our error event.
+    Finds the profile for the transaction that contains our error event.
     """
     if not trace_tree or not event:
         return None
 
     events = trace_tree.get("events", [])
-    event_id = event.event_id
+    event_span_id = event.data.get("contexts", {}).get("trace", {}).get("span_id")
 
-    # First, find our error event in the tree and track parent transactions
-    # 1. Find the error event node and also build a map of parent-child relationships
-    # 2. Walk up from the error event to find a transaction with a profile
-
-    child_to_parent = {}
-
-    def build_parent_map(node, parent=None):
-        node_id = node.get("event_id")
-
-        if parent:
-            child_to_parent[node_id] = parent
-
-        for child in node.get("children", []):
-            build_parent_map(child, node)
-
-    # Build the parent-child map for the entire tree
-    for root_node in events:
-        build_parent_map(root_node)
-
-    # Find our error node in the flattened tree
-    error_node = None
-    all_nodes = []
-
-    def collect_all_nodes(node):
-        all_nodes.append(node)
-        for child in node.get("children", []):
-            collect_all_nodes(child)
-
-    for root_node in events:
-        collect_all_nodes(root_node)
-
-    for node in all_nodes:
-        if node.get("event_id") == event_id:
-            error_node = node
-            break
-
-    if not error_node:
+    if not event_span_id:
         return None
 
-    # Now walk up the tree to find a transaction with a profile
-    profile_id = None
-    current_node = error_node
-    while current_node:
-        if current_node.get("profile_id"):
-            profile_id = current_node.get("profile_id")
-            break
+    # Flatten all events in the tree for easier traversal
+    all_events = []
 
-        # Move up to parent - child_to_parent maps child event IDs to parent node objects
-        parent_node = child_to_parent.get(current_node.get("event_id"))
-        if not parent_node:
-            # Reached the root without finding a suitable transaction
-            return None
-        current_node = parent_node
+    def collect_all_events(node):
+        all_events.append(node)
+        for child in node.get("children", []):
+            collect_all_events(child)
 
-    if not profile_id:
+    for root_node in events:
+        collect_all_events(root_node)
+
+    # Find the first transaction that contains the event's span ID
+    # or has a span_id matching the event's span_id
+    matching_transaction = None
+    for node in all_events:
+        if node.get("is_transaction", False):
+            # Check if this transaction's span_id matches the event_span_id
+            if node.get("span_id") == event_span_id:
+                matching_transaction = node
+                break
+
+            # Check if this transaction contains the event_span_id in its span_ids
+            if event_span_id in node.get("span_ids", []):
+                matching_transaction = node
+                break
+
+    if not matching_transaction or not matching_transaction.get("profile_id"):
         return None
+
+    profile_id = matching_transaction.get("profile_id")
 
     # Fetch the profile data
     response = get_from_profiling_service(
@@ -459,26 +425,34 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     """
     Converts profile data into a hierarchical representation of code execution,
     including only items from the MainThread and app frames.
+    Calculates accurate durations for all nodes based on call stack transitions.
     """
-    profile = profile_data.get("profile")
-    if not profile:
-        return []
+    profile = profile_data["profile"]
+    frames = profile["frames"]
+    stacks = profile["stacks"]
+    samples = profile["samples"]
 
-    frames = profile.get("frames")
-    stacks = profile.get("stacks")
-    samples = profile.get("samples")
+    # Find the MainThread ID
+    thread_metadata = profile.get("thread_metadata", {})
+    main_thread_id = next(
+        (key for key, value in thread_metadata.items() if value["name"] == "MainThread"), None
+    )
 
-    if not all([frames, stacks, samples]):
-        return []
+    # Sort samples chronologically
+    sorted_samples = sorted(samples, key=lambda x: x["elapsed_since_start_ns"])
 
-    thread_metadata = profile.get("thread_metadata") or {}
-    main_thread_id = None
-    for key, value in thread_metadata.items():
-        if value.get("name") == "MainThread":
-            main_thread_id = key
-            break
+    # Calculate average sampling interval
+    if len(sorted_samples) >= 2:
+        time_diffs = [
+            sorted_samples[i + 1]["elapsed_since_start_ns"]
+            - sorted_samples[i]["elapsed_since_start_ns"]
+            for i in range(len(sorted_samples) - 1)
+        ]
+        sample_interval_ns = sum(time_diffs) / len(time_diffs) if time_diffs else 10000000
+    else:
+        sample_interval_ns = 10000000  # default 10ms
 
-    def create_frame_node(frame_index: int) -> dict:
+    def create_frame_node(frame_index: int) -> dict[str, Any]:
         """Create a node representation for a single frame"""
         frame = frames[frame_index]
         return {
@@ -488,59 +462,40 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             "lineno": frame.get("lineno", 0),
             "in_app": frame.get("in_app", False),
             "children": [],
+            "node_id": None,
+            "sample_count": 0,
+            "first_seen_ns": None,
+            "last_seen_ns": None,
+            "duration_ns": None,
         }
 
-    def find_or_create_child(parent: dict, frame_data: dict) -> dict:
+    def get_node_path(node: dict[str, Any], parent_path: str = "") -> str:
+        """Generate a unique path identifier for a node"""
+        return f"{parent_path}/{node['function']}:{node['filename']}:{node['lineno']}"
+
+    def find_or_create_child(parent: dict[str, Any], frame_data: dict[str, Any]) -> dict[str, Any]:
         """Find existing child node or create new one"""
         for child in parent["children"]:
             if (
                 child["function"] == frame_data["function"]
                 and child["module"] == frame_data["module"]
                 and child["filename"] == frame_data["filename"]
+                and child["lineno"] == frame_data["lineno"]
             ):
                 return child
 
         parent["children"].append(frame_data)
         return frame_data
 
-    def merge_stack_into_tree(tree: list[dict], stack_frames: list[dict]):
-        """Merge a stack trace into the tree"""
-        if not stack_frames:
-            return
-
-        # Find or create root node
-        root = None
-        for existing_root in tree:
-            if (
-                existing_root["function"] == stack_frames[0]["function"]
-                and existing_root["module"] == stack_frames[0]["module"]
-                and existing_root["filename"] == stack_frames[0]["filename"]
-            ):
-                root = existing_root
-                break
-
-        if root is None:
-            root = stack_frames[0]
-            tree.append(root)
-
-        # Merge remaining frames
-        current = root
-        for frame in stack_frames[1:]:
-            current = find_or_create_child(current, frame)
-
-    def process_stack(stack_index: int) -> list[dict]:
-        """Process a stack and return its frame hierarchy, filtering out non-app frames"""
+    def process_stack(stack_index):
+        """Extract app frames from a stack trace"""
         frame_indices = stacks[stack_index]
-
         if not frame_indices:
             return []
 
-        # Create nodes for app frames only, maintaining the correct execution order
-        # The frames need to be processed in order from callers to callees (main to helpers)
-        # The test expects 'main' to be the root function, followed by 'helper'
+        # Create nodes for app frames only, maintaining order (bottom to top)
         nodes = []
-        # Process frame indices in the correct execution order (root/callers first)
-        for idx in frame_indices:  # Not reversed - we want main at index 0
+        for idx in reversed(frame_indices):
             frame = frames[idx]
             if frame.get("in_app", False) and not (
                 frame.get("filename", "").startswith("<")
@@ -550,19 +505,145 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
 
         return nodes
 
-    # Process all samples to build execution tree
-    execution_tree: list[dict] = []
+    # Build the execution tree and track call stacks
+    execution_tree: list[dict[str, Any]] = []
+    call_stack_history: list[tuple[list[str], int]] = []  # [(node_ids, timestamp), ...]
+    node_registry: dict[str, dict[str, Any]] = {}  # {node_id: node_reference}
 
-    for sample in samples:
-        stack_id = sample["stack_id"]
-        thread_id = sample["thread_id"]
-
-        if not main_thread_id or str(thread_id) != str(main_thread_id):
+    for sample in sorted_samples:
+        if str(sample["thread_id"]) != str(main_thread_id):
             continue
 
-        stack_frames = process_stack(stack_id)
-        if stack_frames:
-            merge_stack_into_tree(execution_tree, stack_frames)
+        timestamp_ns = sample["elapsed_since_start_ns"]
+        stack_frames = process_stack(sample["stack_id"])
+        if not stack_frames:
+            continue
+
+        # Process this stack sample
+        current_stack_ids = []
+
+        # Find or create root node
+        root = None
+        for existing_root in execution_tree:
+            if (
+                existing_root["function"] == stack_frames[0]["function"]
+                and existing_root["module"] == stack_frames[0]["module"]
+                and existing_root["filename"] == stack_frames[0]["filename"]
+                and existing_root["lineno"] == stack_frames[0]["lineno"]
+            ):
+                root = existing_root
+                break
+
+        if root is None:
+            root = stack_frames[0]
+            execution_tree.append(root)
+
+        # Process root node
+        if root["node_id"] is None:
+            node_id = get_node_path(root)
+            root["node_id"] = node_id
+            node_registry[node_id] = root
+            root["first_seen_ns"] = timestamp_ns
+
+        root["sample_count"] += 1
+        root["last_seen_ns"] = timestamp_ns
+        current_stack_ids.append(root["node_id"])
+
+        # Process rest of the stack
+        current = root
+        current_path = root["node_id"]
+
+        for frame in stack_frames[1:]:
+            current = find_or_create_child(current, frame)
+
+            if current["node_id"] is None:
+                node_id = get_node_path(current, current_path)
+                current["node_id"] = node_id
+                node_registry[node_id] = current
+                current["first_seen_ns"] = timestamp_ns
+
+            current["sample_count"] += 1
+            current["last_seen_ns"] = timestamp_ns
+            current_stack_ids.append(current["node_id"])
+            current_path = current["node_id"]
+
+        # Record this call stack with its timestamp
+        call_stack_history.append((current_stack_ids, timestamp_ns))
+
+    # Calculate function active periods from call stack history
+    function_periods: dict[str, list[list[int | None]]] = {}
+
+    for i, (call_path, timestamp) in enumerate(call_stack_history):
+        # Mark functions as started
+        for node_id in call_path:
+            if node_id not in function_periods:
+                function_periods[node_id] = []
+
+            # Start a new period if needed
+            if not function_periods[node_id] or function_periods[node_id][-1][1] is not None:
+                function_periods[node_id].append([timestamp, None])
+
+        # Mark functions that disappeared as ended
+        if i > 0:
+            prev_call_path = call_stack_history[i - 1][0]
+            for node_id in prev_call_path:
+                if node_id not in call_path and function_periods.get(node_id):
+                    if function_periods[node_id][-1][1] is None:
+                        function_periods[node_id][-1][1] = timestamp
+
+    # Handle the last sample - all active functions end
+    if call_stack_history:
+        last_timestamp = call_stack_history[-1][1]
+        last_call_path = call_stack_history[-1][0]
+
+        for node_id in last_call_path:
+            if function_periods.get(node_id) and function_periods[node_id][-1][1] is None:
+                function_periods[node_id][-1][1] = last_timestamp + sample_interval_ns
+
+    # Calculate durations
+    def apply_durations(node):
+        """Calculate and set duration for a node and its children"""
+        node_id = node["node_id"]
+
+        # Primary method: use function periods if available
+        if node_id in function_periods:
+            periods = function_periods[node_id]
+            total_duration = sum(
+                (end - start) for start, end in periods if start is not None and end is not None
+            )
+
+            if total_duration > 0:
+                node["duration_ns"] = total_duration
+
+        # Apply to all children
+        for child in node["children"]:
+            apply_durations(child)
+
+        # Fallback methods if needed
+        if node["duration_ns"] is None or node["duration_ns"] == 0:
+            # Method 1: Use first and last seen timestamps
+            if node["first_seen_ns"] is not None and node["last_seen_ns"] is not None:
+                node["duration_ns"] = (
+                    node["last_seen_ns"] - node["first_seen_ns"] + sample_interval_ns
+                )
+
+            # Method 2: Use sample count as an estimate
+            elif node["sample_count"] > 0:
+                node["duration_ns"] = node["sample_count"] * sample_interval_ns
+
+            # Method 3: Use sum of children's durations
+            elif node["children"]:
+                child_duration = sum(
+                    child["duration_ns"]
+                    for child in node["children"]
+                    if child["duration_ns"] is not None
+                )
+                if child_duration > 0:
+                    node["duration_ns"] = child_duration
+
+    # Apply durations to all nodes
+    for node in execution_tree:
+        apply_durations(node)
 
     return execution_tree
 
@@ -670,14 +751,6 @@ def trigger_autofix(
 
     if serialized_event is None:
         return _respond_with_error("Cannot fix issues without an event.", 400)
-
-    if not any(
-        [
-            entry.get("type") == "exception" or entry.get("type") == "threads"
-            for entry in serialized_event["entries"]
-        ]
-    ):
-        return _respond_with_error("Cannot fix issues without a stacktrace.", 400)
 
     repos = get_autofix_repos_from_project_code_mappings(group.project)
 

@@ -119,6 +119,12 @@ export type IssueEventParameters = {
   };
   'issue_details.copy_event_id_clicked': StreamlineGroupEventParams;
   'issue_details.copy_event_link_clicked': StreamlineGroupEventParams;
+  'issue_details.copy_issue_details_as_markdown': {
+    groupId: string;
+    hasAutofix: boolean;
+    hasSummary: boolean;
+    eventId?: string;
+  };
   'issue_details.copy_issue_markdown_link_clicked': StreamlineGroupParams;
   'issue_details.copy_issue_short_id_clicked': StreamlineGroupParams;
   'issue_details.copy_issue_url_clicked': StreamlineGroupParams;
@@ -180,8 +186,12 @@ export type IssueEventParameters = {
   'issue_details.sourcemap_wizard_dismiss': SourceMapWizardParam;
   'issue_details.sourcemap_wizard_learn_more': SourceMapWizardParam;
   'issue_details.streamline_ui_toggle': {
+    enforced_streamline_ui: boolean;
     isEnabled: boolean;
   };
+  'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
+  'issue_details.tour.skipped': Record<string, unknown>;
+  'issue_details.tour.started': {method: 'dropdown' | 'modal'};
   'issue_details.view_full_trace_waterfall_clicked': Record<string, unknown>;
   'issue_details.view_hierarchy.hover_rendering_system': {
     platform?: string;
@@ -372,8 +382,9 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'tour-guide.dismiss': {id?: string};
-  'tour-guide.open': {id?: string};
+  'tour-guide.dismiss': {id?: string; step_count?: number; tour_key?: string};
+  'tour-guide.finish': {id?: string; step_count?: number; tour_key?: string};
+  'tour-guide.open': {id?: string; step_count?: number; tour_key?: string};
   'whats_new.link_clicked': Pick<Broadcast, 'title'> &
     Partial<Pick<Broadcast, 'category'>>;
 };
@@ -422,6 +433,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.similar_issues.similarity_embeddings_feedback_recieved':
     'Issue Details: Similar Issues: Similarity Embeddings Feedback Recieved',
   'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
+  'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
+  'issue_details.tour.started': 'Issue Details: Tour Started',
+  'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
@@ -513,6 +527,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
+  'issue_details.copy_issue_details_as_markdown':
+    'Issue Details: Copy Issue Details as Markdown',
   'issue_details.external_issue_loaded': 'Issue Details: External Issue Loaded',
   'issue_details.external_issue_modal_opened':
     'Issue Details: External Issue Modal Opened',
@@ -531,5 +547,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.comment_updated': 'Issue Details: Comment Updated',
   'tour-guide.open': 'Tour Guide: Opened',
   'tour-guide.dismiss': 'Tour Guide: Dismissed',
+  'tour-guide.finish': 'Tour Guide: Finished',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };

@@ -5,8 +5,8 @@ import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -123,7 +123,7 @@ function Dashboard() {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const includeMyTeams = isAllTeams || selectedTeams.some(team => team === 'myteams');
+  const includeMyTeams = isAllTeams || selectedTeams.includes('myteams');
   const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
   const myTeams = includeMyTeams ? userTeams : [];
   const otherTeams = isAllTeams

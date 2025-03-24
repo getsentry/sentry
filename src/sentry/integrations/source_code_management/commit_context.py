@@ -12,12 +12,14 @@ from django.utils import timezone as django_timezone
 
 from sentry import analytics
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.source_code_management.metrics import (
     CommitContextHaltReason,
     CommitContextIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.locks import locks
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -31,7 +33,11 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiRateLimitedError
+from sentry.shared_integrations.exceptions import (
+    ApiInvalidRequestError,
+    ApiRateLimitedError,
+    ApiRetryError,
+)
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -110,6 +116,7 @@ class CommitContextIntegration(ABC):
                 lifecycle.record_failure(e)
                 sentry_sdk.capture_exception(e)
                 return []
+
             try:
                 response = client.get_blame_for_files(files, extra)
             except IdentityNotValid as e:
@@ -121,6 +128,25 @@ class CommitContextIntegration(ABC):
                 sentry_sdk.capture_exception(e)
                 lifecycle.record_halt(e)
                 return []
+            except ApiInvalidRequestError as e:
+                # Ignore invalid request errors for GitLab
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                if self.integration_name == ExternalProviderEnum.GITLAB.value:
+                    lifecycle.record_halt(e)
+                    return []
+                else:
+                    raise
+            except ApiRetryError as e:
+                # Ignore retry errors for GitLab
+                # TODO(ecosystem): Remove this once we have a better way to handle this
+                if (
+                    self.integration_name == ExternalProviderEnum.GITLAB.value
+                    and client.base_url != GITLAB_CLOUD_BASE_URL
+                ):
+                    lifecycle.record_halt(e)
+                    return []
+                else:
+                    raise
             return response
 
     def get_commit_context_all_frames(
@@ -367,6 +393,8 @@ class CommitContextIntegration(ABC):
 
 
 class CommitContextClient(ABC):
+    base_url: str
+
     @abstractmethod
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]

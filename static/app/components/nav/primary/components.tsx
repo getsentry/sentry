@@ -53,12 +53,20 @@ function recordPrimaryItemClick(analyticsKey: string, organization: Organization
 
 export function SidebarItem({
   children,
+  label,
+  showLabel,
   ...props
-}: {children: React.ReactNode} & React.HTMLAttributes<HTMLElement>) {
+}: {
+  children: React.ReactNode;
+  label: string;
+  showLabel: boolean;
+} & React.HTMLAttributes<HTMLElement>) {
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '16px'}>
-      <li {...props}>{children}</li>
+      <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
+        <li {...props}>{children}</li>
+      </Tooltip>
     </IconDefaultsProvider>
   );
 }
@@ -76,12 +84,12 @@ export function SidebarMenu({
   const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem>
-      <DropdownMenu
-        position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
-        shouldApplyMinWidth={false}
-        trigger={(props, isOpen) => {
-          return (
+    <DropdownMenu
+      position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
+      shouldApplyMinWidth={false}
+      trigger={(props, isOpen) => {
+        return (
+          <SidebarItem label={label} showLabel={showLabel}>
             <NavButton
               {...props}
               aria-label={showLabel ? undefined : label}
@@ -95,11 +103,11 @@ export function SidebarMenu({
               {children}
               {showLabel ? label : null}
             </NavButton>
-          );
-        }}
-        items={items}
-      />
-    </SidebarItem>
+          </SidebarItem>
+        );
+      }}
+      items={items}
+    />
   );
 }
 
@@ -120,21 +128,19 @@ export function SidebarLink({
   const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem>
-      <Tooltip title={label} disabled={showLabel} position="right" skipWrapper>
-        <NavLink
-          {...linkProps}
-          onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
-          aria-selected={isActive}
-          aria-current={isActive ? 'page' : undefined}
-          aria-label={showLabel ? undefined : label}
-          isMobile={layout === NavLayout.MOBILE}
-        >
-          <InteractionStateLayer hasSelectedBackground={isActive} />
-          {children}
-          {showLabel ? label : null}
-        </NavLink>
-      </Tooltip>
+    <SidebarItem label={label} showLabel={showLabel}>
+      <NavLink
+        {...linkProps}
+        onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
+        aria-selected={isActive}
+        aria-current={isActive ? 'page' : undefined}
+        aria-label={showLabel ? undefined : label}
+        isMobile={layout === NavLayout.MOBILE}
+      >
+        <InteractionStateLayer hasSelectedBackground={isActive} />
+        {children}
+        {showLabel ? label : null}
+      </NavLink>
     </SidebarItem>
   );
 }
@@ -151,20 +157,22 @@ export function SidebarButton({
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
-    <NavButton
-      {...buttonProps}
-      isMobile={layout === NavLayout.MOBILE}
-      aria-label={showLabel ? undefined : label}
-      onClick={(e: React.MouseEvent<HTMLElement>) => {
-        recordPrimaryItemClick(analyticsKey, organization);
-        buttonProps.onClick?.(e);
-        onClick?.(e);
-      }}
-    >
-      <InteractionStateLayer />
-      {children}
-      {showLabel ? label : null}
-    </NavButton>
+    <SidebarItem label={label} showLabel={showLabel}>
+      <NavButton
+        {...buttonProps}
+        isMobile={layout === NavLayout.MOBILE}
+        aria-label={showLabel ? undefined : label}
+        onClick={(e: React.MouseEvent<HTMLElement>) => {
+          recordPrimaryItemClick(analyticsKey, organization);
+          buttonProps.onClick?.(e);
+          onClick?.(e);
+        }}
+      >
+        <InteractionStateLayer />
+        {children}
+        {showLabel ? label : null}
+      </NavButton>
+    </SidebarItem>
   );
 }
 

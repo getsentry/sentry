@@ -833,7 +833,7 @@ export function useResizeCanvasObserver(
       return undefined;
     }
 
-    if (canvases.some(c => c === null)) {
+    if (canvases.includes(null)) {
       return undefined;
     }
 

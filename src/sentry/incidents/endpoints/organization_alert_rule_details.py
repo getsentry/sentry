@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Callable
+from typing import Any
 
 from django.db import router, transaction
 from django.db.models import Q
@@ -38,6 +40,7 @@ from sentry.integrations.slack.tasks.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.models.organization import Organization
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
@@ -47,7 +50,9 @@ from sentry.workflow_engine.migration_helpers.alert_rule import dual_delete_migr
 logger = logging.getLogger(__name__)
 
 
-def fetch_alert_rule(request: Request, organization, alert_rule):
+def fetch_alert_rule(
+    request: Request, organization: Organization, alert_rule: AlertRule
+) -> Response:
     # Serialize Alert Rule
     expand = request.GET.getlist("expand", [])
     serialized_rule = serialize(
@@ -73,7 +78,9 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
     return Response(serialized_rule)
 
 
-def update_alert_rule(request: Request, organization, alert_rule):
+def update_alert_rule(
+    request: Request, organization: Organization, alert_rule: AlertRule
+) -> Response:
     data = request.data
     serializer = DrfAlertRuleSerializer(
         context={
@@ -115,7 +122,9 @@ def update_alert_rule(request: Request, organization, alert_rule):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def remove_alert_rule(request: Request, organization, alert_rule):
+def remove_alert_rule(
+    request: Request, organization: Organization, alert_rule: AlertRule
+) -> Response:
     try:
         # NOTE: we want to run the dual delete regardless of whether the user is flagged into dual writes:
         # the user could be removed from the dual write flag for whatever reason, and we need to make sure
@@ -255,7 +264,9 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
     }
 
     def check_project_access(func):
-        def wrapper(self, request: Request, organization, alert_rule):
+        def wrapper(
+            self, request: Request, organization: Organization, alert_rule: AlertRule
+        ) -> Response | Callable[[Any, Any], None]:
             project = None
 
             try:
@@ -263,6 +274,9 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
                 project = alert_rule.projects.get()
             except Exception:
                 pass
+
+            if not project:
+                return Response(status=status.HTTP_404_NOT_FOUND)
 
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)
@@ -285,7 +299,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         examples=MetricAlertExamples.GET_METRIC_ALERT_RULE,
     )
     @check_project_access
-    def get(self, request: Request, organization, alert_rule) -> Response:
+    def get(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
         Return details on an individual metric alert rule.
 
@@ -311,7 +325,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         examples=MetricAlertExamples.UPDATE_METRIC_ALERT_RULE,
     )
     @check_project_access
-    def put(self, request: Request, organization, alert_rule) -> Response:
+    def put(self, request: Request, organization: Organization, alert_rule: AlertRule) -> Response:
         """
         Updates a metric alert rule. See **Metric Alert Rule Types** under
         [Create a Metric Alert Rule for an Organization](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types)
@@ -340,7 +354,9 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         },
     )
     @check_project_access
-    def delete(self, request: Request, organization, alert_rule) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, alert_rule: AlertRule
+    ) -> Response:
         """
         Delete a specific metric alert rule.
 

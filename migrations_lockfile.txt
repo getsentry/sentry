@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0843_make_groupsearchview_postition_nullable_for_deletion
+sentry: 0845_safe_drop_groupsearchviewposition
 
 social_auth: 0002_default_auto_field
 
@@ -25,4 +25,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0031_translate_uptime_object_headers_to_lists_take_three
 
-workflow_engine: 0037_rm_workflow_name_unique_constraint
+workflow_engine: 0038_add_detector_workflow_unique_together

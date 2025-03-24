@@ -82,6 +82,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
+    debug: bool = False,
 ) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         query_string,
@@ -91,6 +92,7 @@ def run_table_query(
         limit,
         referrer,
         search_resolver or get_resolver(params, config),
+        debug,
     )
 
 
@@ -269,6 +271,7 @@ def build_top_event_conditions(
     )
 
 
+@sentry_sdk.trace
 def run_top_events_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -427,6 +430,7 @@ def _process_all_timeseries(
     return result
 
 
+@sentry_sdk.trace
 def run_trace_query(
     trace_id: str,
     params: SnubaParams,
@@ -463,7 +467,13 @@ def run_trace_query(
     columns_by_name = {col.proto_definition.name: col for col in columns}
     for item_group in response.item_groups:
         for span_item in item_group.items:
-            span: dict[str, Any] = {"id": span_item.id, "children": []}
+            span: dict[str, Any] = {
+                "id": span_item.id,
+                "children": [],
+                "errors": [],
+                "occurrences": [],
+                "event_type": "span",
+            }
             for attribute in span_item.attributes:
                 resolved_column = columns_by_name[attribute.key.name]
                 if resolved_column.proto_definition.type == STRING:

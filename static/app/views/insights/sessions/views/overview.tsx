@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -9,15 +9,17 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
-import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
-import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
 import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
 import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
@@ -30,50 +32,16 @@ import useProjectHasSessions from 'sentry/views/insights/sessions/queries/usePro
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
-  const headerProps = {
-    module: ModuleName.SESSIONS,
-  };
-
   const {view = ''} = useDomainViewFilters();
-
   const [filters, setFilters] = useState<string[]>(['']);
 
   // only show onboarding if the project does not have session data
   const hasSessionData = useProjectHasSessions();
   const showOnboarding = !hasSessionData;
 
-  const SESSION_HEALTH_CHARTS = (
-    <Fragment>
-      {view === FRONTEND_LANDING_SUB_PATH ? (
-        <ModuleLayout.Third>
-          <ErrorFreeSessionsChart />
-        </ModuleLayout.Third>
-      ) : view === MOBILE_LANDING_SUB_PATH ? (
-        <ModuleLayout.Third>
-          <CrashFreeSessionsChart />
-        </ModuleLayout.Third>
-      ) : undefined}
-      <ModuleLayout.Third>
-        <SessionHealthCountChart />
-      </ModuleLayout.Third>
-      <ModuleLayout.Third>
-        <UserHealthCountChart />
-      </ModuleLayout.Third>
-      <ModuleLayout.Third />
-      <ModuleLayout.Third>
-        <SessionHealthRateChart />
-      </ModuleLayout.Third>
-      <ModuleLayout.Third>
-        <UserHealthRateChart />
-      </ModuleLayout.Third>
-    </Fragment>
-  );
-
   return (
-    <React.Fragment>
-      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
-      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
-      {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
+    <Fragment>
+      <ViewSpecificHeader view={view} />
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
@@ -93,35 +61,110 @@ export function SessionsOverview() {
                 <ModulesOnboardingPanel moduleName={ModuleName.SESSIONS} />
               </ModuleLayout.Full>
             ) : (
-              <Fragment>
-                {view === MOBILE_LANDING_SUB_PATH && (
-                  <Fragment>
-                    {SESSION_HEALTH_CHARTS}
-                    <ModuleLayout.Half>
-                      <ReleaseSessionCountChart />
-                    </ModuleLayout.Half>
-                    <ModuleLayout.Half>
-                      <ReleaseSessionPercentageChart />
-                    </ModuleLayout.Half>
-                    <ModuleLayout.Full>
-                      <FilterWrapper>
-                        <FilterReleaseDropdown
-                          filters={filters}
-                          setFilters={setFilters}
-                        />
-                      </FilterWrapper>
-                      <ReleaseHealth filters={filters} />
-                    </ModuleLayout.Full>
-                  </Fragment>
-                )}
-                {view === FRONTEND_LANDING_SUB_PATH && SESSION_HEALTH_CHARTS}
-              </Fragment>
+              <ViewSpecificCharts view={view} filters={filters} setFilters={setFilters} />
             )}
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
-    </React.Fragment>
+    </Fragment>
   );
+}
+
+function ViewSpecificHeader({view}: {view: DomainView | ''}) {
+  switch (view) {
+    case FRONTEND_LANDING_SUB_PATH:
+      return <FrontendHeader module={ModuleName.SESSIONS} />;
+    case MOBILE_LANDING_SUB_PATH:
+      return <MobileHeader module={ModuleName.SESSIONS} />;
+    default:
+      return null;
+  }
+}
+
+function ViewSpecificCharts({
+  view,
+  filters,
+  setFilters,
+}: {
+  filters: string[];
+  setFilters: (filter: string[]) => void;
+  view: DomainView | '';
+}) {
+  switch (view) {
+    case FRONTEND_LANDING_SUB_PATH:
+      return (
+        <Fragment>
+          <ModuleLayout.Third>
+            <ErrorFreeSessionsChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <SessionHealthCountChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <UserHealthCountChart />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <SessionHealthRateChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <UserHealthRateChart />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
+          </ModuleLayout.Third>
+        </Fragment>
+      );
+    case MOBILE_LANDING_SUB_PATH:
+      return (
+        <Fragment>
+          <ModuleLayout.Third>
+            <CrashFreeSessionsChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>Coming soon: New issues per release</ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <ReleaseSessionCountChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <SessionHealthCountChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <UserHealthCountChart />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <ReleaseSessionPercentageChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <SessionHealthRateChart />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <UserHealthRateChart />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Full>
+            <FilterWrapper>
+              <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+            </FilterWrapper>
+            <ReleaseHealth filters={filters} />
+          </ModuleLayout.Full>
+        </Fragment>
+      );
+    default:
+      return null;
+  }
 }
 
 function PageWithProviders() {

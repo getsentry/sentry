@@ -40,8 +40,7 @@ class ProjectTeam(Model):
     __repr__ = sane_repr("project_id", "team_id")
 
 
-def process_resource_change(instance, **kwargs):
-    from sentry.models.organization import Organization
+def process_resource_change(instance: ProjectTeam, **kwargs):
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
@@ -49,11 +48,11 @@ def process_resource_change(instance, **kwargs):
         try:
             update_code_owners_schema.apply_async(
                 kwargs={
-                    "organization": instance.project.organization,
-                    "projects": [instance.project],
+                    "organization": instance.project.organization_id,
+                    "projects": [instance.project_id],
                 }
             )
-        except (Project.DoesNotExist, Organization.DoesNotExist):
+        except Project.DoesNotExist:
             pass
 
     transaction.on_commit(_spawn_task, router.db_for_write(ProjectTeam))

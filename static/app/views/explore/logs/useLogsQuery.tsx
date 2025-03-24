@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
@@ -16,8 +14,6 @@ import {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {useOurlogs} from 'sentry/views/insights/common/queries/useDiscover';
-
-const {warn, fmt} = Sentry._experiment_log;
 
 export interface OurLogsTableResult {
   eventView: EventView;
@@ -39,7 +35,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
-  const {data, meta, isError, isPending, pageLinks} = useOurlogs(
+  const {data, meta, isError, isPending, pageLinks, error} = useOurlogs(
     {
       ...options,
       cursor,
@@ -51,11 +47,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
     'api.explore.logs-table'
   );
 
-  if (!meta) {
-    warn(fmt`meta is 'undefined' for useExploreLogsTable`);
-  }
-
-  return {data, meta, isError, isPending, pageLinks};
+  return {data, meta, isError, isPending, pageLinks, error};
 }
 
 export function useExploreLogsTableRow(props: {
