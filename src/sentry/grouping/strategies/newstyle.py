@@ -5,9 +5,8 @@ import logging
 import re
 from collections import Counter
 from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ContextLineGroupingComponent,
@@ -36,6 +35,10 @@ from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
 
 logger = logging.getLogger(__name__)
 

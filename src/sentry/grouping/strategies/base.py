@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable, Iterator, Sequence
-from typing import Any, Generic, Protocol, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload
 
 from sentry import projectoptions
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     BaseGroupingComponent,
     ExceptionGroupingComponent,
@@ -16,6 +15,10 @@ from sentry.grouping.enhancer import Enhancements
 from sentry.interfaces.base import Interface
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
 
 STRATEGIES: dict[str, Strategy[Any]] = {}
 

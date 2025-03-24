@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from itertools import islice
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sentry import analytics
-from sentry.eventstore.models import Event
 from sentry.grouping.component import MessageGroupingComponent
 from sentry.grouping.parameterization import Parameterizer, UniqueIdExperiment
 from sentry.grouping.strategies.base import (
@@ -14,6 +15,9 @@ from sentry.grouping.strategies.base import (
 from sentry.interfaces.message import Message
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 
 @metrics.wraps("grouping.normalize_message_for_grouping")
