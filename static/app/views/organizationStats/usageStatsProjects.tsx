@@ -124,6 +124,15 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       groupBy.push('category');
       category.push('span_indexed');
     }
+    if (
+      dataCategory.apiName === 'profile_duration' ||
+      dataCategory.apiName === 'profile_duration_ui'
+    ) {
+      groupBy.push('category');
+      category.push(
+        dataCategory.apiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
+      );
+    }
 
     // We do not need more granularity in the data so interval is '1d'
     return {
@@ -388,6 +397,9 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         const {outcome, category, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
+        const isProfileChunk =
+          category === 'profile_chunk' || category === 'profile_chunk_ui';
+
         if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
           // we need `span_indexed` data for `accepted_stored` only
           return;
@@ -410,12 +422,17 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           return;
         }
 
-        if (
-          outcome === Outcome.ACCEPTED ||
-          outcome === Outcome.FILTERED ||
-          outcome === Outcome.INVALID
-        ) {
-          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
+        if (outcome === Outcome.ACCEPTED) {
+          if (isProfileChunk) {
+            return;
+          }
+          stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
+        }
+
+        const multiplier = isProfileChunk ? 9000 : 1;
+
+        if (outcome === Outcome.FILTERED || outcome === Outcome.INVALID) {
+          stats[projectId!]![outcome] += group.totals['sum(quantity)']! * multiplier;
         }
 
         if (
@@ -423,7 +440,8 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.ABUSE
         ) {
-          stats[projectId!]![SortBy.RATE_LIMITED] += group.totals['sum(quantity)']!;
+          stats[projectId!]![SortBy.RATE_LIMITED] +=
+            group.totals['sum(quantity)']! * multiplier;
         }
       });
 
