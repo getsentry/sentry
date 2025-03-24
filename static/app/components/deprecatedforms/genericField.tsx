@@ -1,6 +1,6 @@
 import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import EmailField from 'sentry/components/deprecatedforms/emailField';
-import type FormField from 'sentry/components/deprecatedforms/formField';
+import type {FormFieldProps} from 'sentry/components/deprecatedforms/formField';
 import NumberField from 'sentry/components/deprecatedforms/numberField';
 import PasswordField from 'sentry/components/deprecatedforms/passwordField';
 import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
@@ -54,7 +54,7 @@ type Props = {
   config: Config | SelectFieldConfig | AsyncSelectFieldConfig;
   formData: FormData;
   formState: (typeof FormState)[keyof typeof FormState];
-  onChange: FormField['props']['onChange'];
+  onChange: FormFieldProps['onChange'];
   formErrors?: Record<PropertyKey, string>;
 };
 

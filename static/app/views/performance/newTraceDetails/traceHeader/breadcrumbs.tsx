@@ -21,7 +21,7 @@ import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import Tab from '../../transactionSummary/tabs';
 
-export const enum TraceViewSources {
+export enum TraceViewSources {
   TRACES = 'traces',
   METRICS = 'metrics',
   DISCOVER = 'discover',
@@ -106,22 +106,18 @@ function getPerformanceBreadCrumbs(
 ) {
   const crumbs: Crumb[] = [];
 
-  const hasPerfLandingRemovalFlag = organization.features.includes(
-    'insights-performance-landing-removal'
-  );
-
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
   const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
-  if (!view && hasPerfLandingRemovalFlag) {
+  if (view) {
     crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
+      label: DOMAIN_VIEW_TITLES[view],
+      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
     });
   } else {
     crumbs.push({
-      label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
-      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
+      label: DOMAIN_VIEW_BASE_TITLE,
+      to: undefined,
     });
   }
 

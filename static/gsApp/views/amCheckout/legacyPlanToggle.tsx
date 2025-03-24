@@ -2,15 +2,13 @@ import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import type {Client} from 'sentry/api';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import {DEFAULT_TIER, SUPPORTED_TIERS} from 'getsentry/constants';
@@ -28,9 +26,7 @@ const LATEST_DESCRIPTION = t(
 );
 
 type Props = {
-  api: Client;
   onClick: () => void;
-  organization: Organization;
   subscription: Subscription;
   /**
    * The currently selected planTier of the checkout page.
@@ -38,13 +34,9 @@ type Props = {
   checkoutTier?: string;
 };
 
-function LegacyPlanToggle({
-  onClick,
-  organization,
-  subscription,
-  checkoutTier,
-  api,
-}: Props) {
+function LegacyPlanToggle({onClick, subscription, checkoutTier}: Props) {
+  const api = useApi();
+  const organization = useOrganization();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<undefined | Error | string>(undefined);
   const [planMigrations, setPlanMigrations] = useState<PlanMigration[]>([]);
@@ -138,4 +130,4 @@ const IconWrapper = styled('div')`
   color: ${p => p.theme.subText};
 `;
 
-export default withApi(withOrganization(withSubscription(LegacyPlanToggle)));
+export default withSubscription(LegacyPlanToggle);
