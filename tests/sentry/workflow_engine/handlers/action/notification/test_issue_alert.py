@@ -35,6 +35,7 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMappingKeys,
     EmailActionHelper,
     SentryAppIdentifier,
+    TicketingActionDataBlobHelper,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -367,7 +368,7 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
         action = self.create_action(
             type=action_type,
             integration_id=expected["integration"],
-            data=action_data,
+            data=self._form_ticketing_action_blob(action_data),
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
@@ -380,6 +381,12 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
             "integration": expected["integration"],
             **expected,
         }
+
+    def _form_ticketing_action_blob(self, expected):
+        dynamic_form_fields, additional_fields = TicketingActionDataBlobHelper.separate_fields(
+            expected
+        )
+        return {"dynamic_form_fields": dynamic_form_fields, "additional_fields": additional_fields}
 
 
 class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
