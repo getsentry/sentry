@@ -138,7 +138,7 @@ class TicketingActionHandler(ActionHandler, ABC):
 
     @staticmethod
     def execute(
-        job: WorkflowJob,
+        job: WorkflowEventData,
         action: Action,
         detector: Detector,
     ) -> None:
