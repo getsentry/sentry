@@ -481,5 +481,7 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
     ),
-    "spm": FormulaDefinition(default_search_type="percentage", formula_resolver=spm),
+    "spm": FormulaDefinition(
+        default_search_type="percentage", arguments=[], formula_resolver=spm, is_aggregate=True
+    ),
 }
