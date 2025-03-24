@@ -130,6 +130,18 @@ import {Widget} from './widget';
     );
   });
 
+  story('Connecting Widgets', () => {
+    return (
+      <Fragment>
+        <p>
+          Some widgets (e.g., <code>TimeSeriesWidgetVisualization</code> can be connected.
+          Connecting widgets together synchronizes their axes, and axes pointers. To do
+          this automatically, you can use <code>WidgetSyncContext</code>.
+        </p>
+      </Fragment>
+    );
+  });
+
   story('Managing UI States', () => {
     return (
       <Fragment>
