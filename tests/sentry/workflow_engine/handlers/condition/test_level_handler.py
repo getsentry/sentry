@@ -5,7 +5,7 @@ from sentry.rules.conditions.level import LevelCondition
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -19,7 +19,12 @@ class TestLevelCondition(ConditionTestCase):
 
     def setup_group_event_and_job(self):
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowEventData(event=self.group_event)
+        self.job = WorkflowJob(
+            {
+                "event": self.group_event,
+                "has_reappeared": True,
+            }
+        )
 
     def setUp(self):
         super().setUp()

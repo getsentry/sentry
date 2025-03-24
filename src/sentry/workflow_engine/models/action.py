@@ -13,7 +13,7 @@ from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
@@ -66,7 +66,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, job: WorkflowEventData, detector: Detector) -> None:
+    def trigger(self, job: WorkflowJob, detector: Detector) -> None:
         # get the handler for the action type
         handler = self.get_handler()
         handler.execute(job, self, detector)

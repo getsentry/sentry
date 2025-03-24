@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypedDict, TypeVar
 
@@ -33,13 +32,17 @@ DataConditionResult = DetectorPriorityLevel | int | float | bool | None
 ProcessedDataConditionResult = tuple[bool, list[DataConditionResult]]
 
 
-@dataclass(frozen=True)
-class WorkflowEventData:
+class EventJob(TypedDict):
     event: GroupEvent
-    group_state: GroupState | None = None
-    has_reappeared: bool | None = None
-    has_escalated: bool | None = None
-    workflow: Workflow | None = None
+
+
+class WorkflowJob(EventJob, total=False):
+    group_state: GroupState
+    is_reprocessed: bool
+    has_reappeared: bool
+    has_alert: bool
+    has_escalated: bool
+    workflow: Workflow
 
 
 class ActionHandler:
@@ -54,7 +57,7 @@ class ActionHandler:
     group: ClassVar[Group]
 
     @staticmethod
-    def execute(job: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def execute(job: WorkflowJob, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 

@@ -3,11 +3,11 @@ from typing import Any
 from sentry.models.group import Group
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.ISSUE_OCCURRENCES)
-class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
+class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowJob]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
@@ -21,8 +21,8 @@ class IssueOccurrencesConditionHandler(DataConditionHandler[WorkflowEventData]):
     }
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
-        group: Group = job.event.group
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+        group: Group = job["event"].group
         try:
             value = int(comparison["value"])
         except (TypeError, ValueError, KeyError):

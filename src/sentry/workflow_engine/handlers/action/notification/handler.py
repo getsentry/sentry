@@ -16,7 +16,7 @@ from sentry.workflow_engine.handlers.action.notification.metric_alert import (
 )
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
+from sentry.workflow_engine.types import ActionHandler, WorkflowJob
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class LegacyRegistryInvoker(ABC):
 
     @staticmethod
     @abstractmethod
-    def handle_workflow_action(job: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         """
         Implement this method to handle the specific notification logic for your handler.
         """
@@ -42,9 +42,7 @@ class LegacyRegistryInvoker(ABC):
 group_type_notification_registry = Registry[LegacyRegistryInvoker]()
 
 
-def execute_via_group_type_registry(
-    job: WorkflowEventData, action: Action, detector: Detector
-) -> None:
+def execute_via_group_type_registry(job: WorkflowJob, action: Action, detector: Detector) -> None:
     try:
         handler = group_type_notification_registry.get(detector.type)
         handler.handle_workflow_action(job, action, detector)
@@ -56,9 +54,7 @@ def execute_via_group_type_registry(
         )
 
 
-def execute_via_metric_alert_handler(
-    job: WorkflowEventData, action: Action, detector: Detector
-) -> None:
+def execute_via_metric_alert_handler(job: WorkflowJob, action: Action, detector: Detector) -> None:
     # TODO(iamrajjoshi): Implement this, it should be used for the ticketing actions
     pass
 
@@ -86,7 +82,7 @@ class NotificationActionHandler(ActionHandler, ABC):
 
     @staticmethod
     def execute(
-        job: WorkflowEventData,
+        job: WorkflowJob,
         action: Action,
         detector: Detector,
     ) -> None:
@@ -166,7 +162,7 @@ class WebhookActionHandler(NotificationActionHandler):
 @group_type_notification_registry.register(ErrorGroupType.slug)
 class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
     @staticmethod
-    def handle_workflow_action(job: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         try:
             handler = issue_alert_handler_registry.get(action.type)
             handler.invoke_legacy_registry(job, action, detector)
@@ -188,7 +184,7 @@ class IssueAlertRegistryInvoker(LegacyRegistryInvoker):
 @group_type_notification_registry.register(MetricIssuePOC.slug)
 class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
     @staticmethod
-    def handle_workflow_action(job: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def handle_workflow_action(job: WorkflowJob, action: Action, detector: Detector) -> None:
         try:
             handler = metric_alert_handler_registry.get(action.type)
             handler.invoke_legacy_registry(job, action, detector)
