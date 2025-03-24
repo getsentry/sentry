@@ -133,7 +133,7 @@ function ViewSpecificCharts({
             <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ReleaseNewIssuesChart />
+            <ReleaseNewIssuesChart type="issue" />
           </ModuleLayout.Third>
 
           <ModuleLayout.Third>
@@ -156,11 +156,14 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
-          {/* only show this chart if the project has user feedback set up */}
+          {/* only show these charts if the project has user feedback set up */}
           {hasSetupOneFeedback && (
             <Fragment>
               <ModuleLayout.Third>
                 <NewAndResolvedIssueChart type="feedback" />
+              </ModuleLayout.Third>
+              <ModuleLayout.Third>
+                <ReleaseNewIssuesChart type="feedback" />
               </ModuleLayout.Third>
             </Fragment>
           )}

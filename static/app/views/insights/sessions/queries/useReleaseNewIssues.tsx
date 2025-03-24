@@ -5,7 +5,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export default function useReleaseNewIssues() {
+export default function useReleaseNewIssues({type}: {type: 'issue' | 'feedback'}) {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
@@ -29,7 +29,7 @@ export default function useReleaseNewIssues() {
       {
         query: {
           ...locationQuery.query,
-          category: 'issue',
+          category: type,
           interval: getInterval(selection.datetime, 'issues-metrics'),
         },
       },
