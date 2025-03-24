@@ -19,6 +19,7 @@ import {
 } from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
 import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
 import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
@@ -32,7 +33,6 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
   const {view = ''} = useDomainViewFilters();
-
   const [filters, setFilters] = useState<string[]>(['']);
 
   // only show onboarding if the project does not have session data
@@ -104,12 +104,18 @@ function ViewSpecificCharts({
             <UserHealthCountChart />
           </ModuleLayout.Third>
 
-          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <UserHealthRateChart />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
         </Fragment>
       );
@@ -119,7 +125,9 @@ function ViewSpecificCharts({
           <ModuleLayout.Third>
             <CrashFreeSessionsChart />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>Coming soon: New issues per release</ModuleLayout.Third>
 
           <ModuleLayout.Third>
@@ -140,6 +148,10 @@ function ViewSpecificCharts({
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <UserHealthRateChart />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>

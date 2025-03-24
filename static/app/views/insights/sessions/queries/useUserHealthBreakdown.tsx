@@ -8,7 +8,7 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
@@ -26,7 +26,7 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['count_unique(user)'],
           groupBy: ['session.status'],
         },

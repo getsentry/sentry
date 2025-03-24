@@ -19,10 +19,11 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
-    ArgumentDefinition,
+    AttributeArgumentDefinition,
     FormulaDefinition,
     ResolvedArguments,
-    ResolverSettings,
+    ValueArgumentDefinition,
+    ResolverSettings
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
@@ -381,9 +382,8 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         is_aggregate=True,
         arguments=[
-            ArgumentDefinition(
+            ValueArgumentDefinition(
                 argument_types={"integer"},
-                is_attribute=False,
                 validator=literal_validator(["1", "2", "3", "4", "5"]),
             )
         ],
@@ -399,9 +399,8 @@ SPAN_FORMULA_DEFINITIONS = {
         default_search_type="percentage",
         is_aggregate=True,
         arguments=[
-            ArgumentDefinition(
+            ValueArgumentDefinition(
                 argument_types={"string"},
-                is_attribute=False,
             )
         ],
         formula_resolver=trace_status_rate,
@@ -427,8 +426,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "opportunity_score": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                 },
@@ -441,8 +440,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -450,23 +449,9 @@ SPAN_FORMULA_DEFINITIONS = {
                     *constants.DURATION_TYPE,
                 },
             ),
-            ArgumentDefinition(
-                argument_types={
-                    "string",
-                },
-            ),
-            ArgumentDefinition(
-                argument_types={
-                    "string",
-                },
-                is_attribute=False,
-            ),
-            ArgumentDefinition(
-                argument_types={
-                    "string",
-                },
-                is_attribute=False,
-            ),
+            AttributeArgumentDefinition(attribute_types={"string"}),
+            ValueArgumentDefinition(argument_types={"string"}),
+            ValueArgumentDefinition(argument_types={"string"}),
         ],
         formula_resolver=avg_compare,
         is_aggregate=True,
@@ -474,8 +459,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "division": FormulaDefinition(
         default_search_type="number",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -483,8 +468,8 @@ SPAN_FORMULA_DEFINITIONS = {
                     *constants.DURATION_TYPE,
                 },
             ),
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
@@ -499,8 +484,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "time_spent_percentage": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
