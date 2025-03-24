@@ -101,6 +101,7 @@ function BoundTooltip({
   const containerBoundsRef = useRef<Rect>(DEFAULT_BOUNDS);
 
   if (containerBoundsRef.current.isEmpty()) {
+    // using the innerWidth and innerHeight here because we only want the size of the visible portions
     containerBoundsRef.current = new Rect(0, 0, window.innerWidth, window.innerHeight);
   }
 
