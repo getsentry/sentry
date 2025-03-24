@@ -32,7 +32,7 @@ function HookStats() {
   const organization = useOrganization();
   const {hookId, projectId} = useParams<{hookId: string; projectId: string}>();
 
-  const [until] = useState(() => Math.floor(new Date().getTime() / 1000));
+  const [until] = useState(() => Math.floor(Date.now() / 1000));
   const since = until - 3600 * 24 * 30;
 
   const {
