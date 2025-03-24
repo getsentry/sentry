@@ -7,7 +7,7 @@ export default function ReleaseNewIssuesChart() {
 
   return (
     <InsightsLineChartWidget
-      title={t('Issues per Release')}
+      title={t('New Issues by Release')}
       description={t('New issue counts over time, grouped by release.')}
       series={series}
       isLoading={isPending}
