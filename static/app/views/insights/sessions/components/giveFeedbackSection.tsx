@@ -1,19 +1,46 @@
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import {Button} from 'sentry/components/core/button';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {MIN_HEIGHT, MIN_WIDTH} from 'sentry/views/dashboards/widgets/common/settings';
+
+function FeedbackButton() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const openForm = useFeedbackForm();
+
+  if (!openForm) {
+    return null;
+  }
+
+  return (
+    <Button
+      ref={buttonRef}
+      icon={<IconMegaphone />}
+      size="md"
+      onClick={() =>
+        openForm({
+          messagePlaceholder: t('How can we make Session Health more useful for you?'),
+          tags: {
+            ['feedback.source']: 'insights.session_health',
+            ['feedback.owner']: 'replay',
+          },
+        })
+      }
+    >
+      {t('Give Feedback')}
+    </Button>
+  );
+}
 
 export default function GiveFeedbackSection() {
   return (
     <ChartContainer>
       <FeedbackHeading>{t(`Are we missing a chart you'd like to see?`)}</FeedbackHeading>
-      <FeatureFeedback
-        featureName="session-health"
-        feedbackTypes={[t('Useful chart'), t('Useless chart'), t('Other')]}
-        buttonProps={{size: 'md'}}
-      />
+      <FeedbackButton />
     </ChartContainer>
   );
 }
