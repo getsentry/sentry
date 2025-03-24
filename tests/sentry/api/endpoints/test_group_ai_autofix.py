@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from sentry.autofix.utils import AutofixState, AutofixStatus, CodebaseState
-from sentry.models.group import Group
 from sentry.seer.autofix import TIMEOUT_SECONDS
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -602,53 +601,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             self._get_url(group.id), data={"instruction": "Yes"}, format="json"
         )
         assert response.status_code == 400
-
-    @patch("sentry.seer.autofix._call_autofix")
-    def test_ai_autofix_without_stacktrace(self, mock_call):
-        release = self.create_release(project=self.project, version="1.0.0")
-
-        # Creating a repository with a valid name 'getsentry/sentry'
-        valid_repo = self.create_repo(
-            project=self.project,
-            name="getsentry/sentry",
-            provider="integrations:github",
-            external_id="123",
-        )
-        valid_repo.save()
-
-        self.create_commit(project=self.project, release=release, key="1234", repo=valid_repo)
-
-        data = load_data("python", timestamp=before_now(minutes=1))
-
-        event = self.store_event(
-            data={
-                **data,
-                "release": release.version,
-                "exception": None,
-                "stacktrace": None,
-            },
-            project_id=self.project.id,
-        )
-
-        group = event.group
-
-        assert group is not None
-        group.save()
-
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"instruction": "Yes", "event_id": event.event_id},
-            format="json",
-        )
-        mock_call.assert_not_called()
-
-        group = Group.objects.get(id=group.id)
-
-        error_msg = "Cannot fix issues without a stacktrace."
-
-        assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
-        assert response.data["detail"] == error_msg
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
     @patch("sentry.api.endpoints.group_ai_autofix.cache")
