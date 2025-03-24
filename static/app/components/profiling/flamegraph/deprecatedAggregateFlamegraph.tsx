@@ -239,7 +239,7 @@ export function DeprecatedAggregateFlamegraph(
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -296,7 +296,6 @@ export function DeprecatedAggregateFlamegraph(
       <FlamegraphZoomView
         scheduler={scheduler}
         profileGroup={profileGroup}
-        canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
         flamegraph={flamegraph}
         flamegraphRenderer={flamegraphRenderer}

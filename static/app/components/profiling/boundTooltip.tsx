@@ -31,8 +31,7 @@ const WIDTH_OFFSET = 8;
 function computeBestTooltipPlacement(
   cursor: vec2,
   tooltip: DOMRect,
-  canvas: Rect,
-  container: Rect
+  canvas: FlamegraphCanvas
 ): string {
   // This is because the cursor's origin is in the top left corner of the arrow, so we want
   // to offset it just enough so that the tooltip does not overlap with the arrow's tail.
@@ -41,39 +40,44 @@ function computeBestTooltipPlacement(
   const cursorLeft = cursor[0];
   const cursorTop = cursor[1];
 
-  // Cursor is relative to canvas, not container
-  const cursorRelativeToContainer = cursorLeft + canvas.x;
+  const canvasBounds = canvas.canvas.getBoundingClientRect();
 
   let left =
-    cursorRelativeToContainer > container.width / 2
-      ? cursorLeft - tooltip.width
-      : cursorLeft + CURSOR_LEFT_OFFSET_PX;
+    // Cursor is relative to canvasBounds, not window
+    cursorLeft + canvasBounds.left > window.innerWidth / 2
+      ? cursorLeft - tooltip.width // place tooltip to the right of cursor
+      : cursorLeft + CURSOR_LEFT_OFFSET_PX; // placetooltip on the left of cursor
 
-  const right = left + tooltip.width + canvas.left;
-
-  if (left + canvas.left - WIDTH_OFFSET <= 0) {
-    left = -canvas.left + WIDTH_OFFSET;
-  } else if (right >= container.width - WIDTH_OFFSET) {
-    left = container.width - tooltip.width - canvas.left - WIDTH_OFFSET;
+  if (
+    // the tooltip is overflowing on the left
+    left + canvasBounds.left < WIDTH_OFFSET ||
+    // the tooltip is overflowing on the right
+    left + canvasBounds.left + tooltip.width >= window.innerWidth - WIDTH_OFFSET
+  ) {
+    // align the tooltip to the left edge, this means it's still possible that we
+    // overflow on the right in some cases
+    left = -canvasBounds.left + WIDTH_OFFSET;
   }
 
-  return `translate(${left}px, ${cursorTop + CURSOR_TOP_OFFSET_PX}px)`;
+  const top =
+    // Cursor is relative to canvasBounds, not window
+    cursorTop + canvasBounds.top > window.innerHeight / 2
+      ? cursorTop - tooltip.height // place tooltip above cursor
+      : cursorTop + CURSOR_TOP_OFFSET_PX; // place tooltip below cursor
+
+  return `translate(${left}px, ${top}px)`;
 }
 
 interface BoundTooltipProps {
   canvas: FlamegraphCanvas;
-  canvasBounds: Rect;
   canvasView: CanvasView<any>;
   cursor: vec2;
   children?: React.ReactNode;
-  containerBounds?: Rect;
 }
 
 const DEFAULT_BOUNDS = Rect.Empty();
 
 function BoundTooltip({
-  containerBounds,
-  canvasBounds,
   canvas,
   cursor,
   canvasView,
@@ -94,18 +98,11 @@ function BoundTooltip({
     canvas.physicalToLogicalSpace
   );
 
-  const containerBoundsRef = useRef<Rect>(containerBounds ?? DEFAULT_BOUNDS);
+  const containerBoundsRef = useRef<Rect>(DEFAULT_BOUNDS);
 
-  if (containerBounds) {
-    containerBoundsRef.current = containerBounds;
-  } else if (containerBoundsRef.current.isEmpty()) {
-    const bodyRect = document.body.getBoundingClientRect();
-    containerBoundsRef.current = new Rect(
-      bodyRect.x,
-      bodyRect.y,
-      bodyRect.width,
-      bodyRect.height
-    );
+  if (containerBoundsRef.current.isEmpty()) {
+    // using the innerWidth and innerHeight here because we only want the size of the visible portions
+    containerBoundsRef.current = new Rect(0, 0, window.innerWidth, window.innerHeight);
   }
 
   const sizeCache = useRef<{size: DOMRect; value: React.ReactNode} | null>(null);
@@ -129,12 +126,11 @@ function BoundTooltip({
         node.style.transform = computeBestTooltipPlacement(
           logicalSpaceCursor,
           sizeCache.current.size,
-          canvasBounds,
-          containerBoundsRef.current
+          canvas
         );
       });
     },
-    [canvasBounds, logicalSpaceCursor, children]
+    [canvas, logicalSpaceCursor, children]
   );
 
   return (

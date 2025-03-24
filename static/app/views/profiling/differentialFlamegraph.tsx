@@ -198,7 +198,7 @@ function DifferentialFlamegraphView() {
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -305,7 +305,6 @@ function DifferentialFlamegraphView() {
               disableGrid
               disableCallOrderSort
               disableColorCoding
-              canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={differentialFlamegraph.differentialFlamegraph}
               flamegraphRenderer={flamegraphRenderer}

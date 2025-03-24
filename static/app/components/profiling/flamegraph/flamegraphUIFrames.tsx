@@ -19,7 +19,6 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer2D} from 'sentry/utils/profiling/renderers/UIFramesRenderer2D';
 import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
-import type {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -33,7 +32,6 @@ import {
 import {FlamegraphUIFramesTooltip} from './flamegraphUIFramesTooltip';
 
 interface FlamegraphUIFramesProps {
-  canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
   setUIFramesCanvasRef: (ref: HTMLCanvasElement | null) => void;
   status: RequestState<any>['type'];
@@ -45,7 +43,6 @@ interface FlamegraphUIFramesProps {
 
 export function FlamegraphUIFrames({
   status,
-  canvasBounds,
   uiFrames,
   canvasPoolManager,
   uiFramesView,
@@ -294,7 +291,6 @@ export function FlamegraphUIFrames({
           uiFramesView={uiFramesView}
           uiFramesRenderer={uiFramesRenderer}
           hoveredNode={hoveredNode}
-          canvasBounds={canvasBounds}
         />
       ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
