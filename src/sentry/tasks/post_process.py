@@ -951,7 +951,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     try:
-        workflow_job = WorkflowEventData(
+        workflow_event_data = WorkflowEventData(
             event=job["event"],
             group_state=job.get("group_state"),
             has_reappeared=job.get("has_reappeared"),
@@ -962,7 +962,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_job)
+        process_workflows(workflow_event_data)
 
 
 def process_rules(job: PostProcessJob) -> None:
