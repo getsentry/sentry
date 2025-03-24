@@ -274,6 +274,15 @@ const DropdownButton = styled(Button)`
   height: unset;
   border-radius: 20px;
   box-shadow: none;
+
+  ${p =>
+    // Chonk tags have a smaller border radius, so we need make sure it matches.
+    p.theme.isChonk &&
+    `
+      > span > div {
+        border-radius: 20px;
+      }
+    `}
 `;
 
 const StyledTag = styled(Tag)`
