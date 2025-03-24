@@ -176,7 +176,6 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     return has_been_backfilled
 
 
-# TODO: Make this the only fingerprint check once the hybrid fingerprint + Seer change is fully enabled
 def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
     fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
 
