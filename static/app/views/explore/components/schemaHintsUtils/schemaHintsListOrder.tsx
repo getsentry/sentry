@@ -28,9 +28,6 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.PROJECT_ID,
   OurLogKnownFieldKey.SPAN_ID,
   OurLogKnownFieldKey.TIMESTAMP,
-  OurLogKnownFieldKey.PROJECT_ID,
-  OurLogKnownFieldKey.SPAN_ID,
-  OurLogKnownFieldKey.TIMESTAMP,
 ];
 
 export const SCHEMA_HINTS_LIST_ORDER_KEYS = [

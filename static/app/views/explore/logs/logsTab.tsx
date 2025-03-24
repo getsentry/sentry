@@ -12,7 +12,10 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
+import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
+import SchemaHintsList, {
+  SchemaHintsSection,
+} from 'sentry/views/explore/components/schemaHintsList';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsFields,
@@ -23,7 +26,6 @@ import {
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
-import {HintsSection} from 'sentry/views/explore/spans/spansTab';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {DefaultPeriod, MaxPickableDays} from 'sentry/views/explore/utils';
@@ -44,6 +46,7 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
   const tableData = useExploreLogsTable({});
+  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
   const {attributes: stringTags, isLoading: stringTagsLoading} =
     useTraceItemAttributes('string');
@@ -94,15 +97,18 @@ export function LogsTabContent({
           </Button>
         </FilterBarContainer>
         <Feature features="organizations:traces-schema-hints">
-          <HintsSection>
+          <SchemaHintsSection
+            withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}
+          >
             <SchemaHintsList
               supportedAggregates={[]}
               numberTags={numberTags}
               stringTags={stringTags}
               isLoading={numberTagsLoading || stringTagsLoading}
-              dataset={TraceItemDataset.LOGS}
+              exploreQuery={logsSearch.formatString()}
+              setExploreQuery={setLogsQuery}
             />
-          </HintsSection>
+          </SchemaHintsSection>
         </Feature>
       </Layout.Main>
 

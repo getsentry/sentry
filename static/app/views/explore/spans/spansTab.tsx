@@ -1,12 +1,10 @@
 import {useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Feature from 'sentry/components/acl/feature';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {Button} from 'sentry/components/core/button';
-import useDrawer from 'sentry/components/globalDrawer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -28,12 +26,13 @@ import {
   type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
 } from 'sentry/utils/fields';
-import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ExploreCharts} from 'sentry/views/explore/charts';
+import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
 import SchemaHintsList, {
   SCHEMA_HINTS_DRAWER_WIDTH,
+  SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
 import {
   PageParamsProvider,
@@ -92,13 +91,7 @@ export function SpansTabContentImpl({
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
 
-  const {isDrawerOpen: isSchemaHintsDrawerOpen} = useDrawer();
-  const theme = useTheme();
-  const isLargeScreen = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
-  const isSchemaHintsDrawerOpenOnLargeScreen =
-    isSchemaHintsDrawerOpen &&
-    isLargeScreen &&
-    organization.features.includes('traces-schema-hints');
+  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
   const toolbarExtras = [
     ...(organization?.features?.includes('visibility-explore-dataset')
@@ -239,7 +232,7 @@ export function SpansTabContentImpl({
         )}
       </TopSection>
       <Feature features="organizations:traces-schema-hints">
-        <HintsSection withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}>
+        <SchemaHintsSection withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}>
           <SchemaHintsList
             supportedAggregates={
               mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
@@ -247,8 +240,10 @@ export function SpansTabContentImpl({
             numberTags={numberTags}
             stringTags={stringTags}
             isLoading={numberTagsLoading || stringTagsLoading}
+            exploreQuery={query}
+            setExploreQuery={setQuery}
           />
-        </HintsSection>
+        </SchemaHintsSection>
       </Feature>
       <SideSection withToolbar={expanded}>
         <ExploreToolbar width={300} extras={toolbarExtras} />
@@ -391,26 +386,6 @@ const TopSection = styled('div')`
 const SideSection = styled('aside')<{withToolbar: boolean}>`
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     ${p => !p.withToolbar && 'overflow: hidden;'}
-  }
-`;
-
-<<<<<<< HEAD
-const HintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
-=======
-export const HintsSection = styled('div')`
->>>>>>> 8d1b4573f5c (feat(ourlogs): Add schema hints for logs)
-  display: grid;
-  /* This is to ensure the hints section spans all the columns */
-  grid-column: 1/-1;
-  margin-bottom: ${space(2)};
-  margin-top: -4px;
-  height: fit-content;
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    grid-template-columns: 1fr ${p =>
-        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
-    margin-bottom: 0;
-    margin-top: 0;
   }
 `;
 
