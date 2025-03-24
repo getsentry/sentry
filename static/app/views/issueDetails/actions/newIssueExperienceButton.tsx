@@ -30,7 +30,8 @@ export function NewIssueExperienceButton() {
   const organization = useOrganization();
   const isSuperUser = isActiveSuperuser();
   const {
-    dispatch: tourDispatch,
+    endTour,
+    startTour,
     currentStepId,
     isRegistered: isTourRegistered,
     isCompleted: isTourCompleted,
@@ -98,13 +99,13 @@ export function NewIssueExperienceButton() {
           <IssueDetailsTourModal
             handleDismissTour={() => {
               mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
-              tourDispatch({type: 'SET_COMPLETION', isCompleted: true});
+              endTour();
               trackAnalytics('issue_details.tour.skipped', {organization});
               props.closeModal();
             }}
             handleStartTour={() => {
               props.closeModal();
-              tourDispatch({type: 'START_TOUR'});
+              startTour();
               trackAnalytics('issue_details.tour.started', {
                 organization,
                 method: 'modal',
@@ -115,7 +116,7 @@ export function NewIssueExperienceButton() {
         {modalCss: IssueDetailsTourModalCss}
       );
     }
-  }, [isPromoVisible, tourDispatch, mutateAssistant, organization]);
+  }, [isPromoVisible, mutateAssistant, organization, endTour, startTour]);
 
   if (!hasStreamlinedUI) {
     return (
@@ -140,7 +141,7 @@ export function NewIssueExperienceButton() {
       hidden: !isTourAvailable || !isTourRegistered,
       onAction: () => {
         trackAnalytics('issue_details.tour.started', {organization, method: 'dropdown'});
-        tourDispatch({type: 'START_TOUR'});
+        startTour();
       },
     },
     {
