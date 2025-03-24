@@ -53,7 +53,7 @@ type Segment = {
 const bgColor = (index: number) =>
   Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
-  percentage < 1 ? '<1%' : `${Math.floor(percentage)}%`;
+  percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
 function SegmentedBar({segments}: {segments: Segment[]}) {
   return (
@@ -104,9 +104,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
   const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
-  const otherPercentage = Math.floor(
-    percent(tag.totalValues - totalVisible, tag.totalValues)
-  );
+  const otherPercentage =
+    100 - segments.reduce((sum, seg) => sum + Math.round(seg.percentage), 0);
   const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (

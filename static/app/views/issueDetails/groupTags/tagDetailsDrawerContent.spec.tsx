@@ -12,6 +12,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {TagValue, TagWithTopValues} from 'sentry/types/group';
+
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
 const mockNavigate = jest.fn();
@@ -72,7 +74,7 @@ describe('TagDetailsDrawerContent', () => {
 
     // Affected user column
     expect(screen.getByText('David Cramer')).toBeInTheDocument();
-    expect(screen.getByText('16%')).toBeInTheDocument();
+    expect(screen.getByText('17%')).toBeInTheDocument();
     // Count column
     expect(screen.getByText('3')).toBeInTheDocument();
 
@@ -187,4 +189,118 @@ describe('TagDetailsDrawerContent', () => {
       await screen.findByText('There was an error loading tag details')
     ).toBeInTheDocument();
   });
+
+  it('renders rounded percentages counts [996, 4], total 1000', async () => {
+    const {router} = init('user');
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      body: VariableTagFixture([996, 4], 1000),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: VariableTagValueFixture([996, 4]),
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {router});
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    // Value and percent columns
+    expect(screen.getByText('David Cramer 0')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('David Cramer 1')).toBeInTheDocument();
+    expect(screen.getByText('<1%')).toBeInTheDocument();
+
+    // Count column
+    expect(screen.getByText('996')).toBeInTheDocument();
+    expect(screen.getByText('4')).toBeInTheDocument();
+  });
+
+  it('renders rounded percentages counts [992, 7], total 1000', async () => {
+    const {router} = init('user');
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      body: VariableTagFixture([992, 7], 1000),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: VariableTagValueFixture([992, 7]),
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {router});
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    // Value and percent columns
+    expect(screen.getByText('David Cramer 0')).toBeInTheDocument();
+    expect(screen.getByText('99%')).toBeInTheDocument();
+    expect(screen.getByText('David Cramer 1')).toBeInTheDocument();
+    expect(screen.getByText('1%')).toBeInTheDocument();
+
+    // Count column
+    expect(screen.getByText('992')).toBeInTheDocument();
+    expect(screen.getByText('7')).toBeInTheDocument();
+  });
+
+  it('renders rounded percentages counts [995, 5], total 1000', async () => {
+    const {router} = init('user');
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      body: VariableTagFixture([995, 5], 1000),
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: VariableTagValueFixture([995, 5]),
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {router});
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    // Percents will be overcounted in this edge case.
+    // Value and percent columns
+    expect(screen.getByText('David Cramer 0')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText('David Cramer 1')).toBeInTheDocument();
+    expect(screen.getByText('1%')).toBeInTheDocument();
+
+    // Count column
+    expect(screen.getByText('995')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+  });
 });
+
+function VariableTagFixture(topValues: number[], totalValues: number): TagWithTopValues {
+  return {
+    topValues: topValues.map((count, index) => ({
+      count,
+      name: `david${index}`,
+      value: `username:david${index}`,
+      lastSeen: '2018-12-20T23:32:25Z',
+      key: 'user',
+      query: 'user.username:david',
+      firstSeen: '2018-10-03T03:40:05.627Z',
+    })),
+    uniqueValues: topValues.length + 1,
+    name: 'User',
+    key: 'user',
+    totalValues,
+  };
+}
+
+function VariableTagValueFixture(counts: number[]): TagValue[] {
+  return counts.map((count, index) => ({
+    count,
+    username: `david${index}`,
+    name: `David Cramer ${index}`,
+    value: `username:david${index}`,
+    id: '10799',
+    lastSeen: '2018-12-20T23:32:25Z',
+    firstSeen: '2018-10-03T03:40:05.627Z',
+    email: 'david@example.com',
+    ip_address: '0.0.0.0',
+  }));
+}
