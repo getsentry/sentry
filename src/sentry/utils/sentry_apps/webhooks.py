@@ -148,12 +148,11 @@ def send_and_save_webhook_request(
         org_id = app_platform_event.install.organization_id
         slug = sentry_app.slug_for_metrics
         url = url or sentry_app.webhook_url
-
         lifecycle.add_extras(
             {
                 "org_id": org_id,
                 "sentry_app_slug": sentry_app.slug,
-                "url": url,
+                "url": url or "",
                 "event": event,
                 "installation_uuid": app_platform_event.install.uuid,
             }
