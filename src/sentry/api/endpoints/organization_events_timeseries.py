@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
-from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +16,7 @@ from sentry.api.endpoints.organization_events_stats import (
     METRICS_ENHANCED_REFERRERS,
     SENTRY_BACKEND_REFERRERS,
 )
+from sentry.api.utils import handle_query_errors
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
@@ -28,7 +29,6 @@ from sentry.snuba import (
     metrics_performance,
     ourlogs,
     spans_eap,
-    spans_indexed,
     spans_metrics,
     spans_rpc,
     transactions,
@@ -44,7 +44,6 @@ TOP_EVENTS_DATASETS = {
     functions,
     metrics_performance,
     metrics_enhanced_performance,
-    spans_indexed,
     spans_metrics,
     spans_eap,
     errors,
@@ -61,6 +60,12 @@ class StatsMeta(TypedDict):
 class Row(TypedDict):
     timestamp: float
     value: float
+    comparisonValue: NotRequired[float]
+
+
+class Confidence(TypedDict):
+    timestamp: float
+    value: Literal["low", "high"] | None
 
 
 class SeriesMeta(TypedDict):
@@ -71,11 +76,18 @@ class SeriesMeta(TypedDict):
     interval: float
 
 
+class AccuracyData(TypedDict):
+    sampleCount: list[Row]
+    sampleRate: list[Row]
+    confidence: list[Confidence]
+
+
 class TimeSeries(TypedDict):
     values: list[Row]
     axis: str
     groupBy: NotRequired[list[str]]
     meta: SeriesMeta
+    accuracy: NotRequired[AccuracyData]
 
 
 class StatsResponse(TypedDict):
@@ -157,7 +169,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     raise ParseError(detail=f"{dataset} doesn't support topEvents yet")
 
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
-            use_rpc = dataset in {spans_indexed, ourlogs, uptime_checks}
+            use_rpc = dataset in {spans_eap, ourlogs, uptime_checks}
 
             sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
             try:
@@ -171,11 +183,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
             except NoProjects:
                 return Response([], status=200)
 
-        try:
-            self.validate_comparison_delta(comparison_delta, snuba_params, organization)
-            rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
-            axes = request.GET.getlist("yAxis", ["count()"])
+        self.validate_comparison_delta(comparison_delta, snuba_params, organization)
+        rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+        axes = request.GET.getlist("yAxis", ["count()"])
 
+        with handle_query_errors():
             events_stats = self.get_event_stats(
                 request,
                 organization,
@@ -191,8 +203,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 self.serialize_stats_data(events_stats, axes, snuba_params, rollup, dataset),
                 status=200,
             )
-        except ValidationError:
-            return Response({"detail": "Comparison period is outside retention window"}, status=400)
 
     def get_event_stats(
         self,
@@ -231,7 +241,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         )
 
         if top_events > 0:
-            if dataset == spans_indexed:
+            if dataset == spans_eap:
                 return spans_rpc.run_top_events_timeseries_query(
                     params=snuba_params,
                     query_string=query,
@@ -269,7 +279,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 ),
             )
 
-        if dataset == spans_indexed:
+        if dataset == spans_eap:
             return spans_rpc.run_timeseries_query(
                 params=snuba_params,
                 query_string=query,
@@ -326,46 +336,53 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
         serialized_result = []
         if isinstance(result, SnubaTSResult):
             for axis in axes:
-                unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
-                serialized_result.extend(
-                    [
-                        TimeSeries(
-                            values=[
-                                Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
-                                for row in result.data["data"]
-                            ],
-                            axis=axis,
-                            meta=SeriesMeta(
-                                valueUnit=unit,
-                                valueType=field_type,
-                                interval=rollup * 1000,
-                            ),
-                        )
-                    ]
-                )
+                serialized_result.append(self.serialize_timeseries(result, axis, rollup))
         else:
             for key, value in result.items():
                 for axis in axes:
-                    unit, field_type = self.get_unit_and_type(
-                        axis, value.data["meta"]["fields"][axis]
-                    )
-                    serialized_result.extend(
-                        [
-                            TimeSeries(
-                                values=[
-                                    Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
-                                    for row in value.data["data"]
-                                ],
-                                axis=axis,
-                                groupBy=value.data.get("groupby", {}),
-                                meta=SeriesMeta(
-                                    order=value.data["order"],
-                                    isOther=value.data.get("is_other", False),
-                                    valueUnit=unit,
-                                    valueType=field_type,
-                                    interval=rollup * 1000,
-                                ),
-                            )
-                        ]
-                    )
+                    serialized_result.append(self.serialize_timeseries(value, axis, rollup))
         return serialized_result
+
+    def serialize_timeseries(self, result: SnubaTSResult, axis: str, rollup: int) -> TimeSeries:
+        unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
+        series_meta = SeriesMeta(
+            valueType=field_type,
+            interval=rollup * 1000,
+        )
+        if unit is not None:
+            series_meta["valueUnit"] = unit
+        if "is_other" in result.data:
+            series_meta["isOther"] = result.data["is_other"]
+        if "order" in result.data:
+            series_meta["order"] = result.data["order"]
+
+        timeseries = TimeSeries(
+            values=[],
+            axis=axis,
+            meta=series_meta,
+        )
+
+        for row in result.data["data"]:
+            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
+            if "comparisonCount" in row:
+                value_row["comparisonValue"] = row["comparisonCount"]
+            timeseries["values"].append(value_row)
+
+        if "groupby" in result.data:
+            timeseries["groupBy"] = result.data["groupby"]
+
+        if "processed_timeseries" in result.data:
+            processed_timeseries = result.data["processed_timeseries"]
+            timeseries["accuracy"] = AccuracyData(
+                sampleCount=self.serialize_accuracy_data(
+                    processed_timeseries.sample_count, axis, convert_to_milliseconds=True
+                ),
+                sampleRate=self.serialize_accuracy_data(
+                    processed_timeseries.sampling_rate, axis, convert_to_milliseconds=True
+                ),
+                confidence=self.serialize_accuracy_data(
+                    processed_timeseries.confidence, axis, convert_to_milliseconds=True
+                ),
+            )
+
+        return timeseries
