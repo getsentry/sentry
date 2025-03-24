@@ -1070,7 +1070,7 @@ function parseRelativeDate(
   input: string,
   {sign, unit}: {sign: '-' | '+'; unit: string}
 ): {value: Date} {
-  let date = new Date().getTime();
+  let date = Date.now();
   const number = numeric(input);
 
   if (isNaN(date)) {

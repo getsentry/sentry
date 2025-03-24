@@ -257,7 +257,7 @@ export function getMetricAlertChartOption({
               new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime()
           );
 
-        const incidentEnd = incident.dateClosed ?? new Date().getTime();
+        const incidentEnd = incident.dateClosed ?? Date.now();
 
         const timeWindowMs = rule.timeWindow * 60 * 1000;
         const incidentColor =
