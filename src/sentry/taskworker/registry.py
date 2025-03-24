@@ -126,11 +126,6 @@ class TaskNamespace:
         return wrapped
 
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
-        metrics.incr(
-            "taskworker.registry.send_task",
-            tags={"namespace": activation.namespace, "task_name": activation.taskname},
-        )
-
         topic = self.router.route_namespace(self.name)
         produce_future = self._producer(topic).produce(
             ArroyoTopic(name=topic.value),
@@ -153,6 +148,15 @@ class TaskNamespace:
                 produce_future.result(timeout=10)
             except Exception:
                 logger.exception("Failed to wait for delivery")
+
+        metrics.incr(
+            "taskworker.registry.send_task",
+            tags={
+                "namespace": activation.namespace,
+                "task_name": activation.taskname,
+                "topic": topic.value,
+            },
+        )
 
     def _producer(self, topic: Topic) -> SingletonProducer:
         if topic not in self._producers:
