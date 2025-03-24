@@ -23,6 +23,7 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+import {QueuesWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 const seriesAliases = {
   ok: t('Processed'),
@@ -107,7 +108,12 @@ export function JobsWidget({query}: {query?: string}) {
 
   const plottables = useMemo(() => {
     return timeSeries.map(
-      ts => new Bars(convertSeriesToTimeseries(ts), {color: ts.color, stack: 'stack'})
+      ts =>
+        new Bars(convertSeriesToTimeseries(ts), {
+          color: ts.color,
+          stack: 'stack',
+          alias: seriesAliases[ts.seriesName as 'ok' | 'internal_error'],
+        })
     );
   }, [timeSeries]);
 
@@ -118,9 +124,9 @@ export function JobsWidget({query}: {query?: string}) {
       isLoading={isLoading}
       error={error}
       isEmpty={isEmpty}
+      emptyMessage={<QueuesWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        aliases: seriesAliases,
         plottables,
       }}
     />

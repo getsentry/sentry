@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';

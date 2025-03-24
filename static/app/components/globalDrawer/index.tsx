@@ -33,6 +33,10 @@ export interface DrawerOptions {
    */
   closeOnOutsideClick?: boolean;
   /**
+   * Custom width for the drawer
+   */
+  drawerWidth?: string;
+  /**
    * Custom content for the header of the drawer
    */
   headerContent?: React.ReactNode;
@@ -95,10 +99,10 @@ export function GlobalDrawer({children}: any) {
   >();
   // If no config is set, the global drawer is closed.
   const isDrawerOpen = !!currentDrawerConfig;
-  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
-    (renderer, options) => overwriteDrawerConfig({renderer, options}),
-    []
-  );
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>((renderer, options) => {
+    overwriteDrawerConfig({renderer, options});
+    options.onOpen?.();
+  }, []);
   const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
     () => overwriteDrawerConfig(undefined),
     []
@@ -181,6 +185,7 @@ export function GlobalDrawer({children}: any) {
               ref={panelRef}
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
               transitionProps={currentDrawerConfig?.options?.transitionProps}
+              drawerWidth={currentDrawerConfig?.options?.drawerWidth}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>

@@ -1,7 +1,6 @@
 from datetime import datetime
 
-from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import (
@@ -11,7 +10,6 @@ from sentry.integrations.slack.message_builder.types import (
 )
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.organization import Organization
-from sentry.snuba.models import SnubaQuery
 
 
 def get_started_at(timestamp: datetime | None) -> str:
@@ -26,12 +24,9 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         alert_context: AlertContext,
-        open_period_identifier: int,
+        metric_issue_context: MetricIssueContext,
         organization: Organization,
-        snuba_query: SnubaQuery,
-        new_status: IncidentStatus,
         date_started: datetime,
-        metric_value: float | None = None,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
@@ -45,11 +40,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         """
         super().__init__()
         self.alert_context = alert_context
-        self.open_period_identifier = open_period_identifier
+        self.metric_issue_context = metric_issue_context
         self.organization = organization
-        self.snuba_query = snuba_query
-        self.metric_value = metric_value
-        self.new_status = new_status
         self.date_started = date_started
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
@@ -57,11 +49,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def build(self) -> SlackBody:
         data = incident_attachment_info(
             alert_context=self.alert_context,
-            open_period_identifier=self.open_period_identifier,
+            metric_issue_context=self.metric_issue_context,
             organization=self.organization,
-            snuba_query=self.snuba_query,
-            new_status=self.new_status,
-            metric_value=self.metric_value,
             notification_uuid=self.notification_uuid,
             referrer="metric_alert_slack",
         )

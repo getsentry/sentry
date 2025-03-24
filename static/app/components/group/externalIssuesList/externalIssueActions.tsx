@@ -15,7 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationItem from 'sentry/views/settings/organizationIntegrations/integrationItem';
 
-import ExternalIssueForm from '../externalIssueForm';
+import ExternalIssueForm from '../../externalIssues/externalIssueForm';
 
 type Props = {
   configurations: GroupIntegration[];

@@ -4,10 +4,11 @@ import Color from 'color';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import Count from 'sentry/components/count';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
@@ -184,9 +185,11 @@ export default function StreamlinedGroupHeader({
                 </Subtitle>
               </Fragment>
             )}
-            <AttachmentsBadge group={group} />
-            <UserFeedbackBadge group={group} project={project} />
-            <ReplayBadge group={group} project={project} />
+            <ErrorBoundary customComponent={null}>
+              <AttachmentsBadge group={group} />
+              <UserFeedbackBadge group={group} project={project} />
+              <ReplayBadge group={group} project={project} />
+            </ErrorBoundary>
           </Flex>
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>

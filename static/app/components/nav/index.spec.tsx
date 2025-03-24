@@ -196,7 +196,7 @@ describe('Nav', function () {
       const issues = screen.getByRole('link', {name: 'Issues'});
       await userEvent.click(issues);
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.clicked_sidebar',
+        'navigation.primary_item_clicked',
         expect.objectContaining({
           item: 'issues',
         })

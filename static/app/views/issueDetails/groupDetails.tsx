@@ -518,6 +518,7 @@ function useTrackView({
     location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -535,7 +536,11 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
+    enforced_streamlined_ui:
+      organization.features.includes('issue-details-streamline-enforce') &&
+      user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
+    has_streamlined_ui: hasStreamlinedUI,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -745,7 +750,9 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     const issueDetailsTourData = assistantData?.find(
       item => item.guide === ISSUE_DETAILS_TOUR_GUIDE_KEY
     );
-    return issueDetailsTourData?.seen ?? false;
+
+    // Prevent tour from showing until assistant data is loaded
+    return issueDetailsTourData?.seen ?? true;
   }, [assistantData]);
   const isIssueDetailsTourAvailable = useMemo(() => {
     if (!hasStreamlinedUI) {

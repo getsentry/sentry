@@ -4,7 +4,6 @@ from copy import deepcopy
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import SegmentSpan as SchemaSpan
 
 from sentry import options
 from sentry.constants import INSIGHT_MODULE_FILTERS
@@ -24,6 +23,12 @@ from sentry.receivers.onboarding import (
     record_first_transaction,
     record_release_received,
 )
+from sentry.spans.consumers.process_segments.enrichment import (
+    match_schemas,
+    set_exclusive_time,
+    set_shared_tags,
+)
+from sentry.spans.consumers.process_segments.types import Span, UnprocessedSpan
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
@@ -32,11 +37,20 @@ from sentry.utils.performance_issues.performance_detection import detect_perform
 logger = logging.getLogger(__name__)
 
 
-class Span(SchemaSpan, total=False):
-    start_timestamp_precise: float  # Missing in schema
-    end_timestamp_precise: float  # Missing in schema
-    op: str | None  # Added in enrichment
-    hash: str | None  # Added in enrichment
+@metrics.wraps("spans.consumers.process_segments.process_segment")
+def process_segment(unprocessed_spans: list[UnprocessedSpan]) -> list[Span]:
+    segment_span, spans = _enrich_spans(unprocessed_spans)
+    if segment_span is None:
+        return spans
+
+    with metrics.timer("spans.consumers.process_segments.get_project"):
+        project = Project.objects.get_from_cache(id=segment_span["project_id"])
+
+    _create_models(segment_span, project)
+    _detect_performance_problems(segment_span, spans, project)
+    _record_signals(segment_span, spans, project)
+
+    return spans
 
 
 def _find_segment_span(spans: list[Span]) -> Span | None:
@@ -58,19 +72,35 @@ def _find_segment_span(spans: list[Span]) -> Span | None:
     return None
 
 
-def _enrich_spans(segment: Span | None, spans: list[Span]) -> None:
-    for span in spans:
-        if (op := span.get("sentry_tags", {}).get("op")) is not None:
-            span["op"] = op
+@metrics.wraps("spans.consumers.process_segments.enrich_spans")
+def _enrich_spans(unprocessed_spans: list[UnprocessedSpan]) -> tuple[Span | None, list[Span]]:
+    """
+    Enriches all spans with data derived from the span tree and the segment.
 
-        # TODO: Add Relay's enrichment here.
+    This includes normalizations that need access to the spans' children, such
+    as inferring `exclusive_time`, as well as normalizations that need access to
+    the segment, such as extracting shared or conditional attributes.
+
+    Returns the segment span, if any, and the list of enriched spans.
+    """
+
+    spans = cast(list[Span], unprocessed_spans)
+    segment = _find_segment_span(spans)
+
+    match_schemas(spans)
+    set_exclusive_time(spans)
+    if segment:
+        set_shared_tags(segment, spans)
 
     # Calculate grouping hashes for performance issue detection
     config = load_span_grouping_config()
     groupings = config.execute_strategy_standalone(spans)
     groupings.write_to_spans(spans)
 
+    return segment, spans
 
+
+@metrics.wraps("spans.consumers.process_segments.create_models")
 def _create_models(segment: Span, project: Project) -> None:
     """
     Creates the Environment and Release models, along with the necessary
@@ -85,6 +115,9 @@ def _create_models(segment: Span, project: Project) -> None:
     date = to_datetime(segment["end_timestamp_precise"])
 
     environment = Environment.get_or_create(project=project, name=environment_name)
+
+    if not release_name:
+        return
 
     try:
         release = Release.get_or_create(project=project, version=release_name, date_added=date)
@@ -113,6 +146,7 @@ def _create_models(segment: Span, project: Project) -> None:
     record_release_received(project, release.version)
 
 
+@metrics.wraps("spans.consumers.process_segments.detect_performance_problems")
 def _detect_performance_problems(segment_span: Span, spans: list[Span], project: Project) -> None:
     if not options.get("standalone-spans.detect-performance-problems.enable"):
         return
@@ -207,6 +241,7 @@ def _build_shim_event_data(segment_span: Span, spans: list[Span]) -> dict[str, A
     return event
 
 
+@metrics.wraps("spans.consumers.process_segments.record_signals")
 def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> None:
     # TODO: Make transaction name clustering work again
     # record_transaction_name_for_clustering(project, event.data)
@@ -225,21 +260,3 @@ def _record_signals(segment_span: Span, spans: list[Span], project: Project) -> 
     for module, is_module in INSIGHT_MODULE_FILTERS.items():
         if not get_project_insight_flag(project, module) and is_module(spans):
             record_first_insight_span(project, module)
-
-
-def process_segment(spans: list[Span]) -> list[Span]:
-    segment_span = _find_segment_span(spans)
-    if segment_span is None:
-        # TODO: Handle segments without a defined segment span once all
-        # functions are refactored to a span interface.
-        return spans
-
-    with metrics.timer("tasks.spans.project.get_from_cache"):
-        project = Project.objects.get_from_cache(id=segment_span["project_id"])
-
-    _enrich_spans(segment_span, spans)
-    _create_models(segment_span, project)
-    _detect_performance_problems(segment_span, spans, project)
-    _record_signals(segment_span, spans, project)
-
-    return spans

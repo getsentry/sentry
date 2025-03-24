@@ -222,6 +222,47 @@ class ExploreSavedQueriesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data[0]["expired"]
 
+    def test_get_my_queries(self):
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"exclude": "shared"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Test query"
+
+    def test_get_shared_queries(self):
+        query = {"fields": ["span.op"], "mode": "samples"}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id + 1,
+            name="Shared query",
+            query=query,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"exclude": "owned"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Shared query"
+
+    def test_get_query_last_visited(self):
+        last_visited = before_now(minutes=10)
+        query = {"fields": ["span.op"], "mode": "samples"}
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Query with last visited",
+            query=query,
+            last_visited=last_visited,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, data={"query": "name:Query with last visited"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["lastVisited"] == last_visited
+
     def test_post_require_mode(self):
         with self.feature(self.feature_name):
             response = self.client.post(

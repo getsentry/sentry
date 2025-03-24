@@ -142,4 +142,115 @@ describe('SchemaHintsList', () => {
       expect(screen.getByText(tag.key)).toBeInTheDocument();
     });
   });
+
+  it('should add hint to query when clicked on drawer', async () => {
+    render(
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={mockStringTags}
+          numberTags={mockNumberTags}
+          supportedAggregates={[]}
+        />
+      </PageParamsProvider>,
+      {organization, router}
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
+
+    const stringTag1Checkbox = screen.getByText('stringTag1');
+    await userEvent.click(stringTag1Checkbox);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {query: 'stringTag1:""'}})
+    );
+
+    const numberTag1Checkbox = screen.getByText('numberTag1');
+    await userEvent.click(numberTag1Checkbox);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {query: 'numberTag1:>0'}})
+    );
+  });
+
+  it('should remove hint from query when checkbox is unchecked on drawer', async () => {
+    render(
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={mockStringTags}
+          numberTags={mockNumberTags}
+          supportedAggregates={[]}
+        />
+      </PageParamsProvider>,
+      {
+        organization,
+        router: {
+          ...router,
+          location: {...router.location, query: {query: 'stringTag1:"" numberTag1:>0'}},
+        },
+      }
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    const stringTag1Checkbox = screen.getByText('stringTag1');
+    await userEvent.click(stringTag1Checkbox);
+
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({query: {query: 'numberTag1:>0'}})
+    );
+  });
+
+  it('should keep drawer open when query is updated', async () => {
+    render(
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={mockStringTags}
+          numberTags={mockNumberTags}
+          supportedAggregates={[]}
+        />
+      </PageParamsProvider>,
+      {organization, router}
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    const stringTag1Checkbox = screen.getByText('stringTag1');
+    await userEvent.click(stringTag1Checkbox);
+
+    router.push({
+      ...router.location,
+      query: {query: 'stringTag1:""'},
+    });
+
+    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
+  });
+
+  it('should show correct search results when query is updated', async () => {
+    render(
+      <PageParamsProvider>
+        <SchemaHintsList
+          stringTags={mockStringTags}
+          numberTags={mockNumberTags}
+          supportedAggregates={[]}
+        />
+      </PageParamsProvider>,
+      {organization, router}
+    );
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    const searchInput = screen.getByLabelText('Search attributes');
+    await userEvent.type(searchInput, 'stringTag');
+
+    expect(screen.getByText('stringTag1')).toBeInTheDocument();
+    expect(screen.getByText('stringTag2')).toBeInTheDocument();
+    expect(screen.queryByText('numberTag1')).not.toBeInTheDocument();
+    expect(screen.queryByText('numberTag2')).not.toBeInTheDocument();
+  });
 });

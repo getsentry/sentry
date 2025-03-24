@@ -12,9 +12,18 @@ from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
 from sentry import analytics, features
+from sentry.api.serializers import serialize
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+)
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    DetailedIncidentSerializerResponse,
+)
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
@@ -31,6 +40,7 @@ from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
+    OpenPeriodContext,
 )
 from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
@@ -476,10 +486,21 @@ def generate_incident_trigger_email_context(
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:
+            alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+                incident.alert_rule, None, AlertRuleSerializer()
+            )
+            incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+                incident, None, DetailedIncidentSerializer()
+            )
+            open_period_context = OpenPeriodContext.from_incident(incident)
+
             chart_url = build_metric_alert_chart(
                 organization=incident.organization,
-                alert_rule=incident.alert_rule,
-                selected_incident=incident,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                selected_incident_serialized=incident_serialized_response,
+                snuba_query=snuba_query,
+                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                open_period_context=open_period_context,
                 size=ChartSize({"width": 600, "height": 200}),
                 subscription=subscription,
             )

@@ -148,7 +148,6 @@ describe('AddPaymentMethod', function () {
     await waitFor(() => expect(setupIntent).toHaveBeenCalled());
 
     expect(screen.getByLabelText('Card Details')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Postal Code'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 

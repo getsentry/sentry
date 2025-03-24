@@ -105,7 +105,6 @@ function VisualizeGhostField({
               key="parameter:text"
               type="text"
               placeholder={t('Equation')}
-              required
               value={draggingField?.field ?? ''}
               onUpdate={() => {}}
             />

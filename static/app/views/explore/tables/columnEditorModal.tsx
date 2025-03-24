@@ -4,10 +4,10 @@ import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -53,6 +53,7 @@ export function ColumnEditorModal({
             value: column,
             textValue: column,
             trailingItems: <TypeBadge kind={classifyTagKey(column)} />,
+            key: `${column}-${classifyTagKey(column)}`,
           };
         }),
       ...Object.values(stringTags).map(tag => {
@@ -61,6 +62,7 @@ export function ColumnEditorModal({
           value: tag.key,
           textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.TAG} />,
+          key: `${tag.key}-${FieldKind.TAG}`,
         };
       }),
       ...Object.values(numberTags).map(tag => {
@@ -69,6 +71,7 @@ export function ColumnEditorModal({
           value: tag.key,
           textValue: tag.name,
           trailingItems: <TypeBadge kind={FieldKind.MEASUREMENT} />,
+          key: `${tag.key}-${FieldKind.MEASUREMENT}`,
         };
       }),
     ];

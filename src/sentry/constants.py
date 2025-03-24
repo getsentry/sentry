@@ -628,41 +628,34 @@ class InsightModules(Enum):
 
 INSIGHT_MODULE_FILTERS = {
     InsightModules.HTTP: lambda spans: any(
-        [
-            span.get("sentry_tags", {}).get("category") == "http"
-            and span.get("op") == "http.client"
-            for span in spans
-        ]
+        span.get("sentry_tags", {}).get("category") == "http" and span.get("op") == "http.client"
+        for span in spans
     ),
     InsightModules.DB: lambda spans: any(
-        [
-            span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
-            for span in spans
-        ]
+        span.get("sentry_tags", {}).get("category") == "db" and "description" in span.keys()
+        for span in spans
     ),
     InsightModules.ASSETS: lambda spans: any(
-        [
-            span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
-            for span in spans
-        ]
+        span.get("op") in ["resource.script", "resource.css", "resource.font", "resource.img"]
+        for span in spans
     ),
     InsightModules.APP_START: lambda spans: any(
-        [span.get("op").startswith("app.start.") for span in spans]
+        span.get("op").startswith("app.start.") for span in spans
     ),
     InsightModules.SCREEN_LOAD: lambda spans: any(
-        [span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans]
+        span.get("sentry_tags", {}).get("transaction.op") == "ui.load" for span in spans
     ),
     InsightModules.VITAL: lambda spans: any(
-        [span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans]
+        span.get("sentry_tags", {}).get("transaction.op") == "pageload" for span in spans
     ),
     InsightModules.CACHE: lambda spans: any(
-        [span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans]
+        span.get("op") in ["cache.get_item", "cache.get", "cache.put"] for span in spans
     ),
     InsightModules.QUEUE: lambda spans: any(
-        [span.get("op") in ["queue.process", "queue.publish"] for span in spans]
+        span.get("op") in ["queue.process", "queue.publish"] for span in spans
     ),
     InsightModules.LLM_MONITORING: lambda spans: any(
-        [span.get("op").startswith("ai.pipeline") for span in spans]
+        span.get("op").startswith("ai.pipeline") for span in spans
     ),
 }
 

@@ -14,7 +14,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
-import type {LegendSelection, Release, TimeSeries} from '../common/types';
+import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
@@ -32,7 +32,7 @@ const sampleDurationTimeSeries2 = {
   data: sampleDurationTimeSeries.data.map(datum => {
     return {
       ...datum,
-      value: datum.value * 0.3 + 30 * Math.random(),
+      value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
     };
   }),
 };
@@ -249,6 +249,51 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </MediumWidget>
         </SideBySide>
+
+        <p>
+          In rare cases, none of the data will have a known type. In these cases we drop
+          down to a generic "number" axis. This also accounts for combinations of unknown
+          types and the generic "number" type.
+        </p>
+
+        <SideBySide>
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'equation|spm() + 1',
+                  meta: NULL_META,
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  field: 'custom_aggregate()',
+                  meta: NULL_META,
+                }),
+              ]}
+            />
+          </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'equation|spm() + 1',
+                  meta: {
+                    type: 'number',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  field: 'custom_aggregate()',
+                  meta: NULL_META,
+                }),
+              ]}
+            />
+          </SmallWidget>
+        </SideBySide>
       </Fragment>
     );
   });
@@ -257,12 +302,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     const millisecondsSeries = sampleDurationTimeSeries;
 
     // Create a very similar series, but with a different unit to demonstrate automatic scaling
-    const secondsSeries = {
+    const secondsSeries: TimeSeries = {
       field: 'p99(span.self_time)',
       data: sampleDurationTimeSeries.data.map(datum => {
         return {
           ...datum,
-          value: (datum.value / 1000) * (1 + Math.random() / 10), // Introduce jitter so the series is visible
+          value: datum.value ? (datum.value / 1000) * (1 + Math.random() / 10) : null, // Introduce jitter so the series is visible
         };
       }),
       meta: {
@@ -375,7 +420,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   story('Color', () => {
     const theme = useTheme();
 
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       ...sampleThroughputTimeSeries,
       field: 'error_rate()',
       meta: {
@@ -471,7 +516,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
   story('Legends', () => {
     const [legendSelection, setLegendSelection] = useState<LegendSelection>({
-      'p99(span.duration)': false,
+      p99: false,
     });
 
     return (
@@ -490,21 +535,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           the user changes the legend selection by clicking on legend labels.
         </p>
         <p>
-          You can also provide aliases for legends to give them a friendlier name. In this
-          example, verbose names like "p99(span.duration)" are truncated, and the p99
-          series is hidden by default.
+          You can also provide aliases for plottables like <code>Line</code> This will
+          give the legends and tooltips a friendlier name. In this example, verbose names
+          like "p99(span.duration)" are truncated, and the p99 series is hidden by
+          default.
         </p>
+
+        <code>{JSON.stringify(legendSelection)}</code>
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
             plottables={[
-              new Area(sampleDurationTimeSeries, {}),
-              new Area(sampleDurationTimeSeries2, {}),
+              new Area(sampleDurationTimeSeries, {alias: 'p50'}),
+              new Area(sampleDurationTimeSeries2, {alias: 'p99'}),
             ]}
-            aliases={{
-              'p99(span.duration)': 'p99',
-              'p50(span.duration)': 'p50',
-            }}
             legendSelection={legendSelection}
             onLegendSelectionChange={setLegendSelection}
           />
@@ -595,3 +639,8 @@ function toTimeSeriesSelection(
 function hasTimestamp(release: Partial<Release>): release is Release {
   return Boolean(release?.timestamp);
 }
+
+const NULL_META: TimeSeriesMeta = {
+  type: null,
+  unit: null,
+};

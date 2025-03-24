@@ -529,6 +529,8 @@ class Referrer(StrEnum):
     )
     API_EXPLORE_COMPARE_SERIES = "api.explore.compare-series"
     API_EXPLORE_COMPARE_TABLE = "api.explore.compare-table"
+    API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
+    API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
     API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
     API_SPANS_TAG_VALUES = "api.spans.tags-values"
@@ -983,6 +985,8 @@ class Referrer(StrEnum):
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
+
+    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
 
 
 VALUES = {referrer.value for referrer in Referrer}

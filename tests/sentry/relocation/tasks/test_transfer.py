@@ -75,6 +75,7 @@ class FindRelocationTransferControlTest(TestCase):
         )
         find_relocation_transfer_control()
         assert mock_process.delay.called
+        assert mock_process.delay.call_args[1]["transfer_id"] == transfer.id
         transfer.refresh_from_db()
         assert transfer.scheduled_for > timezone.now()
 
