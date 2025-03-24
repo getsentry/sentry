@@ -91,6 +91,7 @@ class BaseArgumentDefinition:
 
 @dataclass
 class ArgumentDefinition(BaseArgumentDefinition):
+    # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid consersion errors
     argument_types: set[Literal["integer", "string"]] | None = None
 
 
