@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {Observer} from 'mobx-react';
@@ -80,7 +80,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     );
   const {data: defaultSettings, status: defaultSettingsStatus} =
     useApiQuery<DefaultSettings>(['/notification-defaults/'], {staleTime: 30_000});
-  const providerModel = new FormModel();
+  const [providerModel] = useState(() => new FormModel());
 
   useEffect(() => {
     trackAnalytics('notification_settings.tuning_page_viewed', {
