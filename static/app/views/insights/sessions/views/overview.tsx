@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
-import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
@@ -41,10 +40,6 @@ export function SessionsOverview() {
   const hasSessionData = useProjectHasSessions();
   const showOnboarding = !hasSessionData;
 
-  useRouteAnalyticsEventNames(
-    'insight.page_viewed.sessions',
-    'Session Health: Page Viewed'
-  );
   useRouteAnalyticsParams({view});
 
   return (
