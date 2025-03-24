@@ -6,7 +6,7 @@ from sentry.rules.conditions.new_high_priority_issue import NewHighPriorityIssue
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 
@@ -16,19 +16,17 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "group_state": GroupState(
-                    {
-                        "id": 1,
-                        "is_regression": True,
-                        "is_new": True,
-                        "is_new_group_environment": True,
-                    }
-                ),
-                "workflow": Workflow(environment_id=1),
-            }
+        self.job = WorkflowEventData(
+            event=self.group_event,
+            group_state=GroupState(
+                {
+                    "id": 1,
+                    "is_regression": True,
+                    "is_new": True,
+                    "is_new_group_environment": True,
+                }
+            ),
+            workflow=Workflow(environment_id=1),
         )
         self.dc = self.create_data_condition(
             type=self.condition,
@@ -67,13 +65,15 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         self.project.flags.has_high_priority_alerts = True
         self.project.save()
 
+        assert self.job.group_state
+
         # This will only pass for new issues
         self.group_event.group.update(priority=PriorityLevel.HIGH)
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.job.group_state["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
 
         # These will never pass
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.group_state["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
         self.group_event.group.update(priority=PriorityLevel.MEDIUM)
@@ -86,20 +86,22 @@ class TestNewHighPriorityIssueCondition(ConditionTestCase):
         self.project.flags.has_high_priority_alerts = False
         self.project.save()
 
+        assert self.job.group_state
+
         self.group_event.group.update(priority=PriorityLevel.HIGH)
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.job.group_state["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.group_state["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
         self.group_event.group.update(priority=PriorityLevel.MEDIUM)
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.job.group_state["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.group_state["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
 
         self.group_event.group.update(priority=PriorityLevel.LOW)
-        self.job["group_state"]["is_new_group_environment"] = True
+        self.job.group_state["is_new_group_environment"] = True
         self.assert_passes(self.dc, self.job)
-        self.job["group_state"]["is_new_group_environment"] = False
+        self.job.group_state["is_new_group_environment"] = False
         self.assert_does_not_pass(self.dc, self.job)
