@@ -339,6 +339,12 @@ export const getAmPlanTier = (plan: string) => {
   return null;
 };
 
+export const isNewPayingCustomer = (
+  subscription: Subscription,
+  organization: Organization
+) =>
+  subscription.isFree || subscription.isTrial || hasPartnerMigrationFeature(organization);
+
 /**
  * Promotion utility functions that are based off of formData which has the plan as a string
  * instead of a Plan

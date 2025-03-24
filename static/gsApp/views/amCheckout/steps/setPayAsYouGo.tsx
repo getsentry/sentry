@@ -16,11 +16,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
-import {
-  hasPartnerMigrationFeature,
-  isBizPlanFamily,
-  isDeveloperPlan,
-} from 'getsentry/utils/billing';
+import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
@@ -44,7 +40,17 @@ function SetPayAsYouGo({
   const [currentBudget, setCurrentBudget] = useState<number>(
     formData.onDemandBudget ? getTotalBudget(formData.onDemandBudget) : 0
   );
-  const [hasShownSuggestedAmount, setHasShownSuggestedAmount] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isActive) {
+      // When step becomes active, set the current budget to the value in formData
+      // to ensure we've got the latest value (e.g. if the user changed plan type
+      // so the default is different from when this was first rendered)
+      setCurrentBudget(
+        formData.onDemandBudget ? getTotalBudget(formData.onDemandBudget) : 0
+      );
+    }
+  }, [isActive, formData.onDemandBudget]);
 
   const checkoutCategories = useMemo(() => {
     return activePlan.checkoutCategories;
@@ -59,9 +65,6 @@ function SetPayAsYouGo({
   const suggestedBudgetForPlan = useMemo(() => {
     return isBizPlanFamily(activePlan) ? PAYG_BUSINESS_DEFAULT : PAYG_TEAM_DEFAULT;
   }, [activePlan]);
-
-  const isNewPayingCustomer =
-    isDeveloperPlan(subscription.planDetails) || hasPartnerMigrationFeature(organization);
 
   const handleBudgetChange = useCallback(
     (value: OnDemandBudgets, fromButton = false) => {
@@ -87,22 +90,6 @@ function SetPayAsYouGo({
     },
     [onUpdate, organization, subscription, formData]
   );
-
-  useEffect(() => {
-    if (isNewPayingCustomer && !hasShownSuggestedAmount && isActive) {
-      handleBudgetChange({
-        budgetMode: OnDemandBudgetMode.SHARED,
-        sharedMaxBudget: suggestedBudgetForPlan,
-      });
-      setHasShownSuggestedAmount(true);
-    }
-  }, [
-    isNewPayingCustomer,
-    suggestedBudgetForPlan,
-    handleBudgetChange,
-    hasShownSuggestedAmount,
-    isActive,
-  ]);
 
   const coerceValue = (value: number): string => {
     return (value / 100).toString();

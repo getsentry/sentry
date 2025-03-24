@@ -27,7 +27,12 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {
+  ANNUAL,
+  MONTHLY,
+  PAYG_BUSINESS_DEFAULT,
+  PAYG_TEAM_DEFAULT,
+} from 'getsentry/constants';
 import {
   type BillingConfig,
   CheckoutType,
@@ -46,6 +51,7 @@ import {
   hasPerformance,
   isAmPlan,
   isBizPlanFamily,
+  isNewPayingCustomer,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
@@ -372,7 +378,7 @@ class AMCheckout extends Component<Props, State> {
    * If not available on current tier, use the default plan.
    */
   getInitialData(billingConfig: BillingConfig): CheckoutFormData {
-    const {subscription} = this.props;
+    const {subscription, checkoutTier, organization} = this.props;
     const {onDemandMaxSpend, planDetails} = subscription;
 
     const initialPlan = this.getInitialPlan(billingConfig);
@@ -427,6 +433,20 @@ class AMCheckout extends Component<Props, State> {
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
     };
+
+    if (
+      isNewPayingCustomer(subscription, organization) &&
+      checkoutTier === PlanTier.AM3
+    ) {
+      // TODO(isabella): Test if this behavior works as expected on older tiers
+      data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
+        ? PAYG_BUSINESS_DEFAULT
+        : PAYG_TEAM_DEFAULT;
+      data.onDemandBudget = {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: data.onDemandMaxSpend,
+      };
+    }
 
     return this.getValidData(initialPlan, data);
   }

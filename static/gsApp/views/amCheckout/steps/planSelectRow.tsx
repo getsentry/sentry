@@ -10,14 +10,27 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import type {Plan, Promotion} from 'getsentry/types';
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
+import {
+  OnDemandBudgetMode,
+  type Plan,
+  type Promotion,
+  type SharedOnDemandBudget,
+} from 'getsentry/types';
+import {isBizPlanFamily} from 'getsentry/utils/billing';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
 import type {PlanContent} from 'getsentry/views/amCheckout/steps/planSelect';
 import {formatPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
+type UpdateData = {
+  plan: string;
+  onDemandBudget?: SharedOnDemandBudget;
+  onDemandMaxSpend?: number;
+};
+
 type Props = {
   isSelected: boolean;
-  onUpdate: (data: {plan: string}) => void;
+  onUpdate: (data: UpdateData) => void;
   plan: Plan;
   planContent: PlanContent;
   planName: string;
@@ -28,16 +41,16 @@ type Props = {
   discountInfo?: Promotion['discountInfo'];
   highlightedFeatures?: string[];
   isFeaturesCheckmarked?: boolean;
-
   /**
    * Optional list of main features for a plan
    */
   planFeatures?: string[];
-
   /**
    * Optional warning at the bottom of the row
    */
   planWarning?: React.ReactNode;
+
+  shouldShowDefaultPayAsYouGo?: boolean;
 };
 
 function PlanSelectRow({
@@ -54,6 +67,7 @@ function PlanSelectRow({
   isFeaturesCheckmarked,
   discountInfo,
   badge,
+  shouldShowDefaultPayAsYouGo = false,
 }: Props) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
@@ -77,7 +91,19 @@ function PlanSelectRow({
               id={plan.id}
               value={planValue}
               checked={isSelected}
-              onClick={() => onUpdate({plan: plan.id})}
+              onClick={() => {
+                const data: UpdateData = {plan: plan.id};
+                if (shouldShowDefaultPayAsYouGo) {
+                  data.onDemandMaxSpend = isBizPlanFamily(plan)
+                    ? PAYG_BUSINESS_DEFAULT
+                    : PAYG_TEAM_DEFAULT;
+                  data.onDemandBudget = {
+                    budgetMode: OnDemandBudgetMode.SHARED,
+                    sharedMaxBudget: data.onDemandMaxSpend,
+                  };
+                }
+                onUpdate(data);
+              }}
             />
             <PlanDetails id={`plan-details-${plan.id}`}>
               <Title>

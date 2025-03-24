@@ -71,7 +71,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
   const renderPayAsYouGoBudget = (paygBudgetTotal: number) => {
     return (
       <PanelChild>
-        <Subtitle>{t('Overage Limit')}</Subtitle>
+        <Subtitle>{t('Additional Coverage')}</Subtitle>
         <SpaceBetweenRow style={{alignItems: 'start'}}>
           <Column>
             <Title>{t('Pay-as-you-go (PAYG) Budget')}</Title>
@@ -79,7 +79,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
               {t('Charges are applied at the end of your monthly usage cycle.')}
             </Description>
           </Column>
-          <Column justifyItems="end">
+          <Column minWidth="150px" alignItems="end">
             <Title>
               {paygBudgetTotal > 0 ? t('up to ') : null}
               {`${utils.displayPrice({cents: paygBudgetTotal})}/mo`}
@@ -158,7 +158,8 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
                   }
                   {
                     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                    formData.reserved[category] === 1
+                    formData.reserved[category] === 1 &&
+                    category !== DataCategory.ATTACHMENTS
                       ? getSingularCategoryName({
                           plan: activePlan,
                           category,
@@ -210,7 +211,7 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
         <SpaceBetweenRow>
           <Column>
             <Subtitle>{t('Subscription Total')}</Subtitle>
-            <Title style={{lineHeight: 2}}>
+            <Title>
               {tct('Total [interval] Charges', {
                 interval: activePlan.billingInterval === 'annual' ? 'Annual' : 'Monthly',
               })}
@@ -218,24 +219,38 @@ function CheckoutOverviewV2({activePlan, formData}: Props) {
           </Column>
           <Column>
             <TotalPrice>{`${utils.displayPrice({cents: committedTotal})}/${shortInterval}`}</TotalPrice>
+            <AnimatePresence>
+              {paygMonthlyBudget > 0 ? (
+                <motion.div
+                  initial={{height: 0, opacity: 0}}
+                  animate={{height: 'auto', opacity: 1}}
+                  exit={{height: 0, opacity: 0}}
+                  transition={{
+                    type: 'spring',
+                    duration: 0.4,
+                    bounce: 0.1,
+                  }}
+                >
+                  <AdditionalMonthlyCharge data-test-id="additional-monthly-charge">
+                    <span>
+                      {tct('+ up to [monthlyMax] based on PAYG usage', {
+                        monthlyMax: (
+                          <EmphasisText>{`${utils.displayPrice({cents: paygMonthlyBudget})}/mo`}</EmphasisText>
+                        ),
+                      })}{' '}
+                    </span>
+                    <QuestionTooltip
+                      size="xs"
+                      title={t(
+                        "This is your pay-as-you-go budget, which ensures continued monitoring after you've used up your reserved event volume. We’ll only charge you for actual usage, so this is your maximum charge for overage."
+                      )}
+                    />
+                  </AdditionalMonthlyCharge>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </Column>
         </SpaceBetweenRow>
-        {paygMonthlyBudget > 0 ? (
-          <AdditionalMonthlyCharge data-test-id="additional-monthly-charge">
-            {tct('+ up to [monthlyMax] based on PAYG usage', {
-              monthlyMax: (
-                <EmphasisText>{`${utils.displayPrice({cents: paygMonthlyBudget})}/mo`}</EmphasisText>
-              ),
-            })}{' '}
-            <QuestionTooltip
-              size="xs"
-              title={t(
-                "This is your pay-as-you-go budget, which ensures continued monitoring after you've used up your reserved event volume. We’ll only charge you for actual usage, so this is your maximum charge for overage."
-              )}
-              position="bottom"
-            />
-          </AdditionalMonthlyCharge>
-        ) : null}
       </SubscriptionTotal>
     );
   };
@@ -265,10 +280,12 @@ const PanelChild = styled('div')`
   margin: ${space(2)};
 `;
 
-const Column = styled('div')<{justifyItems?: string}>`
-  display: grid;
-  grid-template-rows: repeat(2, auto);
-  justify-items: ${p => p.justifyItems || 'normal'};
+const Column = styled('div')<{alignItems?: string; minWidth?: string}>`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: ${p => p.alignItems || 'normal'};
+  min-width: ${p => p.minWidth || 'auto'};
 `;
 
 const Description = styled('div')`
@@ -339,10 +356,7 @@ const TotalPrice = styled(Price)`
 `;
 
 const AdditionalMonthlyCharge = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: ${space(0.5)};
+  text-align: right;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
 `;
