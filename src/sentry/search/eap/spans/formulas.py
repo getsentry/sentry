@@ -446,8 +446,8 @@ SPAN_FORMULA_DEFINITIONS = {
     "time_spent_percentage": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
-            ArgumentDefinition(
-                argument_types={
+            AttributeArgumentDefinition(
+                attribute_types={
                     "duration",
                     "number",
                     "percentage",
