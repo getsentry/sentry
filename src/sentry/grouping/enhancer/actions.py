@@ -29,8 +29,10 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class EnhancementAction:
-    _is_modifier: bool
-    _is_updater: bool
+    # True if this action updates a frame's `category` or `in_app` value
+    is_classifier: bool
+    # True if this action updates the `contributes` value of either a frame or the stacktrace
+    sets_contributes: bool
 
     def apply_modifications_to_frame(
         self,
@@ -52,16 +54,6 @@ class EnhancementAction:
 
     def modify_stacktrace_state(self, state, rule):
         pass
-
-    @property
-    def is_modifier(self) -> bool:
-        """Does this action modify the frame?"""
-        return self._is_modifier
-
-    @property
-    def is_updater(self) -> bool:
-        """Does this action update grouping components?"""
-        return self._is_updater
 
     @classmethod
     def _from_config_structure(cls, val: list[str] | int, version: int) -> EnhancementAction:
@@ -85,10 +77,10 @@ class FlagAction(EnhancementAction):
 
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
         self.key = key  # The type of change (`app` or `group`)
-        self._is_updater = key in {"group", "app"}
-        self._is_modifier = key == "app"
         self.flag = flag  # True for `+app/+group` rules, False for `-app/-group` rules
         self.range = range  # None (apply the action to this frame), "up", or "down"
+        self.is_classifier = key == "app"
+        self.sets_contributes = key == "group"
 
     def __str__(self) -> str:
         return "{}{}{}".format(
@@ -180,8 +172,8 @@ class VarAction(EnhancementAction):
 
     def __init__(self, var: str, value: str) -> None:
         self.var = var
-        self._is_modifier = self.var == "category"
-        self._is_updater = self.var not in VarAction._FRAME_VARIABLES
+        self.is_classifier = self.var == "category"
+        self.sets_contributes = self.var in ["min-frames", "max-frames"]
 
         try:
             self.value = VarAction._VALUE_PARSERS[var](value)
