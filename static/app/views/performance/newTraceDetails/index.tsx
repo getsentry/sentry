@@ -51,7 +51,7 @@ export function TraceView() {
   );
 }
 
-function InnerTraceView({traceSlug}: {traceSlug?: string}) {
+function InnerTraceView({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
