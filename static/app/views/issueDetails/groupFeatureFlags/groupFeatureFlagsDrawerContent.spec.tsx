@@ -1,6 +1,6 @@
-import {FeatureFlagsFixture} from 'sentry-fixture/featureFlags';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {FeatureFlagTagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -28,7 +28,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
   it('calls flags backend and renders distribution cards', async function () {
     const mockTagsEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
-      body: FeatureFlagsFixture(),
+      body: FeatureFlagTagsFixture(),
     });
 
     render(
@@ -79,7 +79,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
   it('renders empty state when no flags match the search', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
-      body: FeatureFlagsFixture(),
+      body: FeatureFlagTagsFixture(),
     });
 
     render(
