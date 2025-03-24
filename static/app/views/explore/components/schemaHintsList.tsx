@@ -330,7 +330,7 @@ const HintName = styled('span')`
 
 const HintOperator = styled('span')`
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const HintValue = styled('span')`
