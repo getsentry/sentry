@@ -37,7 +37,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export const IGNORED_FIELDS = ['Sprint'];
+const IGNORED_FIELDS = ['Sprint'];
 
 interface TicketRuleModalProps extends ModalRenderProps {
   instance: IssueAlertRuleAction;
