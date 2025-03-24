@@ -6,7 +6,7 @@ import {PlatformIcon} from 'platformicons';
 import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
+// import NavTabs from 'sentry/components/navTabs';
 import SearchBar from 'sentry/components/searchBar';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import categoryList, {
@@ -164,7 +164,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
     return (
       <Fragment>
         <NavContainer className={navClassName}>
-          <CategoryNav>
+          {/* <CategoryNav>
             {categoryList.map(({id, name}) => (
               <ListLink
                 key={id}
@@ -183,7 +183,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
                 {name}
               </ListLink>
             ))}
-          </CategoryNav>
+          </CategoryNav> */}
           {showFilterBar && (
             <StyledSearchBar
               size="sm"
@@ -269,16 +269,16 @@ const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
 
-const CategoryNav = styled(NavTabs)`
-  margin: 0;
-  margin-top: 4px;
-  white-space: nowrap;
+// const CategoryNav = styled(NavTabs)`
+//   margin: 0;
+//   margin-top: 4px;
+//   white-space: nowrap;
 
-  > li {
-    float: none;
-    display: inline-block;
-  }
-`;
+//   > li {
+//     float: none;
+//     display: inline-block;
+//   }
+// `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};

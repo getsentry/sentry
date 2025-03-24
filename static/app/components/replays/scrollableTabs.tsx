@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import NavTabs from 'sentry/components/navTabs';
+// import NavTabs from 'sentry/components/navTabs';
 
-const ScrollableTabs = styled(NavTabs)`
+const ScrollableTabs = styled('div')`
   display: flex;
   flex-wrap: nowrap;
   overflow-y: hidden;

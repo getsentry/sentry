@@ -1,16 +1,11 @@
 import styled from '@emotion/styled';
 
-import ListLink from 'sentry/components/links/listLink';
-import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useUrlParams from 'sentry/utils/useUrlParams';
-
-type Props = {
-  className?: string;
-  underlined?: boolean;
-};
 
 const TABS = {
   details: t('Details'),
@@ -20,32 +15,38 @@ const TABS = {
 
 export type TabKey = keyof typeof TABS;
 
-function NetworkDetailsTabs({className, underlined = true}: Props) {
+function NetworkDetailsTabs() {
   const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'details');
   const activeTab = getParamValue();
+  const navigate = useNavigate();
 
   return (
-    <ScrollableTabs className={className} underlined={underlined}>
-      {Object.entries(TABS).map(([tab, label]) => (
-        <ListLink
-          key={tab}
-          isActive={() => tab === activeTab}
-          to={{
+    <TabsContainer>
+      <Tabs
+        value={activeTab}
+        onChange={tab => {
+          setParamValue(tab);
+          navigate({
             pathname,
             query: {...query, t_main: tab},
-          }}
-          onClick={e => {
-            e.preventDefault();
-            setParamValue(tab);
-          }}
-        >
-          {label}
-        </ListLink>
-      ))}
-    </ScrollableTabs>
+          });
+        }}
+      >
+        <TabList hideBorder>
+          {Object.entries(TABS).map(([tab, label]) => (
+            <TabList.Item key={tab}>{label}</TabList.Item>
+          ))}
+        </TabList>
+      </Tabs>
+    </TabsContainer>
   );
 }
+
+const TabsContainer = styled('div')`
+  padding: 0 ${space(2)};
+  border-bottom: 1px solid ${p => p.theme.border};
+`;
 
 const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
   /*
