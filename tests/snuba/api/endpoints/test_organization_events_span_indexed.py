@@ -2192,7 +2192,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert response.status_code == 200, response.content
             assert response.data["data"] == [{"foo": "bar", "count()": 1}]
 
-    @pytest.mark.xfail(reason="wip: rate not implemented yet")
+    @pytest.mark.xfail(
+        reason="RPC does not support static number operations (https://github.com/getsentry/eap-planning/issues/202) which is required by this function"
+    )
     def test_spm(self):
         super().test_spm()
 
