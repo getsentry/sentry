@@ -51,7 +51,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     exclude: mode === 'owned' ? 'shared' : 'owned', // Inverse because this is an exclusion
     perPage,
   });
-  const filteredData = data?.filter(row => row.query.length > 0) ?? [];
+  const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const renderBodyCell = (col: Column, row: SavedQuery) => {
     const query = row.query[0];
