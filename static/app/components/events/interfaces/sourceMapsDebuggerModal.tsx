@@ -255,7 +255,7 @@ function SentryWizardCallout({
     <Fragment>
       <WizardInstructionParagraph>
         {tct(
-          'Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project’s terminal? It’s the easiest way to get source maps set up:',
+          "Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project's terminal? It's the easiest way to get source maps set up:",
           {
             code: <code />,
           }
@@ -485,7 +485,9 @@ export function SourceMapsDebuggerModal({
             "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
           )}
         </p>
-        {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
+        {isReactNativeSDK({
+          sdkName: sourceResolutionResults.sdkName,
+        }) ? null : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
           <MetaFrameworkConfigInfo
             framework={platform}
             orgSlug={orgSlug}
@@ -499,9 +501,13 @@ export function SourceMapsDebuggerModal({
           />
         )}
         <p>
-          {t(
-            "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
-          )}
+          {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
+            ? t(
+                "Let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+              )
+            : t(
+                "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+              )}
         </p>
         <Tabs<'debug-ids' | 'release' | 'fetching'>
           value={activeTab}
