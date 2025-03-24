@@ -126,6 +126,8 @@ export interface TourElementProps<T extends TourEnumType>
   children: React.ReactNode;
   /**
    * The description of the tour step.
+   * If null, a tooltip will not be displayed. This is useful if there are multiple
+   * elements you want to focus on in a single step.
    */
   description: React.ReactNode;
   /**
@@ -134,6 +136,8 @@ export interface TourElementProps<T extends TourEnumType>
   id: TourStep<T>['id'];
   /**
    * The title of the tour step.
+   * If null, a tooltip will not be displayed. This is useful if there are multiple
+   * elements you want to focus on in a single step.
    */
   title: React.ReactNode;
   /**
@@ -331,7 +335,7 @@ export function TourGuide({
       >
         {children}
       </Wrapper>
-      {isOpen
+      {isOpen && defined(title) && defined(description)
         ? createPortal(
             <PositionWrapper zIndex={theme.zIndex.tour.overlay} {...overlayProps}>
               <ClassNames>
