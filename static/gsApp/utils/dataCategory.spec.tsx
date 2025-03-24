@@ -322,7 +322,7 @@ describe('listDisplayNames', function () {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, spans, profile hours, and uptime monitors'
+      'errors, replays, attachments, cron monitors, spans, uptime monitors, and profile hours'
     );
   });
 
@@ -334,7 +334,7 @@ describe('listDisplayNames', function () {
         hadCustomDynamicSampling: true,
       })
     ).toBe(
-      'errors, replays, attachments, cron monitors, accepted spans, profile hours, uptime monitors, and stored spans'
+      'errors, replays, attachments, cron monitors, accepted spans, uptime monitors, profile hours, and stored spans'
     );
   });
 });
