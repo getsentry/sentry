@@ -31,7 +31,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useRouter from 'sentry/utils/useRouter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {aggregateWaterfallRouteWithQuery} from 'sentry/views/performance/transactionSummary/aggregateSpanWaterfall/utils';
 
 import {
   getPerformanceBaseUrl,
@@ -147,8 +146,6 @@ function PageLayout(props: Props) {
         case Tab.PROFILING: {
           return profilesRouteWithQuery(routeQuery);
         }
-        case Tab.AGGREGATE_WATERFALL:
-          return aggregateWaterfallRouteWithQuery(routeQuery);
         case Tab.WEB_VITALS:
           return vitalsRouteWithQuery({
             organization,
@@ -359,15 +356,10 @@ export function redirectToPerformanceHomepage(
   organization: Organization,
   location: Location
 ) {
-  const hasPerfLandingRemovalFlag = organization.features.includes(
-    'insights-performance-landing-removal'
-  );
   // If there is no transaction name, redirect to the Performance landing page
   browserHistory.replace(
     normalizeUrl({
-      pathname: hasPerfLandingRemovalFlag
-        ? getPerformanceBaseUrl(organization.slug, 'backend')
-        : getPerformanceBaseUrl(organization.slug),
+      pathname: getPerformanceBaseUrl(organization.slug, 'backend'),
       query: {
         ...location.query,
       },

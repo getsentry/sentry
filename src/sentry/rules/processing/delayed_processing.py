@@ -465,18 +465,22 @@ def fire_rules(
             groupevent = group_to_groupevent[group]
             rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
 
-            callback_and_futures = activate_downstream_actions(
-                rule, groupevent, notification_uuid, rule_fire_history
-            ).values()
             if features.has(
-                "organizations:workflow-engine-process-workflows",
+                "organizations:workflow-engine-process-workflows-logs",
                 project.organization,
             ):
-                metrics.incr(
-                    "post_process.delayed_processing.triggered_actions",
-                    amount=len(callback_and_futures),
-                    tags={"event_type": groupevent.group.type},
+                logger.info(
+                    "post_process.delayed_processing.triggered_rule",
+                    extra={
+                        "rule_id": rule.id,
+                        "group_id": group.id,
+                        "event_id": groupevent.event_id,
+                    },
                 )
+
+            callback_and_futures = activate_downstream_actions(
+                rule, groupevent, notification_uuid, rule_fire_history, is_post_process=False
+            ).values()
 
             # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
             for callback, futures in callback_and_futures:

@@ -14,8 +14,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
-from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.msteams.card_builder.block import (
     Block,
     ColumnBlock,
@@ -100,12 +100,11 @@ class MsTeamsActionHandlerTest(FireTest):
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
-            snuba_query=incident.alert_rule.snuba_query,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
             date_started=incident.date_started,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
         )
 
         assert_slo_metric(mock_record)
@@ -130,12 +129,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
-            snuba_query=alert_rule.snuba_query,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
             date_started=incident.date_started,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
         )
         body: list[Block] = data["body"]
         column_set_block = cast(ColumnSetBlock, body[0])
@@ -181,12 +179,11 @@ class MsTeamsActionHandlerTest(FireTest):
         metric_value = 1000
         data = build_incident_attachment(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
-            snuba_query=alert_rule.snuba_query,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
             organization=incident.organization,
             date_started=incident.date_started,
-            new_status=IncidentStatus(incident.status),
-            metric_value=metric_value,
         )
         body: list[Block] = data["body"]
         column_set_block = cast(ColumnSetBlock, body[0])

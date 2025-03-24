@@ -17,11 +17,11 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
 )
-from sentry.integrations.metric_alerts import AlertContext
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
@@ -807,11 +807,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=0,
             date_started=incident.date_started,
         ).build() == {
             "blocks": [
@@ -879,12 +878,11 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CLOSED, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
             date_started=incident.date_started,
-            new_status=IncidentStatus.CLOSED,
-            metric_value=0,
         ).build() == {
             "blocks": [
                 {
@@ -924,11 +922,10 @@ class BuildIncidentAttachmentTest(TestCase):
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, metric_value
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=metric_value,
             date_started=incident.date_started,
         ).build() == {
             "blocks": [
@@ -965,11 +962,10 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CLOSED, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CLOSED,
-            metric_value=0,
             date_started=incident.date_started,
             chart_url="chart-url",
         ).build() == {
@@ -1021,11 +1017,10 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         assert SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, 0
+            ),
             organization=self.organization,
-            snuba_query=alert_rule.snuba_query,
-            new_status=IncidentStatus.CRITICAL,
-            metric_value=0,
             date_started=incident.date_started,
         ).build() == {
             "blocks": [

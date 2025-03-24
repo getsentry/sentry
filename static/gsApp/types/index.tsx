@@ -66,6 +66,8 @@ export enum PlanName {
   BUSINESS_BUNDLE = 'Business Bundle',
   TEAM_SPONSORED = 'Sponsored Team',
   BUSINESS_SPONSORED = 'Sponsored Business',
+  ENTERPRISE_TEAM = 'Enterprise (Team)',
+  ENTERPRISE_BUSINESS = 'Enterprise (Business)',
 }
 
 export enum CheckoutType {
@@ -96,6 +98,7 @@ export type Plan = {
   hasOnDemandModes: boolean;
 
   id: string;
+  isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
   onDemandCategories: string[];
@@ -825,6 +828,10 @@ export enum PlanTier {
    * Features and data volumes are tightly coupled.
    */
   MM1 = 'mm1',
+  /**
+   * Test plans
+   */
+  TEST = 'test',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/

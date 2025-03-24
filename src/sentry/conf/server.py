@@ -97,6 +97,8 @@ _env_cache: dict[str, object] = {}
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
 IS_DEV = ENVIRONMENT == "development"
+SPOTLIGHT_ENV_VAR = os.environ.get("SENTRY_SPOTLIGHT", "")
+SPOTLIGHT = IS_DEV and SPOTLIGHT_ENV_VAR.lower() not in ("0", "false", "n", "no")
 
 DEBUG = IS_DEV
 # override the settings dumped in the debug view
@@ -1571,10 +1573,6 @@ SENTRY_DEFAULT_TIME_ZONE = "UTC"
 
 SENTRY_DEFAULT_LANGUAGE = "en"
 
-# Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = None
-
-
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
 
@@ -2578,7 +2576,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.2.0"
+SELF_HOSTED_STABLE_VERSION = "25.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2645,7 +2643,7 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 #
 # This will allow us to have finer control over where we are running the
 # profiler. For example, only on the web server.
-SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 
 # To have finer control over which process will have continuous profiling enabled,
 # this environment variable will be required to enable continuous profiling.

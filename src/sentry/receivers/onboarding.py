@@ -56,7 +56,7 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
-@project_created.connect(weak=False)
+@project_created.connect(weak=False, dispatch_uid="record_new_project")
 def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     scope = sentry_sdk.get_current_scope()
@@ -375,7 +375,6 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
     )
 
 
-@first_insight_span_received.connect(weak=False)
 def record_first_insight_span(project, module, **kwargs):
     flag = None
     if module == InsightModules.HTTP:
@@ -408,6 +407,9 @@ def record_first_insight_span(project, module, **kwargs):
         platform=project.platform,
         module=module,
     )
+
+
+first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
 @member_invited.connect(weak=False)

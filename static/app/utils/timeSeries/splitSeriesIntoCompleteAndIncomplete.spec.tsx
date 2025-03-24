@@ -1,5 +1,9 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+
+import {DurationUnit} from '../discover/fields';
+
 import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
 
 describe('splitSeriesIntoCompleteAndIncomplete', () => {
@@ -12,7 +16,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Does not split a series with all complete data', () => {
-    const serie = {
+    const serie: TimeSeries = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -29,12 +33,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -62,7 +62,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Does not split a series with all incomplete data', () => {
-    const serie = {
+    const serie: TimeSeries = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -83,12 +83,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -120,7 +116,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   });
 
   it('Splits a series with partial incomplete data', () => {
-    const serie = {
+    const serie: TimeSeries = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -145,12 +141,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 
@@ -193,7 +185,7 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
   it('Splits a series with long buckets', () => {
     // The time buckets are an hour long. The ingestion delay is 90s. The last buckets should be marked incomplete.
 
-    const serie = {
+    const serie: TimeSeries = {
       field: 'p99(span.duration)',
       data: [
         {
@@ -214,12 +206,8 @@ describe('splitSeriesIntoCompleteAndIncomplete', () => {
         },
       ],
       meta: {
-        fields: {
-          'p99(span.duration)': 'duration',
-        },
-        units: {
-          'p99(span.duration)': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     };
 

@@ -8,7 +8,7 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
@@ -26,7 +26,7 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['count_unique(user)'],
           groupBy: ['session.status'],
         },
@@ -80,7 +80,7 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
     meta: {
       fields: {
         [`${status}_user_${type}`]:
-          type === 'count' ? ('number' as const) : ('percentage' as const),
+          type === 'count' ? ('integer' as const) : ('percentage' as const),
         time: 'date' as const,
       },
       units: {},

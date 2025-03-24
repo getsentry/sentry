@@ -1,8 +1,9 @@
+from typing import Any
+
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.groupsearchview import GroupSearchView
@@ -44,7 +45,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -60,7 +60,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -75,7 +74,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -90,7 +88,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -105,7 +102,6 @@ class BaseGSVTestCase(APITestCase):
             user_id=self.user_2.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
         )
         GroupSearchViewStarred.objects.create(
             organization=self.organization,
@@ -130,14 +126,18 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_get_user_one_custom_views(self) -> None:
         objs = self.create_base_data()
 
         self.login_as(user=self.user)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data == serialize(objs["user_one_views"])
+        assert response.data[0]["id"] == str(objs["user_one_views"][0].id)
+        assert response.data[0]["position"] == 0
+        assert response.data[1]["id"] == str(objs["user_one_views"][1].id)
+        assert response.data[1]["position"] == 1
+        assert response.data[2]["id"] == str(objs["user_one_views"][2].id)
+        assert response.data[2]["position"] == 2
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -164,18 +164,19 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_get_user_two_custom_views(self) -> None:
         objs = self.create_base_data()
 
         self.login_as(user=self.user_2)
         response = self.get_success_response(self.organization.slug)
 
-        assert response.data == serialize(objs["user_two_views"])
+        assert response.data[0]["id"] == str(objs["user_two_views"][0].id)
+        assert response.data[0]["position"] == 0
+        assert response.data[1]["id"] == str(objs["user_two_views"][1].id)
+        assert response.data[1]["position"] == 1
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_get_default_views(self) -> None:
         self.create_base_data()
 
@@ -192,7 +193,6 @@ class OrganizationGroupSearchViewsGetTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_get_views_has_correct_default_page_filters(self) -> None:
         self.create_base_data()
 
@@ -219,7 +219,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_deletes_missing_views(self) -> None:
         views = self.client.get(self.url).data
 
@@ -257,14 +256,17 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_adds_view_with_no_id(self) -> None:
         views = self.client.get(self.url).data
         views.append(
             {
                 "name": "Custom View Four",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
+                "projects": [],
+                "isAllProjects": False,
+                "environments": [],
+                "timeFilters": {"period": "14d"},
             }
         )
 
@@ -286,7 +288,23 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
+    @freeze_time("2025-03-07T00:00:00Z")
+    def test_response_with_last_visited(self) -> None:
+        GroupSearchViewLastVisited.objects.create(
+            user_id=self.user.id,
+            organization=self.organization,
+            group_search_view=self.base_data["user_one_views"][0],
+            last_visited=timezone.now(),
+        )
+
+        views = self.client.get(self.url).data
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        assert response.data[0]["lastVisited"] == timezone.now()
+        assert response.data[1]["lastVisited"] is None
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
     def test_reorder_views(self) -> None:
         views = self.client.get(self.url).data
         view_one = views[0]
@@ -316,7 +334,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_rename_views(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -329,7 +346,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_change_query(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -342,7 +358,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_change_sort(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -355,7 +370,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_change_everything(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -379,7 +393,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_invalid_no_views(self) -> None:
         response = self.get_error_response(self.organization.slug, views=[])
 
@@ -391,7 +404,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_invalid_sort(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -410,12 +422,18 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_invalid_over_max_views(self) -> None:
         from sentry.api.serializers.rest_framework.groupsearchview import MAX_VIEWS
 
         views = [
-            {"name": f"Custom View {i}", "query": "is:unresolved", "query_sort": "date"}
+            {
+                "name": f"Custom View {i}",
+                "query": "is:unresolved",
+                "querySort": "date",
+                "projects": [],
+                "environments": [],
+                "timeFilters": {"period": "14d"},
+            }
             for i in range(MAX_VIEWS + 1)
         ]
         response = self.get_error_response(self.organization.slug, views=views)
@@ -429,7 +447,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_updated_deleted_view(self) -> None:
         views = self.client.get(self.url).data
 
@@ -491,7 +508,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             time_filters={"period": "14d"},
             environments=[],
         )
@@ -509,7 +525,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
             time_filters={"period": "7d"},
             environments=["staging", "production"],
         )
@@ -527,7 +542,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
             time_filters={"period": "30d"},
             environments=["development"],
         )
@@ -552,7 +566,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_not_including_page_filters_does_not_reset_them_for_existing_views(self) -> None:
         views = self.client.get(self.url).data
 
@@ -578,14 +591,17 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_default_page_filters_with_global_views(self) -> None:
         views = self.client.get(self.url).data
         views.append(
             {
                 "name": "New View",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
+                "projects": [],
+                "isAllProjects": False,
+                "environments": [],
+                "timeFilters": {"period": "14d"},
             }
         )
         response = self.get_success_response(self.organization.slug, views=views)
@@ -597,7 +613,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_one_project_to_zero_projects(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -609,7 +624,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_to_all_projects(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -621,7 +635,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_one_environment_to_zero_environments(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -632,7 +645,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_update_time_filters(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
@@ -643,13 +655,11 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
-    def test_empty_time_filters_resets_to_default(self) -> None:
+    def test_empty_time_filters_fails(self) -> None:
         views = self.client.get(self.url).data
         views[0]["timeFilters"] = {}
-        response = self.get_success_response(self.organization.slug, views=views)
-        assert len(response.data) == 3
-        assert response.data[0]["timeFilters"] == {"period": "14d"}
+        response = self.get_error_response(self.organization.slug, views=views)
+        assert response.data["views"]["timeFilters"][0] == "This dictionary may not be empty."
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -657,9 +667,10 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         views = self.client.get(self.url).data
         views[0]["projects"] = [self.project1.id, self.project2.id]
         response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {
-            "detail": "You do not have the multi project stream feature enabled"
-        }
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="You do not have the multi project stream feature enabled",
+            code="invalid",
+        )
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -667,9 +678,10 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         views = self.client.get(self.url).data
         views[0]["projects"] = [-1]
         response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {
-            "detail": "You do not have the multi project stream feature enabled"
-        }
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="You do not have the multi project stream feature enabled",
+            code="invalid",
+        )
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -677,9 +689,10 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         views = self.client.get(self.url).data
         views[0]["projects"] = []
         response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {
-            "detail": "You do not have the multi project stream feature enabled"
-        }
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="You do not have the multi project stream feature enabled",
+            code="invalid",
+        )
 
 
 class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
@@ -692,7 +705,6 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
     # the test has finished. This causes the endpoint to unexpectedly succeed when it should fail.
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_invalid_project_ids(self) -> None:
         url = reverse(
             "sentry-api-0-organization-group-search-views",
@@ -708,13 +720,12 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
             user_id=self.user.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             time_filters={"period": "14d"},
             environments=["production"],
         )
         issue_view_one.projects.set([project1])
 
-        response = self.client.put(
+        response: Any = self.client.put(
             url,
             data={
                 "views": [
@@ -722,9 +733,9 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
                         "id": issue_view_one.id,
                         "name": issue_view_one.name,
                         "query": issue_view_one.query,
-                        "query_sort": issue_view_one.query_sort,
+                        "querySort": issue_view_one.query_sort,
                         "position": issue_view_one.position,
-                        "time_filters": issue_view_one.time_filters,
+                        "timeFilters": issue_view_one.time_filters,
                         "environments": issue_view_one.environments,
                         "projects": [project1.id, 123456],
                     }
@@ -734,7 +745,10 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
             content_type="application/json",
         )
         assert response.status_code == 400
-        assert response.content == b'{"detail":"One or more projects do not exist"}'
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="One or more projects do not exist",
+            code="invalid",
+        )
 
 
 class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
@@ -776,7 +790,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
@@ -795,7 +808,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:resolved",
             query_sort="new",
-            position=1,
             is_all_projects=False,
             time_filters={"period": "7d"},
             environments=["staging", "production"],
@@ -814,7 +826,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=user_1.id,
             query="is:ignored",
             query_sort="freq",
-            position=2,
             is_all_projects=True,
             time_filters={"period": "30d"},
             environments=["development"],
@@ -833,7 +844,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
@@ -852,7 +862,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             user_id=self.user_4.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             is_all_projects=False,
             time_filters={"period": "14d"},
             environments=[],
@@ -874,7 +883,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_basic_get_page_filters_with_global_filters(self) -> None:
         self.login_as(user=self.user)
         response = self.client.get(self.url)
@@ -928,7 +936,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_default_page_filters_with_global_views(self) -> None:
         self.login_as(user=self.user_3)
         response = self.client.get(self.url)
@@ -969,7 +976,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         self.login_as(user=self.user_4)
         response = self.client.get(self.url)
         assert response.status_code == 400
-        assert response.data == {"detail": "You do not have access to any projects."}
+        assert response.data["detail"] == "You do not have access to any projects."
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
@@ -987,7 +994,6 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    @with_feature({"organizations:issue-view-sharing": True})
     def test_cannot_rename_other_users_views(self) -> None:
         self.login_as(user=self.user)
         views = self.client.get(self.url).data
@@ -1005,7 +1011,11 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
             {
                 "name": "Custom View Two",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
+                "projects": [],
+                "isAllProjects": False,
+                "environments": [],
+                "timeFilters": {"period": "14d"},
             }
         )
 

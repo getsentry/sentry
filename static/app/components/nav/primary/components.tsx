@@ -1,4 +1,4 @@
-import {type MouseEventHandler, useCallback} from 'react';
+import type {MouseEventHandler} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,8 +9,10 @@ import {linkStyles} from 'sentry/components/links/styles';
 import {useNavContext} from 'sentry/components/nav/context';
 import {NavLayout} from 'sentry/components/nav/types';
 import {isLinkActive, makeLinkPropsFromTo} from 'sentry/components/nav/utils';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -42,14 +44,29 @@ interface SidebarButtonProps {
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
+function recordPrimaryItemClick(analyticsKey: string, organization: Organization) {
+  trackAnalytics('navigation.primary_item_clicked', {
+    item: analyticsKey,
+    organization,
+  });
+}
+
 export function SidebarItem({
   children,
+  label,
+  showLabel,
   ...props
-}: {children: React.ReactNode} & React.HTMLAttributes<HTMLElement>) {
+}: {
+  children: React.ReactNode;
+  label: string;
+  showLabel: boolean;
+} & React.HTMLAttributes<HTMLElement>) {
   const {layout} = useNavContext();
   return (
     <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '16px'}>
-      <li {...props}>{children}</li>
+      <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
+        <li {...props}>{children}</li>
+      </Tooltip>
     </IconDefaultsProvider>
   );
 }
@@ -62,26 +79,22 @@ export function SidebarMenu({
   forceLabel,
 }: SidebarItemDropdownProps) {
   const organization = useOrganization();
-  const recordAnalytics = useCallback(
-    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
-    [organization, analyticsKey]
-  );
   const {layout} = useNavContext();
 
   const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem>
-      <DropdownMenu
-        position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
-        shouldApplyMinWidth={false}
-        trigger={(props, isOpen) => {
-          return (
+    <DropdownMenu
+      position={layout === NavLayout.MOBILE ? 'bottom' : 'right-end'}
+      shouldApplyMinWidth={false}
+      trigger={(props, isOpen) => {
+        return (
+          <SidebarItem label={label} showLabel={showLabel}>
             <NavButton
               {...props}
               aria-label={showLabel ? undefined : label}
               onClick={event => {
-                recordAnalytics();
+                recordPrimaryItemClick(analyticsKey, organization);
                 props.onClick?.(event);
               }}
               isMobile={layout === NavLayout.MOBILE}
@@ -90,11 +103,11 @@ export function SidebarMenu({
               {children}
               {showLabel ? label : null}
             </NavButton>
-          );
-        }}
-        items={items}
-      />
-    </SidebarItem>
+          </SidebarItem>
+        );
+      }}
+      items={items}
+    />
   );
 }
 
@@ -114,16 +127,11 @@ export function SidebarLink({
   const {layout} = useNavContext();
   const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
-  const recordAnalytics = useCallback(
-    () => trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization}),
-    [organization, analyticsKey]
-  );
-
   return (
-    <SidebarItem>
+    <SidebarItem label={label} showLabel={showLabel}>
       <NavLink
         {...linkProps}
-        onClick={recordAnalytics}
+        onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
         aria-label={showLabel ? undefined : label}
@@ -149,20 +157,22 @@ export function SidebarButton({
   const showLabel = layout === NavLayout.MOBILE;
 
   return (
-    <NavButton
-      {...buttonProps}
-      isMobile={layout === NavLayout.MOBILE}
-      aria-label={showLabel ? undefined : label}
-      onClick={(e: React.MouseEvent<HTMLElement>) => {
-        trackAnalytics('growth.clicked_sidebar', {item: analyticsKey, organization});
-        buttonProps.onClick?.(e);
-        onClick?.(e);
-      }}
-    >
-      <InteractionStateLayer />
-      {children}
-      {showLabel ? label : null}
-    </NavButton>
+    <SidebarItem label={label} showLabel={showLabel}>
+      <NavButton
+        {...buttonProps}
+        isMobile={layout === NavLayout.MOBILE}
+        aria-label={showLabel ? undefined : label}
+        onClick={(e: React.MouseEvent<HTMLElement>) => {
+          recordPrimaryItemClick(analyticsKey, organization);
+          buttonProps.onClick?.(e);
+          onClick?.(e);
+        }}
+      >
+        <InteractionStateLayer />
+        {children}
+        {showLabel ? label : null}
+      </NavButton>
+    </SidebarItem>
   );
 }
 

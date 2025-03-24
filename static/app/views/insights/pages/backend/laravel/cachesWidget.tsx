@@ -6,6 +6,7 @@ import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -23,7 +24,13 @@ import {
 import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
+import {HighestCacheMissRateTransactionsWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
+function isCacheHitError(error: RequestError | null) {
+  return (
+    error?.responseJSON?.detail === 'Column cache.hit was not found in metrics indexer'
+  );
+}
 export function CachesWidget({query}: {query?: string}) {
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
@@ -49,7 +56,15 @@ export function CachesWidget({query}: {query?: string}) {
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+      retry: (failureCount, error) => {
+        if (isCacheHitError(error)) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    }
   );
 
   const timeSeriesRequest = useSpanMetricsTopNSeries({
@@ -73,7 +88,11 @@ export function CachesWidget({query}: {query?: string}) {
   });
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!timeSeriesRequest.data && timeSeriesRequest.meta) {
+    if (
+      (!timeSeriesRequest.data && timeSeriesRequest.meta) ||
+      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
+      'data' in timeSeriesRequest.data
+    ) {
       return [];
     }
 
@@ -95,10 +114,15 @@ export function CachesWidget({query}: {query?: string}) {
   }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
 
   const isLoading = timeSeriesRequest.isLoading || cachesRequest.isLoading;
-  const error = timeSeriesRequest.error || cachesRequest.error;
+  const isValidCachesError = !isCacheHitError(cachesRequest.error);
+  const error =
+    timeSeriesRequest.error || (isValidCachesError ? cachesRequest.error : null);
 
   const hasData =
-    cachesRequest.data && cachesRequest.data.data.length > 0 && timeSeries.length > 0;
+    !isCacheHitError(cachesRequest.error) &&
+    cachesRequest.data &&
+    cachesRequest.data.data.length > 0 &&
+    timeSeries.length > 0;
 
   const colorPalette = getChartColorPalette(timeSeries.length - 2);
 
@@ -107,6 +131,7 @@ export function CachesWidget({query}: {query?: string}) {
       isLoading={isLoading}
       error={error}
       isEmpty={!hasData}
+      emptyMessage={<HighestCacheMissRateTransactionsWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
         plottables: timeSeries.map(

@@ -4,13 +4,18 @@ from django.test.utils import override_settings
 from rest_framework.views import APIView
 
 from sentry.sentry_apps.api.bases.sentryapps import (
+    IntegrationPlatformEndpoint,
     SentryAppAndStaffPermission,
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
     SentryAppPermission,
 )
-from sentry.sentry_apps.utils.errors import SentryAppError
+from sentry.sentry_apps.utils.errors import (
+    SentryAppError,
+    SentryAppIntegratorError,
+    SentryAppSentryError,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
@@ -221,3 +226,46 @@ class SentryAppInstallationBaseEndpointTest(TestCase):
     def test_raises_when_sentry_app_not_found(self):
         with pytest.raises(SentryAppError):
             self.endpoint.convert_args(self.request, "1234")
+
+
+@control_silo_test
+class IntegrationPlatformEndpointTest(TestCase):
+    def setUp(self):
+        self.endpoint = IntegrationPlatformEndpoint()
+
+    def test_handle_sentry_app_error(self):
+        error = SentryAppError(message="cool", status_code=400)
+        response = self.endpoint._handle_sentry_app_exception(error)
+
+        assert response.status_code == 400
+        assert response.data == error.to_public_dict()
+        assert response.exception is True
+        assert response.data == {"detail": error.message}
+
+    def test_handle_sentry_app_integrator_error(self):
+        public_context = {"help": "123423123"}
+        error = SentryAppIntegratorError(
+            message="yep",
+            webhook_context={"hi": "bye!"},
+            public_context=public_context,
+            status_code=400,
+        )
+        response = self.endpoint._handle_sentry_app_exception(error)
+
+        assert response.status_code == 400
+        assert response.data == error.to_public_dict()
+        assert response.exception is True
+        assert response.data == {"detail": error.message, "context": public_context}
+
+    def test_handle_sentry_app_sentry_error(self):
+        public_context = {"help": "123423123"}
+        error = SentryAppSentryError(
+            message="bruh", webhook_context={"bruh": "bruhhh"}, public_context=public_context
+        )
+        response = self.endpoint._handle_sentry_app_exception(error)
+
+        assert response.status_code == 500
+        assert response.data == error.to_public_dict()
+        assert response.data == {
+            "detail": f"An issue occured during the integration platform process. Sentry error ID: {None}"
+        }

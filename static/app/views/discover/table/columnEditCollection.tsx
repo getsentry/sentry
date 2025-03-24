@@ -4,9 +4,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';

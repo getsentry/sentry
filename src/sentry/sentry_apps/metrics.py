@@ -14,6 +14,9 @@ class SentryAppInteractionType(StrEnum):
     PREPARE_WEBHOOK = "prepare_webhook"
     SEND_WEBHOOK = "send_webhook"
 
+    # External Requests
+    EXTERNAL_REQUEST = "external_request"
+
 
 @dataclass
 class SentryAppInteractionEvent(EventLifecycleMetric):
@@ -49,6 +52,7 @@ class SentryAppWebhookFailureReason(StrEnum):
     INVALID_EVENT = "invalid_event"
     MISSING_SERVICEHOOK = "missing_servicehook"
     EVENT_NOT_IN_SERVCEHOOK = "event_not_in_servicehook"
+    MISSING_ISSUE_OCCURRENCE = "missing_issue_occurrence"
     MISSING_USER = "missing_user"
 
 
@@ -57,6 +61,22 @@ class SentryAppWebhookHaltReason(StrEnum):
 
     GOT_CLIENT_ERROR = "got_client_error"
     INTEGRATOR_ERROR = "integrator_error"
+    MISSING_INSTALLATION = "missing_installation"
+
+
+class SentryAppExternalRequestFailureReason(StrEnum):
+    """Reasons why sentry app external request processes can fail"""
+
+    MISSING_URL = "missing_url"
+    UNEXPECTED_ERROR = "unexpected_error"
+    INVALID_EVENT = "invalid_event"
+
+
+class SentryAppExternalRequestHaltReason(StrEnum):
+    """Reasons why sentry app external request processes can halt"""
+
+    MISSING_FIELDS = "missing_fields"
+    BAD_RESPONSE = "bad_response"
 
 
 class SentryAppEventType(StrEnum):
@@ -73,6 +93,7 @@ class SentryAppEventType(StrEnum):
     EXTERNAL_ISSUE_CREATED = "external_issue.created"
     EXTERNAL_ISSUE_LINKED = "external_issue.linked"
     SELECT_OPTIONS_REQUESTED = "select_options.requested"
+    ALERT_RULE_ACTION_REQUESTED = "alert_rule_action.requested"
 
     # metric alert webhooks
     METRIC_ALERT_OPEN = "metric_alert.open"

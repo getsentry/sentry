@@ -134,18 +134,13 @@ def uptime_subscription_to_check_config(
     subscription_id: str,
     region_mode: UptimeSubscriptionRegion.RegionMode,
 ) -> CheckConfig:
-    headers = subscription.headers
-    # XXX: Temporary translation code. We want to support headers with the same keys, so convert to a list
-    if isinstance(headers, dict):
-        headers = [[key, val] for key, val in headers.items()]
-
     config: CheckConfig = {
         "subscription_id": subscription_id,
         "url": subscription.url,
         "interval_seconds": subscription.interval_seconds,
         "timeout_ms": subscription.timeout_ms,
         "request_method": subscription.method,
-        "request_headers": headers,
+        "request_headers": subscription.headers,
         "trace_sampling": subscription.trace_sampling,
         "active_regions": [r.region_slug for r in subscription.regions.filter(mode=region_mode)],
         "region_schedule_mode": UptimeRegionScheduleMode.ROUND_ROBIN.value,

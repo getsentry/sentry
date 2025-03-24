@@ -1,5 +1,4 @@
 import logging
-import random
 from collections.abc import Mapping
 
 import sentry_sdk
@@ -10,15 +9,14 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 from django.conf import settings
 
-from sentry import options
 from sentry.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.replays.usecases.ingest import (
     DropSilently,
     ProcessedRecordingMessage,
     commit_recording_message,
-    ingest_recording,
     parse_recording_message,
     process_recording_message,
+    track_recording_metadata,
 )
 
 logger = logging.getLogger(__name__)
@@ -55,7 +53,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         return RunTask(
             function=process_message,
             next_step=RunTaskInThreads(
-                processing_function=commit_message,  # type: ignore[arg-type]
+                processing_function=commit_message,
                 concurrency=self.num_threads,
                 max_pending_futures=self.max_pending_futures,
                 next_step=CommitOffsets(commit),
@@ -63,18 +61,10 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         )
 
 
-def process_message(
-    message: Message[KafkaPayload],
-) -> ProcessedRecordingMessage | FilteredPayload | bytes:
-    if random.randint(0, 100) > options.get("replay.consumer.recording.beta-rollout"):
-        sentry_sdk.set_tag("replay.consumer.recording.beta", False)
-        return message.payload.value
-
-    sentry_sdk.set_tag("replay.consumer.recording.beta", True)
-
+def process_message(message: Message[KafkaPayload]) -> ProcessedRecordingMessage | FilteredPayload:
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.process_message",
-        op="replays.consumer.recording_buffered",
+        op="replays.consumer.recording_buffered.process_message",
         custom_sampling_context={
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
@@ -88,19 +78,17 @@ def process_message(
             return FilteredPayload()
 
 
-def commit_message(message: Message[ProcessedRecordingMessage | bytes]) -> None:
-    if isinstance(message.payload, bytes):
-        return ingest_recording(message.payload)
-
+def commit_message(message: Message[ProcessedRecordingMessage]) -> None:
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.commit_message",
-        op="replays.consumer.recording_buffered",
+        op="replays.consumer.recording_buffered.commit_message",
         custom_sampling_context={
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
         try:
             commit_recording_message(message.payload)
+            track_recording_metadata(message.payload)
             return None
         except GCS_RETRYABLE_ERRORS:
             raise

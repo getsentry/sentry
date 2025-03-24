@@ -30,7 +30,7 @@ type CommonProps = Omit<
   ConfirmableActionProps,
   'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority'
 > & {
-  children: React.ReactChild;
+  children: React.ReactNode;
   className?: string;
   confirmLabel?: string;
   confirmPriority?: ConfirmableActionProps['priority'];

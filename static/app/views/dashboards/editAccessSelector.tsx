@@ -5,15 +5,15 @@ import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {CheckWrap} from 'sentry/components/compactSelect/styles';
 import AvatarList, {CollapsedAvatars} from 'sentry/components/core/avatar/avatarList';
 import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {InnerWrap, LeadingItems} from 'sentry/components/core/menuListItem';
 import UserBadge from 'sentry/components/idBadge/userBadge';
-import {InnerWrap, LeadingItems} from 'sentry/components/menuListItem';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';

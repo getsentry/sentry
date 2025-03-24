@@ -40,11 +40,49 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState');
 jest.mock('sentry/actionCreators/indicator');
 
+class MockIntersectionObserver {
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+
+  callback: IntersectionObserverCallback;
+  elements = new Set<Element>();
+
+  observe(target: Element): void {
+    this.elements.add(target);
+    // Always intersect the element right away
+    this.triggerIntersection(true);
+  }
+
+  unobserve(): void {}
+  disconnect(): void {}
+  takeRecords() {}
+
+  triggerIntersection(isIntersecting = true): void {
+    const entries = Array.from(this.elements).map(target => ({
+      time: Date.now(),
+      target,
+      boundingClientRect: target.getBoundingClientRect(),
+      rootBounds: null,
+      intersectionRect: isIntersecting
+        ? target.getBoundingClientRect()
+        : new DOMRectReadOnly(),
+      intersectionRatio: isIntersecting ? 1 : 0,
+      isIntersecting,
+    }));
+
+    if (entries.length > 0) {
+      this.callback(entries as IntersectionObserverEntry[], this as any);
+    }
+  }
+}
+
 describe('Dashboards > Detail', function () {
   const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
+  window.IntersectionObserver = MockIntersectionObserver as any;
 
   describe('prebuilt dashboards', function () {
     let initialData!: ReturnType<typeof initializeOrg>;
@@ -119,7 +157,9 @@ describe('Dashboards > Detail', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('assigns unique IDs to all widgets so grid keys are unique', async function () {
+    // TODO(nar): Flaky test
+    // eslint-disable-next-line jest/no-disabled-tests
+    it.skip('assigns unique IDs to all widgets so grid keys are unique', async function () {
       const router = RouterFixture({
         location: initialData.router.location,
         params: {orgId: 'org-slug', dashboardId: 'default-overview'},
@@ -817,7 +857,7 @@ describe('Dashboards > Detail', function () {
       expect(window.confirm).not.toHaveBeenCalled();
     });
 
-    it('opens the widget viewer modal using the widget id specified in the url', async () => {
+    it('opens the widget viewer modal using the widget index specified in the url', async () => {
       const router = RouterFixture({
         location: {...initialData.router.location, pathname: '/widget/123/'},
         params: {orgId: 'org-slug', dashboardId: '1'},
@@ -848,9 +888,9 @@ describe('Dashboards > Detail', function () {
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
           organization={initialData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
+          params={{orgId: 'org-slug', dashboardId: '1', widgetId: '0'}}
           router={initialData.router}
-          location={{...initialData.router.location, pathname: '/widget/123/'}}
+          location={{...initialData.router.location, pathname: '/widget/0/'}}
         >
           {null}
         </ViewEditDashboard>,

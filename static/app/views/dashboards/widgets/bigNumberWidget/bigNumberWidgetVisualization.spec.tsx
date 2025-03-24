@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 
 import {Widget} from '../widget/widget';
@@ -22,12 +23,8 @@ describe('BigNumberWidgetVisualization', () => {
             <BigNumberWidgetVisualization
               value={Infinity}
               field="count()"
-              meta={{
-                fields: {
-                  'count()': 'number',
-                },
-                units: {},
-              }}
+              type="number"
+              unit={null}
             />
           }
         />
@@ -41,14 +38,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={'2024-10-17T16:08:07+00:00'}
           field="max(timestamp)"
-          meta={{
-            fields: {
-              'max(timestamp)': 'date',
-            },
-            units: {
-              'max(timestamp)': null,
-            },
-          }}
+          type="date"
+          unit={null}
         />
       );
 
@@ -60,12 +51,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={'/api/0/fetch'}
           field="any(transaction)"
-          meta={{
-            fields: {
-              'max(timestamp)': 'string',
-            },
-            units: {},
-          }}
+          type="string"
+          unit={null}
         />
       );
 
@@ -77,14 +64,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={17.28}
           field="p95(span.duration)"
-          meta={{
-            fields: {
-              'p95(span.duration)': 'duration',
-            },
-            units: {
-              'p95(span.duration)': 'milliseconds',
-            },
-          }}
+          type="duration"
+          unit={DurationUnit.MILLISECOND}
         />
       );
 
@@ -96,14 +77,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={178451214}
           field="count()"
-          meta={{
-            fields: {
-              'count()': 'integer',
-            },
-            units: {
-              'count()': null,
-            },
-          }}
+          type="integer"
+          unit={null}
         />
       );
 
@@ -118,12 +93,8 @@ describe('BigNumberWidgetVisualization', () => {
           value={178451214}
           field="count()"
           maximumValue={100000000}
-          meta={{
-            fields: {
-              'count()': 'integer',
-            },
-            units: {},
-          }}
+          type="integer"
+          unit={null}
         />
       );
 
@@ -138,14 +109,8 @@ describe('BigNumberWidgetVisualization', () => {
           value={0.14227123}
           previousPeriodValue={0.1728139}
           field="http_response_code_rate(500)"
-          meta={{
-            fields: {
-              'http_response_code_rate(500)': 'percentage',
-            },
-            units: {
-              'http_response_code_rate(500)': null,
-            },
-          }}
+          type="percentage"
+          unit={null}
         />
       );
 
@@ -160,14 +125,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={14.227123}
           field="eps()"
-          meta={{
-            fields: {
-              'eps()': 'rate',
-            },
-            units: {
-              'eps()': '1/second',
-            },
-          }}
+          type="rate"
+          unit={RateUnit.PER_SECOND}
           thresholds={{
             max_values: {
               max1: 10,
@@ -189,14 +148,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={135} //  2.25/s
           field="mystery_error_rate()"
-          meta={{
-            fields: {
-              'mystery_error_rate()': 'rate',
-            },
-            units: {
-              'mystery_error_rate()': '1/minute',
-            },
-          }}
+          type="rate"
+          unit={RateUnit.PER_MINUTE}
           thresholds={{
             max_values: {
               max1: 2,
@@ -215,14 +168,8 @@ describe('BigNumberWidgetVisualization', () => {
         <BigNumberWidgetVisualization
           value={135}
           field="mystery_error_rate()"
-          meta={{
-            fields: {
-              'mystery_error_rate()': 'rate',
-            },
-            units: {
-              'mystery_error_rate()': '1/second',
-            },
-          }}
+          type="rate"
+          unit={RateUnit.PER_SECOND}
           thresholds={{
             max_values: {
               max1: 200,

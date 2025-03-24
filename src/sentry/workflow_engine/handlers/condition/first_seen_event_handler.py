@@ -2,15 +2,15 @@ from typing import Any
 
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
-def is_new_event(job: WorkflowJob) -> bool:
-    state = job.get("group_state")
+def is_new_event(job: WorkflowEventData) -> bool:
+    state = job.group_state
     if state is None:
         return False
 
-    workflow = job.get("workflow")
+    workflow = job.workflow
     if workflow is None or workflow.environment_id is None:
         return state["is_new"]
 
@@ -18,10 +18,10 @@ def is_new_event(job: WorkflowJob) -> bool:
 
 
 @condition_handler_registry.register(Condition.FIRST_SEEN_EVENT)
-class FirstSeenEventConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.WORKFLOW_TRIGGER]
+class FirstSeenEventConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.WORKFLOW_TRIGGER
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
         return is_new_event(job)

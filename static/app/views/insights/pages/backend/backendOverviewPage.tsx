@@ -29,16 +29,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
-import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
-import {LaravelInsightsProvider} from 'sentry/views/insights/pages/backend/laravel/laravelInsightsContext';
+import {
+  hasLaravelInsightsFeature,
+  useIsLaravelInsightsEnabled,
+} from 'sentry/views/insights/pages/backend/laravel/features';
 import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
-import {useIsLaravelPageActive} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -94,9 +96,9 @@ export const BACKEND_COLUMN_TITLES = [
 ];
 
 function BackendOverviewPage() {
-  const isLaravelPageActive = useIsLaravelPageActive();
   useOverviewPageTrackPageload();
-  return isLaravelPageActive ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
+  const [isLaravelPageEnabled] = useIsLaravelInsightsEnabled();
+  return isLaravelPageEnabled ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
 }
 
 function GenericBackendOverviewPage() {
@@ -176,6 +178,7 @@ function GenericBackendOverviewPage() {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -315,15 +318,19 @@ function GenericBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
-  const [isLaravelInsightsEnabled, setIsLaravelInsightsEnabled] =
-    useIsLaravelInsightsEnabled();
+  const organization = useOrganization();
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const {maxPickableDays} = limitMaxPickableDays(organization);
+
   return (
-    <DomainOverviewPageProviders>
-      <LaravelInsightsProvider
-        value={{isLaravelInsightsEnabled, setIsLaravelInsightsEnabled}}
-      >
-        <BackendOverviewPage />
-      </LaravelInsightsProvider>
+    <DomainOverviewPageProviders
+      maxPickableDays={
+        isLaravelInsightsEnabled && hasLaravelInsightsFeature(organization)
+          ? maxPickableDays
+          : undefined
+      }
+    >
+      <BackendOverviewPage />
     </DomainOverviewPageProviders>
   );
 }

@@ -17,7 +17,7 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.registry import Registry
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -29,6 +29,7 @@ from sentry.workflow_engine.typings.notification_action import (
     OnCallDataBlob,
     SentryAppDataBlob,
     SentryAppFormConfigDataBlob,
+    SentryAppIdentifier,
     SlackDataBlob,
     TicketFieldMappingKeys,
     TicketingActionDataBlobHelper,
@@ -101,16 +102,16 @@ class BaseIssueAlertHandler(ABC):
         cls,
         action: Action,
         detector: Detector,
-        job: WorkflowJob,
+        job: WorkflowEventData,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
         :param action: Action
         :param detector: Detector
-        :param job: WorkflowJob
+        :param job: WorkflowEventData
         :return: Rule instance
         """
-        workflow = job.get("workflow")
+        workflow = job.workflow
         environment_id = None
         if workflow and workflow.environment:
             environment_id = workflow.environment.id
@@ -135,7 +136,7 @@ class BaseIssueAlertHandler(ABC):
 
     @staticmethod
     def get_rule_futures(
-        job: WorkflowJob,
+        job: WorkflowEventData,
         rule: Rule,
         notification_uuid: str,
     ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
@@ -146,12 +147,12 @@ class BaseIssueAlertHandler(ABC):
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.issue_alert.invoke_legacy_registry.activate_downstream_actions"
         ):
-            grouped_futures = activate_downstream_actions(rule, job["event"], notification_uuid)
+            grouped_futures = activate_downstream_actions(rule, job.event, notification_uuid)
             return grouped_futures.values()
 
     @staticmethod
     def execute_futures(
-        job: WorkflowJob,
+        job: WorkflowEventData,
         futures: Collection[
             tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
         ],
@@ -164,12 +165,12 @@ class BaseIssueAlertHandler(ABC):
             op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
         ):
             for callback, futures in futures:
-                safe_execute(callback, job["event"], futures)
+                safe_execute(callback, job.event, futures)
 
     @classmethod
     def invoke_legacy_registry(
         cls,
-        job: WorkflowJob,
+        job: WorkflowEventData,
         action: Action,
         detector: Detector,
     ) -> None:
@@ -374,11 +375,25 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
             if target_identifier is None:
                 raise ValueError(f"No target identifier found for action type: {action.type}")
 
-            sentry_app_installations = app_service.get_many(
-                filter=dict(app_ids=[target_identifier], organization_id=organization_id)
-            )
+            # Figure out what type of key we are dealing with
+            sentry_app_installations = None
+            if (
+                action.config.get("sentry_app_identifier")
+                == SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID
+            ):
+                # It is a sentry app installation uuid
+                sentry_app_installations = app_service.get_many(
+                    filter=dict(
+                        uuids=[target_identifier],
+                    )
+                )
+            else:
+                # It is a sentry app id
+                sentry_app_installations = app_service.get_many(
+                    filter=dict(app_ids=[target_identifier], organization_id=organization_id)
+                )
 
-            if len(sentry_app_installations) != 1:
+            if sentry_app_installations is None or len(sentry_app_installations) != 1:
                 raise ValueError(
                     f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {target_identifier}, but got {len(sentry_app_installations)}"
                 )

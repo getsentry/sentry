@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 
 /**
  * This hook implemented a function from the deprecated AbstractIntegrationDetailedView.
@@ -10,7 +10,7 @@ import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractI
  * XXX: It doesn't change the query param when a tab is changed, so it's probably here to preserve
  * some existing external links living outside Sentry.
  */
-export function useIntegrationTabs<T extends Tab>({
+export function useIntegrationTabs<T extends IntegrationTab>({
   initialTab = 'overview' as T,
 }: {
   initialTab: T;

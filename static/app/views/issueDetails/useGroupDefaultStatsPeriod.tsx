@@ -17,16 +17,17 @@ function getDaysSinceDateRoundedUp(date: string): number {
     return 0;
   }
 
-  // Get the precise time difference to check if the event occurred near the beginning of the day
-  const preciseDateWithTime = moment(new Date(date));
-  const hourOfDay = preciseDateWithTime.hour();
-
-  // If the event occurred in the early hours of the day (e.g., before noon),
-  // add an extra day to ensure it's not cut off when selecting time periods
-  return hourOfDay < 12 ? daysDiff + 1 : daysDiff;
+  return daysDiff + 1;
 }
 
 const DEFAULT_STATS_PERIOD = '14d';
+
+type UseGroupDefaultStatsPeriodResult = ReturnType<typeof getPeriod> & {
+  /**
+   * Whether the default stats period is the max retention days.
+   */
+  isMaxRetention: boolean;
+};
 
 /**
  * Get the default stats period for a group.
@@ -35,19 +36,20 @@ const DEFAULT_STATS_PERIOD = '14d';
 export function useGroupDefaultStatsPeriod(
   group: Group | undefined | null,
   project: Project
-): ReturnType<typeof getPeriod> | undefined {
+): UseGroupDefaultStatsPeriodResult {
   const useGetMaxRetentionDays =
     HookStore.get('react-hook:use-get-max-retention-days')[0] ??
     (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays();
+  let isMaxRetention = false;
 
   if (!group) {
-    return {statsPeriod: DEFAULT_STATS_PERIOD};
+    return {statsPeriod: DEFAULT_STATS_PERIOD, isMaxRetention};
   }
 
   const issueTypeConfig = getConfigForIssueType(group, project);
   if (!issueTypeConfig.defaultTimePeriod.sinceFirstSeen) {
-    return {statsPeriod: DEFAULT_STATS_PERIOD};
+    return {statsPeriod: DEFAULT_STATS_PERIOD, isMaxRetention};
   }
 
   const daysSinceFirstSeen = getDaysSinceDateRoundedUp(group.firstSeen);
@@ -56,12 +58,16 @@ export function useGroupDefaultStatsPeriod(
     const minutesDiff = moment().diff(moment(new Date(group.firstSeen)), 'minutes');
     // Minimum of 2 hours, add 1 hour to any time window
     const hoursDiff = Math.max(1, Math.ceil(minutesDiff / 60)) + 1;
-    return {statsPeriod: `${hoursDiff}h`};
+    return {statsPeriod: `${hoursDiff}h`, isMaxRetention};
   }
 
   if (!maxRetentionDays) {
-    return {statsPeriod: `30d`};
+    isMaxRetention = true;
+    return {statsPeriod: `30d`, isMaxRetention};
   }
 
-  return {statsPeriod: `${Math.min(maxRetentionDays, daysSinceFirstSeen)}d`};
+  const clampedRetentionDays = Math.min(maxRetentionDays, daysSinceFirstSeen);
+  isMaxRetention = clampedRetentionDays === maxRetentionDays;
+
+  return {statsPeriod: `${clampedRetentionDays}d`, isMaxRetention};
 }

@@ -1,20 +1,19 @@
-import * as Sentry from '@sentry/react';
-
 import type EventView from 'sentry/utils/discover/eventView';
-import {useQuery} from 'sentry/utils/queryClient';
-import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   useLogsBaseSearch,
+  useLogsCursor,
   useLogsFields,
   useLogsProjectIds,
   useLogsSearch,
   useLogsSortBys,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  usePrefetchTraceItemDetailsOnHover,
+  useTraceItemDetails,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import {useOurlogs} from 'sentry/views/insights/common/queries/useDiscover';
-
-const {warn, fmt} = Sentry._experiment_log;
 
 export interface OurLogsTableResult {
   eventView: EventView;
@@ -26,6 +25,7 @@ export type UseExploreLogsTableResult = ReturnType<typeof useExploreLogsTable>;
 export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const _search = useLogsSearch();
   const baseSearch = useLogsBaseSearch();
+  const cursor = useLogsCursor();
   const fields = useLogsFields();
   const sortBys = useLogsSortBys();
   const projectIds = useLogsProjectIds();
@@ -38,65 +38,48 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   const {data, meta, isError, isPending, pageLinks} = useOurlogs(
     {
       ...options,
+      cursor,
       sorts: sortBys,
       fields: Array.from(extendedFields),
       search,
       projectIds,
     },
-    'api.logs-tab.view'
+    'api.explore.logs-table'
   );
-
-  if (!meta) {
-    warn(fmt`meta is 'undefined' for useExploreLogsTable`);
-  }
 
   return {data, meta, isError, isPending, pageLinks};
 }
 
-export interface AttributeAnyValue {
-  type: 'str' | 'int' | 'float' | 'bool';
-  value: string | number | null;
-}
-
-type LogDetailsAttributes = Record<string, AttributeAnyValue>;
-
-export interface OurLogsTableRowDetails {
-  attributes: LogDetailsAttributes;
-  itemId: string;
-  timestamp: string;
-  meta?: {
-    requestId: string;
-  };
-}
-
-export function useExploreLogsTableRow(_props: {
+export function useExploreLogsTableRow(props: {
   log_id: string | number;
   project_id: string;
   enabled?: boolean;
 }) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const _project = projects.find(p => p.id === _props.project_id);
-
-  const {data, isError, isPending} = useQuery<OurLogsTableRowDetails>({
-    queryKey: ['logs-table-row', _props.log_id, _props.project_id],
-    queryFn: async () => {
-      if (!_project) {
-        throw new Error('Project not found');
-      }
-      const res = await fetch(
-        `/api/0/projects/${organization.slug}/${_project?.slug}/trace-items/${_props.log_id}/?dataset=ourlogs`
-      );
-      if (!res.ok) {
-        throw new Error('Failed to fetch log details');
-      }
-      return await res.json();
-    },
+  return useTraceItemDetails({
+    traceItemId: String(props.log_id),
+    projectId: props.project_id,
+    dataset: DiscoverDatasets.OURLOGS,
+    referrer: 'api.explore.log-item-details',
   });
+}
 
-  return {
-    data,
-    isError,
-    isPending,
-  };
+export function usePrefetchLogTableRowOnHover({
+  logId,
+  projectId,
+  hoverPrefetchDisabled,
+  sharedHoverTimeoutRef,
+}: {
+  logId: string | number;
+  projectId: string;
+  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  hoverPrefetchDisabled?: boolean;
+}) {
+  return usePrefetchTraceItemDetailsOnHover({
+    traceItemId: String(logId),
+    projectId,
+    dataset: DiscoverDatasets.OURLOGS,
+    hoverPrefetchDisabled,
+    sharedHoverTimeoutRef,
+    referrer: 'api.explore.log-item-details',
+  });
 }

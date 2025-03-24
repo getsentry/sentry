@@ -195,12 +195,8 @@ function ProjectStabilityScoreCard(props: Props) {
           value={score / 100}
           previousPeriodValue={previousScore ? previousScore / 100 : undefined}
           field={`${props.field}()`}
-          meta={{
-            fields: {
-              [`${props.field}()`]: 'percentage',
-            },
-            units: {},
-          }}
+          type="percentage"
+          unit={null}
           preferredPolarity="+"
         />
       }

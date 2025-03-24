@@ -1,7 +1,6 @@
 import {Component, Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Query} from 'history';
 
 import {
   closeGuide,
@@ -12,7 +11,7 @@ import {
   unregisterAnchor,
 } from 'sentry/actionCreators/guides';
 import type {Guide} from 'sentry/components/assistant/types';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {Hovercard} from 'sentry/components/hovercard';
 import {TourAction, TourGuide} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -37,10 +36,6 @@ type Props = {
    */
   onStepComplete?: (e: React.MouseEvent) => void;
   position?: React.ComponentProps<typeof Hovercard>['position'];
-  to?: {
-    pathname: string;
-    query: Query;
-  };
   wrapperComponent?: React.ComponentType<{
     'aria-expanded': React.AriaAttributes['aria-expanded'];
     children: React.ReactNode;
@@ -151,8 +146,7 @@ class BaseGuideAnchor extends Component<Props, State> {
   };
 
   render() {
-    const {children, position, offset, containerClassName, to, wrapperComponent} =
-      this.props;
+    const {children, position, offset, containerClassName, wrapperComponent} = this.props;
     const {active, currentGuide, step} = this.state;
 
     if (!active) {
@@ -180,12 +174,12 @@ class BaseGuideAnchor extends Component<Props, State> {
         actions={
           <ButtonBar gap={1}>
             {lastStep ? (
-              <TourAction size="xs" to={to} onClick={this.handleFinish}>
+              <TourAction size="xs" onClick={this.handleFinish}>
                 {currentStep.nextText ||
                   (hasManySteps ? t('Enough Already') : t('Got It'))}
               </TourAction>
             ) : (
-              <TourAction size="xs" onClick={this.handleNextStep} to={to}>
+              <TourAction size="xs" onClick={this.handleNextStep}>
                 {currentStep.nextText || t('Next')}
               </TourAction>
             )}

@@ -106,7 +106,8 @@
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
       "sentry-fonts/*": ["static/fonts/*"],
       "getsentry/*": ["static/gsApp/*"],
-      "getsentry-images/*": ["static/images/*"]
+      "getsentry-images/*": ["static/images/*"],
+      "admin/*": ["static/gsAdmin/*"]
     },
 
     "plugins": [

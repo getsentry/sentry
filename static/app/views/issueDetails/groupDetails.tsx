@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -518,6 +518,7 @@ function useTrackView({
     location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -535,7 +536,11 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
+    enforced_streamlined_ui:
+      organization.features.includes('issue-details-streamline-enforce') &&
+      user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
+    has_streamlined_ui: hasStreamlinedUI,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -639,7 +644,13 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const {openTagsDrawer} = useGroupTagsDrawer({group});
+  const hasFlagsDistributions = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
+  const {openTagsDrawer} = useGroupTagsDrawer({
+    group,
+    includeFeatureFlagsTab: hasFlagsDistributions,
+  });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
@@ -723,6 +734,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
   } = useProjects({slugs: projectSlug ? [projectSlug] : []});
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
@@ -734,8 +746,23 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   );
 
   const {data: assistantData} = useAssistant();
-  const isTourComplete =
-    assistantData?.some(item => item.guide === 'issue_details') ?? false;
+  const isIssueDetailsTourCompleted = useMemo(() => {
+    const issueDetailsTourData = assistantData?.find(
+      item => item.guide === ISSUE_DETAILS_TOUR_GUIDE_KEY
+    );
+
+    // Prevent tour from showing until assistant data is loaded
+    return issueDetailsTourData?.seen ?? true;
+  }, [assistantData]);
+  const isIssueDetailsTourAvailable = useMemo(() => {
+    if (!hasStreamlinedUI) {
+      return false;
+    }
+    return (
+      location.hash === '#tour' ||
+      organization.features.includes('issue-details-streamline-tour')
+    );
+  }, [hasStreamlinedUI, location.hash, organization.features]);
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
@@ -806,8 +833,8 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   return (
     <TourContextProvider<IssueDetailsTour>
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isAvailable={location.hash === '#tour'}
-      isCompleted={isTourComplete}
+      isAvailable={isIssueDetailsTourAvailable}
+      isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       tourContext={IssueDetailsTourContext}
     >

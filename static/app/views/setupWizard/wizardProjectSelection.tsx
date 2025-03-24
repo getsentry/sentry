@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
@@ -275,7 +276,7 @@ export function WizardProjectSelection({
       </FieldWrapper>
       <FieldWrapper>
         <label>{t('Project')}</label>
-        {orgProjectsRequest.error ? (
+        {orgProjectsRequest.error instanceof RequestError ? (
           <ProjectLoadingError
             error={orgProjectsRequest.error}
             onRetry={orgProjectsRequest.refetch}

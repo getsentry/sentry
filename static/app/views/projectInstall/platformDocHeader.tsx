@@ -2,9 +2,9 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import type {Platform} from 'sentry/data/platformPickerCategories';
 import {IconChevron} from 'sentry/icons/iconChevron';
@@ -13,10 +13,10 @@ import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
   platform: Platform;
@@ -73,9 +73,10 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
     }
 
     router.replace(
-      normalizeUrl(
-        `/organizations/${organization.slug}/projects/new/?referrer=getting-started&project=${recentCreatedProject.id}`
-      )
+      makeProjectsPathname({
+        path: '/new/',
+        orgSlug: organization.slug,
+      }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
     );
   }, [api, recentCreatedProject, organization, shallProjectBeDeleted, router]);
 

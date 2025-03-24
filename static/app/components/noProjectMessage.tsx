@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import NoProjectEmptyState from 'sentry/components/illustrations/NoProjectEmptyState';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
@@ -11,6 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {
   organization: Organization;
@@ -64,7 +65,7 @@ function NoProjectMessage({
       }
       disabled={!canUserCreateProject}
       priority={orgHasProjects ? 'default' : 'primary'}
-      to={`/organizations/${orgSlug}/projects/new/`}
+      to={makeProjectsPathname({path: '/new/', orgSlug})}
     >
       {t('Create project')}
     </LinkButton>

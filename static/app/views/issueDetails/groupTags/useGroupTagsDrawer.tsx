@@ -8,32 +8,45 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export function useGroupTagsDrawer({group}: {group: Group}) {
+export function useGroupTagsDrawer({
+  group,
+  includeFeatureFlagsTab,
+}: {
+  group: Group;
+  includeFeatureFlagsTab: boolean;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const {openDrawer} = useDrawer();
   const {baseUrl} = useGroupDetailsRoute();
 
   const openTagsDrawer = useCallback(() => {
-    openDrawer(() => <GroupTagsDrawer group={group} />, {
-      ariaLabel: t('Tags Drawer'),
-      onClose: () => {
-        navigate(
-          {
-            pathname: baseUrl,
-            query: {
-              ...location.query,
-              tagDrawerSort: undefined,
+    openDrawer(
+      () => (
+        <GroupTagsDrawer group={group} includeFeatureFlagsTab={includeFeatureFlagsTab} />
+      ),
+      {
+        ariaLabel: t('Tags Drawer'),
+        onClose: () => {
+          navigate(
+            {
+              pathname: baseUrl,
+              query: {
+                ...location.query,
+                tagDrawerSort: undefined,
+                tab: undefined,
+                flagDrawerCursor: undefined,
+              },
             },
-          },
-          {replace: true}
-        );
-      },
-      shouldCloseOnLocationChange: newLocation => {
-        return !newLocation.pathname.includes('/tags/');
-      },
-    });
-  }, [location, navigate, openDrawer, group, baseUrl]);
+            {replace: true}
+          );
+        },
+        shouldCloseOnLocationChange: newLocation => {
+          return !newLocation.pathname.includes('/tags/');
+        },
+      }
+    );
+  }, [location, navigate, openDrawer, group, baseUrl, includeFeatureFlagsTab]);
 
   return {openTagsDrawer};
 }

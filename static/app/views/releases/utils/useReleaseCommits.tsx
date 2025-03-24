@@ -10,13 +10,18 @@ type PageFilterUrlParams =
   | 'statsPeriod'
   | 'project'
   | 'environment';
+type OtherUrlParams = 'cursor' | 'perPage';
 
-interface UseReleaseCommitsParams extends Partial<Record<PageFilterUrlParams, string>> {
+interface UseReleaseCommitsParams
+  extends Partial<
+    Record<
+      PageFilterUrlParams | OtherUrlParams,
+      string | string[] | number | null | undefined
+    >
+  > {
   projectSlug: string;
   release: string;
   activeRepository?: Repository;
-  cursor?: string;
-  perPage?: number;
 }
 
 export function useReleaseCommits(

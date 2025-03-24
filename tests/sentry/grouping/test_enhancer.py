@@ -15,7 +15,7 @@ from sentry.grouping.enhancer import (
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.enhancer.matchers import _cached, create_match_frame
+from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
 from sentry.testutils.cases import TestCase
 
 
@@ -61,8 +61,8 @@ error.value:"*something*"                       max-frames=12
 
     insta_snapshot(dump_obj(enhancement))
 
-    dumped = enhancement.dumps()
-    assert Enhancements.loads(dumped).dumps() == dumped
+    dumped = enhancement.base64_string
+    assert Enhancements.loads(dumped).base64_string == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, str)
 
@@ -496,7 +496,7 @@ def test_cached_with_kwargs():
 
     foo = mock.Mock()
 
-    cache: dict[object, object] = {}
+    cache: ReturnValueCache = {}
     _cached(cache, foo, kw1=1, kw2=2)
     assert foo.call_count == 1
 

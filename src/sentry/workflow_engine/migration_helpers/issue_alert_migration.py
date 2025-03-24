@@ -191,13 +191,18 @@ class IssueAlertMigrator:
 
         # the only time the data_conditions list will be empty is if somebody only has EveryEventCondition in their conditions list.
         # if it's empty and this is not the case, we should not migrate
-        no_conditions = len(data_conditions) == 0
+        no_conditions = len(conditions) == 0
+        no_data_conditions = len(data_conditions) == 0
         only_has_every_event_cond = (
             len(conditions) == 1 and conditions[0]["id"] == EveryEventCondition.id
         )
 
-        if not self.is_dry_run and no_conditions and not only_has_every_event_cond:
-            raise Exception("No valid conditions, skipping migration")
+        if not self.is_dry_run:
+            if no_data_conditions and no_conditions:
+                # originally no conditions and we expect no data conditions
+                pass
+            elif no_data_conditions and not only_has_every_event_cond:
+                raise Exception("No valid trigger conditions, skipping migration")
 
         enabled = True
         rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()

@@ -8,12 +8,13 @@ from sentry.rules.conditions.event_attribute import attribute_registry
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.EVENT_ATTRIBUTE)
-class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.ACTION_FILTER]
+class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",
@@ -49,8 +50,8 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
         return attribute_values
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
+        event = job.event
         attribute = comparison.get("attribute", "")
         attribute_values = EventAttributeConditionHandler.get_attribute_values(event, attribute)
 

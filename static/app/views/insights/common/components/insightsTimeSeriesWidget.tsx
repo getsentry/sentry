@@ -9,7 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
-import type {Aliases} from 'sentry/views/dashboards/widgets/common/types';
+import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -37,7 +37,10 @@ export interface InsightsTimeSeriesWidgetProps {
   series: DiscoverSeries[];
   title: string;
   visualizationType: 'line' | 'area' | 'bar';
-  aliases?: Aliases;
+  aliases?: Record<string, string>;
+  description?: React.ReactNode;
+  legendSelection?: LegendSelection | undefined;
+  onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   stacked?: boolean;
 }
 
@@ -65,9 +68,9 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
         color: serie.color ?? COMMON_COLORS[timeSeries.field],
         delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
+        alias: props.aliases?.[timeSeries.field],
       });
     }),
-    aliases: props.aliases,
   };
 
   const Title = <Widget.WidgetTitle title={props.title} />;
@@ -115,11 +118,16 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {...(organization.features.includes('release-bubbles-ui')
               ? {releases, showReleaseAs: 'bubble'}
               : {})}
+            legendSelection={props.legendSelection}
+            onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
           />
         }
         Actions={
           <Widget.WidgetToolbar>
+            {props.description && (
+              <Widget.WidgetDescription description={props.description} />
+            )}
             <Button
               size="xs"
               aria-label={t('Open Full-Screen View')}
@@ -132,6 +140,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
                         {...visualizationProps}
+                        legendSelection={props.legendSelection}
+                        onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
                       />
                     </ModalChartContainer>

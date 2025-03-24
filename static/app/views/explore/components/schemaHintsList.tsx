@@ -1,22 +1,38 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
 import {getHasTag} from 'sentry/components/events/searchBar';
+import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
-import {type AggregationKey, FieldKind} from 'sentry/utils/fields';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
+  type AggregationKey,
+  FieldKind,
+  FieldValueType,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
+import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+import {
+  PageParamsProvider,
   useExploreQuery,
   useSetExploreQuery,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
+
+export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
 
 interface SchemaHintsListProps {
   numberTags: TagCollection;
@@ -31,6 +47,16 @@ const seeFullListTag: Tag = {
   kind: undefined,
 };
 
+const hideListTag: Tag = {
+  key: 'hideList',
+  name: t('Hide list'),
+  kind: undefined,
+};
+
+function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
+  return keys.map(key => tags[key]).filter(tag => !!tag);
+}
+
 function SchemaHintsList({
   supportedAggregates,
   numberTags,
@@ -40,6 +66,9 @@ function SchemaHintsList({
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const exploreQuery = useExploreQuery();
   const setExploreQuery = useSetExploreQuery();
+  const location = useLocation();
+  const organization = useOrganization();
+  const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -50,13 +79,22 @@ function SchemaHintsList({
     const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
     filterTags.has = getHasTag({...stringTags});
 
-    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(section => section.children);
-    const sectionSortedTags = sectionKeys
-      .map(key => filterTags[key])
-      .filter(tag => !!tag);
-    const otherKeys = Object.keys(filterTags).filter(key => !sectionKeys.includes(key));
-    const otherTags = otherKeys.map(key => filterTags[key]).filter(tag => !!tag);
-    return [...sectionSortedTags, ...otherTags];
+    const schemaHintsPresetTags = getTagsFromKeys(
+      SCHEMA_HINTS_LIST_ORDER_KEYS,
+      filterTags
+    );
+
+    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(
+      section => section.children
+    ).filter(key => !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key));
+    const sectionSortedTags = getTagsFromKeys(sectionKeys, filterTags);
+
+    const otherKeys = Object.keys(filterTags).filter(
+      key => !sectionKeys.includes(key) && !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key)
+    );
+    const otherTags = getTagsFromKeys(otherKeys, filterTags);
+
+    return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
   }, [numberTags, stringTags, functionTags]);
 
   const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
@@ -69,7 +107,6 @@ function SchemaHintsList({
       }
 
       const container = schemaHintsContainerRef.current;
-      const containerRect = container.getBoundingClientRect();
 
       // Create a temporary div to measure items without rendering them
       const measureDiv = document.createElement('div');
@@ -96,11 +133,12 @@ function SchemaHintsList({
         Array.from(measureDiv.children).length - 1
       ]?.getBoundingClientRect();
 
+      const measureDivRect = measureDiv.getBoundingClientRect();
       // Find the last item that fits within the container
       let lastVisibleIndex =
         items.findIndex(item => {
           const itemRect = item.getBoundingClientRect();
-          return itemRect.right > containerRect.right - (seeFullListTagRect?.width ?? 0);
+          return itemRect.right > measureDivRect.right - (seeFullListTagRect?.width ?? 0);
         }) - 1;
 
       // If all items fit, show them all
@@ -108,7 +146,10 @@ function SchemaHintsList({
         lastVisibleIndex = items.length;
       }
 
-      setVisibleHints([...filterTagsSorted.slice(0, lastVisibleIndex), seeFullListTag]);
+      setVisibleHints([
+        ...filterTagsSorted.slice(0, lastVisibleIndex),
+        isDrawerOpen ? hideListTag : seeFullListTag,
+      ]);
 
       // Remove the temporary div
       document.body.removeChild(measureDiv);
@@ -123,27 +164,93 @@ function SchemaHintsList({
     }
 
     return () => resizeObserver.disconnect();
-  }, [filterTagsSorted]);
+  }, [filterTagsSorted, isDrawerOpen]);
 
   const onHintClick = useCallback(
     (hint: Tag) => {
       if (hint.key === seeFullListTag.key) {
+        if (!isDrawerOpen) {
+          openDrawer(
+            () => (
+              <PageParamsProvider>
+                <SchemaHintsDrawer hints={filterTagsSorted} />
+              </PageParamsProvider>
+            ),
+            {
+              ariaLabel: t('Schema Hints Drawer'),
+              drawerWidth: SCHEMA_HINTS_DRAWER_WIDTH,
+              transitionProps: {
+                key: 'schema-hints-drawer',
+                type: 'tween',
+                duration: 0.7,
+                ease: 'easeOut',
+              },
+              shouldCloseOnLocationChange: newLocation => {
+                return (
+                  location.pathname !== newLocation.pathname ||
+                  // will close if anything but the filter query has changed
+                  !isEqual(
+                    omit(location.query, ['query']),
+                    omit(newLocation.query, ['query'])
+                  )
+                );
+              },
+              onOpen: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: true,
+                  organization,
+                });
+              },
+
+              onClose: () => {
+                trackAnalytics('trace.explorer.schema_hints_drawer', {
+                  drawer_open: false,
+                  organization,
+                });
+              },
+            }
+          );
+        }
+        return;
+      }
+
+      if (hint.key === hideListTag.key) {
+        if (isDrawerOpen) {
+          closeDrawer();
+        }
         return;
       }
 
       const newSearchQuery = new MutableSearch(exploreQuery);
-
+      const isBoolean =
+        getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
+        FieldValueType.BOOLEAN;
       newSearchQuery.addFilterValue(
         hint.key,
-        hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
+        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
       );
       setExploreQuery(newSearchQuery.formatString());
+      trackAnalytics('trace.explorer.schema_hints_click', {
+        hint_key: hint.key,
+        source: 'list',
+        organization,
+      });
     },
-    [exploreQuery, setExploreQuery]
+    [
+      exploreQuery,
+      setExploreQuery,
+      isDrawerOpen,
+      organization,
+      openDrawer,
+      filterTagsSorted,
+      location.pathname,
+      location.query,
+      closeDrawer,
+    ]
   );
 
   const getHintText = (hint: Tag) => {
-    if (hint.key === seeFullListTag.key) {
+    if (hint.key === seeFullListTag.key || hint.key === hideListTag.key) {
       return hint.name;
     }
 

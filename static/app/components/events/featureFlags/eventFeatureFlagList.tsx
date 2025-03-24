@@ -1,15 +1,15 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CardContainer,
   FeatureFlagDrawer,
 } from 'sentry/components/events/featureFlags/featureFlagDrawer';
 import FeatureFlagInlineCTA from 'sentry/components/events/featureFlags/featureFlagInlineCTA';
+import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import FeatureFlagSort from 'sentry/components/events/featureFlags/featureFlagSort';
 import {
   FlagControlOptions,
@@ -20,9 +20,8 @@ import {
 import useDrawer from 'sentry/components/globalDrawer';
 import KeyValueData from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
-import {IconEllipsis, IconMegaphone, IconSearch, IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {IconMegaphone, IconSearch} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {type Group, IssueCategory} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -230,54 +229,24 @@ export function EventFeatureFlagList({
   const actions = (
     <ButtonBar gap={1}>
       {feedbackButton}
-      <Fragment>
-        <DropdownMenu
-          position="bottom-end"
-          triggerProps={{
-            showChevron: false,
-            icon: <IconSettings />,
-            'aria-label': t('Feature Flag Settings'),
-          }}
-          size="xs"
-          items={[
-            {
-              key: 'settings',
-              label: t('Set Up Change Tracking'),
-              details: (
-                <ChangeTrackingDetails>
-                  {t(
-                    'Listen for additions, removals, and modifications to your feature flags.'
-                  )}
-                </ChangeTrackingDetails>
-              ),
-              to: `/settings/${organization.slug}/feature-flags/change-tracking/`,
-            },
-            {
-              key: 'docs',
-              label: t('Read the Docs'),
-              externalHref:
-                'https://docs.sentry.io/product/issues/issue-details/feature-flags/',
-            },
-          ]}
-        />
-        {hasFlags && (
-          <Fragment>
-            <Button
-              aria-label={t('Open Feature Flag Search')}
-              icon={<IconSearch size="xs" />}
-              size="xs"
-              title={t('Open Search')}
-              onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
-            />
-            <FeatureFlagSort
-              orderBy={orderBy}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
-              setOrderBy={setOrderBy}
-            />
-          </Fragment>
-        )}
-      </Fragment>
+      <FeatureFlagSettingsButton orgSlug={organization.slug} />
+      {hasFlags && (
+        <Fragment>
+          <Button
+            aria-label={t('Open Feature Flag Search')}
+            icon={<IconSearch size="xs" />}
+            size="xs"
+            title={t('Open Search')}
+            onClick={() => onViewAllFlags(FlagControlOptions.SEARCH)}
+          />
+          <FeatureFlagSort
+            orderBy={orderBy}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            setOrderBy={setOrderBy}
+          />
+        </Fragment>
+      )}
     </ButtonBar>
   );
 
@@ -295,8 +264,7 @@ export function EventFeatureFlagList({
   }
 
   const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
-  const label =
-    extraFlags === 1 ? t('View 1 More Flag') : t('View %d More Flags', extraFlags);
+  const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
 
   return (
     <InterimSection
@@ -319,30 +287,20 @@ export function EventFeatureFlagList({
         </StyledEmptyStateWarning>
       )}
       {extraFlags > 0 && (
-        <ViewAllContainer>
-          <VerticalEllipsis />
-          <div>
-            <ViewAllButton
-              size="sm"
-              // Since we've disabled the button as an 'outside click' for the drawer we can change
-              // the operation based on the drawer state.
-              onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
-              aria-label={label}
-              ref={viewAllButtonRef}
-            >
-              {label}
-            </ViewAllButton>
-          </div>
-        </ViewAllContainer>
+        <Button
+          size="sm"
+          // Since we've disabled the button as an 'outside click' for the drawer we can change
+          // the operation based on the drawer state.
+          onClick={() => (isDrawerOpen ? closeDrawer() : onViewAllFlags())}
+          aria-label={label}
+          ref={viewAllButtonRef}
+        >
+          {label}
+        </Button>
       )}
     </InterimSection>
   );
 }
-
-const ChangeTrackingDetails = styled('div')`
-  max-width: 200px;
-  white-space: normal;
-`;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   border: ${p => p.theme.border} solid 1px;
@@ -359,30 +317,4 @@ const SuspectLabel = styled('div')`
 const ValueWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
-`;
-
-const VerticalEllipsis = styled(IconEllipsis)`
-  height: 22px;
-  color: ${p => p.theme.subText};
-  margin: ${space(0.5)};
-  transform: rotate(90deg);
-`;
-
-const ViewAllButton = styled(Button)`
-  padding: ${space(0.75)} ${space(1)};
-`;
-
-const ViewAllContainer = styled('div')`
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  &::after {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    width: 1px;
-    top: -${space(1)};
-    height: ${space(1)};
-    background: ${p => p.theme.border};
-  }
 `;

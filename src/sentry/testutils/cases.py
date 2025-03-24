@@ -43,6 +43,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
 from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
+from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -279,6 +280,7 @@ class BaseTestCase(Fixtures):
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
         if secure_scheme:
+            assert settings.SECURE_PROXY_SSL_HEADER is not None
             secure_header = settings.SECURE_PROXY_SSL_HEADER
             request.META[secure_header[0]] = secure_header[1]
 
@@ -1236,6 +1238,14 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps([span]),
+                ).status_code
+                == 200
+            )
 
     def store_spans(self, spans, is_eap=False):
         for span in spans:
@@ -1247,6 +1257,14 @@ class SnubaTestCase(BaseTestCase):
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
     def store_ourlogs(self, ourlogs):
         assert (
@@ -1350,7 +1368,7 @@ class BaseSpansTestCase(SnubaTestCase):
         transaction: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
-        tags: Mapping[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         sdk_name: str | None = None,
@@ -1364,7 +1382,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
-        payload = {
+        payload: SpanEvent = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1373,6 +1391,7 @@ class BaseSpansTestCase(SnubaTestCase):
             "start_timestamp_precise": timestamp.timestamp(),
             "end_timestamp_precise": timestamp.timestamp() + duration / 1000,
             "exclusive_time_ms": int(exclusive_time),
+            "description": transaction or "",
             "is_segment": True,
             "received": timezone.now().timestamp(),
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
@@ -1394,7 +1413,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
-            payload["sentry_tags"]["sdk.name"] = sdk_name
+            payload["sentry_tags"]["sdk.name"] = sdk_name  # type: ignore[typeddict-unknown-key]  # needs extra_items support
         if op is not None:
             payload["sentry_tags"]["op"] = op
         if status is not None:
@@ -1414,7 +1433,7 @@ class BaseSpansTestCase(SnubaTestCase):
         op: str | None = None,
         duration: int = 10,
         exclusive_time: int = 5,
-        tags: Mapping[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
         measurements: Mapping[str, int | float] | None = None,
         timestamp: datetime | None = None,
         store_only_summary: bool = False,
@@ -1428,7 +1447,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
-        payload = {
+        payload: SpanEvent = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1462,7 +1481,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
-            payload["sentry_tags"]["category"] = category
+            payload["sentry_tags"]["category"] = category  # type: ignore[typeddict-unknown-key]  # needs extra_items support
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
@@ -2314,6 +2333,14 @@ class ProfilesSnubaTestCase(
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps([span]),
+                ).status_code
+                == 200
+            )
 
     def store_spans(self, spans, is_eap=False):
         for span in spans:
@@ -2325,6 +2352,14 @@ class ProfilesSnubaTestCase(
             ).status_code
             == 200
         )
+        if is_eap:
+            assert (
+                requests.post(
+                    settings.SENTRY_SNUBA + "/tests/entities/eap_items/insert",
+                    data=json.dumps(spans),
+                ).status_code
+                == 200
+            )
 
 
 @pytest.mark.snuba

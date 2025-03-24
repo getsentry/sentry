@@ -65,7 +65,7 @@ function LabelWithPowerIcon({children, id, subscription}: Props) {
   // @see https://github.com/DefinitelyTyped/DefinitelyTyped/issues/20544
 
   if (id === undefined) {
-    return children as React.ReactElement;
+    return children;
   }
 
   const config = POWER_FEATURE_CONFIG.find(c => c.id === id)!;

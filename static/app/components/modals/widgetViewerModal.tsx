@@ -12,9 +12,9 @@ import moment from 'moment-timezone';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Select} from 'sentry/components/core/select';
 import {SelectOption} from 'sentry/components/core/select/option';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -297,21 +297,19 @@ function WidgetViewerModal(props: Props) {
     !fields.map(getAggregateAlias).includes(getAggregateAlias(rawOrderby))
   ) {
     fields.push(rawOrderby);
-    [tableWidget, primaryWidget].forEach(aggregatesAndColumns => {
-      if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
-        aggregatesAndColumns.queries.forEach(query => {
-          if (!query.aggregates.includes(rawOrderby)) {
-            query.aggregates.push(rawOrderby);
-          }
-        });
-      } else {
-        aggregatesAndColumns.queries.forEach(query => {
-          if (!query.columns.includes(rawOrderby)) {
-            query.columns.push(rawOrderby);
-          }
-        });
-      }
-    });
+    if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
+      tableWidget.queries.forEach(query => {
+        if (!query.aggregates.includes(rawOrderby)) {
+          query.aggregates.push(rawOrderby);
+        }
+      });
+    } else {
+      tableWidget.queries.forEach(query => {
+        if (!query.columns.includes(rawOrderby)) {
+          query.columns.push(rawOrderby);
+        }
+      });
+    }
   }
 
   // Need to set the orderby of the eventsv2 query to equation[index] format
