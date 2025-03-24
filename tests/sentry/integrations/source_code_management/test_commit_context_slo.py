@@ -2,7 +2,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
 from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     SourceLineInfo,
@@ -18,7 +17,6 @@ class MockCommitContextIntegration(CommitContextIntegration):
     """Mock implementation for testing"""
 
     integration_name = "mock_integration"
-    base_url = "https://example.com"
 
     def __init__(self):
         self.client = Mock()
@@ -123,50 +121,6 @@ class CommitContextIntegrationTest(TestCase):
         assert result == []
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
         assert_halt_metric(mock_record, ApiInvalidRequestError(text="Invalid request"))
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_retry_error(self, mock_record):
-        """Test retry error for Gitlab Self-hosted records halt"""
-        from sentry.shared_integrations.exceptions import ApiRetryError
-
-        # Because this is Gitlab Self-hosted, this should be halt
-        class MockGitlabIntegration(MockCommitContextIntegration):
-            integration_name = "gitlab"
-            base_url = "https://bufo-bot.gitlab.com"
-
-        self.integration = MockGitlabIntegration()
-
-        self.integration.client.get_blame_for_files = Mock(
-            side_effect=ApiRetryError(text="Host error")
-        )
-
-        result = self.integration.get_blame_for_files([self.source_line], {})
-
-        assert result == []
-        assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
-        assert_halt_metric(mock_record, ApiRetryError(text="Host error"))
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_get_blame_for_files_retry_error_gitlab(self, mock_record):
-        """Test retry error for GitLab saas records failure"""
-        from sentry.shared_integrations.exceptions import ApiRetryError
-
-        # Because this is Gitlab SAAS, this should be failure
-        class MockGitlabIntegration(MockCommitContextIntegration):
-            integration_name = "gitlab"
-            base_url = GITLAB_CLOUD_BASE_URL
-
-        self.integration = MockGitlabIntegration()
-
-        self.integration.client.get_blame_for_files = Mock(
-            side_effect=ApiRetryError(text="Host error")
-        )
-
-        with pytest.raises(ApiRetryError):
-            self.integration.get_blame_for_files([self.source_line], {})
-
-        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
-        assert_failure_metric(mock_record, ApiRetryError(text="Host error"))
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_get_commit_context_all_frames(self, mock_record):
