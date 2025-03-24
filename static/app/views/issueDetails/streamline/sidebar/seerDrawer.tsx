@@ -128,7 +128,7 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
 
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 

@@ -54,7 +54,7 @@ function SeerSectionContent({
   group: Group;
   project: Project;
 }) {
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
 
   if (!event) {
     return <Placeholder height="160px" />;
@@ -97,7 +97,7 @@ export default function SeerSection({
   // We don't use this on the streamlined UI, since the section folds.
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
   const showCtaButton =
     aiConfig.needsGenAIConsent ||

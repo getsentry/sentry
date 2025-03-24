@@ -88,7 +88,7 @@ export default function GroupSidebar({
 
   const location = useLocation();
 
-  const {areAiFeaturesAllowed} = useAiConfig(group, event, project);
+  const {areAiFeaturesAllowed} = useAiConfig(group, project);
 
   const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
