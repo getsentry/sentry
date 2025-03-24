@@ -10,14 +10,15 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 export default function OrganizationFeatureFlagsIndex() {
   const organization = useOrganization();
-  const {activateSidebar} = useFeatureFlagOnboarding();
+  const {activateSidebar} = useFeatureFlagOnboarding({
+    analyticsSurface: 'org_settings',
+  });
 
   return (
     <Fragment>
@@ -49,10 +50,6 @@ export default function OrganizationFeatureFlagsIndex() {
               aria-label={t('Set Up Evaluation Tracking')}
               onClick={mouseEvent => {
                 activateSidebar(mouseEvent);
-                trackAnalytics('flags.setup_sidebar_opened', {
-                  organization,
-                  surface: 'org_settings',
-                });
               }}
             >
               {t('Set Up Project')}

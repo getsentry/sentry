@@ -17,14 +17,12 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
-  const {activateSidebar} = useFeatureFlagOnboarding();
+  const {activateSidebar} = useFeatureFlagOnboarding({
+    analyticsSurface: 'issue_details.flags_section',
+  });
 
   function handleSetupButtonClick(e: any) {
     trackAnalytics('flags.setup_modal_opened', {organization});
-    trackAnalytics('flags.setup_sidebar_opened', {
-      organization,
-      surface: 'issue_details.flags_section',
-    });
     activateSidebar(e);
   }
 
