@@ -293,13 +293,15 @@ class SpansBuffer:
                 val["segment_id"] = segment_span_id
                 is_segment = val["is_segment"] = segment_span_id == val["span_id"]
 
-                if old_segment_id:
-                    outcome = "same" if old_segment_id == segment_span_id else "different"
-                else:
-                    outcome = "null"
+                outcome = "same" if old_segment_id == segment_span_id else "different"
+
                 metrics.incr(
                     "spans.buffer.flush_segments.is_same_segment",
-                    tags={"outcome": outcome, "is_segment_span": is_segment},
+                    tags={
+                        "outcome": outcome,
+                        "is_segment_span": is_segment,
+                        "old_segment_is_null": "true" if old_segment_id is None else "false",
+                    },
                 )
 
                 return_segment.append(OutputSpan(payload=val))
