@@ -6,7 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
@@ -53,16 +53,8 @@ def should_call_seer_for_grouping(
     if not (content_is_eligible and seer_enabled_for_project):
         return False
 
-    has_blocked_fingerprint = (
-        _has_custom_fingerprint(event, variants)
-        if features.has(
-            "organizations:grouping-hybrid-fingerprint-seer-usage", project.organization
-        )
-        else _has_customized_fingerprint(event, variants)
-    )
-
     if (
-        has_blocked_fingerprint
+        _has_custom_fingerprint(event, variants)
         or _has_too_many_contributing_frames(event, variants)
         or _is_race_condition_skipped_event(event, event_grouphash)
         or killswitch_enabled(project.id, ReferrerOptions.INGEST, event)
@@ -331,13 +323,7 @@ def get_seer_similar_issues(
         else None
     )
 
-    if (
-        parent_grouphash
-        and
-        # No events with hybrid fingerprints will make it this far if this feature is off, so no
-        # need to spend time doing the checks below
-        features.has("organizations:grouping-hybrid-fingerprint-seer-usage", event.organization)
-    ):
+    if parent_grouphash:
         # In order for a grouphash returned by Seer to count as a match to an event with a hybrid
         # fingerprint,
         #   a) the Seer grouphash must also have come from a hybrid fingerprint, and
