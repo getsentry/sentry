@@ -97,10 +97,10 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         ),
     )
 
-    _, created = OrganizationOnboardingTask.objects.create_or_update(
+    _, created = OrganizationOnboardingTask.objects.update_or_create(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        values={
+        defaults={
             "user_id": user_id,
             "status": OnboardingTaskStatus.COMPLETE,
             "project_id": project.id,
@@ -119,10 +119,10 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
                 level="warning",
             )
 
-        OrganizationOnboardingTask.objects.create_or_update(
+        OrganizationOnboardingTask.objects.update_or_create(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            values={
+            defaults={
                 "user_id": user_id,
                 "status": OnboardingTaskStatus.COMPLETE,
                 "project_id": project.id,
