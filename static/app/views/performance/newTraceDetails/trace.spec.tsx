@@ -14,9 +14,7 @@ import {
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {TraceView} from 'sentry/views/performance/newTraceDetails/index';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
-  makeEAPSpan,
   makeEventTransaction,
   makeSpan,
   makeTraceError,
@@ -122,15 +120,6 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
 function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events-facets/',
-    method: 'GET',
-    asyncDelay: 1,
-    ...(resp ?? {body: []}),
-  });
-}
-
-function mockProjectsResponse(resp?: Partial<ResponseType>) {
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {body: []}),
@@ -358,45 +347,6 @@ async function pageloadTestSetup() {
   // Awaits for the placeholder rendering rows to be removed
   try {
     await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
-}
-
-async function eapTraceTestSetup(trace: TraceTree.EAPSpan[]) {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectsResponse();
-
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug//',
-    method: 'GET',
-    body: [],
-  });
-
-  mockTraceResponse({
-    body: trace,
-  });
-
-  mockTraceMetaResponse();
-  mockTraceRootFacets();
-  mockTraceRootEvent('eap-transaction-id-0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  const value = render(<TraceView />, {
-    router,
-    organization: {slug: 'org-slug', features: ['trace-view-new-ui']},
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/eap-transaction-op-0/i, undefined, {
       timeout: 5000,
     });
   } catch (e) {
@@ -1249,91 +1199,6 @@ describe('trace view', () => {
         await waitFor(async () => {
           expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
         });
-      });
-
-      // Auto expand transactions
-      it('auto expands eap-transactions if there are less than 3', async () => {
-        const {container} = await eapTraceTestSetup([
-          makeEAPSpan({
-            op: 'eap-transaction-op-0',
-            event_id: 'eap-transaction-id-0',
-            is_transaction: true,
-            children: [
-              makeEAPSpan({
-                event_id: 'eap-span-id-0',
-                op: 'eap-span-op-0',
-              }),
-              makeEAPSpan({
-                event_id: 'eap-span-id-1',
-                op: 'eap-span-op-1',
-              }),
-            ],
-          }),
-          makeEAPSpan({
-            op: 'eap-transaction-op-1',
-            event_id: 'eap-transaction-id-1',
-            is_transaction: true,
-            children: [
-              makeEAPSpan({
-                event_id: 'eap-span-id-2',
-                op: 'eap-span-op-2',
-              }),
-            ],
-          }),
-        ]);
-
-        // Awaits for the placeholder rendering rows to be removed
-        await within(container).findAllByText(/eap-transaction-op-0/i);
-
-        // Check that 6 rows are rendered.
-        // 1 trace root, 2 eap-transactions, 3 eap-spans
-        const rows = getVirtualizedRows(container);
-        expect(rows).toHaveLength(6);
-      });
-
-      // Auto expand transactions
-      it('does not auto expand eap-transactions if there are more than 2', async () => {
-        const {container} = await eapTraceTestSetup([
-          makeEAPSpan({
-            op: 'eap-transaction-op-0',
-            event_id: 'eap-transaction-id-0',
-            is_transaction: true,
-            children: [
-              makeEAPSpan({
-                event_id: 'eap-span-id-0',
-                op: 'eap-span-op-0',
-              }),
-              makeEAPSpan({
-                event_id: 'eap-span-id-1',
-                op: 'eap-span-op-1',
-              }),
-            ],
-          }),
-          makeEAPSpan({
-            op: 'eap-transaction-op-1',
-            event_id: 'eap-transaction-id-1',
-            is_transaction: true,
-            children: [
-              makeEAPSpan({
-                event_id: 'eap-span-id-2',
-                op: 'eap-span-op-2',
-              }),
-            ],
-          }),
-          makeEAPSpan({
-            op: 'eap-transaction-op-2',
-            event_id: 'eap-transaction-id-2',
-            is_transaction: true,
-          }),
-        ]);
-
-        // Awaits for the placeholder rendering rows to be removed
-        await within(container).findAllByText(/eap-transaction-op-0/i);
-
-        // Check that 4 rows are rendered.
-        // 1 trace root, 3 eap-transactions
-        const rows = getVirtualizedRows(container);
-        expect(rows).toHaveLength(4);
       });
     });
   });
