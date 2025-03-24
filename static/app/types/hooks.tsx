@@ -3,7 +3,6 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/core/button';
 import type {FormPanelProps} from 'sentry/components/forms/formPanel';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import type DateRange from 'sentry/components/timeRangeSelector/dateRange';
@@ -143,13 +142,6 @@ type AttemptCloseAttemptProps = {
 type CodecovLinkProps = {
   organization: Organization;
 };
-
-// on-create-project-product-selection
-type CreateProjectProductSelectionChangedCallback = (options: {
-  defaultProducts: ProductSolution[];
-  organization: Organization;
-  selectedProducts: ProductSolution[];
-}) => void;
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
@@ -351,7 +343,6 @@ export type ReactHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
-  'callback:on-create-project-product-selection': CreateProjectProductSelectionChangedCallback;
   'callback:on-guide-update': GuideUpdateCallback;
   'callback:on-monitor-created': MonitorCreatedCallback;
 };
