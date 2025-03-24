@@ -21,11 +21,6 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
     analyticsSurface: 'issue_details.flags_section',
   });
 
-  function handleSetupButtonClick(e: any) {
-    trackAnalytics('flags.setup_modal_opened', {organization});
-    activateSidebar(e);
-  }
-
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_feature_flags_inline_onboarding',
     organization,
@@ -83,7 +78,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
             )}
           </BannerDescription>
           <ActionButton>
-            <Button onClick={handleSetupButtonClick} priority="primary">
+            <Button onClick={activateSidebar} priority="primary">
               {t('Set Up Now')}
             </Button>
             <LinkButton
