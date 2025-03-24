@@ -1039,6 +1039,8 @@ def from_request(
         superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
+        if member and (member_scopes := member.get_scopes()):
+            superuser_scopes = superuser_scopes.union(set(member_scopes))
 
         return OrganizationGlobalAccess(
             organization=organization,

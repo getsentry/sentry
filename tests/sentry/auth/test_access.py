@@ -587,15 +587,16 @@ class FromRequestTest(AccessFactoryTestCase):
         # superuser in organization
         member = self.create_member(user=self.superuser, organization=self.org, role="member")
 
+        # get current silo
         result = self.from_request(request, self.org)
-        assert result.scopes == SUPERUSER_READONLY_SCOPES
+        assert result.scopes == set(member.get_scopes()).union(SUPERUSER_READONLY_SCOPES)
 
         # readonly scopes does not override owner scopes if passed in
         with assume_test_silo_mode(SiloMode.REGION):
             member.update(role="owner")
 
         result = self.from_request(request, self.org, scopes=member.get_scopes())
-        assert result.scopes == set(member.get_scopes()).union({"org:superuser"})
+        assert result.scopes == set(member.get_scopes()).union(SUPERUSER_READONLY_SCOPES)
 
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
