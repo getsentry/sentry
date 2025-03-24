@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0843_make_groupsearchview_postition_nullable_for_deletion"),
+        ("sentry", "0844_remove_project_cascade_in_create_first_project"),
     ]
 
     operations = [
