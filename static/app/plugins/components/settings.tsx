@@ -176,10 +176,10 @@ class PluginSettings<
     const data = this.state.rawData;
     if (data.config_error) {
       let authUrl = data.auth_url;
-      if (authUrl.indexOf('?') === -1) {
-        authUrl += '?next=' + encodeURIComponent(document.location.pathname);
-      } else {
+      if (authUrl.includes('?')) {
         authUrl += '&next=' + encodeURIComponent(document.location.pathname);
+      } else {
+        authUrl += '?next=' + encodeURIComponent(document.location.pathname);
       }
       return (
         <div className="m-b-1">

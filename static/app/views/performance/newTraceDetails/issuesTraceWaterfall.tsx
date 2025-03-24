@@ -260,7 +260,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           currentNode.value &&
           'span_id' in currentNode.value &&
           // Not already in the preserveNodes array
-          !preserveNodes.some(n => n === currentNode) &&
+          !preserveNodes.includes(currentNode) &&
           problemSpans.affectedSpanIds.includes(currentNode.value.span_id)
         ) {
           preserveNodes.push(currentNode);

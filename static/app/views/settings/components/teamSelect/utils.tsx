@@ -68,7 +68,7 @@ export function DropdownAddTeam({
   project?: Project;
 }) {
   const dropdownItems: ItemsBeforeFilter = teams
-    .filter(team => !selectedTeams.some(slug => slug === team.slug))
+    .filter(team => !selectedTeams.includes(team.slug))
     .map((team, index) =>
       getDropdownOption({
         isAddingTeamToMember,

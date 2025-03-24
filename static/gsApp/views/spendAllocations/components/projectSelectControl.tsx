@@ -29,7 +29,7 @@ function ProjectSelectControl({
     const myProjects: Project[] = [];
     const allProjects: Project[] = [];
     projects.forEach(project => {
-      if (filteredIdList.indexOf(project.id) < 0) {
+      if (!filteredIdList.includes(project.id)) {
         project.isMember ? myProjects.push(project) : allProjects.push(project);
       }
     });
