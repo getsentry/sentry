@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -53,63 +54,65 @@ function Content() {
               relativeOptions={relativeOptions}
             />
           </StyledPageFilterBar>
-          <DropdownMenu
-            items={[
-              {
-                key: 'save-query',
-                label: (
-                  <span>
-                    {t('A New Query')}
-                    <FeatureBadge type="alpha" />
-                  </span>
-                ),
-                onAction: () => {
-                  openSaveQueryModal({
-                    organization,
-                    saveQuery,
-                    queries: queries.map((query, index) => ({
-                      query: query.query,
-                      groupBys: query.groupBys,
-                      visualizes: [
-                        {
-                          chartType: query.chartType,
-                          yAxes: query.yAxes,
-                          label: `visualization-${index}`,
-                        },
-                      ],
-                    })),
-                  });
+          <Feature features={['performance-saved-queries']}>
+            <DropdownMenu
+              items={[
+                {
+                  key: 'save-query',
+                  label: (
+                    <span>
+                      {t('A New Query')}
+                      <FeatureBadge type="alpha" />
+                    </span>
+                  ),
+                  onAction: () => {
+                    openSaveQueryModal({
+                      organization,
+                      saveQuery,
+                      queries: queries.map((query, index) => ({
+                        query: query.query,
+                        groupBys: query.groupBys,
+                        visualizes: [
+                          {
+                            chartType: query.chartType,
+                            yAxes: query.yAxes,
+                            label: `visualization-${index}`,
+                          },
+                        ],
+                      })),
+                    });
+                  },
                 },
-              },
-              ...(id
-                ? [
-                    {
-                      key: 'update-query',
-                      label: (
-                        <span>
-                          {t('Existing Query')}
-                          <FeatureBadge type="alpha" />
-                        </span>
-                      ),
-                    },
-                  ]
-                : []),
-            ]}
-            trigger={triggerProps => (
-              <Button
-                {...triggerProps}
-                aria-label={t('Save')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
+                ...(id
+                  ? [
+                      {
+                        key: 'update-query',
+                        label: (
+                          <span>
+                            {t('Existing Query')}
+                            <FeatureBadge type="alpha" />
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+              ]}
+              trigger={triggerProps => (
+                <Button
+                  {...triggerProps}
+                  aria-label={t('Save')}
+                  onClick={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
 
-                  triggerProps.onClick?.(e);
-                }}
-              >
-                {t('Save as...')}
-              </Button>
-            )}
-          />
+                    triggerProps.onClick?.(e);
+                  }}
+                >
+                  {t('Save as...')}
+                </Button>
+              )}
+            />
+          </Feature>
         </Flex>
         <WidgetSyncContextProvider>
           {queries.map((query, index) => (

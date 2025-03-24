@@ -91,4 +91,41 @@ describe('SavedQueriesTable', () => {
       )
     );
   });
+
+  it('should link to a single query view', async () => {
+    render(<SavedQueriesTable mode="owned" />);
+    expect(await screen.findByText('Query Name')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/traces/?dataset=spansRpc&id=1&project=1&title=Query%20Name'
+    );
+  });
+
+  it('should link to a multi query view', async () => {
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/saved/`,
+      body: [
+        {
+          id: 1,
+          name: 'Query Name',
+          projects: [1],
+          createdBy: {
+            name: 'Test User',
+          },
+          query: [
+            {
+              visualize: [],
+            },
+            {
+              visualize: [],
+            },
+          ],
+        },
+      ],
+    });
+    render(<SavedQueriesTable mode="owned" />);
+    expect(await screen.findByText('Query Name')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/traces/compare/?dataset=spansRpc&id=1&project=1&queries=%7B%22yAxes%22%3A%5B%5D%7D&queries=%7B%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
+    );
+  });
 });

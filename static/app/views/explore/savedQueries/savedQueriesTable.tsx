@@ -60,55 +60,53 @@ export function SavedQueriesTable({mode, perPage}: Props) {
       return null;
     }
     if (col.key === 'name') {
+      const link =
+        row.query.length > 1
+          ? getExploreMultiQueryUrl({
+              organization,
+              ...row,
+              queries: row.query.map(q => ({
+                ...q,
+                chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
+                yAxes: q.visualize[0]?.yAxes ?? [],
+                groupBys: q.groupby,
+                sortBys: decodeSorts(q.orderby),
+              })),
+              title: row.name,
+              mode: query.mode as Mode,
+              selection: {
+                datetime: {
+                  end: row.end,
+                  period: row.range,
+                  start: row.start,
+                  utc: null,
+                },
+                environments: row.environment,
+                projects: row.projects,
+              },
+            })
+          : getExploreUrl({
+              organization,
+              ...row,
+              ...query,
+              query: query.query,
+              title: row.name,
+              mode: query.mode as Mode,
+              selection: {
+                datetime: {
+                  end: row.end,
+                  period: row.range,
+                  start: row.start,
+                  utc: null,
+                },
+                environments: row.environment,
+                projects: row.projects,
+              },
+            });
+
       return (
         <NoOverflow>
-          <Link
-            to={
-              row.query.length > 1
-                ? getExploreMultiQueryUrl({
-                    organization,
-                    ...row,
-                    queries: row.query.map(q => ({
-                      ...q,
-                      chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
-                      yAxes: q.visualize[0]?.yAxes ?? [],
-                      groupBys: q.groupby,
-                      sortBys: decodeSorts(q.orderby),
-                    })),
-                    title: row.name,
-                    mode: query.mode as Mode,
-                    selection: {
-                      datetime: {
-                        end: row.end,
-                        period: row.range,
-                        start: row.start,
-                        utc: null,
-                      },
-                      environments: row.environment,
-                      projects: row.projects,
-                    },
-                  })
-                : getExploreUrl({
-                    organization,
-                    ...row,
-                    ...query,
-                    title: row.name,
-                    mode: query.mode as Mode,
-                    selection: {
-                      datetime: {
-                        end: row.end,
-                        period: row.range,
-                        start: row.start,
-                        utc: null,
-                      },
-                      environments: row.environment,
-                      projects: row.projects,
-                    },
-                  })
-            }
-          >
-            {row.name}
-          </Link>
+          <Link to={link}>{row.name}</Link>
         </NoOverflow>
       );
     }
