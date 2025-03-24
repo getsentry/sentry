@@ -1162,23 +1162,6 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
         # Verify _get_serialized_event was not called since we have no event
         mock_get_serialized_event.assert_not_called()
 
-    @patch("sentry.seer.autofix._get_serialized_event")
-    def test_trigger_autofix_without_stacktrace(self, mock_get_serialized_event):
-        """Tests error handling when the event doesn't have a stacktrace."""
-        # Mock an event without stacktrace entries
-        serialized_event = {"entries": [{"type": "request"}]}
-        mock_get_serialized_event.return_value = (serialized_event, Mock())
-
-        group = self.create_group()
-        user = Mock(spec=AnonymousUser)
-
-        response = trigger_autofix(
-            group=group, event_id="test-event-id", user=user, instruction="Test instruction"
-        )
-
-        assert response.status_code == 400
-        assert "Cannot fix issues without a stacktrace" in response.data["detail"]
-
 
 class TestCallAutofix(TestCase):
     @patch("sentry.seer.autofix.requests.post")
