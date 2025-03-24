@@ -121,3 +121,15 @@ const IconPlacement = styled(IconOpen)`
   margin-left: 5px;
   vertical-align: center;
 `;
+
+const FAILED_TO_FETCH_VALUES = [
+  'Failed to fetch', // chromium
+  'Load failed', // webkit
+  'NetworkError when attempting to fetch resource.', // firefox
+];
+export const isFailedToFetchException = (excType: string, excValue: string): boolean => {
+  return (
+    excType === 'TypeError' &&
+    FAILED_TO_FETCH_VALUES.some(value => excValue.startsWith(value))
+  );
+};

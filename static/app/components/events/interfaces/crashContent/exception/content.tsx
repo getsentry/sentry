@@ -4,11 +4,15 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
+import {FailedToFetchHint} from 'sentry/components/events/interfaces/crashContent/exception/failedToFetchHint';
 import {
   prepareSourceMapDebuggerFrameInformation,
   useSourceMapDebuggerData,
 } from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
-import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
+import {
+  isFailedToFetchException,
+  renderLinksInText,
+} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -192,6 +196,11 @@ export function Content({
             exceptionValue
           )}
         </StyledPre>
+        {isFailedToFetchException(exc.type, exc.value) && (
+          <StyledHint>
+            <FailedToFetchHint />
+          </StyledHint>
+        )}
         <ToggleExceptionButton
           {...{collapsedExceptions, toggleException, values, exception: exc}}
         />
@@ -257,4 +266,8 @@ const Title = styled('h5')`
 const ShowRelatedExceptionsButton = styled(Button)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledHint = styled('div')`
+  margin-top: ${space(1)};
 `;
