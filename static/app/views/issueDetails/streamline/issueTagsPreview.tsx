@@ -270,6 +270,20 @@ export default function IssueTagsPreview({
     return uniqueTags.slice(0, 4);
   }, [tags, project.platform, highlightTagKeys]);
 
+  if (
+    searchQuery ||
+    isScreenSmall ||
+    (!isPending && !isHighlightPending && tagsToPreview.length === 0)
+  ) {
+    return (
+      <IssueTagButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+      />
+    );
+  }
+
   if (isPending || isHighlightPending) {
     return (
       <Fragment>
@@ -283,16 +297,6 @@ export default function IssueTagsPreview({
 
   if (isError) {
     return null;
-  }
-
-  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
-    return (
-      <IssueTagButton
-        tags={tagsToPreview}
-        searchQuery={searchQuery}
-        isScreenSmall={isScreenSmall}
-      />
-    );
   }
 
   return (
