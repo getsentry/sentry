@@ -119,7 +119,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
         assert timeseries["meta"] == {
-            "valueUnit": None,
             "valueType": "integer",
             "interval": 3_600_000,
         }
@@ -160,7 +159,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
         assert timeseries["meta"] == {
-            "valueUnit": None,
             "valueType": "integer",
             "interval": 3_600_000,
         }
@@ -183,7 +181,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
         assert timeseries["meta"] == {
-            "valueUnit": None,
             "valueType": "integer",
             "interval": 3_600_000,
         }
@@ -216,7 +213,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["meta"] == {
             "order": 0,
             "isOther": False,
-            "valueUnit": None,
             "valueType": "integer",
             "interval": 3_600_000,
         }
@@ -268,7 +264,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert timeseries["meta"] == {
             "order": 1,
             "isOther": False,
-            "valueUnit": None,
             "valueType": "integer",
             "interval": 3_600_000,
         }
