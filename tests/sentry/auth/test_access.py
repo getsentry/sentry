@@ -587,7 +587,8 @@ class FromRequestTest(AccessFactoryTestCase):
         # superuser in organization
         member = self.create_member(user=self.superuser, organization=self.org, role="member")
 
-        # get current silo
+        # If superuser is a member of the organization, it should have both
+        # the member scopes and the superuser scopes
         result = self.from_request(request, self.org)
         assert result.scopes == set(member.get_scopes()).union(SUPERUSER_READONLY_SCOPES)
 
