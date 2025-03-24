@@ -25,6 +25,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  addBillingStatTotals,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -32,7 +33,11 @@ import {
   isUnlimitedReserved,
   MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getChunkCategoryFromDuration,
+  getPlanCategoryName,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
 import titleCase from 'getsentry/utils/titleCase';
@@ -189,6 +194,7 @@ export function calculateCategoryPrepaidUsage(
         prepaidTotal = prepaid * GIGABYTE;
         break;
       case DataCategory.PROFILE_DURATION:
+      case DataCategory.PROFILE_DURATION_UI:
         prepaidTotal = prepaid * MILLISECONDS_IN_HOUR;
         break;
       default:
@@ -479,6 +485,17 @@ function UsageTotals({
     category,
     usageOptions
   );
+
+  // use dropped profile chunks to estimate dropped continuous profiling
+  const total = isContinuousProfiling(category)
+    ? {
+        ...addBillingStatTotals(
+          totals,
+          eventTotals[getChunkCategoryFromDuration(category)]
+        ),
+        accepted: totals.accepted,
+      }
+    : totals;
 
   return (
     <SubscriptionCard>
@@ -789,7 +806,7 @@ function UsageTotals({
         <Fragment>
           <UsageTotalsTable
             category={category}
-            totals={totals}
+            totals={total}
             subscription={subscription}
           />
           {/* Show additional tables for shared reserved budget categories */}

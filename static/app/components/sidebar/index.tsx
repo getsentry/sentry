@@ -232,8 +232,16 @@ function Sidebar() {
     </Feature>
   );
 
-  const hasPerfLandingRemovalFlag = organization?.features.includes(
-    'insights-performance-landing-removal'
+  const savedQueries = hasOrganization && (
+    <Feature features="performance-saved-queries" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="saved-queries">{t('All Queries')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/saved-queries/`}
+        id="performance-saved-queries"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
   );
 
   const releases = hasOrganization && (
@@ -372,11 +380,7 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
-        active={
-          hasPerfLandingRemovalFlag
-            ? location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)
-            : undefined
-        }
+        active={location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)}
         exact={!shouldAccordionFloat}
       >
         <SidebarItem
@@ -426,6 +430,7 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover}
+      {savedQueries}
     </SidebarAccordion>
   );
 

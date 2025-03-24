@@ -17,7 +17,7 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -33,11 +33,15 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         environments = [e.id for e in get_environments(request, organization)]
         projects = self.get_projects(request, organization)
         start, end = get_date_range_from_params(request.GET)
-        issue_category = request.GET.get("category", "error")
+        issue_category = request.GET.get("category", "issue")
+
+        if issue_category not in ["issue", "feedback"]:
+            raise ParseError("Invalid issue category. Valid options are 'issue' and 'feedback'.")
+
         type_filter = (
-            ~Q(type=GroupCategory.FEEDBACK)
-            if issue_category == "error"
-            else Q(type=GroupCategory.FEEDBACK)
+            ~Q(type=FeedbackGroup.type_id)
+            if issue_category == "issue"
+            else Q(type=FeedbackGroup.type_id)
         )
 
         try:
@@ -115,6 +119,21 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     )
             else:
                 new_grouped_series = grouped_series
+
+            # Return a default empty state if nothing found.
+            if len(new_grouped_series) == 0:
+                return [
+                    make_timeseries_result(
+                        axis=axis,
+                        group=[],
+                        start=start,
+                        end=end,
+                        interval=interval,
+                        is_other=False,
+                        order=0,
+                        values=[],
+                    )
+                ]
 
             return [
                 make_timeseries_result(

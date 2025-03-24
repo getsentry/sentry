@@ -168,6 +168,7 @@ const radius = {
   sm: '4px',
   md: '5px',
   lg: '6px',
+  xl: '8px',
   // @TODO(jonasbadalic): do we need an xl?
 } as const;
 
