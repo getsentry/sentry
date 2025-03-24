@@ -20,7 +20,6 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
@@ -49,8 +48,6 @@ function AccountSecurity({
   hasVerifiedEmail,
   orgsRequire2fa,
   handleRefresh,
-  params,
-  routes,
 }: Props) {
   const api = useApi();
 
@@ -84,21 +81,23 @@ function AccountSecurity({
 
   const isEmpty = !authenticators?.length;
 
+  const activeTab =
+    location.pathname.split('/').at(-2) === 'settings' ? 'settings' : 'sessionHistory';
+
+  const basePath = location.pathname.split('/').slice(0, -2).join('/');
+
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
         title={t('Security')}
         tabs={
           <TabsContainer>
-            <Tabs value={params.tab}>
+            <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="settings" to={recreateRoute('', {params, routes})}>
+                <TabList.Item key="settings" to={`${basePath}/settings/`}>
                   {t('Settings')}
                 </TabList.Item>
-                <TabList.Item
-                  key="session-history"
-                  to={recreateRoute('session-history/', {params, routes})}
-                >
+                <TabList.Item key="sessionHistory" to={`${basePath}/session-history/`}>
                   {t('Session History')}
                 </TabList.Item>
               </TabList>
