@@ -182,3 +182,137 @@ class OrganizationMemberInviteListTest(APITestCase):
         assert response.data[0]["inviteStatus"] == "approved"
         assert response.data[1]["email"] == self.requested_invite.email
         assert response.data[1]["inviteStatus"] == "requested_to_be_invited"
+
+
+class OrganizationMemberInvitePermissionRoleTest(APITestCase):
+    endpoint = "sentry-api-0-organization-member-invite-index"
+    method = "post"
+
+    def invite_all_helper(self, role):
+        invite_roles = ["owner", "manager", "member"]
+
+        user = self.create_user("user@localhost")
+        member = self.create_member(user=user, organization=self.organization, role=role)
+        self.login_as(user=user)
+
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+
+        allowed_roles = member.get_allowed_org_roles_to_invite()
+
+        for invite_role in invite_roles:
+            data = {
+                "email": f"{invite_role}_1@localhost",
+                "orgRole": invite_role,
+                "teams": [self.team.slug],
+            }
+            if role == "member" or role == "admin":
+                self.get_error_response(self.organization.slug, **data, status_code=403)
+            elif any(invite_role == allowed_role.id for allowed_role in allowed_roles):
+                self.get_success_response(self.organization.slug, **data, status_code=201)
+            else:
+                self.get_error_response(self.organization.slug, **data, status_code=400)
+
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+
+        for invite_role in invite_roles:
+            data = {
+                "email": f"{invite_role}_2@localhost",
+                "orgRole": invite_role,
+                "teams": [self.team.slug],
+            }
+            if any(invite_role == allowed_role.id for allowed_role in allowed_roles):
+                self.get_success_response(self.organization.slug, **data, status_code=201)
+            else:
+                self.get_error_response(self.organization.slug, **data, status_code=400)
+
+    def invite_to_other_team_helper(self, role):
+        user = self.create_user("inviter@localhost")
+        self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
+        self.login_as(user=user)
+
+        other_team = self.create_team(organization=self.organization, name="Moo Deng's Team")
+
+        def get_data(email: str, other_team_invite: bool = False):
+            team_slug = other_team.slug if other_team_invite else self.team.slug
+            data: dict[str, str | list] = {
+                "email": f"{email}@localhost",
+                "orgRole": "member",
+                "teams": [team_slug],
+            }
+            return data
+
+        # members can never invite members if disable_member_invite = True
+        self.organization.flags.allow_joinleave = True
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, **get_data("foo1"), status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.flags.disable_member_invite = True
+        self.organization.save()
+        response = self.get_error_response(
+            self.organization.slug, **get_data("foo2"), status_code=403
+        )
+        assert response.data.get("detail") == "You do not have permission to perform this action."
+
+        # members can only invite members to teams they are in if allow_joinleave = False
+        self.organization.flags.allow_joinleave = False
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_success_response(self.organization.slug, **get_data("foo3"), status_code=201)
+        response = self.get_error_response(
+            self.organization.slug, **get_data("foo4", True), status_code=400
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot assign members to teams you are not a member of."
+        )
+        # also test with teams instead of teamRoles
+        self.get_success_response(self.organization.slug, **get_data("foo5"), status_code=201)
+        response = self.get_error_response(
+            self.organization.slug,
+            **get_data("foo6", other_team_invite=True),
+            status_code=400,
+        )
+        assert (
+            response.data.get("detail")
+            == "You cannot assign members to teams you are not a member of."
+        )
+
+        # members can invite member to any team if allow_joinleave = True
+        self.organization.flags.allow_joinleave = True
+        self.organization.flags.disable_member_invite = False
+        self.organization.save()
+        self.get_success_response(self.organization.slug, **get_data("foo7"), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo8", True), status_code=201)
+        # also test with teams instead of teamRoles
+        self.get_success_response(self.organization.slug, **get_data("foo9"), status_code=201)
+        self.get_success_response(
+            self.organization.slug,
+            **get_data("foo10", other_team_invite=True),
+            status_code=201,
+        )
+
+    def test_owner_invites(self):
+        self.invite_all_helper("owner")
+
+    def test_manager_invites(self):
+        self.invite_all_helper("manager")
+
+    def test_admin_invites(self):
+        self.invite_all_helper("admin")
+        self.invite_to_other_team_helper("admin")
+
+    def test_member_invites(self):
+        self.invite_all_helper("member")
+        self.invite_to_other_team_helper("member")
+
+
+class OrganizationMemberInviteListPostTest(APITestCase):
+    endpoint = "sentry-api-0-organization-member-invite-index"
+    method = "post"

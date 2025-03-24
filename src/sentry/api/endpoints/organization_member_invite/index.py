@@ -254,7 +254,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             omi = OrganizationMemberInvite(
                 organization=organization,
                 email=result["email"],
-                role=result["role"],
+                role=result["orgRole"],
                 inviter_id=request.user.id,
                 organization_member_team_data=teams,
             )
