@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 from typing import Any, Literal, Self, TypedDict
 
@@ -160,7 +162,7 @@ class EnhancementMatch:
         raise NotImplementedError()
 
     @staticmethod
-    def _from_config_structure(config_structure: str, version: int) -> "EnhancementMatch":
+    def _from_config_structure(config_structure: str, version: int) -> EnhancementMatch:
         val = config_structure
         if val.startswith("|[") and val.endswith("]"):
             frame_match: Any = EnhancementMatch._from_config_structure(val[2:-1], version)

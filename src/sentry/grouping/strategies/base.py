@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import inspect
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Generic, Protocol, Self, TypeVar, overload
@@ -15,7 +17,7 @@ from sentry.interfaces.base import Interface
 from sentry.interfaces.exception import SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 
-STRATEGIES: dict[str, "Strategy[Any]"] = {}
+STRATEGIES: dict[str, Strategy[Any]] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
@@ -43,14 +45,14 @@ class StrategyFunc(Protocol[ConcreteInterface]):
         self,
         interface: ConcreteInterface,
         event: Event,
-        context: "GroupingContext",
+        context: GroupingContext,
         **meta: Any,
     ) -> ReturnedVariants: ...
 
 
 class VariantProcessor(Protocol):
     def __call__(
-        self, variants: ReturnedVariants, context: "GroupingContext", **meta: Any
+        self, variants: ReturnedVariants, context: GroupingContext, **meta: Any
     ) -> ReturnedVariants: ...
 
 
@@ -58,7 +60,7 @@ def strategy(
     ids: Sequence[str],
     interface: type[Interface],
     score: int | None = None,
-) -> Callable[[StrategyFunc[ConcreteInterface]], "Strategy[ConcreteInterface]"]:
+) -> Callable[[StrategyFunc[ConcreteInterface]], Strategy[ConcreteInterface]]:
     """
     Registers a strategy
 
@@ -89,7 +91,7 @@ def strategy(
 
 
 class GroupingContext:
-    def __init__(self, strategy_config: "StrategyConfiguration"):
+    def __init__(self, strategy_config: StrategyConfiguration):
         # The initial context is essentially the grouping config options
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
@@ -169,7 +171,7 @@ class GroupingContext:
         return rv
 
 
-def lookup_strategy(strategy_id: str) -> "Strategy[Any]":
+def lookup_strategy(strategy_id: str) -> Strategy[Any]:
     """Looks up a strategy by id."""
     try:
         return STRATEGIES[strategy_id]
@@ -286,7 +288,7 @@ class Strategy(Generic[ConcreteInterface]):
 
 class StrategyConfiguration:
     id: str | None
-    base: type["StrategyConfiguration"] | None = None
+    base: type[StrategyConfiguration] | None = None
     config_class = None
     strategies: dict[str, Strategy[Any]] = {}
     delegates: dict[str, Strategy[Any]] = {}
