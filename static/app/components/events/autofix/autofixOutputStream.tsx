@@ -324,11 +324,9 @@ const SeerIconContainer = styled('div')`
 
 const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
   position: relative;
-  opacity: 0.9;
   transition: opacity 0.2s ease;
   top: 0;
   flex-shrink: 0;
-  color: ${p => p.theme.purple400};
-  filter: brightness(0.6);
+  color: ${p => p.theme.textColor};
   z-index: 10000;
 `;

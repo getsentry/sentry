@@ -369,9 +369,7 @@ const StartTextRow = styled('div')`
 `;
 
 const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
-  color: ${p => p.theme.purple400};
-  opacity: 0.9;
-  filter: brightness(0.6);
+  color: ${p => p.theme.textColor};
 `;
 
 const BackgroundStar = styled('img')`
