@@ -432,7 +432,6 @@ const IssueTagsLink = styled(Link)`
   }
 `;
 
-// 78
 const VerticalIssueTagsButton = styled(LinkButton)`
   display: block;
   flex: 0;
