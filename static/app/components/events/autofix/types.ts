@@ -252,3 +252,31 @@ export interface AutofixRepoDefinition {
   owner: string;
   provider: string;
 }
+
+export interface Repository {
+  externalId: string;
+  id: string;
+  name: string;
+  provider?: {
+    id?: string;
+    name?: string;
+  };
+}
+
+export interface RepoSettings {
+  branch: string;
+  instructions: string;
+}
+
+export interface ProjectPreferences {
+  repositories: Array<{
+    external_id: string;
+    name: string;
+    owner: string;
+    provider: string;
+    base_commit_sha?: string;
+    branch_name?: string;
+    instructions?: string;
+    provider_raw?: string;
+  }>;
+}
