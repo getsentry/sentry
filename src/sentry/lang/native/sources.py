@@ -79,8 +79,6 @@ COMMON_SOURCE_PROPERTIES = {
     "name": {"type": "string"},
     "layout": LAYOUT_SCHEMA,
     "filters": FILTERS_SCHEMA,
-    # FIXME: This is temporarily included for backwards compatibility.
-    "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
     "is_public": {"type": "boolean"},
 }
 
