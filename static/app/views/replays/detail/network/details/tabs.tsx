@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 const TABS = {
@@ -16,10 +14,8 @@ const TABS = {
 export type TabKey = keyof typeof TABS;
 
 function NetworkDetailsTabs() {
-  const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('n_detail_tab', 'details');
   const activeTab = getParamValue();
-  const navigate = useNavigate();
 
   return (
     <TabsContainer>
@@ -27,10 +23,6 @@ function NetworkDetailsTabs() {
         value={activeTab}
         onChange={tab => {
           setParamValue(tab);
-          navigate({
-            pathname,
-            query: {...query, t_main: tab},
-          });
         }}
       >
         <TabList hideBorder>
