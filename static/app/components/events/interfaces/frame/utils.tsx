@@ -6,6 +6,7 @@ import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 import {SymbolicatorStatus} from '../types';
 
