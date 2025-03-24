@@ -1,4 +1,4 @@
-import type {ReactElement} from 'react';
+import {type ReactElement, useCallback, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -268,13 +268,6 @@ function ReleaseBubbleSeries({
         // TODO: figure out correct opacity calculations
         opacity: Math.round((Number(numberReleases) / avgReleases) * 50) / 100,
       },
-      emphasis: {
-        style: {
-          opacity: 1,
-          stroke: 'transparent',
-          fill: theme.blue400,
-        },
-      },
     } satisfies CustomSeriesRenderItemReturn;
   };
 
@@ -285,6 +278,20 @@ function ReleaseBubbleSeries({
     name: t('Releases'),
     data,
     color: theme.blue300,
+    markLine: {
+      silent: true,
+      symbol: 'none',
+      label: {
+        show: false,
+      },
+      lineStyle: {
+        color: theme.gray300,
+        opacity: 0.5,
+        type: 'solid',
+        width: 1,
+      },
+      data: [{yAxis: 0}],
+    },
     tooltip: {
       trigger: 'item',
       position: 'bottom',
@@ -322,7 +329,6 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
-  chartRef: React.RefObject<ReactEchartsRef | null>;
   bubblePadding?: number;
   bubbleSize?: number;
   chartRenderer?: (rendererProps: {
@@ -335,7 +341,6 @@ interface UseReleaseBubblesParams {
   releases?: ReleaseMetaBasic[];
 }
 export function useReleaseBubbles({
-  chartRef,
   chartRenderer,
   releases,
   minTime,
@@ -355,18 +360,32 @@ export function useReleaseBubbles({
   const releasesMaxTime = defined(selection.datetime.end)
     ? new Date(selection.datetime.end).getTime()
     : Date.now();
+  const chartRef = useRef<ReactEchartsRef | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
+  const handleChartRef = useCallback((e: ReactEchartsRef | null) => {
+    chartRef.current = e;
+
+    if (e?.getEchartsInstance) {
+      createReleaseBubbleHighlighter(e.getEchartsInstance());
+    }
+  }, []);
+
   const buckets =
     (hasReleaseBubbles &&
       releases?.length &&
       minTime &&
       maxTime &&
-      createReleaseBuckets(minTime, maxTime, releasesMaxTime, releases)) ||
+      createReleaseBuckets({
+        minTime,
+        maxTime,
+        finalTime: releasesMaxTime,
+        releases,
+      })) ||
     [];
 
   if (!releases || !buckets.length) {
     return {
-      createReleaseBubbleHighlighter: () => {},
+      connectReleaseBubbleChartRef: () => {},
       releaseBubbleEventHandlers: {},
       ReleaseBubbleSeries: null,
       releaseBubbleXAxis: {},
@@ -377,7 +396,7 @@ export function useReleaseBubbles({
   const totalBubblePaddingY = bubblePadding * 2;
 
   return {
-    createReleaseBubbleHighlighter,
+    connectReleaseBubbleChartRef: handleChartRef,
 
     /**
      * An object map of ECharts event handlers. These should be spread onto a Chart component

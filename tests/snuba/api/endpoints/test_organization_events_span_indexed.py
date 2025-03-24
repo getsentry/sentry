@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 import urllib3
 
+from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -2888,6 +2889,36 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["avg_if(span.duration, span.op, queue.publish)"] == 3000.0
         assert meta["dataset"] == self.dataset
 
+    def test_avg_compare(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"release": "foo"}}, duration=100, start_ts=self.ten_mins_ago
+                ),
+                self.create_span(
+                    {"sentry_tags": {"release": "bar"}},
+                    duration=10,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["avg_compare(span.self_time, release, foo, bar)"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["avg_compare(span.self_time, release, foo, bar)"] == -0.9
+        assert meta["dataset"] == self.dataset
+
     def test_avg_if_invalid_param(self):
         self.store_spans(
             [
@@ -3009,6 +3040,40 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count_scores(measurements.score.total)"] == 3
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.skip(
+        reason="RPC does not support static number operations which is required by this function"
+    )
+    def test_time_spent_percentage(self):
+        spans = []
+        for _ in range(4):
+            spans.append(
+                self.create_span({"sentry_tags": {"transaction": "foo_transaction"}}, duration=1),
+            )
+        spans.append(
+            self.create_span({"sentry_tags": {"transaction": "bar_transaction"}}, duration=1)
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["transaction", "time_spent_percentage()"],
+                "query": "",
+                "orderby": ["-time_spent_percentage()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["time_spent_percentage()"] == 0.8
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[1]["time_spent_percentage()"] == 0.2
+        assert data[1]["transaction"] == "bar_transaction"
+        assert meta["dataset"] == self.dataset
+
     def test_performance_score(self):
         self.store_spans(
             [
@@ -3055,6 +3120,139 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         meta = response.data["meta"]
         assert len(data) == 1
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
+        assert meta["dataset"] == self.dataset
+
+    def test_division(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.slow": {"value": 10},
+                            "frames.frozen": {"value": 20},
+                        }
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "division(mobile.frames_slow,mobile.frames_total)",
+                    "division(mobile.frames_frozen,mobile.frames_total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["division(mobile.frames_slow,mobile.frames_total)"] == 10 / 100
+        assert data[0]["division(mobile.frames_frozen,mobile.frames_total)"] == 20 / 100
+        assert meta["dataset"] == self.dataset
+
+    def test_opportunity_score(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 0.1},
+                            "score.ratio.fcp": {"value": 0.57142857142},
+                            "score.total": {"value": 0.43},
+                        }
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.lcp": {"value": 1.0},
+                            "score.total": {"value": 1.0},
+                        }
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.total": {"value": 0.0},
+                        }
+                    }
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "opportunity_score(measurements.score.lcp)",
+                    "opportunity_score(measurements.score.total)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        lcp_score = (
+            0.27 / WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["lcp"]
+        )  # TODO: we should multiplying by the weight in the formula, but we can't until https://github.com/getsentry/eap-planning/issues/202
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], lcp_score)
+        assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
+        assert meta["dataset"] == self.dataset
+
+    def test_count_starts(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {"app_start_warm": {"value": 200}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"app_start_warm": {"value": 100}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"app_start_cold": {"value": 10}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "count_starts(measurements.app_start_warm)",
+                    "count_starts(measurements.app_start_cold)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["count_starts(measurements.app_start_warm)"] == 2
+        assert data[0]["count_starts(measurements.app_start_cold)"] == 1
         assert meta["dataset"] == self.dataset
 
     @pytest.mark.skip(reason="replay id alias not migrated over")

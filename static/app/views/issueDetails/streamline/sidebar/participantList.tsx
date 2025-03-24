@@ -17,10 +17,15 @@ import useOverlay from 'sentry/utils/useOverlay';
 
 interface DropdownListProps {
   users: User[];
+  hideTimestamp?: boolean;
   teams?: Team[];
 }
 
-export default function ParticipantList({users, teams}: DropdownListProps) {
+export default function ParticipantList({
+  users,
+  teams,
+  hideTimestamp,
+}: DropdownListProps) {
   const {overlayProps, isOpen, triggerProps} = useOverlay({
     position: 'bottom-start',
     shouldCloseOnBlur: true,
@@ -41,8 +46,12 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
           renderTooltip={user => (
             <Fragment>
               {userDisplayName(user)}
-              <br />
-              <LastSeen date={(user as AvatarUser).lastSeen} />
+              {!hideTimestamp && (
+                <Fragment>
+                  <br />
+                  <LastSeen date={(user as AvatarUser).lastSeen} />
+                </Fragment>
+              )}
             </Fragment>
           )}
         />
@@ -76,7 +85,7 @@ export default function ParticipantList({users, teams}: DropdownListProps) {
                     {user.email === user.name ? null : (
                       <SmallText>{user.email}</SmallText>
                     )}
-                    <LastSeen date={(user as AvatarUser).lastSeen} />
+                    {!hideTimestamp && <LastSeen date={(user as AvatarUser).lastSeen} />}
                   </NameWrapper>
                 </UserRow>
               ))}

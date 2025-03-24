@@ -9,6 +9,17 @@ import type {BillingConfig} from 'getsentry/types';
 import {PlanTier} from 'getsentry/types';
 
 export function BillingConfigFixture(tier: PlanTier): BillingConfig {
+  if (tier === PlanTier.TEST) {
+    return {
+      id: PlanTier.TEST,
+      freePlan: 'am3_f',
+      defaultPlan: 'am3_f',
+      defaultReserved: {errors: 1000000},
+      annualDiscount: 0.1,
+      planList: Object.values(AM3_PLANS),
+      featureList: FeatureListFixture(),
+    };
+  }
   if (tier === PlanTier.MM1) {
     return {
       id: PlanTier.MM1,

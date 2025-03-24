@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -46,7 +47,8 @@ function OnboardingItem({
 }) {
   const theme = useTheme();
   const {layout} = useNavContext();
-  const showLabel = layout === NavLayout.MOBILE;
+  const isMobile = layout === NavLayout.MOBILE;
+  const showLabel = isMobile;
   const demoMode = isDemoModeActive();
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
@@ -73,44 +75,51 @@ function OnboardingItem({
 
   return (
     <GuideAnchor target="onboarding_sidebar" position="right">
-      <SidebarItem>
+      <SidebarItem label={label} showLabel={showLabel}>
         <NavButton
           {...overlayTriggerProps}
-          isMobile={layout === NavLayout.MOBILE}
+          isMobile={isMobile}
           aria-label={showLabel ? undefined : label}
           onMouseEnter={() => {
             refetch();
           }}
         >
           <InteractionStateLayer />
-          <ProgressRing
-            animate
-            textCss={() => css`
-              font-size: ${showLabel ? theme.fontSizeSmall : theme.fontSizeMedium};
-              font-weight: ${theme.fontWeightBold};
-              color: ${theme.purple400};
-            `}
-            text={
-              doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
-            }
-            value={(doneTasks.length / allTasks.length) * 100}
-            backgroundColor="rgba(255, 255, 255, 0.15)"
-            progressEndcaps="round"
-            progressColor={theme.purple400}
-            size={showLabel ? 28 : 32}
-            barWidth={4}
-          />
+          <ProgressRingWrapper isMobile={isMobile}>
+            <OnboardingProgressRing
+              isMobile={isMobile}
+              animate
+              textCss={() => css`
+                font-size: ${isMobile ? theme.fontSizeExtraSmall : theme.fontSizeSmall};
+                font-weight: ${theme.fontWeightBold};
+                color: ${theme.purple400};
+              `}
+              text={
+                doneTasks.length === allTasks.length ? (
+                  <IconCheckmark />
+                ) : (
+                  doneTasks.length
+                )
+              }
+              value={(doneTasks.length / allTasks.length) * 100}
+              backgroundColor={theme.gray200}
+              progressEndcaps="round"
+              progressColor={theme.purple400}
+              size={isMobile ? 22 : 26}
+              barWidth={4}
+            />
+          </ProgressRingWrapper>
           {showLabel ? label : null}
           {pendingCompletionSeen && (
             <SidebarItemUnreadIndicator data-test-id="pending-seen-indicator" />
           )}
         </NavButton>
-        {isOpen && (
-          <PrimaryButtonOverlay overlayProps={overlayProps}>
-            <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />
-          </PrimaryButtonOverlay>
-        )}
       </SidebarItem>
+      {isOpen && (
+        <PrimaryButtonOverlay overlayProps={overlayProps}>
+          <OnboardingSidebarContent onClose={() => SidebarPanelStore.hidePanel()} />
+        </PrimaryButtonOverlay>
+      )}
     </GuideAnchor>
   );
 }
@@ -205,3 +214,19 @@ export function PrimaryNavigationOnboarding() {
     />
   );
 }
+
+// This wrapper matches the size of other nav button icons. This is ncessary
+// because the progress ring is larger than the icons, but we want this
+// to be sized similarly to other nav buttons.
+const ProgressRingWrapper = styled('div')<{isMobile: boolean}>`
+  height: ${p => (p.isMobile ? '14px' : '16px')};
+  width: ${p => (p.isMobile ? '14px' : '16px')};
+  position: relative;
+`;
+
+const OnboardingProgressRing = styled(ProgressRing)<{isMobile: boolean}>`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+`;

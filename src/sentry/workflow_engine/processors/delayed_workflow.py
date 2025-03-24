@@ -75,6 +75,9 @@ class UniqueConditionQuery:
     comparison_interval: str | None = None
     filters: list[dict[str, Any]] | None = None
 
+    def __repr__(self):
+        return f"UniqueConditionQuery(handler={self.handler.__name__}, interval={self.interval}, environment_id={self.environment_id}, comparison_interval={self.comparison_interval}, filters={self.filters})"
+
 
 def fetch_project(project_id: int) -> Project | None:
     try:
@@ -305,8 +308,13 @@ def parse_dcg_group_event_data(
 
     for workflow_group_dcg, instance_data in workflow_event_dcg_data.items():
         data = workflow_group_dcg.split(":")
-        event_data = json.loads(instance_data)
 
+        group_id = int(data[1])
+        if group_id not in groups_to_dcg_ids:
+            # the group did not trigger any data condition groups
+            continue
+
+        event_data = json.loads(instance_data)
         event_id = event_data.get("event_id")
         if event_id:
             event_ids.add(event_id)
@@ -315,7 +323,6 @@ def parse_dcg_group_event_data(
         if occurrence_id:
             occurrence_ids.add(occurrence_id)
 
-        group_id = int(data[1])
         dcg_ids = [int(dcg_id) for dcg_id in data[2].split(",")]
 
         for dcg_id in dcg_ids:
@@ -484,11 +491,36 @@ def process_delayed_workflows(
     _, workflows_to_envs = fetch_workflows_envs(list(dcg_to_workflow.values()))
     data_condition_groups = fetch_data_condition_groups(list(dcg_to_groups.keys()))
 
+    logger.info(
+        "delayed_workflow.workflows",
+        extra={"data": workflow_event_dcg_data, "workflows": set(dcg_to_workflow.values())},
+    )
+
     # Get unique query groups to query Snuba
     condition_groups = get_condition_query_groups(
         data_condition_groups, dcg_to_groups, dcg_to_workflow, workflows_to_envs
     )
+
+    if not condition_groups:
+        return
+
+    repr_condition_groups = {
+        repr(condition_group): group_ids for condition_group, group_ids in condition_groups.items()
+    }
+    logger.info(
+        "delayed_workflow.condition_query_groups",
+        extra={
+            "condition_groups": repr_condition_groups,
+            "num_condition_groups": len(condition_groups),
+            "project_id": project_id,
+        },
+    )
     condition_group_results = get_condition_group_results(condition_groups)
+
+    logger.info(
+        "delayed_workflow.condition_group_results",
+        extra={"results": condition_group_results},
+    )
 
     # Evaluate DCGs
     groups_to_dcgs = get_groups_to_fire(
@@ -497,6 +529,11 @@ def process_delayed_workflows(
         dcg_to_workflow,
         dcg_to_groups,
         condition_group_results,
+    )
+
+    logger.info(
+        "delayed_workflow.groups_to_fire",
+        extra={"groups_to_dcgs": groups_to_dcgs},
     )
 
     dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(

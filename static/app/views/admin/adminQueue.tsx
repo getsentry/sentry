@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Select} from 'sentry/components/core/select';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import LoadingError from 'sentry/components/loadingError';
@@ -77,9 +77,14 @@ export default function AdminQueue() {
       <Header>
         <h3>t{'Queue Overview'}</h3>
 
-        <ButtonBar merged active={state.timeWindow}>
+        <ButtonBar merged>
           {TIME_WINDOWS.map(r => (
-            <Button size="sm" barId={r} onClick={() => changeWindow(r)} key={r}>
+            <Button
+              size="sm"
+              priority={r === state.timeWindow ? 'primary' : 'default'}
+              onClick={() => changeWindow(r)}
+              key={r}
+            >
               {r}
             </Button>
           ))}
