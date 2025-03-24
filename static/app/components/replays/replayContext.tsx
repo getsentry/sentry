@@ -496,7 +496,7 @@ export function Provider({
     [organization, user.email, analyticsContext, getCurrentPlayerTime, isVideoReplay]
   );
 
-  // Pause the replay when the tab is not active
+  // Pause the replay when the tab loses focus
   useEffect(() => {
     if (!isPlaying) {
       return () => {};
