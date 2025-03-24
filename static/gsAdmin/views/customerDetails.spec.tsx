@@ -1100,19 +1100,7 @@ describe('Customer Details', function () {
   it('renders correct sections', async function () {
     renderMocks(organization);
 
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<CustomerDetails />, {router, organization});
 
     await screen.findByRole('heading', {name: 'Customers'});
   });
@@ -1120,19 +1108,10 @@ describe('Customer Details', function () {
   it('renders correct dropdown options', async function () {
     renderMocks(organization);
 
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />,
-      {
-        router,
-      }
-    );
+    render(<CustomerDetails />, {
+      router,
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1156,16 +1135,7 @@ describe('Customer Details', function () {
 
   it('renders and hides generic confirmation modals', async function () {
     renderMocks(organization);
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />
-    );
+    render(<CustomerDetails />, {router, organization});
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1195,6 +1165,7 @@ describe('Customer Details', function () {
 
   describe('change legacy soft cap', function () {
     const softCapOrg = OrganizationFixture({slug: 'soft-cap'});
+    const {router: softCapRouter} = initializeOrg({organization: softCapOrg});
     const mockBillingAdminUser = UserFixture({
       permissions: new Set(['billing.admin']),
     });
@@ -1204,16 +1175,7 @@ describe('Customer Details', function () {
 
       renderMocks(organization, {isBillingAdmin: false});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1239,16 +1201,7 @@ describe('Customer Details', function () {
       ConfigStore.set('user', mockBillingAdminUser);
       renderMocks(softCapOrg, {isPartner: false});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: softCapOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: softCapRouter, organization: softCapOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1265,16 +1218,7 @@ describe('Customer Details', function () {
       ConfigStore.set('user', mockBillingAdminUser);
       renderMocks(softCapOrg, {isPartner: false, hasSoftCap: true});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: softCapOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: softCapRouter, organization: softCapOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1297,16 +1241,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: softCapOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: softCapRouter, organization: softCapOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1345,16 +1280,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: softCapOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: softCapRouter, organization: softCapOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1386,7 +1312,11 @@ describe('Customer Details', function () {
 
   describe('change overage notifications', function () {
     const softCapOrg = OrganizationFixture({slug: 'soft-cap'});
+    const {router: softCapRouter} = initializeOrg({organization: softCapOrg});
     const noNotificationsOrg = OrganizationFixture();
+    const {router: noNotificationsRouter} = initializeOrg({
+      organization: noNotificationsOrg,
+    });
 
     const mockBillingAdminUser = UserFixture({
       permissions: new Set(['billing.admin']),
@@ -1400,16 +1330,7 @@ describe('Customer Details', function () {
         hasSoftCap: true,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: softCapOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: softCapRouter, organization: softCapOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1430,16 +1351,7 @@ describe('Customer Details', function () {
         hasSoftCap: true,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: softCapOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: softCapRouter, organization: softCapOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1466,16 +1378,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: softCapOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: softCapRouter, organization: softCapOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1517,16 +1420,10 @@ describe('Customer Details', function () {
         hasSoftCap: true,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: noNotificationsOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: noNotificationsRouter,
+        organization: noNotificationsOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1558,20 +1455,17 @@ describe('Customer Details', function () {
 
   describe('clear pending changes', function () {
     const pendingChangesOrg = OrganizationFixture();
+    const {router: pendingChangesRouter} = initializeOrg({
+      organization: pendingChangesOrg,
+    });
 
     it('renders in the dropdown when there are pending changes', async function () {
       renderMocks(pendingChangesOrg, {pendingChanges: true});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: pendingChangesOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: pendingChangesRouter,
+        organization: pendingChangesOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1587,16 +1481,7 @@ describe('Customer Details', function () {
     it('is hidden when there are no changes', async function () {
       renderMocks(organization);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1612,20 +1497,15 @@ describe('Customer Details', function () {
 
   describe('allow trial', function () {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
+    const {router: cannotTrialRouter} = initializeOrg({organization: cannotTrialOrg});
 
     it('renders Allow Trial in the dropdown', async function () {
       renderMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: cannotTrialOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: cannotTrialRouter,
+        organization: cannotTrialOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1641,16 +1521,7 @@ describe('Customer Details', function () {
     it('hides Allow Trial in the dropdown when not eligible', async function () {
       renderMocks(organization, {canTrial: true, isTrial: false});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1666,16 +1537,10 @@ describe('Customer Details', function () {
     it('hides Allow Trial in the dropdown when on active trial', async function () {
       renderMocks(organization, {canTrial: false, isTrial: true});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1697,16 +1562,10 @@ describe('Customer Details', function () {
 
       renderMocks(cannotTrialOrg, {canTrial: false, isTrial: false});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: cannotTrialOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: cannotTrialRouter,
+        organization: cannotTrialOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1738,20 +1597,15 @@ describe('Customer Details', function () {
 
   describe('allow grace period', function () {
     const gracePeriodOrg = OrganizationFixture({slug: 'grace-period'});
+    const {router: gracePeriodRouter} = initializeOrg({organization: gracePeriodOrg});
 
     it('renders in the dropdown', async function () {
       renderMocks(gracePeriodOrg);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: gracePeriodOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: gracePeriodRouter,
+        organization: gracePeriodOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1767,16 +1621,7 @@ describe('Customer Details', function () {
     it('disabled in the dropdown', async function () {
       renderMocks(organization);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1809,16 +1654,10 @@ describe('Customer Details', function () {
 
       renderMocks(gracePeriodOrg, {canGracePeriod: false});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: gracePeriodOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: gracePeriodRouter,
+        organization: gracePeriodOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1850,6 +1689,7 @@ describe('Customer Details', function () {
 
   describe('terminate contract', function () {
     const terminateOrg = OrganizationFixture();
+    const {router: terminateRouter} = initializeOrg({organization: terminateOrg});
 
     it('renders dropdown disabled without billing.admin permissions', async function () {
       ConfigStore.set('user', mockUser);
@@ -1860,16 +1700,10 @@ describe('Customer Details', function () {
         isBillingAdmin: false,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: terminateOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: terminateRouter,
+        organization: terminateOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1906,16 +1740,7 @@ describe('Customer Details', function () {
         isBillingAdmin: false,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: terminateOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: terminateRouter, organization: terminateOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1950,16 +1775,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: terminateOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: terminateRouter, organization: terminateOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -1998,16 +1814,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2062,16 +1869,7 @@ describe('Customer Details', function () {
       });
       renderMocks(organization, subscription);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2143,16 +1941,7 @@ describe('Customer Details', function () {
       });
       renderMocks(organization, subscription);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2223,16 +2012,7 @@ describe('Customer Details', function () {
       });
       renderMocks(organization, subscription);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2265,16 +2045,7 @@ describe('Customer Details', function () {
       });
       renderMocks(organization, subscription);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2341,16 +2112,7 @@ describe('Customer Details', function () {
         },
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2389,20 +2151,15 @@ describe('Customer Details', function () {
 
   describe('cancel subscription', function () {
     const cancelSubOrg = OrganizationFixture();
+    const {router: cancelSubRouter} = initializeOrg({organization: cancelSubOrg});
 
     it('renders in the dropdown', async function () {
       renderMocks(cancelSubOrg);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: cancelSubOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: cancelSubRouter,
+        organization: cancelSubOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2422,16 +2179,8 @@ describe('Customer Details', function () {
         method: 'PUT',
         body: OrganizationFixture(),
       });
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: cancelSubOrg.slug}}
-        />
-      );
+
+      render(<CustomerDetails />, {router: cancelSubRouter, organization: cancelSubOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2480,16 +2229,10 @@ describe('Customer Details', function () {
         body: sub,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2546,16 +2289,10 @@ describe('Customer Details', function () {
         body: Subscription,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
@@ -2596,16 +2333,7 @@ describe('Customer Details', function () {
         body: partnerSubscription,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
@@ -2641,16 +2369,10 @@ describe('Customer Details', function () {
 
       renderMocks(organization, partnerSubscription);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
@@ -2679,16 +2401,10 @@ describe('Customer Details', function () {
         method: 'PUT',
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
@@ -2760,16 +2476,7 @@ describe('Customer Details', function () {
     it('requires am1 reserved volumes to be set', async function () {
       renderMocks(organization, sub);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2802,16 +2509,10 @@ describe('Customer Details', function () {
         method: 'PUT',
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2908,16 +2609,7 @@ describe('Customer Details', function () {
         method: 'PUT',
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
       renderGlobalModal();
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3026,16 +2718,10 @@ describe('Customer Details', function () {
         method: 'PUT',
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
       renderGlobalModal();
 
       await screen.findByRole('heading', {name: 'Customers'});
@@ -3121,6 +2807,7 @@ describe('Customer Details', function () {
   describe('early end', function () {
     it('can end trial early', async function () {
       const trialOrg = OrganizationFixture();
+      const {router: trialRouter} = initializeOrg({organization: trialOrg});
 
       renderMocks(trialOrg, {isTrial: true});
 
@@ -3130,16 +2817,7 @@ describe('Customer Details', function () {
         body: trialOrg,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: trialOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: trialRouter, organization: trialOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3171,16 +2849,7 @@ describe('Customer Details', function () {
     it('is disabled for non-trial org', async function () {
       renderMocks(organization);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3199,7 +2868,11 @@ describe('Customer Details', function () {
 
   describe('on demand invoices', function () {
     const invoicedOrg = OrganizationFixture({slug: 'invoiced'});
+    const {router: invoicedRouter} = initializeOrg({organization: invoicedOrg});
     const onDemandInvoicedOrg = OrganizationFixture({slug: 'ondemand-invoiced'});
+    const {router: onDemandInvoicedRouter} = initializeOrg({
+      organization: onDemandInvoicedOrg,
+    });
 
     const mockBillingAdminUser = UserFixture({
       permissions: new Set(['billing.admin']),
@@ -3223,16 +2896,10 @@ describe('Customer Details', function () {
         },
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: onDemandInvoicedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: onDemandInvoicedRouter,
+        organization: onDemandInvoicedOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3261,16 +2928,10 @@ describe('Customer Details', function () {
         },
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: onDemandInvoicedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: onDemandInvoicedRouter,
+        organization: onDemandInvoicedOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3299,16 +2960,10 @@ describe('Customer Details', function () {
         },
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: onDemandInvoicedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: onDemandInvoicedRouter,
+        organization: onDemandInvoicedOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3342,16 +2997,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: invoicedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: invoicedRouter, organization: invoicedOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3401,16 +3047,10 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: onDemandInvoicedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router: onDemandInvoicedRouter,
+        organization: onDemandInvoicedOrg,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3450,16 +3090,7 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3519,16 +3150,10 @@ describe('Customer Details', function () {
         body: OrganizationFixture(),
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3571,16 +3196,10 @@ describe('Customer Details', function () {
       });
       renderMocks(organization, partnerSubscription);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3601,16 +3220,7 @@ describe('Customer Details', function () {
     it('renders and hides modal', async function () {
       renderMocks(organization);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3639,16 +3249,10 @@ describe('Customer Details', function () {
     it('can gift events - ERRORS', async function () {
       renderMocks(organization);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {
+        router,
+        organization,
+      });
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3698,16 +3302,7 @@ describe('Customer Details', function () {
     it('can gift events - TRANSACTIONS', async function () {
       renderMocks(organization);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3761,16 +3356,10 @@ describe('Customer Details', function () {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
     renderMocks(organization, am2Sub);
 
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />
-    );
+    render(<CustomerDetails />, {
+      router,
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3821,16 +3410,7 @@ describe('Customer Details', function () {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_f'});
     renderMocks(organization, am3Sub);
 
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />
-    );
+    render(<CustomerDetails />, {router, organization});
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3880,16 +3460,10 @@ describe('Customer Details', function () {
     const am3Sub = Am3DsEnterpriseSubscriptionFixture({organization});
     renderMocks(organization, am3Sub);
 
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />
-    );
+    render(<CustomerDetails />, {
+      router,
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3908,16 +3482,7 @@ describe('Customer Details', function () {
     const am3Sub = SubscriptionFixture({organization, plan: 'am3_team'});
     renderMocks(organization, am3Sub);
 
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />
-    );
+    render(<CustomerDetails />, {router, organization});
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -3938,16 +3503,10 @@ describe('Customer Details', function () {
     const am2Sub = SubscriptionFixture({organization, plan: 'am2_f'});
     renderMocks(organization, am2Sub);
 
-    render(
-      <CustomerDetails
-        router={router}
-        location={router.location}
-        routes={router.routes}
-        routeParams={router.params}
-        route={{}}
-        params={{orgId: organization.slug}}
-      />
-    );
+    render(<CustomerDetails />, {
+      router,
+      organization,
+    });
 
     await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4005,19 +3564,11 @@ describe('Customer Details', function () {
 
     it('ChangeContractEndDateAction not rendered for monthly contract interval', async function () {
       const invoicedOrg = OrganizationFixture();
+      const {router: invoicedRouter} = initializeOrg({organization: invoicedOrg});
 
       renderMocks(invoicedOrg, {contractInterval: 'monthly', type: BillingType.INVOICED});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: invoicedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: invoicedRouter, organization: invoicedOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4034,19 +3585,11 @@ describe('Customer Details', function () {
 
     it('ChangeContractEndDateAction rendered for annual contract interval', async function () {
       const invoicedOrg = OrganizationFixture();
+      const {router: invoicedRouter} = initializeOrg({organization: invoicedOrg});
 
       renderMocks(invoicedOrg, {contractInterval: 'annual', type: BillingType.INVOICED});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: invoicedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: invoicedRouter, organization: invoicedOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4062,6 +3605,7 @@ describe('Customer Details', function () {
 
   describe('unsuspend organization', function () {
     const suspendedOrg = OrganizationFixture({slug: 'suspended'});
+    const {router: suspendedRouter} = initializeOrg({organization: suspendedOrg});
 
     const mockBillingAdminUser = UserFixture({
       permissions: new Set(['billing.admin']),
@@ -4072,16 +3616,7 @@ describe('Customer Details', function () {
     it("doesn't render in the dropdown if already suspended", async function () {
       renderMocks(suspendedOrg, {isSuspended: true});
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: suspendedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: suspendedRouter, organization: suspendedOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4103,16 +3638,7 @@ describe('Customer Details', function () {
         body: suspendedOrg,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: suspendedOrg.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router: suspendedRouter, organization: suspendedOrg});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4150,16 +3676,7 @@ describe('Customer Details', function () {
         body: organization,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4210,16 +3727,7 @@ describe('Customer Details', function () {
       });
       renderMocks(organization, am3Sub);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4237,16 +3745,7 @@ describe('Customer Details', function () {
       });
       renderMocks(organization, nonDsSub);
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -4270,16 +3769,7 @@ describe('Customer Details', function () {
         body: organization,
       });
 
-      render(
-        <CustomerDetails
-          router={router}
-          location={router.location}
-          routes={router.routes}
-          routeParams={router.params}
-          route={{}}
-          params={{orgId: organization.slug}}
-        />
-      );
+      render(<CustomerDetails />, {router, organization});
 
       await screen.findByRole('heading', {name: 'Customers'});
       renderGlobalModal();
