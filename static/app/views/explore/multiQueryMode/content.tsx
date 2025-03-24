@@ -1,6 +1,9 @@
 import styled from '@emotion/styled';
 
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -14,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {
   useAddQuery,
   useReadQueriesFromLocation,
@@ -21,27 +25,84 @@ import {
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
-const MAX_QUERIES_ALLOWED = 5;
+export const MAX_QUERIES_ALLOWED = 5;
 
 function Content() {
   const organization = useOrganization();
+  const {saveQuery} = useSaveMultiQuery();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
   const addQuery = useAddQuery();
   const totalQueryRows = queries.length;
+
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
-        <StyledPageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter
-            defaultPeriod={defaultPeriod}
-            maxPickableDays={maxPickableDays}
-            relativeOptions={relativeOptions}
+        <Flex>
+          <StyledPageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter
+              defaultPeriod={defaultPeriod}
+              maxPickableDays={maxPickableDays}
+              relativeOptions={relativeOptions}
+            />
+          </StyledPageFilterBar>
+          <DropdownMenu
+            items={[
+              {
+                key: 'save-query',
+                label: (
+                  <span>
+                    {t('A New Query')}
+                    <FeatureBadge type="alpha" />
+                  </span>
+                ),
+                onAction: () => {
+                  openSaveQueryModal({
+                    organization,
+                    saveQuery,
+                    queries: queries.map((query, index) => ({
+                      query: query.query,
+                      groupBys: query.groupBys,
+                      visualizes: [
+                        {
+                          chartType: query.chartType,
+                          yAxes: query.yAxes,
+                          label: `visualization-${index}`,
+                        },
+                      ],
+                    })),
+                  });
+                },
+              },
+              {
+                key: 'update-query',
+                label: (
+                  <span>
+                    {t('Existing Query')}
+                    <FeatureBadge type="alpha" />
+                  </span>
+                ),
+              },
+            ]}
+            trigger={triggerProps => (
+              <Button
+                {...triggerProps}
+                aria-label={t('Save')}
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+
+                  triggerProps.onClick?.(e);
+                }}
+              >
+                {t('Save as...')}
+              </Button>
+            )}
           />
-        </StyledPageFilterBar>
+        </Flex>
         <WidgetSyncContextProvider>
           {queries.map((query, index) => (
             <QueryRow
@@ -82,4 +143,10 @@ export function MultiQueryModeContent() {
 
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};
+`;
+
+const Flex = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
