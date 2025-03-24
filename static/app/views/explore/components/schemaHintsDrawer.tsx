@@ -5,6 +5,7 @@ import {Tag as Badge} from 'sentry/components/core/badge/tag';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -124,7 +125,9 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
           onChange={() => handleCheckboxChange(hint)}
         >
           <CheckboxLabelContainer>
-            <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+            <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
+              <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+            </Tooltip>
             <Badge>{hintType}</Badge>
           </CheckboxLabelContainer>
         </StyledMultipleCheckboxItem>
