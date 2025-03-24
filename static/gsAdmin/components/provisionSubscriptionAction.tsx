@@ -219,8 +219,8 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
       : subscription.plan.endsWith('_ac')
         ? subscription.plan.slice(0, -3)
         : subscription.plan;
-    const existingPlanIsEnterprise = Object.keys(provisionablePlans).some(
-      plan => plan === existingPlanWithoutSuffix
+    const existingPlanIsEnterprise = Object.keys(provisionablePlans).includes(
+      existingPlanWithoutSuffix
     );
 
     const reservedBudgets = subscription.reservedBudgets;
