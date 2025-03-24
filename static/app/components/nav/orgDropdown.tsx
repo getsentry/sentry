@@ -126,7 +126,7 @@ export function OrgDropdown({className}: {className?: string}) {
               key: 'billing',
               label: t('Usage & Billing'),
               to: `/organizations/${organization.slug}/settings/billing/`,
-              hidden: hasBillingAccess,
+              hidden: !hasBillingAccess,
             },
             {
               key: 'switch-organization',
