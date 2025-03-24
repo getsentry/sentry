@@ -26,8 +26,10 @@ local span_key = string.format("span-buf:s:{%s}:%s", project_and_trace, span_id)
 
 local main_redirect_key = string.format("span-buf:sr:{%s}", project_and_trace)
 local set_span_id = parent_span_id
+local hole_size = 0
 for i = 0, 10000 do  -- theoretically this limit means that segment trees of depth 10k may not be joined together correctly, if there is e.g. a hole of size 10k.
     local new_set_span = redis.call("hget", main_redirect_key, set_span_id)
+    hole_size = i
     if not new_set_span or new_set_span == set_span_id then
         break
     end
@@ -53,4 +55,4 @@ if has_root_span or is_root_span then
     redis.call("setex", has_root_span_key, set_timeout, "1")
 end
 
-return {span_key, set_key, has_root_span or is_root_span}
+return {hole_size, span_key, set_key, has_root_span or is_root_span}
