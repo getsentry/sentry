@@ -19,6 +19,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
+from sentry.workflow_engine.migration_helpers.alert_rule import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -40,8 +41,8 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class MigrateMetricAlertTest(TestMigrations):
-    migrate_from = "0037_rm_workflow_name_unique_constraint"
-    migrate_to = "0038_migrate_metric_alerts"
+    migrate_from = "0038_add_detector_workflow_unique_together"
+    migrate_to = "0039_migrate_metric_alerts"
     app = "workflow_engine"
 
     def setUp(self):
@@ -154,7 +155,7 @@ class MigrateMetricAlertTest(TestMigrations):
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.valid_rule)
 
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-        assert workflow.name == self.valid_rule.name
+        assert workflow.name == get_workflow_name(self.valid_rule)
         assert workflow.organization_id == self.valid_rule.organization.id
         detector = Detector.objects.get(id=alert_rule_detector.detector.id)
         assert detector.name == self.valid_rule.name

@@ -73,6 +73,17 @@ class AlertRuleActivityType(Enum):
     DEACTIVATED = 8
 
 
+class AlertRuleTriggerActionType(Enum):
+    EMAIL = 0
+    PAGERDUTY = 1
+    SLACK = 2
+    MSTEAMS = 3
+    SENTRY_APP = 4
+    SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
+    OPSGENIE = 6
+    DISCORD = 7
+
+
 class ActionTarget(IntEnum):
     """
     Explains the contents of target_identifier
@@ -143,6 +154,7 @@ PRIORITY_MAP = {
     "critical": DetectorPriorityLevel.HIGH,
 }
 
+
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 PAGERDUTY_DEFAULT_SEVERITY = "default"
 
@@ -186,6 +198,33 @@ class OnCallDataBlob:
     """
 
     priority: str = ""
+
+
+def _get_trigger_action_target(apps: Apps, trigger_action: Any) -> Any:
+    OrganizationMember = apps.get_model("sentry", "OrganizationMember")
+    Team = apps.get_model("sentry", "Team")
+
+    if trigger_action.target_identifier is None:
+        return None
+
+    if trigger_action.target_type == ActionTarget.USER.value:
+        try:
+            return OrganizationMember.objects.get(
+                user_id=int(trigger_action.target_identifier),
+                organization=trigger_action.alert_rule_trigger.alert_rule.organization_id,
+            )
+        except OrganizationMember.DoesNotExist:
+            pass
+
+    elif trigger_action.target_type == ActionTarget.TEAM.value:
+        try:
+            return Team.objects.get(id=int(trigger_action.target_identifier))
+        except Team.DoesNotExist:
+            pass
+
+    elif trigger_action.target_type == ActionTarget.SPECIFIC.value:
+        return trigger_action.target_identifier
+    return None
 
 
 def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, alert_rule_workflow: Any) -> None:
@@ -576,6 +615,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             extra={"alert_rule_id": alert_rule.id},
                         )
                 except Exception as e:
+                    raise
                     logger.info(
                         "error when migrating alert rule",
                         extra={"error": str(e), "alert_rule_id": alert_rule.id},
@@ -599,7 +639,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("workflow_engine", "0037_rm_workflow_name_unique_constraint"),
+        ("workflow_engine", "0038_add_detector_workflow_unique_together"),
     ]
 
     operations = [
