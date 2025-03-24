@@ -61,7 +61,8 @@ function getReplayAnalyticsStatus({
 
   return 'none';
 }
-function ReplayClipPreviewPlayer({
+
+export default function ReplayClipPreviewPlayer({
   analyticsContext,
   orgSlug,
   fullReplayButtonProps,
@@ -171,5 +172,3 @@ const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: b
   height: ${p => (p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT)}px;
   border-radius: ${p => p.theme.borderRadius};
 `;
-
-export default ReplayClipPreviewPlayer;
