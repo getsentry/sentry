@@ -98,6 +98,7 @@ export type Plan = {
   hasOnDemandModes: boolean;
 
   id: string;
+  isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
   onDemandCategories: string[];
@@ -638,13 +639,13 @@ export type BillingMetricHistory = {
   customPrice: number | null;
   free: number;
   onDemandBudget: number;
-  onDemandCpe: number | null;
   onDemandQuantity: number;
   onDemandSpendUsed: number;
   /**
    * List order for billing metrics
    */
   order: number;
+  paygCpe: number | null;
   prepaid: number;
   reserved: number | null;
   sentUsageWarning: boolean;
@@ -827,6 +828,14 @@ export enum PlanTier {
    * Features and data volumes are tightly coupled.
    */
   MM1 = 'mm1',
+  /**
+   * No specified tier
+   */
+  ALL = 'all',
+  /**
+   * Test plans
+   */
+  TEST = 'test',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/

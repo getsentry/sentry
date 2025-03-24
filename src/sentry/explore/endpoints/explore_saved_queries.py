@@ -36,8 +36,8 @@ from sentry.search.utils import tokenize_query
 @region_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PUBLIC,
-        "POST": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
     permission_classes = (ExploreSavedQueryPermission,)
@@ -128,6 +128,12 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         else:
             order_by = ["lower_name"]
+
+        exclude = request.query_params.get("exclude")
+        if exclude == "shared":
+            queryset = queryset.filter(created_by_id=request.user.id)
+        elif exclude == "owned":
+            queryset = queryset.exclude(created_by_id=request.user.id)
 
         queryset = queryset.order_by(*order_by)
 

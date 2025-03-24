@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
@@ -7,12 +8,14 @@ import {Button} from 'sentry/components/core/button';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import {useNavContext} from 'sentry/components/nav/context';
+import {NavLayout} from 'sentry/components/nav/types';
 import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,7 +47,7 @@ function createOrganizationMenuItem(): MenuItemProps {
   };
 }
 
-export function OrgDropdown() {
+export function OrgDropdown({className}: {className?: string}) {
   const api = useApi();
 
   const config = useLegacyStore(ConfigStore);
@@ -62,20 +65,29 @@ export function OrgDropdown() {
 
   const {projects} = useProjects();
 
+  const {layout} = useNavContext();
+  const isMobile = layout === NavLayout.MOBILE;
+
   function handleLogout() {
     logout(api);
   }
 
   return (
     <DropdownMenu
+      className={className}
       trigger={props => (
         <OrgDropdownTrigger
+          isMobile={isMobile}
           size="zero"
           borderless
           aria-label={t('Toggle organization menu')}
           {...props}
         >
-          <StyledOrganizationAvatar size={32} round={false} organization={organization} />
+          <StyledOrganizationAvatar
+            size={isMobile ? 24 : 32}
+            round={false}
+            organization={organization}
+          />
         </OrgDropdownTrigger>
       )}
       minMenuWidth={200}
@@ -95,25 +107,25 @@ export function OrgDropdown() {
             {
               key: 'organization-settings',
               label: t('Organization Settings'),
-              to: `/settings/${organization.slug}/`,
+              to: `/organizations/${organization.slug}/settings/`,
               hidden: !hasOrgRead,
             },
             {
               key: 'members',
               label: t('Members'),
-              to: `/settings/${organization.slug}/members/`,
+              to: `/organizations/${organization.slug}/settings/members/`,
               hidden: !hasMemberRead,
             },
             {
               key: 'teams',
               label: t('Teams'),
-              to: `/settings/${organization.slug}/teams/`,
+              to: `/organizations/${organization.slug}/settings/teams/`,
               hidden: !hasTeamRead,
             },
             {
               key: 'billing',
               label: t('Usage & Billing'),
-              to: `/settings/${organization.slug}/billing/`,
+              to: `/organizations/${organization.slug}/settings/billing/`,
               hidden: !hasBillingAccess,
             },
             {
@@ -121,7 +133,7 @@ export function OrgDropdown() {
               label: t('Switch Organization'),
               isSubmenu: true,
               disabled: !organizations?.length,
-              hidden: config.singleOrganization || isDemoModeEnabled(),
+              hidden: config.singleOrganization || isDemoModeActive(),
               children: [
                 ...orderBy(organizations, ['status.id', 'name']).map(switchOrg => ({
                   key: switchOrg.id,
@@ -175,9 +187,16 @@ export function OrgDropdown() {
   );
 }
 
-const OrgDropdownTrigger = styled(Button)`
+const OrgDropdownTrigger = styled(Button)<{isMobile: boolean}>`
   height: 44px;
   width: 44px;
+
+  ${p =>
+    p.isMobile &&
+    css`
+      width: 32px;
+      height: 32px;
+    `}
 `;
 
 const StyledOrganizationAvatar = styled(OrganizationAvatar)`

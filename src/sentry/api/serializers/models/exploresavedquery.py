@@ -12,12 +12,9 @@ from sentry.utils.dates import outside_retention_with_modified_start, parse_time
 class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     environment: list[str]
     query: str
-    fields: list[str]
     range: str
     start: str
     end: str
-    orderby: str
-    visualize: list[dict]
     interval: str
     mode: str
 
@@ -30,6 +27,7 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
     expired: bool
     dateAdded: str
     dateUpdated: str
+    lastVisited: str
     createdBy: UserSerializerResponse
 
 
@@ -61,14 +59,10 @@ class ExploreSavedQueryModelSerializer(Serializer):
         query_keys = [
             "environment",
             "query",
-            "fields",
             "range",
             "start",
             "end",
-            "orderby",
-            "visualize",
             "interval",
-            "mode",
         ]
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),
@@ -78,6 +72,7 @@ class ExploreSavedQueryModelSerializer(Serializer):
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
+            "lastVisited": obj.last_visited,
             "createdBy": attrs.get("created_by"),
         }
 

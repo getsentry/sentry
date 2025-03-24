@@ -7,11 +7,15 @@ import {IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TableRow} from 'sentry/views/explore/components/table';
-import {useLogsFields} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  useLogsAnalyticsPageSource,
+  useLogsFields,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
   LogAttributesRendererMap,
@@ -37,7 +41,6 @@ import {
   LogDetailTableBodyCell,
   LogFirstCellContent,
   LogTableBodyCell,
-  LogTableBodyCellContent,
   LogTableRow,
   StyledChevronButton,
 } from './styles';
@@ -59,8 +62,16 @@ export function LogRowContent({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
+  const analyticsPageSource = useLogsAnalyticsPageSource();
   const [expanded, setExpanded] = useState<boolean>(false);
-  const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+  const onClickExpand = useCallback(() => {
+    setExpanded(e => !e);
+    trackAnalytics('logs.table.row_expanded', {
+      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      page_source: analyticsPageSource,
+      organization,
+    });
+  }, [dataRow, organization, analyticsPageSource]);
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -123,13 +134,11 @@ export function LogRowContent({
 
           return (
             <LogTableBodyCell key={field}>
-              <LogTableBodyCellContent onClick={e => e.stopPropagation()}>
-                <LogFieldRenderer
-                  item={getLogRowItem(field, dataRow, meta)}
-                  meta={meta}
-                  extra={rendererExtra}
-                />
-              </LogTableBodyCellContent>
+              <LogFieldRenderer
+                item={getLogRowItem(field, dataRow, meta)}
+                meta={meta}
+                extra={rendererExtra}
+              />
             </LogTableBodyCell>
           );
         })}

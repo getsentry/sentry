@@ -156,8 +156,10 @@ class SpansBuffer:
 
         is_root_span_count = 0
         has_root_span_count = 0
+        min_hole_size = float("inf")
+        max_hole_size = float("-inf")
 
-        with metrics.timer("sentry.spans.buffer.process_spans.insert_spans"):
+        with metrics.timer("spans.buffer.process_spans.insert_spans"):
             with self.client.pipeline(transaction=False) as p:
                 for span in spans:
                     # (parent_span_id) -> [Span]
@@ -195,12 +197,18 @@ class SpansBuffer:
                     queue_keys.append(queue_key)
 
                 results = iter(p.execute())
-                for delete_item, item, has_root_span in results:
+                for hole_size, delete_item, item, has_root_span in results:
+                    # For each span, hole_size measures how long it took to
+                    # find the corresponding intermediate segment. Larger
+                    # numbers loosely correlate with fewer siblings per tree
+                    # level.
+                    min_hole_size = min(min_hole_size, hole_size)
+                    max_hole_size = max(max_hole_size, hole_size)
                     queue_delete_items.append(delete_item)
                     queue_items.append(item)
                     queue_item_has_root_span.append(has_root_span)
 
-        with metrics.timer("sentry.spans.buffer.process_spans.update_queue"):
+        with metrics.timer("spans.buffer.process_spans.update_queue"):
             with self.client.pipeline(transaction=False) as p:
                 for key, delete_item, item, has_root_span in zip(
                     queue_keys, queue_delete_items, queue_items, queue_item_has_root_span
@@ -221,16 +229,19 @@ class SpansBuffer:
 
                 p.execute()
 
-        metrics.timing("sentry.spans.buffer.process_spans.num_spans", len(spans))
-        metrics.timing("sentry.spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
-        metrics.timing("sentry.spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
+        metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
+        metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
+        metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
+
+        metrics.timing("span.buffer.hole_size.min", min_hole_size)
+        metrics.timing("span.buffer.hole_size.max", max_hole_size)
 
     def flush_segments(
         self, now: int, max_segments: int = 0
     ) -> tuple[int, dict[SegmentId, list[OutputSpan]]]:
         cutoff = now
 
-        with metrics.timer("sentry.spans.buffer.flush_segments.load_segment_ids"):
+        with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
             with self.client.pipeline(transaction=False) as p:
                 for shard in self.assigned_shards:
                     key = f"span-buf:q:{shard}"
@@ -244,7 +255,7 @@ class SpansBuffer:
         segment_ids = []
         queue_sizes = []
 
-        with metrics.timer("sentry.spans.buffer.flush_segments.load_segment_data"):
+        with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             with self.client.pipeline(transaction=False) as p:
                 # ZRANGEBYSCORE output
                 for segment_span_ids in result:
@@ -260,7 +271,7 @@ class SpansBuffer:
 
         for shard_i, queue_size in zip(self.assigned_shards, queue_sizes):
             metrics.timing(
-                "sentry.spans.buffer.flush_segments.queue_size",
+                "spans.buffer.flush_segments.queue_size",
                 queue_size,
                 tags={"shard_i": shard_i},
             )
@@ -271,22 +282,39 @@ class SpansBuffer:
             segment_span_id = _segment_to_span_id(segment_id).decode("ascii")
 
             return_segment = []
-            metrics.timing("sentry.spans.buffer.flush_segments.num_spans_per_segment", len(segment))
+            metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
                 val = rapidjson.loads(payload)
+                old_segment_id = val.get("segment_id")
+                if old_segment_id:
+                    val_data = val.setdefault("data", {})
+                    if isinstance(val_data, dict):
+                        val_data["__sentry_internal_old_segment_id"] = old_segment_id
                 val["segment_id"] = segment_span_id
-                val["is_segment"] = segment_span_id == val["span_id"]
+                is_segment = val["is_segment"] = segment_span_id == val["span_id"]
+
+                outcome = "same" if old_segment_id == segment_span_id else "different"
+
+                metrics.incr(
+                    "spans.buffer.flush_segments.is_same_segment",
+                    tags={
+                        "outcome": outcome,
+                        "is_segment_span": is_segment,
+                        "old_segment_is_null": "true" if old_segment_id is None else "false",
+                    },
+                )
+
                 return_segment.append(OutputSpan(payload=val))
 
             return_segments[segment_id] = return_segment
-        metrics.timing("sentry.spans.buffer.flush_segments.num_segments", len(return_segments))
+        metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
 
         return sum(queue_sizes), return_segments
 
     def done_flush_segments(self, segment_ids: dict[SegmentId, list[OutputSpan]]):
         num_hdels = []
-        metrics.timing("sentry.spans.buffer.done_flush_segments.num_segments", len(segment_ids))
-        with metrics.timer("sentry.spans.buffer.done_flush_segments"):
+        metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_ids))
+        with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_id, output_spans in segment_ids.items():
                     hrs_key = b"span-buf:hrs:" + segment_id
@@ -322,6 +350,4 @@ class SpansBuffer:
                 for _ in range(num_hdel):  # HDEL ...
                     next(results)
 
-            metrics.timing(
-                "sentry.spans.buffer.done_flush_segments.has_root_span", has_root_span_count
-            )
+            metrics.timing("spans.buffer.done_flush_segments.has_root_span", has_root_span_count)

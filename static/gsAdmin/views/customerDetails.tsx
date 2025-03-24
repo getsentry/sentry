@@ -56,7 +56,7 @@ import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {Subscription} from 'getsentry/types';
+import type {BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
@@ -70,6 +70,7 @@ type Props = DeprecatedAsyncComponent['props'] &
   RouteComponentProps<{orgId: string}, unknown>;
 
 type State = DeprecatedAsyncComponent['state'] & {
+  billingConfig: BillingConfig | null;
   data: Subscription | null;
   organization: Organization | null;
 };
@@ -93,6 +94,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${this.props.params.orgId}/`,
         {query: {detailed: 0, include_feature_flags: 1}},
       ],
+      ['billingConfig', `/customers/${this.props.params.orgId}/billing-config/?tier=all`],
     ];
   }
 
@@ -257,7 +259,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {data, organization} = this.state;
+    const {data, organization, billingConfig} = this.state;
     const {orgId} = this.props.params;
     const regionMap = ConfigStore.get('regions').reduce(
       (acc: any, region: any) => {
@@ -640,6 +642,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 triggerProvisionSubscription({
                   orgId,
                   subscription: data,
+                  billingConfig,
                   onSuccess: () => this.reloadData(),
                 }),
             },

@@ -172,6 +172,9 @@ function IssueTagButton({
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
+  const hasFlagsDistributions = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
 
   if (tags.length === 0 || searchQuery || isScreenSmall) {
     return (
@@ -185,7 +188,7 @@ function IssueTagButton({
         replace
         disabled={tags.length === 0}
       >
-        {t('View All Tags')}
+        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
       </VerticalIssueTagsButton>
     );
   }
@@ -200,7 +203,7 @@ function IssueTagButton({
         trackAnalytics('issue_details.issue_tags_click', {organization});
       }}
     >
-      {t('View all tags')}
+      {hasFlagsDistributions ? t('View all tags and feature flags') : t('View all tags')}
     </IssueTagsLink>
   );
 }
@@ -249,11 +252,11 @@ export default function IssueTagsPreview({
       .filter(tag => highlightTagKeys.includes(tag.key))
       .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
 
-    const priorityTags = isMobilePlatform(project?.platform)
+    const priorityTags = isMobilePlatform(project.platform)
       ? MOBILE_TAGS
-      : frontend.some(val => val === project?.platform)
+      : frontend.includes(project.platform ?? 'other')
         ? FRONTEND_TAGS
-        : backend.some(val => val === project?.platform)
+        : backend.includes(project.platform ?? 'other')
           ? BACKEND_TAGS
           : DEFAULT_TAGS;
     // Sort tags based on priority order defined in priorityTags array
@@ -265,7 +268,21 @@ export default function IssueTagsPreview({
     const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
     const uniqueTags = [...new Set(orderedTags)];
     return uniqueTags.slice(0, 4);
-  }, [tags, project?.platform, highlightTagKeys]);
+  }, [tags, project.platform, highlightTagKeys]);
+
+  if (
+    searchQuery ||
+    isScreenSmall ||
+    (!isPending && !isHighlightPending && tagsToPreview.length === 0)
+  ) {
+    return (
+      <IssueTagButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+      />
+    );
+  }
 
   if (isPending || isHighlightPending) {
     return (
@@ -280,16 +297,6 @@ export default function IssueTagsPreview({
 
   if (isError) {
     return null;
-  }
-
-  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
-    return (
-      <IssueTagButton
-        tags={tagsToPreview}
-        searchQuery={searchQuery}
-        isScreenSmall={isScreenSmall}
-      />
-    );
   }
 
   return (

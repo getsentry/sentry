@@ -2,6 +2,7 @@ import {isValidElement, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
 import Placeholder from 'sentry/components/placeholder';
 import {IconDocs, IconEllipsis, IconFatal, IconFocus, IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,14 +22,17 @@ const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
 const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
 // These thresholds were used when embedding the cause and computing simliarities.
 
-interface GroupSummaryData {
+export interface GroupSummaryData {
   groupId: string;
   headline: string;
   eventId?: string | null;
   possibleCause?: string | null;
   scores?: {
-    possibleCauseConfidence: number;
-    possibleCauseNovelty: number;
+    fixabilityScore?: number | null;
+    fixabilityScoreVersion?: number | null;
+    isFixable?: boolean | null;
+    possibleCauseConfidence?: number | null;
+    possibleCauseNovelty?: number | null;
   } | null;
   trace?: string | null;
   whatsWrong?: string | null;
@@ -45,6 +49,21 @@ export const makeGroupSummaryQueryKey = (
     data: eventId ? {event_id: eventId} : undefined,
   },
 ];
+
+/**
+ * Gets the data for group summary if it exists but doesn't fetch it.
+ */
+export function useGroupSummaryData(group: Group) {
+  const organization = useOrganization();
+  const queryKey = makeGroupSummaryQueryKey(organization.slug, group.id);
+
+  const {data, isPending} = useApiQuery<GroupSummaryData>(queryKey, {
+    staleTime: Infinity,
+    enabled: false,
+  });
+
+  return {data, isPending};
+}
 
 export function useGroupSummary(
   group: Group,
@@ -98,9 +117,11 @@ export function GroupSummary({
   preview?: boolean;
 }) {
   const config = getConfigForIssueType(group, project);
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
   const openFeedbackForm = useFeedbackForm();
+  const aiConfig = useAiConfig(group, event, project);
   const {data, isPending, isError, refresh} = useGroupSummary(
     group,
     event,
@@ -114,6 +135,16 @@ export function GroupSummary({
       setForceEvent(false);
     }
   }, [forceEvent, isPending, refresh]);
+
+  const isFixable = data?.scores?.isFixable ?? false;
+
+  useEffect(() => {
+    if (isFixable && !isPending && aiConfig.hasAutofix) {
+      queryClient.invalidateQueries({
+        queryKey: makeAutofixQueryKey(group.id),
+      });
+    }
+  }, [isFixable, isPending, aiConfig.hasAutofix, group.id, queryClient]);
 
   const eventDetailsItems = [
     {
@@ -164,7 +195,9 @@ export function GroupSummary({
 
   const shouldShowPossibleCause =
     !data?.scores ||
-    (data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
+    (data.scores.possibleCauseConfidence &&
+      data.scores.possibleCauseConfidence >= POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD &&
+      data.scores.possibleCauseNovelty &&
       data.scores.possibleCauseNovelty >= POSSIBLE_CAUSE_NOVELTY_THRESHOLD);
   const shouldShowResources = config.resources && !preview;
 

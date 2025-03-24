@@ -1,5 +1,3 @@
-import 'intersection-observer'; // this is a polyfill
-
 import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
@@ -662,8 +660,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     const performanceIssues = currentEvent.performance_issues.filter(
       issue =>
-        issue.span.some(id => id === span.span_id) ||
-        issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
+        issue.span.includes(span.span_id) || issue.suspect_spans.includes(span.span_id)
     );
 
     return [

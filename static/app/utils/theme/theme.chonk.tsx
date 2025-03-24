@@ -81,6 +81,11 @@ const formTheme: FormTheme = {
       borderRadius: '4px',
     },
   },
+  formSpacing: {
+    md: '8px',
+    sm: '6px',
+    xs: '4px',
+  },
 };
 
 // @TODO(jonasbadalic): eventually, we should port component usage to these values
@@ -163,6 +168,7 @@ const radius = {
   sm: '4px',
   md: '5px',
   lg: '6px',
+  xl: '8px',
   // @TODO(jonasbadalic): do we need an xl?
 } as const;
 

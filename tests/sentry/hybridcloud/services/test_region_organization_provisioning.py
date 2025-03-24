@@ -139,6 +139,19 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             )
         assert not provisioning_user_memberships.exists()
 
+    def test_truncates_name_when_too_long(self) -> None:
+        user = self.create_user()
+        provision_options = self.get_provisioning_args(user)
+        provision_options.provision_options.name = "a" * 128
+        result = region_organization_provisioning_rpc_service.create_organization_in_region(
+            organization_id=42, provision_payload=provision_options, region_name="us"
+        )
+
+        assert result is True
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=42)
+            assert org.name == "a" * 64
+
     def test_does_not_provision_and_returns_false_when_conflicting_org_with_different_owner(
         self,
     ) -> None:

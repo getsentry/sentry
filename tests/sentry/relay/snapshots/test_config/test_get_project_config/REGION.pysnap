@@ -103,6 +103,16 @@ config:
                 value:
                 - 'ChunkLoadError: Loading chunk *'
               op: and
+            - inner:
+              - name: ty
+                op: glob
+                value:
+                - Error
+              - name: value
+                op: glob
+                value:
+                - 'Uncaught (in promise): ChunkLoadError*'
+              op: and
             op: or
           name: event.exception.values
           op: any

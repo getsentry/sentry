@@ -32,11 +32,11 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.api import event_search
-from sentry.api.event_search import SearchConfig
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
+    AttributeArgumentDefinition,
     ColumnDefinitions,
     ConditionalAggregateDefinition,
     FormulaDefinition,
@@ -164,7 +164,10 @@ class SearchResolver:
         try:
             parsed_terms = event_search.parse_search_query(
                 querystring,
-                config=SearchConfig(wildcard_free_text=True),
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    wildcard_free_text=True,
+                ),
                 params=self.params.filter_params,
                 get_field_type=self.get_field_type,
                 get_function_result_type=self.get_field_type,
@@ -730,43 +733,45 @@ class SearchResolver:
                 f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
             )
 
-        for index, argument in enumerate(function_definition.arguments):
-            if argument.ignored:
+        for index, argument_definition in enumerate(function_definition.arguments):
+            if argument_definition.ignored:
                 continue
-            if argument.validator is not None:
-                if not argument.validator(arguments[index]):
-                    raise InvalidSearchQuery(
-                        f"{arguments[index]} is not a valid argument for {function}"
-                    )
 
             if index < len(arguments):
-                if argument.is_attribute:
-                    parsed_argument, _ = self.resolve_attribute(arguments[index])
+                argument = arguments[index]
+                if argument_definition.validator is not None:
+                    if not argument_definition.validator(argument):
+                        raise InvalidSearchQuery(
+                            f"{argument} is not a valid argument for {function}"
+                        )
+                if isinstance(argument_definition, AttributeArgumentDefinition):
+                    parsed_argument, _ = self.resolve_attribute(argument)
                 else:
-                    if argument.argument_types is None:
-                        parsed_args.append(arguments[index])  # assume it's a string
+                    if argument_definition.argument_types is None:
+                        parsed_args.append(argument)  # assume it's a string
                         continue
                     # TODO: we assume that the argument is only one type for now, and we only support string/integer
-                    for type in argument.argument_types:
+                    for type in argument_definition.argument_types:
                         if type == "integer":
-                            parsed_args.append(int(arguments[index]))
+                            parsed_args.append(int(argument))
                         else:
-                            parsed_args.append(arguments[index])
+                            parsed_args.append(argument)
                     continue
 
-            elif argument.default_arg:
-                parsed_argument, _ = self.resolve_attribute(argument.default_arg)
+            elif argument_definition.default_arg:
+                parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
             else:
                 raise InvalidSearchQuery(
                     f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
                 )
 
             if (
-                argument.argument_types is not None
-                and parsed_argument.search_type not in argument.argument_types
+                isinstance(argument_definition, AttributeArgumentDefinition)
+                and argument_definition.attribute_types is not None
+                and parsed_argument.search_type not in argument_definition.attribute_types
             ):
                 raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument.argument_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                 )
             parsed_args.append(parsed_argument)
 

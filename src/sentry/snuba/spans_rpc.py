@@ -6,9 +6,13 @@ from typing import Any
 
 import sentry_sdk
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
-from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
+    Expression,
+    TimeSeries,
+    TimeSeriesRequest,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import AndFilter, OrFilter, TraceItemFilter
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
@@ -23,6 +27,7 @@ from sentry.search.eap.constants import DOUBLE, INT, MAX_ROLLUP_POINTS, STRING, 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import CONFIDENCES, EAPResponse, SearchResolverConfig
+from sentry.search.eap.utils import transform_binary_formula_to_expression
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
@@ -31,6 +36,23 @@ from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
+
+
+def categorize_aggregate(
+    column: ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+) -> Expression:
+    if isinstance(column, ResolvedFormula):
+        # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
+        return Expression(
+            formula=transform_binary_formula_to_expression(column.proto_definition),
+            label=column.public_alias,
+        )
+    if isinstance(column, ResolvedAggregate):
+        return Expression(aggregation=column.proto_definition, label=column.public_alias)
+    if isinstance(column, ResolvedConditionalAggregate):
+        return Expression(
+            conditional_aggregation=column.proto_definition, label=column.public_alias
+        )
 
 
 @dataclass
@@ -60,6 +82,7 @@ def run_table_query(
     referrer: str,
     config: SearchResolverConfig,
     search_resolver: SearchResolver | None = None,
+    debug: bool = False,
 ) -> EAPResponse:
     return rpc_dataset_common.run_table_query(
         query_string,
@@ -69,6 +92,7 @@ def run_table_query(
         limit,
         referrer,
         search_resolver or get_resolver(params, config),
+        debug,
     )
 
 
@@ -89,7 +113,7 @@ def get_timeseries_query(
     resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
-    (aggregations, _) = resolver.resolve_functions(y_axes)
+    (functions, _) = resolver.resolve_functions(y_axes)
     (groupbys, _) = resolver.resolve_attributes(groupby)
     if extra_conditions is not None:
         if query is not None:
@@ -101,11 +125,7 @@ def get_timeseries_query(
         TimeSeriesRequest(
             meta=meta,
             filter=query,
-            aggregations=[
-                agg.proto_definition
-                for agg in aggregations
-                if isinstance(agg.proto_definition, AttributeAggregation)
-            ],
+            expressions=[categorize_aggregate(fn) for fn in functions if fn.is_aggregate],
             group_by=[
                 groupby.proto_definition
                 for groupby in groupbys
@@ -113,7 +133,7 @@ def get_timeseries_query(
             ],
             granularity_secs=granularity_secs,
         ),
-        aggregations,
+        functions,
         groupbys,
     )
 
@@ -178,7 +198,7 @@ def run_timeseries_query(
         )
 
     if comparison_delta is not None:
-        if len(rpc_request.aggregations) != 1:
+        if len(rpc_request.expressions) != 1:
             raise InvalidSearchQuery("Only one column can be selected for comparison queries")
 
         comp_query_params = params.copy()
@@ -251,6 +271,7 @@ def build_top_event_conditions(
     )
 
 
+@sentry_sdk.trace
 def run_top_events_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -305,7 +326,7 @@ def run_top_events_timeseries_query(
         params,
         query_string,
         y_axes,
-        [],  # in the other series, we want eveything in a single group, so remove the group by
+        [],  # in the other series, we want eveything in a single group, so the group by
         referrer,
         config,
         granularity_secs,
@@ -409,6 +430,7 @@ def _process_all_timeseries(
     return result
 
 
+@sentry_sdk.trace
 def run_trace_query(
     trace_id: str,
     params: SnubaParams,
@@ -445,7 +467,13 @@ def run_trace_query(
     columns_by_name = {col.proto_definition.name: col for col in columns}
     for item_group in response.item_groups:
         for span_item in item_group.items:
-            span: dict[str, Any] = {"id": span_item.id, "children": []}
+            span: dict[str, Any] = {
+                "id": span_item.id,
+                "children": [],
+                "errors": [],
+                "occurrences": [],
+                "event_type": "span",
+            }
             for attribute in span_item.attributes:
                 resolved_column = columns_by_name[attribute.key.name]
                 if resolved_column.proto_definition.type == STRING:

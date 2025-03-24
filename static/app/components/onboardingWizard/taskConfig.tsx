@@ -20,7 +20,7 @@ import type {
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -99,14 +99,9 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
-  const hasPerfLandingRemovalFlag = organization.features?.includes(
-    'insights-performance-landing-removal'
-  );
-  const performanceUrl = hasPerfLandingRemovalFlag
-    ? `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`
-    : `${getPerformanceBaseUrl(organization.slug)}/`;
+  const performanceUrl = `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`;
 
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     return [
       {
         task: OnboardingTaskKey.ISSUE_GUIDE,
@@ -372,7 +367,7 @@ export function getOnboardingTasks({
 
 export function getMergedTasks({organization, projects, onboardingContext}: Options) {
   const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
-  const serverTasks = isDemoModeEnabled()
+  const serverTasks = isDemoModeActive()
     ? getDemoWalkthroughTasks()
     : organization.onboardingTasks;
 
