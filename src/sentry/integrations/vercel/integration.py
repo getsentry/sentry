@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 from urllib.parse import urlencode
 
+import sentry_sdk
 from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import ValidationError
 
@@ -280,6 +281,12 @@ class VercelIntegration(IntegrationInstallation):
             )
 
             for env_var, details in env_var_map.items():
+                # We are logging a message because we potentially have a weird bug where auth tokens disappear from vercel
+                if env_var == "SENTRY_AUTH_TOKEN" and details["value"] is None:
+                    sentry_sdk.capture_message(
+                        "Setting SENTRY_AUTH_TOKEN env var with None value in Vercel integration"
+                    )
+
                 self.create_env_var(
                     vercel_client,
                     vercel_project_id,
