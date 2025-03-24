@@ -482,12 +482,25 @@ export function SourceMapsDebuggerModal({
       <Body>
         <p>
           {t(
-            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
+            'It looks like the original source code for this stack frame. To get the original code for this stack frame, Sentry needs source maps to be uploaded.'
           )}
         </p>
         {isReactNativeSDK({
           sdkName: sourceResolutionResults.sdkName,
-        }) ? null : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
+        }) ? (
+          <Fragment>
+            <WizardInstructionParagraph>
+              {tct(
+                "For React Native projects, source maps should be generated and uploaded automatically during the build process. If your source maps aren't showing up, consult our [link:React Native source maps documentation].",
+                {
+                  link: (
+                    <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
+                  ),
+                }
+              )}
+            </WizardInstructionParagraph>
+          </Fragment>
+        ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
           <MetaFrameworkConfigInfo
             framework={platform}
             orgSlug={orgSlug}
@@ -1033,13 +1046,8 @@ function HasDebugIdChecklistItem({
                 )}
               </p>
               <p>
-                {t(
-                  'For Sentry to be able to show your original source code, it is required that you build the application with the exact same files that you uploaded to Sentry.'
-                )}
-              </p>
-              <p>
                 {tct(
-                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin. The plugin needs to be active for every build.',
+                  'The [bundlerPluginRepoLink:Sentry Metro Plugin] needs to be active when building your production app. You cannot do two separate builds, for example, one for uploading to Sentry with the plugin being active and one for deploying without the plugin.',
                   {
                     bundlerPluginRepoLink: (
                       <ExternalLinkWithIcon
@@ -1073,14 +1081,6 @@ function HasDebugIdChecklistItem({
               toolUsedToUploadSourceMaps={toolUsedToUploadSourceMaps}
             />
           )}
-          <p>
-            {tct(
-              'Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.',
-              {
-                link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-              }
-            )}
-          </p>
         </CheckListInstruction>
       </CheckListItem>
     );
