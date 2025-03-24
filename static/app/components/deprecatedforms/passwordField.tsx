@@ -1,11 +1,11 @@
-import type {Context} from 'sentry/components/deprecatedforms/form';
 import InputField from 'sentry/components/deprecatedforms/inputField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 import FormState from 'sentry/components/forms/state';
 
 type Props = InputField['props'] & {
-  prefix: string;
   formState?: (typeof FormState)[keyof typeof FormState];
   hasSavedValue?: boolean;
+  prefix?: string;
 };
 
 type State = InputField['state'] & {
@@ -14,15 +14,19 @@ type State = InputField['state'] & {
 
 // TODO(dcramer): im not entirely sure this is working correctly with
 // value propagation in all scenarios
-export default class PasswordField extends InputField<Props, State> {
+
+/**
+ * @deprecated Do not use this
+ */
+class PasswordField extends InputField<Props, State> {
   static defaultProps = {
     ...InputField.defaultProps,
     hasSavedValue: false,
     prefix: '',
   };
 
-  constructor(props: Props, context: Context) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
 
     this.state = {...this.state, editing: false};
   }
@@ -71,10 +75,15 @@ export default class PasswordField extends InputField<Props, State> {
     return (
       <div className="form-password saved">
         <span>
-          {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
+          {this.props.prefix + new Array(21 - this.props.prefix!.length).join('*')}
         </span>
         {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
       </div>
     );
   }
 }
+
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(PasswordField);

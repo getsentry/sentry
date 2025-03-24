@@ -12,7 +12,7 @@ import type {ControlProps, GeneralSelectValue} from './';
 import {Select} from './';
 
 export type Result = {
-  label: string;
+  label: string | React.ReactNode;
   value: string;
 };
 
