@@ -99,7 +99,18 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment", "replay", "profile", "profile_duration", "monitor"),
+        (
+            "error",
+            "transaction",
+            "attachment",
+            "replay",
+            "profile",
+            "profile_duration",
+            "profile_duration_ui",
+            "profile_chunk",
+            "profile_chunk_ui",
+            "monitor",
+        ),
         required=False,
         help_text=(
             "Filter by data category. Each category represents a different type of data:\n\n"
@@ -109,6 +120,9 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
             "- `replay`: Session replay events\n"
             "- `profile`: Performance profiles\n"
             "- `profile_duration`: Profile duration data (note: cannot be combined with other categories since quantity represents milliseconds)\n"
+            "- `profile_duration_ui`: Profile duration (UI) data (note: cannot be combined with other categories since quantity represents milliseconds)\n"
+            "- `profile_chunk`: Profile chunk data\n"
+            "- `profile_chunk_ui`: Profile chunk (UI) data\n"
             "- `monitor`: Cron monitor events"
         ),
     )

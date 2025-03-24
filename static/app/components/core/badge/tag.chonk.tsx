@@ -21,7 +21,7 @@ const legacyMapping: Partial<Record<NonNullable<TagProps['type']>, TagType>> = {
 export function chonkTagPropMapping(props: TagProps): ChonkTagProps {
   return {
     ...props,
-    type: props.type && legacyMapping[props.type],
+    type: (props.type && legacyMapping[props.type]) ?? (props.type as TagType),
   };
 }
 
@@ -34,7 +34,7 @@ export const TagPill = chonkStyled('div')<{
   display: inline-flex;
   align-items: center;
   height: 20px;
-  border-radius: 20px;
+  border-radius: ${p => p.theme.radius.mini};
   padding: 0 ${space(1)};
   max-width: 166px;
 
@@ -53,34 +53,34 @@ function makeTagPillTheme(
     case undefined:
     case 'default':
       return {
-        color: theme.colors.gray500,
+        color: theme.colors.content.muted,
         background: theme.colors.gray100,
       };
 
     // Highlight maps to info badge for now, but the highlight variant should be removed
     case 'info':
       return {
-        color: theme.colors.blue500,
+        color: theme.colors.content.accent,
         background: theme.colors.blue100,
       };
     case 'promotion':
       return {
-        color: theme.colors.pink500,
+        color: theme.colors.content.promotion,
         background: theme.colors.pink100,
       };
     case 'danger':
       return {
-        color: theme.colors.red500,
+        color: theme.colors.content.danger,
         background: theme.colors.red100,
       };
     case 'warning':
       return {
-        color: theme.colors.yellow500,
+        color: theme.colors.content.warning,
         background: theme.colors.yellow100,
       };
     case 'success':
       return {
-        color: theme.colors.green500,
+        color: theme.colors.content.success,
         background: theme.colors.green100,
       };
     default:

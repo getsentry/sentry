@@ -628,7 +628,6 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             query=f"some query for {slug}",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewProject.objects.create(
             group_search_view=group_search_view,

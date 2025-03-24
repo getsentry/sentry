@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import Mock, patch
 
 import orjson
@@ -12,6 +12,7 @@ from sentry.seer.autofix import (
     _get_profile_from_trace_tree,
     _get_trace_tree_for_event,
     _respond_with_error,
+    build_spans_tree,
     trigger_autofix,
 )
 from sentry.snuba.dataset import Dataset
@@ -154,7 +155,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         root_tx_span_id = "aaaaaaaaaaaaaaaa"
         root_tx_event_data = {
             "event_id": "root-tx-id",
-            "datetime": "2023-01-01T10:00:00Z",
+            "start_timestamp": 1672567200.0,
             "spans": [{"span_id": "child1-span-id"}, {"span_id": "child2-span-id"}],
             "contexts": {
                 "trace": {"trace_id": trace_id, "span_id": root_tx_span_id, "op": "http.server"}
@@ -168,7 +169,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         child1_span_id = "child1-span-id"
         child1_tx_event_data = {
             "event_id": "child1-tx-id",
-            "datetime": "2023-01-01T10:00:10Z",
+            "start_timestamp": 1672567210.0,
             "spans": [{"span_id": "grandchild1-span-id"}],
             "contexts": {
                 "trace": {
@@ -187,7 +188,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         child2_span_id = "child2-span-id"
         child2_error_event_data = {
             "event_id": "child2-error-id",
-            "datetime": "2023-01-01T10:00:20Z",
+            "start_timestamp": 1672567220.0,
             "contexts": {
                 "trace": {
                     "trace_id": trace_id,
@@ -204,7 +205,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         grandchild1_span_id = "grandchild1-span-id"
         grandchild1_error_event_data = {
             "event_id": "grandchild1-error-id",
-            "datetime": "2023-01-01T10:00:15Z",
+            "start_timestamp": 1672567215.0,
             "contexts": {
                 "trace": {
                     "trace_id": trace_id,
@@ -221,7 +222,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         another_root_span_id = "bbbbbbbbbbbbbbbb"
         another_root_tx_event_data = {
             "event_id": "another-root-id",
-            "datetime": "2023-01-01T09:59:00Z",
+            "start_timestamp": 1672567140.0,
             "spans": [],
             "contexts": {
                 "trace": {"trace_id": trace_id, "span_id": another_root_span_id, "op": "browser"}
@@ -240,9 +241,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
             mock_event = Mock()
             # Set attributes directly instead of using data property
             mock_event.event_id = event_data["event_id"]
-            mock_event.datetime = datetime.fromisoformat(
-                event_data["datetime"].replace("Z", "+00:00")
-            )
+            mock_event.start_timestamp = event_data["start_timestamp"]
             mock_event.data = event_data
             mock_event.title = event_data["title"]
             mock_event.platform = event_data["platform"]
@@ -255,15 +254,33 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
             mock_event = Mock()
             # Set attributes directly instead of using data property
             mock_event.event_id = event_data["event_id"]
-            mock_event.datetime = datetime.fromisoformat(
-                event_data["datetime"].replace("Z", "+00:00")
-            )
+            mock_event.start_timestamp = event_data["start_timestamp"]
             mock_event.data = event_data
             mock_event.title = event_data["title"]
             mock_event.platform = event_data["platform"]
             mock_event.project_id = event_data["project_id"]
             mock_event.trace_id = trace_id
+            mock_event.message = event_data.get("message", event_data["title"])
+            mock_event.transaction = event_data.get("transaction", None)
             error_events.append(mock_event)
+
+        # Sort root events by start_timestamp
+        root_events = [
+            event
+            for event in tx_events + error_events
+            if event.event_id in ["root-tx-id", "another-root-id"]
+        ]
+        root_events.sort(key=lambda x: x.start_timestamp)
+
+        # Function to recursively sort children by start_timestamp
+        def sort_tree(node):
+            if node["children"]:
+                # Sort children by start_timestamp
+                node["children"].sort(key=lambda x: x["start_timestamp"])
+                # Recursively sort each child's children
+                for child in node["children"]:
+                    sort_tree(child)
+            return node
 
         # Update to patch both Transactions and Events dataset calls
         with patch("sentry.eventstore.backend.get_events") as mock_get_events:
@@ -290,7 +307,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         first_root = trace_tree["events"][0]
         assert first_root["event_id"] == "another-root-id"
         assert first_root["title"] == "browser - Earlier Transaction"
-        assert first_root["datetime"].isoformat() == "2023-01-01T09:59:00+00:00"
+        assert first_root["datetime"] == 1672567140.0
         assert first_root["is_transaction"] is True
         assert first_root["is_error"] is False
         assert len(first_root["children"]) == 0
@@ -299,7 +316,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         second_root = trace_tree["events"][1]
         assert second_root["event_id"] == "root-tx-id"
         assert second_root["title"] == "http.server - Root Transaction"
-        assert second_root["datetime"].isoformat() == "2023-01-01T10:00:00+00:00"
+        assert second_root["datetime"] == 1672567200.0
         assert second_root["is_transaction"] is True
         assert second_root["is_error"] is False
 
@@ -310,7 +327,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         child1 = second_root["children"][0]
         assert child1["event_id"] == "child1-tx-id"
         assert child1["title"] == "db - Database Query"
-        assert child1["datetime"].isoformat() == "2023-01-01T10:00:10+00:00"
+        assert child1["datetime"] == 1672567210.0
         assert child1["is_transaction"] is True
         assert child1["is_error"] is False
 
@@ -319,7 +336,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         grandchild1 = child1["children"][0]
         assert grandchild1["event_id"] == "grandchild1-error-id"
         assert grandchild1["title"] == "Database Error"
-        assert grandchild1["datetime"].isoformat() == "2023-01-01T10:00:15+00:00"
+        assert grandchild1["datetime"] == 1672567215.0
         assert grandchild1["is_transaction"] is False
         assert grandchild1["is_error"] is True
         assert len(grandchild1["children"]) == 0
@@ -328,7 +345,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         child2 = second_root["children"][1]
         assert child2["event_id"] == "child2-error-id"
         assert child2["title"] == "Division by zero"
-        assert child2["datetime"].isoformat() == "2023-01-01T10:00:20+00:00"
+        assert child2["datetime"] == 1672567220.0
         assert child2["is_transaction"] is False
         assert child2["is_error"] is True
         assert len(child2["children"]) == 0
@@ -385,10 +402,10 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         # Create proper child event object
         child_event = Mock()
         child_event.event_id = "child-id"
-        child_event.datetime = datetime.fromisoformat("2023-01-01T10:00:10+00:00")
+        child_event.start_timestamp = 1672567210.0
         child_event.data = {
             "event_id": "child-id",
-            "datetime": "2023-01-01T10:00:10Z",
+            "start_timestamp": 1672567210.0,
             "contexts": {
                 "trace": {
                     "trace_id": trace_id,
@@ -404,14 +421,16 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         child_event.platform = "python"
         child_event.project_id = self.project.id
         child_event.trace_id = trace_id
+        child_event.message = "Child First"
+        child_event.transaction = None
 
         # Create proper parent event object
         parent_event = Mock()
         parent_event.event_id = "parent-id"
-        parent_event.datetime = datetime.fromisoformat("2023-01-01T10:00:00+00:00")
+        parent_event.start_timestamp = 1672567200.0
         parent_event.data = {
             "event_id": "parent-id",
-            "datetime": "2023-01-01T10:00:00Z",
+            "start_timestamp": 1672567200.0,
             "spans": [],
             "contexts": {
                 "trace": {"trace_id": trace_id, "span_id": parent_span_id, "op": "http.server"}
@@ -424,6 +443,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         parent_event.platform = "python"
         parent_event.project_id = self.project.id
         parent_event.trace_id = trace_id
+        parent_event.message = "Parent Last"
+        parent_event.transaction = None
 
         # Set up the mock to return different results for different dataset calls
         def side_effect(filter, dataset=None, **kwargs):
@@ -480,7 +501,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error1_span_id = "error1-span-id"
         error1 = Mock()
         error1.event_id = "error1-id"
-        error1.datetime = datetime.fromisoformat("2023-01-01T10:00:00+00:00")
+        error1.start_timestamp = 1672567200.0
         error1.data = {
             "contexts": {
                 "trace": {
@@ -495,11 +516,13 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error1.platform = "python"
         error1.project_id = self.project.id
         error1.trace_id = trace_id
+        error1.message = "First Error"
+        error1.transaction = None
 
         error2_span_id = "error2-span-id"
         error2 = Mock()
         error2.event_id = "error2-id"
-        error2.datetime = datetime.fromisoformat("2023-01-01T10:00:10+00:00")
+        error2.start_timestamp = 1672567210.0
         error2.data = {
             "contexts": {
                 "trace": {
@@ -514,11 +537,13 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error2.platform = "python"
         error2.project_id = self.project.id
         error2.trace_id = trace_id
+        error2.message = "Second Error"
+        error2.transaction = None
 
         # This error is a child of error2
         error3 = Mock()
         error3.event_id = "error3-id"
-        error3.datetime = datetime.fromisoformat("2023-01-01T10:00:20+00:00")
+        error3.start_timestamp = 1672567220.0
         error3.data = {
             "contexts": {
                 "trace": {
@@ -533,11 +558,13 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error3.platform = "python"
         error3.project_id = self.project.id
         error3.trace_id = trace_id
+        error3.message = "Child Error"
+        error3.transaction = None
 
         # Another "orphaned" error with a parent_span_id that doesn't point to anything
         error4 = Mock()
         error4.event_id = "error4-id"
-        error4.datetime = datetime.fromisoformat("2023-01-01T10:00:30+00:00")
+        error4.start_timestamp = 1672567230.0
         error4.data = {
             "contexts": {
                 "trace": {
@@ -552,6 +579,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         error4.platform = "python"
         error4.project_id = self.project.id
         error4.trace_id = trace_id
+        error4.message = "Orphaned Error"
+        error4.transaction = None
 
         # Return empty transactions list but populate errors list
         def side_effect(filter, dataset=None, **kwargs):
@@ -616,7 +645,7 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
 
         root_tx = Mock()
         root_tx.event_id = "root-tx-id"
-        root_tx.datetime = datetime.fromisoformat("2023-01-01T10:00:00+00:00")
+        root_tx.start_timestamp = 1672567200.0
         root_tx.data = {
             "spans": [{"span_id": tx_span_1}, {"span_id": tx_span_2}],
             "contexts": {
@@ -628,11 +657,13 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         root_tx.platform = "python"
         root_tx.project_id = self.project.id
         root_tx.trace_id = trace_id
+        root_tx.message = "Root Transaction"
+        root_tx.transaction = "Root Transaction"
 
         # Rule 1: Child whose parent_span_id matches another event's span_id
         rule1_child = Mock()
         rule1_child.event_id = "rule1-child-id"
-        rule1_child.datetime = datetime.fromisoformat("2023-01-01T10:00:10+00:00")
+        rule1_child.start_timestamp = 1672567210.0
         rule1_child.data = {
             "contexts": {
                 "trace": {
@@ -647,11 +678,13 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         rule1_child.platform = "python"
         rule1_child.project_id = self.project.id
         rule1_child.trace_id = trace_id
+        rule1_child.message = "Rule 1 Child"
+        rule1_child.transaction = None
 
         # Rule 2: Child whose parent_span_id matches a span in a transaction
         rule2_child = Mock()
         rule2_child.event_id = "rule2-child-id"
-        rule2_child.datetime = datetime.fromisoformat("2023-01-01T10:00:20+00:00")
+        rule2_child.start_timestamp = 1672567220.0
         rule2_child.data = {
             "contexts": {
                 "trace": {
@@ -666,11 +699,13 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         rule2_child.platform = "python"
         rule2_child.project_id = self.project.id
         rule2_child.trace_id = trace_id
+        rule2_child.message = "Rule 2 Child"
+        rule2_child.transaction = None
 
         # Rule 3: Child whose span_id matches a span in a transaction
         rule3_child = Mock()
         rule3_child.event_id = "rule3-child-id"
-        rule3_child.datetime = datetime.fromisoformat("2023-01-01T10:00:30+00:00")
+        rule3_child.start_timestamp = 1672567230.0
         rule3_child.data = {
             "contexts": {
                 "trace": {
@@ -684,6 +719,8 @@ class TestGetTraceTreeForEvent(APITestCase, SnubaTestCase):
         rule3_child.platform = "python"
         rule3_child.project_id = self.project.id
         rule3_child.trace_id = trace_id
+        rule3_child.message = "Rule 3 Child"
+        rule3_child.transaction = None
 
         # Set up the mock to return our test events
         def side_effect(filter, dataset=None, **kwargs):
@@ -737,14 +774,22 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
     @patch("sentry.seer.autofix.get_from_profiling_service")
     def test_get_profile_from_trace_tree(self, mock_get_from_profiling_service):
         """
-        Test the _get_profile_from_trace_tree method which finds a profile for a transaction
-        that is a parent of an error event in a trace tree.
+        Test the _get_profile_from_trace_tree method which finds a transaction
+        that contains the event's span_id or has a matching span_id.
         """
+        # Setup mock event with span_id
         event = Mock()
         event.event_id = "error-event-id"
         event.trace_id = "1234567890abcdef1234567890abcdef"
+        event.data = {
+            "contexts": {
+                "trace": {
+                    "span_id": "event-span-id",
+                }
+            }
+        }
 
-        # Create a mock trace tree with a transaction that has a profile_id
+        # Create a mock trace tree with a transaction that includes the event span_id in its span_ids
         profile_id = "profile123456789"
         trace_tree = {
             "trace_id": "1234567890abcdef1234567890abcdef",
@@ -755,6 +800,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     "is_transaction": True,
                     "is_error": False,
                     "profile_id": profile_id,
+                    "span_ids": ["some-span", "event-span-id", "another-span"],
                     "children": [
                         {
                             "event_id": "error-event-id",
@@ -808,91 +854,41 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.seer.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service):
+    def test_get_profile_from_trace_tree_matching_span_id(self, mock_get_from_profiling_service):
         """
-        Test the _get_profile_from_trace_tree method when the profiling service API returns an error.
+        Test _get_profile_from_trace_tree with a transaction whose own span_id
+        matches the event's span_id.
         """
+        # Setup mock event with span_id
         event = Mock()
         event.event_id = "error-event-id"
         event.trace_id = "1234567890abcdef1234567890abcdef"
+        event.data = {
+            "contexts": {
+                "trace": {
+                    "span_id": "tx-span-id",
+                }
+            }
+        }
 
-        # Create a mock trace tree with a transaction that has a profile_id
+        # Create a mock trace tree with a transaction whose span_id matches event span_id
         profile_id = "profile123456789"
         trace_tree = {
             "trace_id": "1234567890abcdef1234567890abcdef",
             "events": [
                 {
-                    "event_id": "tx-root-id",
-                    "span_id": "root-span-id",
+                    "event_id": "tx-id",
+                    "span_id": "tx-span-id",  # This matches the event's span_id
                     "is_transaction": True,
                     "is_error": False,
                     "profile_id": profile_id,
                     "children": [
                         {
                             "event_id": "error-event-id",
-                            "span_id": "event-span-id",
+                            "span_id": "error-span-id",
                             "is_transaction": False,
                             "is_error": True,
                             "children": [],
-                        }
-                    ],
-                }
-            ],
-        }
-
-        # Configure the mock response to simulate an API error
-        mock_response = Mock()
-        mock_response.status = 404
-        mock_get_from_profiling_service.return_value = mock_response
-
-        # Call the function directly instead of through an endpoint
-        profile_result = _get_profile_from_trace_tree(trace_tree, event, self.project)
-
-        assert profile_result is None
-
-        mock_get_from_profiling_service.assert_called_once_with(
-            "GET",
-            f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/{profile_id}",
-            params={"format": "sample"},
-        )
-
-    @patch("sentry.seer.autofix.get_from_profiling_service")
-    def test_get_profile_from_trace_tree_multi_level(self, mock_get_from_profiling_service):
-        """
-        Test the _get_profile_from_trace_tree method with a multi-level trace tree
-        where the profile is found in a grandparent transaction.
-        """
-        event = Mock()
-        event.event_id = "error-event-id"
-        event.trace_id = "1234567890abcdef1234567890abcdef"
-
-        # Create a mock trace tree with multiple levels
-        profile_id = "profile123456789"
-        trace_tree = {
-            "trace_id": "1234567890abcdef1234567890abcdef",
-            "events": [
-                {
-                    "event_id": "root-tx-id",
-                    "span_id": "root-span-id",
-                    "is_transaction": True,
-                    "is_error": False,
-                    "profile_id": profile_id,  # Profile is at the root level
-                    "children": [
-                        {
-                            "event_id": "mid-tx-id",
-                            "span_id": "mid-span-id",
-                            "is_transaction": True,
-                            "is_error": False,
-                            # No profile_id at this level
-                            "children": [
-                                {
-                                    "event_id": "error-event-id",
-                                    "span_id": "event-span-id",
-                                    "is_transaction": False,
-                                    "is_error": True,
-                                    "children": [],
-                                }
-                            ],
                         }
                     ],
                 }
@@ -923,7 +919,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
         mock_response.data = orjson.dumps(mock_profile_data)
         mock_get_from_profiling_service.return_value = mock_response
 
-        # Call the function directly instead of through an endpoint
+        # Call the function
         profile_result = _get_profile_from_trace_tree(trace_tree, event, self.project)
 
         assert profile_result is not None
@@ -935,6 +931,147 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
             f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/{profile_id}",
             params={"format": "sample"},
         )
+
+    @patch("sentry.seer.autofix.get_from_profiling_service")
+    def test_get_profile_from_trace_tree_api_error(self, mock_get_from_profiling_service):
+        """
+        Test the behavior when the profiling service API returns an error.
+        """
+        # Setup mock event with span_id
+        event = Mock()
+        event.event_id = "error-event-id"
+        event.trace_id = "1234567890abcdef1234567890abcdef"
+        event.data = {
+            "contexts": {
+                "trace": {
+                    "span_id": "event-span-id",
+                }
+            }
+        }
+
+        # Create a mock trace tree with a transaction that includes the event span_id
+        profile_id = "profile123456789"
+        trace_tree = {
+            "trace_id": "1234567890abcdef1234567890abcdef",
+            "events": [
+                {
+                    "event_id": "tx-root-id",
+                    "span_id": "root-span-id",
+                    "is_transaction": True,
+                    "is_error": False,
+                    "profile_id": profile_id,
+                    "span_ids": ["event-span-id"],
+                    "children": [
+                        {
+                            "event_id": "error-event-id",
+                            "span_id": "event-span-id",
+                            "is_transaction": False,
+                            "is_error": True,
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        # Configure the mock response to simulate an API error
+        mock_response = Mock()
+        mock_response.status = 404
+        mock_get_from_profiling_service.return_value = mock_response
+
+        # Call the function directly instead of through an endpoint
+        profile_result = _get_profile_from_trace_tree(trace_tree, event, self.project)
+
+        assert profile_result is None
+
+        mock_get_from_profiling_service.assert_called_once_with(
+            "GET",
+            f"/organizations/{self.project.organization_id}/projects/{self.project.id}/profiles/{profile_id}",
+            params={"format": "sample"},
+        )
+
+    @patch("sentry.seer.autofix.get_from_profiling_service")
+    def test_get_profile_from_trace_tree_no_matching_transaction(
+        self, mock_get_from_profiling_service
+    ):
+        """
+        Test that the function returns None when no matching transaction is found.
+        """
+        # Setup mock event with span_id
+        event = Mock()
+        event.event_id = "error-event-id"
+        event.trace_id = "1234567890abcdef1234567890abcdef"
+        event.data = {
+            "contexts": {
+                "trace": {
+                    "span_id": "event-span-id",
+                }
+            }
+        }
+
+        # Create a mock trace tree with a transaction that DOESN'T include the event span_id
+        trace_tree = {
+            "trace_id": "1234567890abcdef1234567890abcdef",
+            "events": [
+                {
+                    "event_id": "tx-root-id",
+                    "span_id": "root-span-id",
+                    "is_transaction": True,
+                    "is_error": False,
+                    "profile_id": "profile123456789",
+                    "span_ids": ["different-span-id"],  # Doesn't include event's span_id
+                    "children": [
+                        {
+                            "event_id": "error-event-id",
+                            "span_id": "event-span-id",
+                            "is_transaction": False,
+                            "is_error": True,
+                            "children": [],
+                        }
+                    ],
+                }
+            ],
+        }
+
+        # Call the function
+        profile_result = _get_profile_from_trace_tree(trace_tree, event, self.project)
+
+        assert profile_result is None
+        # API should not be called if no matching transaction is found
+        mock_get_from_profiling_service.assert_not_called()
+
+    @patch("sentry.seer.autofix.get_from_profiling_service")
+    def test_get_profile_from_trace_tree_no_span_id(self, mock_get_from_profiling_service):
+        """
+        Test the behavior when the event doesn't have a span_id.
+        """
+        # Setup mock event WITHOUT span_id
+        event = Mock()
+        event.event_id = "error-event-id"
+        event.trace_id = "1234567890abcdef1234567890abcdef"
+        event.data = {"contexts": {"trace": {}}}  # No span_id
+
+        # Create a mock trace tree
+        trace_tree = {
+            "trace_id": "1234567890abcdef1234567890abcdef",
+            "events": [
+                {
+                    "event_id": "tx-id",
+                    "span_id": "tx-span-id",
+                    "is_transaction": True,
+                    "is_error": False,
+                    "profile_id": "profile123456789",
+                    "children": [],
+                }
+            ],
+        }
+
+        # Call the function
+        profile_result = _get_profile_from_trace_tree(trace_tree, event, self.project)
+
+        assert profile_result is None
+        # API should not be called if event has no span_id
+        mock_get_from_profiling_service.assert_not_called()
 
 
 @requires_snuba
@@ -986,14 +1123,14 @@ class TestTriggerAutofix(APITestCase, SnubaTestCase):
 
         # Verify the function calls
         mock_call.assert_called_once()
-        call_args = mock_call.call_args[0]
-        assert call_args[0] == test_user  # user
-        assert call_args[1] == group  # group
-        assert call_args[4] == {"profile_data": "test"}  # profile
-        assert call_args[5] == {"trace_data": "test"}  # trace tree
-        assert call_args[6] == "Test instruction"  # instruction
-        assert call_args[7] == TIMEOUT_SECONDS  # timeout
-        assert call_args[8] == "https://github.com/getsentry/sentry/pull/123"  # PR URL
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["user"] == test_user
+        assert call_kwargs["group"] == group
+        assert call_kwargs["profile"] == {"profile_data": "test"}
+        assert call_kwargs["trace_tree"] == {"trace_data": "test"}
+        assert call_kwargs["instruction"] == "Test instruction"
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
+        assert call_kwargs["pr_to_comment_on_url"] == "https://github.com/getsentry/sentry/pull/123"
 
         # Verify check_autofix_status was scheduled
         mock_check_autofix_status.assert_called_once_with(
@@ -1071,17 +1208,17 @@ class TestCallAutofix(TestCase):
         trace_tree = {"trace_data": "test"}
         instruction = "Test instruction"
 
-        # Call the function
+        # Call the function with keyword arguments
         run_id = _call_autofix(
-            user,
-            group,
-            repos,
-            serialized_event,
-            profile,
-            trace_tree,
-            instruction,
-            TIMEOUT_SECONDS,
-            "https://github.com/getsentry/sentry/pull/123",
+            user=user,
+            group=group,
+            repos=repos,
+            serialized_event=serialized_event,
+            profile=profile,
+            trace_tree=trace_tree,
+            instruction=instruction,
+            timeout_secs=TIMEOUT_SECONDS,
+            pr_to_comment_on_url="https://github.com/getsentry/sentry/pull/123",
         )
 
         # Verify the result
@@ -1125,3 +1262,198 @@ class TestRespondWithError(TestCase):
 
         assert response.status_code == 400
         assert response.data["detail"] == "Test error message"
+
+
+class TestBuildSpansTree(TestCase):
+    def test_build_spans_tree_basic(self):
+        """Test that a simple list of spans is correctly converted to a tree."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "root-span",
+                "parent_span_id": None,
+                "title": "Root Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "child1",
+                "parent_span_id": "root-span",
+                "title": "Child 1",
+                "duration": "5.0s",
+            },
+            {
+                "span_id": "child2",
+                "parent_span_id": "root-span",
+                "title": "Child 2",
+                "duration": "3.0s",
+            },
+            {
+                "span_id": "grandchild",
+                "parent_span_id": "child1",
+                "title": "Grandchild",
+                "duration": "2.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Should have one root
+        assert len(tree) == 1
+        root = tree[0]
+        assert root["span_id"] == "root-span"
+        assert root["title"] == "Root Span"
+
+        # Root should have two children, sorted by duration (child1 first)
+        assert len(root["children"]) == 2
+        assert root["children"][0]["span_id"] == "child1"
+        assert root["children"][1]["span_id"] == "child2"
+
+        # Child1 should have one child
+        assert len(root["children"][0]["children"]) == 1
+        grandchild = root["children"][0]["children"][0]
+        assert grandchild["span_id"] == "grandchild"
+
+    def test_build_spans_tree_multiple_roots(self):
+        """Test that spans with multiple roots are correctly handled."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "root1",
+                "parent_span_id": None,
+                "title": "Root 1",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "root2",
+                "parent_span_id": None,
+                "title": "Root 2",
+                "duration": "15.0s",
+            },
+            {
+                "span_id": "child1",
+                "parent_span_id": "root1",
+                "title": "Child of Root 1",
+                "duration": "5.0s",
+            },
+            {
+                "span_id": "child2",
+                "parent_span_id": "root2",
+                "title": "Child of Root 2",
+                "duration": "7.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Should have two roots, sorted by duration (root2 first)
+        assert len(tree) == 2
+        assert tree[0]["span_id"] == "root2"
+        assert tree[1]["span_id"] == "root1"
+
+        # Each root should have one child
+        assert len(tree[0]["children"]) == 1
+        assert tree[0]["children"][0]["span_id"] == "child2"
+
+        assert len(tree[1]["children"]) == 1
+        assert tree[1]["children"][0]["span_id"] == "child1"
+
+    def test_build_spans_tree_orphaned_parent(self):
+        """Test that spans with parent_span_id not in the data are treated as roots."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "span1",
+                "parent_span_id": "non-existent-parent",
+                "title": "Orphaned Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "span2",
+                "parent_span_id": "span1",
+                "title": "Child of Orphaned Span",
+                "duration": "5.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # span1 should be treated as a root even though it has a parent_span_id
+        assert len(tree) == 1
+        assert tree[0]["span_id"] == "span1"
+
+        # span2 should be a child of span1
+        assert len(tree[0]["children"]) == 1
+        assert tree[0]["children"][0]["span_id"] == "span2"
+
+    def test_build_spans_tree_empty_input(self):
+        """Test handling of empty input."""
+        assert build_spans_tree([]) == []
+
+    def test_build_spans_tree_missing_span_ids(self):
+        """Test that spans without span_ids are ignored."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "valid-span",
+                "parent_span_id": None,
+                "title": "Valid Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": None,  # Missing span_id
+                "parent_span_id": "valid-span",
+                "title": "Invalid Span",
+                "duration": "5.0s",
+            },
+            {
+                # No span_id key
+                "parent_span_id": "valid-span",
+                "title": "Another Invalid Span",
+                "duration": "3.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Only the valid span should be in the tree
+        assert len(tree) == 1
+        assert tree[0]["span_id"] == "valid-span"
+        # No children since the other spans had invalid/missing span_ids
+        assert len(tree[0]["children"]) == 0
+
+    def test_build_spans_tree_duration_sorting(self):
+        """Test that spans are correctly sorted by duration."""
+        spans_data: list[dict] = [
+            {
+                "span_id": "root",
+                "parent_span_id": None,
+                "title": "Root Span",
+                "duration": "10.0s",
+            },
+            {
+                "span_id": "fast-child",
+                "parent_span_id": "root",
+                "title": "Fast Child",
+                "duration": "1.0s",
+            },
+            {
+                "span_id": "medium-child",
+                "parent_span_id": "root",
+                "title": "Medium Child",
+                "duration": "5.0s",
+            },
+            {
+                "span_id": "slow-child",
+                "parent_span_id": "root",
+                "title": "Slow Child",
+                "duration": "9.0s",
+            },
+        ]
+
+        tree = build_spans_tree(spans_data)
+
+        # Should have one root
+        assert len(tree) == 1
+        root = tree[0]
+
+        # Root should have three children, sorted by duration (slow-child first)
+        assert len(root["children"]) == 3
+        assert root["children"][0]["span_id"] == "slow-child"
+        assert root["children"][1]["span_id"] == "medium-child"
+        assert root["children"][2]["span_id"] == "fast-child"

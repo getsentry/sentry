@@ -1,6 +1,6 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import type {Theme} from '@emotion/react';
+import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -13,6 +13,19 @@ import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
+
+import {getChonkButtonStyles} from './index.chonk';
+
+/**
+ * Default sizes to use for SVGIcon
+ */
+const ICON_SIZES: Partial<
+  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
+> = {
+  xs: 'xs',
+  sm: 'sm',
+  md: 'sm',
+};
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -39,10 +52,6 @@ interface CommonButtonProps {
    */
   analyticsParams?: Record<string, any>;
   /**
-   * Used by ButtonBar to determine active status.
-   */
-  barId?: string;
-  /**
    * Removes borders from the button.
    */
   borderless?: boolean;
@@ -51,19 +60,10 @@ interface CommonButtonProps {
    */
   busy?: boolean;
   /**
-   * Disables the button, assigning appropriate aria attributes and disallows
-   * interactions with the button.
-   */
-  disabled?: boolean;
-  /**
    * The icon to render inside of the button. The size will be set
    * appropriately based on the size of the button.
    */
   icon?: React.ReactNode;
-  /**
-   * Used when the button is part of a form.
-   */
-  name?: string;
   /**
    * The semantic "priority" of the button. Use `primary` when the action is
    * contextually the primary action, `danger` if the button will do something
@@ -140,9 +140,7 @@ interface ButtonPropsWithAriaLabel extends BaseButtonProps {
 
 export type ButtonProps = ButtonPropsWithoutAriaLabel | ButtonPropsWithAriaLabel;
 
-export interface BaseLinkButtonProps
-  extends CommonButtonProps,
-    ElementProps<ButtonElement> {
+interface BaseLinkButtonProps extends CommonButtonProps, ElementProps<ButtonElement> {
   /**
    * @internal Used in the Button forwardRef
    */
@@ -201,17 +199,6 @@ export type LinkButtonProps =
   | HrefLinkButtonPropsWithChildren
   | HrefLinkButtonPropsWithAriaLabel;
 
-/**
- * Default sizes to use for SVGIcon
- */
-const ICON_SIZES: Partial<
-  Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
-> = {
-  xs: 'xs',
-  sm: 'sm',
-  md: 'sm',
-};
-
 function BaseButton({
   size = 'md',
   to,
@@ -225,7 +212,8 @@ function BaseButton({
   borderless,
   translucentBorder,
   priority,
-  disabled = false,
+  disabled,
+  type = 'button',
   tooltipProps,
   onClick,
   analyticsEventName,
@@ -287,55 +275,47 @@ function BaseButton({
   );
 
   const hasChildren = Array.isArray(children)
-    ? children.some(child => !isEmptyChild(child))
-    : !isEmptyChild(children);
+    ? children.some(child => !!child || String(child) === '0')
+    : !!children || String(children) === '0';
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
   // *Note* you must still handle tabindex manually.
-  const button = (
-    <StyledButton
-      aria-label={accessibleLabel}
-      aria-disabled={disabled}
-      busy={busy}
-      disabled={disabled}
-      to={disabled ? undefined : to}
-      href={disabled ? undefined : href}
-      replace={replace}
-      size={size}
-      priority={priority}
-      borderless={borderless}
-      translucentBorder={translucentBorder}
-      {...buttonProps}
-      onClick={handleClick}
-      role="button"
-    >
-      {priority !== 'link' && (
-        <InteractionStateLayer
-          higherOpacity={priority && ['primary', 'danger'].includes(priority)}
-        />
-      )}
-      <ButtonLabel size={size} borderless={borderless}>
-        {icon && (
-          <Icon size={size} hasChildren={hasChildren}>
-            <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
-          </Icon>
+  return (
+    <Tooltip skipWrapper {...tooltipProps} title={title} disabled={!title}>
+      <StyledButton
+        aria-label={accessibleLabel}
+        aria-disabled={disabled}
+        busy={busy}
+        disabled={disabled}
+        to={disabled ? undefined : to}
+        href={disabled ? undefined : href}
+        replace={replace}
+        size={size}
+        priority={priority}
+        borderless={borderless}
+        translucentBorder={translucentBorder}
+        type={type}
+        {...buttonProps}
+        onClick={handleClick}
+        role="button"
+      >
+        {priority !== 'link' && (
+          <InteractionStateLayer
+            higherOpacity={priority && ['primary', 'danger'].includes(priority)}
+          />
         )}
-        {children}
-      </ButtonLabel>
-    </StyledButton>
+        <ButtonLabel size={size} borderless={borderless}>
+          {icon && (
+            <Icon size={size} hasChildren={hasChildren}>
+              <IconDefaultsProvider size={ICON_SIZES[size]}>{icon}</IconDefaultsProvider>
+            </Icon>
+          )}
+          {children}
+        </ButtonLabel>
+      </StyledButton>
+    </Tooltip>
   );
-
-  // Doing this instead of using `Tooltip`'s `disabled` prop so that we can minimize snapshot nesting
-  if (title) {
-    return (
-      <Tooltip skipWrapper {...tooltipProps} title={title}>
-        {button}
-      </Tooltip>
-    );
-  }
-
-  return button;
 }
 
 export const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
@@ -355,6 +335,61 @@ type StyledButtonProps =
   | StyledButtonPropsWithAriaLabel
   | StyledButtonPropsWithoutAriaLabel;
 
+export const StyledButton = styled(
+  reactForwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
+    (
+      {
+        forwardRef,
+        size: _size,
+        title: _title,
+        type,
+        external,
+        to,
+        replace,
+        href,
+        disabled,
+        ...props
+      }: ButtonProps,
+      forwardRefAlt
+    ) => {
+      // XXX: There may be two forwarded refs here, one potentially passed from a
+      // wrapped Tooltip, another from callers of Button.
+      const ref = mergeRefs([forwardRef, forwardRefAlt]);
+
+      // Get component to use based on existence of `to` or `href` properties
+      // Can be react-router `Link`, `a`, or `button`
+      if (to) {
+        return (
+          <Link {...props} ref={ref} to={to} replace={replace} disabled={disabled} />
+        );
+      }
+
+      if (href) {
+        return (
+          <a
+            {...props}
+            ref={ref}
+            href={href}
+            aria-disabled={disabled}
+            {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
+          />
+        );
+      }
+
+      return <button {...props} type={type} ref={ref} disabled={disabled} />;
+    }
+  ),
+  {
+    shouldForwardProp: prop =>
+      prop === 'forwardRef' ||
+      prop === 'external' ||
+      prop === 'replace' ||
+      (typeof prop === 'string' && isPropValid(prop)),
+  }
+)<ButtonProps>`
+  ${p => (p.theme.isChonk ? getChonkButtonStyles(p as any) : getButtonStyles(p))}
+`;
+
 const getBoxShadow = ({
   priority,
   borderless,
@@ -362,9 +397,11 @@ const getBoxShadow = ({
   disabled,
   size,
   theme,
-}: StyledButtonProps) => {
+}: StyledButtonProps): SerializedStyles => {
   if (disabled || borderless || priority === 'link') {
-    return 'box-shadow: none';
+    return css`
+      box-shadow: none;
+    `;
   }
 
   const themeName = disabled ? 'disabled' : priority || 'default';
@@ -374,12 +411,12 @@ const getBoxShadow = ({
     : '';
   const dropShadow = size === 'xs' ? theme.dropShadowLight : theme.dropShadowMedium;
 
-  return `
-      box-shadow: ${translucentBorderString} ${dropShadow};
-      &:active {
-        box-shadow: ${translucentBorderString} inset ${dropShadow};
-      }
-    `;
+  return css`
+    box-shadow: ${translucentBorderString} ${dropShadow};
+    &:active {
+      box-shadow: ${translucentBorderString} inset ${dropShadow};
+    }
+  `;
 };
 
 const getColors = ({
@@ -389,60 +426,59 @@ const getColors = ({
   borderless,
   translucentBorder,
   theme,
-}: StyledButtonProps) => {
+}: StyledButtonProps): SerializedStyles => {
   const themeName = disabled ? 'disabled' : priority || 'default';
   const {color, colorActive, background, border, borderActive, focusBorder, focusShadow} =
     theme.button[themeName];
 
-  const getFocusState = () => {
+  const getFocusState = (): SerializedStyles => {
     switch (priority) {
       case 'primary':
       case 'danger':
-        return `
+        return css`
           border-color: ${focusBorder};
-          box-shadow: ${focusBorder} 0 0 0 1px, ${focusShadow} 0 0 0 4px;`;
+          box-shadow:
+            ${focusBorder} 0 0 0 1px,
+            ${focusShadow} 0 0 0 4px;
+        `;
       default:
         if (translucentBorder) {
-          return `
+          return css`
             border-color: ${focusBorder};
-            box-shadow: ${focusBorder} 0 0 0 2px;`;
+            box-shadow: ${focusBorder} 0 0 0 2px;
+          `;
         }
-        return `
+        return css`
           border-color: ${focusBorder};
-          box-shadow: ${focusBorder} 0 0 0 1px;`;
-    }
-  };
-
-  const getBackgroundColor = () => {
-    switch (priority) {
-      case 'primary':
-      case 'danger':
-        return `background-color: ${background};`;
-      default:
-        if (borderless) {
-          return `background-color: transparent;`;
-        }
-        return `background-color: ${background};`;
+          box-shadow: ${focusBorder} 0 0 0 1px;
+        `;
     }
   };
 
   return css`
     color: ${color};
-    ${getBackgroundColor()}
+    background-color: ${priority === 'primary' || priority === 'danger'
+      ? background
+      : borderless
+        ? 'transparent'
+        : background};
 
     border: 1px solid ${borderless || priority === 'link' ? 'transparent' : border};
 
-    ${translucentBorder && `border-width: 0;`}
+    ${translucentBorder &&
+    css`
+      border-width: 0;
+    `}
 
     &:hover {
       color: ${color};
     }
 
     ${size !== 'zero' &&
-    `
+    css`
       &:hover,
       &:active,
-      &[aria-expanded="true"] {
+      &[aria-expanded='true'] {
         color: ${colorActive || color};
         border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
       }
@@ -460,7 +496,11 @@ const getColors = ({
   `;
 };
 
-const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProps) => {
+const getSizeStyles = ({
+  size = 'md',
+  translucentBorder,
+  theme,
+}: StyledButtonProps): SerializedStyles => {
   const buttonSize = size === 'zero' ? 'md' : size;
   const formStyles = theme.form[buttonSize];
   const buttonPadding = theme.buttonPadding[buttonSize];
@@ -477,103 +517,59 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
       }
     : {};
 
-  return {...formStyles, ...buttonPadding, ...borderStyles};
+  return css`
+    ${formStyles}
+    ${buttonPadding}
+    ${borderStyles}
+  `;
 };
 
-export const StyledButton = styled(
-  reactForwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
-    (
-      {
-        forwardRef,
-        size: _size,
-        title: _title,
-        external,
-        to,
-        replace,
-        href,
-        disabled,
-        ...props
-      }: ButtonProps,
-      forwardRefAlt
-    ) => {
-      // XXX: There may be two forwarded refs here, one potentially passed from a
-      // wrapped Tooltip, another from callers of Button.
+function getButtonStyles(p: StyledButtonProps & {theme: Theme}): SerializedStyles {
+  return css`
+    position: relative;
+    display: inline-block;
+    border-radius: ${p.theme.borderRadius};
+    text-transform: none;
+    font-weight: ${p.theme.fontWeightBold};
+    cursor: ${p.disabled ? 'not-allowed' : 'pointer'};
+    opacity: ${(p.busy || p.disabled) && '0.65'};
 
-      const ref = mergeRefs([forwardRef, forwardRefAlt]);
+    ${getColors(p)}
+    ${getSizeStyles(p)}
+    ${getBoxShadow(p)}
 
-      // Get component to use based on existence of `to` or `href` properties
-      // Can be react-router `Link`, `a`, or `button`
-      if (to) {
-        return (
-          <Link {...props} ref={ref} to={to} replace={replace} disabled={disabled} />
-        );
-      }
+    transition:
+      background 0.1s,
+      border 0.1s,
+      box-shadow 0.1s;
 
-      if (href && external) {
-        return (
-          <a
-            {...props}
-            ref={ref}
-            href={href}
-            aria-disabled={disabled}
-            target="_blank"
-            rel="noreferrer noopener"
-          />
-        );
-      }
-
-      if (href) {
-        return <a {...props} ref={ref} href={href} />;
-      }
-
-      // The default `type` of a native button element is `submit` when inside
-      // of a form. This is typically not what we want, and if we do want it we
-      // should explicitly set type submit.
-      props.type ??= 'button';
-
-      return <button {...props} ref={ref} disabled={disabled} />;
-    }
-  ),
-  {
-    shouldForwardProp: prop =>
-      prop === 'forwardRef' ||
-      prop === 'external' ||
-      prop === 'replace' ||
-      (typeof prop === 'string' && isPropValid(prop)),
-  }
-)<ButtonProps>`
-  position: relative;
-  display: inline-block;
-  border-radius: ${p => p.theme.borderRadius};
-  text-transform: none;
-  font-weight: ${p => p.theme.fontWeightBold};
-  ${getColors};
-  ${getSizeStyles};
-  ${getBoxShadow};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  opacity: ${p => (p.busy || p.disabled) && '0.65'};
-  transition:
-    background 0.1s,
-    border 0.1s,
-    box-shadow 0.1s;
-
-  ${p =>
-    p.priority === 'link' &&
-    `font-size: inherit; font-weight: inherit; padding: 0; height: auto; min-height: auto;`}
-  ${p => p.size === 'zero' && `height: auto; min-height: auto; padding: ${space(0.25)};`}
+    ${p.priority === 'link' &&
+    css`
+      font-size: inherit;
+      font-weight: inherit;
+      padding: 0;
+      height: auto;
+      min-height: auto;
+    `}
+    ${p.size === 'zero' &&
+    css`
+      height: auto;
+      min-height: auto;
+      padding: ${space(0.25)};
+    `}
 
   &:focus {
-    outline: none;
-  }
-`;
-
-const buttonLabelPropKeys = ['size', 'borderless'];
-type ButtonLabelProps = Pick<ButtonProps, 'size' | 'borderless'>;
+      outline: none;
+    }
+  `;
+}
 
 export const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
-})<ButtonLabelProps>`
+    typeof prop === 'string' &&
+    isPropValid(prop) &&
+    !['size', 'borderless'].includes(prop),
+})<Pick<ButtonProps, 'size' | 'borderless'>>`
   height: 100%;
   display: flex;
   align-items: center;
@@ -581,45 +577,15 @@ export const ButtonLabel = styled('span', {
   white-space: nowrap;
 `;
 
-type ChildrenIconProps = {
-  hasChildren?: boolean;
-  size?: ButtonProps['size'];
-};
-
-const getIconMargin = ({size, hasChildren}: ChildrenIconProps) => {
-  // If button is only an icon, then it shouldn't have margin
-  if (!hasChildren) {
-    return '0';
-  }
-
-  switch (size) {
-    case 'xs':
-    case 'zero':
-      return space(0.75);
-    default:
-      return space(1);
-  }
-};
-
-function isEmptyChild(child: React.ReactNode) {
-  // truthy values are non empty
-  if (child) {
-    return false;
-  }
-
-  // out of the falsey values, 0 is the only one that takes space
-  if (child === 0) {
-    return false;
-  }
-
-  return true;
-}
-
-interface IconProps extends ChildrenIconProps, Omit<StyledButtonProps, 'theme'> {}
-const Icon = styled('span')<IconProps>`
+const Icon = styled('span')<{hasChildren?: boolean; size?: ButtonProps['size']}>`
   display: flex;
   align-items: center;
-  margin-right: ${getIconMargin};
+  margin-right: ${p =>
+    p.hasChildren
+      ? p.size === 'xs' || p.size === 'zero'
+        ? space(0.75)
+        : space(1)
+      : '0'};
   flex-shrink: 0;
 `;
 

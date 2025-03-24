@@ -55,11 +55,15 @@ function useChartIntervalImpl({
   const interval: string = useMemo(() => {
     const decodedInterval = decodeScalar(location.query.interval);
 
+    // Default to the second largest option or largest option
+    const fallbackInterval =
+      intervalOptions[intervalOptions.length - 2]?.value ??
+      intervalOptions[intervalOptions.length - 1]!.value;
+
     return decodedInterval &&
       intervalOptions.some(option => option.value === decodedInterval)
       ? decodedInterval
-      : // Default to the second option so we're not defaulting to the smallest option
-        intervalOptions[1]!.value;
+      : fallbackInterval;
   }, [location.query.interval, intervalOptions]);
 
   const setInterval = useCallback(
