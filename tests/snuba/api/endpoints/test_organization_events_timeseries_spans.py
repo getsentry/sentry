@@ -362,7 +362,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 self.create_span(
                     {"sentry_tags": {"transaction": "foo", "status": "success"}},
                     start_ts=self.start + timedelta(minutes=1),
-                    duration=2000,
+                    duration=2001,
                 ),
                 self.create_span(
                     {"sentry_tags": {"transaction": "bar", "status": "success"}},
@@ -372,10 +372,12 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 self.create_span(
                     {"sentry_tags": {"transaction": "baz", "status": "success"}},
                     start_ts=self.start + timedelta(minutes=1),
+                    duration=1999,
                 ),
                 self.create_span(
                     {"sentry_tags": {"transaction": "qux", "status": "success"}},
                     start_ts=self.start + timedelta(minutes=1),
+                    duration=1998,
                 ),
             ],
             is_eap=True,
@@ -447,7 +449,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                 self.create_span(
                     {"sentry_tags": {"transaction": transaction, "status": "success"}},
                     start_ts=self.start + timedelta(minutes=1),
-                    duration=2000,
+                    duration=2000 if transaction == "foo" else 1999,
                 )
                 for transaction in ["foo", "bar"]
             ],
@@ -985,7 +987,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                         "measurements": {"client_sample_rate": {"value": 0.1}},
                     },
                     start_ts=self.start + timedelta(minutes=1),
-                    duration=2000,
+                    duration=1999,
                 ),
                 self.create_span(
                     {
@@ -994,6 +996,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
                         "measurements": {"client_sample_rate": {"value": 0.1}},
                     },
                     start_ts=self.start + timedelta(minutes=1),
+                    duration=1998,
                 ),
             ],
             is_eap=True,

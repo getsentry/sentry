@@ -610,6 +610,7 @@ def top_events_timeseries(
                     "groupby": item.get("groupby", None),
                     "meta": result["meta"],
                     "order": item["order"],
+                    "is_other": item["is_other"],
                 },
                 snuba_params.start_date,
                 snuba_params.end_date,
