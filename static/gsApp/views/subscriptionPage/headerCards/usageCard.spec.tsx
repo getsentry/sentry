@@ -18,7 +18,6 @@ describe('UsageCard', () => {
       plan: 'am2_team',
     });
 
-    subscription.planDetails.billingInterval = 'monthly';
     subscription.planDetails.categories = ['errors'];
 
     const prepaid = 100_000;
@@ -51,7 +50,6 @@ describe('UsageCard', () => {
       onDemandMaxSpend: 1000,
     });
 
-    subscription.planDetails.billingInterval = 'monthly';
     subscription.planDetails.categories = ['errors'];
 
     const prepaid = 100_000;
