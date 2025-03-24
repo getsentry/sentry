@@ -571,7 +571,7 @@ describe('Subscription > PendingChanges', function () {
     expect(
       screen.getByText('Reserved budget updated to $50,000 for spans')
     ).toBeInTheDocument();
-    expect(screen.getByText('Plan change to Business')).toBeInTheDocument();
+    expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 
   it('renders reserved budgets to reserved volume', function () {
@@ -594,6 +594,6 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
     expect(screen.queryByText('Reserved budget')).not.toBeInTheDocument();
     expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
-    expect(screen.getByText('Plan change to Business')).toBeInTheDocument();
+    expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 });

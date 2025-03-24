@@ -82,6 +82,25 @@ export function BillingConfigFixture(tier: PlanTier): BillingConfig {
     };
   }
 
+  if (tier === PlanTier.ALL) {
+    return {
+      id: PlanTier.AM3,
+      freePlan: 'am3_f',
+      defaultPlan: 'am3_team',
+      defaultReserved: {
+        errors: 50_000,
+        attachments: 1,
+        replays: 50,
+        monitorSeats: 1,
+        spans: 10_000_000,
+        uptime: 1,
+      },
+      annualDiscount: 0.1,
+      planList: Object.values(MM1_PLANS).concat(Object.values(MM2_PLANS), Object.values(AM1_PLANS), Object.values(AM2_PLANS), Object.values(AM3_PLANS)),
+      featureList: FeatureListFixture(),
+    };
+  }
+
   return {
     id: PlanTier.AM1,
     freePlan: 'am1_f',
