@@ -384,7 +384,7 @@ def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     return Column.BinaryFormula(
         left=Column(
             aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_SUM,
+                aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
                 extrapolation_mode=extrapolation_mode,
             )
@@ -392,7 +392,7 @@ def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
             aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_SUM,
+                aggregate=Function.FUNCTION_COUNT,
                 key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
                 extrapolation_mode=extrapolation_mode,
             )
