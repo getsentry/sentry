@@ -13,7 +13,7 @@ export default function ReleaseNewIssuesChart() {
       isLoading={isPending}
       legendSelection={{
         // disable the 'other' series by default since its large values can cause the other lines to be insignificant
-        ['other']: false,
+        other: false,
       }}
       error={error}
     />
