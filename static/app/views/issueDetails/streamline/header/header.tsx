@@ -157,7 +157,11 @@ export default function StreamlinedGroupHeader({
               delay={1000}
               isDefault={!secondaryTitle}
             >
-              {secondaryTitle ?? t('No error message')}
+              {secondaryTitle ? (
+                secondaryTitle
+              ) : (
+                <NoErrorMessage>({t('No error message')})</NoErrorMessage>
+              )}
             </SecondaryTitle>
           </Flex>
           {issueTypeConfig.eventAndUserCounts.enabled && (
@@ -344,4 +348,8 @@ const Workflow = styled('div')`
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
   align-items: center;
+`;
+
+const NoErrorMessage = styled('span')`
+  color: ${p => p.theme.subText};
 `;
