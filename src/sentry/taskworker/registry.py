@@ -128,7 +128,7 @@ class TaskNamespace:
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         metrics.incr(
             "taskworker.registry.send_task",
-            tags={"namespace": activation.namespace},
+            tags={"namespace": activation.namespace, "task_name": activation.taskname},
         )
 
         topic = self.router.route_namespace(self.name)
@@ -137,15 +137,15 @@ class TaskNamespace:
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
         try:
-            if produce_future.exception():
+            if produce_future.exception(timeout=1):
                 metrics.incr(
                     "taskworker.registry.send_task.failed",
-                    tags={"namespace": activation.namespace},
+                    tags={"namespace": activation.namespace, "task_name": activation.taskname},
                 )
         except Exception:
             metrics.incr(
                 "taskworker.registry.send_task.cancelled",
-                tags={"namespace": activation.namespace},
+                tags={"namespace": activation.namespace, "task_name": activation.taskname},
             )
 
         if wait_for_delivery:
