@@ -3,10 +3,9 @@ from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import MetricIssuePOC
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     issue_alert_handler_registry,
@@ -14,7 +13,7 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
 from sentry.workflow_engine.handlers.action.notification.metric_alert import (
     metric_alert_handler_registry,
 )
-from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.models import Action, DataConditionGroupAction, Detector
 from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
@@ -207,14 +206,18 @@ class MetricAlertRegistryInvoker(LegacyRegistryInvoker):
             raise NotificationHandlerException(e)
 
     @staticmethod
-    def target(action: Action) -> RpcUser | Team | str | None:
+    def target(action: Action) -> OrganizationMember | Team | str | None:
         target_identifier = action.config.get("target_identifier")
         if target_identifier is None:
             return None
 
         target_type = action.config.get("target_type")
         if target_type == ActionTarget.USER.value:
-            return user_service.get_user(user_id=int(target_identifier))
+            dcga = DataConditionGroupAction.objects.get(action=action)
+            return OrganizationMember.objects.get(
+                user_id=int(target_identifier),
+                organization=dcga.condition_group.organization,
+            )
         elif target_type == ActionTarget.TEAM.value:
             try:
                 return Team.objects.get(id=int(target_identifier))
