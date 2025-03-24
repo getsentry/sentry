@@ -11,7 +11,10 @@ export type FeatureFlagEventParameters = {
     surface: 'settings' | 'flag_drawer';
   };
   'flags.setup_sidebar_opened': {
-    surface: 'issue_details.flags_section' | 'issue_details.flags_drawer';
+    surface:
+      | 'issue_details.flags_section'
+      | 'issue_details.flags_drawer'
+      | 'org_settings';
   };
   'flags.sort_flags': {sortMethod: string};
   'flags.table_rendered': {
