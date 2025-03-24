@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface SolutionsHubNoticesProps {
+interface SeerNoticesProps {
   autofixRepositories: AutofixRepository[];
   hasGithubIntegration?: boolean;
 }
@@ -55,10 +55,10 @@ function GithubIntegrationSetupCard() {
   );
 }
 
-export function SolutionsHubNotices({
+export function SeerNotices({
   autofixRepositories,
   hasGithubIntegration,
-}: SolutionsHubNoticesProps) {
+}: SeerNoticesProps) {
   const organization = useOrganization();
   const unreadableRepos = autofixRepositories.filter(repo => repo.is_readable === false);
   const notices: React.JSX.Element[] = [];
@@ -137,9 +137,7 @@ export function SolutionsHubNotices({
             )
           : tct(
               "Autofix can't access the [repo] repository. It currently only supports GitHub repositories.",
-              {
-                repo: <b>{unreadableRepo.name}</b>,
-              }
+              {repo: <b>{unreadableRepo.name}</b>}
             )}
       </Alert>
     );

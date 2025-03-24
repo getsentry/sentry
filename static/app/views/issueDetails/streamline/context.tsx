@@ -17,7 +17,7 @@ export const enum SectionKey {
 
   USER_FEEDBACK = 'user-feedback',
   LLM_MONITORING = 'llm-monitoring',
-  SOLUTIONS_HUB = 'solutions-hub',
+  SEER = 'seer',
   EXTERNAL_ISSUES = 'external-issues',
 
   UPTIME = 'uptime', // Only Uptime issues
@@ -130,9 +130,7 @@ export interface IssueDetailsState {
   /**
    * Controls the state of each section.
    */
-  sectionData: {
-    [key in SectionKey]?: SectionConfig;
-  };
+  sectionData: {[key in SectionKey]?: SectionConfig};
 }
 
 type UpdateEventSectionAction = {
@@ -141,20 +139,11 @@ type UpdateEventSectionAction = {
   config?: Partial<SectionConfig>;
 };
 
-type UpdateNavScrollMarginAction = {
-  margin: number;
-  type: 'UPDATE_NAV_SCROLL_MARGIN';
-};
+type UpdateNavScrollMarginAction = {margin: number; type: 'UPDATE_NAV_SCROLL_MARGIN'};
 
-type UpdateEventCountAction = {
-  count: number;
-  type: 'UPDATE_EVENT_COUNT';
-};
+type UpdateEventCountAction = {count: number; type: 'UPDATE_EVENT_COUNT'};
 
-type UpdateSidebarAction = {
-  isOpen: boolean;
-  type: 'UPDATE_SIDEBAR_STATE';
-};
+type UpdateSidebarAction = {isOpen: boolean; type: 'UPDATE_SIDEBAR_STATE'};
 
 type UpdateDetectorDetailsAction = {
   detectorDetails: DetectorDetails;
@@ -219,8 +208,5 @@ export function useIssueDetailsReducer() {
 
   const [issueDetails, dispatch] = useReducer(reducer, initialState);
 
-  return {
-    issueDetails,
-    dispatch,
-  };
+  return {issueDetails, dispatch};
 }
