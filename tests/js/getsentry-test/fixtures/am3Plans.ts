@@ -657,21 +657,12 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 0,
+          events: 50,
           unitPrice: 60.0,
           price: 0,
           onDemandPrice: 78.0,
         },
       ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-
       spans: [
         {
           events: 10000000,
@@ -1201,18 +1192,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 0,
+          events: 50,
           unitPrice: 60.0,
           price: 0,
           onDemandPrice: 78.0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
         },
       ],
       attachments: [
@@ -1372,15 +1355,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
+          events: 100,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
@@ -1473,15 +1448,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
+          events: 100,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
@@ -1566,15 +1533,7 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
+          events: 50,
           unitPrice: 0,
           price: 0,
           onDemandPrice: 0,
@@ -1665,14 +1624,6 @@ const AM3_PLANS: Record<string, Plan> = {
           onDemandPrice: 0,
         },
       ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
       spans: [
         {
           events: 0,
@@ -1751,14 +1702,6 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
         {
           events: 0,
           unitPrice: 0,
@@ -2182,13 +2125,11 @@ const AM3_PLANS: Record<string, Plan> = {
           price: 0,
           onDemandPrice: 78.0,
         },
-      ],
-      profileDurationUI: [
         {
-          events: 0,
-          unitPrice: 0,
+          events: 50,
+          unitPrice: 60.0,
           price: 0,
-          onDemandPrice: 0,
+          onDemandPrice: 78.0,
         },
       ],
       attachments: [
@@ -2672,18 +2613,10 @@ const AM3_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 0,
+          events: 50,
           unitPrice: 60.0,
           price: 0,
           onDemandPrice: 78.0,
-        },
-      ],
-      profileDurationUI: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
         },
       ],
       attachments: [
@@ -2850,14 +2783,6 @@ const AM3_PLANS: Record<string, Plan> = {
         },
       ],
       profileDuration: [
-        {
-          events: 0,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 0,
-        },
-      ],
-      profileDurationUI: [
         {
           events: 0,
           unitPrice: 0,
