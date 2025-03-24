@@ -20,6 +20,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
@@ -94,10 +95,13 @@ function AccountSecurity({
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="settings" to={`${basePath}/settings/`}>
+                <TabList.Item key="settings" to={normalizeUrl(`${basePath}/settings/`)}>
                   {t('Settings')}
                 </TabList.Item>
-                <TabList.Item key="sessionHistory" to={`${basePath}/session-history/`}>
+                <TabList.Item
+                  key="sessionHistory"
+                  to={normalizeUrl(`${basePath}/session-history/`)}
+                >
                   {t('Session History')}
                 </TabList.Item>
               </TabList>

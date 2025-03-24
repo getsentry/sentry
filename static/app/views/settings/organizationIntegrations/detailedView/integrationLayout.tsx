@@ -100,9 +100,7 @@ function IntegrationTabs({
       <Tabs value={activeTab} onChange={onTabChange}>
         <TabList>
           {tabs.map(tab => (
-            <TabList.Item key={tab}>
-              {<CapitalizedLink>{renderTab(tab)}</CapitalizedLink>}
-            </TabList.Item>
+            <TabList.Item key={tab}>{renderTab(tab)}</TabList.Item>
           ))}
         </TabList>
       </Tabs>
@@ -332,10 +330,6 @@ const StyledTag = styled(Tag)`
   &:not(:first-child) {
     margin-left: ${space(0.5)};
   }
-`;
-
-const CapitalizedLink = styled('a')`
-  text-transform: capitalize;
 `;
 
 const IconCloseCircle = styled(IconClose)`

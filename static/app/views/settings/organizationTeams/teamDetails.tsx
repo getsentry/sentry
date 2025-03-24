@@ -12,6 +12,7 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -95,16 +96,19 @@ function TeamDetails({children}: Props) {
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="members" to={`${routePrefix}members/`}>
+                <TabList.Item key="members" to={normalizeUrl(`${routePrefix}members/`)}>
                   {t('Members')}
                 </TabList.Item>
-                <TabList.Item key="projects" to={`${routePrefix}projects/`}>
+                <TabList.Item key="projects" to={normalizeUrl(`${routePrefix}projects/`)}>
                   {t('Projects')}
                 </TabList.Item>
-                <TabList.Item key="notifications" to={`${routePrefix}notifications/`}>
+                <TabList.Item
+                  key="notifications"
+                  to={normalizeUrl(`${routePrefix}notifications/`)}
+                >
                   {t('Notifications')}
                 </TabList.Item>
-                <TabList.Item key="settings" to={`${routePrefix}settings/`}>
+                <TabList.Item key="settings" to={normalizeUrl(`${routePrefix}settings/`)}>
                   {t('Settings')}
                 </TabList.Item>
               </TabList>

@@ -13,6 +13,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternetProtocol} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';
@@ -55,10 +56,13 @@ function SessionHistory({location}: RouteComponentProps) {
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="settings" to={`${basePath}/settings/`}>
+                <TabList.Item key="settings" to={normalizeUrl(`${basePath}/settings/`)}>
                   {t('Settings')}
                 </TabList.Item>
-                <TabList.Item key="sessionHistory" to={`${basePath}/session-history/`}>
+                <TabList.Item
+                  key="sessionHistory"
+                  to={normalizeUrl(`${basePath}/session-history/`)}
+                >
                   {t('Session History')}
                 </TabList.Item>
               </TabList>

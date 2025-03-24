@@ -366,10 +366,7 @@ function buildRoutes() {
               )
           )}
         >
-          <IndexRedirect to="settings/" />
-          <Route
-            path="settings/"
-            name={t('Settings')}
+          <IndexRoute
             component={make(
               () => import('sentry/views/settings/account/accountSecurity')
             )}
