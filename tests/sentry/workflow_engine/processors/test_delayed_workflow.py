@@ -722,6 +722,26 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert event_ids == {self.event1.event_id, self.event2.event_id}
         assert occurrence_ids == set()
 
+    def test_parse_dcg_group_event_data__triggered_groups_only(self):
+        # buffer data represents all the data from the buffer
+        # groups_to_dcgs represents that groups that triggered DCGs --> fire actions
+        # the groups in the buffer may not be fired.
+
+        del self.groups_to_dcgs[self.group1.id]
+
+        self._push_base_events()
+        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
+        dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
+            buffer_data, self.groups_to_dcgs
+        )
+
+        del self.dcg_group_to_event_data[(self.workflow1_dcgs[0].id, self.group1.id)]
+        del self.dcg_group_to_event_data[(self.workflow1_dcgs[1].id, self.group1.id)]
+
+        assert dcg_group_to_event_data == self.dcg_group_to_event_data
+        assert event_ids == {self.event2.event_id}
+        assert occurrence_ids == set()
+
     def test_bulk_fetch_events(self):
         event_ids = [self.event1.event_id, self.event2.event_id]
         events = bulk_fetch_events(event_ids, self.project.id)

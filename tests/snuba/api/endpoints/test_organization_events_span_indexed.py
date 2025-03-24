@@ -3040,6 +3040,40 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count_scores(measurements.score.total)"] == 3
         assert meta["dataset"] == self.dataset
 
+    @pytest.mark.skip(
+        reason="RPC does not support static number operations which is required by this function"
+    )
+    def test_time_spent_percentage(self):
+        spans = []
+        for _ in range(4):
+            spans.append(
+                self.create_span({"sentry_tags": {"transaction": "foo_transaction"}}, duration=1),
+            )
+        spans.append(
+            self.create_span({"sentry_tags": {"transaction": "bar_transaction"}}, duration=1)
+        )
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self.do_request(
+            {
+                "field": ["transaction", "time_spent_percentage()"],
+                "query": "",
+                "orderby": ["-time_spent_percentage()"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["time_spent_percentage()"] == 0.8
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[1]["time_spent_percentage()"] == 0.2
+        assert data[1]["transaction"] == "bar_transaction"
+        assert meta["dataset"] == self.dataset
+
     def test_performance_score(self):
         self.store_spans(
             [

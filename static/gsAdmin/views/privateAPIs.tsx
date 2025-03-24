@@ -53,7 +53,6 @@ function ForceAutoAssignment() {
             name="organizaton-slug"
             onChange={e => setOrganizationSlug(e.target.value)}
             value={organizationSlug}
-            required
             minLength={1}
             placeholder="sentry"
           />
@@ -63,7 +62,6 @@ function ForceAutoAssignment() {
             name="group-list"
             onChange={e => setGroupIds(e.target.value)}
             value={groupIds}
-            required
             minLength={1}
             placeholder="1, 2, 3"
           />
