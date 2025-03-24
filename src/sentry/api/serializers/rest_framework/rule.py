@@ -141,7 +141,9 @@ class RulePreviewSerializer(RuleSetSerializer):
 
 
 class DummyRuleSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=256, required=False, allow_null=True, allow_blank=True)
+    name = serializers.CharField(
+        max_length=256, required=False, allow_null=True, allow_blank=True, default="Test Alert"
+    )
     actions = serializers.ListField(child=RuleNodeField(type="action/event"), required=False)
 
     def validate_name(self, name):
