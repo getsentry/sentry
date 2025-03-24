@@ -173,7 +173,11 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                             "name": view.name,
                             "query": view.query,
                             "querySort": view.query_sort,
-                            "projects": list(view.projects.values_list("id", flat=True)),
+                            "projects": (
+                                [-1]
+                                if view.is_all_projects
+                                else list(view.projects.values_list("id", flat=True))
+                            ),
                             "isAllProjects": view.is_all_projects,
                             "environments": view.environments,
                             "timeFilters": view.time_filters,
