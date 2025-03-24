@@ -128,7 +128,7 @@ class TaskNamespace:
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         metrics.incr(
             "taskworker.registry.send_task",
-            tags={"namespace": activation.namespace, "task_name": activation.taskname},
+            tags={"namespace": activation.namespace},
         )
 
         topic = self.router.route_namespace(self.name)
@@ -141,12 +141,12 @@ class TaskNamespace:
             if producer_failure:
                 metrics.incr(
                     "taskworker.registry.send_task.failed",
-                    tags={"namespace": activation.namespace, "task_name": activation.taskname},
+                    tags={"namespace": activation.namespace},
                 )
         except Exception:
             metrics.incr(
                 "taskworker.registry.send_task.cancelled",
-                tags={"namespace": activation.namespace, "task_name": activation.taskname},
+                tags={"namespace": activation.namespace},
             )
 
         if wait_for_delivery:
