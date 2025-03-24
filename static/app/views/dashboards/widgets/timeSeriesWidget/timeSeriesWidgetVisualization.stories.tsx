@@ -37,6 +37,17 @@ const sampleDurationTimeSeries2 = {
   }),
 };
 
+const sampleDurationTimeSeries3 = {
+  ...sampleDurationTimeSeries,
+  field: 'p75(span.duration)',
+  data: sampleDurationTimeSeries.data.map(datum => {
+    return {
+      ...datum,
+      value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
+    };
+  }),
+};
+
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
 
@@ -365,6 +376,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           </MediumWidget>
           <SmallWidget />
         </SideBySide>
+        <p>
+          Since stacking is configured per plottable, you can combine stacked and
+          unstacked series. Be wary, this creates really high information density, so
+          don't do this on small charts.
+        </p>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Bars(sampleDurationTimeSeries, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeries3),
+            ]}
+          />
+        </LargeWidget>
       </Fragment>
     );
   });
@@ -596,6 +621,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 const FillParent = styled('div')`
   width: 100%;
   height: 100%;
+`;
+
+const LargeWidget = styled('div')`
+  position: relative;
+  width: 600px;
+  height: 300px;
 `;
 
 const MediumWidget = styled('div')`
