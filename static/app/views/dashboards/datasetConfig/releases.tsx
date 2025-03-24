@@ -392,13 +392,12 @@ function getReleasesRequest(
     query.orderby,
     useSessionAPI
   );
-  let requestData: any;
-  let requester: any;
+
   if (useSessionAPI) {
     const sessionAggregates = aggregates.filter(
       agg => !Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
     );
-    requestData = {
+    return doSessionsRequest(api, {
       field: sessionAggregates,
       orgSlug: organization.slug,
       end,
@@ -411,47 +410,45 @@ function getReleasesRequest(
       query: query.conditions,
       start,
       statsPeriod: period,
-      includeAllArgs: true,
       cursor,
-    };
-    requester = doSessionsRequest;
-  } else {
-    requestData = {
-      field: aggregates.map(fieldsToDerivedMetrics),
-      orgSlug: organization.slug,
-      end,
-      environment: environments,
-      groupBy: columns.map(fieldsToDerivedMetrics),
-      limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : limit,
-      orderBy: unsupportedOrderby
-        ? ''
-        : isDescending
-          ? `-${fieldsToDerivedMetrics(rawOrderby)}`
-          : fieldsToDerivedMetrics(rawOrderby),
-      interval,
-      project: projects,
-      query: query.conditions,
-      start,
-      statsPeriod: period,
-      includeAllArgs: true,
-      cursor,
-      includeSeries,
-      includeTotals,
-    };
-    requester = doReleaseHealthRequest;
+    });
+  }
 
-    if (
-      rawOrderby &&
-      !unsupportedOrderby &&
-      !aggregates.includes(rawOrderby) &&
-      !columns.includes(rawOrderby)
-    ) {
-      requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
-      if (!injectedFields.includes(rawOrderby)) {
-        injectedFields.push(rawOrderby);
-      }
+  const requestData = {
+    field: aggregates.map(fieldsToDerivedMetrics),
+  };
+
+  if (
+    rawOrderby &&
+    !unsupportedOrderby &&
+    !aggregates.includes(rawOrderby) &&
+    !columns.includes(rawOrderby)
+  ) {
+    requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
+    if (!injectedFields.includes(rawOrderby)) {
+      injectedFields.push(rawOrderby);
     }
   }
 
-  return requester(api, requestData);
+  return doReleaseHealthRequest(api, {
+    field: requestData.field,
+    orgSlug: organization.slug,
+    end,
+    environment: environments,
+    groupBy: columns.map(fieldsToDerivedMetrics),
+    limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : limit,
+    orderBy: unsupportedOrderby
+      ? ''
+      : isDescending
+        ? `-${fieldsToDerivedMetrics(rawOrderby)}`
+        : fieldsToDerivedMetrics(rawOrderby),
+    interval,
+    project: projects,
+    query: query.conditions,
+    start,
+    statsPeriod: period,
+    cursor,
+    includeSeries,
+    includeTotals,
+  });
 }

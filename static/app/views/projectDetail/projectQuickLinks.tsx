@@ -47,9 +47,6 @@ function ProjectQuickLinks({organization, project, location}: Props) {
     };
   }
 
-  const hasPerfLandingRemovalFlag = organization.features?.includes(
-    'insights-performance-landing-removal'
-  );
   const hasNewFeedback = organization.features.includes('user-feedback-ui');
   const domainView: DomainView | undefined = project
     ? platformToDomainView([project], [parseInt(project.id, 10)])
@@ -68,9 +65,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
     {
       title: t('View Transactions'),
       to: {
-        pathname: hasPerfLandingRemovalFlag
-          ? `${getPerformanceBaseUrl(organization.slug, domainView)}/`
-          : `${getPerformanceBaseUrl(organization.slug)}/`,
+        pathname: `${getPerformanceBaseUrl(organization.slug, domainView)}/`,
         query: {project: project?.id},
       },
       disabled: !organization.features.includes('performance-view'),
