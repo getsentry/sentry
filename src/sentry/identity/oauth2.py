@@ -20,6 +20,8 @@ from sentry.exceptions import NotRegistered
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import (
+    IntegrationPipelineErrorReason,
+    IntegrationPipelineHaltReason,
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
@@ -366,31 +368,26 @@ class OAuth2CallbackView(PipelineView):
             code = request.GET.get("code")
 
             if error:
-                logger.info("identity.token-exchange-error", extra={"error": error})
-                lifecycle.record_halt(
-                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
+                lifecycle.record_failure(
+                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+                    extra={"error": error},
                 )
                 return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
             if state != pipeline.fetch_state("state"):
-                logger.info(
-                    "identity.token-exchange-error",
-                    extra={
-                        "error": "invalid_state",
-                        "state": state,
-                        "pipeline_state": pipeline.fetch_state("state"),
-                        "code": code,
-                    },
-                )
-                lifecycle.record_halt(
-                    "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
+                extra = {
+                    "error": "invalid_state",
+                    "state": state,
+                    "pipeline_state": pipeline.fetch_state("state"),
+                    "code": code,
+                }
+                lifecycle.record_failure(
+                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
                 )
                 return pipeline.error(ERR_INVALID_STATE)
 
             if code is None:
-                lifecycle.record_halt(
-                    "no_code_provided", extra={"failure_info": "no_code_provided"}
-                )
+                lifecycle.record_halt(IntegrationPipelineHaltReason.NO_CODE_PROVIDED)
                 return pipeline.error("no code was provided")
 
         # separate lifecycle event inside exchange_token
