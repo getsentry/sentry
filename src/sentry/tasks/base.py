@@ -163,6 +163,7 @@ def retry(
             except ignore:
                 return
             except ignore_and_capture:
+                Scope.set_level("info")
                 capture_exception()
                 return
             except exclude:
