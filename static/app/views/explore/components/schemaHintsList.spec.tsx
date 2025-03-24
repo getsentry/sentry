@@ -4,7 +4,11 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
-import {PageParamsProvider} from 'sentry/views/explore/contexts/pageParamsContext';
+import {
+  PageParamsProvider,
+  useExploreQuery,
+  useSetExploreQuery,
+} from 'sentry/views/explore/contexts/pageParamsContext';
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -22,6 +26,21 @@ const mockNavigate = jest.fn();
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
 }));
+
+function Subject(
+  props: Omit<Parameters<typeof SchemaHintsList>[0], 'exploreQuery' | 'setExploreQuery'>
+) {
+  function Content() {
+    const query = useExploreQuery();
+    const setQuery = useSetExploreQuery();
+    return <SchemaHintsList {...props} exploreQuery={query} setExploreQuery={setQuery} />;
+  }
+  return (
+    <PageParamsProvider>
+      <Content />
+    </PageParamsProvider>
+  );
+}
 
 // Mock getBoundingClientRect for container
 jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
@@ -70,7 +89,7 @@ describe('SchemaHintsList', () => {
 
   it('should render', () => {
     render(
-      <SchemaHintsList
+      <Subject
         stringTags={mockStringTags}
         numberTags={mockNumberTags}
         supportedAggregates={[]}
@@ -93,13 +112,11 @@ describe('SchemaHintsList', () => {
 
   it('should add hint to query when clicked', async () => {
     render(
-      <PageParamsProvider>
-        <SchemaHintsList
-          stringTags={mockStringTags}
-          numberTags={mockNumberTags}
-          supportedAggregates={[]}
-        />
-      </PageParamsProvider>
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />
     );
 
     const stringTag1Hint = screen.getByText('stringTag1');
@@ -112,14 +129,7 @@ describe('SchemaHintsList', () => {
 
   it('should render loading indicator when isLoading is true', () => {
     render(
-      <PageParamsProvider>
-        <SchemaHintsList
-          stringTags={{}}
-          numberTags={{}}
-          supportedAggregates={[]}
-          isLoading
-        />
-      </PageParamsProvider>
+      <Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} isLoading />
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -127,13 +137,11 @@ describe('SchemaHintsList', () => {
 
   it('should open drawer when see full list is clicked', async () => {
     render(
-      <PageParamsProvider>
-        <SchemaHintsList
-          stringTags={mockStringTags}
-          numberTags={mockNumberTags}
-          supportedAggregates={[]}
-        />
-      </PageParamsProvider>,
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />,
       {organization, router}
     );
 
@@ -153,13 +161,11 @@ describe('SchemaHintsList', () => {
 
   it('should add hint to query when clicked on drawer', async () => {
     render(
-      <PageParamsProvider>
-        <SchemaHintsList
-          stringTags={mockStringTags}
-          numberTags={mockNumberTags}
-          supportedAggregates={[]}
-        />
-      </PageParamsProvider>,
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />,
       {organization, router}
     );
 
@@ -186,13 +192,11 @@ describe('SchemaHintsList', () => {
 
   it('should remove hint from query when checkbox is unchecked on drawer', async () => {
     render(
-      <PageParamsProvider>
-        <SchemaHintsList
-          stringTags={mockStringTags}
-          numberTags={mockNumberTags}
-          supportedAggregates={[]}
-        />
-      </PageParamsProvider>,
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />,
       {
         organization,
         router: {
@@ -216,13 +220,11 @@ describe('SchemaHintsList', () => {
 
   it('should keep drawer open when query is updated', async () => {
     render(
-      <PageParamsProvider>
-        <SchemaHintsList
-          stringTags={mockStringTags}
-          numberTags={mockNumberTags}
-          supportedAggregates={[]}
-        />
-      </PageParamsProvider>,
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />,
       {organization, router}
     );
 
@@ -243,13 +245,11 @@ describe('SchemaHintsList', () => {
 
   it('should show correct search results when query is updated', async () => {
     render(
-      <PageParamsProvider>
-        <SchemaHintsList
-          stringTags={mockStringTags}
-          numberTags={mockNumberTags}
-          supportedAggregates={[]}
-        />
-      </PageParamsProvider>,
+      <Subject
+        stringTags={mockStringTags}
+        numberTags={mockNumberTags}
+        supportedAggregates={[]}
+      />,
       {organization, router}
     );
 
