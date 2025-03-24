@@ -151,3 +151,12 @@ export const ChonkLabelWrap = chonkStyled('div')`
   width: 100%;
   min-width: 0;
 `;
+
+export const ChonkDetails = chonkStyled('div')<{disabled: boolean; priority: Priority}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+  line-height: 1.4;
+  margin-bottom: 0;
+
+  ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
+`;

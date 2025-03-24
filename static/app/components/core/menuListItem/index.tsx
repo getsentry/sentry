@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 
 import {
   ChonkContentWrap,
+  ChonkDetails,
   ChonkInnerWrap,
   ChonkLabel,
   ChonkLabelWrap,
@@ -437,14 +438,17 @@ const Label = withChonk(
   ChonkLabel
 );
 
-const Details = styled('div')<{disabled: boolean; priority: Priority}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  line-height: 1.2;
-  margin-bottom: 0;
+const Details = withChonk(
+  styled('div')<{disabled: boolean; priority: Priority}>`
+    font-size: ${p => p.theme.fontSizeSmall};
+    color: ${p => p.theme.subText};
+    line-height: 1.2;
+    margin-bottom: 0;
 
-  ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
-`;
+    ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
+  `,
+  ChonkDetails
+);
 
 const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;
