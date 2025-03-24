@@ -115,7 +115,7 @@ function countPreviousItemsOfType({
   type: Token;
 }) {
   const itemKeys = [...state.collection.getKeys()];
-  const currentIndex = itemKeys.indexOf(state.selectionManager.focusedKey);
+  const currentIndex = itemKeys.indexOf(state.selectionManager.focusedKey!);
 
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {

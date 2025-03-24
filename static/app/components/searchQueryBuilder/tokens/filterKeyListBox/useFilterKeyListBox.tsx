@@ -222,7 +222,7 @@ export function useFilterKeyListBox({filterValue}: {filterValue: string}) {
       e: React.KeyboardEvent<HTMLInputElement>,
       {state}: {state: ComboBoxState<FilterKeyItem>}
     ) => {
-      const focusedKey = state.selectionManager.focusedKey;
+      const focusedKey = state.selectionManager.focusedKey!;
       const focusedItem = state.collection.getItem(focusedKey);
 
       const direction = e.key === 'ArrowDown' ? 'after' : 'before';

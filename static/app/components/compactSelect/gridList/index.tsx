@@ -21,7 +21,11 @@ interface GridListProps
   extends Omit<React.HTMLAttributes<HTMLUListElement>, 'children'>,
     Omit<
       AriaGridListOptions<any>,
-      'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
+      | 'disabledKeys'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'autoFocus'
     > {
   /**
    * Keyboard event handler, to be attached to the list (`ul`) element, to seamlessly

@@ -212,7 +212,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   sections,
 }: FilterKeyMenuContentProps<T>) {
   const {filterKeys} = useSearchQueryBuilder();
-  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey)?.props
+  const focusedItem = state.collection.getItem(state.selectionManager.focusedKey!)?.props
     ?.value as string | undefined;
   const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
   const showRecentFilters = recentFilters.length > 0;
