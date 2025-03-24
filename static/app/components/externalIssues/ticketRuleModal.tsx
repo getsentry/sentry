@@ -37,7 +37,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const IGNORED_FIELDS = ['Sprint'];
+export const IGNORED_FIELDS = ['Sprint'];
 
 interface TicketRuleModalProps extends ModalRenderProps {
   instance: IssueAlertRuleAction;
@@ -176,7 +176,7 @@ export default function TicketRuleModal({
           makeIntegrationIssueConfigTicketRuleQueryKey({
             orgSlug: organization.slug,
             integrationId: instance.integration,
-            query: {action, ...dynamicFieldValues},
+            query: initialConfigQuery,
           }),
           existingData => (data ? data : existingData)
         );
@@ -203,6 +203,7 @@ export default function TicketRuleModal({
     instance.integration,
     api,
     endpointString,
+    initialConfigQuery,
   ]);
 
   /**
