@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -91,7 +91,7 @@ class BaseArgumentDefinition:
 
 @dataclass
 class ArgumentDefinition(BaseArgumentDefinition):
-    argument_types: set[constants.SearchType] | None = None
+    argument_types: set[Literal["integer", "string"]] | None = None
 
 
 @dataclass
