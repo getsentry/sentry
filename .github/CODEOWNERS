@@ -330,11 +330,14 @@ tests/sentry/api/endpoints/test_organization_dashboard_widget_details.py     @ge
 
 
 ## Flags
-/src/sentry/flags/                                          @getsentry/replay-backend
-/tests/sentry/flags/                                        @getsentry/replay-backend
-/static/app/components/events/featureFlags/                 @getsentry/replay-frontend
-/static/app/views/issueDetails/groupFeatureFlags/           @getsentry/replay-frontend
-/static/app/views/issueDetails/groupTags/                   @getsentry/replay-frontend
+/src/sentry/flags/                                                           @getsentry/replay-backend
+/tests/sentry/flags/                                                         @getsentry/replay-backend
+/static/app/components/events/featureFlags/                                  @getsentry/replay-frontend
+/static/app/views/issueDetails/groupFeatureFlags/                            @getsentry/replay-frontend
+/static/app/views/issueDetails/groupTags/                                    @getsentry/replay-frontend
+/static/app/views/issueDetails/streamline/hooks/useFlagSeries.tsx            @getsentry/replay-frontend
+/static/app/views/issueDetails/streamline/hooks/useOrganizationFlagLog.tsx   @getsentry/replay-frontend
+/static/app/views/issueDetails/streamline/hooks/useSuspectFlags.tsx          @getsentry/replay-frontend
 ## End of Flags
 
 
