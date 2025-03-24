@@ -126,13 +126,29 @@ class TaskNamespace:
         return wrapped
 
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
-        metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
+        metrics.incr(
+            "taskworker.registry.send_task",
+            tags={"namespace": activation.namespace, "task_name": activation.taskname},
+        )
 
         topic = self.router.route_namespace(self.name)
         produce_future = self._producer(topic).produce(
             ArroyoTopic(name=topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
+        try:
+            producer_failure = produce_future.exception()
+            if producer_failure:
+                metrics.incr(
+                    "taskworker.registry.send_task.failed",
+                    tags={"namespace": activation.namespace, "task_name": activation.taskname},
+                )
+        except Exception:
+            metrics.incr(
+                "taskworker.registry.send_task.cancelled",
+                tags={"namespace": activation.namespace, "task_name": activation.taskname},
+            )
+
         if wait_for_delivery:
             try:
                 produce_future.result(timeout=10)
