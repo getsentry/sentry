@@ -452,7 +452,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     else:
         sample_interval_ns = 10000000  # default 10ms
 
-    def create_frame_node(frame_index: int) -> dict:
+    def create_frame_node(frame_index: int) -> dict[str, Any]:
         """Create a node representation for a single frame"""
         frame = frames[frame_index]
         return {
@@ -469,11 +469,11 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             "duration_ns": None,
         }
 
-    def get_node_path(node, parent_path=""):
+    def get_node_path(node: dict[str, Any], parent_path: str = "") -> str:
         """Generate a unique path identifier for a node"""
         return f"{parent_path}/{node['function']}:{node['filename']}:{node['lineno']}"
 
-    def find_or_create_child(parent, frame_data):
+    def find_or_create_child(parent: dict[str, Any], frame_data: dict[str, Any]) -> dict[str, Any]:
         """Find existing child node or create new one"""
         for child in parent["children"]:
             if (
@@ -506,9 +506,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         return nodes
 
     # Build the execution tree and track call stacks
-    execution_tree = []
-    call_stack_history = []  # [(node_ids, timestamp), ...]
-    node_registry = {}  # {node_id: node_reference}
+    execution_tree: list[dict[str, Any]] = []
+    call_stack_history: list[tuple[list[str], int]] = []  # [(node_ids, timestamp), ...]
+    node_registry: dict[str, dict[str, Any]] = {}  # {node_id: node_reference}
 
     for sample in sorted_samples:
         if str(sample["thread_id"]) != str(main_thread_id):
@@ -540,8 +540,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
 
         # Process root node
         if root["node_id"] is None:
-            root["node_id"] = get_node_path(root)
-            node_registry[root["node_id"]] = root
+            node_id = get_node_path(root)
+            root["node_id"] = node_id
+            node_registry[node_id] = root
             root["first_seen_ns"] = timestamp_ns
 
         root["sample_count"] += 1
@@ -556,8 +557,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
             current = find_or_create_child(current, frame)
 
             if current["node_id"] is None:
-                current["node_id"] = get_node_path(current, current_path)
-                node_registry[current["node_id"]] = current
+                node_id = get_node_path(current, current_path)
+                current["node_id"] = node_id
+                node_registry[node_id] = current
                 current["first_seen_ns"] = timestamp_ns
 
             current["sample_count"] += 1
@@ -569,7 +571,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         call_stack_history.append((current_stack_ids, timestamp_ns))
 
     # Calculate function active periods from call stack history
-    function_periods = {}  # {node_id: [(start_time, end_time), ...]}
+    function_periods: dict[str, list[list[int | None]]] = {}
 
     for i, (call_path, timestamp) in enumerate(call_stack_history):
         # Mark functions as started
@@ -606,7 +608,9 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         # Primary method: use function periods if available
         if node_id in function_periods:
             periods = function_periods[node_id]
-            total_duration = sum((end - start) for start, end in periods if end is not None)
+            total_duration = sum(
+                (end - start) for start, end in periods if start is not None and end is not None
+            )
 
             if total_duration > 0:
                 node["duration_ns"] = total_duration

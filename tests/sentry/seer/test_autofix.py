@@ -997,7 +997,7 @@ class TestGetProfileFromTraceTree(APITestCase, SnubaTestCase):
                     }
                 ],
                 "stacks": [[0]],
-                "samples": [{"stack_id": 0, "thread_id": "1"}],
+                "samples": [{"stack_id": 0, "thread_id": "1", "elapsed_since_start_ns": 10000000}],
                 "thread_metadata": {"1": {"name": "MainThread"}},
             }
         }
