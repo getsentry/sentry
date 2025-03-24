@@ -334,7 +334,6 @@ function TourProvider({
     <SizingWindow>
       <BlurBoundary>
         <TourContextProvider<MyTour>
-          isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_MY_TOUR}
           tourContext={MyTourContext}
