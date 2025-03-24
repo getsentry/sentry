@@ -600,7 +600,7 @@ export default typescript.config([
       'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-negative-index': 'error',
       'unicorn/prefer-node-protocol': 'error',
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
