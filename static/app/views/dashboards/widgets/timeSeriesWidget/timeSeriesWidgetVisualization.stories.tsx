@@ -37,6 +37,17 @@ const sampleDurationTimeSeries2 = {
   }),
 };
 
+const sampleDurationTimeSeries3 = {
+  ...sampleDurationTimeSeries,
+  field: 'p75(span.duration)',
+  data: sampleDurationTimeSeries.data.map(datum => {
+    return {
+      ...datum,
+      value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
+    };
+  }),
+};
+
 export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) => {
   APIReference(types.TimeSeriesWidgetVisualization);
 
@@ -116,12 +127,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             stacked!
           </li>
           <li>
-            Bar charts are to your discretion, it's most an aesthetic choice. Generally,
-            bars communicate discrete buckets, and lines communicate continuous data. If
-            you are plotting something like duration, even if it's broken down by time
-            buckets, a line feels right. If you are plotting someting like throughput (a
-            naturally bucketed value) and the buckets are big, a bar chart might be
-            better. Bar charts are also great for comparing quantities.
+            Bar charts are to your discretion. Generally, bars communicate discrete
+            buckets, and lines communicate continuous data. If you are plotting something
+            like duration, even if it's broken down by time buckets, a line feels right.
+            If you are plotting someting like throughput (a naturally bucketed value) and
+            the buckets are big, a bar chart might be better. Generally, bar charts should
+            be bucketed by a pretty long interval, at least a day. Otherwise, there are
+            too many bars, they end up too skinny, and they're hard to understand and
+            interact with.
           </li>
           <li>Use line charts when in doubt! They are almost always the right choice</li>
         </ul>
@@ -365,6 +378,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           </MediumWidget>
           <SmallWidget />
         </SideBySide>
+        <p>
+          Since stacking is configured per plottable, you can combine stacked and
+          unstacked series. Be wary, this creates really high information density, so
+          don't do this on small charts.
+        </p>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Bars(sampleDurationTimeSeries, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeries3),
+            ]}
+          />
+        </LargeWidget>
       </Fragment>
     );
   });
@@ -407,8 +434,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(shiftedSampleDurationTimeSeries, {stack: 'all'}),
-                new Bars(shiftedSampleDurationTimeSeries2, {stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries, {delay, stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries2, {delay, stack: 'all'}),
               ]}
             />
           </MediumWidget>
@@ -596,6 +623,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 const FillParent = styled('div')`
   width: 100%;
   height: 100%;
+`;
+
+const LargeWidget = styled('div')`
+  position: relative;
+  width: 600px;
+  height: 300px;
 `;
 
 const MediumWidget = styled('div')`
