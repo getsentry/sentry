@@ -35,7 +35,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
-  const {data, meta, isError, isPending, pageLinks} = useOurlogs(
+  const {data, meta, isError, isPending, pageLinks, error} = useOurlogs(
     {
       ...options,
       cursor,
@@ -47,7 +47,7 @@ export function useExploreLogsTable(options: Parameters<typeof useOurlogs>[0]) {
     'api.explore.logs-table'
   );
 
-  return {data, meta, isError, isPending, pageLinks};
+  return {data, meta, isError, isPending, pageLinks, error};
 }
 
 export function useExploreLogsTableRow(props: {

@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 
 import type {BreadcrumbsDataSectionProps} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsIssuesSection} from 'sentry/views/explore/logs/logsIssuesSection';
@@ -26,6 +27,7 @@ export function CombinedBreadcrumbsAndLogsSection({
     <LogsPageParamsProvider
       isOnEmbeddedView
       limitToTraceId={event.contexts?.trace?.trace_id}
+      analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
     >
       <CombinedBreadcrumbsAndLogsSectionContent
         event={event}

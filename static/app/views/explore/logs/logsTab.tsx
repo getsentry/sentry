@@ -11,6 +11,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsFields,
@@ -19,6 +20,7 @@ import {
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -44,6 +46,11 @@ export function LogsTabContent({
 
   const {attributes: stringTags} = useTraceItemAttributes('string');
   const {attributes: numberTags} = useTraceItemAttributes('number');
+
+  useLogAnalytics({
+    logsTableResult: tableData,
+    source: LogsAnalyticsPageSource.EXPLORE_LOGS,
+  });
 
   const openColumnEditor = useCallback(() => {
     openModal(

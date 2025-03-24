@@ -7,6 +7,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -66,7 +67,9 @@ export default function LogsPage() {
             </Layout.HeaderActions>
           </Layout.Header>
           <TraceItemAttributeProvider traceItemType={TraceItemDataset.LOGS} enabled>
-            <LogsPageParamsProvider>
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            >
               <LogsTabContent
                 defaultPeriod={defaultPeriod}
                 maxPickableDays={maxPickableDays}
