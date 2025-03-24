@@ -2,7 +2,7 @@ import type {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ApiResult, Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -61,7 +61,7 @@ type Options = {
   yAxis?: string | string[];
 };
 
-export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Options;
+export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Options;
 
 /**
  * Make requests to `events-stats` endpoint
@@ -83,7 +83,7 @@ export type EventsStatsOptions<T extends boolean> = {includeAllArgs?: T} & Optio
  * @param {Record<string, string>} options.queryExtras A list of extra query parameters
  * @param {(org: OrganizationSummary) => string} options.generatePathname A function that returns an override for the pathname
  */
-export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
+export const doEventsRequest = <IncludeAllArgsType extends boolean>(
   api: Client,
   {
     organization,
@@ -113,9 +113,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
     useRpc,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
-  ? Promise<
-      [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
-    >
+  ? Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
   : Promise<EventsStats | MultiSeriesEventsStats> => {
   const pathname =
     generatePathname?.(organization) ??

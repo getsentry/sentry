@@ -47,6 +47,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           {({queryBatching}) => (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               limit={1}
               queryBatching={queryBatching}
               includePrevious

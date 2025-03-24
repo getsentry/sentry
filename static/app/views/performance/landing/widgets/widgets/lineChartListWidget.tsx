@@ -472,6 +472,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               yAxis={yAxis}
               limit={1}
               includePrevious={includePreviousParam}

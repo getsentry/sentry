@@ -32,9 +32,10 @@ describe('Events ActionCreator', function () {
     });
   });
 
-  it('requests events stats with relative period', function () {
-    doEventsRequest(api, {
+  it('requests events stats with relative period', async function () {
+    await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: false,
       period: '7d',
       partial: true,
@@ -52,9 +53,10 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('sets useRpc param', function () {
-    doEventsRequest(api, {
+  it('sets useRpc param', async function () {
+    await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: false,
       period: '7d',
       partial: true,
@@ -73,9 +75,10 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('requests events stats with relative period including previous period', function () {
-    doEventsRequest(api, {
+  it('requests events stats with relative period including previous period', async function () {
+    await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: true,
       period: '7d',
       partial: true,
@@ -93,11 +96,12 @@ describe('Events ActionCreator', function () {
     );
   });
 
-  it('requests events stats with absolute period', function () {
+  it('requests events stats with absolute period', async function () {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
-    doEventsRequest(api, {
+    await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: false,
       start,
       end,
@@ -121,8 +125,9 @@ describe('Events ActionCreator', function () {
   it('requests events stats with absolute period including previous period', async function () {
     const start = new Date('2017-10-12T12:00:00.000Z');
     const end = new Date('2017-10-17T00:00:00.000Z');
-    await doEventsRequest(api, {
+    await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       includePrevious: true,
       start,
       end,
@@ -143,8 +148,9 @@ describe('Events ActionCreator', function () {
   });
 
   it('spreads query extras', async function () {
-    await doEventsRequest(api, {
+    await doEventsRequest<false>(api, {
       ...opts,
+      includeAllArgs: false,
       queryExtras: {useOnDemandMetrics: 'true'},
       partial: true,
     });
