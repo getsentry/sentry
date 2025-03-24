@@ -32,7 +32,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
+export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
 interface SchemaHintsListProps {
   numberTags: TagCollection;
