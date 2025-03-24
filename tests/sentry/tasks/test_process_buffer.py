@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.test import override_settings
 
 from sentry.models.group import Group
@@ -14,6 +15,12 @@ from sentry.testutils.cases import TestCase
 
 
 class ProcessIncrTest(TestCase):
+    @mock.patch("sentry.buffer.backend.process")
+    def test_constraints_model_name(self, process):
+        with pytest.raises(AssertionError) as err:
+            process_incr(model_name="group", columns={"times_seen": 1}, filters={"pk": 1})
+        assert "model_name" in str(err)
+
     @mock.patch("sentry.buffer.backend.process")
     def test_calls_process(self, process):
         columns = {"times_seen": 1}

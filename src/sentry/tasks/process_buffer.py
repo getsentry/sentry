@@ -71,6 +71,7 @@ def process_incr(
     from sentry import buffer
 
     if not model and model_name:
+        assert "." in model_name, "model_name must be in form `sentry.Group`"
         model = apps.get_model(model_name)
 
     if model:
