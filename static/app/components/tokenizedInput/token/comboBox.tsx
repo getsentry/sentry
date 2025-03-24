@@ -308,7 +308,7 @@ function useUpdateOverlayPositionOnContentChange({
   updateOverlayPosition,
   isOpen,
 }: {
-  contentRef: React.RefObject<HTMLDivElement>;
+  contentRef: React.RefObject<HTMLDivElement | null>;
   isOpen: boolean;
   updateOverlayPosition: (() => void) | null;
 }) {

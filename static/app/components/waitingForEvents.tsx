@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -74,7 +74,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
           project={project}
           source="issues_list"
           disabled={!project}
-          title={!project ? t('Select a project to create a sample event') : undefined}
+          title={project ? undefined : t('Select a project to create a sample event')}
         >
           {t('Create a sample event')}
         </CreateSampleEventButton>

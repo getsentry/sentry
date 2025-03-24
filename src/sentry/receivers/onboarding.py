@@ -18,7 +18,6 @@ from sentry.models.organizationonboardingtask import (
     OrganizationOnboardingTask,
 )
 from sentry.models.project import Project
-from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
@@ -57,8 +56,8 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
-@project_created.connect(weak=False)
-def record_new_project(project, user=None, user_id=None, **kwargs):
+@project_created.connect(weak=False, dispatch_uid="record_new_project")
+def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     scope = sentry_sdk.get_current_scope()
     scope.set_extra("project_id", project.id)
@@ -90,6 +89,7 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
+        origin=origin,
         project_id=project.id,
         platform=project.platform,
         updated_empty_state=features.has(
@@ -97,14 +97,17 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         ),
     )
 
-    success = OrganizationOnboardingTask.objects.record(
+    _, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user_id=user_id,
-        status=OnboardingTaskStatus.COMPLETE,
-        project_id=project.id,
+        values={
+            "user_id": user_id,
+            "status": OnboardingTaskStatus.COMPLETE,
+            "project_id": project.id,
+        },
     )
-    if not success:
+    # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
+    if not created:
         # Check if the "first project" task already exists and log an error if needed
         first_project_task_exists = OrganizationOnboardingTask.objects.filter(
             organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
@@ -116,12 +119,14 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
                 level="warning",
             )
 
-        OrganizationOnboardingTask.objects.record(
+        OrganizationOnboardingTask.objects.create_or_update(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user_id=user_id,
-            status=OnboardingTaskStatus.COMPLETE,
-            project_id=project.id,
+            values={
+                "user_id": user_id,
+                "status": OnboardingTaskStatus.COMPLETE,
+                "project_id": project.id,
+            },
         )
         analytics.record(
             "second_platform.added",
@@ -129,7 +134,6 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @first_event_received.connect(weak=False)
@@ -189,11 +193,10 @@ def record_first_event(project, event, **kwargs):
         )
         return
 
-    try:
-        oot = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
-        )[0]
-    except IndexError:
+    oot = OrganizationOnboardingTask.objects.filter(
+        organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
+    ).first()
+    if not oot:
         return
 
     # Only counts if it's a new project
@@ -210,6 +213,13 @@ def record_first_event(project, event, **kwargs):
             },
         )
         if rows_affected or created:
+            # NOTE (vgrozdanic): preparation for deletion of this code
+            # this should never happen since the SECOND_PLATFORM task should be created
+            # when the project is created
+            logger.warning(
+                "Creating second platform task in record_first_event for project %s",
+                project.id,
+            )
             analytics.record(
                 "second_platform.added",
                 user_id=user.id if user else None,
@@ -220,14 +230,21 @@ def record_first_event(project, event, **kwargs):
 
 
 @first_transaction_received.connect(weak=False)
-def record_first_transaction(project, event, **kwargs):
+def _record_first_transaction(project, event, **kwargs):
+    return record_first_transaction(project, event.datetime, **kwargs)
+
+
+def record_first_transaction(project, datetime, **kwargs):
+    if project.flags.has_transactions:
+        return
+
     project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
     OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_TRANSACTION,
         status=OnboardingTaskStatus.COMPLETE,
-        date_completed=event.datetime,
+        date_completed=datetime,
     )
 
     try:
@@ -280,7 +297,6 @@ def record_first_replay(project, **kwargs):
             platform=project.platform,
         )
         logger.info("record_first_replay_analytics_end")
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @first_flag_received.connect(weak=False)
@@ -359,7 +375,6 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
     )
 
 
-@first_insight_span_received.connect(weak=False)
 def record_first_insight_span(project, module, **kwargs):
     flag = None
     if module == InsightModules.HTTP:
@@ -394,6 +409,9 @@ def record_first_insight_span(project, module, **kwargs):
     )
 
 
+first_insight_span_received.connect(record_first_insight_span, weak=False)
+
+
 @member_invited.connect(weak=False)
 def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.record(
@@ -415,7 +433,7 @@ def record_member_invited(member, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+    OrganizationOnboardingTask.objects.create_or_update(
         organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
@@ -425,12 +443,14 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
             "data": {"invited_member_id": organization_member_id},
         },
     )
-    if created or rows_affected:
-        try_mark_onboarding_complete(organization_id)
 
 
-def record_release_received(project, event, **kwargs):
-    if not event.data.get("release"):
+def _record_release_received(project, event, **kwargs):
+    return record_release_received(project, event.data.get("release"), **kwargs)
+
+
+def record_release_received(project, release, **kwargs):
+    if not release:
         return
 
     success = OrganizationOnboardingTask.objects.record(
@@ -456,11 +476,10 @@ def record_release_received(project, event, **kwargs):
             project_id=project.id,
             organization_id=project.organization_id,
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
-event_processed.connect(record_release_received, weak=False)
-transaction_processed.connect(record_release_received, weak=False)
+event_processed.connect(_record_release_received, weak=False)
+transaction_processed.connect(_record_release_received, weak=False)
 
 
 @first_event_with_minified_stack_trace_received.connect(weak=False)
@@ -528,7 +547,6 @@ def record_sourcemaps_received(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)
@@ -572,7 +590,7 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
     if rule_type == "metric":
         return
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
+    OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
         task=OnboardingTask.ALERT_RULE,
         values={
@@ -582,9 +600,6 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
             "date_completed": django_timezone.now(),
         },
     )
-
-    if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id)
 
 
 @integration_added.connect(weak=False)
@@ -617,4 +632,3 @@ def record_integration_added(
                     task=task_mapping[integration_type],
                     status=OnboardingTaskStatus.COMPLETE,
                 )
-    try_mark_onboarding_complete(organization_id)

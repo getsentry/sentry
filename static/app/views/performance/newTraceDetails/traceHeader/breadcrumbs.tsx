@@ -60,7 +60,8 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   mobile_screens_module: ModuleName.MOBILE_VITALS,
 };
 
-export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+// Remove this when the new navigation is GA'd
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY: Partial<
   Record<TraceViewSources, string>
 > = {
   traces: 'traces',
@@ -70,6 +71,19 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
   performance_transaction_summary: 'traces',
   issue_details: 'issues',
   feedback_details: 'feedback',
+  dashboards: 'dashboards',
+};
+
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+  Record<TraceViewSources, string>
+> = {
+  traces: 'explore/traces',
+  metrics: 'metrics',
+  discover: 'explore/discover',
+  profiling_flamegraph: 'explore/profiling',
+  performance_transaction_summary: 'explore/traces',
+  issue_details: 'issues',
+  feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
 };
 
@@ -151,16 +165,6 @@ function getPerformanceBreadCrumbs(
       }
       break;
     }
-    case Tab.AGGREGATE_WATERFALL:
-      crumbs.push({
-        label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/aggregateWaterfall`,
-          location.query,
-          organization
-        ),
-      });
-      break;
     default:
       crumbs.push({
         label: t('Transaction Summary'),

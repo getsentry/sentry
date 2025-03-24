@@ -1,4 +1,4 @@
-import {type BaseButtonProps, Button} from 'sentry/components/button';
+import {type BaseButtonProps, Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

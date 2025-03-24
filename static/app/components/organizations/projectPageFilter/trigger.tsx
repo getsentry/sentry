@@ -1,10 +1,10 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
-import PlatformList from 'sentry/components/platformList';
+import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -93,7 +93,9 @@ function BaseProjectPageFilterTrigger(
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}
       </TriggerLabelWrap>
-      {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
+      {remainingCount > 0 && (
+        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+      )}
     </DropdownButton>
   );
 }

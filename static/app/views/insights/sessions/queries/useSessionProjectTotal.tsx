@@ -11,8 +11,8 @@ export default function useSessionProjectTotal() {
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
@@ -39,6 +39,6 @@ export default function useSessionProjectTotal() {
   }
 
   return projSessionData.groups.length
-    ? projSessionData.groups[0]!.totals['sum(session)'] ?? 0
+    ? (projSessionData.groups[0]!.totals['sum(session)'] ?? 0)
     : 0;
 }

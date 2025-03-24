@@ -6,6 +6,7 @@ from sentry.integrations.messaging.spec import (
     MessagingIdentityLinkViewSet,
     MessagingIntegrationSpec,
 )
+from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.rules.actions import IntegrationEventAction
 
@@ -39,7 +40,8 @@ class DiscordMessagingSpec(MessagingIntegrationSpec):
         self,
         action: AlertRuleTriggerAction,
         incident: Incident,
-        metric_value: float,
+        project: Project,
+        metric_value: int | float | None,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> bool:
@@ -48,7 +50,11 @@ class DiscordMessagingSpec(MessagingIntegrationSpec):
         )
 
         return send_incident_alert_notification(
-            action, incident, metric_value, new_status, notification_uuid
+            action=action,
+            incident=incident,
+            new_status=new_status,
+            metric_value=metric_value,
+            notification_uuid=notification_uuid,
         )
 
     @property

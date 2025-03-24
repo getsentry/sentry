@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -7,14 +8,16 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.request import Request
 
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationDomain,
     IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
@@ -31,8 +34,8 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 from sentry.web.helpers import render_to_response
@@ -140,7 +143,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -165,7 +168,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_LOGIN,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -175,6 +178,7 @@ class OAuthLoginView(PipelineView):
                 return pipeline.next_step()
 
             config = pipeline.fetch_state("installation_data")
+            assert config is not None
             client = BitbucketServerSetupClient(
                 config.get("url"),
                 config.get("consumer_key"),
@@ -205,13 +209,14 @@ class OAuthCallbackView(PipelineView):
     """
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         with IntegrationPipelineViewEvent(
             IntegrationPipelineViewType.OAUTH_CALLBACK,
             IntegrationDomain.SOURCE_CODE_MANAGEMENT,
             BitbucketServerIntegrationProvider.key,
         ).capture() as lifecycle:
             config = pipeline.fetch_state("installation_data")
+            assert config is not None
             client = BitbucketServerSetupClient(
                 config.get("url"),
                 config.get("consumer_key"),
@@ -340,8 +345,9 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         repos = repository_service.get_repositories(
             organization_id=organization.id,
@@ -358,7 +364,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
                 }
             )
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         install = state["installation_data"]
         access_token = state["access_token"]
 

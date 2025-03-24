@@ -3,7 +3,7 @@ import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {useStacktraceCoverage} from 'sentry/components/events/interfaces/frame/useStacktraceCoverage';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -108,7 +108,7 @@ interface StacktraceLinkProps {
   /**
    * The line of code being linked
    */
-  line: string;
+  line: string | null;
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
@@ -293,7 +293,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   // Hide stacktrace link errors if the stacktrace might be minified javascript
   // Check if the line starts and ends with {snip}
   const isMinifiedJsError =
-    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line);
+    event.platform === 'javascript' && /(\{snip\}).*\1/.test(line ?? '');
   const isUnsupportedPlatform = !supportedStacktracePlatforms.includes(
     event.platform as PlatformKey
   );

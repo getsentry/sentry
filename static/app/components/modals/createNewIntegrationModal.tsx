@@ -3,32 +3,23 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {
   platformEventLinkMap,
   PlatformEvents,
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrations/exampleIntegrationButton';
-
-export type CreateNewIntegrationModalOptions = {organization: Organization};
-type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRenderProps;
 
 const analyticsView = 'new_integration_modal';
 
-function CreateNewIntegrationModal({
-  Body,
-  Header,
-  Footer,
-  closeModal,
-  organization,
-}: CreateNewIntegrationModalProps) {
+function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRenderProps) {
+  const organization = useOrganization();
   const [option, selectOption] = useState('internal');
   const choices = [
     [
@@ -153,4 +144,4 @@ const HeaderWrapper = styled('div')`
   width: 100%;
 `;
 
-export default withOrganization(CreateNewIntegrationModal);
+export default CreateNewIntegrationModal;

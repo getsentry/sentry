@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
@@ -55,28 +56,21 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
         )
 
         # This entire endpoint will be removed once custom views are GA'd
-        GroupSearchView.objects.create_or_update(
+        default_view, created = GroupSearchView.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,
-            position=0,
             values={
                 "name": "Default Search",
                 "query": result["query"],
                 "query_sort": result["sort"],
             },
         )
-        # These groupsearchview entries are temporarily here to ensure that pinned searches
-        # are being dynamically upgraded to custom views until custom views are GA'd, at which
-        # point saved searches will be removed entirely, along with this endpoint.
-        GroupSearchView.objects.create_or_update(
+        default_view_id = default_view.id if created else default_view
+        GroupSearchViewStarred.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,
-            position=1,
-            values={
-                "name": "Prioritized",
-                "query": "is:unresolved issue.priority:[high, medium]",
-                "query_sort": SortOptions.DATE,
-            },
+            group_search_view_id=default_view_id,
+            values={"position": 0},
         )
 
         pinned_search = SavedSearch.objects.get(

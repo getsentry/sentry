@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+from collections.abc import Container
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -102,7 +103,7 @@ def get_superuser_scopes(
 
 
 def superuser_has_permission(
-    request: HttpRequest | Request, permissions: frozenset[str] | None = None
+    request: HttpRequest | Request, permissions: Container[str] | None = None
 ) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.

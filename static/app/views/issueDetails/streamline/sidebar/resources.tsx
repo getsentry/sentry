@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -18,8 +18,9 @@ export default function Resources({configResources, eventPlatform, group}: Props
   const organization = useOrganization();
   const links: ResourceLink[] = [
     ...configResources.links,
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    ...(configResources.linksByPlatform[eventPlatform ?? ''] ?? []),
+    ...(configResources.linksByPlatform[
+      (eventPlatform ?? '') as keyof typeof configResources.linksByPlatform
+    ] ?? []),
   ];
 
   return (

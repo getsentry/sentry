@@ -1,3 +1,4 @@
+from hashlib import md5
 from unittest import mock
 
 import pytest
@@ -7,14 +8,18 @@ from pytest import raises
 
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.issues.grouptype import UptimeDomainCheckFailure
+from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
+from sentry.uptime.issue_platform import create_issue_platform_occurrence
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
@@ -104,6 +109,30 @@ class CreateUptimeSubscriptionTest(UptimeTestCase):
         assert uptime_sub.url_domain_suffix == "io"
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
+
+    def test_regions(self):
+        with (
+            override_settings(
+                UPTIME_REGIONS=[
+                    UptimeRegionConfig(slug="active_region", name="active_region"),
+                    UptimeRegionConfig(slug="shadow_region", name="shadow_region"),
+                ]
+            ),
+            override_options(
+                {
+                    "uptime.checker-regions-mode-override": {
+                        "shadow_region": UptimeSubscriptionRegion.RegionMode.SHADOW
+                    }
+                }
+            ),
+        ):
+            uptime_sub = create_uptime_subscription("https://sentry.io", 300, 500)
+            assert [
+                (r.region_slug, r.mode) for r in uptime_sub.regions.all().order_by("region_slug")
+            ] == [
+                ("active_region", UptimeSubscriptionRegion.RegionMode.ACTIVE),
+                ("shadow_region", UptimeSubscriptionRegion.RegionMode.SHADOW),
+            ]
 
 
 class UpdateUptimeSubscriptionTest(UptimeTestCase):
@@ -398,44 +427,6 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
         assert prev_uptime_subscription.body == "a body"
         assert prev_uptime_subscription.subscription_id == prev_subscription_id
 
-    def test_removes_old(self):
-        with self.tasks():
-            proj_sub = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            prev_uptime_subscription = proj_sub.uptime_subscription
-            prev_uptime_subscription.update(migrated=False)
-            update_project_uptime_subscription(
-                proj_sub,
-                environment=self.environment,
-                url="https://santry.io",
-                interval_seconds=proj_sub.uptime_subscription.interval_seconds,
-                timeout_ms=1000,
-                method=proj_sub.uptime_subscription.method,
-                headers=proj_sub.uptime_subscription.headers,
-                body=proj_sub.uptime_subscription.body,
-                name=proj_sub.name,
-                owner=proj_sub.owner,
-                trace_sampling=proj_sub.uptime_subscription.trace_sampling,
-            )
-
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            prev_uptime_subscription.refresh_from_db()
-
-        assert ProjectUptimeSubscription.objects.filter(
-            project=self.project,
-            uptime_subscription__url="https://santry.io",
-            uptime_subscription__interval_seconds=3600,
-            uptime_subscription__timeout_ms=1000,
-            # Since we updated, should be marked as manual
-            mode=ProjectUptimeSubscriptionMode.MANUAL,
-        ).exists()
-
     def test_already_exists(self):
         with self.tasks():
             proj_sub = create_project_uptime_subscription(
@@ -544,80 +535,6 @@ class UpdateProjectUptimeSubscriptionTest(UptimeTestCase):
                 status=ObjectStatus.ACTIVE,
             )
         mock_enable_project_uptime_subscription.assert_called()
-
-    def test_migration_creates_new_migrated_row(self):
-        with self.tasks():
-            proj_sub = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            prev_uptime_subscription = proj_sub.uptime_subscription
-            prev_uptime_subscription.update(migrated=False)
-            update_project_uptime_subscription(
-                proj_sub,
-                environment=self.environment,
-                url="https://santry.io",
-                interval_seconds=60,
-                timeout_ms=1000,
-                method="POST",
-                headers=[("some", "header")],
-                body="a body",
-                name="New name",
-                owner=Actor.from_orm_user(self.user),
-                trace_sampling=False,
-            )
-
-        proj_sub.refresh_from_db()
-        assert proj_sub.name == "New name"
-        assert proj_sub.owner_user_id == self.user.id
-        assert proj_sub.owner_team_id is None
-        assert proj_sub.mode == ProjectUptimeSubscriptionMode.MANUAL
-        new_uptime_subscription = proj_sub.uptime_subscription
-        assert new_uptime_subscription.id != prev_uptime_subscription.id
-        assert new_uptime_subscription.subscription_id != prev_uptime_subscription.subscription_id
-        assert new_uptime_subscription.url == "https://santry.io"
-        assert new_uptime_subscription.interval_seconds == 60
-        assert new_uptime_subscription.timeout_ms == 1000
-        assert new_uptime_subscription.method == "POST"
-        assert new_uptime_subscription.headers == [["some", "header"]]
-        assert new_uptime_subscription.body == "a body"
-        assert new_uptime_subscription.migrated
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            prev_uptime_subscription.refresh_from_db()
-
-    def test_migrated_does_not_violate_constraint(self):
-        with self.tasks():
-            proj_sub = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            uptime_sub_1 = proj_sub.uptime_subscription
-            uptime_sub_1.update(migrated=False)
-
-            proj_sub_2 = create_project_uptime_subscription(
-                self.project,
-                self.environment,
-                url="https://sentry.io",
-                interval_seconds=3600,
-                timeout_ms=1000,
-                mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            )
-            uptime_sub_2 = proj_sub_2.uptime_subscription
-
-        uptime_sub_1.refresh_from_db()
-        uptime_sub_2.refresh_from_db()
-        assert uptime_sub_1.url == uptime_sub_2.url
-        assert uptime_sub_1.interval_seconds == uptime_sub_2.interval_seconds
-        assert uptime_sub_1.id != uptime_sub_2.id
-        assert uptime_sub_1.subscription_id != uptime_sub_2.subscription_id
 
 
 class DeleteUptimeSubscriptionsForProjectTest(UptimeTestCase):
@@ -901,6 +818,40 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
 
         proj_sub.refresh_from_db()
         assert proj_sub.status == ObjectStatus.DISABLED
+        assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+        mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
+
+    @mock.patch("sentry.quotas.backend.disable_seat")
+    def test_disable_failed(self, mock_disable_seat):
+        with self.tasks(), self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
+            proj_sub = create_project_uptime_subscription(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=3600,
+                timeout_ms=1000,
+                mode=ProjectUptimeSubscriptionMode.MANUAL,
+                uptime_status=UptimeStatus.FAILED,
+            )
+
+            create_issue_platform_occurrence(
+                self.create_uptime_result(
+                    subscription_id=proj_sub.uptime_subscription.subscription_id
+                ),
+                proj_sub,
+            )
+            hashed_fingerprint = md5(str(proj_sub.id).encode("utf-8")).hexdigest()
+            assert Group.objects.filter(
+                grouphash__hash=hashed_fingerprint, status=GroupStatus.UNRESOLVED
+            ).exists()
+            disable_project_uptime_subscription(proj_sub)
+            assert Group.objects.filter(
+                grouphash__hash=hashed_fingerprint, status=GroupStatus.RESOLVED
+            ).exists()
+
+        proj_sub.refresh_from_db()
+        assert proj_sub.status == ObjectStatus.DISABLED
+        assert proj_sub.uptime_status == UptimeStatus.OK
         assert proj_sub.uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
         mock_disable_seat.assert_called_with(DataCategory.UPTIME, proj_sub)
 

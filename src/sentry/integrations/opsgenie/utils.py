@@ -6,10 +6,15 @@ from typing import Any, cast
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
+from sentry.integrations.metric_alerts import (
+    get_metric_count_from_incident,
+    incident_attachment_info,
+)
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
@@ -18,24 +23,30 @@ OPSGENIE_CUSTOM_PRIORITIES = {"P1", "P2", "P3", "P4", "P5"}
 
 
 def build_incident_attachment(
-    incident: Incident,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    organization: Organization,
     notification_uuid: str | None = None,
 ) -> dict[str, Any]:
+
     data = incident_attachment_info(
-        incident, new_status, metric_value, notification_uuid, referrer="metric_alert_opsgenie"
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        organization=organization,
+        notification_uuid=notification_uuid,
+        referrer="metric_alert_opsgenie",
     )
-    alert_key = f"incident_{incident.organization_id}_{incident.identifier}"
-    if new_status == IncidentStatus.CLOSED:
+
+    alert_key = f"incident_{organization.id}_{metric_issue_context.open_period_identifier}"
+    if metric_issue_context.new_status == IncidentStatus.CLOSED:
         payload = {"identifier": alert_key}
         return payload
 
     priority = "P1"
-    if new_status == IncidentStatus.WARNING:
+    if metric_issue_context.new_status == IncidentStatus.WARNING:
         priority = "P2"
     payload = {
-        "message": incident.alert_rule.name,
+        "message": alert_context.name,
         "alias": alert_key,
         "description": data["text"],
         "source": "Sentry",
@@ -74,11 +85,14 @@ def get_team(team_id: int | str | None, org_integration: RpcOrganizationIntegrat
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
-    metric_value: float,
     new_status: IncidentStatus,
+    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     from sentry.integrations.opsgenie.integration import OpsgenieIntegration
+
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
 
     result = integration_service.organization_context(
         organization_id=incident.organization_id, integration_id=action.integration_id
@@ -100,7 +114,14 @@ def send_incident_alert_notification(
         integration.get_installation(organization_id=org_integration.organization_id),
     )
     client = install.get_keyring_client(keyid=team["id"])
-    attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    attachment = build_incident_attachment(
+        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+        metric_issue_context=MetricIssueContext.from_legacy_models(
+            incident, new_status, metric_value
+        ),
+        organization=incident.organization,
+        notification_uuid=notification_uuid,
+    )
     attachment = attach_custom_priority(attachment, action, new_status)
 
     try:

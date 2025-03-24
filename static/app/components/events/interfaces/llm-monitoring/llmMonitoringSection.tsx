@@ -1,5 +1,5 @@
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -94,9 +94,7 @@ export default function LLMMonitoringSection({event, organization}: Props) {
       help={t('Charts showing how many tokens are being used')}
       actions={actions}
     >
-      {!aiPipelineGroup ? (
-        'loading'
-      ) : (
+      {aiPipelineGroup ? (
         <ModuleLayout.Layout>
           <ModuleLayout.Half>
             {useEAP ? (
@@ -113,6 +111,8 @@ export default function LLMMonitoringSection({event, organization}: Props) {
             )}
           </ModuleLayout.Half>
         </ModuleLayout.Layout>
+      ) : (
+        'loading'
       )}
     </InterimSection>
   );

@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import GroupEvent
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.project_management.metrics import (
@@ -22,7 +23,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import RuleFuture
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.rules")
 
@@ -133,26 +133,14 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
             try:
                 response = installation.create_issue(data)
-            except IntegrationInstallationConfigurationError as e:
+            except (
+                IntegrationInstallationConfigurationError,
+                IntegrationFormError,
+                InvalidIdentity,
+            ) as e:
+                # Most of the time, these aren't explicit failures, they're
+                # some misconfiguration of an issue field - typically Jira.
                 lifecycle.record_halt(e)
-                raise
-            except Exception as e:
-                if isinstance(e, IntegrationFormError):
-                    # Most of the time, these aren't explicit failures, they're
-                    # some misconfiguration of an issue field - typically Jira.
-                    lifecycle.record_halt(str(e))
-                else:
-                    # Don't pass the full exception here, as it can contain a
-                    # massive request response along with its stacktrace
-                    lifecycle.record_failure(str(e))
-
-                metrics.incr(
-                    f"{provider}.rule_trigger.create_ticket.failure",
-                    tags={
-                        "provider": provider,
-                    },
-                )
-
                 raise
 
         create_link(integration, installation, event, response)

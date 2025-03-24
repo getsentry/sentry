@@ -1,5 +1,8 @@
+from typing import Any
+
 from django.db import models
 from django.db.models import UniqueConstraint
+from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH
@@ -26,6 +29,18 @@ class GroupSearchViewProject(DefaultFieldsModel):
         unique_together = (("group_search_view", "project"),)
 
 
+class GroupSearchViewVisibility:
+    ORGANIZATION = "organization"
+    OWNER = "owner"
+
+    @classmethod
+    def as_choices(cls) -> list[tuple[str, Any]]:
+        return [
+            (cls.ORGANIZATION, _("Organization")),
+            (cls.OWNER, _("Only for me")),
+        ]
+
+
 @region_silo_model
 class GroupSearchView(DefaultFieldsModelExisting):
     """
@@ -37,11 +52,17 @@ class GroupSearchView(DefaultFieldsModelExisting):
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     organization = FlexibleForeignKey("sentry.Organization")
 
+    visibility = models.CharField(
+        max_length=16,
+        db_default=GroupSearchViewVisibility.OWNER,
+        choices=GroupSearchViewVisibility.as_choices(),
+    )
+
     query = models.TextField()
     query_sort = models.CharField(
         max_length=16, default=SortOptions.DATE, choices=SortOptions.as_choices()
     )
-    position = models.PositiveSmallIntegerField()
+    position = models.PositiveSmallIntegerField(null=True)
 
     # Projects = [] maps to "My Projects" (This is so when a project is deleted, it correctly defaults to "My Projects")
     projects = models.ManyToManyField("sentry.Project", through="sentry.GroupSearchViewProject")
@@ -64,7 +85,3 @@ class GroupSearchView(DefaultFieldsModelExisting):
                 deferrable=models.Deferrable.DEFERRED,
             )
         ]
-
-    @property
-    def is_default(self):
-        return self.position == 0

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
@@ -184,13 +184,7 @@ function AccountIdentities() {
       <Panel>
         <PanelHeader>{t('Application Identities')}</PanelHeader>
         <PanelBody>
-          {!appIdentities.length ? (
-            <EmptyMessage>
-              {t(
-                'There are no application identities associated with your Sentry account'
-              )}
-            </EmptyMessage>
-          ) : (
+          {appIdentities.length ? (
             // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
             appIdentities.map(identity => (
               <IdentityItem
@@ -199,6 +193,12 @@ function AccountIdentities() {
                 onDisconnect={handleDisconnect}
               />
             ))
+          ) : (
+            <EmptyMessage>
+              {t(
+                'There are no application identities associated with your Sentry account'
+              )}
+            </EmptyMessage>
           )}
         </PanelBody>
       </Panel>
@@ -206,13 +206,7 @@ function AccountIdentities() {
       <Panel>
         <PanelHeader>{t('Organization Identities')}</PanelHeader>
         <PanelBody>
-          {!orgIdentities.length ? (
-            <EmptyMessage>
-              {t(
-                'There are no organization identities associated with your Sentry account'
-              )}
-            </EmptyMessage>
-          ) : (
+          {orgIdentities.length ? (
             // @ts-expect-error TS(7006): Parameter 'identity' implicitly has an 'any' type.
             orgIdentities.map(identity => (
               <IdentityItem
@@ -221,6 +215,12 @@ function AccountIdentities() {
                 onDisconnect={handleDisconnect}
               />
             ))
+          ) : (
+            <EmptyMessage>
+              {t(
+                'There are no organization identities associated with your Sentry account'
+              )}
+            </EmptyMessage>
           )}
         </PanelBody>
       </Panel>

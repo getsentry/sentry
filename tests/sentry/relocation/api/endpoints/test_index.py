@@ -305,7 +305,7 @@ class PostRelocationsTest(APITestCase):
         return (tmp_priv_key_path, tmp_pub_key_path)
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.relocation.tasks.uploading_start.apply_async")
+    @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_simple(
         self,
         uploading_start_mock: Mock,
@@ -369,7 +369,7 @@ class PostRelocationsTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.relocation.tasks.uploading_start.apply_async")
+    @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_promo_code(
         self,
         uploading_start_mock: Mock,
@@ -440,7 +440,7 @@ class PostRelocationsTest(APITestCase):
             "relocation.autopause.self-hosted": "IMPORTING",
         }
     )
-    @patch("sentry.relocation.tasks.uploading_start.apply_async")
+    @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_with_valid_autopause_option(
         self,
         uploading_start_mock: Mock,
@@ -495,7 +495,7 @@ class PostRelocationsTest(APITestCase):
             "relocation.autopause.saas-to-saas": "IMPORTING",
         }
     )
-    @patch("sentry.relocation.tasks.uploading_start.apply_async")
+    @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_with_untriggered_autopause_option(
         self,
         uploading_start_mock: Mock,
@@ -532,7 +532,7 @@ class PostRelocationsTest(APITestCase):
             "relocation.autopause.self-hosted": "DOESNOTEXIST",
         }
     )
-    @patch("sentry.relocation.tasks.uploading_start.apply_async")
+    @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_with_invalid_autopause_option(
         self,
         uploading_start_mock: Mock,
@@ -583,7 +583,7 @@ class PostRelocationsTest(APITestCase):
     @override_options(
         {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
     )
-    @patch("sentry.relocation.tasks.uploading_start.apply_async")
+    @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_staff_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
@@ -645,7 +645,7 @@ class PostRelocationsTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
-    @patch("sentry.relocation.tasks.uploading_start.apply_async")
+    @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
     def test_good_superuser_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
@@ -769,7 +769,7 @@ class PostRelocationsTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @patch("sentry.relocation.tasks.uploading_start.apply_async")
+        @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
         def test_good_valid_org_slugs(
             self,
             uploading_start_mock: Mock,
@@ -830,7 +830,7 @@ class PostRelocationsTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @patch("sentry.relocation.tasks.uploading_start.apply_async")
+        @patch("sentry.relocation.tasks.process.uploading_start.apply_async")
         def test_bad_invalid_org_slugs(
             self,
             analytics_record_mock: Mock,

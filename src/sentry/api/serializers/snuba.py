@@ -50,7 +50,11 @@ def calculate_time_frame(start, end, rollup):
     return {"start": rollup_start, "end": rollup_end}
 
 
-class BaseSnubaSerializer:
+class SnubaTSResultSerializer:
+    """
+    Serializer for time-series Snuba data.
+    """
+
     def __init__(self, organization, lookup, user):
         self.organization = organization
         self.lookup = lookup
@@ -61,12 +65,6 @@ class BaseSnubaSerializer:
             return item_list
 
         return self.lookup.serializer(self.organization, item_list, self.user)
-
-
-class SnubaTSResultSerializer(BaseSnubaSerializer):
-    """
-    Serializer for time-series Snuba data.
-    """
 
     def serialize(
         self,

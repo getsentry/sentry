@@ -3,9 +3,9 @@ import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -37,7 +37,7 @@ interface ToolbarGroupByProps {
 }
 
 export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
-  const tags = useSpanTags();
+  const {tags} = useSpanTags();
   const mode = useExploreMode();
 
   const groupBys = useExploreGroupBys();
@@ -69,16 +69,8 @@ export function ToolbarGroupBy({disabled}: ToolbarGroupByProps) {
 
     return [
       // hard code in an empty option
-      {
-        label: <Disabled>{t('None')}</Disabled>,
-        value: UNGROUPED,
-        textValue: t('none'),
-      },
-      ...potentialOptions.map(key => ({
-        label: key,
-        value: key,
-        textValue: key,
-      })),
+      {label: <Disabled>{t('None')}</Disabled>, value: UNGROUPED, textValue: t('none')},
+      ...potentialOptions.map(key => ({label: key, value: key, textValue: key})),
     ];
   }, [groupBys, tags]);
 
@@ -178,10 +170,7 @@ function ColumnEditorRow({
     <ToolbarRow
       key={column.id}
       ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
+      style={{transform: CSS.Transform.toString(transform), transition}}
       {...attributes}
     >
       <Button
@@ -200,11 +189,7 @@ function ColumnEditorRow({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         searchable
-        triggerProps={{
-          style: {
-            width: '100%',
-          },
-        }}
+        triggerProps={{style: {width: '100%'}}}
       />
       <Button
         aria-label={t('Remove Column')}

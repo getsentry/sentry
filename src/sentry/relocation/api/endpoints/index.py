@@ -26,7 +26,7 @@ from sentry.options import get
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
 from sentry.relocation.models.relocation import Relocation, RelocationFile
-from sentry.relocation.tasks import uploading_start
+from sentry.relocation.tasks.process import uploading_start
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
@@ -47,7 +47,7 @@ ERR_THROTTLED_RELOCATION = (
 )
 ERR_UNKNOWN_RELOCATION_STATUS = Template("`$status` is not a valid relocation status.")
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 RELOCATION_FILE_SIZE_SMALL = 10 * 1024**2
 RELOCATION_FILE_SIZE_MEDIUM = 100 * 1024**2
@@ -156,7 +156,7 @@ def get_autopause_value(provenance: Relocation.Provenance) -> int | None:
 
 @region_silo_endpoint
 class RelocationIndexEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,

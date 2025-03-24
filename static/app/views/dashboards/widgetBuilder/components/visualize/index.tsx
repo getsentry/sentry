@@ -1,18 +1,17 @@
 import {Fragment, type ReactNode, useMemo, useState} from 'react';
 import {closestCenter, DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import BaseTag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {TriggerLabel} from 'sentry/components/compactSelect/control';
+import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import Input from 'sentry/components/input';
-import Radio from 'sentry/components/radio';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,10 +58,8 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 export const NONE = 'none';
 
 export const NONE_AGGREGATE = {
-  textValue: t('field (no aggregate)'),
-  label: tct('[emphasis:field (no aggregate)]', {
-    emphasis: <em />,
-  }),
+  textValue: t('field'),
+  label: tct('[emphasis:field]', {emphasis: <em />}),
   value: NONE,
   trailingItems: null,
 };
@@ -249,9 +246,7 @@ function Visualize({error, setError}: VisualizeProps) {
   let tags = useTags();
   const {customMeasurements} = useCustomMeasurements();
   const {selectedAggregate: queryParamSelectedAggregate} = useLocationQuery({
-    fields: {
-      selectedAggregate: decodeScalar,
-    },
+    fields: {selectedAggregate: decodeScalar},
   });
   const [selectedAggregateSet, setSelectedAggregateSet] = useState(
     defined(queryParamSelectedAggregate)
@@ -263,8 +258,8 @@ function Visualize({error, setError}: VisualizeProps) {
     state.displayType !== DisplayType.TABLE &&
     state.displayType !== DisplayType.BIG_NUMBER;
   const isBigNumberWidget = state.displayType === DisplayType.BIG_NUMBER;
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
 
   // Span column options are explicitly defined and bypass all of the
   // fieldOptions filtering and logic used for showing options for
@@ -581,7 +576,6 @@ function Visualize({error, setError}: VisualizeProps) {
                               name="arithmetic"
                               key="parameter:text"
                               type="text"
-                              required
                               value={field.field}
                               onUpdate={value => {
                                 dispatch({
@@ -678,10 +672,7 @@ function Visualize({error, setError}: VisualizeProps) {
                                         return;
                                       }
                                       newFields[index]!.function[1] = value;
-                                      dispatch({
-                                        type: updateAction,
-                                        payload: newFields,
-                                      });
+                                      dispatch({type: updateAction, payload: newFields});
                                       setError?.({...error, queries: []});
                                     }}
                                   />
@@ -699,10 +690,7 @@ function Visualize({error, setError}: VisualizeProps) {
                               onChange={e => {
                                 const newFields = cloneDeep(fields);
                                 newFields[index]!.alias = e.target.value;
-                                dispatch({
-                                  type: updateAction,
-                                  payload: newFields,
-                                });
+                                dispatch({type: updateAction, payload: newFields});
                               }}
                               onBlur={() => {
                                 trackAnalytics('dashboards_views.widget_builder.change', {
@@ -853,48 +841,49 @@ export function renderTag(kind: FieldValueKind, label: string, dataType?: string
       case 'boolean':
       case 'date':
       case 'string':
-        return <BaseTag type="highlight">{t('string')}</BaseTag>;
+        return <Tag type="highlight">{t('string')}</Tag>;
       case 'duration':
       case 'integer':
       case 'percentage':
       case 'number':
-        return <BaseTag type="success">{t('number')}</BaseTag>;
+        return <Tag type="success">{t('number')}</Tag>;
       default:
-        return <BaseTag>{dataType}</BaseTag>;
+        return <Tag>{dataType}</Tag>;
     }
   }
-  let text, tagType;
+  let text: string | undefined, tagType: TagProps['type'] | undefined;
+
   switch (kind) {
     case FieldValueKind.FUNCTION:
       text = 'f(x)';
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.CUSTOM_MEASUREMENT:
     case FieldValueKind.MEASUREMENT:
       text = 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     case FieldValueKind.BREAKDOWN:
       text = 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     case FieldValueKind.TAG:
       text = kind;
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.NUMERIC_METRICS:
       text = 'f(x)';
-      tagType = 'warning' as keyof Theme['tag'];
+      tagType = 'warning';
       break;
     case FieldValueKind.FIELD:
       text = DEPRECATED_FIELDS.includes(label) ? 'deprecated' : 'field';
-      tagType = 'highlight' as keyof Theme['tag'];
+      tagType = 'highlight';
       break;
     default:
       text = kind;
   }
 
-  return <BaseTag type={tagType}>{text}</BaseTag>;
+  return <Tag type={tagType}>{text}</Tag>;
 }
 
 export const AggregateCompactSelect = styled(CompactSelect)<{

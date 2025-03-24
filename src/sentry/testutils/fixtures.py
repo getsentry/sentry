@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
+from django.db.utils import IntegrityError
 from django.utils import timezone
 from django.utils.functional import cached_property
-from psycopg2.errors import UniqueViolation
 
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
@@ -78,8 +78,9 @@ class Fixtures:
                 is_staff=True,
                 is_sentry_app=False,
             )
-        except UniqueViolation:
-            return User.objects.get(email="admin@localhost")
+        except IntegrityError:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
@@ -739,11 +740,15 @@ class Fixtures:
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
+        uptime_status_update_date: datetime | None = None,
+        id: int | None = None,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
         if env is None:
             env = self.environment
+        if uptime_status_update_date is None:
+            uptime_status_update_date = timezone.now()
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription()
@@ -756,6 +761,8 @@ class Fixtures:
             name,
             Actor.from_object(owner) if owner else None,
             uptime_status,
+            uptime_status_update_date,
+            id,
         )
 
     @pytest.fixture(autouse=True)

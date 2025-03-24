@@ -1,5 +1,6 @@
 from django.core.cache import cache
 
+from sentry import options
 from sentry.models.project import Project
 from sentry.monitors.models import MonitorEnvironment
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -39,15 +40,6 @@ from sentry.tasks.relay import schedule_invalidate_project_config
 # window that we support.
 QUOTA_WINDOW = 60
 
-# Determines how many check-ins per-minute will be allowed per monitor. This is
-# used when computing the QuotaConfig for the DataCategory.MONITOR (check-ins)
-#
-# These are the 'grace' check-ins as described above.
-#
-# XXX(epurkhiser): Remember a single check-in may often consist of two check-in
-# messages, one for IN_PROGRESS and another for OK.
-ALLOWED_CHECK_INS_PER_MONITOR = 6
-
 # The minimum rate-limit per project for the DataCategory.MONITOR. This value
 # should be high enough that it allows for a large number of monitors to be
 # upserted without hitting the project rate-limit.
@@ -67,6 +59,8 @@ def get_project_monitor_quota(
     limit = None
     cache_key = f"project:{project.id}:monitor-env-count"
 
+    allowed_check_ins_per_monitor = options.get("crons.per_monitor_rate_limit")
+
     # Cache rate-limit computation. This function will be called often by the
     # Quotas system.
     if not cache_bust:
@@ -74,7 +68,7 @@ def get_project_monitor_quota(
 
     if limit is None:
         monitor_count = MonitorEnvironment.objects.filter(monitor__project_id=project.id).count()
-        limit = monitor_count * ALLOWED_CHECK_INS_PER_MONITOR
+        limit = monitor_count * allowed_check_ins_per_monitor
         cache.set(cache_key, limit, 600)
 
     return (ALLOWED_MINIMUM + limit, QUOTA_WINDOW)

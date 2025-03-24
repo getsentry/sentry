@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -246,9 +246,9 @@ function Controls({
               icon={<IconEdit />}
               disabled={!hasFeature || hasUnsavedFilters || !hasEditAccess}
               title={
-                !hasEditAccess
-                  ? t('You do not have permission to edit this dashboard')
-                  : hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                hasEditAccess
+                  ? hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE
+                  : t('You do not have permission to edit this dashboard')
               }
               priority="default"
               size="sm"

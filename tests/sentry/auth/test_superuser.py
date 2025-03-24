@@ -305,12 +305,10 @@ class SuperuserTestCase(TestCase):
         request = self.build_request()
 
         delattr(request, "superuser")
-        delattr(request, "is_superuser")
 
         middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
         assert request.superuser.is_active
-        assert request.is_superuser()
 
         response = Mock()
         middleware.process_response(request, response)
@@ -329,12 +327,10 @@ class SuperuserTestCase(TestCase):
         request = self.build_request(session_data=False)
 
         delattr(request, "superuser")
-        delattr(request, "is_superuser")
 
         middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
         assert not request.superuser.is_active
-        assert not request.is_superuser()
 
         response = Mock()
         middleware.process_response(request, response)
@@ -345,12 +341,10 @@ class SuperuserTestCase(TestCase):
         request = self.build_request(user=user)
 
         delattr(request, "superuser")
-        delattr(request, "is_superuser")
 
         middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
         assert not request.superuser.is_active
-        assert not request.is_superuser()
 
         response = Mock()
         middleware.process_response(request, response)

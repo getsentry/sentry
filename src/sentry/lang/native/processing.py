@@ -42,6 +42,39 @@ MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
 # Attachment type used for Apple Crash Reports
 APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
+# Rules for rewriting the debug file of the first module
+# in an Electron minidump.
+#
+# Such minidumps frequently contain root modules
+# with nonsensical debug file names, which results from packagers like
+# electron-forge. Consequently, the module won't be found on the official
+# Electron symbol source.
+#
+# To fix this, we rewrite the debug file name of the first module
+# according to these rules for Electron minidumps before doing the lookup.
+# The rules are tried in order and only the first that matches is applied.
+#
+# The rewrites we perform are as follows:
+#
+# * /PATH/TO/FILE Framework -> /PATH/TO/Electron Framework
+# * /PATH/TO/FILE Helper (FOOBAR) -> /PATH/TO/Electron Helper (FOOBAR)
+# * /PATH/TO/FILE.exe.pdb -> /PATH/TO/electron.exe.pdb
+# * /PATH/TO/FILE -> /PATH/TO/electron
+#
+# These were determined by examining logs of successful downloads from the Electron symbol
+# source.
+#
+# The rewriting itself is performed by Symbolicator. We can't do it before
+# because we only gain access to the modules contained in the minidump
+# during stackwalking.
+#
+# NOTE: These regexes and replacement strings are written in the syntax the Rust regex crate accepts!
+ELECTRON_FIRST_MODULE_REWRITE_RULES = [
+    {"from": "[^/\\\\]+ (?<suffix>Framework|Helper( \\(.+\\))?)$", "to": "Electron $suffix"},
+    {"from": "[^/\\\\]+\\.exe\\.pdb$", "to": "electron.exe.pdb"},
+    {"from": "[^/\\\\]+$", "to": "electron"},
+]
+
 
 def _merge_frame(new_frame, symbolicated, platform="native"):
     # il2cpp events which have the "csharp" platform have good (C#) names
@@ -288,8 +321,20 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         logger.error("Missing minidump for minidump event")
         return
 
+    # We do module rewriting only for Electron minidumps.
+    # See the documentation of `ELECTRON_FIRST_MODULE_REWRITE_RULES`.
+    #
+    # Electron minidumps can be detected via the "prod" key in the
+    # "crashpad" context.
+    if get_path(data, "contexts", "crashpad", "prod") == "Electron":
+        rewrite_first_module = ELECTRON_FIRST_MODULE_REWRITE_RULES
+    else:
+        rewrite_first_module = []
+
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_minidump(data.get("platform"), minidump.data)
+    response = symbolicator.process_minidump(
+        data.get("platform"), minidump.data, rewrite_first_module
+    )
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)

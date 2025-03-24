@@ -72,7 +72,7 @@ function SpansContent(props: Props) {
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 
@@ -210,7 +210,7 @@ function SpansContentV2(props: Props) {
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 

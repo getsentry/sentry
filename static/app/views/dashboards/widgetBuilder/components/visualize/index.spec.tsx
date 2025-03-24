@@ -25,11 +25,9 @@ describe('Visualize', () => {
       features: ['dashboards-widget-builder-redesign', 'performance-view'],
     });
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
@@ -248,7 +246,7 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Column Selection'})
     ).toHaveTextContent('transaction.duration');
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
   });
 
@@ -272,7 +270,7 @@ describe('Visualize', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'field (no aggregate)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'field'}));
 
     // The column selection is automatically opened for aggregates
     await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
@@ -281,7 +279,7 @@ describe('Visualize', () => {
       'transaction.duration'
     );
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
   });
 
@@ -424,11 +422,7 @@ describe('Visualize', () => {
       'count'
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count()'],
-        }),
-      }),
+      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
       {replace: true}
     );
   });
@@ -464,9 +458,7 @@ describe('Visualize', () => {
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count_miserable(user,300)'],
-        }),
+        query: expect.objectContaining({field: ['count_miserable(user,300)']}),
       }),
       {replace: true}
     );
@@ -629,11 +621,9 @@ describe('Visualize', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Aggregate Selection'}));
 
-    // Being unable to choose "field (no aggregate)" in the aggregate selection means that the
+    // Being unable to choose "field" in the aggregate selection means that the
     // individual field is not allowed, i.e. only aggregates appear.
-    expect(
-      screen.queryByRole('option', {name: 'field (no aggregate)'})
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'field'})).not.toBeInTheDocument();
   });
 
   it('updates only the selected field', async () => {
@@ -727,10 +717,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           }),
         }),
       }
@@ -798,9 +785,7 @@ describe('Visualize', () => {
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({
-          selectedAggregate: undefined,
-        }),
+        query: expect.objectContaining({selectedAggregate: undefined}),
       }),
       {replace: true}
     );
@@ -815,10 +800,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.RELEASE,
-              field: ['crash_free_rate(session)'],
-            },
+            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
       }
@@ -843,10 +825,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['transaction.duration'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
           }),
         }),
       }
@@ -923,10 +902,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['apdex(3000)'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(3000)']},
           }),
         }),
       }
@@ -950,10 +926,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['apdex(9999)'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
           }),
         }),
       }
@@ -1021,10 +994,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['count()'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
           }),
         }),
       }
@@ -1035,7 +1005,7 @@ describe('Visualize', () => {
 
     // Component automatically populates the selection as a column
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
-      'field (no aggregate)'
+      'field'
     );
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'message'
@@ -1134,26 +1104,32 @@ describe('Visualize', () => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'span.duration': {
-              key: 'span.duration',
-              name: 'span.duration',
-              kind: 'measurement',
-            },
-            'tags[anotherNumericTag,number]': {
-              key: 'anotherNumericTag',
-              name: 'anotherNumericTag',
-              kind: 'measurement',
-            },
-          } as TagCollection;
+            tags: {
+              'span.duration': {
+                key: 'span.duration',
+                name: 'span.duration',
+                kind: 'measurement',
+              },
+              'tags[anotherNumericTag,number]': {
+                key: 'anotherNumericTag',
+                name: 'anotherNumericTag',
+                kind: 'measurement',
+              },
+            } as TagCollection,
+            isLoading: false,
+          };
         }
 
         return {
-          'span.description': {
-            key: 'span.description',
-            name: 'span.description',
-            kind: 'tag',
-          },
-        } as TagCollection;
+          tags: {
+            'span.description': {
+              key: 'span.description',
+              name: 'span.description',
+              kind: 'tag',
+            },
+          } as TagCollection,
+          isLoading: false,
+        };
       });
     });
 
@@ -1285,21 +1261,17 @@ describe('Visualize', () => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'tags[count,number]': {
-              key: 'count',
-              name: 'count',
-              kind: 'measurement',
-            },
-          } as TagCollection;
+            tags: {
+              'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+            } as TagCollection,
+            isLoading: false,
+          };
         }
 
         return {
-          count: {
-            key: 'count',
-            name: 'count',
-            kind: 'tag',
-          },
-        } as TagCollection;
+          tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
+          isLoading: false,
+        };
       });
       render(
         <WidgetBuilderProvider>

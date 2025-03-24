@@ -246,7 +246,11 @@ export function GeneralInfo(props: GeneralnfoProps) {
   items = [...items, ...ancestryAndGroupingItems];
 
   return (
-    <InterimSection title={t('General')} initialCollapse type="trace_transaction_general">
+    <InterimSection
+      title={t('General')}
+      disableCollapsePersistence
+      type="trace_transaction_general"
+    >
       <ContentWrapper>
         {items.map(item => (
           <Content key={item.key} item={item} />
@@ -277,7 +281,9 @@ function LegacyGeneralInfo(props: GeneralnfoProps) {
     props.organization.features.includes('insights-initial-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself.
-  const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
+  const groupHash = hasNewSpansUIFlag
+    ? (span.sentry_tags?.group ?? '')
+    : (span.hash ?? '');
 
   if (
     ![ModuleName.DB, ModuleName.RESOURCE].includes(resolvedModule) &&

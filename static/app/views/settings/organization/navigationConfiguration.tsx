@@ -1,4 +1,4 @@
-import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -135,8 +135,15 @@ export function getOrganizationNavigationConfiguration({
         {
           path: `${organizationSettingsPathPrefix}/feature-flags/`,
           title: t('Feature Flags'),
-          description: t('Set up your provider webhooks'),
-          badge: () => 'beta',
+          description: t('Set up feature flag integrations'),
+          badge: () => (
+            <FeatureBadge
+              type="beta"
+              tooltipProps={{
+                title: t('This feature is currently in open beta and may change'),
+              }}
+            />
+          ),
           show: ({organization}) =>
             !!organization && organization.features.includes('feature-flag-ui'),
         },

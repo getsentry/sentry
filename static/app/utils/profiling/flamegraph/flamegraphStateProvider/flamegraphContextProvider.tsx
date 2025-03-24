@@ -38,7 +38,7 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
     preferences: {
       timelines: {
         ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
-        ...(initialState?.preferences?.timelines ?? {}),
+        ...initialState?.preferences?.timelines,
       },
       layout:
         initialState?.preferences?.layout ?? DEFAULT_FLAMEGRAPH_STATE.preferences.layout,

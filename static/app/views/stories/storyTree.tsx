@@ -193,12 +193,12 @@ export function useStoryTree(
           root.children[type] = new StoryTreeNode(type, type);
         }
 
-        if (!root.children[type].children[name]) {
-          root.children[type].children[name] = new StoryTreeNode(name, file);
-        } else {
+        if (root.children[type].children[name]) {
           throw new Error(
             `Naming conflict found between ${file} and ${root.children[type].children[name].path}`
           );
+        } else {
+          root.children[type].children[name] = new StoryTreeNode(name, file);
         }
       }
 
@@ -206,6 +206,10 @@ export function useStoryTree(
       root.children = Object.fromEntries(
         Object.entries(root.children).sort(rootCategorySort)
       );
+      // Sort the children of each category by file, folder or alphabetically
+      Object.values(root.children).forEach(child => {
+        child.sort(folderOrSearchScoreFirst);
+      });
     }
 
     // If the user navigates to a story, expand to its location in the tree

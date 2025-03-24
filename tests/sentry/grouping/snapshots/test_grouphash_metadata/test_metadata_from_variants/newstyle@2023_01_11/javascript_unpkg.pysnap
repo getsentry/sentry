@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:50:39.514362+00:00'
+created: '2025-02-26T00:32:17.258843+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_grouphash_metadata.py
 ---
@@ -30,18 +30,18 @@ contributing variants:
       system*
         exception*
           stacktrace*
-            frame* (marked out of app by stack trace rule (path:**https://unpkg.com/** -app))
+            frame*
               module*
                 "react-dom@16.13.1/umd/react-dom.production"
               function*
                 "unpkg"
-            frame* (marked out of app by stack trace rule (path:**https://cdnjs.cloudflare.com/** -app))
+            frame*
               function*
                 "cdnjs"
-            frame* (marked out of app by stack trace rule (path:**https://cdn.jsdelivr.net/** -app))
+            frame*
               function*
                 "jsdelivr"
-            frame* (marked out of app by stack trace rule (path:**https://esm.run/** -app))
+            frame*
               function* (trimmed javascript function)
                 "run"
           type*

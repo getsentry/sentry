@@ -222,6 +222,13 @@ export const platforms: PlatformIntegration[] = [
     language: 'go',
   },
   {
+    link: 'https://docs.sentry.io/platforms/godot/',
+    type: 'framework',
+    id: 'godot',
+    name: 'Godot',
+    language: 'godot',
+  },
+  {
     id: 'ionic',
     name: 'Ionic',
     type: 'framework',
@@ -346,6 +353,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/sveltekit/',
+  },
+  {
+    id: 'javascript-tanstackstart-react',
+    name: 'TanStack Start React',
+    type: 'framework',
+    language: 'javascript',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/',
   },
   {
     id: 'javascript-vue',

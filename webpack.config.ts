@@ -240,6 +240,9 @@ const appConfig: webpack.Configuration = {
      */
     pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
 
+    // admin interface
+    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
+
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
      * This generates a single "sentry.css" file that imports ALL component styles
@@ -434,6 +437,11 @@ const appConfig: webpack.Configuration = {
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
+
+      getsentry: path.join(staticPrefix, 'gsApp'),
+      'getsentry-images': path.join(staticPrefix, 'images'),
+      'getsentry-test': path.join(__dirname, 'tests', 'js', 'getsentry-test'),
+      admin: path.join(staticPrefix, 'gsAdmin'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
@@ -670,12 +678,12 @@ if (IS_UI_DEV_ONLY) {
 
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
-  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? {}
-    : {
+  const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
-      };
+      }
+    : {};
 
   appConfig.devServer = {
     ...appConfig.devServer,
@@ -766,7 +774,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: ['pipeline'],
+      excludeChunks: ['pipeline', 'gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,

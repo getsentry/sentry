@@ -75,10 +75,8 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return Response({"nextUri": next_uri})
 
-    def get_next_uri(self, request: Request):
-        next_uri_fallback = None
-        if request.session.get("_next") is not None:
-            next_uri_fallback = request.session.pop("_next")
+    def get_next_uri(self, request: HttpRequest) -> str:
+        next_uri_fallback = request.session.pop("_next", None)
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def prepare_login_context(self, request: Request, *args, **kwargs):

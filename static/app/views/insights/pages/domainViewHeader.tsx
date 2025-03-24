@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import Badge from 'sentry/components/core/badge';
+import {Badge} from 'sentry/components/core/badge';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -19,6 +19,7 @@ import {
   type RoutableModuleNames,
   useModuleURLBuilder,
 } from 'sentry/views/insights/common/utils/useModuleURL';
+import {useIsLaravelInsightsEnabled} from 'sentry/views/insights/pages/backend/laravel/features';
 import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
 import {
   isModuleConsideredNew,
@@ -56,6 +57,7 @@ export function DomainViewHeader({
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
 
   const crumbs: Crumb[] = [
     {
@@ -67,7 +69,7 @@ export function DomainViewHeader({
   ];
 
   const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : selectedModule ?? OVERVIEW_PAGE_TITLE;
+    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
 
   const globalQuery = extractSelectionParameters(location?.query);
 
@@ -86,6 +88,7 @@ export function DomainViewHeader({
       .map(moduleName => ({
         key: moduleName,
         children: <TabLabel moduleName={moduleName} />,
+        textValue: moduleName,
         to: {
           pathname: `${moduleURLBuilder(moduleName as RoutableModuleNames)}/`,
           query: globalQuery,
@@ -102,7 +105,18 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
+            <FeedbackWidgetButton
+              optionOverrides={
+                isLaravelInsightsEnabled
+                  ? {
+                      tags: {
+                        ['feedback.source']: 'laravel-insights',
+                        ['feedback.owner']: 'telemetry-experience',
+                      },
+                    }
+                  : undefined
+              }
+            />
             {additonalHeaderActions}
           </ButtonBar>
         </Layout.HeaderActions>
@@ -134,7 +148,7 @@ function TabLabel({moduleName}: TabLabelProps) {
     return (
       <TabContainer>
         {moduleTitles[moduleName]}
-        {isModuleConsideredNew(moduleName) && <Badge type="new" text={t('New')} />}
+        {isModuleConsideredNew(moduleName) && <Badge type="new">{t('New')}</Badge>}
         {showBusinessIcon && <IconBusiness />}
       </TabContainer>
     );

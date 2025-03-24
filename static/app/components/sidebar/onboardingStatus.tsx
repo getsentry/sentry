@@ -12,10 +12,11 @@ import ProgressRing, {
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,7 +47,7 @@ export function OnboardingStatus({
   );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
-  const demoMode = isDemoModeEnabled();
+  const demoMode = isDemoModeActive();
 
   const {
     allTasks,
@@ -54,6 +55,7 @@ export function OnboardingStatus({
     beyondBasicsTasks,
     doneTasks,
     completeTasks,
+    completeOrOverdueTasks,
     refetch,
   } = useOnboardingTasks({
     disabled: !isActive,
@@ -61,7 +63,7 @@ export function OnboardingStatus({
 
   const label = demoMode ? t('Guided Tours') : t('Onboarding');
   const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
-  const allTasksCompleted = allTasks.length === completeTasks.length;
+  const allTasksCompleted = allTasks.length === completeOrOverdueTasks.length;
 
   const skipQuickStart =
     (!demoMode && !organization.features?.includes('onboarding')) ||
@@ -76,7 +78,7 @@ export function OnboardingStatus({
   const quickStartDisplayStatus = quickStartDisplay[orgId] ?? 0;
 
   const handleShowPanel = useCallback(() => {
-    if (!demoMode && !isActive === true) {
+    if (!demoMode && isActive !== true) {
       trackAnalytics('quick_start.opened', {
         organization,
         user_clicked: true,
@@ -127,8 +129,9 @@ export function OnboardingStatus({
         source: 'onboarding_sidebar_user_second_visit',
       });
     }
+    // be careful when adding dependencies here as it can cause side-effects, e.g activateSidebar
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mutateUserOptions, activateSidebar, orgId, skipQuickStart]);
+  }, [mutateUserOptions, orgId, skipQuickStart]);
 
   if (skipQuickStart) {
     return null;
@@ -152,7 +155,9 @@ export function OnboardingStatus({
             font-size: ${theme.fontSizeMedium};
             font-weight: ${theme.fontWeightBold};
           `}
-          text={doneTasks.length}
+          text={
+            doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
+          }
           value={(doneTasks.length / allTasks.length) * 100}
           backgroundColor="rgba(255, 255, 255, 0.15)"
           progressEndcaps="round"

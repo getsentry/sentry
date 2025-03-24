@@ -211,7 +211,7 @@ class DifAssembleEndpoint(APITestCase):
 
     def test_dif_response(self):
         sym_file = self.load_fixture("crash.sym")
-        blob1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()
         chunks = [blob1.checksum]
 
@@ -234,7 +234,7 @@ class DifAssembleEndpoint(APITestCase):
 
     def test_dif_error_response(self):
         sym_file = b"fail"
-        blob1 = FileBlob.from_file(ContentFile(sym_file))
+        blob1 = FileBlob.from_file_with_organization(ContentFile(sym_file), self.organization)
         total_checksum = sha1(sym_file).hexdigest()
         chunks = [blob1.checksum]
 

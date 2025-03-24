@@ -103,15 +103,6 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 extra={"checksum": checksum, "path": blob.path},
             )
 
-        def _ensure_blob_owned(blob: Self):
-            if organization is None:
-                return
-            try:
-                with transaction.atomic(using=router.db_for_write(cls)):
-                    blob._create_blob_owner(organization_id=organization.id)
-            except IntegrityError:
-                pass
-
         def _save_blob(blob: Self):
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
             try:
@@ -129,7 +120,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 storage = get_storage(cls._storage_config())
                 storage.delete(saved_path)
 
-            _ensure_blob_owned(blob)
+            blob._ensure_blob_owned(organization)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
         def _flush_blobs():
@@ -166,7 +157,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                     # here it means the blob already exists.
                     existing = get_and_optionally_update_blob(cls, checksum)
                     if existing is not None:
-                        _ensure_blob_owned(existing)
+                        existing._ensure_blob_owned(organization)
                         continue
 
                     # Otherwise we leave the blob locked and submit the task.
@@ -182,6 +173,17 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             _flush_blobs()
         finally:
             logger.debug("FileBlob.from_files.end")
+
+    @classmethod
+    @sentry_sdk.tracing.trace
+    def from_file_with_organization(cls, fileobj, organization=None, logger=nooplogger) -> Self:
+        """
+        Retrieve a single FileBlob instances for the given file and binds it to an organization via the FileBlobOwner.
+        """
+        blob = cls.from_file(fileobj, logger=logger)
+        blob._ensure_blob_owned(organization)
+
+        return blob
 
     @classmethod
     @sentry_sdk.tracing.trace
@@ -246,3 +248,16 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
         storage = get_storage(self._storage_config())
         return storage.open(self.path)
+
+    def _ensure_blob_owned(self, organization):
+        """
+        Ensures that the FileBlob is owned by the given organization.
+        """
+        if organization is None:
+            return
+
+        try:
+            with transaction.atomic(using=router.db_for_write(self.__class__)):
+                self._create_blob_owner(organization_id=organization.id)
+        except IntegrityError:
+            pass

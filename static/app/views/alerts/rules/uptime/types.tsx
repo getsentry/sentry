@@ -51,6 +51,7 @@ export enum CheckStatusReason {
   DNS_ERROR = 'dns_error',
   TLS_ERROR = 'tls_error',
   CONNECTION_ERROR = 'connection_error',
+  REDIRECT_ERROR = 'redirect_error',
 }
 
 export enum CheckStatus {

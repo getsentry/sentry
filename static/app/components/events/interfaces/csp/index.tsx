@@ -50,13 +50,13 @@ export function Csp({data, event}: Props) {
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
   const cleanData =
-    data.original_policy !== 'string'
-      ? data
-      : {
+    data.original_policy === 'string'
+      ? {
           ...data,
           // Hide the report-uri since this is redundant and silly
           original_policy: data.original_policy.replace(/(;\s+)?report-uri [^;]+/, ''),
-        };
+        }
+      : data;
 
   const actions = (
     <SegmentedControl aria-label={t('View')} size="xs" value={view} onChange={setView}>

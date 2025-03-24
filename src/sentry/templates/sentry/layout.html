@@ -76,7 +76,7 @@
 <body class="{% block wrapperclass %}{% endblock %}">
   {% block body %}
   <div class="app">
-    {% if request.is_superuser %}
+    {% if request.superuser.is_active %}
         {% show_system_status %}
     {% endif %}
 

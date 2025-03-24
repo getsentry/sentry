@@ -953,6 +953,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         if is_project_mode_sampling(organization):
                             self._compute_project_target_sample_rates(request, organization)
                             organization.delete_option("sentry:target_sample_rate")
+                            changed_data["samplingMode"] = "to Advanced Mode"
 
                         elif is_org_mode:
                             if "targetSampleRate" in changed_data:
@@ -960,6 +961,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                                     "sentry:target_sample_rate",
                                     serializer.validated_data["targetSampleRate"],
                                 )
+                            changed_data["samplingMode"] = "to Default Mode"
 
                             ProjectOption.objects.filter(
                                 project__organization_id=organization.id,

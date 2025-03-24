@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
 
-import {isTraceNode} from '../traceGuards';
+import {isEAPTraceNode, isTraceNode} from '../traceGuards';
 import {TraceIcons} from '../traceIcons';
 import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
@@ -23,7 +23,7 @@ const NO_PROFILES: any = [];
 export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>>) {
   const hasTraceNewUi = useHasTraceNewUi();
 
-  if (!isTraceNode(props.node)) {
+  if (!isTraceNode(props.node) && !isEAPTraceNode(props.node)) {
     throw new Error('Trace row rendered called on row that is not root');
   }
 
@@ -33,7 +33,7 @@ export function TraceRootRow(props: TraceRowProps<TraceTreeNode<TraceTree.Trace>
       ref={r =>
         props.tabIndex === 0
           ? maybeFocusTraceRow(r, props.node, props.previouslyFocusedNodeRef)
-          : null
+          : undefined
       }
       tabIndex={props.tabIndex}
       className={`TraceRow ${props.rowSearchClassName} ${props.node.hasErrors ? props.node.maxIssueSeverity : ''}`}

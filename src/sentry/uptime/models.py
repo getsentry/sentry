@@ -5,8 +5,7 @@ from typing import ClassVar, Literal, Self, cast
 from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
-from django.db.models.expressions import Value
-from django.db.models.functions import MD5, Coalesce
+from django.db.models.functions import Now
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
@@ -90,8 +89,6 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False)
-    # Temporary column we'll use to migrate away from the url based unique constraint
-    migrated = models.BooleanField(db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk", "subscription_id"],
@@ -102,19 +99,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
         app_label = "uptime"
         db_table = "uptime_uptimesubscription"
 
-        constraints = [
-            models.UniqueConstraint(
-                "url",
-                "interval_seconds",
-                "timeout_ms",
-                "method",
-                "trace_sampling",
-                MD5("headers"),
-                Coalesce(MD5("body"), Value("")),
-                condition=Q(migrated=False),
-                name="uptime_uptimesubscription_unique_subscription_check_4",
-            ),
-        ]
+        indexes = (models.Index(fields=("url_domain_suffix", "url_domain")),)
 
 
 @region_silo_model
@@ -179,6 +164,8 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
     # (Likely) temporary column to keep track of the current uptime status of this monitor
+    uptime_status_update_date = models.DateTimeField(db_default=Now())
+    # Date of the last time we updated the status for this monitor
     name = models.TextField()
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
@@ -193,6 +180,7 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("project", "mode")),
+            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
         constraints = [

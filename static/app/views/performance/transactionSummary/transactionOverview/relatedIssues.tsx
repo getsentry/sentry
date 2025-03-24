@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
-import {LinkButton} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
@@ -110,7 +110,6 @@ class RelatedIssues extends Component<Props> {
 
         <TableWrapper>
           <GroupList
-            orgSlug={organization.slug}
             queryParams={queryParams}
             canSelectGroups={false}
             renderEmptyMessage={this.renderEmptyMessage}

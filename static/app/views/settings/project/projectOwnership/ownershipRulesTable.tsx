@@ -5,12 +5,12 @@ import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
 
-import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
+import SuggestedAvatarStack from 'sentry/components/suggestedAvatarStack';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {space} from 'sentry/styles/space';
 
 import {FieldDescription} from '../fieldGroup/fieldDescription';

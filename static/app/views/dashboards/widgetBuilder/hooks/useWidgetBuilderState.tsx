@@ -25,7 +25,10 @@ import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {DEFAULT_RESULTS_LIMIT} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  DEFAULT_RESULTS_LIMIT,
+  getResultsLimit,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import type {Thresholds} from 'sentry/views/dashboards/widgets/common/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
@@ -170,7 +173,7 @@ function useWidgetBuilderState(): {
       // if it hasn't been explicitly set
       selectedAggregate:
         displayType === DisplayType.BIG_NUMBER && defined(fields) && fields.length > 1
-          ? selectedAggregate ?? fields.length - 1
+          ? (selectedAggregate ?? fields.length - 1)
           : undefined,
     }),
     [
@@ -215,6 +218,7 @@ function useWidgetBuilderState(): {
             return {...axis, alias: undefined};
           });
           if (action.payload === DisplayType.TABLE) {
+            setLimit(undefined);
             setYAxis([]);
             setLegendAlias([]);
             const newFields = [
@@ -260,6 +264,7 @@ function useWidgetBuilderState(): {
             }
           } else if (action.payload === DisplayType.BIG_NUMBER) {
             // TODO: Reset the selected aggregate here for widgets with equations
+            setLimit(undefined);
             setSort([]);
             setYAxis([]);
             setLegendAlias([]);
@@ -279,6 +284,11 @@ function useWidgetBuilderState(): {
               });
             }
             setYAxis(nextAggregates);
+
+            // Reset the limit to a valid value, bias towards the current limit or
+            // default if possible
+            const maxLimit = getResultsLimit(query?.length ?? 1, nextAggregates.length);
+            setLimit(Math.min(limit ?? DEFAULT_RESULTS_LIMIT, maxLimit));
 
             if (dataset === WidgetType.RELEASE && sort?.length === 0) {
               setSort(
@@ -396,18 +406,7 @@ function useWidgetBuilderState(): {
                           TAG_SORT_DENY_LIST.includes(generateFieldAsString(field))))
                   )
               );
-              if (changedFieldIndex !== -1) {
-                // At this point, we can assume the fields are the same length so
-                // using the changedFieldIndex in action.payload is safe.
-                setSort([
-                  {
-                    kind: sort?.[0]?.kind ?? 'desc',
-                    field: generateFieldAsString(
-                      action.payload[changedFieldIndex] as QueryFieldValue
-                    ),
-                  },
-                ]);
-              } else {
+              if (changedFieldIndex === -1) {
                 setSort(
                   validSortOptions.length > 0
                     ? [
@@ -420,6 +419,17 @@ function useWidgetBuilderState(): {
                       ]
                     : []
                 );
+              } else {
+                // At this point, we can assume the fields are the same length so
+                // using the changedFieldIndex in action.payload is safe.
+                setSort([
+                  {
+                    kind: sort?.[0]?.kind ?? 'desc',
+                    field: generateFieldAsString(
+                      action.payload[changedFieldIndex] as QueryFieldValue
+                    ),
+                  },
+                ]);
               }
             }
           }
@@ -513,6 +523,7 @@ function useWidgetBuilderState(): {
       query,
       sort,
       dataset,
+      limit,
     ]
   );
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime, timezone
+from operator import itemgetter
 from time import time
 from typing import Any, TypedDict
 from uuid import UUID
@@ -39,6 +40,11 @@ from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
+
+# chunks are 1 min max with additional 10% buffer
+MAX_DURATION_SAMPLE_V2 = 66000
+
+UI_PROFILE_PLATFORMS = {"cocoa", "android", "javascript"}
 
 
 @instrumented_task(
@@ -858,7 +864,11 @@ def get_event_id(profile: Profile) -> str:
 
 def get_data_category(profile: Profile) -> DataCategory:
     if profile.get("version") == "2":
-        return DataCategory.PROFILE_CHUNK
+        return (
+            DataCategory.PROFILE_CHUNK_UI
+            if profile["platform"] in UI_PROFILE_PLATFORMS
+            else DataCategory.PROFILE_CHUNK
+        )
     return DataCategory.PROFILE_INDEXED
 
 
@@ -989,7 +999,7 @@ def _track_duration_outcome(
         timestamp=datetime.now(timezone.utc),
         category=(
             DataCategory.PROFILE_DURATION_UI
-            if profile["platform"] in {"cocoa", "android", "javascript"}
+            if profile["platform"] in UI_PROFILE_PLATFORMS
             else DataCategory.PROFILE_DURATION
         ),
         quantity=duration_ms,
@@ -1016,7 +1026,10 @@ def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
     duration_ns = end_ns - start_ns
     # try another method to determine the duration in case it's negative or 0.
     if duration_ns <= 0:
-        samples = sorted(profile["profile"]["samples"], key=lambda s: s["elapsed_since_start_ns"])
+        samples = sorted(
+            profile["profile"]["samples"],
+            key=itemgetter("elapsed_since_start_ns"),
+        )
         if len(samples) < 2:
             return 0
         first, last = samples[0], samples[-1]
@@ -1028,11 +1041,24 @@ def _calculate_duration_for_sample_format_v1(profile: Profile) -> int:
 
 
 def _calculate_duration_for_sample_format_v2(profile: Profile) -> int:
-    samples = sorted(profile["profile"]["samples"], key=lambda s: s["timestamp"])
-    if len(samples) < 2:
-        return 0
-    first, last = samples[0], samples[-1]
-    return int((last["timestamp"] - first["timestamp"]) * 1e3)
+    timestamp_getter = itemgetter("timestamp")
+    samples = profile["profile"]["samples"]
+    min_timestamp = min(samples, key=timestamp_getter)
+    max_timestamp = max(samples, key=timestamp_getter)
+    duration_secs = max_timestamp["timestamp"] - min_timestamp["timestamp"]
+    duration_ms = int(duration_secs * 1e3)
+    if duration_ms > MAX_DURATION_SAMPLE_V2:
+        sentry_sdk.set_context(
+            "profile duration calculation",
+            {
+                "min_timestamp": min_timestamp,
+                "max_timestamp": max_timestamp,
+                "duration_ms": duration_ms,
+            },
+        )
+        sentry_sdk.capture_message("Calculated duration is above the limit")
+        return MAX_DURATION_SAMPLE_V2
+    return duration_ms
 
 
 def _calculate_duration_for_android_format(profile: Profile) -> int:

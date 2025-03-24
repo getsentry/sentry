@@ -143,6 +143,7 @@ function useReplayData({
         `/organizations/${orgSlug}/replays-events-meta/`,
         {
           query: {
+            referrer: 'replay_details',
             dataset: DiscoverDatasets.DISCOVER,
             start: replayRecord?.started_at.toISOString(),
             end: finishedAtClone.toISOString(),
@@ -170,6 +171,7 @@ function useReplayData({
         `/organizations/${orgSlug}/replays-events-meta/`,
         {
           query: {
+            referrer: 'replay_details',
             dataset: DiscoverDatasets.ISSUE_PLATFORM,
             start: replayRecord?.started_at.toISOString(),
             end: finishedAtClone.toISOString(),

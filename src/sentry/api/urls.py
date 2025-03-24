@@ -27,14 +27,16 @@ from sentry.api.endpoints.organization_sampling_project_span_counts import (
 )
 from sentry.api.endpoints.organization_spans_aggregation import OrganizationSpansAggregationEndpoint
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
+from sentry.api.endpoints.organization_trace_item_attributes import (
+    OrganizationTraceItemAttributesEndpoint,
+    OrganizationTraceItemAttributeValuesEndpoint,
+)
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
 from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
-from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records import (
-    ProjectBackfillSimilarIssuesEmbeddingsRecords,
-)
+from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
@@ -66,6 +68,11 @@ from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQuerie
 from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
+)
+from sentry.explore.endpoints.explore_saved_queries import ExploreSavedQueriesEndpoint
+from sentry.explore.endpoints.explore_saved_query_detail import (
+    ExploreSavedQueryDetailEndpoint,
+    ExploreSavedQueryVisitEndpoint,
 )
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.flags.endpoints.logs import (
@@ -173,7 +180,10 @@ from sentry.issues.endpoints import (
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
+    OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewsEndpoint,
+    OrganizationGroupSearchViewStarredEndpoint,
+    OrganizationGroupSearchViewVisitEndpoint,
     OrganizationIssuesCountEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
@@ -188,6 +198,10 @@ from sentry.issues.endpoints import (
     SourceMapDebugEndpoint,
     TeamGroupsOldEndpoint,
 )
+from sentry.issues.endpoints.organization_group_search_view_starred_order import (
+    OrganizationGroupSearchViewStarredOrderEndpoint,
+)
+from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.monitors.endpoints.organization_monitor_checkin_index import (
     OrganizationMonitorCheckInIndexEndpoint,
 )
@@ -488,6 +502,7 @@ from .endpoints.organization_events_spans_performance import (
     OrganizationEventsSpansStatsEndpoint,
 )
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
+from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from .endpoints.organization_events_trace import (
     OrganizationEventsTraceEndpoint,
     OrganizationEventsTraceLightEndpoint,
@@ -516,7 +531,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
-from .endpoints.organization_metrics_query import OrganizationMetricsQueryEndpoint
 from .endpoints.organization_on_demand_metrics_estimation_stats import (
     OrganizationOnDemandMetricsEstimationStatsEndpoint,
 )
@@ -565,12 +579,12 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldValuesEndpoint,
 )
 from .endpoints.organization_spans_fields_stats import OrganizationSpansFieldsStatsEndpoint
-from .endpoints.organization_spans_trace import OrganizationSpansTraceEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_trace import OrganizationTraceEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
     OrganizationTraceSpansEndpoint,
@@ -638,6 +652,7 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
 from .endpoints.project_teams import ProjectTeamsEndpoint
+from .endpoints.project_trace_item_details import ProjectTraceItemDetailsEndpoint
 from .endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from .endpoints.project_transaction_threshold import ProjectTransactionThresholdEndpoint
 from .endpoints.project_transaction_threshold_override import (
@@ -1277,6 +1292,22 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
     ),
+    # Explore
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/$",
+        ExploreSavedQueriesEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-queries",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/(?P<id>\d+)/$",
+        ExploreSavedQueryDetailEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-query-detail",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/(?P<id>\d+)/visit/$",
+        ExploreSavedQueryVisitEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-query-visit",
+    ),
     # Dashboards
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/dashboards/$",
@@ -1409,6 +1440,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-stats",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/events-timeseries/$",
+        OrganizationEventsTimeseriesEndpoint.as_view(),
+        name="sentry-api-0-organization-events-timeseries",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/events/anomalies/$",
         OrganizationEventsAnomaliesEndpoint.as_view(),
         name="sentry-api-0-organization-events-anomalies",
@@ -1437,6 +1473,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/traces-stats/$",
         OrganizationTracesStatsEndpoint.as_view(),
         name="sentry-api-0-organization-traces-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-items/attributes/$",
+        OrganizationTraceItemAttributesEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attributes",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace-items/attributes/(?P<key>[^/]+)/values/$",
+        OrganizationTraceItemAttributeValuesEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-attribute-values",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/$",
@@ -1582,8 +1628,8 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationSpansTraceEndpoint.as_view(),
-        name="sentry-api-0-organization-spans-trace",
+        OrganizationTraceEndpoint.as_view(),
+        name="sentry-api-0-organization-trace",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/measurements-meta/$",
@@ -1604,6 +1650,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/issues-metrics/$",
+        OrganizationIssueMetricsEndpoint.as_view(),
+        name="sentry-api-0-organization-issue-metrics",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/integrations/$",
@@ -1726,6 +1777,26 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/$",
         OrganizationGroupSearchViewsEndpoint.as_view(),
         name="sentry-api-0-organization-group-search-views",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/$",
+        OrganizationGroupSearchViewDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/(?P<view_id>[^\/]+)/visit/$",
+        OrganizationGroupSearchViewVisitEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-visit",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-view/(?P<view_id>[^\/]+)/starred/$",
+        OrganizationGroupSearchViewStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-starred",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views-starred-order/$",
+        OrganizationGroupSearchViewStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-view-starred-order",
     ),
     # Pinned and saved search
     re_path(
@@ -2085,11 +2156,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-metrics-data",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/metrics/query/$",
-        OrganizationMetricsQueryEndpoint.as_view(),
-        name="sentry-api-0-organization-metrics-query",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",
         include(
             [
@@ -2231,6 +2297,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/environments/(?P<environment>[^/]+)/$",
         ProjectEnvironmentDetailsEndpoint.as_view(),
         name="sentry-api-0-project-environment-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/trace-items/(?P<item_id>(?:[A-Fa-f0-9]+))/$",
+        ProjectTraceItemDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-trace-item-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/events/$",
@@ -2384,6 +2455,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/members/$",
         ProjectMemberIndexEndpoint.as_view(),
         name="sentry-api-0-project-member-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/overview/$",
+        ProjectOverviewEndpoint.as_view(),
+        name="sentry-api-0-project-overview",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
@@ -2549,11 +2625,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/rule-task/(?P<task_uuid>[^\/]+)/$",
         ProjectRuleTaskDetailsEndpoint.as_view(),
         name="sentry-api-0-project-rule-task-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/backfill-similar-embeddings-records/$",
-        ProjectBackfillSimilarIssuesEmbeddingsRecords.as_view(),
-        name="sentry-api-0-project-backfill-similar-embeddings-records",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/stats/$",

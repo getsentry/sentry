@@ -20,17 +20,18 @@ import type {
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
-  return projects !== undefined
-    ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
-    : false;
+  return projects === undefined
+    ? false
+    : projects.some(({platform}) => platform && sourceMaps.includes(platform));
 }
 
 type Options = {
@@ -98,9 +99,14 @@ export function getOnboardingTasks({
   projects,
   onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
-  const performanceUrl = `${getPerformanceBaseUrl(organization.slug)}/`;
+  const hasPerfLandingRemovalFlag = organization.features?.includes(
+    'insights-performance-landing-removal'
+  );
+  const performanceUrl = hasPerfLandingRemovalFlag
+    ? `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`
+    : `${getPerformanceBaseUrl(organization.slug)}/`;
 
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     return [
       {
         task: OnboardingTaskKey.ISSUE_GUIDE,
@@ -111,6 +117,16 @@ export function getOnboardingTasks({
         skippable: false,
         actionType: 'app',
         location: `/organizations/${organization.slug}/issues/`,
+        display: true,
+        group: OnboardingTaskGroup.GETTING_STARTED,
+      },
+      {
+        task: OnboardingTaskKey.SIDEBAR_GUIDE,
+        title: t('Check out the different tabs'),
+        description: t('Press the start button for a guided tour through each tab.'),
+        skippable: false,
+        actionType: 'app',
+        location: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -141,16 +157,6 @@ export function getOnboardingTasks({
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
-      {
-        task: OnboardingTaskKey.SIDEBAR_GUIDE,
-        title: t('Check out the different tabs'),
-        description: t('Press the start button for a guided tour through each tab.'),
-        skippable: false,
-        actionType: 'app',
-        location: `/organizations/${organization.slug}/projects/`,
-        display: true,
-        group: OnboardingTaskGroup.GETTING_STARTED,
-      },
     ];
   }
 
@@ -163,7 +169,7 @@ export function getOnboardingTasks({
       ),
       skippable: false,
       actionType: 'app',
-      location: `/organizations/${organization.slug}/projects/new/`,
+      location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
@@ -234,7 +240,7 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'app',
-      location: `/organizations/${organization.slug}/projects/new/`,
+      location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
       display: true,
       pendingTitle: t('Awaiting an error for this project.'),
     },
@@ -366,7 +372,7 @@ export function getOnboardingTasks({
 
 export function getMergedTasks({organization, projects, onboardingContext}: Options) {
   const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
-  const serverTasks = isDemoModeEnabled()
+  const serverTasks = isDemoModeActive()
     ? getDemoWalkthroughTasks()
     : organization.onboardingTasks;
 

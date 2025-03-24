@@ -53,6 +53,8 @@ from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
 from .groupsearchview import *  # NOQA
+from .groupsearchviewlastvisited import *  # NOQA
+from .groupsearchviewstarred import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
@@ -66,6 +68,7 @@ from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
 from .organizationmapping import *  # NOQA
 from .organizationmember import *  # NOQA
+from .organizationmemberinvite import OrganizationMemberInvite  # NOQA
 from .organizationmembermapping import *  # NOQA
 from .organizationmemberteam import *  # NOQA
 from .organizationmemberteamreplica import *  # NOQA

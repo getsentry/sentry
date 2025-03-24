@@ -5,15 +5,15 @@ import groupBy from 'lodash/groupBy';
 import startCase from 'lodash/startCase';
 import * as qs from 'query-string';
 
-import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
+import {DocIntegrationAvatar} from 'sentry/components/core/avatar/docIntegrationAvatar';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {Select} from 'sentry/components/core/select';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
-import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -468,7 +468,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
         publishStatus={app.status}
         configurations={0}
         categories={categories}
-        customIcon={<SentryAppIcon sentryApp={app} size={36} />}
+        customIcon={<SentryAppAvatar sentryApp={app} size={36} />}
       />
     );
   };
@@ -518,7 +518,7 @@ export class IntegrationListDirectory extends DeprecatedAsyncComponent<
             title={title}
             body={
               <ActionContainer>
-                <SelectControl
+                <Select
                   name="select-categories"
                   onChange={this.onCategorySelect}
                   value={selectedCategory}

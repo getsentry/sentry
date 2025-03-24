@@ -7,7 +7,7 @@ import AssigneeSelectorDropdown, {
   type AssignableEntity,
   type SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
@@ -92,8 +92,8 @@ export function AssigneeSelector({
       trigger={(props, isOpen) => (
         <StyledDropdownButton
           {...props}
-          borderless
           aria-label={t('Modify issue assignee')}
+          borderless
           size="zero"
         >
           <AssigneeBadge

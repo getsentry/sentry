@@ -5,14 +5,15 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 
 const LOGS_SORT_BYS_KEY = 'logsSortBys';
+
+export const logsTimestampDescendingSortBy: Sort = {
+  field: 'timestamp',
+  kind: 'desc' as const,
+};
+
 function defaultLogSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
-    return [
-      {
-        field: 'timestamp',
-        kind: 'desc' as const,
-      },
-    ];
+    return [logsTimestampDescendingSortBy];
   }
 
   return [];

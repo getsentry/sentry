@@ -1996,6 +1996,8 @@ class Factories:
         name: str | None,
         owner: Actor | None,
         uptime_status: UptimeStatus,
+        uptime_status_update_date: datetime,
+        id: int | None,
     ):
         if name is None:
             name = petname.generate().title()
@@ -2017,6 +2019,8 @@ class Factories:
             owner_team_id=owner_team_id,
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
+            pk=id,
         )
 
     @staticmethod
@@ -2191,8 +2195,18 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_action(**kwargs) -> Action:
-        return Action.objects.create(**kwargs)
+    def create_action(
+        config: dict[str, Any] | None = None,
+        type: Action.Type | None = None,
+        **kwargs,
+    ) -> Action:
+        if config is None:
+            config = {}
+
+        if type is None:
+            type = Action.Type.SLACK
+
+        return Action.objects.create(type=type, config=config, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

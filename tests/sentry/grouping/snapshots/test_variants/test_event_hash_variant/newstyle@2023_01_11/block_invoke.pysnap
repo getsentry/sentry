@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:47:08.303785+00:00'
+created: '2025-02-26T00:33:56.723299+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -35,10 +35,10 @@ system:
     system (threads of app take precedence)
       threads (ignored because hash matches app variant)
         stacktrace*
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame*
             function*
               "__46+[FudgeGlobalHandler setupGlobalHandlersIfNeeded]_block_invoke_2"
-          frame* (marked in-app by stack trace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame*
             function*
               "__99+[Something else]_block_invoke_2"
           frame (ignored by stack trace rule (category:internals -group))

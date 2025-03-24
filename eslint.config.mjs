@@ -11,13 +11,14 @@
  */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+import pluginQuery from '@tanstack/eslint-plugin-query';
+import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import importPlugin from 'eslint-plugin-import';
 import jest from 'eslint-plugin-jest';
 import jestDom from 'eslint-plugin-jest-dom';
 import react from 'eslint-plugin-react';
-// @ts-expect-error TS(7016): Could not find a declaration file
 import reactHooks from 'eslint-plugin-react-hooks';
 // @ts-expect-error TS(7016): Could not find a declaration file
 import sentry from 'eslint-plugin-sentry';
@@ -35,13 +36,6 @@ import typescript from 'typescript-eslint';
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
-
-const restrictedImportPatterns = [
-  {
-    group: ['sentry/components/devtoolbar/*'],
-    message: 'Do not depend on toolbar internals',
-  },
-];
 
 const restrictedImportPaths = [
   {
@@ -174,34 +168,31 @@ export default typescript.config([
     // https://eslint.org/docs/latest/use/configure/configuration-files#specifying-files-and-ignores
     files: ['**/*.js', '**/*.mjs', '**/*.ts', '**/*.jsx', '**/*.tsx'],
   },
-  {
-    name: 'eslint/global/ignores',
-    // Global ignores
-    // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
-    ignores: [
-      '.devenv/**/*',
-      '.github/**/*',
-      '.mypy_cache/**/*',
-      '.pytest_cache/**/*',
-      '.venv/**/*',
-      '**/*.benchmark.ts',
-      '**/*.d.ts',
-      '**/dist/**/*',
-      '**/tests/**/fixtures/**/*',
-      '**/vendor/**/*',
-      'build-utils/**/*',
-      'config/chartcuterie/config.js', // TODO: see if this file exists
-      'fixtures/artifact_bundle/**/*',
-      'fixtures/artifact_bundle_debug_ids/**/*',
-      'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
-      'fixtures/profiles/embedded.js',
-      'jest.config.ts',
-      'api-docs/**/*',
-      'src/sentry/static/sentry/js/**/*',
-      'src/sentry/templates/sentry/**/*',
-      'stylelint.config.js',
-    ],
-  },
+  // Global ignores
+  // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
+  globalIgnores([
+    '.devenv/**/*',
+    '.github/**/*',
+    '.mypy_cache/**/*',
+    '.pytest_cache/**/*',
+    '.venv/**/*',
+    '**/*.benchmark.ts',
+    '**/*.d.ts',
+    '**/dist/**/*',
+    '**/tests/**/fixtures/**/*',
+    '**/vendor/**/*',
+    'build-utils/**/*',
+    'config/chartcuterie/config.js',
+    'fixtures/artifact_bundle/**/*',
+    'fixtures/artifact_bundle_debug_ids/**/*',
+    'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
+    'fixtures/profiles/embedded.js',
+    'jest.config.ts',
+    'api-docs/**/*',
+    'src/sentry/static/sentry/js/**/*',
+    'src/sentry/templates/sentry/**/*',
+    'stylelint.config.js',
+  ]),
   /**
    * Rules are grouped by plugin. If you want to override a specific rule inside
    * the recommended set, then it's recommended to spread the new rule on top
@@ -266,7 +257,23 @@ export default typescript.config([
       'no-proto': 'error',
       'no-restricted-imports': [
         'error',
-        {patterns: restrictedImportPatterns, paths: restrictedImportPaths},
+        {
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into sentry',
+            },
+            {
+              group: ['getsentry/*'],
+              message: 'Do not import gsApp into sentry',
+            },
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
@@ -317,6 +324,16 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/tanstack/query',
+    plugins: {
+      '@tanstack/query': pluginQuery,
+    },
+    rules: {
+      ...pluginQuery.configs.recommended.rules,
+      '@tanstack/query/no-rest-destructuring': 'error',
     },
   },
   {
@@ -411,6 +428,8 @@ export default typescript.config([
     rules: {
       'prefer-spread': 'off',
       '@typescript-eslint/prefer-enum-initializers': 'error',
+      'no-unused-expressions': 'off', // Disabled in favor of @typescript-eslint/no-unused-expressions
+      '@typescript-eslint/no-unused-expressions': ['error', {allowTernary: true}],
 
       // Recommended overrides
       '@typescript-eslint/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
@@ -502,8 +521,6 @@ export default typescript.config([
             // Internal packages.
             ['^(sentry-locale|sentry-images)(/.*|$)'],
 
-            ['^(getsentry-images)(/.*|$)'],
-
             ['^(app|sentry)(/.*|$)'],
 
             // Getsentry packages.
@@ -547,13 +564,48 @@ export default typescript.config([
   },
   {
     name: 'plugin/unicorn',
+    // https://github.com/sindresorhus/eslint-plugin-unicorn?tab=readme-ov-file#rules
     plugins: {unicorn},
     rules: {
       // The recommended rules are very opinionated. We don't need to enable them.
 
+      'unicorn/custom-error-definition': 'error',
+      'unicorn/error-message': 'error',
+      'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/new-for-builtins': 'error',
+      'unicorn/no-abusive-eslint-disable': 'error',
+      'unicorn/no-array-push-push': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-await-in-promise-methods': 'error',
       'unicorn/no-instanceof-array': 'error',
+      'unicorn/no-invalid-remove-event-listener': 'error',
+      'unicorn/no-negated-condition': 'error',
+      'unicorn/no-negation-in-equality-check': 'error',
+      'unicorn/no-new-array': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-unnecessary-await': 'error',
+      'unicorn/no-useless-fallback-in-spread': 'error',
+      'unicorn/no-useless-length-check': 'error',
+      'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-find': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-flat-map': 'error',
+      'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-node-protocol': 'error',
+      'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-regexp-test': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/throw-new-error': 'off', // TODO(ryan953): Fix violations and enable this rule
     },
   },
   {
@@ -654,8 +706,23 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into sentry',
+            },
+            {
+              group: ['getsentry/*'],
+              message: 'Do not import gsApp into sentry',
+            },
+          ],
           paths: [
             ...restrictedImportPaths,
+            {
+              name: 'sentry/components/button',
+              message:
+                "Cannot depend on Button from inside the toolbar. Button depends on analytics tracking which isn't avaialble in the toolbar context",
+            },
             {
               name: 'sentry/utils/queryClient',
               message:
@@ -674,7 +741,20 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: restrictedImportPatterns,
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into sentry',
+            },
+            {
+              group: ['getsentry/*'],
+              message: 'Do not import gsApp into sentry',
+            },
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
           paths: [
             ...restrictedImportPaths,
             {
@@ -701,6 +781,46 @@ export default typescript.config([
     files: ['**/js-sdk-loader.ts'],
     rules: {
       'no-console': 'off',
+    },
+  },
+  {
+    name: 'files/gsApp',
+    files: ['static/gsApp/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into gsApp',
+            },
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/gsAdmin',
+    files: ['static/gsAdmin/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
     },
   },
 ]);

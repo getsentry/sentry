@@ -10,7 +10,7 @@ import type {
   AggregateFunction,
   FunctionArgument,
 } from 'sentry/components/arithmeticBuilder/types';
-import {inputStyles} from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface ArithmeticBuilderProps {
@@ -60,8 +60,7 @@ export function ArithmeticBuilder({
   );
 }
 
-const Wrapper = styled('div')<{state: 'valid' | 'invalid'}>`
-  ${inputStyles}
+const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>`
   min-height: 38px;
   padding: 0;
   height: auto;

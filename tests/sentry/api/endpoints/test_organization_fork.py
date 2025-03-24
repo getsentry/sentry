@@ -22,7 +22,7 @@ SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTIN
 
 
 @patch("sentry.analytics.record")
-@patch("sentry.relocation.tasks.uploading_start.apply_async")
+@patch("sentry.relocation.tasks.process.uploading_start.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"

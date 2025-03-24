@@ -11,10 +11,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 import {
-  getPerformanceLandingUrl,
+  getPerformanceBaseUrl,
   getPerformanceTrendsUrl,
+  platformToDomainView,
 } from 'sentry/views/performance/utils';
 
 import {SidebarSection} from './styles';
@@ -45,18 +47,30 @@ function ProjectQuickLinks({organization, project, location}: Props) {
     };
   }
 
+  const hasPerfLandingRemovalFlag = organization.features?.includes(
+    'insights-performance-landing-removal'
+  );
+  const hasNewFeedback = organization.features.includes('user-feedback-ui');
+  const domainView: DomainView | undefined = project
+    ? platformToDomainView([project], [parseInt(project.id, 10)])
+    : 'backend';
+
   const quickLinks = [
     {
       title: t('User Feedback'),
       to: {
-        pathname: `/organizations/${organization.slug}/user-feedback/`,
+        pathname: hasNewFeedback
+          ? `/organizations/${organization.slug}/feedback/`
+          : `/organizations/${organization.slug}/user-feedback/`,
         query: {project: project?.id},
       },
     },
     {
       title: t('View Transactions'),
       to: {
-        pathname: getPerformanceLandingUrl(organization),
+        pathname: hasPerfLandingRemovalFlag
+          ? `${getPerformanceBaseUrl(organization.slug, domainView)}/`
+          : `${getPerformanceBaseUrl(organization.slug)}/`,
         query: {project: project?.id},
       },
       disabled: !organization.features.includes('performance-view'),

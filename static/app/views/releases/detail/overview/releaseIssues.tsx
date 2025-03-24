@@ -6,8 +6,8 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -344,7 +344,7 @@ class ReleaseIssues extends Component<Props, State> {
   render() {
     const {count, pageLinks, onCursor} = this.state;
     const issuesType = this.getActiveIssuesType();
-    const {organization, queryFilterDescription, withChart, version} = this.props;
+    const {queryFilterDescription, withChart, version} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
@@ -400,7 +400,6 @@ class ReleaseIssues extends Component<Props, State> {
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
           <GroupList
-            orgSlug={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
             query={`release:${version}`}

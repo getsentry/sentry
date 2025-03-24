@@ -11,7 +11,11 @@ from sentry.eventstore.models import GroupEvent
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
+from sentry.integrations.metric_alerts import (
+    get_metric_count_from_incident,
+    incident_attachment_info,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
@@ -39,7 +43,19 @@ def build_incident_attachment(
         convert_dict_key_case,
     )
 
-    data = incident_attachment_info(incident, new_status, metric_value, notification_uuid)
+    if metric_value is None:
+        metric_value = get_metric_count_from_incident(incident)
+
+    data = incident_attachment_info(
+        organization=incident.organization,
+        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+        metric_issue_context=MetricIssueContext.from_legacy_models(
+            incident, new_status, metric_value
+        ),
+        notification_uuid=notification_uuid,
+        referrer="metric_alert_sentry_app",
+    )
+
     return {
         "metric_alert": convert_dict_key_case(
             serialize(incident, serializer=IncidentSerializer()), camel_to_snake_case
@@ -53,8 +69,8 @@ def build_incident_attachment(
 def send_incident_alert_notification(
     action: AlertRuleTriggerAction,
     incident: Incident,
+    metric_value: float | int | None,
     new_status: IncidentStatus,
-    metric_value: float | None = None,
     notification_uuid: str | None = None,
 ) -> bool:
     """
@@ -62,7 +78,7 @@ def send_incident_alert_notification(
     :param action: The triggered `AlertRuleTriggerAction`.
     :param incident: The `Incident` for which to build a payload.
     :param metric_value: The value of the metric that triggered this alert to
-    fire. If not provided we'll attempt to calculate this ourselves.
+    fire.
     :return:
     """
     organization = serialize_rpc_organization(incident.organization)

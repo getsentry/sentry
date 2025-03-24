@@ -42,7 +42,7 @@ function ReleaseCardStatsPeriod({location, selection}: Props) {
         }}
         selected={activePeriod === HealthStatsPeriodOption.AUTO}
       >
-        {selection.datetime.start ? t('Custom') : selection.datetime.period ?? t('14d')}
+        {selection.datetime.start ? t('Custom') : (selection.datetime.period ?? t('14d'))}
       </Period>
     </Wrapper>
   );

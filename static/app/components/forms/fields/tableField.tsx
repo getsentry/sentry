@@ -1,12 +1,12 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import FormField from 'sentry/components/forms/formField';
 import type {TableType} from 'sentry/components/forms/types';
-import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -150,7 +150,9 @@ export default class TableField extends Component<InputFieldProps> {
                 <RowInput>
                   <Input
                     onChange={v => setValue(rowIndex, fieldKey, v)}
-                    value={!defined(row[fieldKey]) ? '' : row[fieldKey]}
+                    value={defined(row[fieldKey]) ? row[fieldKey] : ''}
+                    // Do not forward required to `input` to avoid default browser behavior
+                    required={undefined}
                   />
                 </RowInput>
                 {i === mappedKeys.length - 1 && (

@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from rest_framework.request import Request
 
 from sentry.pipeline.views.base import PipelineView
 
@@ -45,7 +45,7 @@ class NestedPipelineView(PipelineView):
 
         self.pipeline_cls = NestedPipeline
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, pipeline: Pipeline) -> HttpResponseBase:
         nested_pipeline = self.pipeline_cls(
             organization=pipeline.organization,
             request=request,

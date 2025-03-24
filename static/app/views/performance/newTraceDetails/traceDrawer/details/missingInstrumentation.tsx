@@ -59,14 +59,16 @@ export function MissingInstrumentationNodeDetails(
         />
       </TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasTraceNewUi}>
-        {tct(
-          'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
-          {
-            customInstrumentationLink: (
-              <ExternalLink href={getCustomInstrumentationLink(project)} />
-            ),
-          }
-        )}
+        <p>
+          {tct(
+            'It looks like there’s more than 100ms unaccounted for. This might be a missing service or just idle time. If you know there’s something going on, you can [customInstrumentationLink: add more spans using custom instrumentation].',
+            {
+              customInstrumentationLink: (
+                <ExternalLink href={getCustomInstrumentationLink(project)} />
+              ),
+            }
+          )}
+        </p>
         {event?.projectSlug ? (
           <ProfilesProvider
             orgSlug={organization.slug}
@@ -86,9 +88,9 @@ export function MissingInstrumentationNodeDetails(
             </ProfileContext.Consumer>
           </ProfilesProvider>
         ) : null}
-        {t(
-          "You can turn off the 'No Instrumentation' feature using the settings dropdown above."
-        )}
+        <p>
+          {t("If you'd prefer, you can also turn the feature off in the settings above.")}
+        </p>
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
   );

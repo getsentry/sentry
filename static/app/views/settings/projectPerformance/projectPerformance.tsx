@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
-import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelFooter from 'sentry/components/panels/panelFooter';
@@ -24,14 +24,22 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Scope} from 'sentry/types/core';
 import {IssueTitle, IssueType} from 'sentry/types/group';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -97,13 +105,6 @@ export enum DetectorConfigCustomer {
   HTTP_OVERHEAD_REQUEST_DELAY = 'http_request_delay_threshold',
 }
 
-type RouteParams = {orgId: string; projectId: string};
-
-type Props = RouteComponentProps<{projectId: string}> & {
-  organization: Organization;
-  project: Project;
-};
-
 type ProjectThreshold = {
   metric: string;
   threshold: string;
@@ -111,109 +112,151 @@ type ProjectThreshold = {
   id?: string;
 };
 
-type State = DeprecatedAsyncComponent['state'] & {
-  threshold: ProjectThreshold;
-};
-
-class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
-  getProjectEndpoint({orgId, projectId}: RouteParams) {
-    return `/projects/${orgId}/${projectId}/`;
-  }
-
-  getPerformanceIssuesEndpoint({orgId, projectId}: RouteParams) {
-    return `/projects/${orgId}/${projectId}/performance-issues/configure/`;
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {params, organization} = this.props;
-    const {projectId} = params;
-
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
-      [
-        'threshold',
-        `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,
-      ],
-      ['project', `/projects/${organization.slug}/${projectId}/`],
-    ];
-
-    const performanceIssuesEndpoint: ReturnType<
-      DeprecatedAsyncComponent['getEndpoints']
-    >[number] = [
-      'performance_issue_settings',
-      `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
-    ];
-
-    const generalSettingsEndpoint: ReturnType<
-      DeprecatedAsyncComponent['getEndpoints']
-    >[number] = [
-      'general',
-      `/projects/${organization.slug}/${projectId}/performance/configure/`,
-    ];
-
-    endpoints.push(performanceIssuesEndpoint);
-    endpoints.push(generalSettingsEndpoint);
-
-    return endpoints;
-  }
-
-  getRetentionPrioritiesData(...data: any) {
-    return {
-      dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
-        id: key,
-        active: value,
-      })),
-    };
-  }
-
-  handleDelete = () => {
-    const {projectId} = this.props.params;
-    const {organization} = this.props;
-
-    this.setState({
-      loading: true,
-    });
-
-    this.api.request(
-      `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,
+const formFields: Field[] = [
+  {
+    name: 'metric',
+    type: 'select',
+    label: t('Calculation Method'),
+    options: [
+      {value: 'duration', label: t('Transaction Duration')},
+      {value: 'lcp', label: t('Largest Contentful Paint')},
+    ],
+    help: tct(
+      'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
       {
-        method: 'DELETE',
-        success: () => {
-          trackAnalytics('performance_views.project_transaction_threshold.clear', {
-            organization,
-          });
-        },
-        complete: () => this.fetchData(),
+        link: (
+          <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/" />
+        ),
       }
-    );
-  };
-
-  handleThresholdsReset = () => {
-    const {projectId} = this.props.params;
-    const {organization, project} = this.props;
-
-    this.setState({
-      loading: true,
-    });
-
-    trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
-      organization,
-      project_slug: project.slug,
-    });
-
-    this.api.request(
-      `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
+    ),
+  },
+  {
+    name: 'threshold',
+    type: 'string',
+    label: t('Response Time Threshold (ms)'),
+    placeholder: t('300'),
+    help: tct(
+      'Define what a satisfactory response time is based on the calculation method above. This will affect how your [link1:Apdex] and [link2:User Misery] thresholds are calculated. For example, misery will be 4x your satisfactory response time.',
       {
-        method: 'DELETE',
-        complete: () => this.fetchData(),
+        link1: (
+          <ExternalLink href="https://docs.sentry.io/performance-monitoring/performance/metrics/#apdex" />
+        ),
+        link2: (
+          <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
+        ),
       }
-    );
-  };
+    ),
+  },
+];
 
-  getEmptyMessage() {
-    return t('There is no threshold set for this project.');
-  }
+const getThresholdQueryKey = (orgSlug: string, projectSlug: string): ApiQueryKey => [
+  `/projects/${orgSlug}/${projectSlug}/transaction-threshold/configure/`,
+];
 
-  renderLoading() {
+const getPerformanceIssueSettingsQueryKey = (
+  orgSlug: string,
+  projectSlug: string
+): ApiQueryKey => [`/projects/${orgSlug}/${projectSlug}/performance-issues/configure/`];
+
+function ProjectPerformance() {
+  const api = useApi({persistInFlight: true});
+  const organization = useOrganization();
+  const {projectId: projectSlug} = useParams<{projectId: string}>();
+  const queryClient = useQueryClient();
+  const {
+    data: project,
+    isPending: isPendingProject,
+    isError: isErrorProject,
+  } = useDetailedProject({
+    projectSlug,
+    orgSlug: organization.slug,
+  });
+
+  const {
+    data: threshold,
+    isPending: isPendingThreshold,
+    isError: isErrorThreshold,
+  } = useApiQuery<ProjectThreshold>(
+    getThresholdQueryKey(organization.slug, projectSlug),
+    {
+      staleTime: 0,
+    }
+  );
+
+  const {
+    data: performanceIssueSettings,
+    isPending: isPendingPerformanceIssueSettings,
+    isError: isErrorPerformanceIssueSettings,
+  } = useApiQuery<ProjectPerformanceSettings>(
+    getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+    {
+      staleTime: 0,
+    }
+  );
+
+  const {
+    data: general,
+    isPending: isPendingGeneral,
+    isError: isErrorGeneral,
+  } = useApiQuery<any>(
+    [`/projects/${organization.slug}/${projectSlug}/performance/configure/`],
+    {
+      staleTime: 0,
+    }
+  );
+
+  const {mutate: resetThresholdSettings, isPending: isPendingResetThresholdSettings} =
+    useMutation({
+      mutationFn: () => {
+        return api.requestPromise(
+          `/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`,
+          {
+            method: 'DELETE',
+          }
+        );
+      },
+      onMutate: () => {
+        trackAnalytics('performance_views.project_transaction_threshold.clear', {
+          organization,
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: getThresholdQueryKey(organization.slug, projectSlug),
+        });
+      },
+    });
+
+  const {mutate: resetThresholds, isPending: isPendingResetThresholds} = useMutation({
+    mutationFn: () => {
+      return api.requestPromise(
+        `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`,
+        {
+          method: 'DELETE',
+        }
+      );
+    },
+    onMutate: () => {
+      trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
+        organization,
+        project_slug: projectSlug,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+      });
+    },
+  });
+
+  if (
+    isPendingThreshold ||
+    isPendingPerformanceIssueSettings ||
+    isPendingGeneral ||
+    isPendingProject ||
+    isPendingResetThresholdSettings ||
+    isPendingResetThresholds
+  ) {
     return (
       <LoadingIndicatorContainer>
         <LoadingIndicator />
@@ -221,266 +264,322 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
     );
   }
 
-  get formFields(): Field[] {
-    const fields: Field[] = [
-      {
-        name: 'metric',
-        type: 'select',
-        label: t('Calculation Method'),
-        options: [
-          {value: 'duration', label: t('Transaction Duration')},
-          {value: 'lcp', label: t('Largest Contentful Paint')},
-        ],
-        help: tct(
-          'This determines which duration is used to set your thresholds. By default, we use transaction duration which measures the entire length of the transaction. You can also set this to use a [link:Web Vital].',
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/" />
-            ),
-          }
-        ),
-      },
-      {
-        name: 'threshold',
-        type: 'string',
-        label: t('Response Time Threshold (ms)'),
-        placeholder: t('300'),
-        help: tct(
-          'Define what a satisfactory response time is based on the calculation method above. This will affect how your [link1:Apdex] and [link2:User Misery] thresholds are calculated. For example, misery will be 4x your satisfactory response time.',
-          {
-            link1: (
-              <ExternalLink href="https://docs.sentry.io/performance-monitoring/performance/metrics/#apdex" />
-            ),
-            link2: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/metrics/#user-misery" />
-            ),
-          }
-        ),
-      },
-    ];
-    return fields;
+  if (
+    isErrorThreshold ||
+    isErrorPerformanceIssueSettings ||
+    isErrorGeneral ||
+    isErrorProject
+  ) {
+    return <LoadingError />;
   }
 
-  get areAllConfigurationsDisabled(): boolean {
-    let result = true;
-    Object.values(DetectorConfigAdmin).forEach(threshold => {
-      result = result && !this.state.performance_issue_settings[threshold];
-    });
-    return result;
-  }
+  const requiredScopes: Scope[] = ['project:write'];
 
-  get performanceIssueFormFields(): Field[] {
-    return [
-      {
-        name: 'performanceIssueCreationRate',
-        type: 'range',
-        label: t('Performance Issue Creation Rate'),
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        defaultValue: 0,
-        help: t(
-          'This determines the rate at which performance issues are created. A rate of 0.0 will disable performance issue creation.'
-        ),
-      },
-      {
-        name: 'performanceIssueSendToPlatform',
-        type: 'boolean',
-        label: t('Send Occurrences To Platform'),
-        defaultValue: false,
-        help: t(
-          'This determines whether performance issue occurrences are sent to the issues platform.'
-        ),
-      },
-      {
-        name: 'performanceIssueCreationThroughPlatform',
-        type: 'boolean',
-        label: t('Create Issues Through Issues Platform'),
-        defaultValue: false,
-        help: t(
-          'This determines whether performance issues are created through the issues platform.'
-        ),
-      },
-    ];
-  }
+  const projectEndpoint = `/projects/${organization.slug}/${projectSlug}/`;
+  const performanceIssuesEndpoint = `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`;
+  const isSuperUser = isActiveSuperuser();
 
-  get performanceIssueDetectorAdminFields(): Field[] {
-    return [
-      {
-        name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
-        type: 'boolean',
-        label: t('N+1 DB Queries Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              n_plus_one_db_queries_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.SLOW_DB_ENABLED,
-        type: 'boolean',
-        label: t('Slow DB Queries Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              slow_db_queries_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
-        type: 'boolean',
-        label: t('N+1 API Calls Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              n_plus_one_api_calls_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
-        type: 'boolean',
-        label: t('Large Render Blocking Asset Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              large_render_blocking_asset_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
-        type: 'boolean',
-        label: t('Consecutive DB Queries Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              consecutive_db_queries_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
-        type: 'boolean',
-        label: t('Large HTTP Payload Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              large_http_payload_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
-        type: 'boolean',
-        label: t('DB On Main Thread Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              db_on_main_thread_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.FILE_IO_ENABLED,
-        type: 'boolean',
-        label: t('File I/O on Main Thread Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              file_io_on_main_thread_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
-        type: 'boolean',
-        label: t('Uncompressed Assets Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              uncompressed_assets_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
-        type: 'boolean',
-        label: t('Consecutive HTTP Detection Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              consecutive_http_spans_detection_enabled: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
-        type: 'boolean',
-        label: t('HTTP/1.1 Overhead Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue_settings,
-              [DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED,
-        type: 'boolean',
-        label: t('Transaction Duration Regression Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue__settings,
-              [DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED]: value,
-            },
-          }),
-      },
-      {
-        name: DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED,
-        type: 'boolean',
-        label: t('Function Duration Regression Enabled'),
-        defaultValue: true,
-        onChange: value =>
-          this.setState({
-            performance_issue_settings: {
-              ...this.state.performance_issue__settings,
-              [DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED]: value,
-            },
-          }),
-      },
-    ];
-  }
+  const initialData = {
+    metric: threshold?.metric,
+    threshold: threshold?.threshold,
+  };
 
-  project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
-    const performanceSettings: ProjectPerformanceSettings =
-      this.state.performance_issue_settings;
+  const areAllConfigurationsDisabled = Object.values(DetectorConfigAdmin).every(
+    th => !performanceIssueSettings[th]
+  );
+
+  const getRetentionPrioritiesData = (...data: any) => {
+    return {
+      dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
+        id: key,
+        active: value,
+      })),
+    };
+  };
+
+  const retentionPrioritiesFormFields: Field[] = [
+    {
+      name: 'boostLatestRelease',
+      type: 'boolean',
+      label: retentionPrioritiesLabels.boostLatestRelease,
+      help: t(
+        'Captures more transactions for your new releases as they are being adopted'
+      ),
+      getData: getRetentionPrioritiesData,
+    },
+    {
+      name: 'boostEnvironments',
+      type: 'boolean',
+      label: retentionPrioritiesLabels.boostEnvironments,
+      help: t(
+        'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
+      ),
+      getData: getRetentionPrioritiesData,
+    },
+    {
+      name: 'boostLowVolumeTransactions',
+      type: 'boolean',
+      label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+      help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+      getData: getRetentionPrioritiesData,
+    },
+    {
+      name: 'ignoreHealthChecks',
+      type: 'boolean',
+      label: retentionPrioritiesLabels.ignoreHealthChecks,
+      help: t('Captures fewer of your health checks transactions'),
+      getData: getRetentionPrioritiesData,
+    },
+  ];
+
+  const performanceIssueFormFields: Field[] = [
+    {
+      name: 'performanceIssueCreationRate',
+      type: 'range',
+      label: t('Performance Issue Creation Rate'),
+      min: 0.0,
+      max: 1.0,
+      step: 0.01,
+      defaultValue: 0,
+      help: t(
+        'This determines the rate at which performance issues are created. A rate of 0.0 will disable performance issue creation.'
+      ),
+      getValue(value) {
+        return Array.isArray(value) ? value[0] : value;
+      },
+    },
+    {
+      name: 'performanceIssueSendToPlatform',
+      type: 'boolean',
+      label: t('Send Occurrences To Platform'),
+      defaultValue: false,
+      help: t(
+        'This determines whether performance issue occurrences are sent to the issues platform.'
+      ),
+    },
+    {
+      name: 'performanceIssueCreationThroughPlatform',
+      type: 'boolean',
+      label: t('Create Issues Through Issues Platform'),
+      defaultValue: false,
+      help: t(
+        'This determines whether performance issues are created through the issues platform.'
+      ),
+    },
+  ];
+
+  const performanceIssueDetectorAdminFields: Field[] = [
+    {
+      name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
+      type: 'boolean',
+      label: t('N+1 DB Queries Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            n_plus_one_db_queries_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.SLOW_DB_ENABLED,
+      type: 'boolean',
+      label: t('Slow DB Queries Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            slow_db_queries_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED,
+      type: 'boolean',
+      label: t('N+1 API Calls Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            n_plus_one_api_calls_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
+      type: 'boolean',
+      label: t('Large Render Blocking Asset Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            large_render_blocking_asset_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
+      type: 'boolean',
+      label: t('Consecutive DB Queries Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            consecutive_db_queries_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
+      type: 'boolean',
+      label: t('Large HTTP Payload Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            large_http_payload_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
+      type: 'boolean',
+      label: t('DB On Main Thread Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            db_on_main_thread_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.FILE_IO_ENABLED,
+      type: 'boolean',
+      label: t('File I/O on Main Thread Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            file_io_on_main_thread_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
+      type: 'boolean',
+      label: t('Uncompressed Assets Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            uncompressed_assets_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED,
+      type: 'boolean',
+      label: t('Consecutive HTTP Detection Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            consecutive_http_spans_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED,
+      type: 'boolean',
+      label: t('HTTP/1.1 Overhead Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            http_overhead_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.TRANSACTION_DURATION_REGRESSION_ENABLED,
+      type: 'boolean',
+      label: t('Transaction Duration Regression Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            transaction_duration_regression_detection_enabled: value,
+          })
+        );
+      },
+    },
+    {
+      name: DetectorConfigAdmin.FUNCTION_DURATION_REGRESSION_ENABLED,
+      type: 'boolean',
+      label: t('Function Duration Regression Enabled'),
+      defaultValue: true,
+      onChange: value => {
+        setApiQueryData<ProjectPerformanceSettings>(
+          queryClient,
+          getPerformanceIssueSettingsQueryKey(organization.slug, projectSlug),
+          data => ({
+            ...data!,
+            function_duration_regression_detection_enabled: value,
+          })
+        );
+      },
+    },
+  ];
+
+  const project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
     const supportMail = ConfigStore.get('supportEmail');
     const disabledReason = hasAccess
       ? tct(
@@ -528,7 +627,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             ),
             allowedValues: allowedDurationValues,
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
             ),
             tickValues: [0, allowedDurationValues.length - 1],
             showTickLabels: true,
@@ -546,7 +645,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             ),
             allowedValues: allowedCountValues,
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
             ),
             tickValues: [0, allowedCountValues.length - 1],
             showTickLabels: true,
@@ -572,7 +671,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             showTickLabels: true,
             allowedValues: allowedDurationValues.slice(5),
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -594,7 +693,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             allowedValues: allowedDurationValues.slice(5),
             disabled: !(
               hasAccess &&
-              performanceSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.N_PLUS_ONE_API_CALLS_ENABLED]
             ),
             tickValues: [0, allowedDurationValues.slice(5).length - 1],
             showTickLabels: true,
@@ -621,7 +720,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             showTickLabels: true,
             disabled: !(
               hasAccess &&
-              performanceSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
             ),
             formatLabel: value => value && formatPercentage(value),
             disabledReason,
@@ -645,7 +744,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             allowedValues: allowedSizeValues.slice(1),
             disabled: !(
               hasAccess &&
-              performanceSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
             ),
             formatLabel: formatSize,
             disabledReason,
@@ -668,7 +767,8 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             showTickLabels: true,
             allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
             ),
             formatLabel: formatFrameRate,
             disabledReason,
@@ -691,7 +791,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             showTickLabels: true,
             allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
+              hasAccess && performanceIssueSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
             ),
             formatLabel: formatFrameRate,
             disabledReason,
@@ -714,7 +814,8 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             showTickLabels: true,
             allowedValues: allowedDurationValues.slice(0, 23),
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -738,7 +839,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             allowedValues: allowedSizeValues.slice(1),
             disabled: !(
               hasAccess &&
-              performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
             ),
             formatLabel: formatSize,
             disabledReason,
@@ -756,7 +857,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             allowedValues: allowedDurationValues.slice(5),
             disabled: !(
               hasAccess &&
-              performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -780,7 +881,7 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             allowedValues: allowedDurationValues.slice(14),
             disabled: !(
               hasAccess &&
-              performanceSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
+              performanceIssueSettings[DetectorConfigAdmin.CONSECUTIVE_HTTP_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -803,7 +904,8 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             showTickLabels: true,
             allowedValues: allowedDurationValues.slice(6, 17),
             disabled: !(
-              hasAccess && performanceSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
+              hasAccess &&
+              performanceIssueSettings[DetectorConfigAdmin.HTTP_OVERHEAD_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -814,150 +916,135 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
     ];
   };
 
-  get retentionPrioritiesFormFields(): Field[] {
-    return [
-      {
-        name: 'boostLatestRelease',
-        type: 'boolean',
-        label: retentionPrioritiesLabels.boostLatestRelease,
-        help: t(
-          'Captures more transactions for your new releases as they are being adopted'
-        ),
-        getData: this.getRetentionPrioritiesData,
-      },
-      {
-        name: 'boostEnvironments',
-        type: 'boolean',
-        label: retentionPrioritiesLabels.boostEnvironments,
-        help: t(
-          'Captures more traces from environments that contain "debug", "dev", "local", "qa", and "test"'
-        ),
-        getData: this.getRetentionPrioritiesData,
-      },
-      {
-        name: 'boostLowVolumeTransactions',
-        type: 'boolean',
-        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
-        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-        getData: this.getRetentionPrioritiesData,
-      },
-      {
-        name: 'ignoreHealthChecks',
-        type: 'boolean',
-        label: retentionPrioritiesLabels.ignoreHealthChecks,
-        help: t('Captures fewer of your health checks transactions'),
-        getData: this.getRetentionPrioritiesData,
-      },
-    ];
-  }
+  return (
+    <Fragment>
+      <SentryDocumentTitle title={t('Performance')} projectSlug={projectSlug} />
+      <SettingsPageHeader title={t('Performance')} />
+      <ProjectPermissionAlert project={project} />
+      <Access access={requiredScopes} project={project}>
+        {({hasAccess}) => (
+          <Feature features="organizations:insights-initial-modules">
+            <Form
+              initialData={general}
+              saveOnBlur
+              apiEndpoint={`/projects/${organization.slug}/${projectSlug}/performance/configure/`}
+            >
+              <JsonForm
+                disabled={!hasAccess}
+                fields={[
+                  {
+                    name: 'enable_images',
+                    type: 'boolean',
+                    label: t('Images'),
+                    help: t('Enables images from real data to be displayed'),
+                  },
+                ]}
+                title={t('General')}
+              />
+            </Form>
+          </Feature>
+        )}
+      </Access>
 
-  get initialData() {
-    const {threshold} = this.state;
-
-    return {
-      threshold: threshold.threshold,
-      metric: threshold.metric,
-    };
-  }
-
-  renderBody() {
-    const {organization, project} = this.props;
-    const endpoint = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-    const requiredScopes: Scope[] = ['project:write'];
-
-    const params = {orgId: organization.slug, projectId: project.slug};
-    const projectEndpoint = this.getProjectEndpoint(params);
-    const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
-    const isSuperUser = isActiveSuperuser();
-
-    return (
-      <Fragment>
-        <SentryDocumentTitle title={t('Performance')} projectSlug={project.slug} />
-        <SettingsPageHeader title={t('Performance')} />
-        <ProjectPermissionAlert project={project} />
+      <Form
+        saveOnBlur
+        allowUndo
+        initialData={initialData}
+        apiMethod="POST"
+        apiEndpoint={`/projects/${organization.slug}/${projectSlug}/transaction-threshold/configure/`}
+        onSubmitSuccess={resp => {
+          const initial = initialData;
+          const changedThreshold = initial.metric === resp.metric;
+          trackAnalytics('performance_views.project_transaction_threshold.change', {
+            organization,
+            from: changedThreshold ? initial.threshold : initial.metric,
+            to: changedThreshold ? resp.threshold : resp.metric,
+            key: changedThreshold ? 'threshold' : 'metric',
+          });
+          setApiQueryData(
+            queryClient,
+            getThresholdQueryKey(organization.slug, projectSlug),
+            resp
+          );
+        }}
+      >
         <Access access={requiredScopes} project={project}>
           {({hasAccess}) => (
-            <Feature features="organizations:insights-initial-modules">
-              <Form
-                initialData={this.state.general}
-                saveOnBlur
-                apiEndpoint={`/projects/${organization.slug}/${project.slug}/performance/configure/`}
-              >
-                <JsonForm
-                  disabled={!hasAccess}
-                  fields={[
-                    {
-                      name: 'enable_images',
-                      type: 'boolean',
-                      label: t('Images'),
-                      help: t('Enables images from real data to be displayed'),
-                    },
-                  ]}
-                  title={t('General')}
-                />
-              </Form>
-            </Feature>
+            <JsonForm
+              title={t('Threshold Settings')}
+              fields={formFields}
+              disabled={!hasAccess}
+              renderFooter={() => (
+                <Actions>
+                  <Button onClick={() => resetThresholdSettings()}>
+                    {t('Reset All')}
+                  </Button>
+                </Actions>
+              )}
+            />
           )}
         </Access>
-
+      </Form>
+      <Feature features="organizations:dynamic-sampling">
         <Form
           saveOnBlur
           allowUndo
-          initialData={this.initialData}
-          apiMethod="POST"
-          apiEndpoint={endpoint}
-          onSubmitSuccess={resp => {
-            const initial = this.initialData;
-            const changedThreshold = initial.metric === resp.metric;
-            trackAnalytics('performance_views.project_transaction_threshold.change', {
-              organization,
-              from: changedThreshold ? initial.threshold : initial.metric,
-              to: changedThreshold ? resp.threshold : resp.metric,
-              key: changedThreshold ? 'threshold' : 'metric',
-            });
-            this.setState({threshold: resp});
+          initialData={
+            project.dynamicSamplingBiases?.reduce<Record<string, boolean>>(
+              (acc, bias) => {
+                acc[bias.id] = bias.active;
+                return acc;
+              },
+              {}
+            ) ?? {}
+          }
+          onSubmitSuccess={(response, _instance, id, change) => {
+            ProjectsStore.onUpdateSuccess(response);
+            trackAnalytics(
+              change?.new === true
+                ? 'dynamic_sampling_settings.priority_enabled'
+                : 'dynamic_sampling_settings.priority_disabled',
+              {
+                organization,
+                project_id: project.id,
+                id: id as DynamicSamplingBiasType,
+              }
+            );
           }}
+          apiMethod="PUT"
+          apiEndpoint={projectEndpoint}
         >
           <Access access={requiredScopes} project={project}>
             {({hasAccess}) => (
               <JsonForm
-                title={t('Threshold Settings')}
-                fields={this.formFields}
+                title={t('Sampling Priorities')}
+                fields={retentionPrioritiesFormFields}
                 disabled={!hasAccess}
                 renderFooter={() => (
                   <Actions>
-                    <Button onClick={() => this.handleDelete()}>{t('Reset All')}</Button>
+                    <LinkButton
+                      external
+                      href="https://docs.sentry.io/product/performance/performance-at-scale/"
+                    >
+                      {t('Read docs')}
+                    </LinkButton>
                   </Actions>
                 )}
               />
             )}
           </Access>
         </Form>
-        <Feature features="organizations:dynamic-sampling">
+      </Feature>
+      <Fragment>
+        <Feature features="organizations:performance-issues-dev">
           <Form
             saveOnBlur
             allowUndo
-            initialData={
-              project.dynamicSamplingBiases?.reduce<Record<string, boolean>>(
-                (acc, bias) => {
-                  acc[bias.id] = bias.active;
-                  return acc;
-                },
-                {}
-              ) ?? {}
-            }
-            onSubmitSuccess={(response, _instance, id, change) => {
-              ProjectsStore.onUpdateSuccess(response);
-              trackAnalytics(
-                change?.new === true
-                  ? 'dynamic_sampling_settings.priority_enabled'
-                  : 'dynamic_sampling_settings.priority_disabled',
-                {
-                  organization,
-                  project_id: project.id,
-                  id: id as DynamicSamplingBiasType,
-                }
-              );
+            initialData={{
+              performanceIssueCreationRate: project.performanceIssueCreationRate,
+              performanceIssueSendToPlatform: project.performanceIssueSendToPlatform,
+              performanceIssueCreationThroughPlatform:
+                project.performanceIssueCreationThroughPlatform,
             }}
             apiMethod="PUT"
             apiEndpoint={projectEndpoint}
@@ -965,128 +1052,90 @@ class ProjectPerformance extends DeprecatedAsyncComponent<Props, State> {
             <Access access={requiredScopes} project={project}>
               {({hasAccess}) => (
                 <JsonForm
-                  title={t('Sampling Priorities')}
-                  fields={this.retentionPrioritiesFormFields}
+                  title={t('Performance Issues - All')}
+                  fields={performanceIssueFormFields}
                   disabled={!hasAccess}
-                  renderFooter={() => (
-                    <Actions>
-                      <LinkButton
-                        external
-                        href="https://docs.sentry.io/product/performance/performance-at-scale/"
-                      >
-                        {t('Read docs')}
-                      </LinkButton>
-                    </Actions>
-                  )}
                 />
               )}
             </Access>
           </Form>
         </Feature>
-        <Fragment>
-          <Feature features="organizations:performance-issues-dev">
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={{
-                performanceIssueCreationRate:
-                  this.state.project.performanceIssueCreationRate,
-                performanceIssueSendToPlatform:
-                  this.state.project.performanceIssueSendToPlatform,
-                performanceIssueCreationThroughPlatform:
-                  this.state.project.performanceIssueCreationThroughPlatform,
-              }}
-              apiMethod="PUT"
-              apiEndpoint={projectEndpoint}
-            >
-              <Access access={requiredScopes} project={project}>
-                {({hasAccess}) => (
-                  <JsonForm
-                    title={t('Performance Issues - All')}
-                    fields={this.performanceIssueFormFields}
-                    disabled={!hasAccess}
-                  />
-                )}
-              </Access>
-            </Form>
-          </Feature>
-          {isSuperUser && (
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={this.state.performance_issue_settings}
-              apiMethod="PUT"
-              onSubmitError={error => {
-                if (error.status === 403) {
-                  addErrorMessage(
-                    t(
-                      'This action requires active super user access. Please re-authenticate to make changes.'
-                    )
-                  );
-                }
-              }}
-              apiEndpoint={performanceIssuesEndpoint}
-            >
-              <JsonForm
-                title={t(
-                  '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
-                )}
-                fields={this.performanceIssueDetectorAdminFields}
-                disabled={!isSuperUser}
-              />
-            </Form>
-          )}
+        {isSuperUser && (
           <Form
-            allowUndo
-            initialData={this.state.performance_issue_settings}
-            apiMethod="PUT"
-            apiEndpoint={performanceIssuesEndpoint}
             saveOnBlur
-            onSubmitSuccess={(option: {[key: string]: number}) => {
-              const [threshold_key, threshold_value] = Object.entries(option)[0]!;
-
-              trackAnalytics(
-                'performance_views.project_issue_detection_threshold_changed',
-                {
-                  organization,
-                  project_slug: project.slug,
-                  threshold_key,
-                  threshold_value,
-                }
-              );
+            allowUndo
+            initialData={performanceIssueSettings}
+            apiMethod="PUT"
+            onSubmitError={error => {
+              if (error.status === 403) {
+                addErrorMessage(
+                  t(
+                    'This action requires active super user access. Please re-authenticate to make changes.'
+                  )
+                );
+              }
             }}
+            apiEndpoint={performanceIssuesEndpoint}
           >
-            <Access access={requiredScopes} project={project}>
-              {({hasAccess}) => (
-                <div id={projectDetectorSettingsId}>
-                  <StyledPanelHeader>
-                    {t('Performance Issues - Detector Threshold Settings')}
-                  </StyledPanelHeader>
-                  <StyledJsonForm
-                    forms={this.project_owner_detector_settings(hasAccess)}
-                    collapsible
-                  />
-                  <StyledPanelFooter>
-                    <Actions>
-                      <Confirm
-                        message={t(
-                          'Are you sure you wish to reset all detector thresholds?'
-                        )}
-                        onConfirm={() => this.handleThresholdsReset()}
-                        disabled={!hasAccess || this.areAllConfigurationsDisabled}
-                      >
-                        <Button>{t('Reset All Thresholds')}</Button>
-                      </Confirm>
-                    </Actions>
-                  </StyledPanelFooter>
-                </div>
+            <JsonForm
+              title={t(
+                '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
               )}
-            </Access>
+              fields={performanceIssueDetectorAdminFields}
+              disabled={!isSuperUser}
+            />
           </Form>
-        </Fragment>
+        )}
+        <Form
+          allowUndo
+          initialData={performanceIssueSettings}
+          apiMethod="PUT"
+          apiEndpoint={performanceIssuesEndpoint}
+          saveOnBlur
+          onSubmitSuccess={(option: {[key: string]: number}) => {
+            const [threshold_key, threshold_value] = Object.entries(option)[0]!;
+
+            trackAnalytics(
+              'performance_views.project_issue_detection_threshold_changed',
+              {
+                organization,
+                project_slug: projectSlug,
+                threshold_key,
+                threshold_value,
+              }
+            );
+          }}
+        >
+          <Access access={requiredScopes} project={project}>
+            {({hasAccess}) => (
+              <div id={projectDetectorSettingsId}>
+                <StyledPanelHeader>
+                  {t('Performance Issues - Detector Threshold Settings')}
+                </StyledPanelHeader>
+                <StyledJsonForm
+                  forms={project_owner_detector_settings(hasAccess)}
+                  collapsible
+                />
+                <StyledPanelFooter>
+                  <Actions>
+                    <Confirm
+                      message={t(
+                        'Are you sure you wish to reset all detector thresholds?'
+                      )}
+                      onConfirm={() => resetThresholds()}
+                      disabled={!hasAccess || areAllConfigurationsDisabled}
+                    >
+                      <Button>{t('Reset All Thresholds')}</Button>
+                    </Confirm>
+                  </Actions>
+                </StyledPanelFooter>
+              </div>
+            )}
+          </Access>
+        </Form>
       </Fragment>
-    );
-  }
+    </Fragment>
+  );
 }
 
 const Actions = styled(PanelItem)`

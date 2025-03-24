@@ -6,9 +6,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 
+/**
+ * Please be careful when using 'activateSidebar' function as a hook dependency,
+ * as it gets re-created when the organization gets updated. This may trigger
+ * unnecessary re-renders or side effects.
+ */
 export function useOnboardingSidebar() {
   const organization = useOrganization();
-
   const activateSidebar = useCallback(
     ({
       source,

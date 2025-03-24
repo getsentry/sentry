@@ -1,47 +1,102 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
+import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {getLogFieldsFromLocation} from 'sentry/views/explore/contexts/logs/fields';
+import {
+  defaultLogFields,
+  getLogFieldsFromLocation,
+} from 'sentry/views/explore/contexts/logs/fields';
 import {
   getLogSortBysFromLocation,
+  logsTimestampDescendingSortBy,
   updateLocationWithLogSortBys,
 } from 'sentry/views/explore/contexts/logs/sortBys';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const LOGS_QUERY_KEY = 'logsQuery'; // Logs may exist on other pages.
 const LOGS_CURSOR_KEY = 'logsCursor';
+export const LOGS_FIELDS_KEY = 'logsFields';
+
 interface LogsPageParams {
+  readonly cursor: string;
   readonly fields: string[];
+  readonly isTableEditingFrozen: boolean | undefined;
   readonly search: MutableSearch;
   readonly sortBys: Sort[];
+  /**
+   * The base search, which doesn't appear in the URL or the search bar, used for adding traceid etc..
+   */
+  readonly baseSearch?: MutableSearch;
+  /**
+   * If provided, ignores the project in the location and uses the provided project IDs.
+   * Useful for cross-project traces when project is in the location.
+   */
+  readonly projectIds?: number[];
 }
 
 type LogPageParamsUpdate = Partial<LogsPageParams>;
 
-const [_LogsPageParamsProvider, useLogsPageParams, LogsPageParamsContext] =
+const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   createDefinedContext<LogsPageParams>({
     name: 'LogsPageParamsContext',
   });
 
-export function LogsPageParamsProvider({children}: {children: React.ReactNode}) {
+export interface LogsPageParamsProviderProps {
+  children: React.ReactNode;
+  isOnEmbeddedView?: boolean;
+  limitToTraceId?: string;
+}
+
+export function LogsPageParamsProvider({
+  children,
+  limitToTraceId,
+  isOnEmbeddedView,
+}: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
-  const fields = getLogFieldsFromLocation(location);
-  const sortBys = getLogSortBysFromLocation(location, fields);
+  const baseSearch = limitToTraceId
+    ? new MutableSearch('').addFilterValues(OurLogKnownFieldKey.TRACE_ID, [
+        limitToTraceId,
+      ])
+    : undefined;
+  const isTableEditingFrozen = isOnEmbeddedView;
+  const fields = isTableEditingFrozen
+    ? defaultLogFields()
+    : getLogFieldsFromLocation(location);
+  const sortBys = isTableEditingFrozen
+    ? [logsTimestampDescendingSortBy]
+    : getLogSortBysFromLocation(location, fields);
+  const projectIds = isOnEmbeddedView ? [-1] : decodeProjects(location);
+
+  const cursor = getLogCursorFromLocation(location);
 
   return (
-    <LogsPageParamsContext.Provider value={{fields, search, sortBys}}>
+    <LogsPageParamsContext.Provider
+      value={{
+        fields,
+        search,
+        sortBys,
+        cursor,
+        isTableEditingFrozen,
+        baseSearch,
+        projectIds,
+      }}
+    >
       {children}
     </LogsPageParamsContext.Provider>
   );
 }
+
+export const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query || !location.query[LOGS_QUERY_KEY]) {
@@ -56,7 +111,11 @@ const decodeLogsQuery = (location: Location): string => {
 function setLogsPageParams(location: Location, pageParams: LogPageParamsUpdate) {
   const target: Location = {...location, query: {...location.query}};
   updateNullableLocation(target, LOGS_QUERY_KEY, pageParams.search?.formatString());
-  updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
+  updateNullableLocation(target, LOGS_CURSOR_KEY, pageParams.cursor);
+  updateNullableLocation(target, LOGS_FIELDS_KEY, pageParams.fields);
+  if (!pageParams.isTableEditingFrozen) {
+    updateLocationWithLogSortBys(target, pageParams.sortBys, LOGS_CURSOR_KEY);
+  }
   return target;
 }
 
@@ -81,7 +140,7 @@ function updateNullableLocation(
   return false;
 }
 
-function useSetLogsPageParams() {
+export function useSetLogsPageParams() {
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -99,6 +158,11 @@ export function useLogsSearch(): MutableSearch {
   return search;
 }
 
+export function useLogsBaseSearch(): MutableSearch | undefined {
+  const {baseSearch} = useLogsPageParams();
+  return baseSearch;
+}
+
 export function useSetLogsQuery() {
   const setPageParams = useSetLogsPageParams();
   return useCallback(
@@ -109,6 +173,21 @@ export function useSetLogsQuery() {
   );
 }
 
+export function useSetLogsSearch() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (search: MutableSearch) => {
+      setPageParams({search});
+    },
+    [setPageParams]
+  );
+}
+
+export function useLogsIsTableEditingFrozen() {
+  const {isTableEditingFrozen} = useLogsPageParams();
+  return isTableEditingFrozen;
+}
+
 export function useLogsSortBys() {
   const {sortBys} = useLogsPageParams();
   return sortBys;
@@ -117,6 +196,36 @@ export function useLogsSortBys() {
 export function useLogsFields() {
   const {fields} = useLogsPageParams();
   return fields;
+}
+
+export function useLogsProjectIds() {
+  const {projectIds} = useLogsPageParams();
+  return projectIds;
+}
+
+export function useSetLogsFields() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (fields: string[]) => {
+      setPageParams({fields});
+    },
+    [setPageParams]
+  );
+}
+
+export function useLogsCursor() {
+  const {cursor} = useLogsPageParams();
+  return cursor;
+}
+
+export function useSetLogsCursor() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback<CursorHandler>(
+    cursor => {
+      setPageParams({cursor});
+    },
+    [setPageParams]
+  );
 }
 
 export function useSetLogsSortBys() {
@@ -144,6 +253,14 @@ export function useSetLogsSortBys() {
     },
     [setPageParams, currentPageSortBys]
   );
+}
+
+function getLogCursorFromLocation(location: Location): string {
+  if (!location.query || !location.query[LOGS_CURSOR_KEY]) {
+    return '';
+  }
+
+  return decodeScalar(location.query[LOGS_CURSOR_KEY], '');
 }
 
 interface ToggleableSortBy {

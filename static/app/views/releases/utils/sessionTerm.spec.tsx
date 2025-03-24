@@ -470,6 +470,15 @@ describe('Release Health Session Term', function () {
       'apple-macos'
     );
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
+
+    // ANR Rate
+    const anrRateSessionTerm = getSessionTermDescription(
+      SessionTerm.ANR_RATE,
+      'apple-ios'
+    );
+    expect(anrRateSessionTerm).toBe(
+      'Percentage of unique users that experienced a fatal App Hang.'
+    );
   });
 
   it('node-express terms', function () {
@@ -655,7 +664,7 @@ describe('Release Health Session Term', function () {
       SessionTerm.CRASHED,
       'apple-ios'
     );
-    expect(crashedSessionTerm).toEqual(desktopTermDescriptions.crashed);
+    expect(crashedSessionTerm).toBe('An error that resulted in the application crashing');
 
     // Crash Free Users
     const crashFreeUsersSessionTerm = getSessionTermDescription(
@@ -676,28 +685,28 @@ describe('Release Health Session Term', function () {
       SessionTerm.ABNORMAL,
       'apple-ios'
     );
-    expect(abnormalSessionTerm).toEqual(desktopTermDescriptions.abnormal);
+    expect(abnormalSessionTerm).toEqual(mobileTermsDescription.abnormal);
 
     // Healthy
     const healthySessionTerm = getSessionTermDescription(
       SessionTerm.HEALTHY,
       'apple-ios'
     );
-    expect(healthySessionTerm).toEqual(desktopTermDescriptions.healthy);
+    expect(healthySessionTerm).toEqual(mobileTermsDescription.healthy);
 
     // Errored
     const erroredSessionTerm = getSessionTermDescription(
       SessionTerm.ERRORED,
       'apple-ios'
     );
-    expect(erroredSessionTerm).toEqual(desktopTermDescriptions.errored);
+    expect(erroredSessionTerm).toEqual(mobileTermsDescription.errored);
 
     // Unhandled
     const unhandledSessionTerm = getSessionTermDescription(
       SessionTerm.UNHANDLED,
       'apple-ios'
     );
-    expect(unhandledSessionTerm).toEqual(desktopTermDescriptions.unhandled);
+    expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
   });
 
   it('minidump terms', function () {

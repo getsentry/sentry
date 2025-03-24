@@ -113,9 +113,9 @@ export function getLastFrameIndex(frames: Frame[]) {
     })
     .filter(frame => frame !== undefined);
 
-  return !inAppFrameIndexes.length
-    ? frames.length - 1
-    : inAppFrameIndexes[inAppFrameIndexes.length - 1];
+  return inAppFrameIndexes.length
+    ? inAppFrameIndexes[inAppFrameIndexes.length - 1]
+    : frames.length - 1;
 }
 
 // TODO(dcramer): support cookies

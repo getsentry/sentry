@@ -30,6 +30,7 @@ from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.organization import Organization, OrganizationStatus
@@ -150,7 +151,7 @@ def _try_superuser_org_lookup(
 def _try_finding_org_from_slug(
     is_implicit: bool,
     organization_slug: str,
-    organizations: list[RpcOrganizationSummary],
+    organizations: list[RpcOrganizationMapping],
     request: HttpRequest,
 ) -> RpcUserOrganizationContext | None:
     try:
@@ -173,9 +174,7 @@ def _try_finding_org_from_slug(
 def _lookup_organizations(
     is_implicit: bool, organization_slug: str | None, request: HttpRequest
 ) -> tuple[RpcUserOrganizationContext | None, RpcOrganizationSummary | None]:
-    active_organization: RpcUserOrganizationContext | None = _try_superuser_org_lookup(
-        organization_slug, request
-    )
+    active_organization = _try_superuser_org_lookup(organization_slug, request)
     backup_organization: RpcOrganizationSummary | None = None
     if active_organization is None and request.user.id is not None:
         organizations = user_service.get_organizations(user_id=request.user.id, only_visible=True)
@@ -237,7 +236,7 @@ class OrganizationMixin:
     ) -> bool:
         return (
             organization.flags.require_2fa
-            and not request.user.has_2fa()
+            and (not request.user.is_authenticated or not request.user.has_2fa())
             and not is_active_superuser(request)
         )
 
@@ -247,7 +246,10 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_id_or_slug: int | str
+        self,
+        request: HttpRequest,
+        organization: RpcOrganization | Organization,
+        project_id_or_slug: int | str,
     ) -> Project | None:
         try:
             project = Project.objects.get(
@@ -264,23 +266,21 @@ class OrganizationMixin:
     def redirect_to_org(self: _HasRespond, request: HttpRequest) -> HttpResponseBase:
         from sentry import features
 
-        using_customer_domain = request and is_using_customer_domain(request)
-
         # TODO(dcramer): deal with case when the user cannot create orgs
         if self.active_organization:
             current_org_slug = self.active_organization.organization.slug
             url = Organization.get_url(current_org_slug)
-            if using_customer_domain:
+            if is_using_customer_domain(request):
                 url_prefix = generate_organization_url(request.subdomain)
                 url = absolute_uri(url, url_prefix=url_prefix)
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
             url = reverse("sentry-organization-create")
-            if using_customer_domain:
+            if is_using_customer_domain(request):
                 url = absolute_uri(url)
 
-            if using_customer_domain and request.user and request.user.is_authenticated:
+            if is_using_customer_domain(request) and request.user and request.user.is_authenticated:
                 requesting_org_slug = request.subdomain
                 org_context = organization_service.get_organization_by_slug(
                     slug=requesting_org_slug,
@@ -356,8 +356,10 @@ class BaseView(View, OrganizationMixin):
         self.active_organization = determine_active_organization(request, organization_slug)
 
         if self.csrf_protect:
-            if hasattr(self.dispatch.__func__, "csrf_exempt"):
-                delattr(self.dispatch.__func__, "csrf_exempt")
+            try:
+                del self.dispatch.__func__.csrf_exempt  # type: ignore[attr-defined]  # python/mypy#14123
+            except AttributeError:
+                pass
             response = self.test_csrf(request)
             if response:
                 return response
@@ -518,7 +520,7 @@ class AbstractOrganizationView(BaseView, abc.ABC):
     def has_permission(
         self,
         request: HttpRequest,
-        organization: RpcOrganization | Organization,
+        organization: RpcOrganization | Organization | None,
         *args: Any,
         **kwargs: Any,
     ) -> bool:
@@ -694,7 +696,7 @@ class ProjectView(OrganizationView):
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request: HttpRequest, organization: Organization, project: Project, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(self, request: HttpRequest, organization: Organization, project: Project | None, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         if project is None:
             return False
         rv = super().has_permission(request, organization)

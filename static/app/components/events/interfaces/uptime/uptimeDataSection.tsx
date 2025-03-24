@@ -1,8 +1,6 @@
 import {useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
 import {
@@ -13,6 +11,8 @@ import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMon
 import type {TimeWindow} from 'sentry/components/checkInTimeline/types';
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
 import {getTimeRangeFromEvent} from 'sentry/components/checkInTimeline/utils/getTimeRangeFromEvent';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import Panel from 'sentry/components/panels/panel';
@@ -30,6 +30,7 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {ResolutionSelector} from 'sentry/views/insights/crons/components/overviewTimeline/resolutionSelector';
 import {
   checkStatusPrecedent,
   statusToText,
@@ -38,7 +39,6 @@ import {
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {ResolutionSelector} from 'sentry/views/monitors/components/overviewTimeline/resolutionSelector';
 
 interface Props {
   event: Event;
@@ -125,7 +125,7 @@ export function UptimeDataSection({group, event, project}: Props) {
     ruleIds: alertRuleId ? [alertRuleId] : [],
     timeWindowConfig,
   });
-  const bucketedData = alertRuleId ? uptimeStats?.[alertRuleId] ?? [] : [];
+  const bucketedData = alertRuleId ? (uptimeStats?.[alertRuleId] ?? []) : [];
 
   const actions = (
     <ButtonBar gap={1}>

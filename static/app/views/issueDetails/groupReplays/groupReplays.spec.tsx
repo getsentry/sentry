@@ -375,6 +375,12 @@ describe('GroupReplays', () => {
         },
       });
 
+      const mockReplayRecord = mockReplay?.getReplay();
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
+      });
+
       // Mock the system date to be 2022-09-28
       setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
@@ -476,6 +482,12 @@ describe('GroupReplays', () => {
             finished_at: hydrated.finished_at.toString(),
           })),
         },
+      });
+
+      const mockReplayRecord = mockReplay?.getReplay();
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
       });
 
       render(<GroupReplays />, {

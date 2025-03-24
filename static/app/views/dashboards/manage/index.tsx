@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
@@ -8,20 +9,21 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Switch from 'sentry/components/switchButton';
 import {IconAdd, IconGrid, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -90,6 +92,8 @@ function ManageDashboards() {
   const location = useLocation();
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
+  const prefersStackedNav = usePrefersStackedNav();
+  const queryClient = useQueryClient();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -218,6 +222,21 @@ function ManageDashboards() {
     });
   };
 
+  const handleDashboardsChange = () => {
+    refetchDashboards();
+
+    // We also need to invalidate the cache for the query that is used by the
+    // <DashboardsSecondaryNav /> component ('static/app/views/dashboards/navigation.tsx').
+    // Otherwise, the starred / unstarred dashboards will not be reflected in the navigation
+    // before a full page reload.
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/organizations/${organization.slug}/dashboards/`,
+        {query: {filter: 'onlyFavorites'}},
+      ],
+    });
+  };
+
   const toggleTemplates = () => {
     trackAnalytics('dashboards_manage.templates.toggle', {
       organization,
@@ -314,7 +333,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={handleDashboardsChange}
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
@@ -325,7 +344,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={handleDashboardsChange}
         isLoading={isLoading}
       />
     );
@@ -428,8 +447,8 @@ function ManageDashboards() {
           ) : (
             <Layout.Page>
               <NoProjectMessage organization={organization}>
-                <Layout.Header>
-                  <Layout.HeaderContent>
+                <Layout.Header unified={prefersStackedNav}>
+                  <Layout.HeaderContent unified={prefersStackedNav}>
                     <Layout.Title>
                       {t('Dashboards')}
                       <PageHeadingQuestionTooltip
@@ -445,9 +464,9 @@ function ManageDashboards() {
                       <TemplateSwitch>
                         {t('Show Templates')}
                         <Switch
-                          isActive={showTemplates}
+                          checked={showTemplates}
                           size="lg"
-                          toggle={toggleTemplates}
+                          onChange={toggleTemplates}
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />

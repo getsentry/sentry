@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:45.777881+00:00'
+created: '2025-02-26T00:33:54.886762+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -58,7 +58,7 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "std::rt::lang_start::{{closure}}"
-          frame (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+          frame
             function (function name is not used if module or filename are available)
               "log_demo::main"
           frame

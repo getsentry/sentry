@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -43,7 +43,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -117,7 +117,7 @@ function GroupCheckbox({
   return (
     <GroupCheckBoxWrapper hasNewLayout={hasNewLayout}>
       <CheckboxLabel hasNewLayout={hasNewLayout}>
-        <Checkbox
+        <CheckboxWithBackground
           id={group.id}
           aria-label={t('Select Issue')}
           checked={isSelected}
@@ -125,22 +125,51 @@ function GroupCheckbox({
           onChange={onChange}
         />
       </CheckboxLabel>
+      {group.hasSeen || !hasNewLayout ? null : (
+        <Tooltip title={t('Unread')} skipWrapper>
+          <UnreadIndicator data-test-id="unread-issue-indicator" />
+        </Tooltip>
+      )}
     </GroupCheckBoxWrapper>
   );
 }
 
-function GroupTimestamp({date, label}: {date: string | null | undefined; label: string}) {
-  if (!date) {
-    return <Placeholder height="18px" width="60px" />;
+function GroupLastSeen({group}: {group: Group}) {
+  if (!group.lifetime) {
+    return <Placeholder height="18px" width="70px" />;
+  }
+
+  if (!group.lifetime.lastSeen) {
+    return null;
   }
 
   return (
     <PositionedTimeSince
-      aria-label={label}
-      tooltipPrefix={label}
-      date={date}
+      date={group.lifetime.lastSeen}
       suffix="ago"
       unitStyle="short"
+      aria-label={t('Last Seen')}
+      tooltipPrefix={t('Last Seen')}
+    />
+  );
+}
+
+function GroupFirstSeen({group}: {group: Group}) {
+  if (!group.lifetime) {
+    return <Placeholder height="18px" width="30px" />;
+  }
+
+  if (!group.lifetime.firstSeen) {
+    return null;
+  }
+
+  return (
+    <PositionedTimeSince
+      date={group.lifetime.firstSeen}
+      unitStyle="short"
+      suffix=""
+      aria-label={t('First Seen')}
+      tooltipPrefix={t('First Seen')}
     />
   );
 }
@@ -362,14 +391,14 @@ function StreamGroup({
           <TimeSince date={dateCreated} />
         </StartedColumn>
         <EventsReprocessedColumn>
-          {!defined(count) ? (
-            <Placeholder height="17px" />
-          ) : (
+          {defined(count) ? (
             <Fragment>
               <Count value={remainingEventsToReprocess} />
               {'/'}
               <Count value={totalEvents} />
             </Fragment>
+          ) : (
+            <Placeholder height="17px" />
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
@@ -411,9 +440,7 @@ function StreamGroup({
     [IssueCategory.METRIC_ALERT]: t('Metric Alert Events'),
   };
 
-  const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupCount = defined(primaryCount) ? (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
         disabled={!useFilteredStats}
@@ -461,11 +488,11 @@ function StreamGroup({
         )}
       </Tooltip>
     </GuideAnchor>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" width="40px" />
-  ) : (
+  const groupUsersCount = defined(primaryUserCount) ? (
     <Tooltip
       isHoverable
       disabled={!usePageFilters}
@@ -511,20 +538,22 @@ function StreamGroup({
         </Fragment>
       )}
     </Tooltip>
+  ) : (
+    <Placeholder height="18px" width="40px" />
   );
 
-  const lastTriggered = !defined(lastTriggeredDate) ? (
-    <Placeholder height="18px" />
-  ) : (
-    <TimeSince
+  const lastTriggered = defined(lastTriggeredDate) ? (
+    <PositionedTimeSince
       tooltipPrefix={t('Last Triggered')}
       date={lastTriggeredDate}
       suffix={t('ago')}
       unitStyle="short"
     />
+  ) : (
+    <Placeholder height="18px" />
   );
 
-  const issueStreamAnchor = isDemoModeEnabled() ? (
+  const issueStreamAnchor = isDemoModeActive() ? (
     <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
     <GuideAnchor target="issue_stream" />
@@ -603,6 +632,18 @@ function StreamGroup({
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
 
+      {withColumns.includes('lastSeen') && (
+        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+          <GroupLastSeen group={group} />
+        </LastSeenWrapper>
+      )}
+
+      {withColumns.includes('firstSeen') && (
+        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+          <GroupFirstSeen group={group} />
+        </FirstSeenWrapper>
+      )}
+
       {withChart && !displayReprocessingLayout ? (
         hasNewLayout ? (
           <NarrowChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
@@ -619,10 +660,7 @@ function StreamGroup({
             ) : null}
           </NarrowChartWrapper>
         ) : (
-          <ChartWrapper
-            narrowGroups={narrowGroups}
-            margin={withColumns.includes('firstSeen')}
-          >
+          <ChartWrapper narrowGroups={narrowGroups}>
             {issueTypeConfig.stats.enabled ? (
               <GroupStatusChart
                 hideZeros
@@ -641,27 +679,16 @@ function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {withColumns.includes('firstSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.AGE}>
-              <GroupTimestamp date={group.lifetime?.firstSeen} label={t('First Seen')} />
-            </TimestampWrapper>
-          )}
-          {withColumns.includes('lastSeen') && (
-            <TimestampWrapper breakpoint={COLUMN_BREAKPOINTS.SEEN}>
-              <GroupTimestamp date={group.lifetime?.lastSeen} label={t('Last Seen')} />
-            </TimestampWrapper>
+          {showLastTriggered && hasNewLayout && (
+            <NarrowLastTriggeredWrapper>{lastTriggered}</NarrowLastTriggeredWrapper>
           )}
           {withColumns.includes('event') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
-                {issueTypeConfig.stats.enabled ? (
-                  <InnerCountsWrapper>{groupCount}</InnerCountsWrapper>
-                ) : null}
+                {issueTypeConfig.stats.enabled ? groupCount : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
-              <EventCountsWrapper
-                leftMargin={withColumns.includes('lastSeen') ? undefined : '0px'}
-              >
+              <EventCountsWrapper>
                 {issueTypeConfig.stats.enabled ? groupCount : null}
               </EventCountsWrapper>
             )
@@ -669,9 +696,7 @@ function StreamGroup({
           {withColumns.includes('users') ? (
             hasNewLayout ? (
               <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
-                {issueTypeConfig.stats.enabled ? (
-                  <InnerCountsWrapper>{groupUsersCount}</InnerCountsWrapper>
-                ) : null}
+                {issueTypeConfig.stats.enabled ? groupUsersCount : null}
               </NarrowEventsOrUsersCountsWrapper>
             ) : (
               <EventCountsWrapper>
@@ -714,7 +739,9 @@ function StreamGroup({
                 />
               </AssigneeWrapper>
             ))}
-          {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
+          {showLastTriggered && !hasNewLayout && (
+            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
+          )}
         </Fragment>
       )}
     </Wrapper>
@@ -737,7 +764,20 @@ const Wrapper = styled(PanelItem)<{
     p.hasNewLayout &&
     css`
       padding: ${space(1)} 0;
-      min-height: 66px;
+      min-height: 82px;
+
+      &:not(:has(:hover)):not(:focus-within):not(:has(input:checked)) {
+        ${CheckboxLabel} {
+          ${p.theme.visuallyHidden};
+        }
+      }
+
+      &:hover,
+      &:focus-within {
+        ${UnreadIndicator} {
+          ${p.theme.visuallyHidden};
+        }
+      }
 
       [data-issue-title-link] {
         &::before {
@@ -796,22 +836,25 @@ const Wrapper = styled(PanelItem)<{
 const GroupSummary = styled('div')<{canSelect: boolean; hasNewLayout: boolean}>`
   overflow: hidden;
   margin-left: ${p => space(p.canSelect ? 1 : 2)};
-  margin-right: ${p => (p.hasNewLayout ? space(2) : space(1))};
+  margin-right: ${space(1)};
   flex: 1;
-  width: 66.66%;
 
   ${p =>
-    p.hasNewLayout &&
-    css`
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      font-size: ${p.theme.fontSizeMedium};
-    `}
-
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    width: 50%;
-  }
+    p.hasNewLayout
+      ? css`
+          margin-right: ${space(4)};
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          font-size: ${p.theme.fontSizeMedium};
+          width: auto;
+        `
+      : css`
+          width: 66.66%;
+          @media (min-width: ${p.theme.breakpoints.medium}) {
+            width: 50%;
+          }
+        `}
 `;
 
 const GroupCheckBoxWrapper = styled('div')<{hasNewLayout: boolean}>`
@@ -836,8 +879,12 @@ const CheckboxLabel = styled('label')<{hasNewLayout: boolean}>`
   ${p =>
     p.hasNewLayout &&
     css`
-      padding-top: ${space(2)};
+      padding-top: 14px;
     `}
+`;
+
+const CheckboxWithBackground = styled(Checkbox)`
+  background-color: ${p => p.theme.background};
 `;
 
 const CountsWrapper = styled('div')`
@@ -897,10 +944,10 @@ const CountTooltipContent = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')<{margin: boolean; narrowGroups: boolean}>`
+const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   width: 200px;
   align-self: center;
-  margin-right: ${p => (p.margin ? space(2) : 0)};
+  margin-right: ${space(2)};
 
   @media (max-width: ${p =>
       p.narrowGroups ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
@@ -913,18 +960,33 @@ const NarrowChartWrapper = styled('div')<{breakpoint: string}>`
   align-self: center;
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
 
-const TimestampWrapper = styled('div')<{breakpoint: string}>`
+const LastSeenWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  align-self: center;
-  width: 75px;
+  align-items: center;
+  justify-content: flex-end;
+  width: 86px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
+    display: none;
+  }
+`;
+
+const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 50px;
+  padding-right: ${space(2)};
+  margin-right: ${space(2)};
+
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -932,17 +994,16 @@ const TimestampWrapper = styled('div')<{breakpoint: string}>`
 const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
   justify-content: flex-end;
+  text-align: right;
+  align-items: center;
   align-self: center;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   width: 60px;
 
-  @media (max-width: ${p => p.breakpoint}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
-`;
-
-export const InnerCountsWrapper = styled('div')`
-  margin-right: ${space(2)};
 `;
 
 const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
@@ -958,14 +1019,32 @@ const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   }
 `;
 
+const LastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 80px;
+  margin: 0 ${space(2)};
+`;
+
+const NarrowLastTriggeredWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  width: 100px;
+  padding-right: ${space(2)};
+  margin-right: ${space(2)};
+`;
+
 const NarrowPriorityWrapper = styled('div')<{breakpoint: string}>`
-  width: 70px;
+  width: 64px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   align-self: center;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
 
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @container (width < ${p => p.breakpoint}) {
     display: none;
   }
 `;
@@ -996,9 +1075,10 @@ const AssigneeWrapper = styled('div')<{narrowGroups: boolean}>`
 
 const NarrowAssigneeWrapper = styled('div')<{breakpoint: string}>`
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   text-align: right;
-  width: 60px;
+  width: 66px;
+  padding-right: ${space(2)};
   margin-right: ${space(2)};
   align-self: center;
 
@@ -1047,4 +1127,13 @@ const ProgressColumn = styled('div')`
 // Needs to be positioned so that hovering events don't get swallowed by the anchor pseudo-element
 const PositionedTimeSince = styled(TimeSince)`
   position: relative;
+`;
+
+const UnreadIndicator = styled('div')`
+  width: 8px;
+  height: 8px;
+  background-color: ${p => p.theme.purple400};
+  border-radius: 50%;
+  margin-left: ${space(3)};
+  margin-top: 10px;
 `;

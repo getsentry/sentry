@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/leadHint';
@@ -380,7 +380,7 @@ export class DeprecatedLine extends Component<Props, State> {
           <DefaultLineTagWrapper>
             {this.renderRepeats()}
             {organization?.features.includes('anr-analyze-frames') && anrCulprit ? (
-              <Tag type="warning" to="" onClick={this.scrollToSuspectRootCause}>
+              <Tag type="warning" onClick={this.scrollToSuspectRootCause}>
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
@@ -426,6 +426,8 @@ export class DeprecatedLine extends Component<Props, State> {
                           sourceResolutionResults={
                             this.props.frameSourceResolutionResults!
                           }
+                          orgSlug={this.props.organization?.slug}
+                          projectId={this.props.event.projectID}
                           {...modalProps}
                         />
                       ),
@@ -503,8 +505,8 @@ const DefaultLineTitleWrapper = styled('div')<{isInAppFrame: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
-  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
 `;
 
 const LeftLineTitle = styled('div')`

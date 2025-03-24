@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon, platforms} from 'platformicons';
 
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
 import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -757,7 +757,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'previous',
         groups: ['action'],
-        keywords: ['video', 'audio', 'back', 'return', 'rewind'],
+        keywords: ['video', 'audio', 'back', 'rewind'],
         name: 'Previous',
         defaultProps: {},
       },
@@ -1172,13 +1172,6 @@ const SECTIONS: TSection[] = [
     id: 'device',
     label: 'Device',
     icons: [
-      {
-        id: 'return',
-        groups: ['device'],
-        keywords: ['enter'],
-        name: 'Return',
-        defaultProps: {},
-      },
       {
         id: 'file',
         groups: ['device'],

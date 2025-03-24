@@ -1,15 +1,17 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {Reorder} from 'framer-motion';
+import {motion, Reorder, useDragControls} from 'framer-motion';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useNavContext} from 'sentry/components/nav/context';
+import {GrabHandleIcon} from 'sentry/components/nav/issueViews/grabHandleIcon';
 import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueViewNavEditableTitle';
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {IssueViewNavQueryCount} from 'sentry/components/nav/issueViews/issueViewNavQueryCount';
-import IssueViewProjectIcons from 'sentry/components/nav/issueViews/issueViewProjectIcons';
+import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -31,21 +33,38 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export interface IssueViewNavItemContentProps {
   /**
-   * A callback function that deletes the view.
-   */
-  deleteView: () => void;
-  /**
-   * A callback function that duplicates the view.
-   */
-  duplicateView: () => void;
-  /**
    * Whether the item is active.
    */
   isActive: boolean;
   /**
+   * Whether an item is being dragged.
+   */
+  isDragging: string | null;
+  /**
+   * Whether the item is the last view in the list.
+   * This will be removed once view sharing/starring is implemented.
+   */
+  isLastView: boolean;
+  /**
+   * A callback function that's fired when the user clicks "Delete" on the view.
+   */
+  onDeleteView: () => void;
+  /**
+   * A callback function that's fired when the user clicks "Duplicate" on the view.
+   */
+  onDuplicateView: () => void;
+  /**
+   * A callback function that is called when the user has completed a reorder.
+   */
+  onReorderComplete: () => void;
+  /**
    * A callback function that updates the view with new params.
    */
-  updateView: (updatedView: IssueView) => void;
+  onUpdateView: (updatedView: IssueView) => void;
+  /**
+   * A callback function that updates the isDragging state.
+   */
+  setIsDragging: (isDragging: string | null) => void;
   /**
    * The issue view to display
    */
@@ -55,24 +74,29 @@ export interface IssueViewNavItemContentProps {
    * This is used as the portal container for the ellipsis menu, and as
    * the dragging constraint for each nav item.
    */
-  sectionRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function IssueViewNavItemContent({
   view,
   sectionRef,
   isActive,
-  updateView,
-  deleteView,
-  duplicateView,
+  onUpdateView,
+  onDeleteView,
+  onDuplicateView,
+  onReorderComplete,
+  isLastView,
+  isDragging,
+  setIsDragging,
 }: IssueViewNavItemContentProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
+  const controls = useDragControls();
+
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const [isEditing, setIsEditing] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
   const {projects} = useProjects();
 
@@ -85,19 +109,19 @@ export function IssueViewNavItemContent({
       const unsavedChanges = hasUnsavedChanges(view, location.query);
 
       if (unsavedChanges && !isEqual(unsavedChanges, view.unsavedChanges)) {
-        updateView({
+        onUpdateView({
           ...view,
           unsavedChanges,
         });
       } else if (!unsavedChanges && view.unsavedChanges) {
-        updateView({
+        onUpdateView({
           ...view,
           unsavedChanges: undefined,
         });
       }
     }
     return;
-  }, [view, isActive, location.query, navigate, baseUrl, updateView]);
+  }, [view, isActive, location.query, navigate, baseUrl, onUpdateView]);
 
   const projectPlatforms = projects
     .filter(p => view.projects.map(String).includes(p.id))
@@ -106,6 +130,8 @@ export function IssueViewNavItemContent({
 
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
+  const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+
   return (
     <StyledReorderItem
       as="div"
@@ -113,22 +139,49 @@ export function IssueViewNavItemContent({
       dragElastic={0.03}
       dragTransition={{bounceStiffness: 400, bounceDamping: 40}}
       value={view}
-      whileDrag={{
-        cursor: 'grabbing',
-      }}
       onDragStart={() => {
-        setIsDragging(true);
+        setIsDragging(view.id);
         startInteraction();
       }}
       onDragEnd={() => {
-        setIsDragging(false);
+        setIsDragging(null);
+        onReorderComplete();
         endInteraction();
       }}
+      dragListener={false}
+      dragControls={controls}
+      // This style is a hack to fix a framer-motion bug that causes views to
+      // jump from the bottom of the nav bar to their correct positions
+      // upon scrolling down on the page and triggering a page navigation.
+      // See: https://github.com/motiondivision/motion/issues/2006
+      style={{
+        ...(isDragging || scrollPosition === 0
+          ? {}
+          : {
+              originY: '0px',
+            }),
+      }}
+      grabbing={isDragging === view.id}
     >
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
         isActive={isActive}
-        leadingItems={<IssueViewProjectIcons projectPlatforms={projectPlatforms} />}
+        leadingItems={
+          <LeadingItemsWrapper>
+            <GrabHandleWrapper
+              data-drag-icon
+              onPointerDown={e => {
+                controls.start(e);
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              <StyledInteractionStateLayer isPressed={isDragging === view.id} />
+              <GrabHandleIcon color="gray300" />
+            </GrabHandleWrapper>
+            <ProjectIcon projectPlatforms={projectPlatforms} />
+          </LeadingItemsWrapper>
+        }
         trailingItems={
           <TrailingItemsWrapper
             onClickCapture={e => {
@@ -137,11 +190,12 @@ export function IssueViewNavItemContent({
           >
             <IssueViewNavQueryCount view={view} />
             <IssueViewNavEllipsisMenu
+              isLastView={isLastView}
               setIsEditing={setIsEditing}
               view={view}
-              updateView={updateView}
-              deleteView={deleteView}
-              duplicateView={duplicateView}
+              onUpdateView={onUpdateView}
+              onDeleteView={onDeleteView}
+              onDuplicateView={onDuplicateView}
               baseUrl={baseUrl}
               sectionRef={sectionRef}
             />
@@ -160,20 +214,21 @@ export function IssueViewNavItemContent({
             });
           }
         }}
+        analyticsItemName="issues_view_starred"
       >
         <IssueViewNavEditableTitle
           label={view.label}
           isEditing={isEditing}
           isSelected={isActive}
           onChange={value => {
-            updateView({...view, label: value});
+            onUpdateView({...view, label: value});
             trackAnalytics('issue_views.renamed_view', {
               leftNav: true,
               organization: organization.slug,
             });
           }}
           setIsEditing={setIsEditing}
-          isDragging={isDragging}
+          isDragging={!!isDragging}
         />
         {view.unsavedChanges && (
           <Tooltip
@@ -242,8 +297,8 @@ const hasUnsavedChanges = (
   const queryTimeFilters =
     start || end || statsPeriod || utc
       ? {
-          start: statsPeriod ? null : start?.toString() ?? null,
-          end: statsPeriod ? null : end?.toString() ?? null,
+          start: statsPeriod ? null : (start?.toString() ?? null),
+          end: statsPeriod ? null : (end?.toString() ?? null),
           period: statsPeriod?.toString() ?? null,
           utc: statsPeriod ? null : utc?.toString() === 'true',
         }
@@ -269,12 +324,12 @@ const hasUnsavedChanges = (
         : undefined,
     querySort:
       querySort && issueSortOption !== originalSort ? issueSortOption : undefined,
-    projects: !isEqual(queryProjects?.sort(), originalProjects.sort())
-      ? queryProjects
-      : undefined,
-    environments: !isEqual(queryEnvs?.sort(), originalEnvironments.sort())
-      ? queryEnvs
-      : undefined,
+    projects: isEqual(queryProjects?.sort(), originalProjects.sort())
+      ? undefined
+      : queryProjects,
+    environments: isEqual(queryEnvs?.sort(), originalEnvironments.sort())
+      ? undefined
+      : queryEnvs,
     timeFilters:
       queryTimeFilters &&
       !isEqual(
@@ -297,9 +352,15 @@ const hasUnsavedChanges = (
 
 // Reorder.Item does handle lifting an item being dragged above other items out of the box,
 // but we need to ensure the item is relatively positioned and has a background color for it to work
-const StyledReorderItem = styled(Reorder.Item)`
+const StyledReorderItem = styled(Reorder.Item)<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => p.theme.surface200};
+  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const StyledInteractionStateLayer = styled(InteractionStateLayer)`
+  height: 120%;
+  border-radius: 4px;
 `;
 
 const TrailingItemsWrapper = styled('div')`
@@ -312,21 +373,30 @@ const StyledSecondaryNavItem = styled(SecondaryNav.Item)`
   position: relative;
   padding-right: ${space(0.5)};
 
-  :hover {
-    [data-ellipsis-menu-trigger] {
-      display: flex;
+  /* Hide the ellipsis menu if the item is not hovered */
+  :not(:hover) {
+    [data-ellipsis-menu-trigger]:not([aria-expanded='true']) {
+      ${p => p.theme.visuallyHidden}
     }
-    [data-issue-view-query-count] {
-      display: none;
+
+    [data-drag-icon] {
+      ${p => p.theme.visuallyHidden}
     }
   }
 
-  [data-ellipsis-menu-trigger][aria-expanded='true'] {
-    display: flex;
-  }
-  &:has([data-ellipsis-menu-trigger][aria-expanded='true'])
+  /* Hide the query count if the ellipsis menu is not expanded */
+  :hover {
     [data-issue-view-query-count] {
-    display: none;
+      ${p => p.theme.visuallyHidden}
+    }
+    [data-project-icon] {
+      ${p => p.theme.visuallyHidden}
+    }
+  }
+
+  /* Hide the query count if the ellipsis menu is expanded */
+  :has([data-ellipsis-menu-trigger][aria-expanded='true']) [data-issue-view-query-count] {
+    ${p => p.theme.visuallyHidden}
   }
 `;
 
@@ -345,8 +415,30 @@ const UnsavedChangesIndicator = styled('div')<{isActive: boolean}>`
   background: ${p => p.theme.purple400};
   border: solid 2px ${p => p.theme.surface200};
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   top: -3px;
   right: -3px;
+`;
+
+const LeadingItemsWrapper = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: ${space(0.75)};
+`;
+
+const GrabHandleWrapper = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  cursor: grab;
+  z-index: 3;
+
+  &:active {
+    cursor: grabbing;
+  }
 `;

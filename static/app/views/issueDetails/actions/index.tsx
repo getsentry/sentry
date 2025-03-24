@@ -12,8 +12,8 @@ import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archi
 import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';
@@ -499,15 +499,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   children: archiveDropdownItems,
                 },
               ]),
-          {
-            key: 'open-in-discover',
-            // XXX: Always show for streamlined UI
-            className: hasStreamlinedUI ? undefined : 'hidden-sm hidden-md hidden-lg',
-            label: t('Open in Discover'),
-            to: disabled ? '' : getDiscoverUrl(),
-            onAction: () => trackIssueAction('open_in_discover'),
-          },
-          // We don't hide the subscribe button for streamlined UI
+          // We don't hide the subscribe or discover button for streamlined UI
           ...(hasStreamlinedUI
             ? []
             : [
@@ -517,6 +509,13 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                   label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
                   disabled: disabled || group.subscriptionDetails?.disabled,
                   onAction: onToggleSubscribe,
+                },
+                {
+                  key: 'open-in-discover',
+                  className: 'hidden-sm hidden-md hidden-lg',
+                  label: t('Open in Discover'),
+                  to: disabled ? '' : getDiscoverUrl(),
+                  onAction: () => trackIssueAction('open_in_discover'),
                 },
               ]),
           {

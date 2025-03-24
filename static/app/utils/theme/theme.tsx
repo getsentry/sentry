@@ -7,12 +7,12 @@
  * - Light and dark theme definitions
  * - Theme type exports
  */
+import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {type DataCategory, Outcome} from 'sentry/types/core';
+import {DataCategory, Outcome} from 'sentry/types/core';
 
 export const generateThemeAliases = (colors: Colors) => ({
   /**
@@ -249,12 +249,12 @@ type AlertColors = {
 
 export const generateThemeUtils = (colors: Colors, aliases: Aliases) => ({
   tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
-    textDecoration: `underline dotted ${
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      colors[underlineColor] ?? aliases[underlineColor]
-    }`,
+    textDecoration: 'underline' as const,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    textDecorationColor: colors[underlineColor] ?? aliases[underlineColor],
+    textDecorationStyle: 'dotted' as const,
   }),
   overflowEllipsis: css`
     display: block;
@@ -802,62 +802,98 @@ const iconDirectionToAngle: Record<IconDirection, number> = {
 
 export type FormSize = 'xs' | 'sm' | 'md';
 
-type FormSizes = {
-  [key in FormSize]: {
-    fontSize: string;
-    height: number;
-    lineHeight: string;
-    minHeight: number;
+export type FormTheme = {
+  form: {
+    [key in FormSize]: {
+      fontSize: string;
+      height: string;
+      lineHeight: string;
+      minHeight: string;
+    };
+  };
+  formPadding: {
+    [key in FormSize]: {
+      paddingBottom: number;
+      paddingLeft: number;
+      paddingRight: number;
+      paddingTop: number;
+    };
+  };
+  formRadius: {
+    [key in FormSize]: {
+      borderRadius: string;
+    };
+  };
+  formSpacing: {
+    [key in FormSize]: string;
   };
 };
 
-const formSizes: FormSizes = {
-  md: {
-    height: 38,
-    minHeight: 38,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
+const formTheme: FormTheme = {
+  /**
+   * Common styles for form inputs & buttons, separated by size.
+   * Should be used to ensure consistent sizing among form elements.
+   */
+  form: {
+    md: {
+      height: '38px',
+      minHeight: '38px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    sm: {
+      height: '32px',
+      minHeight: '32px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    xs: {
+      height: '26px',
+      minHeight: '26px',
+      fontSize: '0.75rem',
+      lineHeight: '0.875rem',
+    },
   },
-  sm: {
-    height: 32,
-    minHeight: 32,
-    fontSize: '0.875rem',
-    lineHeight: '1rem',
-  },
-  xs: {
-    height: 26,
-    minHeight: 26,
-    fontSize: '0.75rem',
-    lineHeight: '0.875rem',
-  },
-} as const;
 
-type FormPaddingSizes = {
-  [key in FormSize]: {
-    paddingBottom: number;
-    paddingLeft: number;
-    paddingRight: number;
-    paddingTop: number;
-  };
-};
-const formPaddingSizes: FormPaddingSizes = {
-  md: {
-    paddingLeft: 16,
-    paddingRight: 12,
-    paddingTop: 10,
-    paddingBottom: 10,
+  /**
+   * Padding for form inputs
+   * @TODO(jonasbadalic) This should exist on form component
+   */
+  formPadding: {
+    md: {
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 10,
+      paddingBottom: 10,
+    },
+    sm: {
+      paddingLeft: 12,
+      paddingRight: 10,
+      paddingTop: 8,
+      paddingBottom: 8,
+    },
+    xs: {
+      paddingLeft: 8,
+      paddingRight: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
+    },
   },
-  sm: {
-    paddingLeft: 12,
-    paddingRight: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
+  formRadius: {
+    md: {
+      borderRadius: '6px',
+    },
+    sm: {
+      borderRadius: '6px',
+    },
+    xs: {
+      borderRadius: '6px',
+    },
   },
-  xs: {
-    paddingLeft: 8,
-    paddingRight: 6,
-    paddingTop: 6,
-    paddingBottom: 6,
+  formSpacing: {
+    md: '8px',
+    sm: '6px',
+    xs: '4px',
   },
 };
 
@@ -874,20 +910,27 @@ const iconSizes: Sizes = {
 const dataCategory: Record<
   Exclude<
     DataCategory,
-    'profiles' | 'profileChunks' | 'profileDuration' | 'spans' | 'spansIndexed' | 'uptime'
+    | DataCategory.PROFILES
+    | DataCategory.PROFILE_CHUNKS
+    | DataCategory.PROFILE_DURATION
+    | DataCategory.PROFILE_DURATION_UI
+    | DataCategory.SPANS
+    | DataCategory.SPANS_INDEXED
+    | DataCategory.UPTIME
   >,
   string
 > = {
-  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
-  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
-  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
-  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
-  [DATA_CATEGORY_INFO.monitorSeat.plural]: '#a397f7',
+  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
+  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
+  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
+  [DataCategory.REPLAYS]: CHART_PALETTE[4][4],
+  [DataCategory.MONITOR_SEATS]: '#a397f7',
 };
 
 /**
- * Default colors for data usage outcomes
- * @TODO(jonasbadalic): This was missing abuse and cardinality limited, what do we do with them?
+ * Default colors for data usage outcomes.
+ * Note: "Abuse" and "Cardinality Limited" are merged into "Rate Limited,"
+ * which is why they don't have their own defined colors.
  */
 type OutcomeColors = Record<
   Exclude<Outcome, Outcome.ABUSE | Outcome.CARDINALITY_LIMITED>,
@@ -971,6 +1014,12 @@ const commonTheme = {
     hovercard: 10002,
     tooltip: 10003,
 
+    tour: {
+      blur: 10100,
+      element: 10101,
+      overlay: 10102,
+    },
+
     // On mobile views issue list dropdowns overlap
     issuesList: {
       stickyHeader: 2,
@@ -983,12 +1032,12 @@ const commonTheme = {
 
   // Relative font sizes
   // @TODO(jonasbadalic) why do we need these
-  fontSizeRelativeSmall: '0.9em',
-  fontSizeExtraSmall: '11px',
-  fontSizeSmall: '12px',
-  fontSizeMedium: '14px',
-  fontSizeLarge: '16px',
-  fontSizeExtraLarge: '18px',
+  fontSizeRelativeSmall: '0.9em' as const,
+  fontSizeExtraSmall: '11px' as const,
+  fontSizeSmall: '12px' as const,
+  fontSizeMedium: '14px' as const,
+  fontSizeLarge: '16px' as const,
+  fontSizeExtraLarge: '18px' as const,
 
   codeFontSize: '13px',
   headerFontSize: '22px',
@@ -1004,22 +1053,10 @@ const commonTheme = {
   },
 
   /**
-   * Common styles for form inputs & buttons, separated by size.
-   * Should be used to ensure consistent sizing among form elements.
-   */
-  form: formSizes,
-
-  /**
    * Padding for buttons
    * @TODO(jonasbadalic) This should exist on button component
    */
   buttonPadding: buttonPaddingSizes,
-
-  /**
-   * Padding for form inputs
-   * @TODO(jonasbadalic) This should exist on form component
-   */
-  formPadding: formPaddingSizes,
 
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
@@ -1036,6 +1073,7 @@ const darkAliases = generateThemeAliases(darkColors);
 export const lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...lightColors,
   ...lightAliases,
   ...lightShadows,
@@ -1072,6 +1110,7 @@ export const lightTheme = {
 export const darkTheme: typeof lightTheme = {
   isChonk: false,
   ...commonTheme,
+  ...formTheme,
   ...darkColors,
   ...darkAliases,
   ...darkShadows,
@@ -1107,6 +1146,14 @@ export type Color = keyof typeof lightColors;
 export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
+
+export type StrictCSSObject = {
+  [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
+} & Partial<{
+  [key: `&${string}`]: StrictCSSObject; // Allow nested selectors
+  [key: `> ${string}:last-child`]: StrictCSSObject; // Allow some nested selectors
+  [key: `> ${string}:first-child`]: StrictCSSObject; // Allow some nested selectors
+}>;
 
 /**
  * Do not import theme values directly as they only define light color theme.

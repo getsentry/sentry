@@ -3,13 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import {Button, type ButtonProps} from 'sentry/components/button';
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
 import Legend from 'sentry/components/charts/components/legend';
 import {defaultFormatAxisLabel} from 'sentry/components/charts/components/tooltip';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
@@ -111,7 +111,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     });
 
   const {data: uniqueUsersCount, isPending: isPendingUniqueUsersCount} = useApiQuery<{
-    data: Array<{count_unique: number}>;
+    data: Array<{'count_unique(user)': number}>;
   }>(
     [
       `/organizations/${organization.slug}/events/`,
@@ -133,7 +133,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       staleTime: 60_000,
     }
   );
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const userCount = uniqueUsersCount?.data[0]?.['count_unique(user)'] ?? 0;
 
   const {series: eventSeries, count: eventCount} = useMemo(() => {

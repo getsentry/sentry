@@ -82,28 +82,6 @@ def ingest_replay_recordings_options() -> list[click.Option]:
     return options
 
 
-def ingest_replay_recordings_buffered_options() -> list[click.Option]:
-    """Return a list of ingest-replay-recordings-buffered options."""
-    options = [
-        click.Option(
-            ["--max-buffer-message-count", "max_buffer_message_count"],
-            type=int,
-            default=100,
-        ),
-        click.Option(
-            ["--max-buffer-size-in-bytes", "max_buffer_size_in_bytes"],
-            type=int,
-            default=2_500_000,
-        ),
-        click.Option(
-            ["--max-buffer-time-in-seconds", "max_buffer_time_in_seconds"],
-            type=int,
-            default=1,
-        ),
-    ]
-    return options
-
-
 def ingest_monitors_options() -> list[click.Option]:
     """Return a list of ingest-monitors options."""
     options = [
@@ -272,11 +250,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
         "click_options": ingest_replay_recordings_options(),
     },
-    "ingest-replay-recordings-buffered": {
-        "topic": Topic.INGEST_REPLAYS_RECORDINGS,
-        "strategy_factory": "sentry.replays.consumers.recording_buffered.RecordingBufferedStrategyFactory",
-        "click_options": ingest_replay_recordings_buffered_options(),
-    },
     "ingest-monitors": {
         "topic": Topic.INGEST_MONITORS,
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
@@ -350,7 +323,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
             "consumer_type": ConsumerType.Events,
         },
         "dlq_topic": Topic.INGEST_EVENTS_DLQ,
-        "stale_topic": Topic.INGEST_EVENTS_DLQ,
+        "stale_topic": Topic.INGEST_EVENTS_BACKLOG,
     },
     "ingest-feedback-events": {
         "topic": Topic.INGEST_FEEDBACK_EVENTS,
@@ -442,15 +415,29 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "process-spans": {
-        "topic": Topic.SNUBA_SPANS,
+        "topic": Topic.INGEST_SPANS,
         "strategy_factory": "sentry.spans.consumers.process.factory.ProcessSpansStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
+        "click_options": [
+            click.Option(
+                ["--max-flush-segments", "max_flush_segments"],
+                type=int,
+                default=100,
+                help="The number of segments to download from redis at once. Defaults to 100.",
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
-    "detect-performance-issues": {
+    "process-segments": {
         "topic": Topic.BUFFERED_SEGMENTS,
-        "strategy_factory": "sentry.spans.consumers.detect_performance_issues.factory.DetectPerformanceIssuesStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "dlq_topic": Topic.BUFFERED_SEGMENTS_DLQ,
+        "strategy_factory": "sentry.spans.consumers.process_segments.factory.DetectPerformanceIssuesStrategyFactory",
+        "click_options": [
+            click.Option(
+                ["--skip-produce", "skip_produce"],
+                is_flag=True,
+                default=False,
+            ),
+            *multiprocessing_options(default_max_batch_size=100),
+        ],
     },
     **settings.SENTRY_KAFKA_CONSUMERS,
 }
@@ -474,6 +461,7 @@ def get_stream_processor(
     stale_threshold_sec: int | None = None,
     enforce_schema: bool = False,
     group_instance_id: str | None = None,
+    max_dlq_buffer_length: int | None = None,
 ) -> StreamProcessor:
     from sentry.utils import kafka_config
 
@@ -607,7 +595,7 @@ def get_stream_processor(
         dlq_policy = DlqPolicy(
             dlq_producer,
             None,
-            None,
+            max_dlq_buffer_length,
         )
 
     else:

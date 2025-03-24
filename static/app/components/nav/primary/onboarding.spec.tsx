@@ -11,6 +11,11 @@ import * as useOnboardingSidebar from 'sentry/views/onboarding/useOnboardingSide
 
 const userMock = UserFixture();
 
+jest.mock('framer-motion', () => ({
+  ...jest.requireActual('framer-motion'),
+  AnimatePresence: jest.fn(({children}) => children),
+}));
+
 function renderMockRequests(organization: Organization) {
   const getOnboardingTasksMock = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/onboarding-tasks/`,

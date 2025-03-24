@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
@@ -40,7 +40,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {ExternalIssueList as StreamlinedExternalIssueList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueList';
+import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -272,7 +272,7 @@ export default function GroupSidebar({
 
       {hasStreamlinedUI && event && (
         <ErrorBoundary mini>
-          <StreamlinedExternalIssueList group={group} event={event} project={project} />
+          <ExternalIssueSidebarList group={group} event={event} project={project} />
         </ErrorBoundary>
       )}
       {!hasStreamlinedUI && (

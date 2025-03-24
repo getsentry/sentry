@@ -5,9 +5,9 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {BulkEditOperation} from 'sentry/actionCreators/monitors';
 import {bulkEditMonitors} from 'sentry/actionCreators/monitors';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import Checkbox from 'sentry/components/checkbox';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
@@ -23,10 +23,10 @@ import {
   MonitorSortOption,
   MonitorSortOrder,
   SortSelector,
-} from 'sentry/views/monitors/components/overviewTimeline/sortSelector';
-import type {Monitor} from 'sentry/views/monitors/types';
-import {makeMonitorListQueryKey} from 'sentry/views/monitors/utils';
-import {scheduleAsText} from 'sentry/views/monitors/utils/scheduleAsText';
+} from 'sentry/views/insights/crons/components/overviewTimeline/sortSelector';
+import type {Monitor} from 'sentry/views/insights/crons/types';
+import {makeMonitorListQueryKey} from 'sentry/views/insights/crons/utils';
+import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
 interface Props extends ModalRenderProps {}
 
@@ -66,10 +66,10 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 
   const handleToggleMonitor = (monitor: Monitor) => {
     const checked = isMonitorSelected(monitor);
-    if (!checked) {
-      setSelectedMonitors([...selectedMonitors, monitor]);
-    } else {
+    if (checked) {
       setSelectedMonitors(selectedMonitors.filter(m => m.slug !== monitor.slug));
+    } else {
+      setSelectedMonitors([...selectedMonitors, monitor]);
     }
   };
 
@@ -84,8 +84,8 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     setSelectedMonitors([]);
 
     if (resp?.updated) {
-      setApiQueryData(queryClient, queryKey, (oldMonitorList: Monitor[]) => {
-        return oldMonitorList.map(
+      setApiQueryData<Monitor[]>(queryClient, queryKey, oldMonitorList => {
+        return oldMonitorList?.map(
           monitor =>
             resp.updated.find(newMonitor => newMonitor.slug === monitor.slug) ?? monitor
         );

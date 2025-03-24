@@ -43,16 +43,18 @@ export function getTraceQueryParams(
   targetId: string | undefined;
   timestamp: string | undefined;
   useSpans: number;
-  demo?: string | undefined;
-  pageEnd?: string | undefined;
-  pageStart?: string | undefined;
-  statsPeriod?: string | undefined;
+  demo?: string;
+  pageEnd?: string;
+  pageStart?: string;
+  statsPeriod?: string;
+  trace_format?: string;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
+  const trace_format = decodeScalar(normalizedParams.trace_format);
   const timestamp = options.timestamp ?? decodeScalar(normalizedParams.timestamp);
   let limit = options.limit ?? decodeScalar(normalizedParams.limit);
   if (typeof limit === 'string') {
@@ -86,6 +88,7 @@ export function getTraceQueryParams(
     timestamp: timestamp?.toString(),
     targetId,
     useSpans: 1,
+    trace_format,
   };
   for (const key in queryParams) {
     if (
@@ -193,29 +196,52 @@ type UseTraceParams = {
 
 export function useTrace(
   options: UseTraceParams
-): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError> {
+): UseApiQueryResult<TraceTree.Trace, RequestError> {
   const filters = usePageFilters();
   const organization = useOrganization();
+  const query = qs.parse(location.search);
   const queryParams = useMemo(() => {
-    const query = qs.parse(location.search);
     return getTraceQueryParams(query, filters.selection, {
       limit: options.limit,
       timestamp: options.timestamp,
     });
+
+    // Only re-run this if the view query param changes, otherwise if we pass location.search
+    // as a dependency, the query will re-run every time we perform actions on the trace view; like
+    // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.limit, options.timestamp]);
-  const mode = queryParams.demo ? 'demo' : undefined;
+  }, [options.limit, options.timestamp, query.trace_format]);
+
+  const {trace_format, ...queryParamsWithoutTraceFormat} = queryParams;
+
+  const isDemoMode = Boolean(queryParams.demo);
+  const isEAPEnabled =
+    organization.features.includes('trace-spans-format') && trace_format !== 'non-eap';
+  const hasValidTrace = Boolean(options.traceSlug && organization.slug);
+
   const demoTrace = useDemoTrace(queryParams.demo, organization);
+
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
-      {query: queryParams},
+      {query: queryParamsWithoutTraceFormat},
     ],
     {
       staleTime: Infinity,
-      enabled: !!options.traceSlug && !!organization.slug && mode !== 'demo',
+      enabled: hasValidTrace && !isDemoMode && !isEAPEnabled,
     }
   );
 
-  return mode === 'demo' ? demoTrace : traceQuery;
+  const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
+    [
+      `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
+      {query: {...queryParamsWithoutTraceFormat, project: -1}},
+    ],
+    {
+      staleTime: Infinity,
+      enabled: hasValidTrace && !isDemoMode && isEAPEnabled,
+    }
+  );
+
+  return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
 }

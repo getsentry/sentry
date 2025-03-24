@@ -136,7 +136,7 @@ type WebVitalDetailHeaderProps = {
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const colors = getChartColorPalette(3);
   const dotColor = colors[ORDER.indexOf(webVital)]!;
-  const status = score !== undefined ? scoreToStatus(score) : undefined;
+  const status = score === undefined ? undefined : scoreToStatus(score);
 
   return (
     <Header>

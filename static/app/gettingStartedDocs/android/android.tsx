@@ -17,6 +17,7 @@ import {
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
+import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -37,9 +38,9 @@ const platformOptions = {
       },
     ],
     defaultValue:
-      navigator.userAgent.indexOf('Win') !== -1
-        ? InstallationMode.MANUAL
-        : InstallationMode.AUTO,
+      navigator.userAgent.indexOf('Win') === -1
+        ? InstallationMode.AUTO
+        : InstallationMode.MANUAL,
   },
 } satisfies BasePlatformOptions;
 
@@ -58,11 +59,6 @@ plugins {
     '3.12.0'
   )}"
 }`;
-
-const getAutoInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '' : '--saas';
-  return `brew install getsentry/tools/sentry-wizard && sentry-wizard -i android ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
-};
 
 const getConfigurationSnippet = (params: Params) => `
 <application>
@@ -88,7 +84,17 @@ const getConfigurationSnippet = (params: Params) => `
     params.isProfilingSelected
       ? `
   <!-- enable profiling when starting transactions, adjust in production env -->
+  <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
+  <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
   <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
+      : ''
+  }${
+    params.isReplaySelected
+      ? `
+
+  <!-- record session replays for 100% of errors and 10% of sessions -->
+  <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
+  <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
       : ''
   }
 </application>`;
@@ -137,8 +143,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                language: 'bash',
-                code: getAutoInstallSnippet(params),
+                code: getWizardInstallSnippet({
+                  platform: 'android',
+                  params,
+                }),
               },
               {
                 description: (
@@ -178,14 +186,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                       </ListItem>
                     </List>
                   </Fragment>
-                ),
-                additionalInfo: tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/android/manual-setup/" />
-                    ),
-                  }
                 ),
               },
             ],

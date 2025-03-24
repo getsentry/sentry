@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -29,10 +30,32 @@ function FlamegraphThreadSelector({
   ] = useMemo(() => {
     const profiles: Array<SelectOption<number>> = [];
     const emptyProfiles: Array<SelectOption<number>> = [];
+
     const activeThreadId =
       typeof profileGroup.activeProfileIndex === 'number'
         ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
         : undefined;
+
+    // Sanity check and redirect to the correct thread id if the tid that was set
+    // is not present in the profile group and/or points to a non existing thread.
+    if (profileGroup.profiles.length > 0 && typeof threadId === 'number') {
+      const profileWithThreadId = profileGroup.profiles.find(
+        profile => profile.threadId === threadId
+      );
+
+      if (!profileWithThreadId) {
+        const fallbackThreadId =
+          profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId ?? 0;
+
+        if (fallbackThreadId !== threadId) {
+          onThreadIdChange(fallbackThreadId);
+          Sentry.captureMessage(
+            `Thread id ${threadId} not found in profile group, redirecting to ${fallbackThreadId}`
+          );
+        }
+      }
+    }
+
     const sortedProfiles = [...profileGroup.profiles].sort(
       compareProfiles(activeThreadId)
     );
@@ -60,7 +83,7 @@ function FlamegraphThreadSelector({
     });
 
     return [profiles, emptyProfiles];
-  }, [profileGroup]);
+  }, [profileGroup, threadId, onThreadIdChange]);
 
   const handleChange: (opt: SelectOption<any>) => void = useCallback(
     opt => {

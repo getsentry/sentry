@@ -4,9 +4,9 @@ import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
+import {Button} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';

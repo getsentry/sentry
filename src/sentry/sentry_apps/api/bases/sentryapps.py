@@ -5,7 +5,6 @@ from collections.abc import Sequence
 from functools import wraps
 from typing import Any
 
-import sentry_sdk
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -113,22 +112,16 @@ class IntegrationPlatformEndpoint(Endpoint):
         ) or super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def _handle_sentry_app_exception(self, exception: Exception):
-        if isinstance(exception, SentryAppIntegratorError) or isinstance(exception, SentryAppError):
-            response_body: dict[str, Any] = {"detail": exception.message}
-
-            if public_context := exception.public_context:
-                response_body.update({"context": public_context})
+        if isinstance(exception, (SentryAppError, SentryAppIntegratorError)):
+            response_body = exception.to_public_dict()
 
             response = Response(response_body, status=exception.status_code)
             response.exception = True
             return response
 
         elif isinstance(exception, SentryAppSentryError):
-            error_id = sentry_sdk.capture_exception(exception)
             return Response(
-                {
-                    "detail": f"An issue occured during the integration platform process. Sentry error ID: {error_id}"
-                },
+                exception.to_public_dict(),
                 status=500,
             )
         # If not an audited sentry app error then default to using default error handler
@@ -389,14 +382,9 @@ class SentryAppInstallationPermission(SentryPermission):
         "POST": ("org:integrations", "event:write", "event:admin"),
     }
 
-    def has_permission(self, request: Request, *args, **kwargs):
+    def has_permission(self, request: Request, *args, **kwargs) -> bool:
         # To let the app mark the installation as installed, we don't care about permissions
-        if (
-            hasattr(request, "user")
-            and hasattr(request.user, "is_sentry_app")
-            and request.user.is_sentry_app
-            and request.method == "PUT"
-        ):
+        if request.user.is_authenticated and request.user.is_sentry_app and request.method == "PUT":
             return True
         return super().has_permission(request, *args, **kwargs)
 

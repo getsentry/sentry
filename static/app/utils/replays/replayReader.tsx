@@ -421,9 +421,9 @@ export default class ReplayReader {
       this.getRRWebFrames().length < 2
         ? `Replay has ${this.getRRWebFrames().length} frames`
         : null,
-      !this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
-        ? 'Missing Meta Frame'
-        : null,
+      this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
+        ? null
+        : 'Missing Meta Frame',
     ].filter(defined);
   });
   hasProcessingErrors = () => {

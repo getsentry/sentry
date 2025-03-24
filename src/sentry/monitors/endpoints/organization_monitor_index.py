@@ -18,7 +18,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -55,8 +55,6 @@ from sentry.types.actor import Actor
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.outcomes import Outcome
 
-from .base import OrganizationMonitorPermission
-
 
 def map_value_to_constant(constant, value):
     value = value.upper()
@@ -85,7 +83,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
-    permission_classes = (OrganizationMonitorPermission,)
+    permission_classes = (OrganizationAlertRulePermission,)
 
     @extend_schema(
         operation_id="Retrieve Monitors for an Organization",

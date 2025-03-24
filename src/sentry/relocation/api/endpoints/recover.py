@@ -16,7 +16,7 @@ from sentry.relocation.api.endpoints import (
     ERR_UNKNOWN_RELOCATION_STEP,
 )
 from sentry.relocation.models.relocation import Relocation
-from sentry.relocation.tasks import TASK_MAP
+from sentry.relocation.tasks.process import TASK_MAP
 from sentry.relocation.utils import OrderedTask
 
 ERR_NOT_RECOVERABLE_STATUS = Template(
@@ -28,12 +28,12 @@ ERR_COULD_NOT_RECOVER_RELOCATION = (
     "Could not recover relocation, perhaps because it is no longer in a failed state."
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationRecoverEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,

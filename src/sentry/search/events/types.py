@@ -71,6 +71,8 @@ class EventsMeta(TypedDict):
     isMetricsData: NotRequired[bool]
     isMetricsExtractedData: NotRequired[bool]
     discoverSplitDecision: NotRequired[str]
+    # only returned when debug=True
+    query: NotRequired[dict[str, Any] | str]
 
 
 class EventsResponse(TypedDict):
@@ -224,7 +226,7 @@ class QueryBuilderConfig:
     # This allows queries to be resolved without adding time constraints. Currently this is just
     # used to allow metric alerts to be built and validated before creation in snuba.
     skip_time_conditions: bool = False
-    parser_config_overrides: Mapping[str, Any] | None = None
+    parser_config_overrides: Mapping[str, Any] = field(default_factory=dict)
     has_metrics: bool = False
     transform_alias_to_input_format: bool = False
     use_metrics_layer: bool = False

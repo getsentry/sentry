@@ -16,13 +16,13 @@ from sentry.api.invite_helper import (
     add_invite_details_to_session,
     remove_invite_details_from_session,
 )
+from sentry.demo_mode.utils import is_demo_user
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcUserInviteContext, organization_service
 from sentry.types.region import RegionResolutionError, get_region_by_name
 from sentry.utils import auth
-from sentry.utils.demo_mode import is_demo_user
 
 logger = logging.getLogger(__name__)
 

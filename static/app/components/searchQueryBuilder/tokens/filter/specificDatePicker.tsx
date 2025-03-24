@@ -10,12 +10,12 @@ import {
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {DatePicker} from 'sentry/components/calendar';
-import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {inputStyles} from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Input} from 'sentry/components/core/input';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
@@ -107,6 +107,7 @@ function SpecificDatePicker({
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SearchBarDatePickerOverlay
         data-test-id="specific-date-picker"
+        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={popoverRef}
         // Otherwise clicks will propagate to the grid and close the dropdown
         onClick={e => e.stopPropagation()}
@@ -228,7 +229,7 @@ const TimeInput = forwardRef(
     }, [time]);
 
     return (
-      <Input
+      <StyledInput
         ref={mergeRefs([ref, timeInputRef])}
         aria-label={t('Time')}
         disabled={disabled}
@@ -275,8 +276,7 @@ const SearchBarDatePickerOverlay = styled(Overlay)`
   cursor: default;
 `;
 
-const Input = styled('input')`
-  ${inputStyles};
+const StyledInput = styled(Input)`
   resize: none;
 `;
 

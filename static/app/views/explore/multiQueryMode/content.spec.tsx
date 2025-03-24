@@ -16,6 +16,10 @@ import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
+
 describe('MultiQueryModeContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
@@ -372,7 +376,7 @@ describe('MultiQueryModeContent', function () {
           query: expect.objectContaining({
             dataset: 'spans',
             field: [],
-            interval: '1h',
+            interval: '12h',
             orderby: undefined,
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -423,7 +427,7 @@ describe('MultiQueryModeContent', function () {
             dataset: 'spans',
             excludeOther: 0,
             field: ['span.op', 'avg(span.duration)'],
-            interval: '1h',
+            interval: '12h',
             orderby: '-avg_span_duration',
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -561,8 +565,10 @@ describe('MultiQueryModeContent', function () {
     );
 
     const section = screen.getByTestId('section-visualization-0');
-    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('button', {name: '1 hour'}));
+    expect(
+      await within(section).findByRole('button', {name: '12 hours'})
+    ).toBeInTheDocument();
+    await userEvent.click(within(section).getByRole('button', {name: '12 hours'}));
     await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/traces/compare',

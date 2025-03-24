@@ -2,9 +2,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Avatar from 'sentry/components/avatar';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
@@ -353,7 +353,7 @@ export function ReplayCell({
           <div>
             <Row gap={0.5}>{t('Deleted Replay')}</Row>
             <Row gap={0.5}>
-              {project ? <Avatar size={12} project={project} /> : null}
+              {project ? <ProjectAvatar size={12} project={project} /> : null}
               <ArchivedId>{getShortEventId(replay.id)}</ArchivedId>
             </Row>
           </div>
@@ -367,7 +367,7 @@ export function ReplayCell({
       <Row gap={1}>
         <Row gap={0.5}>
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
-          {project ? <Avatar size={12} project={project} /> : null}
+          {project ? <ProjectAvatar size={12} project={project} /> : null}
           {project ? project.slug : null}
           <Link to={detailsTab()} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}

@@ -59,6 +59,7 @@ def query(
     dataset: Dataset = Dataset.Events,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -90,6 +91,8 @@ def query(
         builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     result["meta"]["tips"] = transform_tips(builder.tips)
+    if debug:
+        result["meta"]["query"] = str(builder.get_snql_query().query)
     return result
 
 
@@ -134,6 +137,8 @@ def timeseries_query(
             if len(base_builder.aggregates) != 1:
                 raise InvalidSearchQuery("Only one column can be selected for comparison queries")
             comp_query_params = snuba_params.copy()
+            assert comp_query_params.start is not None
+            assert comp_query_params.end is not None
             comp_query_params.start -= comparison_delta
             comp_query_params.end -= comparison_delta
             comparison_builder = ErrorsTimeseriesQueryBuilder(
@@ -155,6 +160,8 @@ def timeseries_query(
     with sentry_sdk.start_span(op="errors", name="timeseries.transform_results"):
         results = []
         for snql_query, result in zip(query_list, query_results):
+            assert snql_query.params.start is not None
+            assert snql_query.params.end is not None
             results.append(
                 {
                     "data": (
@@ -163,7 +170,7 @@ def timeseries_query(
                             snql_query.params.start,
                             snql_query.params.end,
                             rollup,
-                            "time",
+                            ["time"],
                             time_col_name="events.time",
                         )
                         if zerofill_results
@@ -177,9 +184,9 @@ def timeseries_query(
         col_name = base_builder.aggregates[0].alias
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
-        for result, cmp_result in zip(results[0]["data"], results[1]["data"]):
+        for ret_result, cmp_result in zip(results[0]["data"], results[1]["data"]):
             cmp_result_val = cmp_result.get(col_name, 0)
-            result["comparisonCount"] = cmp_result_val
+            ret_result["comparisonCount"] = cmp_result_val
 
     result = base_builder.process_results(results[0])
 

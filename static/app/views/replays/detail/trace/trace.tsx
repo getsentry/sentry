@@ -88,7 +88,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
-      'trace context height': 150,
+      'trace grid height': 150,
     },
     layoutOptions: [],
   },
@@ -204,7 +204,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
-        {!indexComplete ? <Loading /> : null}
+        {indexComplete ? null : <Loading />}
       </StyledPlaceholder>
     );
   }

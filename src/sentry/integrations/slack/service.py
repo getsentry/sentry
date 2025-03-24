@@ -230,13 +230,7 @@ class SlackService:
             parent_notifications: Generator[
                 NotificationActionNotificationMessage | IssueAlertNotificationMessage
             ]
-            if (
-                features.has(
-                    "organizations:slack-threads-refactor-uptime",
-                    group.organization,
-                )
-                and group.issue_category == GroupCategory.UPTIME
-            ):
+            if group.issue_category == GroupCategory.UPTIME:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
                 if features.has(
@@ -341,12 +335,13 @@ class SlackService:
                 f"parent notification {parent_notification.id} does not have an action"
             )
 
-        if not parent_notification.action.target_identifier:
+        target_id = parent_notification.action.config.get("target_identifier")
+        if not target_id:
             raise ActionDataError(
                 f"parent notification {parent_notification.id} does not have a target_identifier"
             )
 
-        return str(parent_notification.action.target_identifier)
+        return str(target_id)
 
     def _get_channel_id_from_parent_notification(
         self,

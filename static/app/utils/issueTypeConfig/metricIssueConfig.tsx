@@ -14,6 +14,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: false},
       share: {enabled: true},
     },
+    defaultTimePeriod: {sinceFirstSeen: false},
     customCopy: {
       resolution: t('Back to baseline'),
       eventUnits: t('Open Periods'),
@@ -47,7 +48,7 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
     similarIssues: {enabled: false},
     usesIssuePlatform: true,
     useOpenPeriodChecks: true,
-    stats: {enabled: false},
+    stats: {enabled: true},
     tags: {enabled: false},
     issueSummary: {enabled: false},
   },

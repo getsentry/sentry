@@ -27,7 +27,7 @@ export function Oxfordize({children}: Props) {
     );
   }
 
-  const joinedElements: JSX.Element[] = [];
+  const joinedElements: React.JSX.Element[] = [];
   for (const [i, element] of elements.slice(0, -1).entries()) {
     joinedElements.push(<Fragment key={i}>{element}, </Fragment>);
   }

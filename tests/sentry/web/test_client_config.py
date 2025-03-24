@@ -179,7 +179,7 @@ def test_client_config_default_region_data():
 @no_silo_test
 @django_db_all
 def test_client_config_empty_region_data():
-    region_directory = region.load_from_config(())
+    region_directory = region.load_from_config([])
 
     # Usually, we would want to use other testutils functions rather than calling
     # `swap_state` directly. We make an exception here in order to test the default

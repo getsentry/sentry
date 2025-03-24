@@ -44,7 +44,7 @@ export function transformReleaseEvents({
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedReleaseEvents[YAXIS_COLUMNS[val]][release] = {
         seriesName: release,
-        data: Array(topTransactions.length).fill(0),
+        data: new Array(topTransactions.length).fill(0),
       };
     });
   });
@@ -103,14 +103,14 @@ export function transformDeviceClassEvents({
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedData[YAXIS_COLUMNS[val]][primaryRelease] = {
         seriesName: primaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
+        data: new Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
       };
     }
     if (secondaryRelease) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedData[YAXIS_COLUMNS[val]][secondaryRelease] = {
         seriesName: secondaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
+        data: new Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
       };
     }
   });

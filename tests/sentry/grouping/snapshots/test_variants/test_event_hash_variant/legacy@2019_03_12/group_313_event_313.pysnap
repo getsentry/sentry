@@ -1,5 +1,5 @@
 ---
-created: '2024-12-17T22:46:40.736624+00:00'
+created: '2025-02-26T00:33:47.082460+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -199,10 +199,10 @@ system:
     system*
       exception*
         stacktrace*
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "start"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "start"
           frame
@@ -312,19 +312,19 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "_objc_msgSend_uncached"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "lookUpImpOrForward"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "initializeAndMaybeRelock"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "initializeNonMetaClass"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "CALLING_SOME_+initialize_METHOD"
           frame
@@ -348,32 +348,32 @@ system:
           frame (ignored due to recursion)
             function (function name is not used if module or filename are available)
               "stripped_application_code"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dlopen"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "dlopen_internal"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame (ignored due to recursion)
+          frame
             function (function name is not used if module or filename are available)
               "__report_load"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__report_load.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__abort"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame
             function (function name is not used if module or filename are available)
               "__pthread_kill"
         type*

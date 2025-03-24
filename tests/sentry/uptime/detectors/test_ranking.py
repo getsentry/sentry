@@ -134,6 +134,20 @@ class GetCandidateUrlsForProjectTest(UptimeTestCase):
         add_base_url_to_rank(self.project, url_2)
         assert get_candidate_urls_for_project(self.project) == [(url_2, 2), (url_1, 1)]
 
+    def test_limits(self):
+        with mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1):
+            other_proj = self.create_project()
+            url_1 = "https://sentry.io"
+            self.create_project_uptime_subscription(
+                project=other_proj, uptime_subscription=self.create_uptime_subscription(url=url_1)
+            )
+            url_2 = "https://sentry.sentry.io"
+            url_3 = "https://sentry.santry.io"
+            add_base_url_to_rank(self.project, url_1)
+            add_base_url_to_rank(self.project, url_2)
+            add_base_url_to_rank(self.project, url_3)
+            assert get_candidate_urls_for_project(self.project) == [(url_3, 1)]
+
 
 class DeleteCandidateUrlsForProjectTest(UptimeTestCase):
     def test(self):

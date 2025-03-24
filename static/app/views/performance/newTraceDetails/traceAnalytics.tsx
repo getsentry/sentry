@@ -10,6 +10,8 @@ import {TraceShape, type TraceTree} from './traceModels/traceTree';
 
 export type TraceWaterFallSource = 'trace_view' | 'replay_details' | 'issue_details';
 
+const {info, fmt} = Sentry._experiment_log;
+
 const trackTraceMetadata = (
   tree: TraceTree,
   projects: Project[],
@@ -251,6 +253,7 @@ function trackTraceShape(
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
+      info(fmt`Unknown trace type: ${tree.shape}`);
     }
   }
 }

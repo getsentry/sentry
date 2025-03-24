@@ -300,7 +300,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
       );
     case 'duration': {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      const multiplier = columnUnit ? DURATION_UNITS[columnUnit as string] ?? 1 : 1;
+      const multiplier = columnUnit ? (DURATION_UNITS[columnUnit as string] ?? 1) : 1;
       return (
         <NumberContainer>
           <PerformanceDuration milliseconds={value * multiplier} abbreviation />

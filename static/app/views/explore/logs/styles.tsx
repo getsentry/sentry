@@ -1,13 +1,15 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/gridEditable/styles';
 import {HighlightComponent} from 'sentry/components/highlight';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {space} from 'sentry/styles/space';
 import {unreachable} from 'sentry/utils/unreachable';
+import {TableBodyCell, TableRow} from 'sentry/views/explore/components/table';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
 export const StyledPanel = styled(Panel)`
@@ -41,21 +43,31 @@ export const StyledPanelItem = styled(PanelItem)<{
   white-space: nowrap;
 `;
 
-export const LogPanelContent = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-columns: min-content auto min-content;
+export const LogTableRow = styled(TableRow)`
+  cursor: pointer;
 `;
 
-export const LogRowContent = styled('div')`
-  display: flex;
+export const LogTableBodyCell = styled(TableBodyCell)`
+  min-height: ${GRID_BODY_ROW_HEIGHT - 8}px;
+`;
+
+export const LogDetailTableBodyCell = styled(TableBodyCell)`
+  padding: 0;
+  ${LogTableRow} & {
+    padding: 0;
+  }
+  &:last-child {
+    padding: 0;
+  }
+`;
+
+export const DetailsWrapper = styled('div')`
   align-items: center;
-  gap: 8px;
-`;
-
-export const DetailsWrapper = styled(StyledPanelItem)`
   background-color: ${p => p.theme.gray100};
+  padding: ${space(1)} ${space(1)};
   flex-direction: column;
+  white-space: nowrap;
+  grid-column: 1 / -1;
 `;
 
 export const DetailsGrid = styled(StyledPanel)`
@@ -69,9 +81,19 @@ export const DetailsGrid = styled(StyledPanel)`
   padding: ${space(1)} ${space(2)};
 `;
 
-export const DetailsSubGrid = styled('div')`
-  display: grid;
-  grid-template-columns: min-content min-content;
+export const NonClickableCell = styled('div')`
+  cursor: auto;
+`;
+
+export const LogDetailsTitle = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  font-weight: ${p => p.theme.fontWeightBold};
+  user-select: none;
+`;
+
+export const LogFirstCellContent = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 export const DetailsFooter = styled(StyledPanelItem)<{
@@ -99,16 +121,6 @@ export const DetailsFooter = styled(StyledPanelItem)<{
       : `
           ${p.logColors.backgroundLight}
         `};
-`;
-
-export const DetailsLabel = styled('div')`
-  font-weight: 600;
-  min-width: 100px;
-  color: ${p => p.theme.gray300};
-`;
-
-export const DetailsValue = styled('div')`
-  word-break: break-word;
 `;
 
 export const StyledChevronButton = styled(Button)`
@@ -141,8 +153,9 @@ export const ColoredLogText = styled('span')<{
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-export const LogDate = styled('span')`
+export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   color: ${p => p.theme.gray300};
+  text-align: ${p => p.align || 'left'};
 `;
 
 export const LogsHighlight = styled(HighlightComponent)`
@@ -153,9 +166,20 @@ export const LogsHighlight = styled(HighlightComponent)`
 `;
 
 export const WrappingText = styled('div')<{wrap?: boolean}>`
-  width: 100%;
-  ${p => p.theme.overflowEllipsis};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   ${p => p.wrap && 'text-wrap: auto;'}
+  cursor: auto;
+`;
+
+export const AlignedCellContent = styled('div')<{
+  align?: 'left' | 'center' | 'right';
+}>`
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  justify-content: ${p => p.align || 'left'};
 `;
 
 export function getLogColors(level: SeverityLevel, theme: Theme) {

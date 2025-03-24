@@ -10,6 +10,8 @@ import {ToolbarRouterContextProvider} from '../hooks/useToolbarRoute';
 import {VisibilityContextProvider} from '../hooks/useVisibility';
 import type {Configuration} from '../types';
 
+import {FeatureFlagsContextProvider} from './featureFlags/featureFlagsContext';
+
 interface Props {
   children: React.ReactNode;
   config: Configuration;
@@ -38,7 +40,9 @@ export default function Providers({children, config, container}: Props) {
         <ConfigurationContextProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <VisibilityContextProvider>
-              <ToolbarRouterContextProvider>{children}</ToolbarRouterContextProvider>
+              <ToolbarRouterContextProvider>
+                <FeatureFlagsContextProvider>{children}</FeatureFlagsContextProvider>
+              </ToolbarRouterContextProvider>
             </VisibilityContextProvider>
           </QueryClientProvider>
         </ConfigurationContextProvider>

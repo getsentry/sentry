@@ -9,6 +9,13 @@ def _exception_with_stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
     return {"exception": {"values": [{"stacktrace": {"frames": frames}}]}}
 
 
+def _stacktrace(frames: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"stacktrace": {"frames": frames}}
+
+
+BASIC_FRAME = {"in_app": True, "filename": "foo"}
+
+
 @pytest.mark.parametrize(
     "frames, platform, expected",
     [
@@ -76,11 +83,16 @@ def test_get_frames_to_process(
 @pytest.mark.parametrize(
     "frames, expected",
     [
-        ([], []),
+        (None, []),
         ([None], []),
-        ([{"in_app": True}], []),
+        ([], []),
+        ([{"in_app": True}], []),  # Both in_app and filename are required
+        ([BASIC_FRAME, None], [BASIC_FRAME]),  # Handle intermixing of None and dicts
     ],
 )
-def test_find_stacktrace_empty(frames: list[dict[str, Any]], expected: list[str]) -> None:
-    frames = get_frames_to_process(_exception_with_stacktrace(frames))
+def test_with_invalid_frames(frames: list[dict[str, Any]], expected: list[str]) -> None:
+    frames = get_frames_to_process(_exception_with_stacktrace(frames), "python")
+    assert frames == expected
+
+    frames = get_frames_to_process(_stacktrace(frames), "python")
     assert frames == expected

@@ -34,9 +34,15 @@ interface Props {
   onClose: SearchBarProps['onClose'];
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
+  portalTarget?: HTMLElement | null;
 }
 
-export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
+export function ReleaseSearchBar({
+  pageFilters,
+  widgetQuery,
+  onClose,
+  portalTarget,
+}: Props) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
   const projectIds = pageFilters.projects;
@@ -79,6 +85,7 @@ export function ReleaseSearchBar({pageFilters, widgetQuery, onClose}: Props) {
       disallowFreeText
       invalidMessages={invalidMessages}
       recentSearches={SavedSearchType.SESSION}
+      portalTarget={portalTarget}
     />
   );
 }

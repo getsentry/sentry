@@ -131,6 +131,14 @@ export type ReleaseProject = {
   healthData?: Health;
 };
 
+/**
+ * From the `/releases/stats/` endpoint
+ */
+export type ReleaseMetaBasic = {
+  date: string;
+  version: string;
+};
+
 export type ReleaseMeta = {
   commitCount: number;
   commitFilesChanged: number;

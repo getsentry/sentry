@@ -74,7 +74,7 @@ function IssueListTable({
     />
   ) : (
     <Fragment>
-      <Panel>
+      <ContainerPanel>
         {groupIds.length !== 0 && (
           <IssueListActions
             selection={selection}
@@ -111,7 +111,7 @@ function IssueListTable({
             />
           </VisuallyCompleteWithData>
         </PanelBody>
-      </Panel>
+      </ContainerPanel>
       <StyledPagination
         caption={paginationCaption}
         pageLinks={pageLinks}
@@ -124,6 +124,10 @@ function IssueListTable({
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
+`;
+
+const ContainerPanel = styled(Panel)`
+  container-type: inline-size;
 `;
 
 export default IssueListTable;

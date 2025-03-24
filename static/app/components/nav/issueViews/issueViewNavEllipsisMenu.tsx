@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconEllipsis, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,24 +13,26 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 
-interface IssueViewNavEllipsisMenuProps {
+export interface IssueViewNavEllipsisMenuProps {
   baseUrl: string;
-  deleteView: () => void;
-  duplicateView: () => void;
+  isLastView: boolean;
+  onDeleteView: () => void;
+  onDuplicateView: () => void;
+  onUpdateView: (view: IssueView) => void;
   setIsEditing: (isEditing: boolean) => void;
-  updateView: (view: IssueView) => void;
   view: IssueView;
-  sectionRef?: React.RefObject<HTMLDivElement>;
+  sectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function IssueViewNavEllipsisMenu({
   sectionRef,
   setIsEditing,
   view,
-  deleteView,
-  duplicateView,
-  updateView,
+  onDeleteView,
+  onDuplicateView,
+  onUpdateView,
   baseUrl,
+  isLastView,
 }: IssueViewNavEllipsisMenuProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -46,7 +47,7 @@ export function IssueViewNavEllipsisMenu({
       timeFilters: view.unsavedChanges?.timeFilters ?? view.timeFilters,
       unsavedChanges: undefined,
     };
-    updateView(updatedView);
+    onUpdateView(updatedView);
     navigate(constructViewLink(baseUrl, updatedView));
 
     trackAnalytics('issue_views.saved_changes', {
@@ -60,7 +61,7 @@ export function IssueViewNavEllipsisMenu({
       ...view,
       unsavedChanges: undefined,
     };
-    updateView(updatedView);
+    onUpdateView(updatedView);
     navigate(constructViewLink(baseUrl, updatedView));
 
     trackAnalytics('issue_views.discarded_changes', {
@@ -85,8 +86,8 @@ export function IssueViewNavEllipsisMenu({
             e.preventDefault();
             e.currentTarget.click();
           }}
+          size="zero"
         >
-          <InteractionStateLayer />
           <IconEllipsis compact color="gray500" />
         </TriggerWrapper>
       )}
@@ -119,13 +120,14 @@ export function IssueViewNavEllipsisMenu({
             {
               key: 'duplicate-tab',
               label: t('Duplicate'),
-              onAction: duplicateView,
+              onAction: onDuplicateView,
             },
             {
               key: 'delete-tab',
               label: t('Delete'),
               priority: 'danger',
-              onAction: deleteView,
+              onAction: onDeleteView,
+              disabled: isLastView,
             },
           ],
         },
@@ -181,7 +183,8 @@ const constructViewLink = (baseUrl: string, view: IssueView) => {
   });
 };
 
-const TriggerWrapper = styled('div')`
+const TriggerWrapper = styled(Button)`
+  display: flex;
   position: relative;
   width: 24px;
   height: 20px;
@@ -192,7 +195,6 @@ const TriggerWrapper = styled('div')`
   padding: 0;
   background-color: inherit;
   opacity: inherit;
-  display: none;
 `;
 
 const SectionedOverlayFooter = styled('div')`

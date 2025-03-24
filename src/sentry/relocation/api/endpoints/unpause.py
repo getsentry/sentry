@@ -16,19 +16,19 @@ from sentry.relocation.api.endpoints import (
     ERR_UNKNOWN_RELOCATION_STEP,
 )
 from sentry.relocation.models.relocation import Relocation
-from sentry.relocation.tasks import get_first_task_for_step
+from sentry.relocation.tasks.process import get_first_task_for_step
 
 ERR_NOT_UNPAUSABLE_STATUS = Template(
     """Relocations can only be unpaused if they are already paused; this relocation is
     `$status`."""
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationUnpauseEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,

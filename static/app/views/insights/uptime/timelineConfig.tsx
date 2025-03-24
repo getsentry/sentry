@@ -16,7 +16,7 @@ export const checkStatusPrecedent: CheckStatus[] = [
 
 export const statusToText: Record<CheckStatus, string> = {
   [CheckStatus.SUCCESS]: t('Uptime'),
-  [CheckStatus.FAILURE]: t('Intermittent'),
+  [CheckStatus.FAILURE]: t('Failure'),
   [CheckStatus.FAILURE_INCIDENT]: t('Downtime'),
   [CheckStatus.MISSED_WINDOW]: t('Unknown'),
 };
@@ -30,6 +30,7 @@ export const reasonToText: Record<
   [CheckStatusReason.DNS_ERROR]: _ => t('DNS Error'),
   [CheckStatusReason.TLS_ERROR]: _ => t('TLS Connection Error'),
   [CheckStatusReason.CONNECTION_ERROR]: _ => t('Connection Error'),
+  [CheckStatusReason.REDIRECT_ERROR]: _ => t('Too Many Redirects'),
 };
 
 export const tickStyle: Record<CheckStatus, TickStyle> = {
@@ -38,8 +39,9 @@ export const tickStyle: Record<CheckStatus, TickStyle> = {
     tickColor: 'green300',
   },
   [CheckStatus.FAILURE]: {
-    labelColor: 'green300',
-    tickColor: 'green200',
+    labelColor: 'red400',
+    tickColor: 'red300',
+    hatchTick: 'red200',
   },
   [CheckStatus.FAILURE_INCIDENT]: {
     labelColor: 'red400',

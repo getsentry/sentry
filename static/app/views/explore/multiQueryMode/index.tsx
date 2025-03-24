@@ -25,6 +25,9 @@ export default function MultiQueryMode() {
               crumbs={[
                 {
                   label: t('Explore'),
+                },
+                {
+                  label: t('Traces'),
                   to: makeTracesPathname({
                     organization,
                     path: '/',

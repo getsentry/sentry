@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
+from django.db.models import SET_NULL
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -61,21 +61,16 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
-            try:
-                with transaction.atomic(router.db_for_write(OrganizationOnboardingTask)):
-                    self.create(organization_id=organization_id, task=task, **kwargs)
-                    # Store marker to prevent running all the time
-                    cache.set(cache_key, 1, 3600)
-                    return True
-            except IntegrityError as error:
-                if task == OnboardingTask.FIRST_PROJECT:
-                    scope = sentry_sdk.get_current_scope()
-                    scope.set_extra("error", error)
-                    sentry_sdk.capture_message(
-                        f"Integrity error while creating first project task for org {organization_id}",
-                        level="warning",
-                    )
-                pass
+            _, created = self.create_or_update(
+                organization_id=organization_id,
+                task=task,
+                values=kwargs,
+            )
+
+            # Store marker to prevent running all the time
+            cache.set(cache_key, 1, 3600)
+            if created:
+                return True
         return False
 
 
@@ -101,7 +96,9 @@ class AbstractOnboardingTask(Model):
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
+    project = FlexibleForeignKey(
+        "sentry.Project", db_constraint=False, null=True, on_delete=SET_NULL
+    )
     # INVITE_MEMBER { invited_member: user.id }
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 

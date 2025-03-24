@@ -2,7 +2,6 @@ from django import forms
 from django.db import router, transaction
 from rest_framework import serializers
 
-from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.incidents.logic import (
@@ -16,7 +15,6 @@ from sentry.incidents.logic import (
 from sentry.incidents.models.alert_rule import AlertRuleTrigger, AlertRuleTriggerAction
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_delete_migrated_alert_rule_trigger_action,
-    migrate_metric_data_conditions,
 )
 
 from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer
@@ -59,11 +57,6 @@ class AlertRuleTriggerSerializer(CamelSnakeModelSerializer):
                     "This label is already in use for this alert rule"
                 )
 
-            if features.has(
-                "organizations:workflow-engine-metric-alert-dual-write",
-                alert_rule_trigger.alert_rule.organization,
-            ):
-                migrate_metric_data_conditions(alert_rule_trigger)
         self._handle_actions(alert_rule_trigger, actions)
         return alert_rule_trigger
 

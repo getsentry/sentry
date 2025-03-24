@@ -2,31 +2,24 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
+import Hook from 'sentry/components/hook';
 import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
 import {useNavContext} from 'sentry/components/nav/context';
-import {
-  SeparatorItem,
-  SidebarLink,
-  SidebarMenu,
-} from 'sentry/components/nav/primary/components';
+import {SeparatorItem, SidebarLink} from 'sentry/components/nav/primary/components';
+import {PrimaryNavigationHelp} from 'sentry/components/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/components/nav/primary/serviceIncidents';
-import {WhatsNew} from 'sentry/components/nav/primary/whatsNew';
+import {PrimaryNavigationWhatsNew} from 'sentry/components/nav/primary/whatsNew';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconQuestion,
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
@@ -39,7 +32,7 @@ function SidebarBody({children}: {children: React.ReactNode}) {
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   return (
-    <SidebarFooterWrapper>
+    <SidebarFooterWrapper isMobile={layout === NavLayout.MOBILE}>
       <SidebarItemList
         isMobile={layout === NavLayout.MOBILE}
         compact={layout === NavLayout.SIDEBAR}
@@ -54,8 +47,6 @@ export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
 
-  const {mutate: mutateUserOptions} = useMutateUserOptions();
-
   return (
     <Fragment>
       <SidebarBody>
@@ -68,7 +59,12 @@ export function PrimaryNavigationItems() {
         </SidebarLink>
 
         <SidebarLink
-          to={`/${prefix}/explore/traces/`}
+          to={
+            organization.features.includes('performance-view')
+              ? `/${prefix}/explore/traces/`
+              : `/${prefix}/explore/profiling/`
+          }
+          activeTo={`/${prefix}/explore`}
           analyticsKey="explore"
           label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
         >
@@ -83,7 +79,7 @@ export function PrimaryNavigationItems() {
           <SidebarLink
             to={`/${prefix}/dashboards/`}
             activeTo={`/${prefix}/dashboard`}
-            analyticsKey="customizable-dashboards"
+            analyticsKey="dashboards"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
           >
             <IconDashboard />
@@ -93,10 +89,11 @@ export function PrimaryNavigationItems() {
         <Feature features={['performance-view']}>
           <SidebarLink
             to={`/${prefix}/insights/frontend/`}
-            analyticsKey="insights-domains"
+            activeTo={`/${prefix}/insights`}
+            analyticsKey="insights"
             label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
           >
-            <IconGraph />
+            <IconGraph type="area" />
           </SidebarLink>
         </Feature>
 
@@ -113,74 +110,16 @@ export function PrimaryNavigationItems() {
       </SidebarBody>
 
       <SidebarFooter>
-        <SidebarMenu
-          items={[
-            {
-              key: 'search',
-              label: t('Search Support, Docs and More'),
-              onAction() {
-                openHelpSearchModal({organization});
-              },
-            },
-            {
-              key: 'resources',
-              label: t('Resources'),
-              children: [
-                {
-                  key: 'help-center',
-                  label: t('Help Center'),
-                  to: 'https://sentry.zendesk.com/hc/en-us',
-                },
-                {
-                  key: 'docs',
-                  label: t('Documentation'),
-                  to: 'https://docs.sentry.io',
-                },
-              ],
-            },
-            {
-              key: 'help',
-              label: t('Get Help'),
-              children: [
-                {
-                  key: 'support',
-                  label: t('Contact Support'),
-                  to: `mailto:${ConfigStore.get('supportEmail')}`,
-                },
-                {
-                  key: 'github',
-                  label: t('Sentry on GitHub'),
-                  to: 'https://github.com/getsentry/sentry/issues',
-                },
-                {
-                  key: 'discord',
-                  label: t('Join our Discord'),
-                  to: 'https://discord.com/invite/sentry',
-                },
-              ],
-            },
-            {
-              key: 'new-ui',
-              children: [
-                {
-                  key: 'new-ui',
-                  label: t('Switch to old navigation'),
-                  onAction() {
-                    mutateUserOptions({prefersStackedNavigation: false});
-                  },
-                },
-              ],
-            },
-          ]}
-          analyticsKey="help"
-          label={t('Help')}
-        >
-          <IconQuestion />
-        </SidebarMenu>
+        <PrimaryNavigationHelp />
 
         <SeparatorItem />
 
-        <WhatsNew />
+        <PrimaryNavigationWhatsNew />
+        <Hook
+          name="sidebar:bottom-items"
+          organization={organization}
+          orientation="left"
+        />
         <PrimaryNavigationServiceIncidents />
         <PrimaryNavigationOnboarding />
       </SidebarFooter>
@@ -199,7 +138,6 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
   align-items: stretch;
   gap: ${space(0.5)};
   width: 100%;
-  color: rgba(255, 255, 255, 0.85);
 
   ${p =>
     !p.isMobile &&
@@ -215,10 +153,11 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
     `}
 `;
 
-const SidebarFooterWrapper = styled('div')`
+const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`
   position: relative;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   margin-top: auto;
+  margin-bottom: ${p => (p.isMobile ? space(1) : 0)};
 `;

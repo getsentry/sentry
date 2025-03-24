@@ -350,7 +350,7 @@ class Endpoint(APIView):
             if rv.auth is None:
                 rv.auth = orig_auth
             if rv.user is None:
-                rv.user = orig_user
+                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
         return rv
 
     def has_pagination(self, response: Response) -> bool:
@@ -376,10 +376,6 @@ class Endpoint(APIView):
             self.headers = self.default_response_headers  # deprecate?
 
         sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER", ""))
-
-        # Tags that will ultimately flow into the metrics backend at the end of
-        # the request (happens via middleware/stats.py).
-        request._metric_tags = {}
 
         start_time = time.time()
 

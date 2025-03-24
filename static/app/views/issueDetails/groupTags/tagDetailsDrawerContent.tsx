@@ -4,7 +4,7 @@ import type {LocationDescriptor} from 'history';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -345,9 +345,6 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
   margin: 0 ${space(1)};
 `;

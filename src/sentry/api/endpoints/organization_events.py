@@ -70,6 +70,7 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES.value,
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION.value,
     Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_SPANS.value,
     Referrer.API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
     Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA.value,
@@ -175,6 +176,8 @@ ALLOWED_EVENTS_REFERRERS: set[str] = {
     Referrer.ISSUE_DETAILS_STREAMLINE_GRAPH.value,
     Referrer.ISSUE_DETAILS_STREAMLINE_LIST.value,
     Referrer.API_EXPLORE_COMPARE_TABLE.value,
+    Referrer.API_EXPLORE_LOGS_TABLE.value,
+    Referrer.API_EXPLORE_LOGS_TABLE_ROW.value,
 }
 
 
@@ -440,6 +443,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         # Only works when dataset == spans
         use_rpc = request.GET.get("useRpc", "0") == "1"
         sentry_sdk.set_tag("performance.use_rpc", use_rpc)
+        debug = request.user.is_superuser and "debug" in request.GET
 
         def _data_fn(
             dataset_query: DatasetQuery,
@@ -456,6 +460,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     offset=offset,
                     limit=limit,
                     referrer=referrer,
+                    debug=debug,
                     config=SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
@@ -487,6 +492,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     actor=request.user,
                 ),
                 query_source=query_source,
+                debug=debug,
             )
 
         @sentry_sdk.tracing.trace

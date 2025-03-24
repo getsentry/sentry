@@ -26,6 +26,9 @@ class Condition(StrEnum):
     LESS = "lt"
     NOT_EQUAL = "ne"
 
+    # Anomaly detection
+    ANOMALY_DETECTION = "anomaly_detection"
+
     # Issue conditions
     AGE_COMPARISON = "age_comparison"
     ASSIGNED_TO = "assigned_to"
@@ -78,6 +81,17 @@ SLOW_CONDITIONS = [
     Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
     Condition.PERCENT_SESSIONS_COUNT,
 ] + PERCENT_CONDITIONS
+
+# Conditions that are not supported in the UI
+LEGACY_CONDITIONS = [
+    Condition.EVERY_EVENT,
+    Condition.EVENT_CREATED_BY_DETECTOR,
+    Condition.EVENT_SEEN_COUNT,
+    Condition.NEW_HIGH_PRIORITY_ISSUE,
+    Condition.EXISTING_HIGH_PRIORITY_ISSUE,
+    Condition.ISSUE_CATEGORY,
+    Condition.ISSUE_RESOLUTION_CHANGE,
+]
 
 
 T = TypeVar("T")

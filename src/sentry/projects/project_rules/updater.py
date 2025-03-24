@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 
 from attr import dataclass
@@ -11,6 +12,8 @@ from sentry.types.actor import Actor
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
     update_migrated_issue_alert,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -43,8 +46,13 @@ class ProjectRuleUpdater:
             if features.has(
                 "organizations:workflow-engine-issue-alert-dual-write", self.project.organization
             ):
-                # TODO(cathy): handle errors from broken actions
-                update_migrated_issue_alert(self.rule)
+                # uncaught errors will rollback the transaction
+                workflow = update_migrated_issue_alert(self.rule)
+                if workflow:
+                    logger.info(
+                        "workflow_engine.issue_alert.updated",
+                        extra={"rule_id": self.rule.id, "workflow_id": workflow.id},
+                    )
             return self.rule
 
     def _update_name(self) -> None:

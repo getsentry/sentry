@@ -38,7 +38,7 @@ def _orjson_default(obj: Any) -> Any:
 
 @region_silo_endpoint
 class RelocationArtifactDetailsEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "GET": ApiPublishStatus.EXPERIMENTAL,

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.types import (
@@ -9,6 +9,7 @@ from sentry.integrations.slack.message_builder.types import (
     SlackBody,
 )
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.models.organization import Organization
 
 
 def get_started_at(timestamp: datetime | None) -> str:
@@ -22,9 +23,10 @@ def get_started_at(timestamp: datetime | None) -> str:
 class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
-        incident: Incident,
-        new_status: IncidentStatus,
-        metric_value: float | None = None,
+        alert_context: AlertContext,
+        metric_issue_context: MetricIssueContext,
+        organization: Organization,
+        date_started: datetime,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
@@ -37,21 +39,23 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         :param [method]: Either "fire" or "resolve".
         """
         super().__init__()
-        self.incident = incident
-        self.metric_value = metric_value
-        self.new_status = new_status
+        self.alert_context = alert_context
+        self.metric_issue_context = metric_issue_context
+        self.organization = organization
+        self.date_started = date_started
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
 
     def build(self) -> SlackBody:
         data = incident_attachment_info(
-            self.incident,
-            self.new_status,
-            self.metric_value,
-            self.notification_uuid,
+            alert_context=self.alert_context,
+            metric_issue_context=self.metric_issue_context,
+            organization=self.organization,
+            notification_uuid=self.notification_uuid,
             referrer="metric_alert_slack",
         )
-        incident_text = f"{data['text']}\n{get_started_at(data['date_started'])}"
+
+        incident_text = f"{data['text']}\n{get_started_at(self.date_started)}"
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]

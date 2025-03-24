@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -66,7 +66,12 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
         },
       }),
     }))
-    .filter(item => {
+    .filter((item, _index, array) => {
+      // Prefer the "os" context for OS information
+      if (item.alias === 'client_os' && array.find(i => i.alias === 'os')) {
+        return false;
+      }
+
       const hasData = item.icon !== null && Boolean(item.title || item.subtitle);
       if (item.alias === 'device') {
         return hasData && shouldDisplayDevice;

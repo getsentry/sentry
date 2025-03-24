@@ -1103,12 +1103,12 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
   [MobileVital.STALL_TOTAL_TIME]: {
     desc: t('Total stall duration (React Native)'),
     kind: FieldKind.METRICS,
-    valueType: FieldValueType.PERCENTAGE,
+    valueType: FieldValueType.DURATION,
   },
   [MobileVital.STALL_LONGEST_TIME]: {
     desc: t('Duration of slowest Javascript event loop (React Native)'),
     kind: FieldKind.METRICS,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.DURATION,
   },
   [MobileVital.STALL_PERCENTAGE]: {
     desc: t('Total stall duration out of the total transaction duration (React Native)'),
@@ -1171,22 +1171,31 @@ type TraceFields =
   | SpanIndexedField.SPAN_GROUP
   | SpanIndexedField.SPAN_MODULE
   | SpanIndexedField.SPAN_OP
+  | SpanIndexedField.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
   | SpanIndexedField.SPAN_SELF_TIME
   | SpanIndexedField.SPAN_STATUS
-  | SpanIndexedField.RESPONSE_CODE;
+  | SpanIndexedField.RESPONSE_CODE
+  | SpanIndexedField.CACHE_HIT;
 
 export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
   [SpanIndexedField.SPAN_ACTION]: {
     desc: t(
-      'The type of span action, e.g `SELECT` for a SQL span or `POST` for an HTTP span'
+      'The Sentry Insights span action, e.g `SELECT` for a SQL span or `POST` for an HTTP client span'
     ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_DESCRIPTION]: {
-    desc: t('Parameterized and scrubbed description of the span'),
+    desc: t('Description of the span’s operation'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.NORMALIZED_DESCRIPTION]: {
+    desc: t(
+      'Parameterized and normalized description of the span, commonly used for grouping within insights'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1236,6 +1245,11 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   },
   [SpanIndexedField.IS_TRANSACTION]: {
     desc: t('The span is also a transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [SpanIndexedField.CACHE_HIT]: {
+    desc: t('`true` if the  cache was hit, `false` otherwise'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
@@ -1834,6 +1848,8 @@ const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...SPAN_AGGREGATION_FIELDS,
   ...SPAN_HTTP_FIELD_DEFINITIONS,
 };
+
+const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
@@ -2445,7 +2461,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event',
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' | 'log' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
@@ -2498,6 +2514,21 @@ export const getFieldDefinition = (
       }
 
       return null;
+
+    case 'log':
+      if (key in LOG_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.STRING,
+        };
+      }
+      return null;
+
     case 'event':
     default:
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

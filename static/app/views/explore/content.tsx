@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -13,6 +14,8 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
+import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 
@@ -20,6 +23,7 @@ export function ExploreContent() {
   const organization = useOrganization();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
+  const prefersStackedNav = usePrefersStackedNav();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -33,14 +37,19 @@ export function ExploreContent() {
     });
   }, [location, navigate]);
 
+  const hasSavedQueries = organization.features.includes('performance-saved-queries');
+
+  const title = getTitleFromLocation(location);
+
   return (
     <SentryDocumentTitle title={t('Traces')} orgSlug={organization?.slug}>
       <PageFiltersContainer maxPickableDays={maxPickableDays}>
         <Layout.Page>
-          <Layout.Header>
-            <Layout.HeaderContent>
+          <Layout.Header unified={prefersStackedNav}>
+            <Layout.HeaderContent unified={prefersStackedNav}>
+              {hasSavedQueries && title ? <ExploreBreadcrumb /> : null}
               <Layout.Title>
-                {t('Traces')}
+                {hasSavedQueries && title ? title : t('Traces')}
                 <PageHeadingQuestionTooltip
                   docsUrl="https://github.com/getsentry/sentry/discussions/81239"
                   title={t(
@@ -49,9 +58,11 @@ export function ExploreContent() {
                   linkLabel={t('Read the Discussion')}
                 />
                 <FeatureBadge
-                  title={t(
-                    'This feature is available for early adopters and the UX may change'
-                  )}
+                  tooltipProps={{
+                    title: t(
+                      'This feature is available for early adopters and the UX may change'
+                    ),
+                  }}
                   type="beta"
                 />
               </Layout.Title>

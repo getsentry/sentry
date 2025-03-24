@@ -2,6 +2,10 @@ from collections.abc import MutableMapping, Sequence
 from typing import Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
+from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
+    CheckStatus,
+    CheckStatusReasonType,
+)
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
@@ -54,12 +58,6 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
     def serialize(
         self, obj: ProjectUptimeSubscription, attrs, user, **kwargs
     ) -> ProjectUptimeSubscriptionSerializerResponse:
-        headers = obj.uptime_subscription.headers
-
-        # XXX: Temporary translation code. We want to support headers with the same keys, so convert to a list
-        if isinstance(headers, dict):
-            headers = [[key, val] for key, val in headers.items()]
-
         return {
             "id": str(obj.id),
             "projectSlug": obj.project.slug,
@@ -69,7 +67,7 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
             "uptimeStatus": obj.uptime_status,
             "mode": obj.mode,
             "url": obj.uptime_subscription.url,
-            "headers": headers,
+            "headers": obj.uptime_subscription.headers,
             "body": obj.uptime_subscription.body,
             "method": obj.uptime_subscription.method,
             "intervalSeconds": obj.uptime_subscription.interval_seconds,
@@ -79,7 +77,12 @@ class ProjectUptimeSubscriptionSerializer(Serializer):
         }
 
 
-CheckStatus = Literal["success", "failure", "failure_incident", "missed_window"]
+SerializedCheckStatus = CheckStatus | Literal["failure_incident"]
+"""
+Extends the CheckStatus type that is defined as part of the uptime check
+results schema to add a `failure_incident` type used to indicate that the check
+failed as part of an uptime incident.
+"""
 
 
 class EapCheckEntrySerializerResponse(TypedDict):
@@ -88,8 +91,8 @@ class EapCheckEntrySerializerResponse(TypedDict):
     projectUptimeSubscriptionId: int
     timestamp: str
     scheduledCheckTime: str
-    checkStatus: CheckStatus
-    checkStatusReason: str
+    checkStatus: SerializedCheckStatus
+    checkStatusReason: CheckStatusReasonType | None
     httpStatusCode: int | None
     durationMs: int
     traceId: str
@@ -105,7 +108,7 @@ class EapCheckEntrySerializer(Serializer):
     def serialize(
         self, obj: EapCheckEntry, attrs, user, **kwargs
     ) -> EapCheckEntrySerializerResponse:
-        check_status = cast(CheckStatus, obj.check_status)
+        check_status = cast(SerializedCheckStatus, obj.check_status)
 
         # XXX: Translate the status from `failed` to `failed_incident` when the
         # check is part of an incident.

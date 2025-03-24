@@ -61,6 +61,42 @@ trace root
 "
 `;
 
+exports[`TraceTree eap trace assembles tree from eap trace 1`] = `
+"
+eap trace root
+  span.op - span.description
+    span.op - span.description
+"
+`;
+
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 1`] = `
+"
+eap trace root
+  span.op - span.description (eap-transaction)
+    span.op - span.description (eap-transaction)
+      span.op - span.description (eap-transaction)
+"
+`;
+
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 2`] = `
+"
+eap trace root
+  span.op - span.description (eap-transaction)
+    span.op - span.description
+      span.op - span.description (eap-transaction)
+        span.op - span.description (eap-transaction)
+"
+`;
+
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 3`] = `
+"
+eap trace root
+  span.op - span.description (eap-transaction)
+    span.op - span.description (eap-transaction)
+      span.op - span.description (eap-transaction)
+"
+`;
+
 exports[`TraceTree expand collapsing a parent autogroup node shows tail chain 1`] = `
 "
 trace root

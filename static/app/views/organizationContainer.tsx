@@ -10,7 +10,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 
 interface Props {
-  children: JSX.Element;
+  children: React.JSX.Element;
 }
 
 /**

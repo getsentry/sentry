@@ -14,7 +14,7 @@ type ChildRenderProps = {
 };
 
 type Props = {
-  children: (props: ChildRenderProps) => JSX.Element;
+  children: (props: ChildRenderProps) => React.JSX.Element;
   items: number;
   buttonTitle?: string;
   collapseCount?: number;

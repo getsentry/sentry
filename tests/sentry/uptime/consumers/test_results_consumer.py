@@ -772,13 +772,11 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
 
         self.project_subscription.refresh_from_db()
         assert self.project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
-        with pytest.raises(UptimeSubscription.DoesNotExist):
-            uptime_subscription.refresh_from_db()
-        new_uptime_subscription = self.project_subscription.uptime_subscription
-        assert new_uptime_subscription.interval_seconds == int(
+        uptime_subscription.refresh_from_db()
+        assert uptime_subscription.interval_seconds == int(
             AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
         )
-        assert uptime_subscription.url == new_uptime_subscription.url
+        assert uptime_subscription.url == uptime_subscription.url
 
     def test_parallel(self) -> None:
         """

@@ -59,9 +59,9 @@ export function IssueViewNavQueryCount({view}: IssueViewNavQueryCountProps) {
       : undefined;
   const count = isError
     ? 0
-    : queryCount?.[view.unsavedChanges?.query ?? view.query] ??
+    : (queryCount?.[view.unsavedChanges?.query ?? view.query] ??
       queryCount?.[defaultQuery ?? ''] ??
-      0;
+      0);
 
   return (
     <QueryCountBubble

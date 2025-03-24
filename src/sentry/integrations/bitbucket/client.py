@@ -7,8 +7,8 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
 
-from sentry.integrations.base import IntegrationFeatureNotImplementedError
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.integrations.utils.atlassian_connect import get_query_hash
@@ -55,7 +55,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
 
     integration_name = "bitbucket"
 
-    def __init__(self, integration: RpcIntegration):
+    def __init__(self, integration: RpcIntegration | Integration):
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey
@@ -68,6 +68,8 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         )
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        assert prepared_request.url is not None
+        assert prepared_request.method is not None
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
@@ -179,4 +181,13 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
-        raise IntegrationFeatureNotImplementedError
+        response = self.get_cached(
+            path=BitbucketAPIPath.source.format(
+                repo=repo.name,
+                sha=ref,
+                path=path,
+            ),
+            allow_redirects=True,
+            raw_response=True,
+        )
+        return response.text

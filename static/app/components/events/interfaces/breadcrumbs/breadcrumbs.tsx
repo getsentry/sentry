@@ -114,11 +114,11 @@ function Breadcrumbs({
 }: Props) {
   const {projects, fetching: loadingProjects} = useProjects();
 
-  const maybeProject = !loadingProjects
-    ? projects.find(project => {
+  const maybeProject = loadingProjects
+    ? null
+    : projects.find(project => {
         return event && project.id === event.projectID;
-      })
-    : null;
+      });
 
   const listRef = useRef<List>(null);
 

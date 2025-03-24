@@ -5,7 +5,8 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
+import {Switch} from 'sentry/components/core/switch';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
@@ -15,7 +16,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import Switch from 'sentry/components/switchButton';
 import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,7 +60,7 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
         </small>
       }
     >
-      <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
+      <Switch checked={hook.status === 'active'} size="lg" onChange={onToggleActive} />
     </FieldGroup>
   );
 }
@@ -101,7 +101,7 @@ function ProjectServiceHooks() {
         queryClient,
         [`/projects/${organization.slug}/${projectId}/hooks/`],
         oldHookList => {
-          return oldHookList.map(h => {
+          return oldHookList?.map(h => {
             if (h.id === data.id) {
               return {
                 ...h,
@@ -139,7 +139,7 @@ function ProjectServiceHooks() {
       <Fragment>
         <PanelHeader key="header">{t('Service Hook')}</PanelHeader>
         <PanelBody key="body">
-          <PanelAlert type="info" showIcon>
+          <PanelAlert type="info">
             {t(
               'Service Hooks are an early adopter preview feature and will change in the future.'
             )}

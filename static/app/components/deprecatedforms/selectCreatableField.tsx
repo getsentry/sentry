@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import {Select} from 'sentry/components/core/select';
 import {StyledForm} from 'sentry/components/deprecatedforms/form';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import type {SelectValue} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
@@ -82,7 +82,7 @@ export default class SelectCreatableField extends SelectField {
 }
 
 // This is because we are removing `control-group` class name which provides margin-bottom
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   ${StyledForm} &, .form-stacked & {
     .control-group & {
       margin-bottom: 0;

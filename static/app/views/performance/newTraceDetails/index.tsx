@@ -9,6 +9,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {TraceContextPanel} from 'sentry/views/performance/newTraceDetails/traceContextPanel';
+import {TraceViewLogsDataProvider} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceWaterfall} from 'sentry/views/performance/newTraceDetails/traceWaterfall';
 import {useHasTraceNewUi} from 'sentry/views/performance/newTraceDetails/useHasTraceNewUi';
 
@@ -67,32 +68,34 @@ export function TraceView() {
         initialPreferences={preferences}
         preferencesStorageKey="trace-view-preferences"
       >
-        <NoProjectMessage organization={organization}>
-          <TraceExternalLayout>
-            <TraceMetaDataHeader
-              rootEventResults={rootEvent}
-              tree={tree}
-              metaResults={meta}
-              organization={organization}
-              traceSlug={traceSlug}
-              traceEventView={traceEventView}
-            />
-            <TraceInnerLayout>
-              <TraceWaterfall
+        <TraceViewLogsDataProvider traceSlug={traceSlug}>
+          <NoProjectMessage organization={organization}>
+            <TraceExternalLayout>
+              <TraceMetaDataHeader
+                rootEventResults={rootEvent}
                 tree={tree}
-                trace={trace}
-                meta={meta}
-                replay={null}
-                source="performance"
-                rootEvent={rootEvent}
+                metaResults={meta}
+                organization={organization}
                 traceSlug={traceSlug}
                 traceEventView={traceEventView}
-                organization={organization}
               />
-              {hasTraceNewUi && <TraceContextPanel tree={tree} rootEvent={rootEvent} />}
-            </TraceInnerLayout>
-          </TraceExternalLayout>
-        </NoProjectMessage>
+              <TraceInnerLayout>
+                <TraceWaterfall
+                  tree={tree}
+                  trace={trace}
+                  meta={meta}
+                  replay={null}
+                  source="performance"
+                  rootEvent={rootEvent}
+                  traceSlug={traceSlug}
+                  traceEventView={traceEventView}
+                  organization={organization}
+                />
+                {hasTraceNewUi && <TraceContextPanel tree={tree} rootEvent={rootEvent} />}
+              </TraceInnerLayout>
+            </TraceExternalLayout>
+          </NoProjectMessage>
+        </TraceViewLogsDataProvider>
       </TraceStateProvider>
     </SentryDocumentTitle>
   );
@@ -113,6 +116,8 @@ const TraceInnerLayout = styled('div')`
   flex-direction: column;
   flex: 1 1 100%;
   padding: ${space(2)} ${space(3)};
+  overflow-y: scroll;
+  margin-bottom: ${space(1)};
 
   background-color: ${p => p.theme.surface100};
 `;

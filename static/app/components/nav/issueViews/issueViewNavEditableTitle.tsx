@@ -151,7 +151,7 @@ const UnselectedTabTitle = styled('div')<{isSelected: boolean}>`
   text-overflow: ellipsis;
   padding-right: 1px;
   cursor: pointer;
-  line-height: 1.45;
+  line-height: 1.5;
 `;
 
 const StyledGrowingInput = styled(GrowingInput)<{
@@ -167,7 +167,7 @@ const StyledGrowingInput = styled(GrowingInput)<{
   border-radius: 0px;
   text-overflow: ellipsis;
   cursor: text;
-  line-height: 1.45;
+  line-height: 1.5;
 
   &,
   &:focus,

@@ -17,6 +17,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
 )
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
@@ -804,7 +805,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
-        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CRITICAL).build() == {
+        assert SlackIncidentsMessageBuilder(
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, 0
+            ),
+            organization=self.organization,
+            date_started=incident.date_started,
+        ).build() == {
             "blocks": [
                 {
                     "type": "section",
@@ -868,7 +876,14 @@ class BuildIncidentAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
-        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
+        assert SlackIncidentsMessageBuilder(
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CLOSED, 0
+            ),
+            organization=self.organization,
+            date_started=incident.date_started,
+        ).build() == {
             "blocks": [
                 {
                     "type": "section",
@@ -906,7 +921,12 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CRITICAL, metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, metric_value
+            ),
+            organization=self.organization,
+            date_started=incident.date_started,
         ).build() == {
             "blocks": [
                 {
@@ -941,7 +961,13 @@ class BuildIncidentAttachmentTest(TestCase):
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={alert_rule.detection_type}"
         )
         assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CLOSED, chart_url="chart-url"
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CLOSED, 0
+            ),
+            organization=self.organization,
+            date_started=incident.date_started,
+            chart_url="chart-url",
         ).build() == {
             "blocks": [
                 {
@@ -989,7 +1015,14 @@ class BuildIncidentAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack&detection_type={detection_type}"
         )
-        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CRITICAL).build() == {
+        assert SlackIncidentsMessageBuilder(
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus.CRITICAL, 0
+            ),
+            organization=self.organization,
+            date_started=incident.date_started,
+        ).build() == {
             "blocks": [
                 {
                     "type": "section",

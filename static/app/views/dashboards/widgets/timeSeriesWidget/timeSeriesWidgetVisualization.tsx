@@ -1,78 +1,67 @@
-import {useRef} from 'react';
+import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {BarSeriesOption, LineSeriesOption} from 'echarts';
+import * as Sentry from '@sentry/react';
+import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
 } from 'echarts/types/dist/shared';
 import type EChartsReactCore from 'echarts-for-react/lib/core';
+import groupBy from 'lodash/groupBy';
+import mapValues from 'lodash/mapValues';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import LineSeries from 'sentry/components/charts/series/lineSeries';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
-import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
+import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {Aliases, Release, TimeSeries, TimeseriesSelection} from '../common/types';
+import type {LegendSelection, Release} from '../common/types';
 
-import {BarChartWidgetSeries} from './seriesConstructors/barChartWidgetSeries';
-import {CompleteAreaChartWidgetSeries} from './seriesConstructors/completeAreaChartWidgetSeries';
-import {CompleteLineChartWidgetSeries} from './seriesConstructors/completeLineChartWidgetSeries';
-import {IncompleteAreaChartWidgetSeries} from './seriesConstructors/incompleteAreaChartWidgetSeries';
-import {IncompleteLineChartWidgetSeries} from './seriesConstructors/incompleteLineChartWidgetSeries';
-import {formatSeriesName} from './formatSeriesName';
-import {formatTooltipValue} from './formatTooltipValue';
-import {formatXAxisTimestamp} from './formatXAxisTimestamp';
-import {formatYAxisValue} from './formatYAxisValue';
-import {isTimeSeriesOther} from './isTimeSeriesOther';
-import {markDelayedData} from './markDelayedData';
+import {formatTooltipValue} from './formatters/formatTooltipValue';
+import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
+import {formatYAxisValue} from './formatters/formatYAxisValue';
+import type {Plottable} from './plottables/plottable';
 import {ReleaseSeries} from './releaseSeries';
-import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
-import {splitSeriesIntoCompleteAndIncomplete} from './splitSeriesIntoCompleteAndIncomplete';
+import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-type VisualizationType = 'area' | 'line' | 'bar';
+const {error, warn} = Sentry._experiment_log;
 
 export interface TimeSeriesWidgetVisualizationProps {
   /**
-   * An array of time series, each one representing a changing value over time. This is the chart's data. See documentation for examples
+   * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
-  timeSeries: Array<Readonly<TimeSeries>>;
+  plottables: Plottable[];
   /**
-   * Chart type
-   */
-  visualizationType: VisualizationType;
   /**
-   * A mapping of time series fields to their user-friendly labels, if needed
+   * Disables navigating to release details when clicked
+   * TODO(billy): temporary until we implement route based nav
    */
-  aliases?: Aliases;
+  disableReleaseNavigation?: boolean;
   /**
-   * A duration in seconds. Any items in the time series that fall within that duration of the current time will be visually marked as "incomplete"
+   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
-  dataCompletenessDelay?: number;
+  legendSelection?: LegendSelection;
   /**
-   * Callback that returns an updated `timeseriesSelection` after a user manipulations the selection via the legend
+   * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
-  onTimeseriesSelectionChange?: (selection: TimeseriesSelection) => void;
+  onLegendSelectionChange?: (selection: LegendSelection) => void;
   /**
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
@@ -82,21 +71,13 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   releases?: Release[];
   /**
-   * Only available for `visualizationType="bar"`. If `true`, the bars are stacked
+   * Show releases as either lines per release or a bubble for a group of releases.
    */
-  stacked?: boolean;
-  /**
-   * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
-   */
-  timeseriesSelection?: TimeseriesSelection;
+  showReleaseAs?: 'bubble' | 'line';
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
-  if (
-    props.timeSeries
-      .flatMap(timeSeries => timeSeries.data)
-      .every(item => item.value === null)
-  ) {
+  if (props.plottables.every(plottable => plottable.isEmpty)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
 
@@ -110,149 +91,192 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
 
-  const dataCompletenessDelay = props.dataCompletenessDelay ?? 0;
-
   const theme = useTheme();
   const organization = useOrganization();
   const navigate = useNavigate();
+  const hasReleaseBubbles =
+    organization.features.includes('release-bubbles-ui') &&
+    props.showReleaseAs === 'bubble';
 
-  let releaseSeries: Series | undefined = undefined;
-  if (props.releases) {
-    const onClick = (release: Release) => {
-      navigate(
-        makeReleasesPathname({
-          organization,
-          path: `/${encodeURIComponent(release.version)}/`,
-        })
+  // find min/max timestamp of *all* timeSeries
+  const allBoundaries = props.plottables
+    .flatMap(plottable => [plottable.start, plottable.end])
+    .toSorted();
+  const earliestTimeStamp = allBoundaries.at(0);
+  const latestTimeStamp = allBoundaries.at(-1);
+
+  const {
+    connectReleaseBubbleChartRef,
+    releaseBubbleEventHandlers,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+  } = useReleaseBubbles({
+    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+      return (
+        <TimeSeriesWidgetVisualization
+          {...props}
+          disableReleaseNavigation
+          plottables={props.plottables.map(plottable =>
+            plottable.constrain(trimStart, trimEnd)
+          )}
+          showReleaseAs="line"
+        />
       );
-    };
+    },
+    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
+    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
+  });
 
-    releaseSeries = ReleaseSeries(theme, props.releases, onClick, utc ?? false);
-  }
+  const releaseSeries = props.releases
+    ? hasReleaseBubbles
+      ? releaseBubbleSeries
+      : ReleaseSeries(
+          theme,
+          props.releases,
+          function onReleaseClick(release: Release) {
+            if (props.disableReleaseNavigation) {
+              return;
+            }
+            navigate(
+              makeReleasesPathname({
+                organization,
+                path: `/${encodeURIComponent(release.version)}/`,
+              })
+            );
+          },
+          utc ?? false
+        )
+    : null;
+
+  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
+
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef) => {
+      chartRef.current = e;
+
+      if (!e?.getEchartsInstance) {
+        return;
+      }
+
+      const echartsInstance = e.getEchartsInstance();
+      registerWithWidgetSyncContext(echartsInstance);
+
+      if (hasReleaseBubblesSeries) {
+        connectReleaseBubbleChartRef(e);
+      }
+    },
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
+  );
 
   const chartZoomProps = useChartZoom({
     saveOnZoom: true,
   });
 
-  // TODO: The `meta.fields` property should be typed as
-  // Record<string, AggregationOutputType | null>, which is the reality
-  let yAxisFieldType: AggregationOutputType;
+  const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
 
-  const types = uniq(
-    props.timeSeries.map(timeserie => {
-      return timeserie?.meta?.fields?.[timeserie.field];
-    })
-  ).filter(Boolean) as AggregationOutputType[];
+  // Count up the field types of all the plottables
+  const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
 
-  if (types.length === 1) {
-    // All timeseries have the same type. Use that as the Y axis type.
-    yAxisFieldType = types[0]!;
-  } else {
-    // Types are mismatched or missing. Use a fallback type
-    yAxisFieldType = FALLBACK_TYPE;
+  // Sort the field types by how many plottables use each one
+  const axisTypes = Object.keys(fieldTypeCounts)
+    .toSorted(
+      // `dataTypes` is extracted from `dataTypeCounts`, so the counts are guaranteed to exist
+      (a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!
+    )
+    .filter(axisType => !!axisType); // `TimeSeries` allows for a `null` data type , though it's not likely
+
+  // Assign most popular field type to left axis
+  const leftYAxisType = axisTypes.at(0)!;
+
+  // Assign the rest of the field types to right
+  const rightYAxisTypes = axisTypes.slice(1);
+
+  // Narrow down to just one type for the right Y axis. If there's just one field
+  // type for the right axis, use it. If there are more than one, fall back to a
+  // default. If there are 0, there's no type for the right axis, and we won't
+  // plot one
+  const rightYAxisType =
+    rightYAxisTypes.length === 1
+      ? rightYAxisTypes[0]!
+      : rightYAxisTypes.length > 2
+        ? FALLBACK_TYPE
+        : undefined;
+
+  if (leftYAxisType === FALLBACK_TYPE && rightYAxisType !== FALLBACK_TYPE) {
+    warn(
+      '`TimeSeriesWidgetVisualization` assigned fallback to left Y axis instead of right Y axis',
+      {
+        labels: props.plottables.map(plottable => plottable.label),
+        leftYAxisType,
+        rightYAxisType,
+      }
+    );
   }
 
-  let yAxisUnit: DurationUnit | SizeUnit | RateUnit | null;
-
-  const units = uniq(
-    props.timeSeries.map(timeserie => {
-      return timeserie?.meta?.units?.[timeserie.field];
-    })
-  ) as Array<DurationUnit | SizeUnit | RateUnit | null>;
-
-  if (units.length === 1) {
-    // All timeseries have the same unit. Use that unit. This is especially
-    // important for named rate timeseries like `"epm()"` where the user would
-    // expect a plot in minutes
-    yAxisUnit = units[0]!;
-  } else {
-    // None of the series specified a unit, or there are mismatched units. Fall
-    // back to an appropriate unit for the axis type
-    yAxisUnit = FALLBACK_UNIT_FOR_FIELD_TYPE[yAxisFieldType];
-  }
-
-  // Apply unit scaling to all series
-  const scaledSeries = props.timeSeries.map(timeserie => {
-    return scaleTimeSeriesData(timeserie, yAxisUnit);
-  });
-
-  // If the provided timeseries have a `color` property, preserve that color.
-  // For any timeseries in need of a color, pull from the chart palette. It's
-  // important to do this before splitting into complete and incomplete, since
-  // automatic color assignment in `BaseChart` relies on the count of series.
-  // This code can be safely removed once we can render dotted incomplete lines
-  // using a single series
-  const numberOfSeriesNeedingColor = props.timeSeries.filter(needsColor).length;
-
-  const palette =
-    numberOfSeriesNeedingColor > 1
-      ? getChartColorPalette(numberOfSeriesNeedingColor - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
-      : [];
-
-  let seriesColorIndex = -1;
-  const colorizedSeries = scaledSeries.map(timeSeries => {
-    if (isTimeSeriesOther(timeSeries)) {
-      return {
-        ...timeSeries,
-        color: theme.chartOther,
-      };
-    }
-
-    if (needsColor(timeSeries)) {
-      seriesColorIndex += 1;
-
-      return {
-        ...timeSeries,
-        color: palette[seriesColorIndex % palette.length], // Mod the index in case the number of series exceeds the number of colors in the palette
-      };
-    }
-
-    return timeSeries;
-  });
-
-  // Mark which points in the series are incomplete according to delay
-  const markedSeries = colorizedSeries.map(timeSeries =>
-    markDelayedData(timeSeries, dataCompletenessDelay)
+  // Create a map of used units by plottable data type
+  const unitsByType = mapValues(plottablesByType, plottables =>
+    uniq(plottables.map(plottable => plottable.dataUnit))
   );
 
-  // Convert time series into plottable ECharts series
-  const plottableSeries: Array<LineSeriesOption | BarSeriesOption> = [];
+  // Narrow down to just one unit for each plottable data type
+  const unitForType = mapValues(unitsByType, (relevantUnits, type) => {
+    if (relevantUnits.length === 1) {
+      // All plottables of this type have the same unit
+      return relevantUnits[0]!;
+    }
 
-  // TODO: This is a little heavy, and probably worth memoizing
-  if (props.visualizationType === 'bar') {
-    // For bar charts, convert straight from time series to series, which will
-    // automatically mark "delayed" bars
-    markedSeries.forEach(timeSeries => {
-      plottableSeries.push(
-        BarChartWidgetSeries(timeSeries, props.stacked ? GLOBAL_STACK_NAME : undefined)
-      );
-    });
-  } else {
-    // For line and area charts, split each time series into two series, each
-    // with corresponding styling. In an upcoming version of ECharts it'll be
-    // possible to avoid this, and construct a single series
-    markedSeries.forEach(timeSeries => {
-      const [completeTimeSeries, incompleteTimeSeries] =
-        splitSeriesIntoCompleteAndIncomplete(timeSeries, dataCompletenessDelay);
+    if (relevantUnits.length === 0) {
+      // None of the plottables of this type supplied a unit
+      return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
+    }
 
-      if (completeTimeSeries) {
-        plottableSeries.push(
-          (props.visualizationType === 'area'
-            ? CompleteAreaChartWidgetSeries
-            : CompleteLineChartWidgetSeries)(completeTimeSeries)
-        );
-      }
+    // Plottables of this type has mismatched units. Return a fallback. It
+    // would also be acceptable to return the unit of the _first_ plottable,
+    // probably
+    return FALLBACK_UNIT_FOR_FIELD_TYPE[type as AggregationOutputType];
+  });
 
-      if (incompleteTimeSeries) {
-        plottableSeries.push(
-          (props.visualizationType === 'area'
-            ? IncompleteAreaChartWidgetSeries
-            : IncompleteLineChartWidgetSeries)(incompleteTimeSeries)
-        );
-      }
-    });
-  }
+  const leftYAxis: YAXisComponentOption = TimeSeriesWidgetYAxis(
+    {
+      axisLabel: {
+        formatter: (value: number) =>
+          formatYAxisValue(value, leftYAxisType, unitForType[leftYAxisType] ?? undefined),
+      },
+      position: 'left',
+    },
+    leftYAxisType
+  );
 
+  const rightYAxis: YAXisComponentOption | undefined = rightYAxisType
+    ? TimeSeriesWidgetYAxis(
+        {
+          axisLabel: {
+            formatter: (value: number) =>
+              formatYAxisValue(
+                value,
+                rightYAxisType,
+                unitForType[rightYAxisType] ?? undefined
+              ),
+          },
+          position: 'right',
+        },
+        rightYAxisType
+      )
+    : undefined;
+
+  // Set up a fallback palette for any plottable without a color
+  const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
+
+  const palette =
+    paletteSize > 0
+      ? getChartColorPalette(paletteSize - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+      : [];
+
+  // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
@@ -293,53 +317,117 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
-      valueFormatter: (value, field) => {
-        if (!field) {
-          return formatTooltipValue(value, FALLBACK_TYPE);
+      valueFormatter: function (value, _field, valueFormatterParams) {
+        // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
+
+        if (!valueFormatterParams || !defined(valueFormatterParams?.seriesIndex)) {
+          // The series might be missing if this is a formatter for a mark line.
+          // We don't currently handle this, so this behaviour is just here for
+          // safety. The series index might be missing in unknown circumstances
+          warn(
+            '`TimeSeriesWidgetVisualization` could not format value due to missing `Series` information',
+            {
+              seriesName: valueFormatterParams?.seriesName,
+              seriesType: valueFormatterParams?.seriesType,
+            }
+          );
+          return value.toLocaleString();
         }
 
-        const timeserie = scaledSeries.find(t => t.field === field);
-
-        return formatTooltipValue(
-          value,
-          timeserie?.meta?.fields?.[field] ?? FALLBACK_TYPE,
-          timeserie?.meta?.units?.[field] ?? undefined
+        const correspondingPlottable = seriesIndexToPlottableRangeMap.get(
+          valueFormatterParams.seriesIndex
         );
-      },
-      nameFormatter: seriesName => {
-        return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
+
+        const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
+
+        return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
       },
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
   };
 
-  let visibleSeriesCount = scaledSeries.length;
+  const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
+
+  let visibleSeriesCount = props.plottables.length;
   if (releaseSeries) {
     visibleSeriesCount += 1;
   }
 
   const showLegend = visibleSeriesCount > 1;
 
+  // Keep track of which `Series[]` indexes correspond to which `Plottable` so
+  // we can look up the types in the tooltip. We need this so we can find the
+  // plottable responsible for a given value in the tooltip formatter. The only
+  // tool ECharts gives us is the `seriesIndex` properly. Any given `Plottable`
+  // can be mapped to 1 or more `Series`, so we need to maintain a reverse
+  // lookup
+  let seriesIndex = 0;
+  const seriesIndexToPlottableMapRanges: Array<Range<Plottable>> = [];
+
+  // Keep track of what color in the chosen palette we're assigning
+  let seriesColorIndex = 0;
+  const series: SeriesOption[] = props.plottables.flatMap(plottable => {
+    let color: string | undefined;
+
+    if (plottable.needsColor) {
+      // For any timeseries in need of a color, pull from the chart palette
+      color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
+      seriesColorIndex += 1;
+    }
+
+    let yAxisPosition: 'left' | 'right' = 'left';
+
+    if (plottable.dataType === leftYAxisType) {
+      // This plottable matches the left axis
+      yAxisPosition = 'left';
+    } else if (rightYAxisTypes.includes(plottable.dataType)) {
+      // This plottable matches the right axis
+      yAxisPosition = 'right';
+    } else {
+      // This plottable's type isn't on either axis! Mysterious. If there is a catch-all right axis. Drop it into the first known "fallback" axis.
+      Sentry.withScope(scope => {
+        const message =
+          '`TimeSeriesWidgetVisualization` Could not assign Plottable to an axis';
+
+        scope.setFingerprint(['could-not-assign-plottable-to-an-axis']);
+        Sentry.captureException(new Error(message));
+
+        error(message, {
+          dataType: plottable.dataType,
+          leftAxisType: leftYAxisType,
+          rightAxisType: rightYAxisType,
+        });
+      });
+    }
+
+    // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
+    const seriesOfPlottable = plottable.toSeries({
+      color,
+      yAxisPosition,
+      unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+    });
+
+    seriesIndexToPlottableMapRanges.push({
+      min: seriesIndex,
+      max: seriesIndex + seriesOfPlottable.length,
+      value: plottable,
+    });
+    seriesIndex += seriesOfPlottable.length;
+
+    return seriesOfPlottable;
+  });
+
+  const seriesIndexToPlottableRangeMap = new RangeMap<Plottable>(
+    seriesIndexToPlottableMapRanges
+  );
+
   return (
     <BaseChart
-      ref={e => {
-        chartRef.current = e;
-
-        if (e?.getEchartsInstance) {
-          registerWithWidgetSyncContext(e.getEchartsInstance());
-        }
-      }}
+      ref={handleChartRef}
+      {...releaseBubbleEventHandlers}
       autoHeightResize
-      series={[
-        ...plottableSeries,
-        releaseSeries &&
-          LineSeries({
-            ...releaseSeries,
-            name: releaseSeries.seriesName,
-            data: [],
-          }),
-      ].filter(defined)}
+      series={[...series, releaseSeries].filter(defined)}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See
@@ -349,6 +437,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         right: 8,
         bottom: 0,
         containLabel: true,
+        ...releaseBubbleGrid,
       }}
       legend={
         showLegend
@@ -357,7 +446,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               left: 0,
               formatter(seriesName: string) {
                 return truncationFormatter(
-                  props.aliases?.[seriesName] ?? formatSeriesName(seriesName),
+                  seriesName,
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.
@@ -365,12 +454,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
                   false
                 );
               },
-              selected: props.timeseriesSelection,
+              selected: props.legendSelection,
             }
           : undefined
       }
       onLegendSelectChanged={event => {
-        props?.onTimeseriesSelectionChange?.(event.selected);
+        props?.onLegendSelectionChange?.(event.selected);
       }}
       tooltip={{
         trigger: 'axis',
@@ -394,26 +483,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           },
         },
         splitNumber: 5,
+        ...releaseBubbleXAxis,
       }}
-      yAxis={{
-        animation: false,
-        axisLabel: {
-          formatter(value: number) {
-            return formatYAxisValue(value, yAxisFieldType, yAxisUnit ?? undefined);
-          },
-        },
-        axisPointer: {
-          type: 'line',
-          snap: false,
-          lineStyle: {
-            type: 'solid',
-            width: 0.5,
-          },
-          label: {
-            show: false,
-          },
-        },
-      }}
+      yAxes={yAxes}
       {...chartZoomProps}
       {...(props.onZoom ? {onDataZoom: props.onZoom} : {})}
       isGroupedByDate
@@ -451,19 +523,3 @@ const LoadingMask = styled(TransparentLoadingMask)`
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;
-
-const needsColor = (timeSeries: TimeSeries) => {
-  // Any series that provides its own color doesn't need to be in the palette.
-  if (timeSeries.color) {
-    return false;
-  }
-
-  // "Other" series have a hard-coded color, they also don't need palette
-  if (isTimeSeriesOther(timeSeries)) {
-    return false;
-  }
-
-  return true;
-};
-
-const GLOBAL_STACK_NAME = 'time-series-visualization-widget-stack';

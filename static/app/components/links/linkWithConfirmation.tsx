@@ -1,5 +1,5 @@
-import type {ButtonProps} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import type {ButtonProps} from 'sentry/components/core/button';
 
 import Anchor from './anchor';
 
