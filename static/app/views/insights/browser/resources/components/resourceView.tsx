@@ -24,7 +24,7 @@ import {
 import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
-import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
+import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 
 import {ResourceLandingPageCharts} from './charts/resourceLandingPageCharts';
 

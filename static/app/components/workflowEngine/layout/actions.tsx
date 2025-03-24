@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {HeaderActions} from 'sentry/components/layouts/thirds';
 
 const ActionContext = createContext<React.ReactNode | undefined>(undefined);

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FeatureFlagSettingsButton from 'sentry/components/events/featureFlags/featureFlagSettingsButton';
 import {useFeatureFlagOnboarding} from 'sentry/components/events/featureFlags/useFeatureFlagOnboarding';
@@ -17,13 +17,9 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
-  const {activateSidebar} = useFeatureFlagOnboarding();
-
-  function handleSetupButtonClick(e: any) {
-    trackAnalytics('flags.setup_modal_opened', {organization});
-    trackAnalytics('flags.cta_setup_button_clicked', {organization});
-    activateSidebar(e);
-  }
+  const {activateSidebar} = useFeatureFlagOnboarding({
+    analyticsSurface: 'issue_details.flags_section',
+  });
 
   const {isLoading, isError, isPromptDismissed, dismissPrompt, snoozePrompt} = usePrompt({
     feature: 'issue_feature_flags_inline_onboarding',
@@ -82,7 +78,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
             )}
           </BannerDescription>
           <ActionButton>
-            <Button onClick={handleSetupButtonClick} priority="primary">
+            <Button onClick={activateSidebar} priority="primary">
               {t('Set Up Now')}
             </Button>
             <LinkButton

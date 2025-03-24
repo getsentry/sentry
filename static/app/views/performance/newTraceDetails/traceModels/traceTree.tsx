@@ -261,7 +261,7 @@ function fetchTrace(
 }
 
 export class TraceTree extends TraceTreeEventDispatcher {
-  eventsCount = 0;
+  transactions_count = 0;
   projects = new Map<number, TraceTree.Project>();
 
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
@@ -274,7 +274,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
   indicators: TraceTree.Indicator[] = [];
 
   list: Array<TraceTreeNode<TraceTree.NodeValue>> = [];
-  events: Map<string, EventTransaction> = new Map();
 
   private _spanPromises: Map<string, Promise<EventTransaction>> = new Map();
   static MISSING_INSTRUMENTATION_THRESHOLD_MS = 100;
@@ -319,7 +318,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
       value: TraceTree.Transaction | TraceTree.TraceError | TraceTree.EAPSpan
     ) {
-      tree.eventsCount++;
       tree.projects.set(value.project_id, {
         slug: value.project_slug,
       });
@@ -327,7 +325,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let parentNode;
       if (isEAPTransaction(value)) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
-        // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace.
+        // We parent the eap-transactions under the closest collapsed eap-transaction node. Mimics the behavior
+        // of non-eap traces, enabling a less noisy/summarized view of the trace.
         parentNode = TraceTree.ParentEAPTransaction(parent) ?? parent;
       } else {
         parentNode = parent;
@@ -338,6 +337,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
         event_id: value && 'event_id' in value ? value.event_id : undefined,
       });
+
+      if (isTransactionNode(node) || isEAPTransactionNode(node)) {
+        tree.transactions_count++;
+      }
 
       if (isTransactionNode(node)) {
         const spanChildrenCount =
@@ -789,6 +792,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
         tail &&
         tail.children.length === 1 &&
         isSpanNode(tail.children[0]!) &&
+        // skip `op: default` spans as `default` is added to op-less spans:
+        tail.children[0].value.op !== 'default' &&
         tail.children[0].value.op === head.value.op
       ) {
         start = Math.min(start, tail.space[0]);
@@ -934,6 +939,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           isSpanNode(next) &&
           next.children.length === 0 &&
           current.children.length === 0 &&
+          // skip `op: default` spans as `default` is added to op-less spans
+          next.value.op !== 'default' &&
           next.value.op === current.value.op &&
           next.value.description === current.value.description
         ) {
@@ -1042,7 +1049,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     if (isEAPTransaction(node.value)) {
       if (!node.expanded) {
         // For collapsed eap-transactions we still render the embedded eap-transactions as visible children.
-        // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace.
+        // Mimics the behavior of non-eap traces, enabling a less noisy/summarized view of the trace
         return node.children.filter(child => isEAPTransaction(child.value));
       }
 

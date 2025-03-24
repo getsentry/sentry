@@ -8,9 +8,11 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceContextVitals} from 'sentry/views/performance/newTraceDetails/traceContextVitals';
+import {TraceLinkNavigationButton} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinkNavigationButton';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceViewLogsSection} from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 
@@ -35,8 +37,25 @@ export function TraceContextPanel({tree, rootEvent}: Props) {
     );
   }, [rootEvent.data]);
 
+  const organization = useOrganization();
+  const showLinkedTraces = organization?.features.includes('trace-view-linked-traces');
+
   return (
     <Container>
+      {showLinkedTraces && (
+        <TraceLinksNavigationContainer>
+          <TraceLinkNavigationButton
+            direction={'previous'}
+            isLoading={rootEvent.isLoading}
+            traceContext={rootEvent.data?.contexts.trace}
+            currentTraceTimestamps={{
+              start: rootEvent.data?.startTimestamp,
+              end: rootEvent.data?.endTimestamp,
+            }}
+          />
+        </TraceLinksNavigationContainer>
+      )}
+
       <VitalMetersContainer>
         <TraceContextVitals tree={tree} />
       </VitalMetersContainer>
@@ -76,4 +95,11 @@ const TraceTagsContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(1)};
+`;
+
+const TraceLinksNavigationContainer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  margin: ${space(1)} 0;
 `;

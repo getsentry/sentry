@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
-import Input from 'sentry/components/deprecatedforms/input';
+import {Input} from 'sentry/components/core/input';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

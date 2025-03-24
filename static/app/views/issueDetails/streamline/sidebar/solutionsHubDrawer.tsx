@@ -5,10 +5,10 @@ import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
@@ -369,9 +369,7 @@ const StartTextRow = styled('div')`
 `;
 
 const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
-  color: ${p => p.theme.purple400};
-  opacity: 0.9;
-  filter: brightness(0.6);
+  color: ${p => p.theme.textColor};
 `;
 
 const BackgroundStar = styled('img')`

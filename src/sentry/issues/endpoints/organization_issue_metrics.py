@@ -33,10 +33,14 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         environments = [e.id for e in get_environments(request, organization)]
         projects = self.get_projects(request, organization)
         start, end = get_date_range_from_params(request.GET)
-        issue_category = request.GET.get("category", "error")
+        issue_category = request.GET.get("category", "issue")
+
+        if issue_category not in ["issue", "feedback"]:
+            raise ParseError("Invalid issue category. Valid options are 'issue' and 'feedback'.")
+
         type_filter = (
             ~Q(type=FeedbackGroup.type_id)
-            if issue_category == "error"
+            if issue_category == "issue"
             else Q(type=FeedbackGroup.type_id)
         )
 
@@ -115,6 +119,21 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     )
             else:
                 new_grouped_series = grouped_series
+
+            # Return a default empty state if nothing found.
+            if len(new_grouped_series) == 0:
+                return [
+                    make_timeseries_result(
+                        axis=axis,
+                        group=[],
+                        start=start,
+                        end=end,
+                        interval=interval,
+                        is_other=False,
+                        order=0,
+                        values=[],
+                    )
+                ]
 
             return [
                 make_timeseries_result(
