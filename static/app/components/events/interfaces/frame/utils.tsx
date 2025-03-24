@@ -166,12 +166,7 @@ function extractEventOrigin(event: Event): string {
     return '';
   }
 
-  try {
-    const url = new URL(urlTag.value);
-    return url.origin;
-  } catch {
-    return '';
-  }
+  return safeURL(urlTag.value)?.origin ?? '';
 }
 
 /**
