@@ -42,20 +42,24 @@ export default function ReplayLoadingState({
   });
 
   if (readerResult.fetchError) {
-    return (
-      renderError?.(readerResult) ?? <MissingReplayAlert orgSlug={organization.slug} />
+    return renderError ? (
+      renderError(readerResult)
+    ) : (
+      <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
   if (readerResult.fetching) {
-    return renderLoading?.(readerResult) ?? <LoadingIndicator />;
+    return renderLoading ? renderLoading(readerResult) : <LoadingIndicator />;
   }
   if (!readerResult.replay) {
-    return (
-      renderMissing?.(readerResult) ?? <MissingReplayAlert orgSlug={organization.slug} />
+    return renderMissing ? (
+      renderMissing(readerResult)
+    ) : (
+      <MissingReplayAlert orgSlug={organization.slug} />
     );
   }
   if (readerResult.replayRecord?.is_archived) {
-    return renderArchived?.(readerResult) ?? <ArchivedReplayAlert />;
+    return renderArchived ? renderArchived(readerResult) : <ArchivedReplayAlert />;
   }
   return children({replay: readerResult.replay});
 }
