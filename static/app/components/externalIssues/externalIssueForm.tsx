@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
@@ -6,8 +7,9 @@ import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComp
 import type {ExternalIssueAction} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import type {FormProps} from 'sentry/components/forms/form';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Integration, IntegrationExternalIssue} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -149,16 +151,15 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
   };
 
   renderNavTabs = () => {
-    const {action} = this.state;
     return (
-      <NavTabs underlined>
-        <li className={action === 'create' ? 'active' : ''}>
-          <a onClick={() => this.handleClick('create')}>{t('Create')}</a>
-        </li>
-        <li className={action === 'link' ? 'active' : ''}>
-          <a onClick={() => this.handleClick('link')}>{t('Link')}</a>
-        </li>
-      </NavTabs>
+      <TabsContainer>
+        <Tabs value={this.state.action} onChange={tab => this.handleClick(tab)}>
+          <TabList>
+            <TabList.Item key="create">{t('Create')}</TabList.Item>
+            <TabList.Item key="link">{t('Link')}</TabList.Item>
+          </TabList>
+        </Tabs>
+      </TabsContainer>
     );
   };
 
@@ -166,3 +167,7 @@ export default class ExternalIssueForm extends AbstractExternalIssueForm<Props, 
     return this.renderForm(this.loadAsyncThenFetchAllFields());
   }
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
