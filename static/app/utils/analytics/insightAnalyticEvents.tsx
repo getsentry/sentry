@@ -31,7 +31,6 @@ export type InsightEventParameters = {
   'insight.page_loads.queue': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.screen_load': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.screen_rendering': {has_ever_sent_data: boolean; view: DomainView};
-  'insight.page_loads.sessions': {has_ever_sent_data: boolean; view: DomainView};
   'insight.page_loads.vital': {has_ever_sent_data: boolean; view: DomainView};
   'insight.screen_load.spans.filter_by_device_class': {filter: string};
   'insight.screen_load.spans.filter_by_operation': {filter: string};
@@ -53,7 +52,6 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.page_loads.assets': 'Insights: Assets Page Load',
   'insight.page_loads.cache': 'Insights: Cache Page Load',
   'insight.page_loads.db': 'Insights: DB Page Load',
-  'insight.page_loads.sessions': 'Insights: Sessions Page Load',
   'insight.page_loads.http': 'Insights: HTTP Page Load',
   'insight.page_loads.queue': 'Insights: Queue Page Load',
   'insight.page_loads.screen_load': 'Insights: Screen Load Page Load',

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -40,6 +41,8 @@ export function SessionsOverview() {
   // only show onboarding if the project does not have session data
   const hasSessionData = useProjectHasSessions();
   const showOnboarding = !hasSessionData;
+
+  useRouteAnalyticsParams({view});
 
   return (
     <Fragment>
@@ -180,10 +183,7 @@ function ViewSpecificCharts({
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="http"
-      analyticEventName="insight.page_loads.sessions"
-    >
+    <ModulePageProviders moduleName="sessions">
       <SessionsOverview />
     </ModulePageProviders>
   );
