@@ -265,9 +265,29 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         ResolvedAttribute(
+            public_alias="spans.browser",
+            internal_name="sentry.span_ops.ops.browser",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="spans.db",
+            internal_name="sentry.span_ops.ops.db",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
             public_alias="spans.http",
             internal_name="sentry.span_ops.ops.http",
-            search_type="percentage",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="spans.resource",
+            internal_name="sentry.span_ops.ops.resource",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="spans.ui",
+            internal_name="sentry.span_ops.ops.ui",
+            search_type="millisecond",
         ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
