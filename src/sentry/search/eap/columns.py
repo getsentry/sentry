@@ -90,7 +90,7 @@ class BaseArgumentDefinition:
 
 
 @dataclass
-class ArgumentDefinition(BaseArgumentDefinition):
+class ValueArgumentDefinition(BaseArgumentDefinition):
     # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid consersion errors
     argument_types: set[Literal["integer", "string"]] | None = None
 
@@ -219,7 +219,7 @@ class FunctionDefinition:
     """
 
     # The list of arguments for this function
-    arguments: list[ArgumentDefinition | AttributeArgumentDefinition]
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition]
     # The search_type the argument should be the default type for this column
     default_search_type: constants.SearchType
     # Try to infer the search type from the function arguments
@@ -232,7 +232,7 @@ class FunctionDefinition:
     processor: Callable[[Any], Any] | None = None
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -324,7 +324,7 @@ class FormulaDefinition(FunctionDefinition):
     is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition | AttributeArgumentDefinition]:
+    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(

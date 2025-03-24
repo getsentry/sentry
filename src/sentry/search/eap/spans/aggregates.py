@@ -10,10 +10,10 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
-    ArgumentDefinition,
     AttributeArgumentDefinition,
     ConditionalAggregateDefinition,
     ResolvedArguments,
+    ValueArgumentDefinition,
 )
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.utils import literal_validator
@@ -80,7 +80,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
     "count_op": ConditionalAggregateDefinition(
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
-        arguments=[ArgumentDefinition(argument_types={"string"})],
+        arguments=[ValueArgumentDefinition(argument_types={"string"})],
         aggregate_resolver=resolve_count_op,
     ),
     "avg_if": ConditionalAggregateDefinition(
@@ -97,7 +97,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
                 },
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
-            ArgumentDefinition(argument_types={"string"}),
+            ValueArgumentDefinition(argument_types={"string"}),
         ],
         aggregate_resolver=resolve_key_eq_value_filter,
     ),
