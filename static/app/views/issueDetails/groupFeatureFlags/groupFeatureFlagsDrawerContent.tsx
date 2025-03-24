@@ -12,7 +12,7 @@ import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/us
 import {
   Container,
   StyledEmptyStateWarning,
-} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
+} from 'sentry/views/issueDetails/groupTags/groupTagsDrawerContent';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
