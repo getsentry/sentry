@@ -614,12 +614,14 @@ export function SourceMapsDebuggerModal({
                 <UploadedSourceFileWithCorrectDebugIdChecklistItem
                   shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
                   sourceResolutionResults={sourceResolutionResults}
+                  projectSlug={project?.slug}
                 />
                 <UploadedSourceMapWithCorrectDebugIdChecklistItem
                   shouldValidate={
                     sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
                   }
                   sourceResolutionResults={sourceResolutionResults}
+                  projectSlug={project?.slug}
                 />
               </CheckList>
               {sourceResolutionResults.debugIdProgressPercent === 1 ? (
@@ -644,17 +646,19 @@ export function SourceMapsDebuggerModal({
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseHasUploadedArtifactsChecklistItem
-                  shouldValidate={sourceResolutionResults.release !== null}
+                  shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceFileMatchingChecklistItem
-                  shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
+                  shouldValidate={
+                    sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
+                    'found'
+                  }
                   sourceResolutionResults={sourceResolutionResults}
                 />
                 <ReleaseSourceMapMatchingChecklistItem
                   shouldValidate={
-                    sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
-                    'found'
+                    sourceResolutionResults.sourceMapReleaseNameFetchingResult === 'found'
                   }
                   sourceResolutionResults={sourceResolutionResults}
                 />
@@ -1106,14 +1110,16 @@ function HasDebugIdChecklistItem({
 function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Source file with a matching Debug ID was uploaded');
-  const errorMessage = t('Missing source file with a matching Debug ID');
+  const errorMessage = t('Missing a source file with a matching Debug ID');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1124,26 +1130,32 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
   }
 
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
+    const debugId = sourceResolutionResults.stackFrameDebugId;
+
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('No Source File With Matching Debug ID')}</h6>
+          <p>
+            {tct('We cannot find a source file with this Debug ID: [debugId].', {
+              debugId: <MonoBlock>{debugId}</MonoBlock>,
+            })}
+          </p>
           <p>
             {tct(
-              "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
+              'Check your [link:source maps settings] to verify if the bundle with this Debug ID was uploaded properly.',
               {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
+                link: (
+                  <LinkWithIcon
+                    to={
+                      projectSlug
+                        ? `/settings/projects/${projectSlug}/source-maps/?query=${debugId}`
+                        : `/settings/projects/:projectId/source-maps/?query=${debugId}`
+                    }
+                  />
                 ),
               }
             )}
           </p>
-          <p>
-            {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
-            )}
-          </p>
-          {/* TODO: Link to Uploaded Artifacts */}
         </CheckListInstruction>
       </CheckListItem>
     );
@@ -1170,14 +1182,16 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   sourceResolutionResults,
   shouldValidate,
+  projectSlug,
 }: {
   shouldValidate: boolean;
   sourceResolutionResults: FrameSourceMapDebuggerData;
+  projectSlug?: string;
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
   const successMessage = t('Uploaded source map with a matching Debug ID');
-  const errorMessage = t('Missing source map with a matching Debug ID');
+  const errorMessage = t('Missing a source map with a matching Debug ID');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1188,6 +1202,8 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
   }
 
   if (sourceResolutionResults.uploadedSomeArtifactWithDebugId) {
+    const debugId = sourceResolutionResults.stackFrameDebugId;
+
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
@@ -1196,15 +1212,24 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
             {tct(
               "You already uploaded artifacts with Debug IDs but none of the uploaded source maps had a Debug ID matching this stack frame's Debug ID: [debugId]",
               {
-                debugId: (
-                  <MonoBlock>{sourceResolutionResults.stackFrameDebugId}</MonoBlock>
-                ),
+                debugId: <MonoBlock>{debugId}</MonoBlock>,
               }
             )}
           </p>
           <p>
-            {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+            {tct(
+              'Check your [link:source maps settings] to verify if the bundle with this Debug ID was uploaded properly.',
+              {
+                link: (
+                  <LinkWithIcon
+                    to={
+                      projectSlug
+                        ? `/settings/projects/${projectSlug}/source-maps/?query=${debugId}`
+                        : `/settings/projects/:projectId/source-maps/?query=${debugId}`
+                    }
+                  />
+                ),
+              }
             )}
           </p>
           {/* TODO: Link to Uploaded Artifacts */}
@@ -1471,7 +1496,6 @@ function ReleaseSourceMapMatchingChecklistItem({
     return (
       <CheckListItem status="alert" title={errorMessage}>
         <CheckListInstruction type="muted">
-          <h6>{t('Missing Source Map Reference')}</h6>
           <p>
             {tct(
               'The source file for this stack frame is missing a source map reference. A source map reference is usually represented by a [sourceMappingUrl] comment at the bottom of your source file.',
@@ -1707,6 +1731,14 @@ function ExternalLinkWithIcon({href, children}: PropsWithChildren<{href: string}
     <ExternalLink href={href}>
       {children} <IconOpen size="xs" />
     </ExternalLink>
+  );
+}
+
+function LinkWithIcon({to, children}: PropsWithChildren<{to: string}>) {
+  return (
+    <Link to={to}>
+      {children} <IconOpen size="xs" />
+    </Link>
   );
 }
 
