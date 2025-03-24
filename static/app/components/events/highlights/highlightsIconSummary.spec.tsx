@@ -119,6 +119,29 @@ describe('HighlightsIconSummary', function () {
     expect(screen.getByText('15.3')).toBeInTheDocument();
   });
 
+  it('deduplicates browser and runtime contexts', function () {
+    const eventWithDuplicateContexts = EventFixture({
+      contexts: {
+        browser: {
+          type: 'browser',
+          name: 'Chrome',
+          version: '120.0.0',
+        },
+        runtime: {
+          type: 'runtime',
+          name: 'Chrome',
+          version: '120.0.0',
+        },
+      },
+    });
+    render(<HighlightsIconSummary event={eventWithDuplicateContexts} group={group} />);
+
+    // Should only show Chrome once, as runtime context is preferred over browser
+    const chromeElements = screen.getAllByText('Chrome');
+    expect(chromeElements).toHaveLength(1);
+    expect(screen.getByText('120.0.0')).toBeInTheDocument();
+  });
+
   it('hides device for non mobile/native', function () {
     const groupWithPlatform = GroupFixture({
       project: ProjectFixture({
