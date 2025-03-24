@@ -264,12 +264,14 @@ export function ChonkDropdownIndicator(
 export const ChonkCheckWrap = chonkStyled('div')<{
   isMultiple: boolean;
   isSelected: boolean;
+  size: FormSize;
 }>`
   display: flex;
   justify-content: center;
   align-items: center;
   width: 1em;
-  height: 1em;
+  /* We need to adjust for smaller font-size */
+  height: ${p => (p.size === 'xs' ? '1.3em' : '1.4em')};
 
   ${p =>
     p.isMultiple
@@ -279,6 +281,8 @@ export const ChonkCheckWrap = chonkStyled('div')<{
       background: ${p.theme.backgroundElevated};
       border-radius: 2px;
       box-shadow: inset ${p.theme.dropShadowMedium};
+      height: 1em;
+      margin-top: 2px;
       ${
         p.isSelected &&
         `

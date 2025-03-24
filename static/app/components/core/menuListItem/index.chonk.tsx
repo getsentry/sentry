@@ -140,7 +140,7 @@ export const ChonkLeadingItems = chonkStyled('div')<{
 
 export const ChonkLabel = chonkStyled('div')`
   margin-bottom: 0;
-  line-height: 1;
+  line-height: 1.4;
   white-space: nowrap;
 
   ${p => p.theme.overflowEllipsis}
