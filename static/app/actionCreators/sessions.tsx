@@ -1,4 +1,4 @@
-import type {Client} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
@@ -12,7 +12,6 @@ export type DoSessionsRequestOptions = {
   end?: DateString;
   environment?: readonly string[];
   groupBy?: string[];
-  includeAllArgs?: boolean;
   includeSeries?: boolean;
   includeTotals?: boolean;
   interval?: string;
@@ -38,7 +37,6 @@ export const doSessionsRequest = (
     project,
     orderBy,
     query,
-    includeAllArgs = false,
     includeSeries,
     includeTotals,
     statsPeriodStart,
@@ -46,7 +44,7 @@ export const doSessionsRequest = (
     limit,
     ...dateTime
   }: DoSessionsRequestOptions
-): Promise<SessionApiResponse> => {
+): Promise<ApiResult<SessionApiResponse>> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });
@@ -73,7 +71,7 @@ export const doSessionsRequest = (
   );
 
   return api.requestPromise(`/organizations/${orgSlug}/sessions/`, {
-    includeAllArgs,
+    includeAllArgs: true,
     query: urlQuery,
   });
 };
