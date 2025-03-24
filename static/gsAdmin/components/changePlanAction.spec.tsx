@@ -1,14 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {UserFixture} from 'sentry-fixture/user';
 
-import ConfigStore from 'sentry/stores/configStore';
-import {PlanTier, Subscription} from 'getsentry/types';
-import ChangePlanAction from '../components/changePlanAction';
-import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {PlanFixture} from 'getsentry/__fixtures__/plan';
-import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import ConfigStore from 'sentry/stores/configStore';
+
+import {PlanFixture} from 'getsentry/__fixtures__/plan';
+import {PlanTier, type Subscription} from 'getsentry/types';
+
+import ChangePlanAction from '../components/changePlanAction';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});
