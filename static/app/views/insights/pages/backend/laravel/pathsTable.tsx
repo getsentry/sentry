@@ -33,6 +33,7 @@ interface DiscoverQueryResponse {
     'http.method': string;
     'p95()': number;
     'project.id': string;
+    'sum(transaction.duration)': number;
     transaction: string;
   }>;
 }
@@ -55,6 +56,7 @@ interface TableData {
   p95: number;
   projectId: string;
   requests: number;
+  sum: number;
   transaction: string;
   users: number;
 }
@@ -92,6 +94,7 @@ const defaultColumnOrder: Array<GridColumnOrder<SortableField>> = [
   {key: 'failure_rate()', name: t('Error Rate'), width: 124},
   {key: 'avg(transaction.duration)', name: t('AVG'), width: 90},
   {key: 'p95()', name: t('P95'), width: 90},
+  {key: 'sum(transaction.duration)', name: t('Total'), width: 90},
   {key: 'count_unique(user)', name: t('Users'), width: 90},
 ];
 
@@ -149,6 +152,7 @@ export function PathsTable({query}: {query?: string}) {
             'failure_rate()',
             'count()',
             'count_unique(user)',
+            'sum(transaction.duration)',
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: 'api.performance.landing-table',
@@ -220,6 +224,7 @@ export function PathsTable({query}: {query?: string}) {
       isControllerLoading: routeControllersRequest.isLoading,
       controller: controllerMap.get(transaction.transaction),
       projectId: transaction['project.id'],
+      sum: transaction['sum(transaction.duration)'],
     }));
   }, [
     transactionsRequest.data,
@@ -374,6 +379,8 @@ const BodyCell = memo(function BodyCell({
           {getDuration(dataRow.p95 / 1000, 2, true, true)}
         </div>
       );
+    case 'sum(transaction.duration)':
+      return getDuration(dataRow.sum / 1000, 2, true, true);
     case 'count_unique(user)':
       return (
         <div
