@@ -38,6 +38,8 @@ maxminddb>=2.3
 mistune>=2.0.3
 mmh3>=4.0.0
 packaging>=24.1
+pandas>=2.2.3
+pandas-stubs>=2.2.3.250308
 parsimonious>=0.10.0
 petname>=2.6
 phonenumberslite>=8.12.32
@@ -65,6 +67,7 @@ requests>=2.32.3
 rfc3339-validator>=0.1.2
 rfc3986-validator>=0.1.1
 # [end] jsonschema format validators
+scipy>=1.15.2
 sentry-arroyo>=2.20.3
 sentry-kafka-schemas>=1.1.2
 sentry-ophio==1.0.0
