@@ -30,9 +30,11 @@ const ChartContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   background: ${p => p.theme.background};
   gap: ${space(2)};
+  padding: ${space(4)};
 `;
 
 const FeedbackHeading = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: bold;
+  text-align: center;
 `;
