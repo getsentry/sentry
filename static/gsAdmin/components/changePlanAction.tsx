@@ -1,11 +1,13 @@
 import React, {Fragment} from 'react';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 
 import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
 import PlanList, {type LimitName} from 'admin/components/planList';
@@ -269,89 +271,50 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
 
     // Plan for partner sponsored subscriptions is not modifiable so skipping
     // the navigation that will allow modifying billing cycle and plan tier
+    const PLAN_TABS = [
+      {
+        label: 'AM3',
+        tier: PlanTier.AM3,
+      },
+      {
+        label: 'AM2',
+        tier: PlanTier.AM2,
+      },
+      {
+        label: 'AM1',
+        tier: PlanTier.AM1,
+      },
+      {
+        label: 'MM2',
+        tier: PlanTier.MM2,
+      },
+      {
+        label: 'TEST',
+        tier: PlanTier.TEST,
+      },
+    ];
+
     const header = partnerPlanId ? null : (
       <React.Fragment>
-        <NavTabs>
-          <li className={activeTier === PlanTier.AM3 ? 'active' : ''}>
-            <a
-              data-test-id="am3-tier"
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.AM3,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              AM3
-            </a>
-          </li>
-          <li className={activeTier === PlanTier.AM2 ? 'active' : ''}>
-            <a
-              data-test-id="am2-tier"
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.AM2,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              AM2
-            </a>
-          </li>
-          <li className={activeTier === PlanTier.AM1 ? 'active' : ''}>
-            <a
-              data-test-id="am1-tier"
-              role="link"
-              aria-disabled
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.AM1,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              AM1
-            </a>
-          </li>
-          <li className={activeTier === PlanTier.MM2 ? 'active' : ''}>
-            <a
-              data-test-id="mm2-tier"
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.MM2,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              MM2
-            </a>
-          </li>
-          {this.hasProvisionPermission() && (
-            <li className={activeTier === PlanTier.TEST ? 'active' : ''}>
-              <a
-                data-test-id="test-tier"
-                onClick={() =>
-                  this.setState({
-                    activeTier: PlanTier.TEST,
-                    billingInterval: MONTHLY,
-                    contractInterval: MONTHLY,
-                    plan: null,
-                  })
-                }
-              >
-                TEST
-              </a>
-            </li>
-          )}
-        </NavTabs>
+        <TabsContainer>
+          <Tabs
+            value={activeTier}
+            onChange={tab => {
+              this.setState({
+                activeTier: tab,
+                billingInterval: MONTHLY,
+                contractInterval: MONTHLY,
+                plan: null,
+              });
+            }}
+          >
+            <TabList>
+              {PLAN_TABS.map(tab => (
+                <TabList.Item key={tab.tier}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
         <ul className="nav nav-pills">
           <li
             className={classNames({
@@ -431,5 +394,9 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
     );
   }
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default ChangePlanAction;
