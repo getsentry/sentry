@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageParamsProvider,
@@ -25,7 +26,7 @@ export function LogsIssuesSection({
   limitToTraceId,
 }: {
   initialCollapse: boolean;
-} & Omit<LogsPageParamsProviderProps, 'children'>) {
+} & Omit<LogsPageParamsProviderProps, 'children' | 'analyticsPageSource'>) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useExploreLogsTable({enabled: feature, limit: 10});
@@ -50,6 +51,7 @@ export function LogsIssuesSection({
       initialCollapse={initialCollapse}
     >
       <LogsPageParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         isOnEmbeddedView={isOnEmbeddedView}
         limitToTraceId={limitToTraceId}
       >
