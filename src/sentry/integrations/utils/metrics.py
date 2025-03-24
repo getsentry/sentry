@@ -260,7 +260,7 @@ class IntegrationPipelineViewType(StrEnum):
     TOKEN_EXCHANGE = "token_exchange"
 
     # GitHub
-    OAUTH_LOGIN = "oauth_loging"
+    OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
 
     # Bitbucket
