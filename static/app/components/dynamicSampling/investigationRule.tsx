@@ -231,7 +231,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
   // investigation rule in progress
   if (rule) {
     const interval = moment
-      .duration(new Date().getTime() - new Date(rule.startDate).getTime())
+      .duration(Date.now() - new Date(rule.startDate).getTime())
       .humanize();
 
     return (

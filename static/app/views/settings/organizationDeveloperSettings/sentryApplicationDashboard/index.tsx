@@ -42,7 +42,7 @@ function SentryApplicationDashboard() {
   const {appSlug} = useParams<{appSlug: string}>();
 
   // Default time range for now: 90 days ago to now
-  const now = Math.floor(new Date().getTime() / 1000);
+  const now = Math.floor(Date.now() / 1000);
   const ninety_days_ago = 3600 * 24 * 90;
 
   const {

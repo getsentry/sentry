@@ -620,7 +620,7 @@ function readHideMissingServiceState() {
     return false;
   }
   const expires = parseInt(value, 10);
-  const now = new Date().getTime();
+  const now = Date.now();
   return expires > now;
 }
 
@@ -631,7 +631,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
 
   dismissMissingService = () => {
     const {organization, platform} = this.props;
-    const now = new Date().getTime();
+    const now = Date.now();
     localStorage.setItem(
       HIDE_MISSING_SERVICE_KEY,
       (now + HIDE_MISSING_EXPIRES).toString()

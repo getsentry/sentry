@@ -1,7 +1,7 @@
 import InternalStatChart from 'sentry/components/internalStatChart';
 
 function AdminBuffer() {
-  const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
+  const since = Date.now() / 1000 - 3600 * 24 * 7;
 
   return (
     <div>

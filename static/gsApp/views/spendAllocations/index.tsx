@@ -141,10 +141,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
         // we cannot use the middle of the subscription period since it's possible to have a current allocation that ends before mid period
         if (!targetTimestamp) {
-          targetTimestamp = Math.max(
-            new Date().getTime() / 1000,
-            period[0]!.getTime() / 1000
-          );
+          targetTimestamp = Math.max(Date.now() / 1000, period[0]!.getTime() / 1000);
         }
         const SPEND_ALLOCATIONS_PATH = `/organizations/${organization.slug}/spend-allocations/`;
 

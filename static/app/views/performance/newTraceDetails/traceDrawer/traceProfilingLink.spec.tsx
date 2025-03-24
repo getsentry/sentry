@@ -65,7 +65,7 @@ describe('traceProfilingLink', () => {
   });
 
   it('creates a window of time around end timestamp', () => {
-    const timestamp = new Date().getTime();
+    const timestamp = Date.now();
 
     const node = new TraceTreeNode(
       null,

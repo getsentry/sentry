@@ -45,7 +45,7 @@ export function OrganizationTeamsContainer(props: RouteComponentProps) {
     loadStats(api, {
       orgId: organization?.slug,
       query: {
-        since: (new Date().getTime() / 1000 - 3600 * 24).toString(),
+        since: (Date.now() / 1000 - 3600 * 24).toString(),
         stat: 'generated',
         group: 'project',
       },

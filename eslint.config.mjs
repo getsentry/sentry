@@ -594,7 +594,7 @@ export default typescript.config([
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-date-now': 'error',
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule

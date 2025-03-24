@@ -307,7 +307,7 @@ describe('Performance > Table', function () {
         ProjectFixture({
           id: '3',
           slug: '3',
-          firstEvent: new Date(+new Date() - 25920e5).toISOString(),
+          firstEvent: new Date(Date.now() - 25920e5).toISOString(),
         }),
       ];
       const data = initializeData({

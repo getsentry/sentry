@@ -37,7 +37,7 @@ describe('SpendAllocations feature enable flow', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     mockGet = MockApiClient.addMockResponse({
@@ -177,7 +177,7 @@ describe('enabled Spend Allocations page', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({
@@ -359,7 +359,7 @@ describe('enabled Spend Allocations page without root', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     mockGet = MockApiClient.addMockResponse({
@@ -443,7 +443,7 @@ describe('POST Create spend allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({
@@ -535,7 +535,7 @@ describe('Disable Submit button in Spend Allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({
@@ -582,7 +582,7 @@ describe('DELETE spend allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     mockGet = MockApiClient.addMockResponse({
@@ -662,7 +662,7 @@ describe('PUT edit spend allocation', () => {
     });
     MockApiClient.clearMockResponses();
     dateTs = Math.max(
-      new Date().getTime() / 1000,
+      Date.now() / 1000,
       new Date(subscription.onDemandPeriodStart + 'T00:00:00.000').getTime() / 1000
     );
     MockApiClient.addMockResponse({

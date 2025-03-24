@@ -219,7 +219,7 @@ function ReviewAndConfirmHeader({
   }
 
   const {effectiveAt} = previewData;
-  const effectiveNow = new Date(effectiveAt).getTime() <= new Date().getTime() + 3600;
+  const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
   let subText;
   if (subscription.isSelfServePartner) {

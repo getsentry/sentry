@@ -85,8 +85,8 @@ type State = {
 };
 
 function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
-  const fourteen_days_ago = new Date(+new Date() - 12096e5);
-  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const fourteen_days_ago = new Date(Date.now() - 12096e5);
+  const thirty_days_ago = new Date(Date.now() - 25920e5);
   const firstEventDate = new Date(project?.firstEvent ?? '');
   if (firstEventDate > fourteen_days_ago) {
     return '14d';
