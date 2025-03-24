@@ -445,6 +445,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition,
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+      theme,
     });
 
     seriesIndexToPlottableMapRanges.push({
