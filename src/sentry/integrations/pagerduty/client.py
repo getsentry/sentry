@@ -8,15 +8,17 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
 
-LEVEL_SEVERITY_MAP = {
+# https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
+type PagerDutyEventPayload = dict[str, Any]
+type PagerdutySeverity = Literal["default", "critical", "warning", "error", "info"]
+LEVEL_SEVERITY_MAP: dict[str, PagerdutySeverity] = {
     "debug": "info",
     "info": "info",
     "warning": "warning",
     "error": "error",
     "fatal": "critical",
 }
-PAGERDUTY_DEFAULT_SEVERITY = "default"  # represents using LEVEL_SEVERITY_MAP
-PagerdutySeverity = Literal["default", "critical", "warning", "error", "info"]
+PAGERDUTY_DEFAULT_SEVERITY: PagerdutySeverity = "default"  # represents using LEVEL_SEVERITY_MAP
 
 
 class PagerDutyClient(ApiClient):
@@ -34,50 +36,53 @@ class PagerDutyClient(ApiClient):
             headers = {"Content-Type": "application/json"}
         return self._request(method, *args, headers=headers, **kwargs)
 
-    def send_trigger(
-        self,
-        data,
-        notification_uuid: str | None = None,
-        severity: PagerdutySeverity | None = None,
-    ):
-        # expected payload: https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
-        if isinstance(data, (Event, GroupEvent)):
-            source = data.transaction or data.culprit or "<unknown>"
-            group = data.group
-            level = data.get_tag("level") or "error"
-            custom_details = serialize(data, None, ExternalEventSerializer())
-            summary = custom_details["message"][:1024] or custom_details["title"]
-            link_params = {"referrer": "pagerduty_integration"}
-            if notification_uuid:
-                link_params["notification_uuid"] = notification_uuid
-
-            if severity == PAGERDUTY_DEFAULT_SEVERITY:
-                severity = LEVEL_SEVERITY_MAP[level]
-
-            client_url = group.get_absolute_url(params=link_params)
-
-            payload = {
-                "routing_key": self.integration_key,
-                "event_action": "trigger",
-                "dedup_key": group.qualified_short_id,
-                "payload": {
-                    "summary": summary,
-                    "severity": severity,
-                    "source": source,
-                    "component": group.project.slug,
-                    "custom_details": custom_details,
-                },
-                "client": "sentry",
-                "client_url": client_url,
-                "links": [
-                    {
-                        "href": client_url,
-                        "text": "View Sentry Issue Details",
-                    }
-                ],
-            }
-        else:
-            # the payload is for a metric alert
-            payload = data
+    def send_trigger(self, data: PagerDutyEventPayload):
         with record_event(OnCallInteractionType.CREATE).capture():
-            return self.post("/", data=payload)
+            return self.post("/", data=data)
+
+
+def build_pagerduty_event_payload(
+    *,
+    routing_key: str,
+    event: Event | GroupEvent,
+    notification_uuid: str | None,
+    severity: PagerdutySeverity | None = None,
+) -> PagerDutyEventPayload:
+    source = event.transaction or event.culprit or "<unknown>"
+    group = event.group
+    level = event.get_tag("level") or "error"
+    custom_details = serialize(event, None, ExternalEventSerializer())
+    summary = custom_details["message"][:1024] or custom_details["title"]
+
+    link_params = {"referrer": "pagerduty_integration"}
+    if notification_uuid:
+        link_params["notification_uuid"] = notification_uuid
+
+    if severity == PAGERDUTY_DEFAULT_SEVERITY:
+        severity = LEVEL_SEVERITY_MAP[level]
+
+    payload: PagerDutyEventPayload = {
+        "routing_key": routing_key,
+        "event_action": "trigger",
+        "payload": {
+            "summary": summary,
+            "severity": severity,
+            "source": source,
+            "custom_details": custom_details,
+        },
+        "client": "sentry",
+    }
+
+    if group:
+        client_url = group.get_absolute_url(params=link_params)
+        payload["client_url"] = client_url
+        payload["dedup_key"] = group.qualified_short_id
+        payload["payload"]["component"] = group.project.slug
+        payload["links"] = [
+            {
+                "href": client_url,
+                "text": "View Sentry Issue Details",
+            }
+        ]
+
+    return payload

@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -19,6 +20,8 @@ import {
 } from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
+import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
 import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
 import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
@@ -32,7 +35,6 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
   const {view = ''} = useDomainViewFilters();
-
   const [filters, setFilters] = useState<string[]>(['']);
 
   // only show onboarding if the project does not have session data
@@ -90,6 +92,8 @@ function ViewSpecificCharts({
   setFilters: (filter: string[]) => void;
   view: DomainView | '';
 }) {
+  const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+
   switch (view) {
     case FRONTEND_LANDING_SUB_PATH:
       return (
@@ -104,12 +108,18 @@ function ViewSpecificCharts({
             <UserHealthCountChart />
           </ModuleLayout.Third>
 
-          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <UserHealthRateChart />
+          </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
         </Fragment>
       );
@@ -119,8 +129,12 @@ function ViewSpecificCharts({
           <ModuleLayout.Third>
             <CrashFreeSessionsChart />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New issues per release</ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <ReleaseNewIssuesChart />
+          </ModuleLayout.Third>
 
           <ModuleLayout.Third>
             <ReleaseSessionCountChart />
@@ -141,6 +155,15 @@ function ViewSpecificCharts({
           <ModuleLayout.Third>
             <UserHealthRateChart />
           </ModuleLayout.Third>
+
+          {/* only show this chart if the project has user feedback set up */}
+          {hasSetupOneFeedback && (
+            <Fragment>
+              <ModuleLayout.Third>
+                <NewAndResolvedIssueChart type="feedback" />
+              </ModuleLayout.Third>
+            </Fragment>
+          )}
 
           <ModuleLayout.Full>
             <FilterWrapper>

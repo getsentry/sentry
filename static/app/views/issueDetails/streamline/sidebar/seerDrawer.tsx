@@ -5,10 +5,10 @@ import starImage from 'sentry-images/spot/banner-star.svg';
 
 import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
@@ -28,7 +28,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/streamline/eventTitle';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
-import {SolutionsHubNotices} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubNotices';
+import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
 interface AutofixStartBoxProps {
   groupId: string;
@@ -115,7 +115,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
   );
 }
 
-interface SolutionsHubDrawerProps {
+interface SeerDrawerProps {
   event: Event;
   group: Group;
   project: Project;
@@ -126,13 +126,11 @@ const AiSetupDataConsent = HookOrDefault({
   defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
 });
 
-export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerProps) {
+export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
   const aiConfig = useAiConfig(group, event, project);
 
-  useRouteAnalyticsParams({
-    autofix_status: autofixData?.status ?? 'none',
-  });
+  useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledRef = useRef(false);
@@ -171,8 +169,8 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
   }, [autofixData]);
 
   return (
-    <SolutionsDrawerContainer className="solutions-drawer-container">
-      <SolutionsDrawerHeader>
+    <SeerDrawerContainer className="seer-drawer-container">
+      <SeerDrawerHeader>
         <NavigationCrumbs
           crumbs={[
             {
@@ -184,11 +182,11 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
               ),
             },
             {label: getShortEventId(event.id)},
-            {label: t('Solutions Hub')},
+            {label: t('Seer')},
           ]}
         />
-      </SolutionsDrawerHeader>
-      <SolutionsDrawerNavigator>
+      </SeerDrawerHeader>
+      <SeerDrawerNavigator>
         <Header>
           <SeerIcon size="lg" />
           {t('Autofix')}
@@ -224,8 +222,8 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             </ButtonBar>
           </ButtonBarWrapper>
         )}
-      </SolutionsDrawerNavigator>
-      <SolutionsDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
+      </SeerDrawerNavigator>
+      <SeerDrawerBody ref={scrollContainerRef} onScroll={handleScroll}>
         {aiConfig.isAutofixSetupLoading ? (
           <div data-test-id="ai-setup-loading-indicator">
             <LoadingIndicator />
@@ -234,7 +232,7 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
           <AiSetupDataConsent groupId={group.id} />
         ) : (
           <Fragment>
-            <SolutionsHubNotices
+            <SeerNotices
               hasGithubIntegration={aiConfig.hasGithubIntegration}
               autofixRepositories={autofixData?.repositories ?? []}
             />
@@ -258,12 +256,12 @@ export function SolutionsHubDrawer({group, project, event}: SolutionsHubDrawerPr
             )}
           </Fragment>
         )}
-      </SolutionsDrawerBody>
-    </SolutionsDrawerContainer>
+      </SeerDrawerBody>
+    </SeerDrawerContainer>
   );
 }
 
-export const useOpenSolutionsDrawer = (
+export const useOpenSeerDrawer = (
   group: Group,
   project: Project,
   event: Event | undefined,
@@ -276,53 +274,50 @@ export const useOpenSolutionsDrawer = (
       return;
     }
 
-    openDrawer(
-      () => <SolutionsHubDrawer group={group} project={project} event={event} />,
-      {
-        ariaLabel: t('Solutions drawer'),
-        shouldCloseOnInteractOutside: element => {
-          const viewAllButton = buttonRef?.current;
+    openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
+      ariaLabel: t('Seer drawer'),
+      shouldCloseOnInteractOutside: element => {
+        const viewAllButton = buttonRef?.current;
 
-          // Check if the element is inside any autofix input element
-          const isInsideAutofixInput = () => {
-            const rethinkInputs = document.querySelectorAll(
-              '[data-autofix-input-type="rethink"]'
-            );
-            const agentCommentInputs = document.querySelectorAll(
-              '[data-autofix-input-type="agent-comment"]'
-            );
+        // Check if the element is inside any autofix input element
+        const isInsideAutofixInput = () => {
+          const rethinkInputs = document.querySelectorAll(
+            '[data-autofix-input-type="rethink"]'
+          );
+          const agentCommentInputs = document.querySelectorAll(
+            '[data-autofix-input-type="agent-comment"]'
+          );
 
-            // Check if element is inside any rethink input
-            for (const input of rethinkInputs) {
-              if (input.contains(element)) {
-                return true;
-              }
+          // Check if element is inside any rethink input
+          for (const input of rethinkInputs) {
+            if (input.contains(element)) {
+              return true;
             }
-
-            // Check if element is inside any agent comment input
-            for (const input of agentCommentInputs) {
-              if (input.contains(element)) {
-                return true;
-              }
-            }
-
-            return false;
-          };
-
-          if (
-            viewAllButton?.contains(element) ||
-            document.getElementById('sentry-feedback')?.contains(element) ||
-            isInsideAutofixInput() ||
-            document.getElementById('autofix-output-stream')?.contains(element) ||
-            document.getElementById('autofix-write-access-modal')?.contains(element) ||
-            element.closest('[data-overlay="true"]')
-          ) {
-            return false;
           }
-          return true;
-        },
-      }
-    );
+
+          // Check if element is inside any agent comment input
+          for (const input of agentCommentInputs) {
+            if (input.contains(element)) {
+              return true;
+            }
+          }
+
+          return false;
+        };
+
+        if (
+          viewAllButton?.contains(element) ||
+          document.getElementById('sentry-feedback')?.contains(element) ||
+          isInsideAutofixInput() ||
+          document.getElementById('autofix-output-stream')?.contains(element) ||
+          document.getElementById('autofix-write-access-modal')?.contains(element) ||
+          element.closest('[data-overlay="true"]')
+        ) {
+          return false;
+        }
+        return true;
+      },
+    });
   }, [openDrawer, buttonRef, event, group, project]);
 };
 
@@ -369,9 +364,7 @@ const StartTextRow = styled('div')`
 `;
 
 const StyledSeerWaitingIcon = styled(SeerWaitingIcon)`
-  color: ${p => p.theme.purple400};
-  opacity: 0.9;
-  filter: brightness(0.6);
+  color: ${p => p.theme.textColor};
 `;
 
 const BackgroundStar = styled('img')`
@@ -421,21 +414,21 @@ const StyledFeatureBadge = styled(FeatureBadge)`
   padding-bottom: 3px;
 `;
 
-const SolutionsDrawerContainer = styled('div')`
+const SeerDrawerContainer = styled('div')`
   height: 100%;
   display: grid;
   grid-template-rows: auto auto 1fr;
   position: relative;
 `;
 
-const SolutionsDrawerHeader = styled(DrawerHeader)`
+const SeerDrawerHeader = styled(DrawerHeader)`
   position: unset;
   max-height: ${MIN_NAV_HEIGHT}px;
   box-shadow: none;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const SolutionsDrawerNavigator = styled('div')`
+const SeerDrawerNavigator = styled('div')`
   display: flex;
   align-items: center;
   padding: ${space(0.75)} ${space(3)};
@@ -445,7 +438,7 @@ const SolutionsDrawerNavigator = styled('div')`
   box-shadow: ${p => p.theme.translucentBorder} 0 1px;
 `;
 
-const SolutionsDrawerBody = styled(DrawerBody)`
+const SeerDrawerBody = styled(DrawerBody)`
   overflow: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;

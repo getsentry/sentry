@@ -164,9 +164,7 @@ describe('EventTagsTree', function () {
       validateLink: () => {
         const linkElement = screen.getByRole('link', {name: 'abc123'});
         const href = linkElement.attributes.getNamedItem('href');
-        expect(href?.value).toContain(
-          `/organizations/${organization.slug}/performance/summary/`
-        );
+        expect(href?.value).toContain(`/organizations/org-slug/insights/summary/`);
         expect(href?.value).toContain(`project=${project.id}`);
         expect(href?.value).toContain('transaction=abc123');
         expect(href?.value).toContain(`referrer=${referrer}`);
