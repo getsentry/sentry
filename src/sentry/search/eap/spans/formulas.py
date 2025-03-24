@@ -22,8 +22,8 @@ from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
     ResolvedArguments,
+    ResolverSettings,
     ValueArgumentDefinition,
-    ResolverSettings
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
