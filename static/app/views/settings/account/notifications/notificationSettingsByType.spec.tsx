@@ -9,7 +9,7 @@ import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
 import type {NotificationOptionsObject, NotificationProvidersObject} from './constants';
-import NotificationSettingsByType from './notificationSettingsByType';
+import {NotificationSettingsByType} from './notificationSettingsByType';
 import type {Identity} from './types';
 
 function renderMockRequests({
