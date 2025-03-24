@@ -45,7 +45,7 @@ export function FeatureFlagCTAContent({
           </LinkButton>
         </ActionButton>
       </BannerContent>
-      <BannerIllustration src={onboardingInstall} alt="Install" />
+      <BannerIllustration src={onboardingInstall} alt={t('Install')} />
     </Fragment>
   );
 }
