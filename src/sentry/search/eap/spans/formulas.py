@@ -89,6 +89,7 @@ def avg_compare(args: ResolvedArguments, settings: ResolverSettings) -> Column.B
                     value=AttributeValue(val_str=second_value),
                 )
             ),
+            extrapolation_mode=extrapolation_mode,
         )
     )
 
