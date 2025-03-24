@@ -1,30 +1,23 @@
-import {useState} from 'react';
-
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration/duration';
-import useReplayCurrentTime from 'sentry/utils/replays/playback/hooks/useReplayCurrentTime';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-export default function ReplayCurrentTime() {
+export default function ReplayTotalTime() {
   const [prefs] = useReplayPrefs();
   const replay = useReplayReader();
-
-  const [currentTime, setCurrentTime] = useState({timeMs: 0});
-
-  useReplayCurrentTime({callback: setCurrentTime});
 
   switch (prefs.timestampType) {
     case 'absolute':
       return (
         <DateTime
-          date={currentTime.timeMs + replay.getStartTimestampMs()}
+          date={replay.getDurationMs() + replay.getStartTimestampMs()}
           seconds
           timeOnly
         />
       );
-    case 'relative':
     default:
-      return <Duration duration={[currentTime.timeMs, 'ms']} precision="sec" />;
+    case 'relative':
+      return <Duration duration={[replay.getDurationMs(), 'ms']} precision="sec" />;
   }
 }

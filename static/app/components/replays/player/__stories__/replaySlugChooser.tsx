@@ -6,8 +6,23 @@ import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader'
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-export default function ReplaySlugChooser({children}: {children: ReactNode}) {
+type Props =
+  | {render: (replaySlug: string) => ReactNode; children?: never}
+  | {children: ReactNode; render?: never};
+
+export default function ReplaySlugChooser(props: Props) {
+  const {children, render} = props;
+
   const [replaySlug, setReplaySlug] = useSessionStorage('stories:replaySlug', '');
+
+  let content = null;
+  if (replaySlug) {
+    if (children) {
+      content = <LoadReplay replaySlug={replaySlug}>{children}</LoadReplay>;
+    } else if (render) {
+      content = render(replaySlug);
+    }
+  }
 
   return (
     <Fragment>
@@ -22,7 +37,7 @@ export default function ReplaySlugChooser({children}: {children: ReactNode}) {
         `}
         size={34}
       />
-      {replaySlug ? <LoadReplay replaySlug={replaySlug}>{children}</LoadReplay> : null}
+      {content}
     </Fragment>
   );
 }

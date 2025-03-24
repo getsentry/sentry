@@ -37,6 +37,18 @@ export default storyBook('ReplayPlayer', story => {
       </ReplaySlugChooser>
     );
   });
+
+  // story('Without Pref context' => {
+  //   // Should have static prefs
+  // });
+
+  // story('Without Plugins context' => {
+  //   // Should not have CanvasReplayerPlugin
+  // });
+
+  // story('Without PlayerState context' => {
+  //   //
+  // });
 });
 
 function DebugReplayPlayerState() {
