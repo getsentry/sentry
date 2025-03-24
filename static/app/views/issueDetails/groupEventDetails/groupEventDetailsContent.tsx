@@ -73,6 +73,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -127,6 +128,8 @@ export function EventDetailsContent({
     organization,
     projectId: project.id,
   });
+
+  useCopyIssueDetails(group, event);
 
   // default to show on error or isPromptDismissed === undefined
   const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
@@ -405,9 +408,11 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       <CombinedBreadcrumbsAndLogsSection event={event} group={group} project={project} />
-      {hasStreamlinedUI && event.contexts.trace?.trace_id && (
-        <EventTraceView group={group} event={event} organization={organization} />
-      )}
+      {hasStreamlinedUI &&
+        event.contexts.trace?.trace_id &&
+        organization.features.includes('performance-view') && (
+          <EventTraceView group={group} event={event} organization={organization} />
+        )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />

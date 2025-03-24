@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_trace_item_attributes import TraceItemType
@@ -73,7 +72,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert response.status_code == 200, response.content
 
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 6
+        assert len(keys) >= 6
         assert "test.attribute1" in keys
         assert "test.attribute2" in keys
         assert "test.attribute3" in keys
@@ -92,9 +91,6 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert "another.attribute" not in keys
         assert "different.attr" not in keys
 
-    @pytest.mark.skip(
-        reason="This should eventually work once TraceItemAttributeNamesRequest is fixed"
-    )
     def test_all_attributes(self):
         logs = [
             self.create_ourlog(
@@ -112,7 +108,10 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
 
         assert response.status_code == 200, response.content
         keys = {item["key"] for item in response.data}
-        assert len(keys) == 2
+        assert len(keys) >= 3
+        assert "test.attribute1" in keys
+        assert "test.attribute2" in keys
+        assert "sentry.severity_text" in keys
 
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
@@ -151,7 +150,6 @@ class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpoin
         response = self.do_request(features={}, key="test.attribute")
         assert response.status_code == 404, response.content
 
-    @pytest.mark.skip(reason="This should work once snuba #6970 lands")
     def test_attribute_values(self):
         logs = [
             self.create_ourlog(

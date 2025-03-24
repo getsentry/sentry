@@ -11,13 +11,13 @@ describe('createReleaseBuckets', () => {
   ])(
     'creates correct # of buckets for timeSeries with [min, max] of [%d, %d] and %d desired buckets',
     (minTime, maxTime, desiredBuckets, expectedBuckets) => {
-      const buckets = createReleaseBuckets(
+      const buckets = createReleaseBuckets({
         minTime,
         maxTime,
-        Date.now() + 120391, // Shouldn't affect buckets
-        [],
-        desiredBuckets
-      );
+        finalTime: Date.now() + 120391, // Shouldn't affect buckets
+        releases: [],
+        desiredBuckets,
+      });
       expect(buckets).toHaveLength(expectedBuckets);
     }
   );
@@ -27,7 +27,7 @@ describe('createReleaseBuckets', () => {
     const maxTime = Date.now() + 12 * 1000 + 2235;
     const finalTime = maxTime + 9999;
 
-    const buckets = createReleaseBuckets(minTime, maxTime, finalTime, []);
+    const buckets = createReleaseBuckets({minTime, maxTime, finalTime, releases: []});
     expect(buckets).toEqual([
       {start: 1508208080000, end: 1508208081424, releases: []},
       {start: 1508208081424, end: 1508208082848, releases: []},
@@ -102,7 +102,7 @@ describe('createReleaseBuckets', () => {
       },
     ];
 
-    const buckets = createReleaseBuckets(minTime, maxTime, finalTime, releases);
+    const buckets = createReleaseBuckets({minTime, maxTime, finalTime, releases});
 
     expect(buckets).toEqual([
       {

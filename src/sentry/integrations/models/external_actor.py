@@ -90,21 +90,17 @@ class ExternalActor(ReplicatedRegionModel):
         )
 
 
-def process_resource_change(instance, **kwargs):
-    from sentry.models.organization import Organization
+def process_resource_change(instance: ExternalActor, **kwargs):
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
     def _spawn_task():
-        try:
-            update_code_owners_schema.apply_async(
-                kwargs={
-                    "organization": instance.organization,
-                    "integration": instance.integration_id,
-                }
-            )
-        except (Organization.DoesNotExist, Project.DoesNotExist):
-            pass
+        update_code_owners_schema.apply_async(
+            kwargs={
+                "organization": instance.organization_id,
+                "integration": instance.integration_id,
+            }
+        )
 
     transaction.on_commit(_spawn_task, router.db_for_write(Project))
 

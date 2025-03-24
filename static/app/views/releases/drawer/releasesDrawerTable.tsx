@@ -44,7 +44,7 @@ type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
   {key: 'release', name: 'release', width: 400},
-  {key: 'error_count', name: 'new issues'},
+  {key: 'error_count', name: 'new issues', width: 110},
   {key: 'date', name: 'created'},
 ];
 
@@ -135,7 +135,8 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       }
 
       if (column.key === 'error_count') {
-        return (
+        const value = dataRow[column.key];
+        return value > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
@@ -144,9 +145,11 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
                 dataRow.release
               )}
             >
-              <Count value={dataRow[column.key]} />
+              <Count value={value} />
             </GlobalSelectionLink>
           </Tooltip>
+        ) : (
+          <Count value={value} />
         );
       }
       if (!meta?.fields) {

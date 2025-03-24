@@ -10,7 +10,7 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
-from sentry.incidents.typings.metric_detector import AlertContext
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.messaging.spec import MessagingActionHandler
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.spec import SlackMessagingSpec
@@ -98,12 +98,13 @@ class SlackActionHandlerTest(FireTest):
     def _assert_blocks(self, mock_post, incident, metric_value, chart_url):
         slack_body = SlackIncidentsMessageBuilder(
             alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-            open_period_identifier=incident.identifier,
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident,
+                IncidentStatus(incident.status),
+                metric_value,
+            ),
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
-            new_status=IncidentStatus(incident.status),
             date_started=incident.date_started,
-            metric_value=metric_value,
             chart_url=chart_url,
         ).build()
         assert isinstance(slack_body, dict)
