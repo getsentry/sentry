@@ -458,7 +458,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
