@@ -30,6 +30,7 @@ import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessio
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -121,11 +122,20 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
+          {/* only show this chart if the project has user feedback set up */}
+          {hasSetupOneFeedback && (
+            <Fragment>
+              <ModuleLayout.Third>
+                <NewAndResolvedIssueChart type="feedback" />
+              </ModuleLayout.Third>
+            </Fragment>
+          )}
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="feedback" />
+            <GiveFeedbackSection />
           </ModuleLayout.Third>
         </Fragment>
       );
+
     case MOBILE_LANDING_SUB_PATH:
       return (
         <Fragment>
@@ -167,6 +177,9 @@ function ViewSpecificCharts({
               </ModuleLayout.Third>
             </Fragment>
           )}
+          <ModuleLayout.Third>
+            <GiveFeedbackSection />
+          </ModuleLayout.Third>
 
           <ModuleLayout.Full>
             <FilterWrapper>
