@@ -2,19 +2,14 @@ import {AutofixDataFixture} from 'sentry-fixture/autofixData';
 import {AutofixProgressItemFixture} from 'sentry-fixture/autofixProgressItem';
 import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
 import {AutofixStatus, AutofixStepType} from 'sentry/components/events/autofix/types';
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('AutofixSteps', () => {
   beforeEach(() => {
-    (addSuccessMessage as jest.Mock).mockClear();
     MockApiClient.clearMockResponses();
-    jest.clearAllMocks();
   });
 
   const defaultProps = {
@@ -64,10 +59,10 @@ describe('AutofixSteps', () => {
     onRetry: jest.fn(),
   };
 
-  it('renders steps correctly', () => {
+  it('renders steps correctly', async () => {
     render(<AutofixSteps {...defaultProps} />);
 
-    expect(screen.getByText('step 1')).toBeInTheDocument();
+    expect(await screen.findByText('step 1')).toBeInTheDocument();
   });
 
   it('renders output stream when last step is processing', async () => {
@@ -95,12 +90,10 @@ describe('AutofixSteps', () => {
     };
 
     render(<AutofixSteps {...propsWithProcessingStep} />);
-    await waitFor(() => {
-      expect(screen.getByText('Processing message')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Processing message')).toBeInTheDocument();
   });
 
-  it('shows error message when previous step errored', () => {
+  it('shows error message when previous step errored', async () => {
     const propsWithErroredStep = {
       ...defaultProps,
       data: {
@@ -128,7 +121,9 @@ describe('AutofixSteps', () => {
 
     render(<AutofixSteps {...propsWithErroredStep} />);
     expect(
-      screen.getByText('Autofix encountered an error. Restarting step from scratch...')
+      await screen.findByText(
+        'Autofix encountered an error. Restarting step from scratch...'
+      )
     ).toBeInTheDocument();
   });
 });
