@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
@@ -77,11 +77,18 @@ describe('SchemaHintsList', () => {
       />
     );
 
-    expect(screen.getByText('stringTag1 is ...')).toBeInTheDocument();
-    expect(screen.getByText('stringTag2 is ...')).toBeInTheDocument();
-    expect(screen.getByText('numberTag1 > ...')).toBeInTheDocument();
-    expect(screen.getByText('numberTag2 > ...')).toBeInTheDocument();
-    expect(screen.getByText('See full list')).toBeInTheDocument();
+    const container = screen.getByLabelText('Schema Hints List');
+    const withinContainer = within(container);
+    expect(withinContainer.getByText('stringTag1')).toBeInTheDocument();
+    expect(withinContainer.getByText('stringTag2')).toBeInTheDocument();
+    // counting the has tag
+    expect(withinContainer.getAllByText('is')).toHaveLength(3);
+    expect(withinContainer.getByText('numberTag1')).toBeInTheDocument();
+    expect(withinContainer.getByText('numberTag2')).toBeInTheDocument();
+    expect(withinContainer.getAllByText('>')).toHaveLength(2);
+    // counting the has tag
+    expect(withinContainer.getAllByText('...')).toHaveLength(5);
+    expect(withinContainer.getByText('See full list')).toBeInTheDocument();
   });
 
   it('should add hint to query when clicked', async () => {
@@ -95,7 +102,7 @@ describe('SchemaHintsList', () => {
       </PageParamsProvider>
     );
 
-    const stringTag1Hint = screen.getByText('stringTag1 is ...');
+    const stringTag1Hint = screen.getByText('stringTag1');
     await userEvent.click(stringTag1Hint);
 
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -134,12 +141,13 @@ describe('SchemaHintsList', () => {
     await userEvent.click(seeFullList);
 
     expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
-    expect(screen.getByText('Filter Attributes')).toBeInTheDocument();
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    expect(withinDrawer.getByText('Filter Attributes')).toBeInTheDocument();
     Object.values(mockStringTags).forEach(tag => {
-      expect(screen.getByText(tag.key)).toBeInTheDocument();
+      expect(withinDrawer.getByText(tag.key)).toBeInTheDocument();
     });
     Object.values(mockNumberTags).forEach(tag => {
-      expect(screen.getByText(tag.key)).toBeInTheDocument();
+      expect(withinDrawer.getByText(tag.key)).toBeInTheDocument();
     });
   });
 
@@ -159,15 +167,16 @@ describe('SchemaHintsList', () => {
     await userEvent.click(seeFullList);
 
     expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
 
-    const stringTag1Checkbox = screen.getByText('stringTag1');
+    const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({query: {query: '!stringTag1:""'}})
     );
 
-    const numberTag1Checkbox = screen.getByText('numberTag1');
+    const numberTag1Checkbox = withinDrawer.getByText('numberTag1');
     await userEvent.click(numberTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -196,7 +205,8 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const stringTag1Checkbox = screen.getByText('stringTag1');
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -219,7 +229,8 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const stringTag1Checkbox = screen.getByText('stringTag1');
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const stringTag1Checkbox = withinDrawer.getByText('stringTag1');
     await userEvent.click(stringTag1Checkbox);
 
     router.push({
@@ -245,12 +256,13 @@ describe('SchemaHintsList', () => {
     const seeFullList = screen.getByText('See full list');
     await userEvent.click(seeFullList);
 
-    const searchInput = screen.getByLabelText('Search attributes');
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+    const searchInput = withinDrawer.getByLabelText('Search attributes');
     await userEvent.type(searchInput, 'stringTag');
 
-    expect(screen.getByText('stringTag1')).toBeInTheDocument();
-    expect(screen.getByText('stringTag2')).toBeInTheDocument();
-    expect(screen.queryByText('numberTag1')).not.toBeInTheDocument();
-    expect(screen.queryByText('numberTag2')).not.toBeInTheDocument();
+    expect(withinDrawer.getByText('stringTag1')).toBeInTheDocument();
+    expect(withinDrawer.getByText('stringTag2')).toBeInTheDocument();
+    expect(withinDrawer.queryByText('numberTag1')).not.toBeInTheDocument();
+    expect(withinDrawer.queryByText('numberTag2')).not.toBeInTheDocument();
   });
 });

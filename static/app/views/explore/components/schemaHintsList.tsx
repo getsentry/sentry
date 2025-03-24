@@ -265,6 +265,20 @@ function SchemaHintsList({
     return `${prettifyTagKey(hint.name)} ${hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'} ...`;
   };
 
+  const getHintElement = (hint: Tag) => {
+    if (hint.key === seeFullListTag.key || hint.key === hideListTag.key) {
+      return hint.name;
+    }
+
+    return (
+      <HintTextContainer>
+        <HintName>{prettifyTagKey(hint.name)}</HintName>
+        <HintOperator>{hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'}</HintOperator>
+        <HintValue>...</HintValue>
+      </HintTextContainer>
+    );
+  };
+
   if (isLoading) {
     return (
       <SchemaHintsLoadingContainer>
@@ -274,14 +288,17 @@ function SchemaHintsList({
   }
 
   return (
-    <SchemaHintsContainer ref={schemaHintsContainerRef}>
+    <SchemaHintsContainer
+      ref={schemaHintsContainerRef}
+      aria-label={t('Schema Hints List')}
+    >
       {visibleHints.map(hint => (
         <SchemaHintOption
           key={hint.key}
           data-type={hint.key}
           onClick={() => onHintClick(hint)}
         >
-          {getHintText(hint)}
+          {getHintElement(hint)}
         </SchemaHintOption>
       ))}
     </SchemaHintsContainer>
@@ -327,4 +344,25 @@ const SchemaHintOption = styled(Button)`
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
   }
+`;
+
+const HintTextContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(0.5)};
+`;
+
+const HintName = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.textColor};
+`;
+
+const HintOperator = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.subText};
+`;
+
+const HintValue = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.purple400};
 `;
