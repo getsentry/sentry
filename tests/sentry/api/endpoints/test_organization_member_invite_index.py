@@ -1,25 +1,16 @@
 from dataclasses import replace
 from unittest.mock import patch
 
-from django.core import mail
-
 from sentry import roles
-from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.endpoints.organization_member_invite.index import (
     OrganizationMemberInviteRequestSerializer,
 )
-from sentry.api.invite_helper import ApiInviteHelper
-from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.organizationmember import InviteStatus
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.roles import organization_roles
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.authenticator import Authenticator
-from sentry.users.models.useremail import UserEmail
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -188,6 +179,9 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
     method = "post"
 
+    def setUp(self):
+        self.login_as(self.user)
+
     def invite_all_helper(self, role):
         invite_roles = ["owner", "manager", "member"]
 
@@ -312,7 +306,198 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
         self.invite_all_helper("member")
         self.invite_to_other_team_helper("member")
 
+    def test_respects_feature_flag(self):
+        user = self.create_user("baz@example.com")
+
+        with Feature({"organizations:invite-members": False}):
+            data = {"email": user.email, "orgRole": "member", "teams": [self.team.slug]}
+            self.get_error_response(self.organization.slug, **data, status_code=403)
+
+    def test_no_team_invites(self):
+        data = {"email": "eric@localhost", "orgRole": "owner", "teams": []}
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.data["email"] == "eric@localhost"
+
+    @patch.object(OrganizationMemberInvite, "send_invite_email")
+    def test_can_invite_member_with_pending_invite_request(self, mock_send_invite_email):
+        email = "test@gmail.com"
+
+        invite_request = self.create_member_invite(
+            email=email,
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        data = {"email": email, "orgRole": "member", "teams": [self.team.slug]}
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
+            self.get_success_response(self.organization.slug, **data)
+
+        assert not OrganizationMemberInvite.objects.filter(id=invite_request.id).exists()
+        assert OrganizationMemberInvite.objects.filter(
+            organization=self.organization, email=email
+        ).exists()
+
+        mock_send_invite_email.assert_called_once()
+
+    @patch.object(OrganizationMemberInvite, "send_invite_email")
+    def test_can_invite_member_with_pending_join_request(self, mock_send_invite_email):
+        email = "test@gmail.com"
+        join_request = self.create_member_invite(
+            email=email,
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+        )
+
+        data = {"email": email, "orgRole": "member", "teams": [self.team.slug]}
+        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks(), outbox_runner():
+            self.get_success_response(self.organization.slug, **data)
+
+        assert not OrganizationMemberInvite.objects.filter(id=join_request.id).exists()
+        assert OrganizationMemberInvite.objects.filter(
+            organization=self.organization, email=email
+        ).exists()
+
+        mock_send_invite_email.assert_called_once()
+
 
 class OrganizationMemberInviteListPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
     method = "post"
+
+    def setUp(self):
+        self.login_as(self.user)
+
+    def test_forbid_qq(self):
+        data = {"email": "1234@qq.com", "orgRole": "member", "teams": [self.team.slug]}
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert response.data["email"][0] == "Enter a valid email address."
+
+    @patch.object(OrganizationMemberInvite, "send_invite_email")
+    def test_simple(self, mock_send_invite_email):
+        data = {"email": "mifu@email.com", "orgRole": "member", "teams": [self.team.slug]}
+        response = self.get_success_response(self.organization.slug, **data)
+
+        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+        assert omi.email == "mifu@email.com"
+        assert omi.role == "member"
+        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+        assert omi.inviter_id == self.user.id
+
+        mock_send_invite_email.assert_called_once()
+
+    def test_no_teams(self):
+        data = {"email": "mifu@email.com", "orgRole": "member", "teams": []}
+        response = self.get_success_response(self.organization.slug, **data)
+
+        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+        assert omi.email == "mifu@email.com"
+        assert omi.role == "member"
+        assert omi.organization_member_team_data == []
+        assert omi.inviter_id == self.user.id
+
+    @patch.object(OrganizationMemberInvite, "send_invite_email")
+    def test_no_send_invite(self, mock_send_invite_email):
+        data = {
+            "email": "mifu@email.com",
+            "orgRole": "member",
+            "teams": [self.team.slug],
+            "sendInvite": False,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+        assert omi.email == "mifu@email.com"
+        assert omi.role == "member"
+        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+        assert omi.inviter_id == self.user.id
+
+        assert not mock_send_invite_email.mock_calls
+
+    @patch.object(OrganizationMemberInvite, "send_invite_email")
+    def test_referrer_param(self, mock_send_invite_email):
+        data = {"email": "mifu@email.com", "orgRole": "member", "teams": [self.team.slug]}
+        response = self.get_success_response(
+            self.organization.slug, **data, qs_params={"referrer": "test_referrer"}
+        )
+
+        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+        assert omi.email == "mifu@email.com"
+        assert omi.role == "member"
+        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+        assert omi.inviter_id == self.user.id
+
+        mock_send_invite_email.assert_called_with("test_referrer")
+
+    @patch.object(OrganizationMemberInvite, "send_invite_email")
+    def test_internal_integration_token_can_only_invite_member_role(self, mock_send_invite_email):
+        internal_integration = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["member:write"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_integration
+        )
+        err_message = (
+            "Integration tokens are restricted to inviting new members with the member role only."
+        )
+
+        data = {"email": "cat@meow.com", "orgRole": "owner", "teams": [self.team.slug]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=400,
+        )
+        assert response.data[0] == err_message
+
+        data = {"email": "dog@woof.com", "orgRole": "manager", "teams": [self.team.slug]}
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=400,
+        )
+        assert response.data[0] == err_message
+
+        data = {"email": "mifu@email.com", "orgRole": "member", "teams": [self.team.slug]}
+        response = self.get_success_response(
+            self.organization.slug,
+            **data,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=201,
+        )
+
+        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+        assert omi.email == "mifu@email.com"
+        assert omi.role == "member"
+        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+
+        mock_send_invite_email.assert_called_once()
+
+    @patch("sentry.ratelimits.for_organization_member_invite")
+    def test_rate_limited(self, mock_rate_limit):
+        mock_rate_limit.return_value = True
+
+        data = {"email": "mifu@email.com", "role": "member"}
+        self.get_error_response(self.organization.slug, **data, status_code=429)
+        assert not OrganizationMemberInvite.objects.filter(email="mifu@email.com").exists()
+
+    @patch(
+        "sentry.roles.organization_roles.get",
+        wraps=mock_organization_roles_get_factory(organization_roles.get),
+    )
+    def test_cannot_add_to_team_when_team_roles_disabled(self, mock_get):
+        owner_user = self.create_user("owner@localhost")
+        self.owner = self.create_member(
+            user=owner_user, organization=self.organization, role="owner"
+        )
+        self.login_as(user=owner_user)
+
+        data = {
+            "email": "mifu@email.com",
+            "orgRole": "member",
+            "teams": [self.team.slug],
+        }
+        response = self.get_error_response(self.organization.slug, **data, status_code=400)
+        assert (
+            response.data["email"]
+            == "The user with a 'member' role cannot have team-level permissions."
+        )
