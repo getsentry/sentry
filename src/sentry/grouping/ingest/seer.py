@@ -176,33 +176,6 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
     return has_been_backfilled
 
 
-# TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
-# combined with some other value). To the extent to which we're then using this function to decide
-# whether or not to call Seer, this means that the calculations giving rise to the default part of
-# the value never involve Seer input. In the long run, we probably want to change that.
-def _has_customized_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
-    fingerprint = event.data.get("fingerprint", [])
-
-    if "{{ default }}" in fingerprint:
-        # No custom fingerprinting at all
-        if len(fingerprint) == 1:
-            return False
-
-        # Hybrid fingerprinting ({{ default }} + some other value(s))
-        else:
-            record_did_call_seer_metric(event, call_made=False, blocker="hybrid-fingerprint")
-            return True
-
-    # Fully customized fingerprint (from either us or the user)
-    fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
-
-    if fingerprint_variant:
-        record_did_call_seer_metric(event, call_made=False, blocker=fingerprint_variant.type)
-        return True
-
-    return False
-
-
 # TODO: Make this the only fingerprint check once the hybrid fingerprint + Seer change is fully enabled
 def _has_custom_fingerprint(event: Event, variants: dict[str, BaseVariant]) -> bool:
     fingerprint_variant = variants.get("custom_fingerprint") or variants.get("built_in_fingerprint")
