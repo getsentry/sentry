@@ -82,11 +82,6 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
-
-  /**
-   * The org's feature flags
-   */
-  featureFlags?: string[];
 }
 
 type RequiredNotNull<T> = {
@@ -157,7 +152,6 @@ export default class ReplayReader {
     errors,
     replayRecord,
     clipWindow,
-    featureFlags,
     fetching,
   }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
@@ -169,7 +163,6 @@ export default class ReplayReader {
         attachments,
         errors,
         replayRecord,
-        featureFlags,
         fetching,
         clipWindow,
       });
@@ -183,7 +176,6 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
-        featureFlags,
         fetching,
         replayRecord,
         clipWindow,
@@ -194,7 +186,6 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
-    featureFlags,
     fetching,
     replayRecord,
     clipWindow,
@@ -242,7 +233,6 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this._replayRecord = replayRecord;
-    this._featureFlags = featureFlags;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
@@ -299,7 +289,6 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
-  private _featureFlags: string[] | undefined = [];
   private _fetching = true;
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
