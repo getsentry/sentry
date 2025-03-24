@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import wraps
 from typing import Any, TypeVar
 
+import sentry_sdk
 from celery import current_task
 from django.conf import settings
 from django.db.models import Model
@@ -163,7 +164,7 @@ def retry(
             except ignore:
                 return
             except ignore_and_capture:
-                Scope.set_level("info")
+                sentry_sdk.set_level("info")
                 capture_exception()
                 return
             except exclude:
