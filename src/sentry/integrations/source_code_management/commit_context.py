@@ -33,15 +33,17 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
-    ApiHostError,
     ApiInvalidRequestError,
     ApiRateLimitedError,
+    ApiRetryError,
 )
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
+
+GITLAB_CLOUD_BASE_URL = "https://gitlab.com"
 
 
 def _debounce_pr_comment_cache_key(pullrequest_id: int) -> str:
@@ -87,6 +89,8 @@ class CommitContextIntegration(ABC):
     """
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
     """
+
+    base_url: str
 
     @property
     @abstractmethod
@@ -135,10 +139,13 @@ class CommitContextIntegration(ABC):
                     return []
                 else:
                     raise
-            except ApiHostError as e:
+            except ApiRetryError as e:
                 # Ignore retry errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
-                if self.integration_name == ExternalProviderEnum.GITLAB.value:
+                if (
+                    self.integration_name == ExternalProviderEnum.GITLAB.value
+                    and self.base_url != GITLAB_CLOUD_BASE_URL
+                ):
                     lifecycle.record_halt(e)
                     return []
                 else:

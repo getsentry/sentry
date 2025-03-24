@@ -23,12 +23,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.shared_integrations.exceptions import (
-    ApiError,
-    ApiHostError,
-    ApiRateLimitedError,
-    ApiRetryError,
-)
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.identity import Identity
@@ -612,41 +607,6 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
         assert resp == []
-
-    @responses.activate
-    def test_retry_error_gitlab_com(self):
-        """Test that ApiRetryError is converted to ApiHostError for cloud installations"""
-        self.gitlab_client.base_url = "https://bufo-bot.gitlab.com"
-        path = "src/file.py"
-        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
-
-        responses.add(
-            responses.HEAD,
-            f"https://gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
-            body=ApiRetryError(text="Retry error"),
-        )
-
-        with pytest.raises(ApiHostError) as exc_info:
-            self.gitlab_client.check_file(self.repo, path, ref)
-
-        assert str(exc_info.value) == "Unable to reach host: bufo-bot.gitlab.com"
-
-    @responses.activate
-    def test_retry_error_self_hosted(self):
-        """Test that ApiRetryError is raised normally for self-hosted GitLab"""
-        path = "src/file.py"
-        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
-
-        responses.add(
-            responses.HEAD,
-            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
-            body=ApiRetryError(text="Retry error"),
-        )
-
-        with pytest.raises(ApiRetryError) as exc_info:
-            self.gitlab_client.check_file(self.repo, path, ref)
-
-        assert str(exc_info.value) == "Retry error"
 
 
 @control_silo_test
