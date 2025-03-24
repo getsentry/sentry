@@ -369,9 +369,5 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return fetch_file_blames(
             self,
             files,
-            extra={
-                **extra,
-                "provider": "gitlab",
-                "org_integration_id": self.org_integration_id,
-            },
+            extra={**extra, "provider": "gitlab", "org_integration_id": self.org_integration_id},
         )
