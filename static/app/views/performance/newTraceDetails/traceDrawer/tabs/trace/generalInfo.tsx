@@ -108,7 +108,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     throw new Error('Expected a trace node');
   }
 
-  if (props.tree.eventsCount === 0) {
+  if (props.tree.transactions_count === 0) {
     return null;
   }
 

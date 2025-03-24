@@ -73,7 +73,7 @@ export function TraceDetails(props: TraceDetailsProps) {
           organization={organization}
           location={location}
           eventView={props.traceEventView}
-          totalValues={props.tree.eventsCount}
+          totalValues={props.tree.transactions_count}
         />
       </TraceDrawerComponents.SectionCardGroup>
     </Fragment>
