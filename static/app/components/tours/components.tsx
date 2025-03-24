@@ -181,6 +181,7 @@ function TourElementContent<T extends TourEnumType>({
   className,
   actions,
 }: TourElementContentProps<T>) {
+  const organization = useOrganization();
   const {currentStepId, dispatch, orderedStepIds, handleStepRegistration, tourKey} =
     tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
@@ -190,6 +191,17 @@ function TourElementContent<T extends TourEnumType>({
   const isOpen = currentStepId === id;
   const {mutate} = useMutateAssistant();
   useEffect(() => handleStepRegistration({id}), [id, handleStepRegistration]);
+
+  useEffect(() => {
+    if (isOpen) {
+      trackAnalytics('tour-guide.open', {
+        organization,
+        id: id.toString(),
+        tour_key: tourKey,
+        step_count: stepCount,
+      });
+    }
+  }, [isOpen, id, organization, tourKey, stepCount]);
 
   const defaultActions = useMemo(
     () => (
@@ -204,13 +216,24 @@ function TourElementContent<T extends TourEnumType>({
             {t('Next')}
           </TourAction>
         ) : (
-          <TourAction size="xs" onClick={() => dispatch({type: 'END_TOUR'})}>
+          <TourAction
+            size="xs"
+            onClick={() => {
+              dispatch({type: 'END_TOUR'});
+              trackAnalytics('tour-guide.finish', {
+                organization,
+                id: id.toString(),
+                step_count: stepCount,
+                tour_key: tourKey,
+              });
+            }}
+          >
             {t('Finish tour')}
           </TourAction>
         )}
       </ButtonBar>
     ),
-    [hasPreviousStep, hasNextStep, dispatch]
+    [hasPreviousStep, hasNextStep, dispatch, organization, id, stepCount, tourKey]
   );
 
   return (
@@ -224,6 +247,12 @@ function TourElementContent<T extends TourEnumType>({
       handleDismiss={() => {
         if (tourKey) {
           mutate({guide: tourKey, status: 'dismissed'});
+          trackAnalytics('tour-guide.dismiss', {
+            organization,
+            id: id.toString(),
+            step_count: stepCount,
+            tour_key: tourKey,
+          });
         }
         dispatch({type: 'END_TOUR'});
       }}
@@ -267,7 +296,6 @@ export function TourGuide({
   description,
   actions,
   className,
-  id,
   isOpen,
   position,
   handleDismiss,
@@ -280,7 +308,6 @@ export function TourGuide({
   const prefersDarkMode = config.theme === 'dark';
 
   const theme = useTheme();
-  const organization = useOrganization();
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
@@ -291,12 +318,6 @@ export function TourGuide({
     position,
     offset,
   });
-
-  useEffect(() => {
-    if (isOpen) {
-      trackAnalytics('tour-guide.open', {organization, id});
-    }
-  }, [isOpen, id, organization]);
 
   const Wrapper = wrapperComponent ?? TourTriggerWrapper;
 
@@ -339,7 +360,6 @@ export function TourGuide({
                           {isDismissVisible && (
                             <TourCloseButton
                               onClick={e => {
-                                trackAnalytics('tour-guide.dismiss', {organization, id});
                                 handleDismiss(e);
                               }}
                               icon={<IconClose style={{color: darkTheme.textColor}} />}
