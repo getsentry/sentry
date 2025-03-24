@@ -9,7 +9,7 @@ import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ErrorLevel from 'sentry/components/events/errorLevel';
+import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import Link from 'sentry/components/links/link';
@@ -146,24 +146,12 @@ export default function StreamlinedGroupHeader({
                 </StatLink>
               ))}
           </StatTitle>
-          <Flex gap={space(1)} align="center" justify="flex-start">
-            {issueTypeConfig.logLevel.enabled && (
-              <ErrorLevel level={group.level} size={10} />
-            )}
-            <SecondaryTitle
-              title={secondaryTitle}
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-              isDefault={!secondaryTitle}
-            >
-              {secondaryTitle ? (
-                secondaryTitle
-              ) : (
-                <NoErrorMessage>({t('No error message')})</NoErrorMessage>
-              )}
-            </SecondaryTitle>
-          </Flex>
+          <EventMessage
+            data={group}
+            level={group.level}
+            message={secondaryTitle}
+            type={group.type}
+          />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />
@@ -261,13 +249,6 @@ const PrimaryTitle = styled(Tooltip)`
   flex-shrink: 0;
 `;
 
-const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
-`;
-
 const StatTitle = styled('div')`
   display: block;
   color: ${p => p.theme.subText};
@@ -348,8 +329,4 @@ const Workflow = styled('div')`
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
   align-items: center;
-`;
-
-const NoErrorMessage = styled('span')`
-  color: ${p => p.theme.subText};
 `;
