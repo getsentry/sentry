@@ -367,7 +367,7 @@ class OAuth2CallbackView(PipelineView):
 
             if error:
                 logger.info("identity.token-exchange-error", extra={"error": error})
-                lifecycle.record_failure(
+                lifecycle.record_halt(
                     "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
                 return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
@@ -382,12 +382,15 @@ class OAuth2CallbackView(PipelineView):
                         "code": code,
                     },
                 )
-                lifecycle.record_failure(
+                lifecycle.record_halt(
                     "token_exchange_error", extra={"failure_info": ERR_INVALID_STATE}
                 )
                 return pipeline.error(ERR_INVALID_STATE)
 
             if code is None:
+                lifecycle.record_halt(
+                    "no_code_provided", extra={"failure_info": "no_code_provided"}
+                )
                 return pipeline.error("no code was provided")
 
         # separate lifecycle event inside exchange_token

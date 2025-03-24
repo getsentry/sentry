@@ -688,7 +688,7 @@ class AccountConfigView(PipelineView):
                 "accounts": accounts,
             }
             if not accounts or not accounts.get("value"):
-                lifecycle.record_failure("no_accounts", extra=extra)
+                lifecycle.record_halt("no_accounts", extra=extra)
                 return render_to_response(
                     template="sentry/integrations/vsts-config.html",
                     context={"no_accounts": True},
