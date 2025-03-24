@@ -17,8 +17,10 @@ import {useGroupDefaultStatsPeriod} from 'sentry/views/issueDetails/useGroupDefa
 export function useIssueDetailsEventView({
   group,
   queryProps,
+  isSmallContainer = false,
 }: {
   group: Group;
+  isSmallContainer?: boolean;
   queryProps?: Partial<SavedQuery>;
 }) {
   const searchQuery = useEventQuery({groupId: group.id});
@@ -41,7 +43,8 @@ export function useIssueDetailsEventView({
       end: periodQuery?.end,
       period: periodQuery?.statsPeriod,
     },
-    'issues'
+    // Switch to low fidelity intervals on small screens
+    isSmallContainer ? 'low' : 'issues'
   );
   const config = getConfigForIssueType(group, group.project);
 
