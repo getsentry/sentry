@@ -4,13 +4,13 @@ import logging
 from typing import Any, cast
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus
-from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
-from sentry.integrations.metric_alerts import (
-    get_metric_count_from_incident,
-    incident_attachment_info,
+from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
 )
+from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcOrganizationIntegration
@@ -30,8 +30,8 @@ def build_incident_attachment(
 ) -> dict[str, Any]:
 
     data = incident_attachment_info(
-        alert_context=alert_context,
         metric_issue_context=metric_issue_context,
+        alert_context=alert_context,
         organization=organization,
         notification_uuid=notification_uuid,
         referrer="metric_alert_opsgenie",
@@ -59,13 +59,17 @@ def build_incident_attachment(
 
 
 def attach_custom_priority(
-    data: dict[str, Any], action: AlertRuleTriggerAction, new_status: IncidentStatus
+    data: dict[str, Any], notification_context: NotificationContext, new_status: IncidentStatus
 ) -> dict[str, Any]:
-    app_config = action.get_single_sentry_app_config()
-    if new_status == IncidentStatus.CLOSED or app_config is None:
+    sentry_app_config = notification_context.sentry_app_config
+    # use custom severity (overrides default in build_incident_attachment)
+    if new_status == IncidentStatus.CLOSED or sentry_app_config is None:
         return data
 
-    priority = app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
+    if isinstance(sentry_app_config, list):
+        raise ValueError("Sentry app config must be a single dict")
+
+    priority = sentry_app_config.get("priority", OPSGENIE_DEFAULT_PRIORITY)
     data["priority"] = priority
     return data
 
@@ -83,19 +87,16 @@ def get_team(team_id: int | str | None, org_integration: RpcOrganizationIntegrat
 
 
 def send_incident_alert_notification(
-    action: AlertRuleTriggerAction,
-    incident: Incident,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
+    notification_context: NotificationContext,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    organization: Organization,
     notification_uuid: str | None = None,
 ) -> bool:
     from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
-
     result = integration_service.organization_context(
-        organization_id=incident.organization_id, integration_id=action.integration_id
+        organization_id=organization.id, integration_id=notification_context.integration_id
     )
     integration = result.integration
     org_integration = result.organization_integration
@@ -103,7 +104,7 @@ def send_incident_alert_notification(
         logger.info("Opsgenie integration removed, but the rule is still active.")
         return False
 
-    team = get_team(org_integration=org_integration, team_id=action.target_identifier)
+    team = get_team(org_integration=org_integration, team_id=notification_context.target_identifier)
     if not team:
         # team removed, but the rule is still active
         logger.info("Opsgenie team removed, but the rule is still active.")
@@ -115,14 +116,14 @@ def send_incident_alert_notification(
     )
     client = install.get_keyring_client(keyid=team["id"])
     attachment = build_incident_attachment(
-        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-        metric_issue_context=MetricIssueContext.from_legacy_models(
-            incident, new_status, metric_value
-        ),
-        organization=incident.organization,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        organization=organization,
         notification_uuid=notification_uuid,
     )
-    attachment = attach_custom_priority(attachment, action, new_status)
+    attachment = attach_custom_priority(
+        attachment, notification_context, metric_issue_context.new_status
+    )
 
     try:
         resp = client.send_notification(attachment)
@@ -130,12 +131,12 @@ def send_incident_alert_notification(
             "rule.success.opsgenie_incident_alert",
             extra={
                 "status_code": resp.status_code,
-                "organization_id": incident.organization_id,
+                "organization_id": organization.id,
                 "data": attachment,
-                "status": new_status.value,
+                "status": metric_issue_context.new_status.value,
                 "team_name": team["team"],
                 "team_id": team["id"],
-                "integration_id": action.integration_id,
+                "integration_id": notification_context.integration_id,
             },
         )
         return True
@@ -147,7 +148,7 @@ def send_incident_alert_notification(
                 "data": attachment,
                 "team_name": team["team"],
                 "team_id": team["id"],
-                "integration_id": action.integration_id,
+                "integration_id": notification_context.integration_id,
             },
         )
         raise
