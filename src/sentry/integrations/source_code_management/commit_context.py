@@ -89,8 +89,6 @@ class CommitContextIntegration(ABC):
     Base class for integrations that include commit context features: suspect commits, suspect PR comments
     """
 
-    base_url: str
-
     @property
     @abstractmethod
     def integration_name(self) -> str:
@@ -143,7 +141,7 @@ class CommitContextIntegration(ABC):
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 if (
                     self.integration_name == ExternalProviderEnum.GITLAB.value
-                    and self.base_url != GITLAB_CLOUD_BASE_URL
+                    and client.base_url != GITLAB_CLOUD_BASE_URL
                 ):
                     lifecycle.record_halt(e)
                     return []
@@ -395,6 +393,8 @@ class CommitContextIntegration(ABC):
 
 
 class CommitContextClient(ABC):
+    base_url: str
+
     @abstractmethod
     def get_blame_for_files(
         self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
