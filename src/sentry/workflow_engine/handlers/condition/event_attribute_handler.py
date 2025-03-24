@@ -8,11 +8,11 @@ from sentry.rules.conditions.event_attribute import attribute_registry
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
 
 
 @condition_handler_registry.register(Condition.EVENT_ATTRIBUTE)
-class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
+class EventAttributeConditionHandler(DataConditionHandler[WorkflowJob]):
     group = DataConditionHandler.Group.ACTION_FILTER
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
 
@@ -50,8 +50,8 @@ class EventAttributeConditionHandler(DataConditionHandler[WorkflowEventData]):
         return attribute_values
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
-        event = job.event
+    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
+        event = job["event"]
         attribute = comparison.get("attribute", "")
         attribute_values = EventAttributeConditionHandler.get_attribute_values(event, attribute)
 

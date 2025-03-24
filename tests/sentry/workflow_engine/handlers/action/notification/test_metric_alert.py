@@ -26,7 +26,7 @@ from sentry.workflow_engine.handlers.action.notification.metric_alert import (
     PagerDutyMetricAlertHandler,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -165,11 +165,11 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
-        self.job.event.occurrence = None
+        self.job["event"].occurrence = None
 
         with pytest.raises(ValueError):
             self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
@@ -355,7 +355,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
