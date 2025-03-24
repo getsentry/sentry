@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.action_group_status import ActionGroupStatus
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowJob
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -25,7 +25,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.job = WorkflowEventData(event=self.group_event)
+        self.job = WorkflowJob({"event": self.group_event})
 
     def test(self):
         # test default frequency when no workflow.config set

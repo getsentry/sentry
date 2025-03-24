@@ -37,7 +37,7 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import WorkflowJob
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -945,20 +945,15 @@ def process_workflow_engine(job: PostProcessJob) -> None:
 
     from sentry.workflow_engine.processors.workflow import process_workflows
 
-    # PostProcessJob event is optional, WorkflowEventData event is required
+    # PostProcessJob event is optional, WorkflowJob event is required
     if "event" not in job:
-        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
+        logger.error("Missing event to create WorkflowJob", extra={"job": job})
         return
 
     try:
-        workflow_job = WorkflowEventData(
-            event=job["event"],
-            group_state=job.get("group_state"),
-            has_reappeared=job.get("has_reappeared"),
-            has_escalated=job.get("has_escalated"),
-        )
+        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
     except Exception:
-        logger.exception("Could not create WorkflowEventData", extra={"job": job})
+        logger.exception("Could not create WorkflowJob", extra={"job": job})
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
