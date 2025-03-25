@@ -36,6 +36,8 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
             else:
                 backend = tagstore.backend
 
+            include_values_seen = request.GET.get("includeValuesSeen") != "0"
+
             tag_keys = sorted(
                 backend.get_tag_keys(
                     project.id,
@@ -44,7 +46,7 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                     # We might be able to stop including these values, but this
                     # is a pretty old endpoint, so concerned about breaking
                     # existing api consumers.
-                    include_values_seen=True,
+                    include_values_seen=include_values_seen,
                     **kwargs,
                 ),
                 key=lambda x: x.key,
@@ -56,7 +58,7 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 {
                     "key": tagstore.backend.get_standardized_key(tag_key.key),
                     "name": tagstore.backend.get_tag_key_label(tag_key.key),
-                    "uniqueValues": tag_key.values_seen,
+                    **({"uniqueValues": tag_key.values_seen} if include_values_seen else {}),
                     "canDelete": tag_key.key not in PROTECTED_TAG_KEYS and not use_flag_backend,
                 }
             )

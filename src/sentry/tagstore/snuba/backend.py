@@ -412,6 +412,7 @@ class SnubaTagStorage(TagStorage):
             environment_id and [environment_id],
             denylist=denylist,
             tenant_ids=tenant_ids,
+            include_values_seen=include_values_seen,
         )
 
     def get_tag_keys_for_projects(
