@@ -25,10 +25,8 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const EXCLUDED_TAGS: string[] = [
   FeedbackFieldKey.BROWSER_VERSION,
-  FeedbackFieldKey.EMAIL,
   FeedbackFieldKey.LOCALE_LANG,
   FeedbackFieldKey.LOCALE_TIMEZONE,
-  FeedbackFieldKey.NAME,
   FieldKey.PLATFORM,
   FeedbackFieldKey.OS_VERSION,
   // These are found in issue platform and redundant (= __.name, ex os.name)
@@ -36,8 +34,6 @@ const EXCLUDED_TAGS: string[] = [
   'device',
   'os',
   'user',
-  // Prefer issues 'trace' field which has a better description. 'trace.id' tag is for display purposes only.
-  'trace.id',
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
