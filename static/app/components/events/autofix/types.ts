@@ -268,15 +268,17 @@ export interface RepoSettings {
   instructions: string;
 }
 
+export interface SeerRepoDefinition {
+  external_id: string;
+  name: string;
+  owner: string;
+  provider: string;
+  base_commit_sha?: string;
+  branch_name?: string;
+  instructions?: string;
+  provider_raw?: string;
+}
+
 export interface ProjectPreferences {
-  repositories: Array<{
-    external_id: string;
-    name: string;
-    owner: string;
-    provider: string;
-    base_commit_sha?: string;
-    branch_name?: string;
-    instructions?: string;
-    provider_raw?: string;
-  }>;
+  repositories: SeerRepoDefinition[];
 }

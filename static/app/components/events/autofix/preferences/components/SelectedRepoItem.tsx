@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
-import type {RepoSettings, Repository} from 'sentry/components/events/autofix/types';
+import type {RepoSettings} from 'sentry/components/events/autofix/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron as IconExpandToggle, IconClose, IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Repository} from 'sentry/types/integrations';
 
 interface Props {
   onRemove: () => void;

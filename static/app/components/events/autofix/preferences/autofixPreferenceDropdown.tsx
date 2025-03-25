@@ -12,7 +12,7 @@ import type {RepoSettings} from 'sentry/components/events/autofix/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconAdd, IconChevron, IconSearch, IconSettings} from 'sentry/icons';
+import {IconAdd, IconChevron, IconInfo, IconSearch, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
@@ -31,43 +31,67 @@ const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}
 function AutofixPreferenceDropdown({project}: {project: Project}) {
   const {data: repositories, isFetching: isFetchingRepositories} =
     useOrganizationRepositories();
-  const {data: preferences, isLoading: isLoadingPreferences} =
-    useProjectPreferences(project);
+  const {
+    preference,
+    codeMappingRepos,
+    isLoading: isLoadingPreferences,
+  } = useProjectPreferences(project);
   const savePreferences = useSaveProjectPreferences(project);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showAddRepositories, setShowAddRepositories] = useState(false);
+  const [showSaveNotice, setShowSaveNotice] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const theme = useTheme();
 
   useEffect(() => {
-    if (preferences?.repositories && repositories) {
-      const preferencesMap = new Map(
-        preferences.repositories.map(repo => [
-          repo.external_id,
-          {
-            branch: repo.branch_name || '',
-            instructions: repo.instructions || '',
-          },
-        ])
-      );
+    if (repositories) {
+      if (preference?.repositories) {
+        // Handle existing preferences
+        const preferencesMap = new Map(
+          preference.repositories.map(repo => [
+            repo.external_id,
+            {
+              branch: repo.branch_name || '',
+              instructions: repo.instructions || '',
+            },
+          ])
+        );
 
-      setSelectedRepoIds(preferences.repositories.map(repo => repo.external_id));
+        setSelectedRepoIds(preference.repositories.map(repo => repo.external_id));
 
-      const initialSettings: Record<string, RepoSettings> = {};
-      repositories.forEach(repo => {
-        initialSettings[repo.externalId] = preferencesMap.get(repo.externalId) || {
-          branch: '',
-          instructions: '',
-        };
-      });
+        const initialSettings: Record<string, RepoSettings> = {};
+        repositories.forEach(repo => {
+          initialSettings[repo.externalId] = preferencesMap.get(repo.externalId) || {
+            branch: '',
+            instructions: '',
+          };
+        });
 
-      setRepoSettings(initialSettings);
+        setRepoSettings(initialSettings);
+      } else if (codeMappingRepos?.length) {
+        // Set default settings using codeMappingRepos when no preferences exist
+        const repoIds = codeMappingRepos.map(repo => repo.external_id);
+        setSelectedRepoIds(repoIds);
+
+        const initialSettings: Record<string, RepoSettings> = {};
+        repositories.forEach(repo => {
+          // Initialize settings for all available repositories
+          initialSettings[repo.externalId] = {
+            branch: '',
+            instructions: '',
+          };
+        });
+
+        setRepoSettings(initialSettings);
+
+        savePreferences.mutate({repositories: codeMappingRepos});
+      }
     }
-  }, [preferences, repositories]);
+  }, [preference, repositories, codeMappingRepos, savePreferences]);
 
   const savePreferencesToServer = useCallback(
     (updatedIds?: string[], updatedSettings?: Record<string, RepoSettings>) => {
@@ -96,6 +120,8 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
       savePreferences.mutate({
         repositories: reposData,
       });
+
+      setShowSaveNotice(true);
     },
     [repositories, selectedRepoIds, repoSettings, savePreferences]
   );
@@ -309,6 +335,14 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
                 <ContentHeader>
                   <ContentTitle>{t('Autofix Settings')}</ContentTitle>
                 </ContentHeader>
+                {showSaveNotice && (
+                  <SaveNotice>
+                    <IconInfo size="sm" color="warningText" />
+                    {t(
+                      'Changes will apply to the next run. Hit "Start Over" then start a new run for Autofix to use your changes.'
+                    )}
+                  </SaveNotice>
+                )}
                 <SectionHeader>
                   <SectionTitle>
                     {sectionTitle}
@@ -536,4 +570,17 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 const LoadingMessage = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const SaveNotice = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  padding: ${space(1.5)};
+  margin-bottom: ${space(1.5)};
+  background-color: ${p => p.theme.yellow100};
+  border: 1px solid ${p => p.theme.yellow200};
+  border-radius: ${p => p.theme.borderRadius};
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.textColor};
 `;
