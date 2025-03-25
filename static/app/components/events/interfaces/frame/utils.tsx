@@ -202,15 +202,14 @@ function getProtocol(url: string): string {
 }
 
 /**
- * Determines whether to display the absolute path in the frame title
  *
- * This helps identify frames from external domains vs the application's domain.
+ * Determines whether the frame potentially originates from external domains vs the application's domain.
  *
  * @param frame The stack frame to check
  * @param event The event containing the frame
  * @returns True if the absolute path should be shown in the title
  */
-export function shouldDisplayAbsPathInTitle(frame: Frame, event: Event): boolean {
+export function isPotentiallyThirdPartyFrame(frame: Frame, event: Event): boolean {
   if (event.platform !== 'javascript') {
     return false;
   }

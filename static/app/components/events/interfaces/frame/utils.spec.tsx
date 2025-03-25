@@ -1,6 +1,6 @@
 import {
   hasFileExtension,
-  shouldDisplayAbsPathInTitle,
+  isPotentiallyThirdPartyFrame,
 } from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
 
@@ -28,7 +28,7 @@ describe('hasFileExtension', () => {
   });
 });
 
-describe('shouldDisplayAbsPathInTitle', () => {
+describe('isPotentiallyThirdPartyFrame', () => {
   it('returns false when absPath is from event subdomain', () => {
     const event = {
       tags: [{key: 'url', value: 'https://example.com/page'}],
@@ -37,7 +37,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'https://cdn.example.org/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
   it('returns false when absPath is from same origin as event', () => {
@@ -48,7 +48,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'https://example.com/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
   it('returns false when absPath is not a URL', () => {
@@ -59,7 +59,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: '/path/to/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
   it('returns false when event has no origin', () => {
@@ -70,7 +70,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'https://cdn.example.org/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
   it('returns true when script is from a different origin', () => {
@@ -81,7 +81,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'https://muy-diferente.com/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
   it('returns true when script is from a different protocol', () => {
@@ -92,7 +92,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'http://example.com/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
   it('returns false when platform is not js', () => {
@@ -103,7 +103,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'https://muy-diferente.com/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
   it('returns false when event URL is an IP address', () => {
@@ -114,7 +114,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'https://192.168.1.1/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
   it('returns false when event URL is localhost', () => {
@@ -125,7 +125,7 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'http://localhost:8000/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(false);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
   it('returns true when script is from different IP than event', () => {
@@ -136,6 +136,6 @@ describe('shouldDisplayAbsPathInTitle', () => {
     const frame = {
       absPath: 'https://192.168.1.2/script.js',
     } as Frame;
-    expect(shouldDisplayAbsPathInTitle(frame, event)).toBe(true);
+    expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 });

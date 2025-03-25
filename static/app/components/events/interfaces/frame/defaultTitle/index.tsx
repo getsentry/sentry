@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -27,12 +28,12 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  /**
+   * Determines if the frame potentially originates from a third party
+   */
+  isPotentiallyThirdParty?: boolean;
   isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
-  /**
-   * Whether to show the absolute path in the title instead of the relative path.
-   */
-  showAbsPath?: boolean;
 };
 
 type GetPathNameOutput = {key: string; value: string; meta?: Meta};
@@ -43,7 +44,7 @@ function DefaultTitle({
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
-  showAbsPath,
+  isPotentiallyThirdParty,
 }: Props) {
   const title: React.ReactElement[] = [];
   const framePlatform = getPlatform(frame.platform, platform);
@@ -51,6 +52,10 @@ function DefaultTitle({
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
+    if (isPotentiallyThirdParty && frame.absPath && isUrl(frame.absPath)) {
+      event.preventDefault();
+      openNavigateToExternalLinkModal({linkText: frame.absPath});
+    }
   };
 
   const getModule = (): GetPathNameOutput | undefined => {
@@ -116,7 +121,7 @@ function DefaultTitle({
           delay={tooltipDelay}
         >
           <code key="filename" className="filename" data-test-id="filename">
-            {showAbsPath && frame.absPath ? (
+            {isPotentiallyThirdParty && frame.absPath ? (
               <Truncate value={frame.absPath} maxLength={100} leftTrim />
             ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
