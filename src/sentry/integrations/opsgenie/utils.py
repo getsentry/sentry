@@ -30,7 +30,7 @@ def build_incident_attachment(
 ) -> dict[str, Any]:
 
     data = incident_attachment_info(
-        open_period_identifier=metric_issue_context.open_period_identifier,
+        metric_issue_context=metric_issue_context,
         alert_context=alert_context,
         organization=organization,
         notification_uuid=notification_uuid,
