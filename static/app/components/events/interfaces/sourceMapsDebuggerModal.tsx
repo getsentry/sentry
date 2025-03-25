@@ -1825,8 +1825,8 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p =>
     ({
-      none: p.theme.gray300,
-      question: p.theme.gray300,
+      none: p.theme.subText,
+      question: p.theme.subText,
       checked: p.theme.green300,
       alert: p.theme.yellow400,
     })[p.status]};
