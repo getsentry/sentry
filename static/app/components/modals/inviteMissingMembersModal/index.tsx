@@ -365,7 +365,7 @@ const MemberEmail = styled('div')`
   max-width: 150px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

@@ -24,7 +24,7 @@ export const NumberContainer = styled('div')`
 `;
 
 export const FieldDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-variant-numeric: tabular-nums;
   ${p => p.theme.overflowEllipsis};
 `;

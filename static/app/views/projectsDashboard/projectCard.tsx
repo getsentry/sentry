@@ -367,7 +367,7 @@ const ScoreCardWrapper = styled('div')`
     min-height: auto;
   }
   ${Title} {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
   ${ScoreWrapper} {
     flex-direction: column;
@@ -412,7 +412,7 @@ const DeploysWrapper = styled('div')`
 `;
 
 const ReleaseTitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 

@@ -57,7 +57,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
 }
 
 const AttachmentButton = styled(LinkButton)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

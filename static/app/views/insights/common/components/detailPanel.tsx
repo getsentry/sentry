@@ -128,7 +128,7 @@ export default function Detail({
 }
 
 const CloseButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   &:hover {
     color: ${p => p.theme.gray400};
   }
@@ -136,7 +136,7 @@ const CloseButton = styled(Button)`
 `;
 
 const PanelButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   &:hover {
     color: ${p => p.theme.gray400};
   }

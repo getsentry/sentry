@@ -383,7 +383,7 @@ const OnDemandInput = styled(Input)`
 const DetailTitle = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;
 

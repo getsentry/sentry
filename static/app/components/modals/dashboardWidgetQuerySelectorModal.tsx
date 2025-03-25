@@ -128,7 +128,7 @@ const SearchLabel = styled('label')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export const modalCss = css`

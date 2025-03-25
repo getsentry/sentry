@@ -44,7 +44,7 @@ const CloseIcon = styled('div')`
 const StyledIconClose = styled(IconClose)`
   color: ${p => p.theme.gray200};
   :hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
   cursor: pointer;
 `;

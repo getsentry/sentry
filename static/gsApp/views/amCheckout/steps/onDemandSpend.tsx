@@ -136,7 +136,7 @@ const Header = styled('div')`
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
@@ -150,7 +150,7 @@ const InputContainer = styled('div')`
 `;
 
 const InputHeader = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;
   font-weight: bold;

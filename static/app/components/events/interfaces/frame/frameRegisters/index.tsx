@@ -72,7 +72,7 @@ const Register = styled('div')`
   gap: ${space(0.5)};
   grid-template-columns: 3em 1fr;
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     text-align: right;

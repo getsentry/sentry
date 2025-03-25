@@ -2248,14 +2248,14 @@ const SearchIconContainer = styled('div')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SearchLabel = styled('label')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const InputWrapper = styled('div')`

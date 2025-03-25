@@ -444,7 +444,7 @@ const ThreadStateWrapper = styled('div')`
 
 const LockReason = styled(TextOverflow)`
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Wrapper = styled('div')`

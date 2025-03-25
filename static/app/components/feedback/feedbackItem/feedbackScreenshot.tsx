@@ -130,7 +130,7 @@ const File = styled(StyledPanel)`
 `;
 
 const NoPreviewFound = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: flex;
   flex-direction: column;
   align-items: center;

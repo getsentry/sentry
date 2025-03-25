@@ -530,7 +530,7 @@ const ReorderGroup = styled(Reorder.Group<Node<DraggableTabListItemProps>>)`
 
 const AddViewButton = styled(Button)`
   display: flex;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: normal;
   border-radius: ${p => `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`};
   padding: ${space(1)} ${space(1)};

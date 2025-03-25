@@ -289,7 +289,7 @@ const MeterBarFooterContainer = styled('div')<{
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.headerFontSize};
 `;
 

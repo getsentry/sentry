@@ -79,7 +79,7 @@ export const NumericColumnLabel = styled('div')`
 const ChangeLabel = styled('div')<{isNeutral: boolean; isPositive: boolean}>`
   color: ${p => {
     if (p.isNeutral) {
-      return p.theme.gray300;
+      return p.theme.subText;
     }
     if (p.isPositive) {
       return p.theme.red300;
@@ -97,7 +97,7 @@ const Change = styled('span')`
 `;
 
 const ChangeDescription = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   grid-column: span 3;
   text-align: right;

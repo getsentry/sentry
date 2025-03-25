@@ -46,7 +46,7 @@ export function ReplayBadge({group, project}: {group: Group; project: Project}) 
 }
 
 const ReplayButton = styled(LinkButton)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

@@ -6,10 +6,10 @@ const EventAnnotation = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   border-left: 1px solid ${p => p.theme.innerBorder};
   padding-left: ${space(1)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   a {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
 
     &:hover {
       color: ${p => p.theme.subText};

@@ -62,7 +62,7 @@ const Name = styled('span')<{hideEmail: boolean}>`
 const Email = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
 `;
 

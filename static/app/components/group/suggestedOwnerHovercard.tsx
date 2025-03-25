@@ -228,7 +228,7 @@ const CommitDate = styled(({date, ...props}: any) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const CommitReasonItem = styled('div')`
@@ -263,7 +263,7 @@ const OwnershipTag = styled(
 
 const ViewMoreButton = styled(Button)`
   border: none;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;

@@ -78,5 +78,5 @@ const OpenInLink = styled(ExternalLink)`
   display: flex;
   gap: ${space(0.75)};
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

@@ -292,7 +292,7 @@ const TitleType = styled('div')`
 const TitleDescription = styled('div')`
   ${p => p.theme.overflowEllipsis};
   display: flex;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-align: right;
   font-size: ${p => p.theme.fontSizeMedium};
   ${p => p.theme.overflowEllipsis};
@@ -374,18 +374,18 @@ const LegendText = styled('span')<{unfocus: boolean}>`
 const LegendPercent = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin-left: ${space(1)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-align: right;
   flex-grow: 1;
 `;
 
 const ExpandToggleButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
 `;
 
 const NotApplicableLabel = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledSummary = styled('summary')`

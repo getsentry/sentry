@@ -158,7 +158,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   flex-shrink: 0;
   margin-right: ${space(0.25)};
 `;

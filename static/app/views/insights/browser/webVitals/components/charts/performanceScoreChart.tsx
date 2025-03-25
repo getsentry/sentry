@@ -144,7 +144,7 @@ const PerformanceScoreLabel = styled('div')`
 const PerformanceScoreSubtext = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
 `;
 

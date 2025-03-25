@@ -218,7 +218,7 @@ export const DismissButton = styled(Button)`
 
 export const PagesTooltip = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline dotted ${p => p.theme.gray300};
 `;
 

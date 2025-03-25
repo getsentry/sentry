@@ -186,7 +186,7 @@ const ExploreParamSection = styled('span')`
 
 const ExploreParamTitle = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   padding-top: 3px;
 `;

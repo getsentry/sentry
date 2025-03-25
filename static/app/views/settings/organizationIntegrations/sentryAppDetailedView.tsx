@@ -428,7 +428,7 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledUninstallButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   background: ${p => p.theme.background};
 
   border: ${p => `1px solid ${p.theme.gray300}`};

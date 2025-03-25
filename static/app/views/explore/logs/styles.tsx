@@ -154,7 +154,7 @@ export const ColoredLogText = styled('span')<{
 `;
 
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-align: ${p => p.align || 'left'};
 `;
 

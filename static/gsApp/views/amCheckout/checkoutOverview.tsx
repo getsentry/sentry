@@ -368,7 +368,7 @@ const DetailTitle = styled('div')<{noBottomMargin?: boolean}>`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
   ${p => !p.noBottomMargin && `margin-bottom: ${space(1)};`}
 `;
@@ -395,7 +395,7 @@ const OnDemandPrice = styled('div')`
 `;
 
 const OriginalPrice = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: line-through;
 `;
 
@@ -416,7 +416,7 @@ const DiscountWrapper = styled('div')`
   align-items: center;
   gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const DurationText = styled('div')`
@@ -430,7 +430,7 @@ const ProminantPlanName = styled('span')`
 
 const ChurnPromoText = styled('span')`
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: bold;
 `;
 

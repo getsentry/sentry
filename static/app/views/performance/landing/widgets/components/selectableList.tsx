@@ -73,7 +73,7 @@ export const RightAlignedCell = styled('div')`
 `;
 
 export const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: inline-block;
 `;
@@ -251,14 +251,14 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const PrimaryMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0 auto ${space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   max-width: 300px;
 `;
 

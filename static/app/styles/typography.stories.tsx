@@ -543,10 +543,10 @@ const FixedExternalLink = styled(ExternalLink)`
 `;
 
 const FooterLink = styled(Link)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   :hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     text-decoration: underline ${p => p.theme.gray200};
   }
 `;

@@ -343,7 +343,7 @@ const LinkContainer = styled('div')<{disabled?: boolean}>`
     p.disabled &&
     `
     opacity: 0.5;
-    color: ${p.theme.gray300};
+    color: ${p.theme.disabled};
     cursor: default;
   `}
 `;

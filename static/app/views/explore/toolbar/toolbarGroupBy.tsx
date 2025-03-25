@@ -217,7 +217,7 @@ const TriggerLabel = styled('span')`
 `;
 
 const Disabled = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const FullWidthTooltip = styled(Tooltip)`

@@ -118,7 +118,7 @@ const ListTitle = styled('div')`
   align-items: center;
   padding: ${space(1)} ${space(1.5)};
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeSmall};

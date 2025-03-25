@@ -287,14 +287,14 @@ const JsonLinkWrapper = styled('div')`
 `;
 
 const JsonLink = styled(ExternalLink)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-color: ${p => Color(p.theme.gray300).alpha(0.5).string()};
 
   :hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     text-decoration: underline;
-    text-decoration-color: ${p => p.theme.gray300};
+    text-decoration-color: ${p => p.theme.subText};
   }
 `;
 

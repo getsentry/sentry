@@ -211,7 +211,7 @@ const StyledPanelTable = styled(PanelTable)<{expanded: boolean; isEmpty: boolean
 `;
 
 const StyledDateTime = styled(DateTime)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Cell = styled('div')`

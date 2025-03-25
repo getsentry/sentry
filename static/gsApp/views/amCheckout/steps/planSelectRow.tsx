@@ -238,12 +238,12 @@ const PlanName = styled('div')`
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
 const PriceHeader = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   text-transform: uppercase;
   font-weight: bold;
@@ -275,7 +275,7 @@ const FeatureList = styled('div')`
   grid-template-rows: auto;
   gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   > a {
     width: fit-content;
@@ -301,7 +301,7 @@ const Title = styled('div')`
 `;
 
 const OriginalTotal = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: line-through;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -313,6 +313,6 @@ const DiscountWrapper = styled('div')`
 `;
 
 const PercentOff = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
