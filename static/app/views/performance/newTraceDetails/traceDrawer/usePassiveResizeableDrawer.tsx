@@ -17,7 +17,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
   onMouseDown: React.MouseEventHandler<HTMLElement>;
   size: React.MutableRefObject<number>;
 } {
-  const stateRef = useRef<undefined | 'resizing'>();
+  const stateRef = useRef<undefined | 'resizing'>(undefined);
   const rafIdRef = useRef<number | null>(null);
   const sizeRef = useRef(options.initialSize);
   const currentMouseVectorRaf = useRef<[number, number] | null>(null);
