@@ -112,7 +112,7 @@ const BodyWrapper = styled('div')`
 `;
 const TabsWrapper = styled('div')`
   flex: 1;
-  margin: 0; /* sentry/components/navTabs has added margin */
+  margin: 0;
 `;
 
 export default SettingsPageHeader;
