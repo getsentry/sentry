@@ -22,6 +22,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
@@ -50,6 +51,14 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   omitBlur?: boolean;
   /**
+   * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
+   */
+  onEndTour?: () => void;
+  /**
+   * Called when the tour is started.
+   */
+  onStartTour?: (stepId?: T) => void;
+  /**
    * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
    */
   tourKey?: string;
@@ -62,17 +71,25 @@ export function TourContextProvider<T extends TourEnumType>({
   tourContext,
   omitBlur,
   orderedStepIds,
+  onEndTour,
+  onStartTour,
 }: TourContextProviderProps<T>) {
   const organization = useOrganization();
   const {mutate} = useMutateAssistant();
-  const tourContextValue = useTourReducer<T>({
-    isCompleted,
-    isRegistered: false,
-    orderedStepIds,
-    currentStepId: null,
-    tourKey,
-  });
-  const {dispatch, currentStepId} = tourContextValue;
+  const tourContextValue = useTourReducer<T>(
+    {
+      isCompleted,
+      isRegistered: false,
+      orderedStepIds,
+      currentStepId: null,
+      tourKey,
+    },
+    {
+      onStartTour,
+      onEndTour,
+    }
+  );
+  const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 
   const tourHotkeys = useMemo(() => {
@@ -88,13 +105,22 @@ export function TourContextProvider<T extends TourEnumType>({
             mutate({guide: tourKey, status: 'dismissed'});
           }
           trackAnalytics('tour-guide.dismiss', {organization, id: `${currentStepId}`});
-          dispatch({type: 'END_TOUR'});
+          endTour();
         },
       },
-      {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
-      {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
+      {match: ['left', 'h'], callback: () => previousStep()},
+      {match: ['right', 'l'], callback: () => nextStep()},
     ];
-  }, [dispatch, mutate, tourKey, isTourActive, organization, currentStepId]);
+  }, [
+    isTourActive,
+    tourKey,
+    organization,
+    currentStepId,
+    endTour,
+    mutate,
+    previousStep,
+    nextStep,
+  ]);
 
   useHotkeys(tourHotkeys);
 
@@ -180,8 +206,15 @@ function TourElementContent<T extends TourEnumType>({
   actions,
 }: TourElementContentProps<T>) {
   const organization = useOrganization();
-  const {currentStepId, dispatch, orderedStepIds, handleStepRegistration, tourKey} =
-    tourContextValue;
+  const {
+    currentStepId,
+    orderedStepIds,
+    handleStepRegistration,
+    tourKey,
+    previousStep,
+    nextStep,
+    endTour,
+  } = tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
   const hasPreviousStep = stepCount > 1;
@@ -205,19 +238,19 @@ function TourElementContent<T extends TourEnumType>({
     () => (
       <ButtonBar gap={1}>
         {hasPreviousStep && (
-          <TextTourAction size="xs" onClick={() => dispatch({type: 'PREVIOUS_STEP'})}>
+          <TextTourAction size="xs" onClick={() => previousStep()}>
             {t('Previous')}
           </TextTourAction>
         )}
         {hasNextStep ? (
-          <TourAction size="xs" onClick={() => dispatch({type: 'NEXT_STEP'})}>
+          <TourAction size="xs" onClick={() => nextStep()}>
             {t('Next')}
           </TourAction>
         ) : (
           <TourAction
             size="xs"
             onClick={() => {
-              dispatch({type: 'END_TOUR'});
+              endTour();
               trackAnalytics('tour-guide.finish', {
                 organization,
                 id: id.toString(),
@@ -231,7 +264,17 @@ function TourElementContent<T extends TourEnumType>({
         )}
       </ButtonBar>
     ),
-    [hasPreviousStep, hasNextStep, dispatch, organization, id, stepCount, tourKey]
+    [
+      hasPreviousStep,
+      hasNextStep,
+      previousStep,
+      nextStep,
+      endTour,
+      organization,
+      id,
+      stepCount,
+      tourKey,
+    ]
   );
 
   return (
@@ -252,7 +295,7 @@ function TourElementContent<T extends TourEnumType>({
             tour_key: tourKey,
           });
         }
-        dispatch({type: 'END_TOUR'});
+        endTour();
       }}
       stepCount={stepCount}
       stepTotal={stepTotal}
@@ -310,7 +353,7 @@ export function TourGuide({
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, overlayProps, arrowProps} = useOverlay({
+  const {triggerProps, overlayProps, arrowProps, update} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
@@ -318,6 +361,13 @@ export function TourGuide({
   });
 
   const Wrapper = wrapperComponent ?? TourTriggerWrapper;
+
+  // Update the overlay positioning when the content changes
+  useEffectAfterFirstRender(() => {
+    if (isOpen && update && defined(title) && defined(description)) {
+      update();
+    }
+  }, [isOpen, update, title, description]);
 
   return (
     <Fragment>
