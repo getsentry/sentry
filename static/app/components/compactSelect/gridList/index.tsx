@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useId, useMemo, useRef} from 'react';
+import {Fragment, useContext, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -82,16 +82,13 @@ function GridList({
     ref
   );
 
-  const onKeyDown = useCallback<React.KeyboardEventHandler<HTMLUListElement>>(
-    e => {
-      const continueCallback = keyDownHandler?.(e);
-      // Prevent grid list from clearing value on Escape key press
-      if (continueCallback && e.key !== 'Escape') {
-        gridProps.onKeyDown?.(e);
-      }
-    },
-    [keyDownHandler, gridProps]
-  );
+  const onKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    const continueCallback = keyDownHandler?.(e);
+    // Prevent grid list from clearing value on Escape key press
+    if (continueCallback && e.key !== 'Escape') {
+      gridProps.onKeyDown?.(e);
+    }
+  };
 
   const {overlayIsOpen, search} = useContext(SelectContext);
   const hiddenOptions = useContext(SelectFilterContext);
