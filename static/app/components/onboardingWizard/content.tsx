@@ -413,7 +413,7 @@ function ExpandedTaskGroup({
   const api = useApi();
   const organization = useOrganization();
 
-  const markCompletionTimeout = useRef<number | undefined>();
+  const markCompletionTimeout = useRef<number | undefined>(undefined);
 
   function completionTimeout(time: number): Promise<void> {
     window.clearTimeout(markCompletionTimeout.current);
