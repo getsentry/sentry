@@ -83,6 +83,9 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
+        if not features.has("organizations:autofix-seer-preferences", project.organization):
+            return Response("Feature flag not enabled", status=403)
+
         path = "/v1/project-preference"
         body = orjson.dumps(
             {
