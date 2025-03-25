@@ -164,6 +164,9 @@ class Fixtures:
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 
+    def create_member_invite(self, *args, **kwargs):
+        return Factories.create_member_invite(*args, **kwargs)
+
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
