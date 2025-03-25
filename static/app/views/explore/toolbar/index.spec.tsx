@@ -361,7 +361,7 @@ describe('ExploreToolbar', function () {
       'timestamp',
     ]); // default
 
-    let input;
+    let input: HTMLElement;
 
     // try changing the field
     input = within(section).getByRole('combobox', {
@@ -369,6 +369,7 @@ describe('ExploreToolbar', function () {
     });
     await userEvent.click(input);
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await userEvent.keyboard('{Escape}');
 
     expect(fields).toEqual([
       'id',
@@ -385,6 +386,8 @@ describe('ExploreToolbar', function () {
 
     await userEvent.click(within(section).getByRole('option', {name: 'count(\u2026)'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(within(section).getByText('Visualize'));
 
     expect(visualizes).toEqual([
       {
@@ -393,8 +396,6 @@ describe('ExploreToolbar', function () {
         yAxes: ['count(span.self_time)'],
       },
     ]);
-
-    await userEvent.keyboard('{Escape}');
 
     // try adding an overlay
     await userEvent.click(within(section).getByRole('button', {name: 'Add Series'}));
@@ -405,6 +406,9 @@ describe('ExploreToolbar', function () {
       .at(-1)!;
     await userEvent.click(input);
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(within(section).getByText('Visualize'));
+
     expect(visualizes).toEqual([
       {
         chartType: ChartType.LINE,
@@ -412,8 +416,6 @@ describe('ExploreToolbar', function () {
         yAxes: ['count(span.self_time)', 'avg(span.self_time)'],
       },
     ]);
-
-    await userEvent.keyboard('{Escape}');
 
     // try adding a new chart
     await userEvent.click(within(section).getByRole('button', {name: 'Add Chart'}));
