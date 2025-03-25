@@ -53,7 +53,6 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
   );
 }
 
-// Styled components
 const BaseRepoContainer = styled('div')`
   display: flex;
   flex-direction: column;

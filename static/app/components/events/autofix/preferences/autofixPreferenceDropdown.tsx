@@ -79,7 +79,6 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
 
         const initialSettings: Record<string, RepoSettings> = {};
         repositories.forEach(repo => {
-          // Initialize settings for all available repositories
           initialSettings[repo.externalId] = {
             branch: '',
             instructions: '',

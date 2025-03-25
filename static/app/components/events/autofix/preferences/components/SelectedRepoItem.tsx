@@ -176,7 +176,6 @@ export function SelectedRepoItem({repo, onRemove, settings, onSettingsChange}: P
   );
 }
 
-// Styled components
 const BaseRepoContainer = styled('div')`
   display: flex;
   flex-direction: column;
