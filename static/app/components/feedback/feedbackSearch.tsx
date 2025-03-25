@@ -36,6 +36,8 @@ const EXCLUDED_TAGS: string[] = [
   'device',
   'os',
   'user',
+  // Prefer issue platform 'trace' which has a better description. 'trace.id' tag is for display purposes.
+  'trace.id',
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
