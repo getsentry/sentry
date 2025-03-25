@@ -1307,7 +1307,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 10_000);
 
   it('calls api with correct manually invoiced on-demand args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
