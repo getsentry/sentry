@@ -536,6 +536,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            group=self.group_event.group,
         )
 
         assert organization == self.detector.project.organization
