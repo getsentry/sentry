@@ -72,7 +72,6 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
                     environments: viewEnvironments,
                     projects: viewProjects,
                     timeFilters: viewTimeFilters,
-                    isAllProjects,
                   },
                   index
                 ): IssueView => {
@@ -85,7 +84,7 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
                     query: viewQuery,
                     querySort: viewQuerySort,
                     environments: viewEnvironments,
-                    projects: isAllProjects ? [-1] : viewProjects,
+                    projects: viewProjects,
                     timeFilters: viewTimeFilters,
                     isCommitted: true,
                   };
