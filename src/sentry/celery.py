@@ -10,12 +10,8 @@ from django.db import models
 
 from sentry.utils import metrics
 
-LEGACY_PICKLE_TASKS = frozenset(
-    [
-        # basic tasks that must be passed models still
-        "sentry.tasks.process_buffer.process_incr",
-    ]
-)
+# XXX: Pickle parameters are not allowed going forward
+LEGACY_PICKLE_TASKS = frozenset([])
 
 
 def holds_bad_pickle_object(value, memo=None):
