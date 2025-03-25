@@ -430,7 +430,7 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     profile = profile_data.get("profile")
     if not profile:
         return []
-    
+
     frames = profile.get("frames")
     stacks = profile.get("stacks")
     samples = profile.get("samples")
