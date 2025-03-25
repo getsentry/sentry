@@ -55,7 +55,6 @@ import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-import {showConfidence} from 'sentry/views/explore/utils';
 
 import {getFormatter} from '../../../components/charts/components/tooltip';
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -88,7 +87,6 @@ type WidgetCardChartProps = Pick<
   confidence?: Confidence;
   expandNumbers?: boolean;
   isMobile?: boolean;
-  isSampled?: boolean | null;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: string;
   noPadding?: boolean;
@@ -283,7 +281,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       confidence,
       showConfidenceWarning,
       sampleCount,
-      isSampled,
     } = this.props;
 
     if (errorMessage) {
@@ -550,15 +547,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                         })}
                       </RenderedChartContainer>
 
-                      {showConfidenceWarning &&
-                        confidence &&
-                        showConfidence(isSampled) && (
-                          <ConfidenceFooter
-                            confidence={confidence}
-                            sampleCount={sampleCount}
-                            topEvents={topEventsCountExcludingOther}
-                          />
-                        )}
+                      {showConfidenceWarning && confidence && (
+                        <ConfidenceFooter
+                          confidence={confidence}
+                          sampleCount={sampleCount}
+                          topEvents={topEventsCountExcludingOther}
+                        />
+                      )}
                     </ChartWrapper>
                   </TransitionChart>
                 );

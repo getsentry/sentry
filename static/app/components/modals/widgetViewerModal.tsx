@@ -113,7 +113,6 @@ export interface WidgetViewerModalOptions {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
-  isSampled?: boolean | null;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
@@ -199,7 +198,6 @@ function WidgetViewerModal(props: Props) {
     dashboardCreator,
     confidence,
     sampleCount,
-    isSampled,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -859,7 +857,6 @@ function WidgetViewerModal(props: Props) {
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
                 confidence={confidence}
                 sampleCount={sampleCount}
-                isSampled={isSampled}
               />
             ) : (
               <MemoizedWidgetCardChartContainer

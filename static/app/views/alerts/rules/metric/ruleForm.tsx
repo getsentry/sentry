@@ -1127,7 +1127,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartError,
       chartErrorMessage,
       confidence,
-      isSampled,
     } = this.state;
 
     if (chartError) {
@@ -1175,7 +1174,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
       confidence,
-      isSampled,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
