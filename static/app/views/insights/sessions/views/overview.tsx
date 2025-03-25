@@ -1,10 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
-import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -30,6 +28,7 @@ import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessio
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -41,8 +40,6 @@ export function SessionsOverview() {
   // only show onboarding if the project does not have session data
   const hasSessionData = useProjectHasSessions();
   const showOnboarding = !hasSessionData;
-
-  useRouteAnalyticsParams({view});
 
   return (
     <Fragment>
@@ -95,8 +92,6 @@ function ViewSpecificCharts({
   setFilters: (filter: string[]) => void;
   view: DomainView | '';
 }) {
-  const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
-
   switch (view) {
     case FRONTEND_LANDING_SUB_PATH:
       return (
@@ -124,8 +119,12 @@ function ViewSpecificCharts({
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <GiveFeedbackSection />
+          </ModuleLayout.Third>
         </Fragment>
       );
+
     case MOBILE_LANDING_SUB_PATH:
       return (
         <Fragment>
@@ -159,14 +158,12 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
-          {/* only show this chart if the project has user feedback set up */}
-          {hasSetupOneFeedback && (
-            <Fragment>
-              <ModuleLayout.Third>
-                <NewAndResolvedIssueChart type="feedback" />
-              </ModuleLayout.Third>
-            </Fragment>
-          )}
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <GiveFeedbackSection />
+          </ModuleLayout.Third>
 
           <ModuleLayout.Full>
             <FilterWrapper>

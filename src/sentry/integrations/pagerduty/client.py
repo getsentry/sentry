@@ -19,6 +19,7 @@ LEVEL_SEVERITY_MAP: dict[str, PagerdutySeverity] = {
     "fatal": "critical",
 }
 PAGERDUTY_DEFAULT_SEVERITY: PagerdutySeverity = "default"  # represents using LEVEL_SEVERITY_MAP
+PAGERDUTY_SUMMARY_MAX_LENGTH = 1024
 
 
 class PagerDutyClient(ApiClient):
@@ -30,11 +31,9 @@ class PagerDutyClient(ApiClient):
         self.integration_key = integration_key
         super().__init__(integration_id=integration_id)
 
-    def request(self, method: str, *args: Any, **kwargs: Any) -> Any:
-        headers = kwargs.pop("headers", None)
-        if headers is None:
-            headers = {"Content-Type": "application/json"}
-        return self._request(method, *args, headers=headers, **kwargs)
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        kwargs.setdefault("headers", {"Content-Type": "application/json"})
+        return self._request(*args, **kwargs)
 
     def send_trigger(self, data: PagerDutyEventPayload):
         with record_event(OnCallInteractionType.CREATE).capture():
@@ -52,7 +51,7 @@ def build_pagerduty_event_payload(
     group = event.group
     level = event.get_tag("level") or "error"
     custom_details = serialize(event, None, ExternalEventSerializer())
-    summary = custom_details["message"][:1024] or custom_details["title"]
+    summary = custom_details["message"][:PAGERDUTY_SUMMARY_MAX_LENGTH] or custom_details["title"]
 
     link_params = {"referrer": "pagerduty_integration"}
     if notification_uuid:
