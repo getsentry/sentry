@@ -747,7 +747,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 1,
+          events: 0,
           unitPrice: 0,
           price: 0,
         },
@@ -825,7 +825,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 1,
+          events: 0,
           unitPrice: 0,
           price: 0,
         },
@@ -1498,7 +1498,7 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 1,
+          events: 0,
           unitPrice: 0,
           price: 0,
         },
