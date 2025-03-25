@@ -3123,6 +3123,12 @@ describe('Customer Details', function () {
       await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
 
+      // reservedProfileDuration
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Continuous Profile hours'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '50'}));
+
       // reservedMonitorSeats
       await selectEvent.openMenu(
         await screen.findByRole('textbox', {name: 'Cron monitors'})
@@ -3246,6 +3252,12 @@ describe('Customer Details', function () {
       // reservedSpans
       await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
+
+      // reservedProfileDuration
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Continuous Profile hours'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '0'}));
 
       // reservedMonitorSeats
       await selectEvent.openMenu(
