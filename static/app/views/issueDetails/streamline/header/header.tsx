@@ -146,7 +146,7 @@ export default function StreamlinedGroupHeader({
                 </StatLink>
               ))}
           </StatTitle>
-          <StyledEventMessage
+          <EventMessage
             data={group}
             level={group.level}
             message={secondaryTitle}
@@ -329,8 +329,4 @@ const Workflow = styled('div')`
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
   align-items: center;
-`;
-
-const StyledEventMessage = styled(EventMessage)`
-  gap: ${space(0.5)};
 `;

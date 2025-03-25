@@ -223,7 +223,6 @@ function Location(props: any) {
 
 const StyledEventMessage = styled(EventMessage)`
   margin: 0 0 5px;
-  gap: ${space(0.5)};
   font-size: inherit;
 `;
 
