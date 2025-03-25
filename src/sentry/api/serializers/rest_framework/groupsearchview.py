@@ -1,11 +1,16 @@
 from typing import Any, NotRequired, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 
 from sentry import features
 from sentry.api.serializers.rest_framework import ValidationError
+from sentry.models.groupsearchview import DEFAULT_TIME_FILTER
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
+from sentry.models.team import Team
+from sentry.users.models.user import User
 
 MAX_VIEWS = 50
 
@@ -29,7 +34,7 @@ class ViewValidator(serializers.Serializer):
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, allow_blank=True)
     querySort = serializers.ChoiceField(
-        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+        required=False, choices=SortOptions.as_choices(), default=SortOptions.DATE
     )
 
     projects = serializers.ListField(required=True, allow_empty=True)
@@ -57,7 +62,7 @@ class ViewValidator(serializers.Serializer):
         return value
 
     def validate(self, data) -> GroupSearchViewValidatorResponse:
-        if data["projects"] == [-1]:
+        if data.get("projects") == [-1]:
             data["projects"] = []
             data["isAllProjects"] = True
         else:
@@ -72,3 +77,37 @@ class GroupSearchViewValidator(serializers.Serializer):
 
     def validate(self, data):
         return data
+
+
+class GroupSearchViewPostValidator(ViewValidator):
+    projects = serializers.ListField(required=False, allow_empty=True)
+    environments = serializers.ListField(required=False, allow_empty=True, default=[])
+    timeFilters = serializers.DictField(
+        required=False, allow_empty=False, default=DEFAULT_TIME_FILTER
+    )
+    # Pass in position to indicate this new view is starred.
+    position = serializers.IntegerField(required=False)
+
+    def validate(self, data):
+        if data.get("projects") is None:
+            data["projects"] = (
+                []
+                if features.has("organizations:global-views", self.context["organization"])
+                else [
+                    pick_default_project(self.context["organization"], self.context["request"].user)
+                ]
+            )
+
+        return super().validate(data)
+
+
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
+    user_teams = Team.objects.get_for_user(organization=org, user=user)
+    user_team_ids = [team.id for team in user_teams]
+    default_user_project = (
+        Project.objects.get_for_team_ids(user_team_ids)
+        .order_by("slug")
+        .values_list("id", flat=True)
+        .first()
+    )
+    return default_user_project
