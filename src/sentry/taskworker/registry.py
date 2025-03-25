@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
+from concurrent.futures import Future
 from typing import Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
@@ -125,38 +126,37 @@ class TaskNamespace:
 
         return wrapped
 
+    def _handle_produce_future(self, future: Future, tags: dict[str, str]) -> None:
+        if future.cancelled():
+            metrics.incr("taskworker.registry.send_task.cancelled", tags=tags)
+        elif future.exception(
+            1
+        ):  # this does not block since this callback only gets run when the future is finished and exception is set
+            metrics.incr("taskworker.registry.send_task.failed", tags=tags)
+        else:
+            metrics.incr("taskworker.registry.send_task.success", tags=tags)
+
     def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         topic = self.router.route_namespace(self.name)
         produce_future = self._producer(topic).produce(
             ArroyoTopic(name=topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
-        try:
-            if produce_future.exception(timeout=1):
-                metrics.incr(
-                    "taskworker.registry.send_task.failed",
-                    tags={"namespace": activation.namespace, "task_name": activation.taskname},
-                )
-        except Exception:
-            metrics.incr(
-                "taskworker.registry.send_task.cancelled",
-                tags={"namespace": activation.namespace, "task_name": activation.taskname},
+        produce_future.add_done_callback(
+            self._handle_produce_future(
+                future=produce_future,
+                tags={
+                    "namespace": activation.namespace,
+                    "taskname": activation.taskname,
+                    "topic": topic.value,
+                },
             )
-
+        )
         if wait_for_delivery:
             try:
                 produce_future.result(timeout=10)
             except Exception:
                 logger.exception("Failed to wait for delivery")
-
-        metrics.incr(
-            "taskworker.registry.send_task",
-            tags={
-                "namespace": activation.namespace,
-                "task_name": activation.taskname,
-                "topic": topic.value,
-            },
-        )
 
     def _producer(self, topic: Topic) -> SingletonProducer:
         if topic not in self._producers:
