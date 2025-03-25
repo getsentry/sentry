@@ -58,7 +58,6 @@ export function NewIssueExperienceButton() {
   }, [isTourCompleted, organization]);
 
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const hasStreamlinedUIFlag = organization.features.includes('issue-details-streamline');
   const hasNewUIOnly = Boolean(organization.streamlineOnly);
   const user = useUser();
   const userStreamlinePreference = user?.options?.prefersIssueDetailsStreamlinedUI;
@@ -163,9 +162,8 @@ export function NewIssueExperienceButton() {
       label: t('Switch to the old issue experience'),
       // Do not show the toggle out of the new UI if any of these are true:
       //  - The user is on the old UI
-      //  - The org does not have the opt-in flag
       //  - The org has the new UI only option
-      hidden: !hasStreamlinedUI || !hasStreamlinedUIFlag || hasNewUIOnly,
+      hidden: !hasStreamlinedUI || hasNewUIOnly,
       onAction: handleToggle,
     },
     {

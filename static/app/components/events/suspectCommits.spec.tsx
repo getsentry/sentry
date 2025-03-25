@@ -182,7 +182,7 @@ describe('SuspectCommits', function () {
   });
 
   describe('StreamlinedSuspectCommits', function () {
-    const organization = OrganizationFixture({features: ['issue-details-streamline']});
+    const organization = OrganizationFixture();
     const project = ProjectFixture();
     const event = EventFixture();
     const group = GroupFixture({firstRelease: {}} as any);
