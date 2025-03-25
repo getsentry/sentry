@@ -80,7 +80,6 @@ def query(
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
-                parser_config_overrides={"allow_not_has_filter": False},
             ),
         )
         if referrer is None:
@@ -186,7 +185,6 @@ def bulk_timeseries_query(
                         functions_acl=functions_acl,
                         allow_metric_aggregates=allow_metric_aggregates,
                         use_metrics_layer=use_metrics_layer,
-                        parser_config_overrides={"allow_not_has_filter": False},
                     ),
                 )
                 snql_query = metrics_query.get_snql_query()
@@ -296,7 +294,6 @@ def timeseries_query(
                     on_demand_metrics_enabled=on_demand_metrics_enabled,
                     on_demand_metrics_type=on_demand_metrics_type,
                     transform_alias_to_input_format=transform_alias_to_input_format,
-                    parser_config_overrides={"allow_not_has_filter": False},
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
@@ -455,7 +452,6 @@ def top_events_timeseries(
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             on_demand_metrics_type=on_demand_metrics_type,
             transform_alias_to_input_format=transform_alias_to_input_format,
-            parser_config_overrides={"allow_not_has_filter": False},
         ),
     )
     if len(top_events["data"]) == limit and include_other:
