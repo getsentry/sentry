@@ -14,7 +14,12 @@ const IconClose = forwardRef<SVGSVGElement, Props>(
     const theme = useTheme();
     return (
       <SvgIcon ref={ref} {...props} data-test-id={dataTestId}>
-        {isCircled ? (
+        {theme.isChonk ? (
+          <Fragment>
+            <line x1="12.24" y1="3.76" x2="3.75" y2="12.25" />
+            <line x1="12.24" y1="12.25" x2="3.75" y2="3.76" />
+          </Fragment>
+        ) : isCircled ? (
           <Fragment>
             <path d="M8,16a8,8,0,1,1,8-8A8,8,0,0,1,8,16ZM8,1.53A6.47,6.47,0,1,0,14.47,8,6.47,6.47,0,0,0,8,1.53Z" />
             <path d="M5.34,11.41a.71.71,0,0,1-.53-.22.74.74,0,0,1,0-1.06l5.32-5.32a.75.75,0,0,1,1.06,1.06L5.87,11.19A.74.74,0,0,1,5.34,11.41Z" />

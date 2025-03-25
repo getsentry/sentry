@@ -68,10 +68,11 @@ const ChonkIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       height={size}
       width={size}
       ref={ref}
+      fill="none"
       stroke={color}
       strokeLinecap="round"
       strokeLinejoin="round"
-      strokeWidth={1.5}
+      strokeWidth={'1.5px'}
       {...rest}
     />
   );

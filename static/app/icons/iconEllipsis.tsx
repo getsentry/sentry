@@ -1,4 +1,4 @@
-import {forwardRef} from 'react';
+import {forwardRef, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
@@ -15,9 +15,19 @@ const IconEllipsis = forwardRef<SVGSVGElement, IconEllipsisProps>(
     const circleSpacing = compact ? 5.5 : 6.69;
     return (
       <SvgIcon {...props} ref={ref}>
-        <circle cx="8" cy="8" r={circleRadius} />
-        <circle cx={8 - circleSpacing} cy="8" r={circleRadius} />
-        <circle cx={8 + circleSpacing} cy="8" r={circleRadius} />
+        {theme.isChonk ? (
+          <Fragment>
+            <circle cx="3.25" cy="8" r=".5" />
+            <circle cx="8" cy="8" r=".5" />
+            <circle cx="12.75" cy="8" r=".5" />
+          </Fragment>
+        ) : (
+          <Fragment>
+            <circle cx="8" cy="8" r={circleRadius} />
+            <circle cx={8 - circleSpacing} cy="8" r={circleRadius} />
+            <circle cx={8 + circleSpacing} cy="8" r={circleRadius} />
+          </Fragment>
+        )}
       </SvgIcon>
     );
   }

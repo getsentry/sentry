@@ -1,4 +1,4 @@
-import {forwardRef} from 'react';
+import {forwardRef, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
@@ -12,7 +12,13 @@ const IconLab = forwardRef<SVGSVGElement, IconLabProps>(({isSolid, ...props}, re
   const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref}>
-      {isSolid ? (
+      {theme.isChonk ? (
+        <Fragment>
+          <path d="m13.06,11.73l-3.06-4.98V2.75h-4v4l-3.06,4.98c-.41.67.07,1.52.85,1.52h8.42c.78,0,1.26-.86.85-1.52Z" />
+          <line x1="5" y1="2.75" x2="11" y2="2.75" />
+          <line x1="4" y1="10.25" x2="12" y2="10.25" />
+        </Fragment>
+      ) : isSolid ? (
         <path d="M4 12.6667L7.33333 7.33333H8.66667L12 12.6667L11.3333 13.3333H4.66667L4 12.6667Z" />
       ) : (
         <path d="M8,13.29a2.5,2.5,0,1,1,2.5-2.5A2.5,2.5,0,0,1,8,13.29Zm0-3.5a1,1,0,1,0,1,1A1,1,0,0,0,8,9.79Z" />

@@ -1,5 +1,5 @@
 import {forwardRef, Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css, Theme, useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -14,7 +14,23 @@ const CHEVRON_PATH = (
   <path d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z" />
 );
 
-function getChevronPath({isCircled, isDouble}: Pick<Props, 'isCircled' | 'isDouble'>) {
+function getChevronPath({
+  isCircled,
+  isDouble,
+  theme,
+}: Pick<Props, 'isCircled' | 'isDouble'> & {theme: Theme}) {
+  if (theme.isChonk) {
+    if (isDouble) {
+      return (
+        <Fragment>
+          <path d="m7.84,12.75l-4.04-4.04c-.39-.39-.39-1.02,0-1.41L7.84,3.25" />
+          <path d="m12.25,12.75l-4.04-4.04c-.39-.39-.39-1.02,0-1.41l4.04-4.04" />
+        </Fragment>
+      );
+    }
+    return <path d="m2.75,8.25l2.79,2.79c.39.39,1.02.39,1.41,0l6.29-6.29" />;
+  }
+
   if (isCircled) {
     return (
       <Fragment>
@@ -53,7 +69,7 @@ const IconChevron = forwardRef<SVGSVGElement, Props>(
             : undefined
         }
       >
-        {getChevronPath({isDouble, isCircled})}
+        {getChevronPath({isDouble, isCircled, theme})}
       </SvgIcon>
     );
   }
