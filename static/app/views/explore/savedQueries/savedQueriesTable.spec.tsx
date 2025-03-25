@@ -15,11 +15,15 @@ describe('SavedQueriesTable', () => {
         {
           id: 1,
           name: 'Query Name',
-          visualize: [],
           projects: [1],
           createdBy: {
             name: 'Test User',
           },
+          query: [
+            {
+              visualize: [],
+            },
+          ],
         },
       ],
     });
