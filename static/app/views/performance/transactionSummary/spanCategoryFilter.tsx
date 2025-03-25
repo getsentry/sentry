@@ -8,6 +8,8 @@ import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -20,6 +22,8 @@ const LIMIT = 10;
 
 export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const searchQuery = useMemo(() => {
     const query = new MutableSearch('');
@@ -61,6 +65,14 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
 
   const onChange = (selectedOption: SelectOption<string> | null) => {
     setSelectedCategory(selectedOption?.value ?? undefined);
+
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        [SpanIndexedField.SPAN_CATEGORY]: selectedOption?.value,
+      },
+    });
   };
 
   return (
