@@ -68,7 +68,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY: Partial<
   metrics: 'metrics',
   discover: 'discover',
   profiling_flamegraph: 'profiling',
-  performance_transaction_summary: 'performance',
+  performance_transaction_summary: 'insights/summary',
   issue_details: 'issues',
   feedback_details: 'feedback',
   dashboards: 'dashboards',
