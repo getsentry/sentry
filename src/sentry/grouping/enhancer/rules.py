@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict
 
 from .actions import EnhancementAction
-from .matchers import EnhancementMatch, ExceptionFieldMatch
+from .matchers import EnhancementMatch, ExceptionFieldMatch, MatchFrame, ReturnValueCache
+
+
+class EnhancementRuleDict(TypedDict):
+    match: dict[str, str]
+    actions: list[str]
 
 
 class EnhancementRule:
-    def __init__(self, matchers, actions):
+    def __init__(self, matchers: list[EnhancementMatch], actions: list[EnhancementAction]):
         self.matchers = matchers
 
         self._exception_matchers = []
@@ -19,31 +24,30 @@ class EnhancementRule:
                 self._other_matchers.append(matcher)
 
         self.actions = actions
-        self._is_updater = any(action.is_updater for action in actions)
-        self._is_modifier = any(action.is_modifier for action in actions)
+        self.has_classifier_actions = any(action.is_classifier for action in actions)
+        self.has_contributes_actions = any(action.sets_contributes for action in actions)
 
     @property
-    def matcher_description(self):
-        rv = " ".join(matcher.description for matcher in self.matchers)
-        for action in self.actions:
-            rv = f"{rv} {action}"
-        return rv
+    def matcher_description(self) -> str:
+        matchers = " ".join(matcher.description for matcher in self.matchers)
+        actions = " ".join(str(action) for action in self.actions)
+        return f"{matchers} {actions}"
 
-    def _as_modifier_rule(self) -> EnhancementRule | None:
-        actions = [action for action in self.actions if action.is_modifier]
+    def as_classifier_rule(self) -> EnhancementRule | None:
+        actions = [action for action in self.actions if action.is_classifier]
         if actions:
             return EnhancementRule(self.matchers, actions)
         else:
             return None
 
-    def _as_updater_rule(self) -> EnhancementRule | None:
-        actions = [action for action in self.actions if action.is_updater]
+    def as_contributes_rule(self) -> EnhancementRule | None:
+        actions = [action for action in self.actions if action.sets_contributes]
         if actions:
             return EnhancementRule(self.matchers, actions)
         else:
             return None
 
-    def as_dict(self):
+    def as_dict(self) -> EnhancementRuleDict:
         matchers = {}
         for matcher in self.matchers:
             matchers[matcher.key] = matcher.pattern
@@ -51,9 +55,9 @@ class EnhancementRule:
 
     def get_matching_frame_actions(
         self,
-        match_frames: list[dict[str, Any]],
+        match_frames: list[MatchFrame],
         exception_data: dict[str, Any],
-        in_memory_cache: dict[str, str],
+        in_memory_cache: ReturnValueCache,
     ) -> list[tuple[int, EnhancementAction]]:
         """Given a frame returns all the matching actions based on this rule.
         If the rule does not match `None` is returned.
@@ -79,14 +83,18 @@ class EnhancementRule:
 
         return rv
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> list[Any]:
         return [
             [matcher._to_config_structure(version) for matcher in self.matchers],
             [action._to_config_structure(version) for action in self.actions],
         ]
 
     @classmethod
-    def _from_config_structure(cls, config_structure, version):
+    def _from_config_structure(
+        cls,
+        config_structure: list[Any],
+        version: int,
+    ) -> EnhancementRule:
         matcher_abbreviations, encoded_actions = config_structure
         return EnhancementRule(
             [

@@ -166,11 +166,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
     ) -> tuple[DataConditionGroup, Action]:
         action_group = self.create_data_condition_group(logic_type="any-short")
 
-        action = self.create_action(
-            type=Action.Type.SLACK,
-            data={"message": "test"},
-            **kwargs,
-        )
+        action = self.create_action()
 
         self.create_data_condition_group_action(
             condition_group=action_group,
@@ -187,6 +183,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         project: Project | None = None,
         event: Event | None = None,
         occurrence: IssueOccurrence | None = None,
+        environment: str | None = None,
         fingerprint="test_fingerprint",
         group_type_id: int | None = None,
     ) -> tuple[Group, Event, GroupEvent]:
@@ -195,6 +192,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
             project.id,
             datetime.now(),
             fingerprint,
+            environment,
         )
 
         if group_type_id:

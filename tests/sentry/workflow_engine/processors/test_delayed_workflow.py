@@ -9,6 +9,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
@@ -53,7 +54,7 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
 )
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -668,7 +669,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.create_data_condition_group_action(
@@ -682,6 +683,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             config={
                 "target_identifier": "channel789",
                 "target_display": "#general",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
         self.create_data_condition_group_action(
@@ -722,6 +724,26 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert event_ids == {self.event1.event_id, self.event2.event_id}
         assert occurrence_ids == set()
 
+    def test_parse_dcg_group_event_data__triggered_groups_only(self):
+        # buffer data represents all the data from the buffer
+        # groups_to_dcgs represents that groups that triggered DCGs --> fire actions
+        # the groups in the buffer may not be fired.
+
+        del self.groups_to_dcgs[self.group1.id]
+
+        self._push_base_events()
+        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
+        dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
+            buffer_data, self.groups_to_dcgs
+        )
+
+        del self.dcg_group_to_event_data[(self.workflow1_dcgs[0].id, self.group1.id)]
+        del self.dcg_group_to_event_data[(self.workflow1_dcgs[1].id, self.group1.id)]
+
+        assert dcg_group_to_event_data == self.dcg_group_to_event_data
+        assert event_ids == {self.event2.event_id}
+        assert occurrence_ids == set()
+
     def test_bulk_fetch_events(self):
         event_ids = [self.event1.event_id, self.event2.event_id]
         events = bulk_fetch_events(event_ids, self.project.id)
@@ -748,11 +770,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
         assert mock_trigger.call_count == 2
         assert mock_trigger.call_args_list[0][0] == (
-            {"event": self.event1.for_group(self.group1)},
+            WorkflowEventData(event=self.event1.for_group(self.group1)),
             self.detector,
         )
         assert mock_trigger.call_args_list[1][0] == (
-            {"event": self.event2.for_group(self.group2)},
+            WorkflowEventData(event=self.event2.for_group(self.group2)),
             self.detector,
         )
 

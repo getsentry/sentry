@@ -62,15 +62,16 @@ export function ProjectAnrScoreCard({
       includeSeries: false,
     };
 
-    doSessionsRequest(api, {...requestData, ...normalizeDateTimeParams(datetime)}).then(
-      response => {
-        if (unmounted) {
-          return;
-        }
-
-        setSessionsData(response);
+    doSessionsRequest(api, {
+      ...requestData,
+      ...normalizeDateTimeParams(datetime),
+    }).then(([response]) => {
+      if (unmounted) {
+        return;
       }
-    );
+
+      setSessionsData(response);
+    });
     return () => {
       unmounted = true;
     };
@@ -108,7 +109,7 @@ export function ProjectAnrScoreCard({
         ...requestData,
         start: previousStart,
         end: previousEnd,
-      }).then(response => {
+      }).then(([response]) => {
         if (unmounted) {
           return;
         }
@@ -184,10 +185,8 @@ export function ProjectAnrScoreCard({
           previousPeriodValue={previousValue ?? undefined}
           field="anr_rate()"
           preferredPolarity="-"
-          meta={{
-            type: 'percentage',
-            unit: null,
-          }}
+          type="percentage"
+          unit={null}
         />
       }
     />

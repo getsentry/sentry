@@ -1,4 +1,3 @@
-import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework import status
@@ -10,7 +9,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewStarredSerializer
@@ -35,6 +33,7 @@ DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
         "position": 0,
         "isAllProjects": False,
         "environments": [],
+        "projects": [],
         "timeFilters": DEFAULT_TIME_FILTER,
         "dateCreated": None,
         "dateUpdated": None,
@@ -139,36 +138,21 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         ):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GroupSearchViewValidator(data=request.data)
+        serializer = GroupSearchViewValidator(
+            data=request.data, context={"organization": organization}
+        )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
 
-        for view in validated_data["views"]:
-            try:
-                validate_projects(organization, request.user, view)
-            except ValidationError as e:
-                sentry_sdk.capture_message(e.args[0])
-                return Response(status=status.HTTP_400_BAD_REQUEST, data={"detail": e.args[0]})
-
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
                 new_view_state = bulk_update_views(
                     organization, request.user.id, validated_data["views"]
                 )
-        except IntegrityError as e:
-            if (
-                len(e.args) > 0
-                and 'insert or update on table "sentry_groupsearchviewproject" violates foreign key constraint'
-                in e.args[0]
-            ):
-                sentry_sdk.capture_exception(e)
-                return Response(
-                    status=status.HTTP_400_BAD_REQUEST,
-                    data={"detail": "One or more projects do not exist"},
-                )
+        except IntegrityError:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         last_visited_views = GroupSearchViewLastVisited.objects.filter(
@@ -189,7 +173,11 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                             "name": view.name,
                             "query": view.query,
                             "querySort": view.query_sort,
-                            "projects": list(view.projects.values_list("id", flat=True)),
+                            "projects": (
+                                [-1]
+                                if view.is_all_projects
+                                else list(view.projects.values_list("id", flat=True))
+                            ),
                             "isAllProjects": view.is_all_projects,
                             "environments": view.environments,
                             "timeFilters": view.time_filters,
@@ -204,21 +192,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             ),
             on_results=lambda results: serialize(results, request.user),
         )
-
-
-def validate_projects(
-    org: Organization, user: User | AnonymousUser, view: GroupSearchViewValidatorResponse
-) -> None:
-    if "projects" in view and view["projects"] is not None:
-        if not features.has("organizations:global-views", org) and (
-            view["projects"] == [-1] or view["projects"] == [] or len(view["projects"]) > 1
-        ):
-            raise ValidationError("You do not have the multi project stream feature enabled")
-        elif view["projects"] == [-1]:
-            view["isAllProjects"] = True
-            view["projects"] = []
-        else:
-            view["isAllProjects"] = False
 
 
 def bulk_update_views(
@@ -263,7 +236,6 @@ def _update_existing_view(
         gsv.name = view["name"]
         gsv.query = view["query"]
         gsv.query_sort = view["querySort"]
-        gsv.position = position
         gsv.is_all_projects = view.get("isAllProjects", False)
 
         if "projects" in view:
@@ -300,7 +272,6 @@ def _create_view(
         name=view["name"],
         query=view["query"],
         query_sort=view["querySort"],
-        position=position,
         is_all_projects=view.get("isAllProjects", False),
         environments=view.get("environments", []),
         time_filters=view.get("timeFilters", {"period": "14d"}),

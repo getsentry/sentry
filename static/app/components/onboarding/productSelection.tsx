@@ -13,7 +13,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
@@ -364,14 +363,8 @@ export function ProductSelection({
 
       onChange?.(selectedProducts);
       setParams({product: selectedProducts});
-
-      if (organization.features.includes('project-create-replay-feedback')) {
-        HookStore.get('callback:on-create-project-product-selection').map(cb =>
-          cb({defaultProducts: products ?? [], organization, selectedProducts})
-        );
-      }
     },
-    [products, organization, setParams, urlProducts, onChange]
+    [products, setParams, urlProducts, onChange]
   );
 
   if (!products) {
@@ -393,22 +386,10 @@ export function ProductSelection({
           description={t(
             'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
           )}
-          docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
+          docLink="https://docs.sentry.io/concepts/key-terms/tracing/"
           onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
           disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
           checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
-        />
-      )}
-      {products.includes(ProductSolution.SESSION_REPLAY) && (
-        <Product
-          label={t('Session Replay')}
-          description={t(
-            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-          )}
-          docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
-          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
-          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
-          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
         />
       )}
       {products.includes(ProductSolution.PROFILING) && (
@@ -420,10 +401,22 @@ export function ProductSelection({
               strong: <strong />,
             }
           )}
-          docLink="https://docs.sentry.io/platforms/python/profiling/"
+          docLink="https://docs.sentry.io/product/explore/profiling/"
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}
           disabled={disabledProducts[ProductSolution.PROFILING]}
           checked={urlProducts.includes(ProductSolution.PROFILING)}
+        />
+      )}
+      {products.includes(ProductSolution.SESSION_REPLAY) && (
+        <Product
+          label={t('Session Replay')}
+          description={t(
+            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/session-replay/"
+          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
+          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
         />
       )}
     </Products>

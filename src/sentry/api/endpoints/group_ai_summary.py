@@ -147,7 +147,7 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
         )
 
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}{path}",
+            f"{settings.SEER_SEVERITY_URL}{path}",
             data=body,
             headers={
                 "content-type": "application/json;charset=utf-8",
@@ -243,10 +243,13 @@ class GroupAiSummaryEndpoint(GroupEndpoint):
             "organizations:trigger-autofix-on-issue-summary", group.organization, actor=request.user
         ):
             # This is a temporary feature flag to allow us to trigger autofix on issue summary
-            # It adds ~1.5s to the latency, but this is acceptable for the time being, later we will run this async.
-            # Timing this to see how long it actually takes to run in prod.
             with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
-                issue_summary = self._generate_fixability_score(group.id)
+                try:
+                    issue_summary = self._generate_fixability_score(group.id)
+                except Exception:
+                    logger.exception(
+                        "Error generating fixability score", extra={"group_id": group.id}
+                    )
 
             if issue_summary.scores.is_fixable:
                 with sentry_sdk.start_span(op="ai_summary.get_autofix_state"):

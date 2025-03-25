@@ -666,7 +666,6 @@ class _QueryField extends Component<Props> {
             name="arithmetic"
             key="parameter:text"
             type="text"
-            required
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}

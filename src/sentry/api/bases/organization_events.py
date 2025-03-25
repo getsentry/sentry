@@ -335,6 +335,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
                 discoverSplitDecision = meta.pop("discoverSplitDecision", None)
+                query = meta.pop("query", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -349,6 +350,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
                 if discoverSplitDecision is not None:
                     meta["discoverSplitDecision"] = discoverSplitDecision
+
+                # Only appears in meta when debug is passed to the endpoint
+                if query:
+                    meta["query"] = query
             else:
                 meta = fields_meta
 
@@ -670,6 +675,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         data: Any,
         column: str,
         null_zero: bool = False,
+        convert_to_milliseconds: bool = False,
     ):
         serialized_values = []
         for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
@@ -677,7 +683,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row_value = row.get(column, None)
                 if row_value == 0 and null_zero:
                     row_value = None
-                serialized_values.append({"timestamp": timestamp, "value": row_value})
+                serialized_values.append(
+                    {
+                        "timestamp": timestamp * (1000 if convert_to_milliseconds else 1),
+                        "value": row_value,
+                    }
+                )
         return serialized_values
 
 
