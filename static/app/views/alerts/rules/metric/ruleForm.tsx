@@ -884,7 +884,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let updateState = {};
     switch (value) {
       case AlertRuleComparisonType.DYNAMIC:
-        this.fetchAnomalies();
         updateState = {
           comparisonType: value,
           comparisonDelta: undefined,
@@ -917,7 +916,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       default:
         break;
     }
-    this.setState({...updateState, chartError: false, chartErrorMessage: undefined});
+    this.setState({...updateState, chartError: false, chartErrorMessage: undefined}, () =>
+      this.fetchAnomalies()
+    );
   };
 
   handleDeleteRule = async () => {
@@ -1004,7 +1005,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   async fetchAnomalies() {
     const {comparisonType, historicalData, currentData} = this.state;
-
     if (
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
@@ -1033,10 +1033,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       organization_id: organization.id,
       project_id: project.id,
       config: {
-        time_period: timeWindow,
-        sensitivity,
         direction,
-        expected_seasonality: seasonality,
+        time_period: timeWindow,
+        sensitivity: sensitivity ?? AlertRuleSeasonality.AUTO,
+        expected_seasonality: seasonality ?? AlertRuleSensitivity.MEDIUM,
       },
       // remove historical data that overlaps with current dataset
       historical_data: historicalData.filter(
