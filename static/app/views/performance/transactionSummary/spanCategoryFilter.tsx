@@ -23,12 +23,8 @@ export function SpanCategoryFilter({search, serviceEntrySpanName}: Props) {
   const searchQuery = useMemo(() => {
     const query = new MutableSearch(search);
     query.addFilterValue('transaction', serviceEntrySpanName);
-
-    if (category) {
-      query.addFilterValue('span.category', category);
-    }
     return query;
-  }, [search, serviceEntrySpanName, category]);
+  }, [search, serviceEntrySpanName]);
 
   const {data, isPending, error} = useEAPSpans(
     {
@@ -36,7 +32,6 @@ export function SpanCategoryFilter({search, serviceEntrySpanName}: Props) {
       fields: [SpanIndexedField.SPAN_CATEGORY, 'count()'],
       search: searchQuery,
       sorts: [{field: 'count()', kind: 'desc'}],
-      enabled: !!category,
     },
     'api.transaction-summary.span-category-filter'
   );
@@ -60,14 +55,13 @@ export function SpanCategoryFilter({search, serviceEntrySpanName}: Props) {
   }, [data, isPending, error]);
 
   const onChange = (selectedOption: SelectOption<string> | null) => {
-    console.log('selectedOption', selectedOption);
     setCategory(selectedOption?.value ?? undefined);
   };
 
   return (
     <CompactSelect
       clearable
-      // disallowEmptySelection={false}
+      disallowEmptySelection={false}
       menuTitle={t('Filter by category')}
       onClear={() => setCategory(undefined)}
       options={options}
