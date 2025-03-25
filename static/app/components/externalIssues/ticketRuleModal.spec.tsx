@@ -66,6 +66,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
   const addMockConfigsAPICall = (otherField = {}) => {
     return MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/1/',
+      match: [MockApiClient.matchQuery({action: 'create', ignored: ['Sprint']})],
       method: 'GET',
       body: {
         createIssueConfig: [...defaultIssueConfig, otherField],
@@ -132,34 +133,69 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await renderTicketRuleModal();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
 
-      addMockConfigsAPICall({
-        label: 'Assignee',
-        required: true,
-        choices: [['b', 'b']],
-        type: 'select',
-        name: 'assignee',
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Assignee',
+              required: true,
+              choices: [['b', 'b']],
+              type: 'select',
+              name: 'assignee',
+            },
+          ],
+        },
       });
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      expect(dynamicQuery).toHaveBeenCalled();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Assignee'}), 'b');
       await submitSuccess();
     });
 
     it('should ignore error checking when default is empty array', async function () {
-      await renderTicketRuleModal(undefined, {
-        label: 'Labels',
-        required: false,
-        choices: [['bug', `bug`]],
-        default: undefined,
-        type: 'select',
-        multiple: true,
-        name: 'labels',
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Labels',
+              required: false,
+              choices: [['bug', `bug`]],
+              default: undefined,
+              type: 'select',
+              multiple: true,
+              name: 'labels',
+            },
+          ],
+        },
       });
+
+      await renderTicketRuleModal();
       expect(
         screen.queryAllByText(`Could not fetch saved option for Labels. Please reselect.`)
       ).toHaveLength(0);
-
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      expect(dynamicQuery).toHaveBeenCalled();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'bug');
       await submitSuccess();
     });
@@ -192,17 +228,34 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     it('should not persist value when unavailable in new choices', async function () {
       await renderTicketRuleModal({data: {reporter: 'a'}});
 
-      addMockConfigsAPICall({
-        label: 'Reporter',
-        required: true,
-        choices: [['b', 'b']],
-        type: 'select',
-        name: 'reporter',
-        ignorePriorChoices: true,
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Reporter',
+              required: true,
+              choices: [['b', 'b']],
+              type: 'select',
+              name: 'reporter',
+              ignorePriorChoices: true,
+            },
+          ],
+        },
       });
 
       // Switch Issue Type so we refetch the config and update Reporter choices
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      expect(dynamicQuery).toHaveBeenCalled();
       await expect(
         selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a')
       ).rejects.toThrow();
@@ -226,12 +279,29 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
 
     it('should get async options from URL', async function () {
       await renderTicketRuleModal();
-      addMockConfigsAPICall({
-        label: 'Assignee',
-        required: true,
-        url: 'http://example.com',
-        type: 'select',
-        name: 'assignee',
+
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Assignee',
+              required: true,
+              url: 'http://example.com',
+              type: 'select',
+              name: 'assignee',
+            },
+          ],
+        },
       });
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
@@ -246,7 +316,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
           body: [{label: 'Joe', value: 'Joe'}],
         });
       }
-
+      expect(dynamicQuery).toHaveBeenCalled();
       const menu = screen.getByRole('textbox', {name: 'Assignee'});
       await selectEvent.openMenu(menu);
       await userEvent.type(menu, 'Joe{Escape}');
