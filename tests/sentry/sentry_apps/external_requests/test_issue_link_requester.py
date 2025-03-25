@@ -253,7 +253,7 @@ class TestIssueLinkRequester(TestCase):
         # SLO assertions
         assert_halt_metric(
             mock_record,
-            json.JSONDecodeError(msg="Expecting value", doc="not valid json}", pos=0),
+            json.JSONDecodeError("Expecting value", "not valid json}", 0),
         )
 
         # EXTERNAL_REQUEST (halt) -> EXTERNAL_REQUEST (success)
