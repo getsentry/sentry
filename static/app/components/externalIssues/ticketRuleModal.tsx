@@ -5,9 +5,9 @@ import * as Sentry from '@sentry/react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
-import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
+import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/utils';
 import {
   getConfigName,
   getDynamicFields,
