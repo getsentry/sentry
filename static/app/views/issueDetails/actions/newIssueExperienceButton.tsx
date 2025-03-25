@@ -23,15 +23,16 @@ import {
   IssueDetailsTourModal,
   IssueDetailsTourModalCss,
 } from 'sentry/views/issueDetails/issueDetailsTourModal';
+import {useIssueDetailsTourAvailable} from 'sentry/views/issueDetails/useIssueDetailsTourAvailable';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
   const organization = useOrganization();
   const isSuperUser = isActiveSuperuser();
   const {
-    dispatch: tourDispatch,
+    endTour,
+    startTour,
     currentStepId,
-    isAvailable: isTourAvailable,
     isRegistered: isTourRegistered,
     isCompleted: isTourCompleted,
   } = useIssueDetailsTour();
@@ -76,6 +77,8 @@ export function NewIssueExperienceButton() {
     });
   }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
 
+  const isTourAvailable = useIssueDetailsTourAvailable();
+
   // The promotional modal should only appear if:
   //  - The tour is available to this user
   //  - All the steps have been registered
@@ -96,13 +99,13 @@ export function NewIssueExperienceButton() {
           <IssueDetailsTourModal
             handleDismissTour={() => {
               mutateAssistant({guide: ISSUE_DETAILS_TOUR_GUIDE_KEY, status: 'dismissed'});
-              tourDispatch({type: 'SET_COMPLETION', isCompleted: true});
+              endTour();
               trackAnalytics('issue_details.tour.skipped', {organization});
               props.closeModal();
             }}
             handleStartTour={() => {
               props.closeModal();
-              tourDispatch({type: 'START_TOUR'});
+              startTour();
               trackAnalytics('issue_details.tour.started', {
                 organization,
                 method: 'modal',
@@ -113,7 +116,7 @@ export function NewIssueExperienceButton() {
         {modalCss: IssueDetailsTourModalCss}
       );
     }
-  }, [isPromoVisible, tourDispatch, mutateAssistant, organization]);
+  }, [isPromoVisible, mutateAssistant, organization, endTour, startTour]);
 
   if (!hasStreamlinedUI) {
     return (
@@ -124,12 +127,6 @@ export function NewIssueExperienceButton() {
         aria-label={t('Switch to the new issue experience')}
         onClick={() => {
           handleToggle();
-          tourDispatch({
-            type: 'SET_AVAILABILITY',
-            isAvailable:
-              location.hash === '#tour' ||
-              organization.features.includes('issue-details-streamline-tour'),
-          });
         }}
       >
         {t('Try New UI')}
@@ -144,7 +141,7 @@ export function NewIssueExperienceButton() {
       hidden: !isTourAvailable || !isTourRegistered,
       onAction: () => {
         trackAnalytics('issue_details.tour.started', {organization, method: 'dropdown'});
-        tourDispatch({type: 'START_TOUR'});
+        startTour();
       },
     },
     {

@@ -1,11 +1,10 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 from unittest.mock import patch
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
 from sentry.issues.auto_source_code_config.constants import METRIC_PREFIX
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
@@ -27,6 +26,12 @@ REPO_TREES_INTEGRATION = f"{REPO_TREES_CODE}.RepoTreesIntegration"
 CLIENT = "sentry.integrations.github.client.GitHubBaseClient"
 REPO1 = "test-org/repo1"
 REPO2 = "test-org/repo2"
+
+
+class ExpectedCodeMapping(TypedDict):
+    stack_root: str
+    source_root: str
+    repo_name: str
 
 
 def _repo_info(name: str, branch: str) -> dict[str, str]:
@@ -77,12 +82,13 @@ class BaseDeriveCodeMappings(TestCase):
         repo_trees: Mapping[str, Sequence[str]],
         frames: Sequence[Mapping[str, str | bool]],
         platform: str,
-        expected_stack_root: str,
-        expected_source_root: str,
-        expected_repo_name: str = REPO1,
+        expected_new_code_mapping: ExpectedCodeMapping | None = None,
         expected_num_code_mappings: int = 1,
         expected_in_app_stack_trace_rules: list[str] | None = None,
     ) -> GroupEvent:
+        platform_config = PlatformConfig(platform)
+        dry_run = platform_config.is_dry_run_platform()
+        tags = {"dry_run": dry_run, "platform": platform}
         with (
             patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
             patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
@@ -92,77 +98,60 @@ class BaseDeriveCodeMappings(TestCase):
             ),
             patch("sentry.utils.metrics.incr") as mock_incr,
         ):
-            repositories_count = Repository.objects.all().count()
-            code_mappings_count = RepositoryProjectPathConfig.objects.all().count()
+            starting_repositories_count = Repository.objects.all().count()
+            starting_code_mappings_count = RepositoryProjectPathConfig.objects.all().count()
             event = self.create_event(frames, platform)
-            _, in_app_stack_trace_rules = process_event(
+            dry_run_code_mappings, in_app_stack_trace_rules = process_event(
                 self.project.id, event.group_id, event.event_id
             )
+
             code_mappings = RepositoryProjectPathConfig.objects.all()
-            assert len(code_mappings) == expected_num_code_mappings
-            code_mapping = code_mappings.filter(
-                stack_root=expected_stack_root,
-                source_root=expected_source_root,
-            ).first()
-            assert code_mapping is not None
-            assert code_mapping.repository.name == expected_repo_name
 
-            platform_config = PlatformConfig(platform)
-            dry_run = platform_config.is_dry_run_platform()
-            tags = {"dry_run": dry_run, "platform": platform}
+            if dry_run:
+                # If dry run, no configurations should have been created
+                assert starting_code_mappings_count == code_mappings.count()
+                assert starting_repositories_count == Repository.objects.all().count()
 
-            if Repository.objects.all().count() > repositories_count:
+                if expected_new_code_mapping:
+                    assert len(dry_run_code_mappings) == 1
+                    cm = dry_run_code_mappings[0]
+                    assert cm.stacktrace_root == expected_new_code_mapping["stack_root"]
+                    assert cm.source_path == expected_new_code_mapping["source_root"]
+                    assert cm.repo.name == expected_new_code_mapping["repo_name"]
+
                 mock_incr.assert_any_call(
                     key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
                 )
-
-            if RepositoryProjectPathConfig.objects.all().count() > code_mappings_count:
                 mock_incr.assert_any_call(
                     key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                 )
+            else:
+                assert code_mappings.count() == expected_num_code_mappings
+                if expected_new_code_mapping:
+                    assert code_mappings.count() == starting_code_mappings_count + 1
+                    code_mapping = code_mappings.filter(
+                        stack_root=expected_new_code_mapping["stack_root"],
+                        source_root=expected_new_code_mapping["source_root"],
+                    ).first()
+                    assert code_mapping is not None
+                    assert code_mapping.repository.name == expected_new_code_mapping["repo_name"]
+
+                if Repository.objects.all().count() > starting_repositories_count:
+                    mock_incr.assert_any_call(
+                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                    )
+
+                if code_mappings.count() > starting_code_mappings_count:
+                    mock_incr.assert_any_call(
+                        key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                    )
+
             if expected_in_app_stack_trace_rules is not None:
                 # XXX: Grab it from the option
                 assert expected_in_app_stack_trace_rules == in_app_stack_trace_rules
 
-            # Returning this is useful to inspect hash changes
+            # Returning these to inspect the results
             return event
-
-    def _process_and_assert_no_configuration_changes(
-        self,
-        *,  # Force keyword arguments
-        repo_trees: Mapping[str, Sequence[str]],
-        frames: Sequence[Mapping[str, str | bool]],
-        platform: str,
-    ) -> tuple[list[CodeMapping], list[str]]:
-        with (
-            patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
-            patch(f"{CLIENT}.get_remaining_api_requests", return_value=500),
-            patch(
-                f"{REPO_TREES_INTEGRATION}._populate_repositories",
-                side_effect=mock_populate_repositories,
-            ),
-            patch("sentry.utils.metrics.incr") as mock_incr,
-        ):
-            event = self.create_event(frames, platform)
-            code_mappings, in_app_stack_trace_rules = process_event(
-                self.project.id, event.group_id, event.event_id
-            )
-            assert not RepositoryProjectPathConfig.objects.exists()
-            platform_config = PlatformConfig(platform)
-            dry_run = platform_config.is_dry_run_platform()
-            if code_mappings:
-                # Check that both metrics were called with any order
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.repository.created",
-                    tags={"platform": event.platform, "dry_run": dry_run},
-                    sample_rate=1.0,
-                )
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.code_mapping.created",
-                    tags={"platform": event.platform, "dry_run": dry_run},
-                    sample_rate=1.0,
-                )
-            return code_mappings, in_app_stack_trace_rules
 
     def frame(self, filename: str, in_app: bool | None = True) -> dict[str, str | bool]:
         frame: dict[str, str | bool] = {"filename": filename}
@@ -212,8 +201,8 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
 
     def test_skips_not_supported_platforms(self) -> None:
         with patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}):
-            self._process_and_assert_no_configuration_changes(
-                repo_trees={}, frames=[{}], platform="other"
+            self._process_and_assert_configuration_changes(
+                repo_trees={}, frames=[{}], platform="other", expected_num_code_mappings=0
             )
 
     def test_handle_existing_code_mapping(self) -> None:
@@ -254,14 +243,17 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             patch(f"{CODE_ROOT}.utils.PlatformConfig.is_dry_run_platform", return_value=True),
         ):
             # No code mapping will be stored, however, we get what would have been created
-            code_mappings, _ = self._process_and_assert_no_configuration_changes(
+            self._process_and_assert_configuration_changes(
                 repo_trees={REPO1: [file_in_repo]},
                 frames=[self.frame(frame_filename, True)],
                 platform=platform,
+                expected_new_code_mapping={
+                    "stack_root": "foo/",
+                    "source_root": "src/foo/",
+                    "repo_name": REPO1,
+                },
+                expected_num_code_mappings=0,
             )
-            assert len(code_mappings) == 1
-            assert code_mappings[0].stacktrace_root == "foo/"
-            assert code_mappings[0].source_path == "src/foo/"
 
     def test_extension_is_not_included(self) -> None:
         frame_filename = "foo/bar.tbd"
@@ -273,11 +265,12 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
             patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=[]),
         ):
-            # No extensions are supported, thus, we can't generate a code mapping
-            self._process_and_assert_no_configuration_changes(
+            # No extensions are supported, thus, we won't generate a code mapping
+            self._process_and_assert_configuration_changes(
                 repo_trees={REPO1: [file_in_repo]},
                 frames=[self.frame(frame_filename, True)],
                 platform=platform,
+                expected_num_code_mappings=0,
             )
 
             with patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=["tbd"]):
@@ -285,8 +278,11 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                     repo_trees={REPO1: [file_in_repo]},
                     frames=[self.frame(frame_filename, True)],
                     platform=platform,
-                    expected_stack_root="foo/",
-                    expected_source_root="src/foo/",
+                    expected_new_code_mapping={
+                        "stack_root": "foo/",
+                        "source_root": "src/foo/",
+                        "repo_name": REPO1,
+                    },
                 )
 
     def test_multiple_calls(self) -> None:
@@ -304,29 +300,27 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 repo_trees=repo_trees,
                 frames=[self.frame("foo/bar.py", True)],
                 platform=platform,
-                expected_stack_root="foo/",
-                expected_source_root="src/foo/",
-                expected_repo_name=REPO1,
-                expected_num_code_mappings=1,
+                expected_new_code_mapping={
+                    "stack_root": "foo/",
+                    "source_root": "src/foo/",
+                    "repo_name": REPO1,
+                },
             )
-            # Processing the same stacktrace again should not create anything new
+            # Processing the same stacktrace again should not create anything new,
+            # thus, not passing in expected_new_code_mapping
             self._process_and_assert_configuration_changes(
-                repo_trees=repo_trees,
-                frames=[self.frame("foo/bar.py", True)],
-                platform=platform,
-                expected_stack_root="foo/",
-                expected_source_root="src/foo/",
-                expected_repo_name=REPO1,
-                expected_num_code_mappings=1,
+                repo_trees=repo_trees, frames=[self.frame("foo/bar.py", True)], platform=platform
             )
             # New code mapping in the same repository
             self._process_and_assert_configuration_changes(
                 repo_trees=repo_trees,
                 frames=[self.frame("app/main.py", True)],
                 platform=platform,
-                expected_stack_root="app/",
-                expected_source_root="src/app/",
-                expected_repo_name=REPO1,  # Same repository as before
+                expected_new_code_mapping={
+                    "stack_root": "app/",
+                    "source_root": "src/app/",
+                    "repo_name": REPO1,  # Same repository as before
+                },
                 expected_num_code_mappings=2,  # New code mapping
             )
             # New code mapping in a different repository
@@ -334,9 +328,11 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 repo_trees=repo_trees,
                 frames=[self.frame("baz/qux.py", True)],
                 platform=platform,
-                expected_stack_root="baz/",
-                expected_source_root="app/baz/",
-                expected_repo_name=REPO2,
+                expected_new_code_mapping={
+                    "stack_root": "baz/",
+                    "source_root": "app/baz/",
+                    "repo_name": REPO2,
+                },
                 expected_num_code_mappings=3,
             )
 
@@ -362,8 +358,11 @@ class TestBackSlashDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/mouse.py"]},
             frames=[self.frame("\\sentry\\mouse.py", True)],
             platform=self.platform,
-            expected_stack_root="\\",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "\\",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_backslash_drive_letter_filename_simple(self) -> None:
@@ -371,8 +370,11 @@ class TestBackSlashDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/tasks.py"]},
             frames=[self.frame("C:sentry\\tasks.py", True)],
             platform=self.platform,
-            expected_stack_root="C:sentry\\",
-            expected_source_root="sentry/",
+            expected_new_code_mapping={
+                "stack_root": "C:sentry\\",
+                "source_root": "sentry/",
+                "repo_name": REPO1,
+            },
         )
 
     def test_backslash_drive_letter_filename_monoRepoAndBranch(self) -> None:
@@ -380,8 +382,11 @@ class TestBackSlashDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/tasks.py"]},
             frames=[self.frame("C:sentry\\tasks.py", True)],
             platform=self.platform,
-            expected_stack_root="C:sentry\\",
-            expected_source_root="sentry/",
+            expected_new_code_mapping={
+                "stack_root": "C:sentry\\",
+                "source_root": "sentry/",
+                "repo_name": REPO1,
+            },
         )
 
     def test_backslash_drive_letter_filename_abs_path(self) -> None:
@@ -389,8 +394,11 @@ class TestBackSlashDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/models/release.py"]},
             frames=[self.frame("D:\\Users\\code\\sentry\\models\\release.py", True)],
             platform=self.platform,
-            expected_stack_root="D:\\Users\\code\\",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "D:\\Users\\code\\",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
 
@@ -403,8 +411,11 @@ class TestJavascriptDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["static/app/utils/handle.tsx"]},
             frames=[self.frame("./app/utils/handle.tsx", True)],
             platform=self.platform,
-            expected_stack_root="./",
-            expected_source_root="static/",
+            expected_new_code_mapping={
+                "stack_root": "./",
+                "source_root": "static/",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_starts_with_period_slash_no_containing_directory(self) -> None:
@@ -412,8 +423,11 @@ class TestJavascriptDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["app/utils/handle.tsx"]},
             frames=[self.frame("./app/utils/handle.tsx", True)],
             platform=self.platform,
-            expected_stack_root="./",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "./",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_one_to_one_match(self) -> None:
@@ -421,8 +435,11 @@ class TestJavascriptDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["some/path/Test.tsx"]},
             frames=[self.frame("some/path/Test.tsx", True)],
             platform=self.platform,
-            expected_stack_root="",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
 
@@ -434,8 +451,11 @@ class TestRubyDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["some/path/test.rb"]},
             frames=[self.frame("some/path/test.rb", True)],
             platform=self.platform,
-            expected_stack_root="",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_rake(self) -> None:
@@ -443,8 +463,11 @@ class TestRubyDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["lib/tasks/crontask.rake"]},
             frames=[self.frame("lib/tasks/crontask.rake", True)],
             platform=self.platform,
-            expected_stack_root="",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
 
@@ -457,8 +480,11 @@ class TestNodeDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["utils/errors.js"]},
             frames=[self.frame("app:///utils/errors.js", True)],
             platform=self.platform,
-            expected_stack_root="app:///",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "app:///",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_starts_with_app_complex(self) -> None:
@@ -466,8 +492,11 @@ class TestNodeDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/utils/errors.js"]},
             frames=[self.frame("app:///utils/errors.js", True)],
             platform=self.platform,
-            expected_stack_root="app:///",
-            expected_source_root="sentry/",
+            expected_new_code_mapping={
+                "stack_root": "app:///",
+                "source_root": "sentry/",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_starts_with_multiple_dot_dot_slash(self) -> None:
@@ -476,8 +505,11 @@ class TestNodeDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["packages/api/src/response.ts"]},
             frames=[self.frame("../../packages/api/src/response.ts", True)],
             platform=self.platform,
-            expected_stack_root="../../",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "../../",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_starts_with_app_dot_dot_slash(self) -> None:
@@ -486,8 +518,11 @@ class TestNodeDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["services/event/index.js"]},
             frames=[self.frame("app:///../services/event/index.js", True)],
             platform=self.platform,
-            expected_stack_root="app:///../",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "app:///../",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
 
@@ -499,8 +534,11 @@ class TestGoDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/capybara.go"]},
             frames=[self.frame("/Users/JohnDoe/code/sentry/capybara.go", True)],
             platform=self.platform,
-            expected_stack_root="/Users/JohnDoe/code/",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "/Users/JohnDoe/code/",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_go_long_abs_filename(self) -> None:
@@ -508,15 +546,19 @@ class TestGoDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/kangaroo.go"]},
             frames=[self.frame("/Users/JohnDoe/code/sentry/kangaroo.go", True)],
             platform=self.platform,
-            expected_stack_root="/Users/JohnDoe/code/",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "/Users/JohnDoe/code/",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_similar_but_incorrect_file(self) -> None:
-        self._process_and_assert_no_configuration_changes(
+        self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["not-sentry/main.go"]},
             frames=[self.frame("Users/JohnDoe/src/sentry/main.go", True)],
             platform=self.platform,
+            expected_num_code_mappings=0,
         )
 
 
@@ -533,8 +575,11 @@ class TestPhpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/p/kanga.php"]},
             frames=[self.frame("/sentry/p/kanga.php", True)],
             platform=self.platform,
-            expected_stack_root="/",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "/",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_different_roots_php(self) -> None:
@@ -542,8 +587,11 @@ class TestPhpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["src/sentry/p/kanga.php"]},
             frames=[self.frame("/sentry/p/kanga.php", True)],
             platform=self.platform,
-            expected_stack_root="/sentry/",
-            expected_source_root="src/sentry/",
+            expected_new_code_mapping={
+                "stack_root": "/sentry/",
+                "source_root": "src/sentry/",
+                "repo_name": REPO1,
+            },
         )
 
 
@@ -555,8 +603,11 @@ class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/p/kanga.cs"]},
             frames=[self.frame("/sentry/p/kanga.cs", True)],
             platform=self.platform,
-            expected_stack_root="/",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "/",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_different_roots_csharp(self) -> None:
@@ -564,15 +615,19 @@ class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["src/sentry/p/kanga.cs"]},
             frames=[self.frame("/sentry/p/kanga.cs", True)],
             platform=self.platform,
-            expected_stack_root="/sentry/",
-            expected_source_root="src/sentry/",
+            expected_new_code_mapping={
+                "stack_root": "/sentry/",
+                "source_root": "src/sentry/",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_non_in_app_frame(self) -> None:
-        self._process_and_assert_no_configuration_changes(
+        self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["sentry/src/functions.cs"]},
             frames=[self.frame("/sentry/p/vendor/sentry/src/functions.cs", False)],
             platform=self.platform,
+            expected_num_code_mappings=0,
         )
 
 
@@ -584,8 +639,11 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["src/sentry/foo/bar.py"]},
             frames=[self.frame("sentry/foo/bar.py", True)],
             platform=self.platform,
-            expected_stack_root="sentry/",
-            expected_source_root="src/sentry/",
+            expected_new_code_mapping={
+                "stack_root": "sentry/",
+                "source_root": "src/sentry/",
+                "repo_name": REPO1,
+            },
         )
 
     def test_auto_source_code_config_no_normalization(self) -> None:
@@ -593,8 +651,11 @@ class TestPythonDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/foo/bar.py"]},
             frames=[self.frame("sentry/foo/bar.py", True)],
             platform=self.platform,
-            expected_stack_root="",
-            expected_source_root="",
+            expected_new_code_mapping={
+                "stack_root": "",
+                "source_root": "",
+                "repo_name": REPO1,
+            },
         )
 
 
@@ -603,7 +664,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
 
     def test_very_short_module_name(self) -> None:
         # No code mapping will be stored, however, we get what would have been created
-        code_mappings, _ = self._process_and_assert_no_configuration_changes(
+        self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/a/SomeShortPackageNameClass.java"]},
             frames=[
                 {
@@ -612,18 +673,24 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 }
             ],
             platform=self.platform,
+            expected_new_code_mapping={
+                "stack_root": "a/",
+                "source_root": "src/a/",
+                "repo_name": REPO1,
+            },
+            expected_num_code_mappings=0,
         )
-        assert len(code_mappings) == 1
-        assert code_mappings[0].stacktrace_root == "a/"
-        assert code_mappings[0].source_path == "src/a/"
 
     def test_handles_dollar_sign_in_module(self) -> None:
         # No code mapping will be stored, however, we get what would have been created
-        code_mappings, _ = self._process_and_assert_no_configuration_changes(
+        self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
             frames=[{"module": "com.example.foo.Bar$InnerClass", "abs_path": "Bar.kt"}],
             platform=self.platform,
+            expected_new_code_mapping={
+                "stack_root": "com/example/foo/",
+                "source_root": "src/com/example/foo/",
+                "repo_name": REPO1,
+            },
+            expected_num_code_mappings=0,
         )
-        assert len(code_mappings) == 1
-        assert code_mappings[0].stacktrace_root == "com/example/foo/"
-        assert code_mappings[0].source_path == "src/com/example/foo/"

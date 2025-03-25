@@ -369,7 +369,7 @@ export const BreadcrumbLevel = styled('div')<{level: BreadcrumbLevelType}>`
       case BreadcrumbLevelType.DEBUG:
       case BreadcrumbLevelType.INFO:
       case BreadcrumbLevelType.LOG:
-        return p.theme.gray300;
+        return p.theme.subText;
     }
   }};
   display: ${p => (p.level === BreadcrumbLevelType.UNDEFINED ? 'none' : 'block')};
