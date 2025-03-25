@@ -208,6 +208,7 @@ export default function FeedbackSearch() {
   return (
     <SearchQueryBuilder
       initialQuery={decodeScalar(locationQuery.query, '')}
+      fieldDefinitionGetter={getFeedbackFieldDefinition}
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}
