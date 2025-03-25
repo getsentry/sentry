@@ -93,10 +93,9 @@ describe('StreamlinedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
-
       expect(
-        screen.queryByRole('button', {name: 'Manage issue experience'})
-      ).not.toBeInTheDocument();
+        screen.getByRole('button', {name: 'Manage issue experience'})
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
     });

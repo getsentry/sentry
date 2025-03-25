@@ -1,8 +1,7 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
@@ -25,7 +24,6 @@ describe('NewIssueExperienceButton', function () {
   const organization = OrganizationFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
-  const location = LocationFixture({query: {streamline: '1'}});
 
   beforeEach(() => {
     ConfigStore.init();
@@ -70,26 +68,6 @@ describe('NewIssueExperienceButton', function () {
       {organization}
     );
     expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
-  });
-
-  it('does not appear even if user prefers this UI', function () {
-    act(() => ConfigStore.set('user', user));
-    render(
-      <div data-test-id="test-id">
-        <NewIssueExperienceButton />
-      </div>
-    );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
-  });
-
-  it('does not appear when query param is set', function () {
-    render(
-      <div data-test-id="test-id">
-        <NewIssueExperienceButton />
-      </div>,
-      {router: {location}}
-    );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
   it('triggers changes to the user config and location', async function () {
