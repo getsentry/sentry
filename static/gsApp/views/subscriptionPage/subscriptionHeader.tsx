@@ -108,9 +108,9 @@ function SubscriptionHeader(props: Props) {
           <TabsContainer>
             <Tabs value={activeTab.key}>
               <TabList>
-                {tabConfig.map(({key, name, show}) => {
+                {tabConfig.reduce<any>((acc, {key, name, show}) => {
                   if (show(organization, isDisabled, subscription)) {
-                    return (
+                    acc.push(
                       <TabList.Item
                         key={key}
                         to={normalizeUrl(
@@ -121,8 +121,8 @@ function SubscriptionHeader(props: Props) {
                       </TabList.Item>
                     );
                   }
-                  return <Fragment key={key} />;
-                })}
+                  return acc;
+                }, [])}
               </TabList>
             </Tabs>
           </TabsContainer>
