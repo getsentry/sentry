@@ -93,6 +93,7 @@ function renderComponent({
 describe('NotificationSettingsByType', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    OrganizationsStore.init();
     jest.clearAllMocks();
   });
   beforeEach(() => {
