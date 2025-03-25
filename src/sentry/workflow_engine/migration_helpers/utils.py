@@ -11,6 +11,7 @@ ACTION_TYPE_TO_STRING = {
     AlertRuleTriggerAction.Type.SLACK.value: "Slack",
     AlertRuleTriggerAction.Type.MSTEAMS.value: "Microsoft Teams",
     AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
+    AlertRuleTriggerAction.Type.DISCORD.valud: "Discord",
 }
 
 
@@ -27,6 +28,8 @@ def get_action_description(action: AlertRuleTriggerAction) -> str:
             elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
                 action_target_team = cast(Team, action.target)
                 return "Email #" + action_target_team.slug
+        else:
+            return "Email [removed]"
     elif action.type == AlertRuleTriggerAction.Type.SENTRY_APP.value:
         return f"Notify {action.target_display}"
 
