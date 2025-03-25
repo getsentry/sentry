@@ -1,22 +1,29 @@
 from __future__ import annotations
 
+import functools
 import logging
+import random
 from collections.abc import Callable, Iterable
 from datetime import datetime
-from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
-from celery import current_task
+from celery import Task, current_task
 from django.conf import settings
 from django.db.models import Model
 
+from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
 from sentry.utils.sdk import Scope, capture_exception
 
 ModelT = TypeVar("ModelT", bound=Model)
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +65,57 @@ class TaskSiloLimit(SiloLimit):
         return limited_func
 
 
+def taskworker_override(
+    celery_task_attr: Callable[P, R],
+    taskworker_attr: Callable[P, R],
+    namespace: str,
+    task_name: str,
+) -> Callable[P, R]:
+    def override(*args: P.args, **kwargs: P.kwargs) -> R:
+        rollout = 0
+        option_flag = f"taskworker.{namespace}.rollout"
+        if options.isset(option_flag):
+            rollout_map = options.get(option_flag)
+            rollout = rollout_map.get(task_name, 0)
+
+        random.seed(datetime.now().timestamp())
+        if rollout > random.random():
+            return taskworker_attr(*args, **kwargs)
+
+        return celery_task_attr(*args, **kwargs)
+
+    functools.update_wrapper(override, celery_task_attr)
+    return override
+
+
+def override_task(
+    celery_task: Task,
+    taskworker_task: TaskworkerTask,
+    taskworker_config: TaskworkerConfig,
+    task_name: str,
+) -> Task:
+    """
+    This function is used to override SentryTasks methods with TaskworkerTask methods
+    depending on the rollout percentage set in sentry options.
+
+    This is used to migrate tasks from celery to taskworker in a controlled manner.
+    """
+    replacements = {"delay", "apply_async"}
+    for attr_name in replacements:
+        celery_task_attr = getattr(celery_task, attr_name)
+        taskworker_attr = getattr(taskworker_task, attr_name)
+        if callable(celery_task_attr) and callable(taskworker_attr):
+            limited_attr = taskworker_override(
+                celery_task_attr,
+                taskworker_attr,
+                taskworker_config.namespace.name,
+                task_name,
+            )
+            setattr(celery_task, attr_name, limited_attr)
+
+    return celery_task
+
+
 def load_model_from_db(
     tp: type[ModelT], instance_or_id: ModelT | int, allow_cache: bool = True
 ) -> ModelT:
@@ -69,7 +127,14 @@ def load_model_from_db(
     return instance_or_id
 
 
-def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=False, **kwargs):
+def instrumented_task(
+    name,
+    stat_suffix=None,
+    silo_mode=None,
+    record_timing=False,
+    taskworker_config=None,
+    **kwargs,
+):
     """
     Decorator for defining celery tasks.
 
@@ -82,7 +147,7 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
     """
 
     def wrapped(func):
-        @wraps(func)
+        @functools.wraps(func)
         def _wrapped(*args, **kwargs):
             record_queue_wait_time = record_timing
 
@@ -129,7 +194,19 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
         # being OOM killed.
         kwargs["trail"] = False
+
         task = app.task(name=name, **kwargs)(_wrapped)
+        if taskworker_config:
+            taskworker_task = taskworker_config.namespace.register(
+                name=name,
+                retry=taskworker_config.retry,
+                expires=taskworker_config.expires,
+                processing_deadline_duration=taskworker_config.processing_deadline_duration,
+                at_most_once=taskworker_config.at_most_once,
+                wait_for_delivery=taskworker_config.wait_for_delivery,
+            )(func)
+
+            task = override_task(task, taskworker_task, taskworker_config, name)
 
         if silo_mode:
             silo_limiter = TaskSiloLimit(silo_mode)
@@ -156,7 +233,7 @@ def retry(
         return retry()(func)
 
     def inner(func):
-        @wraps(func)
+        @functools.wraps(func)
         def wrapped(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
