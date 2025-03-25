@@ -1,17 +1,9 @@
-from typing import Any
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    FlexibleForeignKey,
-    GzippedDictField,
-    Model,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
@@ -30,6 +22,8 @@ class GroupOpenPeriod(Model):
     resolution_activity = FlexibleForeignKey(
         "sentry.Activity", null=True, on_delete=models.SET_NULL
     )
+    # TODO(snigdha): remove this column once Incident-related enpoints are removed.
+    # This is only to be used in the interrim while we transition to detectors.
     data_condition = FlexibleForeignKey(
         "workflow_engine.DataCondition", null=True, on_delete=models.SET_NULL
     )
@@ -39,7 +33,7 @@ class GroupOpenPeriod(Model):
     date_started = models.DateTimeField(default=timezone.now)
     date_ended = models.DateTimeField(null=True)
 
-    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(null=True)
+    data = models.JSONField(default=dict)
 
     class Meta:
         app_label = "sentry"
