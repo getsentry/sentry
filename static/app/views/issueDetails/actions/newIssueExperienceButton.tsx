@@ -23,6 +23,7 @@ import {
   IssueDetailsTourModal,
   IssueDetailsTourModalCss,
 } from 'sentry/views/issueDetails/issueDetailsTourModal';
+import {useIssueDetailsTourAvailable} from 'sentry/views/issueDetails/useIssueDetailsTourAvailable';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 export function NewIssueExperienceButton() {
@@ -31,7 +32,6 @@ export function NewIssueExperienceButton() {
   const {
     dispatch: tourDispatch,
     currentStepId,
-    isAvailable: isTourAvailable,
     isRegistered: isTourRegistered,
     isCompleted: isTourCompleted,
   } = useIssueDetailsTour();
@@ -75,6 +75,8 @@ export function NewIssueExperienceButton() {
         userStreamlinePreference === null,
     });
   }, [mutateUserOptions, organization, hasStreamlinedUI, userStreamlinePreference]);
+
+  const isTourAvailable = useIssueDetailsTourAvailable();
 
   // The promotional modal should only appear if:
   //  - The tour is available to this user
@@ -124,12 +126,6 @@ export function NewIssueExperienceButton() {
         aria-label={t('Switch to the new issue experience')}
         onClick={() => {
           handleToggle();
-          tourDispatch({
-            type: 'SET_AVAILABILITY',
-            isAvailable:
-              location.hash === '#tour' ||
-              organization.features.includes('issue-details-streamline-tour'),
-          });
         }}
       >
         {t('Try New UI')}

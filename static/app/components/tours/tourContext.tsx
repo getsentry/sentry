@@ -27,10 +27,6 @@ type TourSetStepAction<T extends TourEnumType> = {
 type TourEndAction = {
   type: 'END_TOUR';
 };
-type TourSetAvailabilityAction = {
-  isAvailable: boolean;
-  type: 'SET_AVAILABILITY';
-};
 type TourSetRegistrationAction = {
   isRegistered: boolean;
   type: 'SET_REGISTRATION';
@@ -46,7 +42,6 @@ export type TourAction<T extends TourEnumType> =
   | TourPreviousStepAction
   | TourSetStepAction<T>
   | TourEndAction
-  | TourSetAvailabilityAction
   | TourSetRegistrationAction
   | TourSetCompletionAction;
 
@@ -55,10 +50,6 @@ export interface TourState<T extends TourEnumType> {
    * The current active tour step. If this is null, the tour is not active.
    */
   currentStepId: TourStep<T>['id'] | null;
-  /**
-   * Whether the tour is available to the user. Should be set by flags or other conditions.
-   */
-  isAvailable: boolean;
   /**
    * Whether the tour has been completed.
    */
@@ -91,8 +82,8 @@ function tourReducer<T extends TourEnumType>(
   const completeTourState = {...state, currentStepId: null, isCompleted: true};
   switch (action.type) {
     case 'START_TOUR': {
-      // If the tour is not available, or not all steps are registered, do nothing
-      if (!state.isAvailable || !state.isRegistered) {
+      // If steps are not all registered, do nothing
+      if (!state.isRegistered) {
         return state;
       }
       // If the stepId is provided, set the current step to the stepId
@@ -157,8 +148,6 @@ function tourReducer<T extends TourEnumType>(
       return {...state, isCompleted: action.isCompleted};
     case 'SET_REGISTRATION':
       return {...state, isRegistered: action.isRegistered};
-    case 'SET_AVAILABILITY':
-      return {...state, isAvailable: action.isAvailable};
     default:
       return state;
   }
@@ -195,7 +184,6 @@ export function useTourReducer<T extends TourEnumType>(
       dispatch,
       handleStepRegistration,
       currentStepId: state.currentStepId,
-      isAvailable: state.isAvailable,
       isRegistered: state.isRegistered,
       isCompleted: state.isCompleted,
       orderedStepIds: state.orderedStepIds,
@@ -205,7 +193,6 @@ export function useTourReducer<T extends TourEnumType>(
       handleStepRegistration,
       initialState.tourKey,
       state.currentStepId,
-      state.isAvailable,
       state.isRegistered,
       state.isCompleted,
       state.orderedStepIds,
