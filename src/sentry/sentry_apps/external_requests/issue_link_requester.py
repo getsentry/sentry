@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -25,6 +26,14 @@ from sentry.utils import json
 logger = logging.getLogger("sentry.sentry_apps.external_requests")
 ACTION_TO_PAST_TENSE = {"create": "created", "link": "linked"}
 FAILURE_REASON_BASE = f"{SentryAppEventType.EXTERNAL_ISSUE_LINKED}.{{}}"
+BAD_RESPONSE_HALT_REASON = FAILURE_REASON_BASE.format(
+    SentryAppExternalRequestHaltReason.BAD_RESPONSE
+)
+
+
+class IssueRequestActionType(StrEnum):
+    CREATE = "create"
+    LINK = "link"
 
 
 @dataclass
@@ -63,7 +72,7 @@ class IssueLinkRequester:
     group: Group
     fields: dict[str, Any]
     user: RpcUser | User
-    action: str
+    action: IssueRequestActionType
 
     def run(self) -> dict[str, Any]:
         response: dict[str, str] = {}
@@ -93,49 +102,40 @@ class IssueLinkRequester:
 
                 response = json.loads(response_body)
             except (json.JSONDecodeError, TypeError) as e:
-                halt_reason = FAILURE_REASON_BASE.format(
-                    SentryAppExternalRequestHaltReason.BAD_RESPONSE
-                )
                 extras["response_body"] = response_body
                 lifecycle.record_halt(
                     halt_reason=e,
-                    extra={"halt_reason": halt_reason, **extras},
+                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
                 )
 
                 raise SentryAppIntegratorError(
                     message=f"Unable to parse response from {self.sentry_app.slug}",
-                    webhook_context={"error_type": halt_reason, **extras},
+                    webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
                     status_code=500,
                 )
             except RequestException as e:
-                halt_reason = FAILURE_REASON_BASE.format(
-                    SentryAppExternalRequestHaltReason.BAD_RESPONSE
-                )
                 extras["error_message"] = str(e)
                 lifecycle.record_halt(
                     halt_reason=e,
-                    extra={"halt_reason": halt_reason, **extras},
+                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
                 )
 
                 raise SentryAppIntegratorError(
                     message=f"Issue occured while trying to contact {self.sentry_app.slug} to link issue",
-                    webhook_context={"error_type": halt_reason, **extras},
+                    webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
                     status_code=500,
                 )
 
             if not self._validate_response(response):
-                halt_reason = FAILURE_REASON_BASE.format(
-                    SentryAppExternalRequestHaltReason.BAD_RESPONSE
-                )
                 extras["response"] = response
                 lifecycle.record_halt(
-                    halt_reason=halt_reason,
-                    extra={"halt_reason": halt_reason, **extras},
+                    halt_reason=BAD_RESPONSE_HALT_REASON,
+                    extra={"halt_reason": BAD_RESPONSE_HALT_REASON, **extras},
                 )
 
                 raise SentryAppIntegratorError(
                     message=f"Invalid response format from sentry app {self.sentry_app} when linking issue",
-                    webhook_context={"error_type": halt_reason, **extras},
+                    webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
                     status_code=500,
                 )
 
