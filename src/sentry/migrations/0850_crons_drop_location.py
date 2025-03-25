@@ -28,6 +28,6 @@ class Migration(CheckedMigration):
         SafeRemoveField(
             model_name="monitorcheckin",
             name="location",
-            deletion_action=DeletionAction.MOVE_TO_PENDING,
+            deletion_action=DeletionAction.DELETE,
         ),
     ]
