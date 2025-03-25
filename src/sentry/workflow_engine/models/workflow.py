@@ -82,7 +82,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True, []
 
-        workflow_job = replace(job, workflow=self)
+        workflow_job = replace(job, workflow_env=self.environment)
         (evaluation, _), remaining_conditions = process_data_condition_group(
             self.when_condition_group.id, workflow_job
         )

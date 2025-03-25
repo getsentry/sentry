@@ -74,7 +74,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -123,8 +123,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        workflow = self.create_workflow()
-        job = WorkflowEventData(event=self.group_event, workflow=workflow)
+        self.create_workflow()
+        job = WorkflowEventData(event=self.group_event, workflow_env=None)
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
         assert isinstance(rule, Rule)
