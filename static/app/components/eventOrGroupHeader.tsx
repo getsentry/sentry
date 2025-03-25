@@ -16,8 +16,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getLocation, getMessage, isGroup, isTombstone} from 'sentry/utils/events';
 import {fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import withOrganization from 'sentry/utils/withOrganization';
 import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {createIssueLink} from 'sentry/views/issueList/utils';
 
@@ -25,7 +25,6 @@ import EventTitleError from './eventTitleError';
 
 interface EventOrGroupHeaderProps {
   data: Event | Group | GroupTombstoneHelper;
-  organization: Organization;
   eventId?: string;
   hideIcons?: boolean;
   hideLevel?: boolean;
@@ -80,7 +79,6 @@ function usePreloadGroupOnHover({
 function EventOrGroupHeader({
   data,
   index,
-  organization,
   query,
   onClick,
   hideIcons,
@@ -88,6 +86,7 @@ function EventOrGroupHeader({
   source,
 }: EventOrGroupHeaderProps) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const hasNewLayout = organization.features.includes('issue-stream-table-layout');
   const preloadHoverProps = usePreloadGroupOnHover({
@@ -250,7 +249,7 @@ const TitleWithoutLink = styled('span')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-export default withOrganization(EventOrGroupHeader);
+export default EventOrGroupHeader;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasNewLayout: boolean;

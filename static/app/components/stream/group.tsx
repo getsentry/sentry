@@ -621,13 +621,7 @@ function StreamGroup({
         />
       )}
       <GroupSummary canSelect={canSelect} hasNewLayout={hasNewLayout}>
-        <EventOrGroupHeader
-          index={index}
-          organization={organization}
-          data={group}
-          query={query}
-          source={referrer}
-        />
+        <EventOrGroupHeader index={index} data={group} query={query} source={referrer} />
         <EventOrGroupExtraDetails data={group} showLifetime={!hasNewLayout} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
