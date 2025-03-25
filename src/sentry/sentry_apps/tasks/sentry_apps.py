@@ -315,7 +315,7 @@ def _process_resource_change(
                 data[name] = serialize(instance)
                 instance_cache_key = f"process-resource-change-bound:{instance.id}"
 
-            # Cache the event/issue for 5 minutes
+            # Cache the event data for 5 minutes
             cache.set(key=instance_cache_key, value=data, timeout=300)
 
             for installation in installations:
