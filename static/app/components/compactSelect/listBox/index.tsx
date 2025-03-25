@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useCallback, useMemo, useRef} from 'react';
+import {forwardRef, Fragment, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
@@ -131,16 +131,13 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
     ref
   );
 
-  const onKeyDown = useCallback<React.KeyboardEventHandler<HTMLUListElement>>(
-    e => {
-      const continueCallback = keyDownHandler?.(e);
-      // Prevent list box from clearing value on Escape key press
-      if (continueCallback && e.key !== 'Escape') {
-        listBoxProps.onKeyDown?.(e);
-      }
-    },
-    [keyDownHandler, listBoxProps]
-  );
+  const onKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    const continueCallback = keyDownHandler?.(e);
+    // Prevent list box from clearing value on Escape key press
+    if (continueCallback && e.key !== 'Escape') {
+      listBoxProps.onKeyDown?.(e);
+    }
+  };
 
   const listItems = useMemo(
     () =>

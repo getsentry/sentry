@@ -259,16 +259,6 @@ export function Control({
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
   const [listStates, setListStates] = useState<Array<ListState<any>>>([]);
-  const registerListState = useCallback<SelectContextValue['registerListState']>(
-    (index, listState) => {
-      setListStates(current => [
-        ...current.slice(0, index),
-        listState,
-        ...current.slice(index + 1),
-      ]);
-    },
-    []
-  );
 
   /**
    * Search/filter value, used to filter out the list of displayed elements
@@ -276,18 +266,15 @@ export function Control({
   const [search, setSearch] = useState('');
   const [searchInputValue, setSearchInputValue] = useState(search);
   const searchRef = useRef<HTMLInputElement>(null);
-  const updateSearch = useCallback(
-    (newValue: string) => {
-      onSearch?.(newValue);
+  const updateSearch = (newValue: string) => {
+    onSearch?.(newValue);
 
-      setSearchInputValue(newValue);
-      if (!disableSearchFilter) {
-        setSearch(newValue);
-        return;
-      }
-    },
-    [onSearch, disableSearchFilter]
-  );
+    setSearchInputValue(newValue);
+    if (!disableSearchFilter) {
+      setSearch(newValue);
+      return;
+    }
+  };
 
   const {keyboardProps: searchKeyboardProps} = useKeyboard({
     onKeyDown: e => {
@@ -313,10 +300,10 @@ export function Control({
   /**
    * Clears selection values across all list states
    */
-  const clearSelection = useCallback(() => {
+  const clearSelection = () => {
     listStates.forEach(listState => listState.selectionManager.clearSelection());
     onClear?.();
-  }, [onClear, listStates]);
+  };
 
   // Manage overlay position
   const {
@@ -494,16 +481,26 @@ export function Control({
     [selectedOptions]
   );
 
-  const contextValue = useMemo(
-    () => ({
+  const contextValue = useMemo(() => {
+    const registerListState: SelectContextValue['registerListState'] = (
+      index,
+      listState
+    ) => {
+      setListStates(current => [
+        ...current.slice(0, index),
+        listState,
+        ...current.slice(index + 1),
+      ]);
+    };
+
+    return {
       registerListState,
       saveSelectedOptions,
       overlayState,
       overlayIsOpen,
       search,
-    }),
-    [registerListState, saveSelectedOptions, overlayState, overlayIsOpen, search]
-  );
+    };
+  }, [saveSelectedOptions, overlayState, overlayIsOpen, search]);
 
   const theme = useTheme();
   return (
