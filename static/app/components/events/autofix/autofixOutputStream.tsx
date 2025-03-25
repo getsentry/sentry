@@ -191,6 +191,7 @@ export function AutofixOutputStream({
                 type="text"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
+                maxLength={1024}
                 placeholder={
                   responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
                 }

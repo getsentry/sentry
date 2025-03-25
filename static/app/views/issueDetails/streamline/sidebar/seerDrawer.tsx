@@ -90,6 +90,7 @@ function AutofixStartBox({onSend, groupId}: AutofixStartBoxProps) {
               value={message}
               onChange={e => setMessage(e.target.value)}
               placeholder="(Optional) Share helpful context here..."
+              maxLength={1024}
             />
             <StyledButton
               type="submit"
