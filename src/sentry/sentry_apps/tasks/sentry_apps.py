@@ -305,20 +305,19 @@ def _process_resource_change(
                 )
                 if event in installation.sentry_app.events
             ]
+            data = {}
+            if isinstance(instance, (Event, GroupEvent)):
+                assert instance.group_id, "group id is required to create webhook event data"
+                data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
+            else:
+                data[name] = serialize(instance)
 
             for installation in installations:
-                data = {}
-                if isinstance(instance, (Event, GroupEvent)):
-                    assert instance.group_id, "group id is required to create webhook event data"
-                    data[name] = _webhook_event_data(
-                        instance, instance.group_id, instance.project_id
-                    )
-                else:
-                    data[name] = serialize(instance)
-
                 # Trigger a new task for each webhook
                 send_resource_change_webhook.delay(
-                    installation_id=installation.id, event=str(event), data=data
+                    installation_id=installation.id,
+                    event=str(event),
+                    data=data,
                 )
 
 
