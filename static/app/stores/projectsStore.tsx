@@ -33,6 +33,7 @@ interface ProjectsStoreDefinition
   onAddTeam(team: Team, projectSlug: string): void;
   onChangeSlug(prevSlug: string, newSlug: string): void;
   onCreateSuccess(project: Project, orgSlug: string): void;
+  onDeleteProject(projectSlug: string): void;
   onDeleteTeam(slug: string): void;
   onRemoveTeam(teamSlug: string, projectSlug: string): void;
   onStatsLoadSuccess(data: StatsData): void;
@@ -126,6 +127,16 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set(Object.keys(data)));
+  },
+
+  onDeleteProject(projectSlug: string) {
+    const project = this.getBySlug(projectSlug);
+    if (!project) {
+      return;
+    }
+    const newProjects = this.state.projects.filter(p => p.id !== project.id);
+    this.state = {...this.state, projects: newProjects};
+    this.trigger(new Set([project.id]));
   },
 
   /**
