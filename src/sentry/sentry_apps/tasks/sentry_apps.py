@@ -131,30 +131,6 @@ def send_alert_webhook_v2(
     additional_payload: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ):
-    send_alert_webhook(
-        rule=rule_label,
-        sentry_app_id=sentry_app_id,
-        instance_id=instance_id,
-        group_id=group_id,
-        occurrence_id=occurrence_id,
-        additional_payload_key=additional_payload_key,
-        additional_payload=additional_payload,
-        **kwargs,
-    )
-
-
-@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
-@retry_decorator
-def send_alert_webhook(
-    rule: str,
-    sentry_app_id: int,
-    instance_id: str,
-    group_id: int,
-    occurrence_id: str,
-    additional_payload_key: str | None = None,
-    additional_payload: Mapping[str, Any] | None = None,
-    **kwargs: Any,
-):
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=SentryAppEventType.EVENT_ALERT_TRIGGERED,
@@ -167,7 +143,7 @@ def send_alert_webhook(
             "sentry_app_id": sentry_app_id,
             "project_id": project.id,
             "organization_slug": organization.slug,
-            "rule": rule,
+            "rule": rule_label,
         }
         lifecycle.add_extras(extra)
 
@@ -215,7 +191,7 @@ def send_alert_webhook(
 
         event_context = _webhook_event_data(group_event, group.id, project.id)
 
-        data = {"event": event_context, "triggered_rule": rule}
+        data = {"event": event_context, "triggered_rule": rule_label}
 
         # Attach extra payload to the webhook
         if additional_payload_key and additional_payload:
@@ -235,6 +211,30 @@ def send_alert_webhook(
             sentry_app_id=sentry_app_id,
             event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
         )
+
+
+@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
+@retry_decorator
+def send_alert_webhook(
+    rule: str,
+    sentry_app_id: int,
+    instance_id: str,
+    group_id: int,
+    occurrence_id: str,
+    additional_payload_key: str | None = None,
+    additional_payload: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+):
+    send_alert_webhook_v2(
+        rule_label=rule,
+        sentry_app_id=sentry_app_id,
+        instance_id=instance_id,
+        group_id=group_id,
+        occurrence_id=occurrence_id,
+        additional_payload_key=additional_payload_key,
+        additional_payload=additional_payload,
+        **kwargs,
+    )
 
 
 def _process_resource_change(
@@ -542,11 +542,11 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
                 "settings": settings,
             }
 
-        send_alert_webhook.delay(
+        send_alert_webhook_v2.delay(
             instance_id=event.event_id,
             group_id=event.group_id,
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
-            rule=f.rule.label,
+            rule_label=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
         )

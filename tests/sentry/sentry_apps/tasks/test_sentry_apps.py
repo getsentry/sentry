@@ -33,7 +33,7 @@ from sentry.sentry_apps.tasks.sentry_apps import (
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
-    send_alert_webhook,
+    send_alert_webhook_v2,
     send_webhooks,
     workflow_notification,
 )
@@ -121,11 +121,11 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        send_alert_webhook(
+        send_alert_webhook_v2(
             instance_id=group_event.event_id,
             group_id=group_event.group_id,
             occurrence_id=None,
-            rule=self.rule.label,
+            rule_label=self.rule.label,
             sentry_app_id=9999,
         )
 
@@ -151,11 +151,11 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         project = self.create_project()
         issue = self.create_group(project=project)
 
-        send_alert_webhook(
+        send_alert_webhook_v2(
             instance_id=123,
             group_id=issue.id,
             occurrence_id=None,
-            rule=self.rule.label,
+            rule_label=self.rule.label,
             sentry_app_id=self.sentry_app.id,
         )
 
