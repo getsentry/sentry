@@ -56,7 +56,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["foo"]["canDelete"]
         assert "uniqueValues" not in data["foo"]
         assert data["bar"]["canDelete"]
-        assert data["bar"]["uniqueValues"] == 2
+        assert "uniqueValues" not in data["bar"]
 
     def test_simple_flags(self):
         self.store_event(
