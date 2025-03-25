@@ -13,6 +13,7 @@ import moment from 'moment-timezone';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
+import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
   EChartClickHandler,
@@ -41,10 +42,12 @@ import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/c
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
   color: string;
+  environments: readonly string[];
   openDrawer: (
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
   ) => void;
+  projects: readonly number[];
   chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
 
@@ -57,6 +60,8 @@ function createReleaseBubbleMouseListeners({
   color,
   openDrawer,
   buckets,
+  projects,
+  environments,
 }: CreateReleaseBubbleMouseListenersParams) {
   return {
     onClick: (params: Parameters<EChartClickHandler>[0]) => {
@@ -79,6 +84,8 @@ function createReleaseBubbleMouseListeners({
             endTs={data.final ?? data.end}
             releases={data.releases}
             buckets={buckets}
+            projects={projects}
+            environments={environments}
             chartRenderer={chartRenderer}
           />
         ),
@@ -342,28 +349,36 @@ interface UseReleaseBubblesParams {
    * the chart inside of the drawer.
    */
   chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+  datetime?: Parameters<typeof normalizeDateTimeParams>[0];
   /**
    * Number of desired bubbles/buckets to create
    */
   desiredBuckets?: number;
+  environments?: readonly string[];
   /**
    * The maximum/latest timestamp of the chart's timeseries
    */
   maxTime?: number;
+
   /**
    * The minimum/earliest timestamp of the chart's timeseries
    */
   minTime?: number;
+  projects?: readonly number[];
   /**
    * List of releases that will be grouped
    */
   releases?: ReleaseMetaBasic[];
 }
+
 export function useReleaseBubbles({
   chartRenderer,
   releases,
   minTime,
   maxTime,
+  datetime,
+  environments,
+  projects,
   bubbleSize = 4,
   bubblePadding = 2,
   desiredBuckets = 10,
@@ -377,9 +392,11 @@ export function useReleaseBubbles({
   // There may be the need to include releases that are > maxTime (e.g. in the
   // case of relative date selection). This is used for the tooltip to show the
   // proper timestamp for releases.
-  const releasesMaxTime = defined(selection.datetime.end)
-    ? new Date(selection.datetime.end).getTime()
-    : Date.now();
+  const endTimeToUse = (datetime || selection.datetime).end;
+  const releasesMaxTime =
+    defined(endTimeToUse) && !Array.isArray(endTimeToUse)
+      ? new Date(endTimeToUse).getTime()
+      : Date.now();
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const totalBubblePaddingY = bubblePadding * 2;
@@ -467,6 +484,8 @@ export function useReleaseBubbles({
       chartRenderer,
       color: theme.blue400,
       openDrawer,
+      projects: projects ?? selection.projects,
+      environments: environments ?? selection.environments,
     }),
 
     /**

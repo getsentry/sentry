@@ -22,10 +22,12 @@ interface ReleasesDrawerListProps {
    */
   buckets: Bucket[];
   endTs: number;
+  environments: readonly string[];
   /**
    * Callback when a release is selected
    */
   onSelectRelease: (release: string, projectId: string) => void;
+  projects: readonly number[];
   /**
    * A list of releases in the current release bucket
    */
@@ -51,6 +53,8 @@ export function ReleasesDrawerList({
   chartRenderer,
   releases,
   onSelectRelease,
+  projects,
+  environments,
 }: ReleasesDrawerListProps) {
   const start = new Date(startTs);
   const end = new Date(endTs);
@@ -92,6 +96,8 @@ export function ReleasesDrawerList({
         </ChartContainer>
       ) : null}
       <ReleaseDrawerTable
+        projects={projects}
+        environments={environments}
         start={start.toISOString()}
         end={end.toISOString()}
         onSelectRelease={onSelectRelease}

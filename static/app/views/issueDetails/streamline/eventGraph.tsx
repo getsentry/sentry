@@ -278,6 +278,13 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
       minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
       maxTime: eventSeries.length && (eventSeries.at(-1)?.name as number),
       releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+      projects: eventView.project,
+      environments: eventView.environment,
+      datetime: {
+        start: eventView.start,
+        end: eventView.end,
+        period: eventView.statsPeriod,
+      },
     });
 
     const handleConnectRef = useCallback(
