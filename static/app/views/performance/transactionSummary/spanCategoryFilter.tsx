@@ -19,7 +19,7 @@ type Props = {
 const LIMIT = 10;
 
 export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
-  const [category, setCategory] = useState<string | undefined>(undefined);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
 
   const searchQuery = useMemo(() => {
     const query = new MutableSearch('');
@@ -34,7 +34,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       search: searchQuery,
       sorts: [{field: 'count()', kind: 'desc'}],
     },
-    'api.transaction-summary.span-category-filter'
+    'api.transaction-summary.span-selectedCategory-filter'
   );
 
   const {options: categoryOptions} = useCompactSelectOptionsCache(
@@ -60,19 +60,19 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   }
 
   const onChange = (selectedOption: SelectOption<string> | null) => {
-    setCategory(selectedOption?.value ?? undefined);
+    setSelectedCategory(selectedOption?.value ?? undefined);
   };
 
   return (
     <CompactSelect
       clearable
       disallowEmptySelection={false}
-      menuTitle={t('Filter by category')}
-      onClear={() => setCategory(undefined)}
+      menuTitle={t('Filter by selectedCategory')}
+      onClear={() => setSelectedCategory(undefined)}
       options={categoryOptions}
-      value={category ?? undefined}
+      value={selectedCategory ?? undefined}
       onChange={onChange}
-      triggerLabel={t('Filter')}
+      triggerLabel={selectedCategory ? selectedCategory : t('Filter')}
       triggerProps={{icon: <IconFilter />, 'aria-label': t('Filter by category')}}
     />
   );
