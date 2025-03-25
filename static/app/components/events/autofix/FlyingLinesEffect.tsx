@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 export function FlyingLinesEffect({targetElement}: {targetElement: HTMLElement | null}) {
   const [position, setPosition] = useState({left: 0, top: 0});
   const portalContainerRef = useRef<HTMLDivElement | null>(null);
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
   const THROTTLE_MS = 16;
 

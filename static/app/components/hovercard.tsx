@@ -153,7 +153,7 @@ function Hovercard({
   );
 }
 
-const StyledHovercard = styled(Overlay)`
+const StyledHovercard = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
   width: 295px;
   line-height: 1.2;
   h6 {

@@ -134,7 +134,7 @@ function CheckInCell({
   column,
   userOptions,
 }: {
-  column: GridColumnOrder<string>;
+  column: GridColumnOrder<string | number>;
   dataRow: CheckIn;
   userOptions: User['options'];
 }) {

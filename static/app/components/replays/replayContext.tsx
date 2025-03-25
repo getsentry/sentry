@@ -195,7 +195,7 @@ export function Provider({
   const oldEvents = usePrevious(events);
   // Note we have to check this outside of hooks, see `usePrevious` comments
   const hasNewEvents = events !== oldEvents;
-  const replayerRef = useRef<Replayer>(null);
+  const replayerRef = useRef<Replayer | null>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
@@ -371,7 +371,6 @@ export function Provider({
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
 
       applyInitialOffset();
@@ -545,7 +544,6 @@ export function Provider({
     return () => {
       if (rootEl && replayerRef.current) {
         replayerRef.current.destroy();
-        // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
         replayerRef.current = null;
       }
     };

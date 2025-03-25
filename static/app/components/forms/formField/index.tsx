@@ -194,7 +194,7 @@ function FormField(props: FormFieldProps) {
   const {name, onBlur, onChange, onKeyDown} = props;
 
   const context = useContext(FormContext);
-  const inputRef = useRef<HTMLElement>();
+  const inputRef = useRef<HTMLElement | null>(null);
 
   const [model] = useState<FormModel>(
     // XXX: MockModel doesn't fully implement the FormModel interface
@@ -305,7 +305,7 @@ function FormField(props: FormFieldProps) {
         }
       }
 
-      inputRef.current = node ?? undefined;
+      inputRef.current = node ?? null;
     },
     [name]
   );

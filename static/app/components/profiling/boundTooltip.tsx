@@ -106,7 +106,7 @@ function BoundTooltip({
   }
 
   const sizeCache = useRef<{size: DOMRect; value: React.ReactNode} | null>(null);
-  const rafIdRef = useRef<number | undefined>();
+  const rafIdRef = useRef<number | null>(null);
   const onRef = useCallback(
     (node: any) => {
       if (node === null) {
@@ -115,7 +115,7 @@ function BoundTooltip({
 
       if (rafIdRef.current) {
         window.cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = undefined;
+        rafIdRef.current = null;
       }
 
       rafIdRef.current = window.requestAnimationFrame(() => {

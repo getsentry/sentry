@@ -172,7 +172,7 @@ function TimeInput({time, setTime}: TimeInputProps) {
   );
 }
 
-const SearchBarDatePickerOverlay = styled(Overlay)`
+const SearchBarDatePickerOverlay = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 100%;
   left: -1px;

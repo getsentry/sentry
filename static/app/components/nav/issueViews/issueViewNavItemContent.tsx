@@ -429,7 +429,7 @@ const LeadingItemsWrapper = styled('div')`
   margin-right: ${space(0.75)};
 `;
 
-const GrabHandleWrapper = styled(motion.div)`
+const GrabHandleWrapper = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   display: flex;
   align-items: center;
   justify-content: center;

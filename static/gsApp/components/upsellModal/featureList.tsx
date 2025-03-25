@@ -116,7 +116,7 @@ const Heading = styled('div')`
   gap: ${space(0.5)};
 `;
 
-const FeatureLink = styled(motion.div)`
+const FeatureLink = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   cursor: pointer;
   transition: color 300ms;
   color: ${p => p.theme.subText};

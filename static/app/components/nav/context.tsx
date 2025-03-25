@@ -10,9 +10,9 @@ export interface NavContext {
   activeGroup: PrimaryNavGroup | null;
   endInteraction: () => void;
   isCollapsed: boolean;
-  isInteractingRef: React.RefObject<boolean>;
+  isInteractingRef: React.RefObject<boolean | null>;
   layout: NavLayout;
-  navParentRef: React.RefObject<HTMLDivElement>;
+  navParentRef: React.RefObject<HTMLDivElement | null>;
   secondaryNavEl: HTMLElement | null;
   setActiveGroup: (group: PrimaryNavGroup | null) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
