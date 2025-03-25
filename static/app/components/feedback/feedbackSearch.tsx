@@ -36,7 +36,7 @@ const EXCLUDED_TAGS: string[] = [
   'device',
   'os',
   'user',
-  // Prefer issue platform 'trace' which has a better description. 'trace.id' tag is for display purposes.
+  // Prefer issues 'trace' field which has a better description. 'trace.id' tag is for display purposes only.
   'trace.id',
 ];
 
