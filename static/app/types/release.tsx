@@ -144,7 +144,6 @@ export type ReleaseMeta = {
   commitFilesChanged: number;
   deployCount: number;
   isArtifactBundle: boolean;
-  newGroups: number;
   projects: ReleaseProject[];
   releaseFileCount: number;
   released: string;
