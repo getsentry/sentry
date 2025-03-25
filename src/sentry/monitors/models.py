@@ -586,7 +586,12 @@ class MonitorCheckIn(Model):
             # Note: If we remove all indexes that start with `status`, we need to add the index back on the column
             models.Index(fields=["status", "timeout_at"]),
             # used for dispatch_mark_unknown
-            models.Index(fields=["status", "date_added"]),
+            models.Index(
+                fields=["-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                include=["id", "monitor_environment_id"],
+                name="sentry_monitorcheckin_unknown",
+            ),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "status")
