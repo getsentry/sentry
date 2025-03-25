@@ -1,29 +1,27 @@
 import styled from '@emotion/styled';
 
-import ListLink from 'sentry/components/links/listLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternetProtocol} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';
 import {tableLayout} from './utils';
 
-type Props = RouteComponentProps;
-
 type IpListType = InternetProtocol[] | null;
 
-function SessionHistory({routes, params, location}: Props) {
+function SessionHistory({location}: RouteComponentProps) {
   const {
     data: ipList = [],
     isLoading,
@@ -45,21 +43,31 @@ function SessionHistory({routes, params, location}: Props) {
     return null;
   }
 
-  const recreateRouteProps = {routes, params, location};
+  const activeTab =
+    location.pathname.split('/').at(-2) === 'settings' ? 'settings' : 'sessionHistory';
+
+  const basePath = location.pathname.split('/').slice(0, -2).join('/');
 
   return (
     <SentryDocumentTitle title={t('Session History')}>
       <SettingsPageHeader
         title={t('Security')}
         tabs={
-          <NavTabs underlined>
-            <ListLink to={recreateRoute('', {...recreateRouteProps, stepBack: -1})} index>
-              {t('Settings')}
-            </ListLink>
-            <ListLink to={recreateRoute('', recreateRouteProps)}>
-              {t('Session History')}
-            </ListLink>
-          </NavTabs>
+          <TabsContainer>
+            <Tabs value={activeTab}>
+              <TabList>
+                <TabList.Item key="settings" to={normalizeUrl(`${basePath}/settings/`)}>
+                  {t('Settings')}
+                </TabList.Item>
+                <TabList.Item
+                  key="sessionHistory"
+                  to={normalizeUrl(`${basePath}/session-history/`)}
+                >
+                  {t('Session History')}
+                </TabList.Item>
+              </TabList>
+            </Tabs>
+          </TabsContainer>
         }
       />
 
@@ -79,6 +87,10 @@ function SessionHistory({routes, params, location}: Props) {
     </SentryDocumentTitle>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default SessionHistory;
 
