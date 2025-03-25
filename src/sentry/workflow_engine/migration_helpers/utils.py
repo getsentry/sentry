@@ -11,7 +11,7 @@ ACTION_TYPE_TO_STRING = {
     AlertRuleTriggerAction.Type.SLACK.value: "Slack",
     AlertRuleTriggerAction.Type.MSTEAMS.value: "Microsoft Teams",
     AlertRuleTriggerAction.Type.OPSGENIE.value: "Opsgenie",
-    AlertRuleTriggerAction.Type.DISCORD.valud: "Discord",
+    AlertRuleTriggerAction.Type.DISCORD.value: "Discord",
 }
 
 
