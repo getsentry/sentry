@@ -6,6 +6,9 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
     percent_increase,
 )
+from sentry.workflow_engine.handlers.condition.event_attribute_handler import (
+    EventAttributeConditionHandler,
+)
 from sentry.workflow_engine.handlers.condition.tagged_event_handler import (
     TaggedEventConditionHandler,
 )
@@ -27,7 +30,12 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
             "value": {"type": "integer", "minimum": 0},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value"],
@@ -55,7 +63,12 @@ class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value", "comparison_interval"],
@@ -81,7 +94,12 @@ class PercentSessionsCountHandler(EventFrequencyCountHandler):
             "value": {"type": "number", "minimum": 0, "maximum": 100},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value"],
@@ -102,7 +120,12 @@ class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
             "comparison_interval": {"type": "string", "enum": list(COMPARISON_INTERVALS.keys())},
             "filters": {
                 "type": "array",
-                "items": TaggedEventConditionHandler.comparison_json_schema,
+                "items": {
+                    "anyOf": [
+                        TaggedEventConditionHandler.comparison_json_schema,
+                        EventAttributeConditionHandler.comparison_json_schema,
+                    ],
+                },
             },
         },
         "required": ["interval", "value", "comparison_interval"],
