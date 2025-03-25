@@ -173,7 +173,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
 const EventsRequest = withApi(_EventsRequest);
 export const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 

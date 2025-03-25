@@ -709,6 +709,7 @@ export enum CreditType {
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   ATTACHMENT = 'attachment',
   REPLAY = 'replay',
   MONITOR_SEAT = 'monitorSeat',
@@ -742,6 +743,7 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.TRANSACTION
     | CreditType.SPAN
     | CreditType.PROFILE_DURATION
+    | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
     | CreditType.REPLAY;
 }

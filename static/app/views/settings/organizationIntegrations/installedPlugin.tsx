@@ -188,11 +188,11 @@ const Container = styled('div')`
 `;
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledLinkButton = styled(LinkButton)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const IntegrationFlex = styled('div')`

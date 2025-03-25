@@ -103,7 +103,7 @@ class RuleMigrationHelpersTest(TestCase):
             {"match": MatchType.IS_SET, "key": self.filters[1]["key"]},
             {
                 "match": MatchType.EQUAL,
-                "key": self.filters[2]["attribute"],
+                "attribute": self.filters[2]["attribute"],
                 "value": self.filters[2]["value"],
             },
         ]

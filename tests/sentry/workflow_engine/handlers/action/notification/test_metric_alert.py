@@ -18,6 +18,7 @@ from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.action.notification.metric_alert import (
@@ -149,7 +150,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.snuba_query = self.create_snuba_query()
@@ -165,7 +166,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
@@ -355,7 +356,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
@@ -458,7 +459,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.workflow.environment)
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(

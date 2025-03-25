@@ -328,10 +328,6 @@ class MSTeamsActionTranslator(BaseActionTranslator):
     def target_type(self) -> ActionTarget:
         return ActionTarget.SPECIFIC
 
-    @property
-    def blob_type(self) -> type[DataBlob]:
-        return OnCallDataBlob
-
 
 @issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["id"])
 class PagerDutyActionTranslator(BaseActionTranslator):
@@ -407,7 +403,7 @@ class TicketingActionDataBlobHelper(ABC):
         Returns tuple of (dynamic_form_fields, additional_fields)
         """
         excluded_keys = excluded_keys or []
-        dynamic_form_fields = data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
+        dynamic_form_fields = data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, [])
 
         additional_fields = {
             k: v
@@ -443,13 +439,14 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
         """
         Override to handle custom fields and additional fields that aren't part of the standard fields.
         """
-        data = super().get_sanitized_data()
-        if self.blob_type:
-            # Use helper to separate fields, excluding required fields
-            _, additional_fields = self.separate_fields(
-                self.action, excluded_keys=self.required_fields
-            )
-            data[TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value] = additional_fields
+        # Use helper to separate fields, excluding required fields
+        dynamic_form_fields, additional_fields = self.separate_fields(
+            self.action, excluded_keys=self.required_fields
+        )
+        data = {
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value: dynamic_form_fields,
+            TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value: additional_fields,
+        }
         return data
 
 
