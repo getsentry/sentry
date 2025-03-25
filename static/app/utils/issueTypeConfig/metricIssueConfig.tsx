@@ -14,7 +14,6 @@ const metricIssueConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: false},
       share: {enabled: true},
     },
-    defaultTimePeriod: {sinceFirstSeen: false},
     customCopy: {
       resolution: t('Back to baseline'),
       eventUnits: t('Open Periods'),
