@@ -24,13 +24,13 @@ class TeamsListTest(AcceptanceTestCase):
         self.browser.wait_until_test_id("team-list")
 
         # team details link
-        self.browser.click('[data-test-id="team-list"] a[href]:first-child')
+        self.browser.click('a[data-test-id="team-link"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         # Click projects tab
-        self.browser.click('[role="tablist"] li:nth-child(2) span')
+        self.browser.click('[role="tablist"] li:nth-child(2) a')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-        # Click projects tab
-        self.browser.click('[role="tablist"] li:nth-child(3) span')
+        # Click notifications tab
+        self.browser.click('[role="tablist"] li:nth-child(3) a')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
