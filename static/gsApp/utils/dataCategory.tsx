@@ -22,6 +22,7 @@ export const GIFT_CATEGORIES: string[] = [
   DataCategory.SPANS,
   DataCategory.SPANS_INDEXED,
   DataCategory.PROFILE_DURATION,
+  DataCategory.PROFILE_DURATION_UI,
   DataCategory.UPTIME,
 ];
 
@@ -40,6 +41,7 @@ const CREDIT_TYPE_TO_DATA_CATEGORY = {
   [CreditType.TRANSACTION]: DataCategory.TRANSACTIONS,
   [CreditType.SPAN]: DataCategory.SPANS,
   [CreditType.PROFILE_DURATION]: DataCategory.PROFILE_DURATION,
+  [CreditType.PROFILE_DURATION_UI]: DataCategory.PROFILE_DURATION_UI,
   [CreditType.ATTACHMENT]: DataCategory.ATTACHMENTS,
   [CreditType.REPLAY]: DataCategory.REPLAYS,
   [CreditType.MONITOR_SEAT]: DataCategory.MONITOR_SEATS,
