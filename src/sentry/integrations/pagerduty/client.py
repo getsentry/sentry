@@ -19,6 +19,7 @@ LEVEL_SEVERITY_MAP: dict[str, PagerdutySeverity] = {
     "fatal": "critical",
 }
 PAGERDUTY_DEFAULT_SEVERITY: PagerdutySeverity = "default"  # represents using LEVEL_SEVERITY_MAP
+PAGERDUTY_SUMMARY_MAX_LENGTH = 1024
 
 
 class PagerDutyClient(ApiClient):
@@ -50,7 +51,7 @@ def build_pagerduty_event_payload(
     group = event.group
     level = event.get_tag("level") or "error"
     custom_details = serialize(event, None, ExternalEventSerializer())
-    summary = custom_details["message"][:1024] or custom_details["title"]
+    summary = custom_details["message"][:PAGERDUTY_SUMMARY_MAX_LENGTH] or custom_details["title"]
 
     link_params = {"referrer": "pagerduty_integration"}
     if notification_uuid:
