@@ -482,22 +482,22 @@ export function SourceMapsDebuggerModal({
       <Body>
         <p>
           {t(
-            'It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be uploaded.'
+            "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be uploaded."
           )}
         </p>
         {isReactNativeSDK({
           sdkName: sourceResolutionResults.sdkName,
         }) ? (
-         <WizardInstructionParagraph>
-              {tct(
-                "For React Native projects, source maps should be generated and uploaded automatically during the build process. If your source maps aren't showing up, consult our [link:React Native source maps documentation].",
-                {
-                  link: (
-                    <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
-                  ),
-                }
-              )}
-            </WizardInstructionParagraph>
+          <WizardInstructionParagraph>
+            {tct(
+              "For React Native projects, source maps should be generated and uploaded automatically during the build process. If your source maps aren't showing up, consult our [link:React Native source maps documentation].",
+              {
+                link: (
+                  <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
+                ),
+              }
+            )}
+          </WizardInstructionParagraph>
         ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
           <MetaFrameworkConfigInfo
             framework={platform}

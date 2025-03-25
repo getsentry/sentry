@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import Confirm from 'sentry/components/confirm';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
@@ -136,6 +137,10 @@ function useSourceMapUploads({
 export function SourceMapsList({location, router, project}: Props) {
   const organization = useOrganization();
   const query = decodeScalar(location.query.query);
+  const [selectedTab, setSelectedTab] = useState('expo');
+
+  // Check if the project is a React Native project
+  const isReactNative = project.platform === 'react-native';
 
   const cursor = location.query.cursor ?? '';
 
@@ -165,6 +170,132 @@ export function SourceMapsList({location, router, project}: Props) {
     [router, location]
   );
 
+  // Check if we're in a search with no results
+  const isEmptySearch = !!query && (!sourceMapUploads || sourceMapUploads.length === 0);
+
+  // Determine the appropriate empty message based on search state
+  const emptyMessage = isEmptySearch ? (
+    <EmptySearchMessage>
+      <h4>{t('No source map uploads found matching your search')}</h4>
+      <p>
+        {tct(
+          'Try modifying your search or [clearLink:clear the search] to see all source map uploads.',
+          {
+            clearLink: (
+              <Link
+                to={{
+                  pathname: location.pathname,
+                  query: {...location.query, query: undefined, cursor: undefined},
+                }}
+              />
+            ),
+          }
+        )}
+      </p>
+      {isReactNative && (
+        <Fragment>
+          <p>
+            {tct(
+              'If you are searching for React Native source maps to match specific debugIds, be sure during your build you are running these scripts to upload source maps for both iOS and Android:',
+              {}
+            )}
+          </p>
+          <InstructionBlock>
+            <strong>{t('Build and run your app in release mode:')}</strong>
+            <CodeSnippet
+              dark
+              language="bash"
+              tabs={[
+                {label: 'Expo', value: 'expo'},
+                {label: 'React Native', value: 'react-native'},
+              ]}
+              selectedTab={selectedTab}
+              onTabClick={value => setSelectedTab(value)}
+            >
+              {selectedTab === 'expo'
+                ? 'npx expo run:android --variant release\nnpx expo run:ios --configuration Release'
+                : 'npx react-native run-android --mode release\nnpx react-native run-ios --mode Release'}
+            </CodeSnippet>
+          </InstructionBlock>
+          <p>
+            {tct(
+              'For more details, see the [docsLink:React Native source maps documentation].',
+              {
+                docsLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
+                ),
+              }
+            )}
+          </p>
+        </Fragment>
+      )}
+    </EmptySearchMessage>
+  ) : (
+    <EmptySourceMapsMessage>
+      <h4>{t('No Source Maps Uploaded')}</h4>
+      {isReactNative ? (
+        <Fragment>
+          <p>
+            {tct(
+              'Source maps allow Sentry to map your production code to your source code. See the [docsLink:our docs] to learn more about configuring your application to upload react-native source maps to sentry.',
+              {
+                docsLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/react-native/sourcemaps/" />
+                ),
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'Be sure during your build you are running these scripts to upload source maps for both iOS and Android:',
+              {}
+            )}
+          </p>
+          <InstructionBlock>
+            <strong>{t('Build and run your app in release mode:')}</strong>
+            <CodeSnippet
+              dark
+              language="bash"
+              tabs={[
+                {label: 'Expo', value: 'expo'},
+                {label: 'React Native', value: 'react-native'},
+              ]}
+              selectedTab={selectedTab}
+              onTabClick={value => setSelectedTab(value)}
+            >
+              {selectedTab === 'expo'
+                ? 'npx expo run:android --variant release\nnpx expo run:ios --configuration Release'
+                : 'npx react-native run-android --mode release\nnpx react-native run-ios --mode Release'}
+            </CodeSnippet>
+          </InstructionBlock>
+        </Fragment>
+      ) : (
+        <Fragment>
+          <p>
+            {tct(
+              'Source maps help Sentry identify the correct source code locations when debugging minified JavaScript. [learnLink:Learn more about source maps].',
+              {
+                learnLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+                ),
+              }
+            )}
+          </p>
+          <p>
+            {tct(
+              'Upload source maps for JavaScript projects by [jsLink:following these instructions].',
+              {
+                jsLink: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
+                ),
+              }
+            )}
+          </p>
+        </Fragment>
+      )}
+    </EmptySourceMapsMessage>
+  );
+
   return (
     <Fragment>
       <SettingsPageHeader title={t('Source Map Uploads')} />
@@ -187,7 +318,7 @@ export function SourceMapsList({location, router, project}: Props) {
         project={project}
         sourceMapUploads={sourceMapUploads}
         isLoading={isPending}
-        emptyMessage={t('No source map uploads found')}
+        emptyMessage={emptyMessage}
         onDelete={id => {
           deleteSourceMaps({bundleId: id, projectSlug: project.slug});
         }}
@@ -394,4 +525,46 @@ const ItemContent = styled('div')`
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
+`;
+
+const EmptySourceMapsMessage = styled('div')`
+  text-align: center;
+  padding: ${space(3)};
+
+  h4 {
+    font-weight: 600;
+    margin-bottom: ${space(1)};
+  }
+
+  p {
+    margin-bottom: ${space(2)};
+  }
+
+  a {
+    color: ${p => p.theme.linkColor};
+  }
+`;
+
+const EmptySearchMessage = styled('div')`
+  text-align: center;
+  padding: ${space(3)};
+
+  h4 {
+    font-weight: 600;
+    margin-bottom: ${space(1)};
+  }
+
+  p {
+    margin-bottom: ${space(2)};
+  }
+
+  a {
+    color: ${p => p.theme.linkColor};
+  }
+`;
+
+const InstructionBlock = styled('div')`
+  margin: ${space(1)} 0;
+  padding: ${space(1)} ${space(2)};
+  text-align: left;
 `;
