@@ -336,7 +336,6 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
-  legendSelected: boolean;
   /**
    * The whitespace around the bubbles.
    */
@@ -356,6 +355,7 @@ interface UseReleaseBubblesParams {
    */
   desiredBuckets?: number;
   environments?: readonly string[];
+  legendSelected?: boolean;
 
   /**
    * The maximum/latest timestamp of the chart's timeseries
