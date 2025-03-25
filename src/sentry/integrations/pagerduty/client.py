@@ -30,11 +30,9 @@ class PagerDutyClient(ApiClient):
         self.integration_key = integration_key
         super().__init__(integration_id=integration_id)
 
-    def request(self, method: str, *args: Any, **kwargs: Any) -> Any:
-        headers = kwargs.pop("headers", None)
-        if headers is None:
-            headers = {"Content-Type": "application/json"}
-        return self._request(method, *args, headers=headers, **kwargs)
+    def request(self, *args: Any, **kwargs: Any) -> Any:
+        kwargs.setdefault("headers", {"Content-Type": "application/json"})
+        return self._request(*args, **kwargs)
 
     def send_trigger(self, data: PagerDutyEventPayload):
         with record_event(OnCallInteractionType.CREATE).capture():
