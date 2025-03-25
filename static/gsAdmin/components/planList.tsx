@@ -81,7 +81,9 @@ function PlanList({
 
   // Helper to get current value display for a category
   const getCurrentValueDisplay = (category: DataCategory, fieldName: LimitName) => {
-    if (!currentSubscription) return null;
+    if (!currentSubscription) {
+      return null;
+    }
 
     // Check if categories exist
     if (currentSubscription.categories) {
@@ -106,7 +108,9 @@ function PlanList({
 
     // Fallback to the old method if categories data is not available
     const currentValue = (currentSubscription as Record<string, any>)[fieldName];
-    if (currentValue === null || currentValue === undefined) return null;
+    if (currentValue === null || currentValue === undefined) {
+      return null;
+    }
 
     return (
       <CurrentValueText>
