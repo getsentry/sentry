@@ -36,17 +36,24 @@ function sortStacks(
   return 0;
 }
 
+type Sample = {
+  aggregate_sample_duration: number;
+  references: Profiling.ProfileReference[];
+  stack: number[];
+  weight: number | undefined;
+};
+
 function stacksWithWeights(
   profile: Readonly<Profiling.SampledProfile>,
   profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
-) {
+): Sample[] {
   return profile.samples.map((stack, index) => {
     return {
       stack: frameFilter ? stack.filter(frameFilter) : stack,
       weight: profile.weights[index],
       aggregate_sample_duration: profile.sample_durations_ns?.[index] ?? 0,
-      profileIds: profileIds[index],
+      references: profileIds[index] || [],
     };
   });
 }
@@ -55,11 +62,7 @@ function sortSamples(
   profile: Readonly<Profiling.SampledProfile>,
   profileIds: Profiling.ProfileReference[][] = [],
   frameFilter?: (i: number) => boolean
-): Array<{
-  aggregate_sample_duration: number;
-  stack: number[];
-  weight: number | undefined;
-}> {
+): Sample[] {
   return stacksWithWeights(profile, profileIds, frameFilter).sort(sortStacks);
 }
 
@@ -156,8 +159,9 @@ export class SampledProfile extends Profile {
     let frame: Frame | null = null;
 
     for (let i = 0; i < samples.length; i++) {
-      const stack = samples[i]!.stack;
-      let weight = samples[i]!.weight!;
+      const sample = samples[i]!;
+      const stack = sample.stack;
+      let weight = sample.weight!;
       let aggregate_duration_ns = samples[i]!.aggregate_sample_duration;
 
       const isGCStack =
@@ -214,7 +218,7 @@ export class SampledProfile extends Profile {
         resolvedStack,
         weight,
         size,
-        resolvedProfileIds[i],
+        sample.references,
         aggregate_duration_ns
       );
     }
@@ -254,7 +258,7 @@ export class SampledProfile extends Profile {
     stack: Frame[],
     weight: number,
     end: number,
-    resolvedProfileIds?: Profiling.ProfileReference[] | string[],
+    references?: Profiling.ProfileReference[],
     aggregate_duration_ns?: number
   ): void {
     // Keep track of discarded samples and ones that may have negative weights
@@ -273,22 +277,23 @@ export class SampledProfile extends Profile {
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {
         node = last;
-        if (resolvedProfileIds) {
-          const existingProfileIds = this.callTreeNodeProfileIdMap.get(node) || [];
-          existingProfileIds.push(...resolvedProfileIds);
-          this.callTreeNodeProfileIdMap.set(
-            node,
-            existingProfileIds.slice(0, MAX_PROFILE_REFERENCES_PER_NODE)
-          );
+        if (references) {
+          const existingProfileIds = this.callTreeNodeProfileIdMap.get(node) || new Set();
+          for (const reference of references) {
+            if (existingProfileIds.size >= MAX_PROFILE_REFERENCES_PER_NODE) {
+              break;
+            }
+            existingProfileIds.add(reference);
+          }
         }
       } else {
         const parent = node;
         node = new CallTreeNode(frame, node);
         parent.children.push(node);
-        if (resolvedProfileIds) {
+        if (references) {
           this.callTreeNodeProfileIdMap.set(
             node,
-            resolvedProfileIds.slice(0, MAX_PROFILE_REFERENCES_PER_NODE)
+            new Set(references.slice(0, MAX_PROFILE_REFERENCES_PER_NODE))
           );
         }
       }
