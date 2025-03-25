@@ -146,8 +146,8 @@ class TaskNamespace:
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
         )
         produce_future.add_done_callback(
-            self._handle_produce_future(
-                future=produce_future,
+            lambda future: self._handle_produce_future(
+                future=future,
                 tags={
                     "namespace": activation.namespace,
                     "taskname": activation.taskname,
