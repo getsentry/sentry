@@ -448,13 +448,6 @@ const appConfig: webpack.Configuration = {
       less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'ios-device-list': path.join(
-        __dirname,
-        'node_modules',
-        'ios-device-list',
-        'dist',
-        'ios-device-list.min.js'
-      ),
     },
 
     fallback: {
