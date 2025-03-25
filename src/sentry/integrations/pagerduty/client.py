@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any, Literal
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
@@ -8,17 +9,33 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
 
+
+class PagerdutySeverity(StrEnum):
+    DEFAULT = "default"
+    CRITICAL = "critical"
+    WARNING = "warning"
+    ERROR = "error"
+    INFO = "info"
+
+
 # https://v2.developer.pagerduty.com/docs/send-an-event-events-api-v2
-type PagerDutyEventPayload = dict[str, Any]
-type PagerdutySeverity = Literal["default", "critical", "warning", "error", "info"]
+type PagerDutyEventPayload = Literal[
+    PagerdutySeverity.DEFAULT,
+    PagerdutySeverity.CRITICAL,
+    PagerdutySeverity.WARNING,
+    PagerdutySeverity.ERROR,
+    PagerdutySeverity.INFO,
+]
+
+
 LEVEL_SEVERITY_MAP: dict[str, PagerdutySeverity] = {
-    "debug": "info",
-    "info": "info",
-    "warning": "warning",
-    "error": "error",
-    "fatal": "critical",
+    "debug": PagerdutySeverity.INFO,
+    "info": PagerdutySeverity.INFO,
+    "warning": PagerdutySeverity.WARNING,
+    "error": PagerdutySeverity.ERROR,
+    "fatal": PagerdutySeverity.CRITICAL,
 }
-PAGERDUTY_DEFAULT_SEVERITY: PagerdutySeverity = "default"  # represents using LEVEL_SEVERITY_MAP
+PAGERDUTY_DEFAULT_SEVERITY = PagerdutySeverity.DEFAULT  # represents using LEVEL_SEVERITY_MAP
 PAGERDUTY_SUMMARY_MAX_LENGTH = 1024
 
 
