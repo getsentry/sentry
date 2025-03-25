@@ -22,7 +22,7 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
 }));
 
 describe('NewIssueExperienceButton', function () {
-  const organization = OrganizationFixture({features: ['issue-details-streamline']});
+  const organization = OrganizationFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
   const location = LocationFixture({query: {streamline: '1'}});

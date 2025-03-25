@@ -102,9 +102,6 @@ describe('StreamlinedGroupHeader', () => {
     });
 
     it('displays new experience button if flag is set', async () => {
-      const flaggedOrganization = OrganizationFixture({
-        features: ['issue-details-streamline'],
-      });
       render(
         <StreamlinedGroupHeader
           {...defaultProps}
@@ -112,10 +109,7 @@ describe('StreamlinedGroupHeader', () => {
           project={project}
           event={null}
         />,
-        {
-          organization: flaggedOrganization,
-          router,
-        }
+        {organization, router}
       );
       expect(
         await screen.findByRole('button', {name: 'Manage issue experience'})
