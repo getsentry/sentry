@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupingVariant from './groupingVariant';
@@ -52,6 +53,7 @@ export default function GroupingInfo({
   group,
 }: GroupingSummaryProps) {
   const [configOverride, setConfigOverride] = useState<string | null>(null);
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
     useEventGroupingInfo({
@@ -77,7 +79,7 @@ export default function GroupingInfo({
 
   return (
     <Fragment>
-      {(isSuccess || hasPerformanceGrouping) && (
+      {hasStreamlinedUI && (isSuccess || hasPerformanceGrouping) && (
         <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
       )}
       <ConfigHeader>
