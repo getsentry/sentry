@@ -2932,7 +2932,7 @@ describe('Customer Details', function () {
         expect(radios.length).toBeGreaterThan(0);
       });
 
-      await userEvent.click(screen.getByRole('link', {name: 'AM1'}));
+      await userEvent.click(screen.getByText('AM1'));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
 
       // Cannot submit yet.

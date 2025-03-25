@@ -409,7 +409,9 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
           >
             <TabList>
               {PLAN_TABS.map(tab => (
-                <TabList.Item key={tab.tier}>{tab.label}</TabList.Item>
+                <TabList.Item key={tab.tier} data-test-id={`${tab.tier}-tier`}>
+                  {tab.label}
+                </TabList.Item>
               ))}
             </TabList>
           </Tabs>
