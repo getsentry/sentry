@@ -148,7 +148,7 @@ function MonitorDetails({params, location}: Props) {
       <Layout.Body>
         <Layout.Main>
           <StyledPageFilterBar condensed>
-            <DatePageFilter />
+            <DatePageFilter maxPickableDays={30} />
             <EnvironmentPageFilter />
           </StyledPageFilterBar>
           {monitor.status === 'disabled' && (
