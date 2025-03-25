@@ -2250,7 +2250,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.REPLAY_TYPE]: {
-    desc: t('Type of replay'),
+    desc: t('The replay recording mode - "session" or "buffer"'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
