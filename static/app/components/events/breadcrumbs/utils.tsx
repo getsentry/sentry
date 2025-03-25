@@ -176,7 +176,7 @@ export interface EnhancedCrumb {
   colorConfig: ReturnType<typeof getBreadcrumbColorConfig>;
   filter: ReturnType<typeof getBreadcrumbFilter>;
   iconComponent: ReturnType<typeof BreadcrumbIcon>;
-  levelComponent: ReturnType<typeof BreadcrumbLevel>;
+  levelComponent: React.ReactNode;
   // Display props
   title: ReturnType<typeof getBreadcrumbTitle>;
   meta?: BreadcrumbMeta;
