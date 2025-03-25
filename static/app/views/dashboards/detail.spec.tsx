@@ -215,7 +215,6 @@ describe('Dashboards > Detail', function () {
         <OrganizationContext.Provider value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
             params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
             router={initialData.router}
             location={initialData.router.location}
@@ -462,7 +461,6 @@ describe('Dashboards > Detail', function () {
         <OrganizationContext.Provider value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
             params={{orgId: 'org-slug', dashboardId: '1'}}
             router={initialData.router}
             location={initialData.router.location}
@@ -526,7 +524,6 @@ describe('Dashboards > Detail', function () {
         <OrganizationContext.Provider value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
             params={{orgId: 'org-slug', dashboardId: '1'}}
             router={initialData.router}
             location={initialData.router.location}
@@ -559,7 +556,6 @@ describe('Dashboards > Detail', function () {
         <OrganizationContext.Provider value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
             params={{orgId: 'org-slug', dashboardId: '1'}}
             router={initialData.router}
             location={initialData.router.location}
@@ -600,7 +596,6 @@ describe('Dashboards > Detail', function () {
         <OrganizationContext.Provider value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
             params={{orgId: 'org-slug', dashboardId: '1'}}
             router={initialData.router}
             location={initialData.router.location}
@@ -626,7 +621,6 @@ describe('Dashboards > Detail', function () {
         <OrganizationContext.Provider value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
-            organization={initialData.organization}
             params={{orgId: 'org-slug', dashboardId: '1'}}
             router={initialData.router}
             location={initialData.router.location}
@@ -691,7 +685,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -738,7 +731,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -788,7 +780,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -841,7 +832,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -887,7 +877,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '0'}}
           router={initialData.router}
           location={{...initialData.router.location, pathname: '/widget/0/'}}
@@ -924,7 +913,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '123'}}
           router={router}
           location={{...initialData.router.location, pathname: '/widget/123/'}}
@@ -1082,7 +1070,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
           router={initialData.router}
           location={{...initialData.router.location, pathname: '/widget/1/'}}
@@ -1122,7 +1109,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1', widgetId: '1'}}
           router={initialData.router}
           location={{
@@ -1188,7 +1174,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1261,7 +1246,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1323,7 +1307,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1389,7 +1372,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1461,7 +1443,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1527,7 +1508,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1584,7 +1564,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1640,7 +1619,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1698,7 +1676,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1767,7 +1744,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={testData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={testData.router}
           location={testData.router.location}
@@ -1817,7 +1793,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1884,7 +1859,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -1972,7 +1946,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -2041,11 +2014,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: initialData.organization.features,
-            access: ['org:read'],
-          }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -2109,11 +2077,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={{
-            ...initialData.organization,
-            features: initialData.organization.features,
-            access: ['org:read'],
-          }}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -2158,7 +2121,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -2190,7 +2152,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
@@ -2228,7 +2189,6 @@ describe('Dashboards > Detail', function () {
       render(
         <ViewEditDashboard
           {...RouteComponentPropsFixture()}
-          organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
           location={initialData.router.location}
