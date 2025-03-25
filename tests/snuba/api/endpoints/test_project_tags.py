@@ -33,6 +33,31 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
 
+    def test_simple_without_values_seen(self):
+        self.store_event(
+            data={
+                "tags": {"foo": "oof", "bar": "rab"},
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"tags": {"bar": "rab2"}, "timestamp": before_now(minutes=1).isoformat()},
+            project_id=self.project.id,
+        )
+
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, includeValuesSeen=0
+        )
+
+        data = {v["key"]: v for v in response.data}
+        assert len(data) == 3
+
+        assert data["foo"]["canDelete"]
+        assert "uniqueValues" not in data["foo"]
+        assert data["bar"]["canDelete"]
+        assert "uniqueValues" not in data["bar"]
+
     def test_simple_flags(self):
         self.store_event(
             data={
