@@ -1,5 +1,4 @@
-import {type Dispatch, useCallback, useMemo, useRef} from 'react';
-import {useReducer} from 'react';
+import {useCallback, useMemo, useReducer, useRef} from 'react';
 
 export type TourEnumType = string | number;
 
@@ -74,6 +73,11 @@ export interface TourState<T extends TourEnumType> {
 type TourRegistry<T extends TourEnumType> = {
   [key in T]: TourStep<T> | null;
 };
+
+type TourCallbacks<T extends TourEnumType> = Partial<{
+  onEndTour: () => void;
+  onStartTour: (stepId?: T) => void;
+}>;
 
 function tourReducer<T extends TourEnumType>(
   state: TourState<T>,
@@ -154,7 +158,8 @@ function tourReducer<T extends TourEnumType>(
 }
 
 export function useTourReducer<T extends TourEnumType>(
-  initialState: TourState<T>
+  initialState: TourState<T>,
+  callbacks: TourCallbacks<T>
 ): TourContextType<T> {
   const {orderedStepIds} = initialState;
 
@@ -178,10 +183,39 @@ export function useTourReducer<T extends TourEnumType>(
     [orderedStepIds]
   );
 
+  const startTour = useCallback(
+    (stepId?: T) => {
+      dispatch({type: 'START_TOUR', stepId});
+      callbacks?.onStartTour?.(stepId);
+    },
+    [callbacks]
+  );
+
+  const endTour = useCallback(() => {
+    dispatch({type: 'END_TOUR'});
+    callbacks?.onEndTour?.();
+  }, [callbacks]);
+
+  const nextStep = useCallback(() => {
+    dispatch({type: 'NEXT_STEP'});
+  }, []);
+
+  const previousStep = useCallback(() => {
+    dispatch({type: 'PREVIOUS_STEP'});
+  }, []);
+
+  const setStep = useCallback((stepId: T) => {
+    dispatch({type: 'SET_STEP', stepId});
+  }, []);
+
   return useMemo<TourContextType<T>>(
     () => ({
       tourKey: initialState.tourKey,
-      dispatch,
+      endTour,
+      nextStep,
+      previousStep,
+      setStep,
+      startTour,
       handleStepRegistration,
       currentStepId: state.currentStepId,
       isRegistered: state.isRegistered,
@@ -189,9 +223,13 @@ export function useTourReducer<T extends TourEnumType>(
       orderedStepIds: state.orderedStepIds,
     }),
     [
-      dispatch,
-      handleStepRegistration,
       initialState.tourKey,
+      endTour,
+      nextStep,
+      previousStep,
+      setStep,
+      startTour,
+      handleStepRegistration,
       state.currentStepId,
       state.isRegistered,
       state.isCompleted,
@@ -201,10 +239,14 @@ export function useTourReducer<T extends TourEnumType>(
 }
 
 export interface TourContextType<T extends TourEnumType> extends TourState<T> {
-  dispatch: Dispatch<TourAction<T>>;
+  endTour: () => void;
   /**
    * Callback to handle step registration. Should be used within a useEffect hook to sync the step
    * registration with the component's mounting/unmounting.
    */
   handleStepRegistration: (step: TourStep<T>) => () => void;
+  nextStep: () => void;
+  previousStep: () => void;
+  setStep: (stepId: T) => void;
+  startTour: (stepId?: T) => void;
 }
