@@ -13,8 +13,8 @@ import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {
@@ -58,10 +58,23 @@ export function DomainViewHeader({
 }: Props) {
   const organization = useOrganization();
   const location = useLocation();
+  const navigate = useNavigate();
   const moduleURLBuilder = useModuleURLBuilder();
   const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
-  const [useEap, setUseEap] = useLocalStorageState('insights-modules-eap', false);
+  const useEap = location.query?.useEap === '1';
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
+
+  const setUseEap = () => {
+    const newState = !useEap;
+
+    navigate({
+      ...location,
+      query: {
+        ...location.query,
+        useEap: newState ? '1' : '0',
+      },
+    });
+  };
 
   const crumbs: Crumb[] = [
     {
@@ -123,7 +136,10 @@ export function DomainViewHeader({
             />
             {additonalHeaderActions}
             {hasEapFlag && (
-              <Switch checked={useEap} onChange={() => setUseEap(!useEap)} />
+              <Fragment>
+                Use Eap
+                <Switch checked={useEap} onChange={() => setUseEap(!useEap)} />
+              </Fragment>
             )}
           </ButtonBar>
         </Layout.HeaderActions>
