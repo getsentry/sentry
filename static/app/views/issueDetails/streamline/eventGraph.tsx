@@ -234,6 +234,14 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
       group,
     });
 
+    const [legendSelected, setLegendSelected] = useLocalStorageState(
+      'issue-details-graph-legend',
+      {
+        ['Feature Flags']: true,
+        ['Releases']: false,
+      }
+    );
+
     const {releases = []} = useReleaseStats(
       {
         projects: eventView.project,
@@ -274,6 +282,7 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
           />
         );
       },
+      legendSelected: legendSelected.Releases,
       desiredBuckets: eventSeries.length,
       minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
       maxTime: eventSeries.length && (eventSeries.at(-1)?.name as number),
@@ -394,14 +403,6 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
     ]);
 
     const bucketSize = eventSeries ? getBucketSize(series) : undefined;
-
-    const [legendSelected, setLegendSelected] = useLocalStorageState(
-      'issue-details-graph-legend',
-      {
-        ['Feature Flags']: true,
-        ['Releases']: false,
-      }
-    );
 
     const legend = Legend({
       theme,
