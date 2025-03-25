@@ -3,7 +3,7 @@ import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
-import domId from 'sentry/utils/domId';
+import {domId} from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';

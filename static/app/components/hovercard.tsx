@@ -116,7 +116,7 @@ function Hovercard({
   tipColor = 'backgroundElevated',
   ...hoverOverlayProps
 }: HovercardProps): React.ReactElement {
-  const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay('hovercard', {
+  const {wrapTrigger, isOpen, ...hoverOverlayState} = useHoverOverlay({
     offset,
     displayTimeout,
     isHoverable: true,

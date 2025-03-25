@@ -2730,13 +2730,17 @@ describe('Customer Details', function () {
       // reservedMonitorSeats
       await userEvent.click(inputs[4]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       // reservedUptime
       await userEvent.click(inputs[5]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -2869,13 +2873,17 @@ describe('Customer Details', function () {
       // reservedMonitorSeats
       await userEvent.click(inputs[4]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       // reservedUptime
       await userEvent.click(inputs[6]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
