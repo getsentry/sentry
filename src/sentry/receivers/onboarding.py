@@ -436,7 +436,6 @@ def record_member_joined(organization_id: int, organization_member_id: int, **kw
     OrganizationOnboardingTask.objects.update_or_create(
         organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        status=OnboardingTaskStatus.PENDING,
         defaults={
             "status": OnboardingTaskStatus.COMPLETE,
             "date_completed": django_timezone.now(),
