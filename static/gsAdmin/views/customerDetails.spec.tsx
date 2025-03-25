@@ -2203,6 +2203,82 @@ describe('Customer Details', function () {
       );
     });
 
+    it('calls api with extra data for refund', async function () {
+      organization.features.push('vc-marketplace-active-customer');
+      const subscription = SubscriptionFixture({
+        organization,
+        isSelfServePartner: true,
+        partner: {
+          externalId: '123',
+          name: 'test',
+          partnership: {
+            id: 'XX',
+            displayName: 'XX',
+            supportNote: '',
+          },
+          isActive: true,
+        },
+      });
+      renderMocks(organization, subscription);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: organization.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[1]!
+      );
+
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByText('Test Vercel API'));
+
+      expect(
+        screen.getByText(
+          'Test Vercel API endpoints for development and debugging purposes.'
+        )
+      ).toBeInTheDocument();
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
+        'refund'
+      );
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Invoice ID'}), '123');
+
+      const apiMock = MockApiClient.addMockResponse({
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
+
+      await waitFor(() =>
+        expect(apiMock).toHaveBeenCalledWith(
+          `/_admin/${organization.slug}/test-vercel-api/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {
+              extra: '123',
+              vercel_endpoint: 'refund',
+            },
+          })
+        )
+      );
+    });
+
     it('does not render if subscription is not self serve partner', async function () {
       organization.features.push('vc-marketplace-active-customer');
       const subscription = SubscriptionFixture({
