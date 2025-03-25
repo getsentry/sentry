@@ -14,6 +14,8 @@ const getInstallSnippet = (params: Params) =>
   `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
 
 const getConfigureSnippet = (params: Params) => `
+require 'sentry-ruby'
+
 Sentry.init do |config|
   config.dsn = '${params.dsn.public}'
 
