@@ -1,8 +1,9 @@
-import {Fragment, useContext, useId, useMemo} from 'react';
+import {Fragment, useContext, useMemo} from 'react';
 import {useSeparator} from '@react-aria/separator';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import domId from 'sentry/utils/domId';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectFilterContext} from '../list';
@@ -30,7 +31,7 @@ interface GridListSectionProps {
  * inside). https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
 export function GridListSection({node, listState, onToggle, size}: GridListSectionProps) {
-  const titleId = useId();
+  const titleId = domId('grid-section-title-');
   const {separatorProps} = useSeparator({elementType: 'li'});
 
   const showToggleAllButton =

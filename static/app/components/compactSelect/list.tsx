@@ -1,11 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useId,
-  useLayoutEffect,
-  useMemo,
-} from 'react';
+import {createContext, Fragment, useContext, useLayoutEffect, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
@@ -13,6 +6,7 @@ import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
 import {defined} from 'sentry/utils';
+import domId from 'sentry/utils/domId';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from './control';
@@ -328,7 +322,7 @@ function List<Value extends SelectKey>({
     return true;
   };
 
-  const listId = useId();
+  const listId = useMemo(() => domId('select-list-'), []);
 
   const sections = useMemo(
     () =>
