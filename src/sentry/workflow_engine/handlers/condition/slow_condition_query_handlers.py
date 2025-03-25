@@ -106,7 +106,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         end: datetime,
         environment_id: int | None,
         referrer_suffix: str,
-        filters: list[tuple[str, str, str | None]] | None = None,
+        filters: list[dict[str, Any]] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
