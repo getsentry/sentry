@@ -28,7 +28,7 @@ export interface Widget {
   /**
    * Placed to the immediate right of the title
    */
-  TitleDecorators?: React.ReactNode;
+  TitleBadges?: React.ReactNode;
   /**
    * Placed in the main area of the frame
    */
@@ -72,9 +72,7 @@ function WidgetLayout(props: Widget) {
     >
       <Header noPadding={props.noHeaderPadding}>
         {props.Title && <Fragment>{props.Title}</Fragment>}
-        {props.TitleDecorators && (
-          <TitleDecorators>{props.TitleDecorators}</TitleDecorators>
-        )}
+        {props.TitleBadges && <TitleBadges>{props.TitleBadges}</TitleBadges>}
         {props.Actions && <TitleHoverItems>{props.Actions}</TitleHoverItems>}
       </Header>
 
@@ -111,7 +109,7 @@ export {exported as Widget};
 
 const HEADER_HEIGHT = '26px';
 
-const TitleDecorators = styled('div')`
+const TitleBadges = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
