@@ -350,9 +350,7 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.purple200,
         },
-        plugins: organization.features.includes('session-replay-enable-canvas-replayer')
-          ? [CanvasReplayerPlugin(events)]
-          : [],
+        plugins: [CanvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
         speed: initialPrefsRef.current.playbackSpeed,
       });
@@ -383,7 +381,6 @@ export function Provider({
       events,
       hasNewEvents,
       isFetching,
-      organization.features,
       setReplayFinished,
       theme.purple200,
     ]
@@ -499,7 +496,12 @@ export function Provider({
     [organization, user.email, analyticsContext, getCurrentPlayerTime, isVideoReplay]
   );
 
+  // Pause the replay when the tab loses focus
   useEffect(() => {
+    if (!isPlaying) {
+      return () => {};
+    }
+
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && replayerRef.current) {
         togglePlayPause(false);
@@ -511,7 +513,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [togglePlayPause]);
+  }, [togglePlayPause, isPlaying]);
 
   // Initialize replayer for Video Replays
   useEffect(() => {

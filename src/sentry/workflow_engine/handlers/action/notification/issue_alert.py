@@ -17,7 +17,7 @@ from sentry.types.rules import RuleFuture
 from sentry.utils.registry import Registry
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.models import Action, Detector
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     ActionFieldMapping,
@@ -32,7 +32,6 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppIdentifier,
     SlackDataBlob,
     TicketFieldMappingKeys,
-    TicketingActionDataBlobHelper,
 )
 
 logger = logging.getLogger(__name__)
@@ -102,16 +101,16 @@ class BaseIssueAlertHandler(ABC):
         cls,
         action: Action,
         detector: Detector,
-        job: WorkflowJob,
+        job: WorkflowEventData,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
         :param action: Action
         :param detector: Detector
-        :param job: WorkflowJob
+        :param job: WorkflowEventData
         :return: Rule instance
         """
-        workflow = job.get("workflow")
+        workflow = job.workflow
         environment_id = None
         if workflow and workflow.environment:
             environment_id = workflow.environment.id
@@ -136,7 +135,7 @@ class BaseIssueAlertHandler(ABC):
 
     @staticmethod
     def get_rule_futures(
-        job: WorkflowJob,
+        job: WorkflowEventData,
         rule: Rule,
         notification_uuid: str,
     ) -> Collection[tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]]:
@@ -147,12 +146,12 @@ class BaseIssueAlertHandler(ABC):
         with sentry_sdk.start_span(
             op="workflow_engine.handlers.action.notification.issue_alert.invoke_legacy_registry.activate_downstream_actions"
         ):
-            grouped_futures = activate_downstream_actions(rule, job["event"], notification_uuid)
+            grouped_futures = activate_downstream_actions(rule, job.event, notification_uuid)
             return grouped_futures.values()
 
     @staticmethod
     def execute_futures(
-        job: WorkflowJob,
+        job: WorkflowEventData,
         futures: Collection[
             tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
         ],
@@ -165,12 +164,12 @@ class BaseIssueAlertHandler(ABC):
             op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
         ):
             for callback, futures in futures:
-                safe_execute(callback, job["event"], futures)
+                safe_execute(callback, job.event, futures)
 
     @classmethod
     def invoke_legacy_registry(
         cls,
-        job: WorkflowJob,
+        job: WorkflowEventData,
         action: Action,
         detector: Detector,
     ) -> None:
@@ -272,9 +271,10 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         # Use helper to separate fields
-        dynamic_form_fields, additional_fields = TicketingActionDataBlobHelper.separate_fields(
-            action.data
+        dynamic_form_fields = action.data.get(
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
         )
+        additional_fields = action.data.get(TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
 
         final_blob = {
             TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value: dynamic_form_fields,

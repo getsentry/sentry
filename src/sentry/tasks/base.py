@@ -163,7 +163,7 @@ def retry(
             except ignore:
                 return
             except ignore_and_capture:
-                capture_exception()
+                capture_exception(level="info")
                 return
             except exclude:
                 raise

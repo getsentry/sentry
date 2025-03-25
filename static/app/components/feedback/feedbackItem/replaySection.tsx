@@ -18,15 +18,8 @@ const CLIP_OFFSETS = {
 const LazyReplayClipPreviewComponent = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')
 );
-const LazyReplayPreviewComponent = lazy(
-  () => import('sentry/components/events/eventReplay/replayPreview')
-);
 
 export default function ReplaySection({eventTimestampMs, organization, replayId}: Props) {
-  const hasUserFeedbackReplayClip = organization.features.includes(
-    'user-feedback-replay-clip'
-  );
-
   const props = {
     analyticsContext: 'feedback',
     eventTimestampMs,
@@ -42,13 +35,11 @@ export default function ReplaySection({eventTimestampMs, organization, replayId}
     },
   };
 
-  return hasUserFeedbackReplayClip ? (
+  return (
     <LazyLoad
       {...props}
       LazyComponent={LazyReplayClipPreviewComponent}
       clipOffsets={CLIP_OFFSETS}
     />
-  ) : (
-    <LazyLoad {...props} LazyComponent={LazyReplayPreviewComponent} />
   );
 }

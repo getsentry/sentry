@@ -1,6 +1,7 @@
-from typing import Any
+from __future__ import annotations
 
-from sentry.eventstore.models import Event
+from typing import TYPE_CHECKING, Any
+
 from sentry.grouping.component import (
     ContextLineGroupingComponent,
     FilenameGroupingComponent,
@@ -13,6 +14,9 @@ from sentry.grouping.strategies.base import (
     strategy,
 )
 from sentry.interfaces.template import Template
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 
 @strategy(ids=["template:v1"], interface=Template, score=1100)
