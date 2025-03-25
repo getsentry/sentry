@@ -545,7 +545,6 @@ export function Provider({
     return () => {
       if (rootEl && replayerRef.current) {
         replayerRef.current.destroy();
-        // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
         replayerRef.current = null;
       }
     };

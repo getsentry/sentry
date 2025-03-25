@@ -39,15 +39,15 @@ export const useVirtualizedList = (
   const scrollHeightRef = useRef<number>(0);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
 
-  const renderCache = useRef<Map<number, React.ReactNode>>(null);
-  const styleCache = useRef<Map<number, React.CSSProperties>>(null);
+  const renderCache = useRef<Map<number, React.ReactNode> | null>(null);
+  const styleCache = useRef<Map<number, React.CSSProperties> | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   if (!styleCache.current) {
-    styleCache.current = new Map();
+    styleCache.current = new Map<number, React.CSSProperties>();
   }
   if (!renderCache.current) {
-    renderCache.current = new Map();
+    renderCache.current = new Map<number, React.ReactNode>();
   }
 
   const [items, setItems] = useState<{
