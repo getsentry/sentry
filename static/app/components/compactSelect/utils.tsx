@@ -271,9 +271,9 @@ export function HiddenSectionToggle({
   // Highlight this toggle's visible counterpart (rendered inside the list box) on focus
   const {focusProps} = useFocus({
     onFocus: () => {
-      const visibleCounterpart = document.querySelector(
-        `#${listId} button[aria-hidden][data-key="${item.key}"]`
-      );
+      const visibleCounterpart = document
+        .getElementById(listId)
+        ?.querySelector(`button[aria-hidden][data-key="${item.key}"]`);
 
       if (!visibleCounterpart) {
         return;
