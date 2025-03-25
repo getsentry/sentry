@@ -299,7 +299,7 @@ function AutofixHighlightPopupContent({
             placeholder={t('Questions or comments?')}
             value={comment}
             onChange={e => setComment(e.target.value)}
-            maxLength={1024}
+            maxLength={4096}
             size="sm"
             autoFocus
           />

@@ -184,7 +184,7 @@ function AutofixInsightCard({
                     <EditInput
                       type="text"
                       value={editText}
-                      maxLength={1024}
+                      maxLength={4096}
                       onChange={e => setEditText(e.target.value)}
                       placeholder={t('Share your own insight here...')}
                       autoFocus
@@ -506,7 +506,7 @@ function ChainLink({
                     type="text"
                     value={newInsightText}
                     onChange={e => setNewInsightText(e.target.value)}
-                    maxLength={1024}
+                    maxLength={4096}
                     placeholder={t('Share your own insight here...')}
                     autoFocus
                   />
