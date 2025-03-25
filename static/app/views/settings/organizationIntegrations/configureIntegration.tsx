@@ -438,30 +438,47 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     }
   }
 
-  const hasStacktraceLinking = provider!.features.includes('stacktrace-link');
-  const hasCodeOwners =
-    provider!.features.includes('codeowners') &&
-    organization.features.includes('integrations-codeowners');
+  function renderMainContent() {
+    const hasStacktraceLinking = provider!.features.includes('stacktrace-link');
+    const hasCodeOwners =
+      provider!.features.includes('codeowners') &&
+      organization.features.includes('integrations-codeowners');
 
-  // if no code mappings, render the single tab
-  if (!hasStacktraceLinking) {
-    return renderMainTab();
+    // if no code mappings, render the single tab
+    if (!hasStacktraceLinking) {
+      return renderMainTab();
+    }
+
+    // otherwise render the tab view
+    const tabs: Array<[Tab, string]> = [
+      ['repos', t('Repositories')],
+      ['codeMappings', t('Code Mappings')],
+    ];
+
+    const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
+      ? [
+          ['userMappings', t('User Mappings')],
+          ['teamMappings', t('Team Mappings')],
+        ]
+      : [];
+
+    const allTabs = tabs.concat(codeOwnerTabs);
+
+    return (
+      <Fragment>
+        <TabsContainer>
+          <Tabs value={tab} onChange={onTabChange}>
+            <TabList>
+              {allTabs.map(tabTuple => (
+                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
+        {renderTabContent()}
+      </Fragment>
+    );
   }
-
-  // otherwise render the tab view
-  const tabs: Array<[Tab, string]> = [
-    ['repos', t('Repositories')],
-    ['codeMappings', t('Code Mappings')],
-  ];
-
-  const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
-    ? [
-        ['userMappings', t('User Mappings')],
-        ['teamMappings', t('Team Mappings')],
-      ]
-    : [];
-
-  const allTabs = tabs.concat(codeOwnerTabs);
 
   return (
     <Fragment>
@@ -482,16 +499,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         title={<IntegrationItem integration={integration} />}
         action={getAction()}
       />
-      <TabsContainer>
-        <Tabs value={tab} onChange={onTabChange}>
-          <TabList>
-            {allTabs.map(tabTuple => (
-              <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
-      </TabsContainer>
-      {renderTabContent()}
+      {renderMainContent()}
       <BreadcrumbTitle
         routes={routes}
         title={t('Configure %s', integration.provider.name)}
