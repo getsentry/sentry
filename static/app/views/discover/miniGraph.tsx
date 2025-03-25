@@ -285,7 +285,7 @@ const StyledGraphContainer = styled((props: any) => (
 `;
 
 const StyledErrorMessage = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-left: 4px;
 `;
 
