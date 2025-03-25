@@ -364,7 +364,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const domainViewFilters = useDomainViewFilters();
+  const {view} = useDomainViewFilters();
 
   const sortValue = useMemo(() => {
     const rawSort = decodeScalar(location.query[PROFILES_SORT]);
@@ -480,7 +480,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
               organization,
               transactionName: transaction,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-              view: domainViewFilters.view,
+              view,
             });
 
             const profileTarget = generateProfileLink()(

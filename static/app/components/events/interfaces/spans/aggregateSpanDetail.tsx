@@ -75,7 +75,7 @@ function renderSpanSamples(
 function AggregateSpanDetail({span, organization}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
-  const domainViewFilters = useDomainViewFilters();
+  const {view} = useDomainViewFilters();
 
   const project = projects.find(p => p.id === location.query.project);
 
@@ -96,13 +96,7 @@ function AggregateSpanDetail({span, organization}: Props) {
             <Row title={t('Avg Duration')}>{getDuration(avgDuration)}</Row>
             <Row title={t('Frequency')}>{frequency && formatPercentage(frequency)}</Row>
             <Row title={t('Span Samples')}>
-              {renderSpanSamples(
-                span,
-                project,
-                location,
-                organization,
-                domainViewFilters.view
-              )}
+              {renderSpanSamples(span, project, location, organization, view)}
             </Row>
           </tbody>
         </table>

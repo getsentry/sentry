@@ -112,7 +112,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
-  const domainViewFilters = useDomainViewFilters();
+  const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -369,7 +369,7 @@ function TagsHeatMap(
                         organization,
                         transactionName,
                         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-                        view: domainViewFilters.view,
+                        view,
                       });
 
                       return (

@@ -71,7 +71,7 @@ export default function SpanTable(props: Props) {
     transactionName,
   } = props;
 
-  const domainViewFilters = useDomainViewFilters();
+  const {view} = useDomainViewFilters();
 
   if (!defined(examples)) {
     return null;
@@ -116,7 +116,7 @@ export default function SpanTable(props: Props) {
               organization,
               transactionName,
               suspectSpan,
-              domainViewFilters.view
+              view
             ),
           }}
         />
