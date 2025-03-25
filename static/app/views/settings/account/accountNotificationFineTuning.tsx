@@ -27,7 +27,7 @@ import {useParams} from 'sentry/utils/useParams';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import type {FineTuneField} from 'sentry/views/settings/account/notifications/fields';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
-import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
+import {NotificationSettingsByType} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {
   getNotificationTypeFromPathname,
