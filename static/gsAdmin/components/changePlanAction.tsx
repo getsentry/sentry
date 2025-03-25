@@ -32,6 +32,8 @@ type State = DeprecatedAsyncComponent['state'] & {
   reservedAttachments: null | number;
   reservedErrors: null | number;
   reservedMonitorSeats: null | number;
+  reservedProfileDuration: null | number;
+  reservedProfileDurationUI: null | number;
   reservedReplays: null | number;
   reservedSpans: null | number;
   reservedTransactions: null | number;
@@ -59,6 +61,8 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedMonitorSeats: null,
       reservedUptime: null,
       reservedSpans: null,
+      reservedProfileDuration: null,
+      reservedProfileDurationUI: null,
       activeTier: this.props.partnerPlanId
         ? getAmPlanTier(this.props.partnerPlanId)
         : PlanTier.AM3,
@@ -211,6 +215,8 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
     setDefaultForCategory('monitorSeats', 'reservedMonitorSeats');
     setDefaultForCategory('uptime', 'reservedUptime');
     setDefaultForCategory('spans', 'reservedSpans');
+    setDefaultForCategory('profileDuration', 'reservedProfileDuration');
+    setDefaultForCategory('profileDurationUI', 'reservedProfileDurationUI');
 
     this.setState(updates as Partial<State>, () => {
       this.props.disableConfirmButton(!this.canSubmit());
@@ -272,8 +278,8 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedAttachments,
       reservedMonitorSeats,
       reservedUptime,
-      reservedProfileDuration,
-      reservedProfileDurationUI,
+      reservedProfileDuration: reservedProfileDuration || 0,
+      reservedProfileDurationUI: reservedProfileDurationUI || 0,
     };
     if (reservedSpans) {
       data.reservedSpans = reservedSpans;
