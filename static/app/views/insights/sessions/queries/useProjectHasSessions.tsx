@@ -5,7 +5,10 @@ export default function useProjectHasSessions() {
   const {selection} = usePageFilters();
   const {projects: allProjects} = useProjects();
 
-  const projectIds = selection.projects;
+  const projectIds = selection.projects.length
+    ? selection.projects
+    : allProjects.map(p => p.id);
+
   const projects = projectIds.map(projectId => {
     return allProjects.find(p => p.id === projectId.toString());
   });
