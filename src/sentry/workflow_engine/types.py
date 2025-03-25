@@ -55,7 +55,7 @@ class ActionHandler:
     group: ClassVar[Group]
 
     @staticmethod
-    def execute(job: WorkflowEventData, action: Action, detector: Detector) -> None:
+    def execute(event_data: WorkflowEventData, action: Action, detector: Detector) -> None:
         raise NotImplementedError
 
 
