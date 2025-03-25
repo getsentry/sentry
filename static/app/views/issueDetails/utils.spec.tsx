@@ -13,20 +13,6 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useOrganization');
 
 describe('useHasStreamlinedUI', () => {
-  it("respects the 'streamline' query param", () => {
-    jest.mocked(useOrganization).mockReturnValue(OrganizationFixture());
-
-    const location = LocationFixture({query: {streamline: '1'}});
-    jest.mocked(useLocation).mockReturnValue(location);
-    const {result: queryParamEnabled} = renderHook(useHasStreamlinedUI);
-    expect(queryParamEnabled.current).toBe(true);
-
-    location.query.streamline = '0';
-    jest.mocked(useLocation).mockReturnValue(location);
-    const {result: queryParamDisabled} = renderHook(useHasStreamlinedUI);
-    expect(queryParamDisabled.current).toBe(false);
-  });
-
   it('respects the user preferences', () => {
     ConfigStore.init();
     const user = UserFixture();
@@ -41,30 +27,6 @@ describe('useHasStreamlinedUI', () => {
     act(() => ConfigStore.set('user', user));
     const {result: userPrefersLegacy} = renderHook(useHasStreamlinedUI);
     expect(userPrefersLegacy.current).toBe(false);
-  });
-
-  it('values query param above user preferences and organization flags', () => {
-    const enforceOrg = OrganizationFixture({
-      features: ['issue-details-streamline-enforce'],
-    });
-    jest.mocked(useOrganization).mockReturnValue(enforceOrg);
-
-    ConfigStore.init();
-    const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = false;
-    act(() => ConfigStore.set('user', user));
-
-    const location = LocationFixture({query: {streamline: '1'}});
-    jest.mocked(useLocation).mockReturnValue(location);
-    const {result: prefersLegacyButQueryParamEnabled} = renderHook(useHasStreamlinedUI);
-    expect(prefersLegacyButQueryParamEnabled.current).toBe(true);
-
-    user.options.prefersIssueDetailsStreamlinedUI = true;
-    act(() => ConfigStore.set('user', user));
-    location.query.streamline = '0';
-    const {result: prefersStreamlineButQueryParamDisabled} =
-      renderHook(useHasStreamlinedUI);
-    expect(prefersStreamlineButQueryParamDisabled.current).toBe(false);
   });
 
   it('ignores preferences if enforce flag is set and user has not opted out', () => {

@@ -19,12 +19,18 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {IssueCategory} from 'sentry/types/group';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import GroupDetails from 'sentry/views/issueDetails/groupDetails';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const SAMPLE_EVENT_ALERT_TEXT =
   'You are viewing a sample error. Configure Sentry to start viewing real errors.';
 
 jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: jest.fn(),
+}));
+
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: jest.fn(),
 }));
 
 describe('groupDetails', () => {
@@ -94,6 +100,7 @@ describe('groupDetails', () => {
 
   beforeEach(() => {
     mockNavigate = jest.fn();
+    (useHasStreamlinedUI as jest.Mock).mockReturnValue(false);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
@@ -163,6 +170,7 @@ describe('groupDetails', () => {
     GroupStore.reset();
     PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   it('renders', async function () {
@@ -352,6 +360,7 @@ describe('groupDetails', () => {
   });
 
   it('does not refire for request with streamlined UI', async function () {
+    (useHasStreamlinedUI as jest.Mock).mockReturnValue(true);
     // Bunch of mocks to load streamlined UI
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/flags/logs/',
@@ -402,22 +411,8 @@ describe('groupDetails', () => {
         detail: 'No matching event',
       },
     });
-
-    createWrapper({
-      ...defaultInit,
-      router: {
-        ...defaultInit.router,
-        location: LocationFixture({
-          query: {
-            query: 'foo:bar',
-            streamline: '1',
-          },
-        }),
-      },
-    });
-
+    createWrapper();
     await waitFor(() => expect(recommendedWithSearchMock).toHaveBeenCalledTimes(1));
-
     await waitFor(() => expect(mockNavigate).not.toHaveBeenCalled());
   });
 

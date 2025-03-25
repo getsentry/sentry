@@ -1,6 +1,5 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
@@ -10,6 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {EventPackageData} from 'sentry/components/events/packageData';
 
 describe('EventPackageData', function () {
+  const router = RouterFixture({});
   const event = EventFixture({
     packages: {
       certifi: '',
@@ -32,36 +32,22 @@ describe('EventPackageData', function () {
   });
 
   it('changes section title depending on the platform', function () {
-    render(<EventPackageData event={event} />, {
-      organization,
-      router: RouterFixture({
-        location: LocationFixture({query: {streamline: '1'}}),
-      }),
-    });
+    render(<EventPackageData event={event} />, {organization, router});
     expect(screen.getByText('Packages')).toBeInTheDocument();
     render(<EventPackageData event={{...event, platform: 'csharp'}} />, {
       organization,
-      router: RouterFixture({
-        location: LocationFixture({query: {streamline: '1'}}),
-      }),
+      router,
     });
     expect(screen.getByText('Assemblies')).toBeInTheDocument();
     render(<EventPackageData event={{...event, platform: 'java'}} />, {
       organization,
-      router: RouterFixture({
-        location: LocationFixture({query: {streamline: '1'}}),
-      }),
+      router,
     });
     expect(screen.getByText('Dependencies')).toBeInTheDocument();
   });
 
   it('displays all the data in column format', async function () {
-    render(<EventPackageData event={event} />, {
-      organization,
-      router: RouterFixture({
-        location: LocationFixture({query: {streamline: '1'}}),
-      }),
-    });
+    render(<EventPackageData event={event} />, {organization, router});
     // Should be collapsed by default
     expect(screen.queryByText(/python/)).not.toBeInTheDocument();
     // Displays when open
@@ -81,12 +67,9 @@ describe('EventPackageData', function () {
   });
 
   it('display redacted data', async function () {
-    render(<EventPackageData event={event} />, {organization});
-
+    render(<EventPackageData event={event} />, {organization, router});
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
-
     await userEvent.hover(screen.getByText(/redacted/));
-
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
