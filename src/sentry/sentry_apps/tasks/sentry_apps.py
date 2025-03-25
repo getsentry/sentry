@@ -316,7 +316,7 @@ def _process_resource_change(
                 instance_cache_key = f"process-resource-change-bound:{instance.id}"
 
             # Cache the event/issue for 5 minutes
-            cache.set(instance_cache_key, data, 300)
+            cache.set(key=instance_cache_key, value=data, timeout=300)
 
             for installation in installations:
                 # Trigger a new task for each webhook
@@ -518,8 +518,6 @@ def send_resource_change_webhook(
             raise SentryAppSentryError(
                 message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
-
-        cache.get()
 
     send_webhooks(installation, event, data=data)
 
