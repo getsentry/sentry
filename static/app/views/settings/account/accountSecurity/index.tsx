@@ -20,7 +20,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
@@ -49,6 +49,9 @@ function AccountSecurity({
   hasVerifiedEmail,
   orgsRequire2fa,
   handleRefresh,
+  routes,
+  params,
+  location,
 }: Props) {
   const api = useApi();
 
@@ -82,10 +85,13 @@ function AccountSecurity({
 
   const isEmpty = !authenticators?.length;
 
+  const maybeTab = location.pathname.split('/').at(-2);
   const activeTab =
-    location.pathname.split('/').at(-2) === 'settings' ? 'settings' : 'sessionHistory';
-
-  const basePath = location.pathname.split('/').slice(0, -2).join('/');
+    maybeTab === 'settings'
+      ? 'settings'
+      : maybeTab === 'session-history'
+        ? 'sessionHistory'
+        : 'settings';
 
   return (
     <SentryDocumentTitle title={t('Security')}>
@@ -95,12 +101,12 @@ function AccountSecurity({
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item key="settings" to={normalizeUrl(`${basePath}/settings/`)}>
+                <TabList.Item key="settings" to={recreateRoute('', {params, routes})}>
                   {t('Settings')}
                 </TabList.Item>
                 <TabList.Item
                   key="sessionHistory"
-                  to={normalizeUrl(`${basePath}/session-history/`)}
+                  to={recreateRoute('session-history', {params, routes})}
                 >
                   {t('Session History')}
                 </TabList.Item>
