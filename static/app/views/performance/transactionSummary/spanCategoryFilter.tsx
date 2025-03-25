@@ -45,7 +45,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       sorts: [{field: 'count()', kind: 'desc'}],
       pageFilters: selection,
     },
-    'api.transaction-summary.span-selectedCategory-filter'
+    'api.transaction-summary.span-category-filter'
   );
 
   const {options: categoryOptions} = useCompactSelectOptionsCache(
