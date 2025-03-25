@@ -11,8 +11,7 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import type {Dataset} from './types';
-import {AlertRuleComparisonType} from './types';
+import {AlertRuleComparisonType, Dataset} from './types';
 
 type Props = {
   alertType: MetricAlertType;
@@ -54,6 +53,12 @@ function ThresholdTypeForm({
     organization.features.includes('anomaly-detection-alerts') &&
     organization.features.includes('anomaly-detection-rollout');
 
+  let comparisonDeltaOptions = COMPARISON_DELTA_OPTIONS;
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    // Don't allow comparisons over a week for span alerts
+    comparisonDeltaOptions = comparisonDeltaOptions.filter(delta => delta.value <= 10080);
+  }
+
   const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
     [
@@ -85,7 +90,7 @@ function ThresholdTypeForm({
             }}
             value={comparisonDelta}
             onChange={({value}: any) => onComparisonDeltaChange(value)}
-            options={COMPARISON_DELTA_OPTIONS}
+            options={comparisonDeltaOptions}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </ComparisonContainer>
