@@ -76,7 +76,7 @@ class ProjectReleaseListTest(APITestCase):
         assert response.data[0]["userAgent"] == "my_agent"
         assert response.data[1]["version"] == release2.version
         assert response.data[2]["version"] == release1.version
-        assert response.data[2]["newGroups"] == 5
+        assert response.data[2]["projects"][0]["newGroups"] == 5
 
     def test_query_filter(self):
         self.login_as(user=self.user)
@@ -202,8 +202,7 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         releases_versions = sorted(r.version for r in releases)
         assert response_versions == releases_versions
 
-    def assert_release_details(self, release, new_issues_count, first_seen, last_seen):
-        assert release["newGroups"] == new_issues_count
+    def assert_release_details(self, release, first_seen, last_seen):
         assert release["firstEvent"] == first_seen
         assert release["lastEvent"] == last_seen
 
@@ -299,7 +298,6 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         releases = sort_releases_by_version(response.data)
         self.assert_release_details(
             release=releases[0],
-            new_issues_count=1,
             first_seen=self.datetime,
             last_seen=self.datetime,
         )
@@ -309,13 +307,11 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         releases = sort_releases_by_version(response.data)
         self.assert_release_details(
             release=releases[0],
-            new_issues_count=7,
             first_seen=self.datetime + timedelta(seconds=120),
             last_seen=self.datetime + timedelta(seconds=700),
         )
         self.assert_release_details(
             release=releases[1],
-            new_issues_count=2,
             first_seen=self.datetime,
             last_seen=self.datetime + timedelta(days=20),
         )

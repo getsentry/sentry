@@ -59,7 +59,7 @@ class ReleaseMetaTest(APITestCase):
             filename="/static/js/widget.js",
             type="A",
         )
-        ReleaseProject.objects.create(release=release, project=project, new_groups=5)
+        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=5)
 
         release.commit_count = 2
         release.total_deploys = 1

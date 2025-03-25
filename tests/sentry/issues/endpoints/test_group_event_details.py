@@ -117,8 +117,8 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
 
         assert response_no_collapse.status_code == 200, response_no_collapse.content
 
-        # Full release includes firstEvent, lastEvent, newGroups, etc
-        assert {"id", "version", "firstEvent", "lastEvent", "newGroups"} <= set(
+        # Full release includes firstEvent, lastEvent, etc
+        assert {"id", "version", "firstEvent", "lastEvent"} <= set(
             response_no_collapse.data["release"]
         )
 
