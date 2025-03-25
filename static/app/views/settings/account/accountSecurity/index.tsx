@@ -6,13 +6,12 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -21,7 +20,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
-import recreateRoute from 'sentry/utils/recreateRoute';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
@@ -50,8 +49,6 @@ function AccountSecurity({
   hasVerifiedEmail,
   orgsRequire2fa,
   handleRefresh,
-  params,
-  routes,
 }: Props) {
   const api = useApi();
 
@@ -85,19 +82,31 @@ function AccountSecurity({
 
   const isEmpty = !authenticators?.length;
 
+  const activeTab =
+    location.pathname.split('/').at(-2) === 'settings' ? 'settings' : 'sessionHistory';
+
+  const basePath = location.pathname.split('/').slice(0, -2).join('/');
+
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
         title={t('Security')}
         tabs={
-          <NavTabs underlined>
-            <ListLink to={recreateRoute('', {params, routes})} index>
-              {t('Settings')}
-            </ListLink>
-            <ListLink to={recreateRoute('session-history/', {params, routes})}>
-              {t('Session History')}
-            </ListLink>
-          </NavTabs>
+          <TabsContainer>
+            <Tabs value={activeTab}>
+              <TabList>
+                <TabList.Item key="settings" to={normalizeUrl(`${basePath}/settings/`)}>
+                  {t('Settings')}
+                </TabList.Item>
+                <TabList.Item
+                  key="sessionHistory"
+                  to={normalizeUrl(`${basePath}/session-history/`)}
+                >
+                  {t('Session History')}
+                </TabList.Item>
+              </TabList>
+            </Tabs>
+          </TabsContainer>
         }
       />
 
@@ -220,6 +229,10 @@ function AccountSecurity({
     </SentryDocumentTitle>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 const AuthenticatorName = styled('span')`
   font-size: 1.2em;
