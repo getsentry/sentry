@@ -175,3 +175,34 @@ class WorkflowNameTest(APITestCase):
             workflow.name
             == f"Critical - Email {self.rpc_user.email}, Notify {self.og_team_table["team"]} via {self.opsgenie_integration.provider.title()}, Warning - Email #{self.og_team.slug}...(+2)"
         )
+
+    def test_missing_org_member(self):
+        user = self.create_user()
+        alert_rule = self.create_alert_rule()
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, target_identifier=str(user.id)
+        )
+
+        migrate_alert_rule(alert_rule, self.rpc_user)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        assert workflow.name == "Email [removed]"
+
+    def test_missing_team(self):
+        team = self.create_team(organization=self.organization)
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            target_identifier=str(team.id),
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+        )
+        team.delete()
+
+        migrate_alert_rule(alert_rule, self.rpc_user)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+
+        assert workflow.name == "Email [removed]"
