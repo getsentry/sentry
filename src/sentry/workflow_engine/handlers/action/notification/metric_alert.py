@@ -117,24 +117,3 @@ class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
             organization=organization,
             notification_uuid=notification_uuid,
         )
-
-
-@metric_alert_handler_registry.register(Action.Type.OPSGENIE)
-class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
-    @classmethod
-    def send_alert(
-        cls,
-        notification_context: NotificationContext,
-        alert_context: AlertContext,
-        metric_issue_context: MetricIssueContext,
-        organization: Organization,
-        notification_uuid: str,
-    ) -> None:
-
-        send_opsgenie_incident_alert_notification(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            organization=organization,
-            notification_uuid=notification_uuid,
-        )
