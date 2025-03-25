@@ -30,7 +30,6 @@ export function ReleaseMetaFixture(params: Partial<ReleaseMeta> = {}): ReleaseMe
         platforms: ['javascript'],
       },
     ],
-    newGroups: 0,
     deployCount: 1,
     commitCount: 2,
     released: '2020-03-23T01:02:30Z',
