@@ -97,10 +97,10 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         ),
     )
 
-    _, created = OrganizationOnboardingTask.objects.create_or_update(
+    _, created = OrganizationOnboardingTask.objects.update_or_create(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        values={
+        defaults={
             "user_id": user_id,
             "status": OnboardingTaskStatus.COMPLETE,
             "project_id": project.id,
@@ -119,10 +119,10 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
                 level="warning",
             )
 
-        OrganizationOnboardingTask.objects.create_or_update(
+        OrganizationOnboardingTask.objects.update_or_create(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            values={
+            defaults={
                 "user_id": user_id,
                 "status": OnboardingTaskStatus.COMPLETE,
                 "project_id": project.id,
@@ -433,16 +433,25 @@ def record_member_invited(member, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    OrganizationOnboardingTask.objects.create_or_update(
+    obj, created = OrganizationOnboardingTask.objects.get_or_create(
         organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        status=OnboardingTaskStatus.PENDING,
-        values={
+        defaults={
             "status": OnboardingTaskStatus.COMPLETE,
             "date_completed": django_timezone.now(),
             "data": {"invited_member_id": organization_member_id},
         },
     )
+    if created:
+        # The task was just created and marked as complete, no need to do anything extra
+        return
+
+    if obj.status != OnboardingTaskStatus.COMPLETE:
+        # The task exists but is not complete, so we need to update it as complete
+        obj.status = OnboardingTaskStatus.COMPLETE
+        obj.date_completed = django_timezone.now()
+        obj.data = {"invited_member_id": organization_member_id}
+        obj.save()
 
 
 def _record_release_received(project, event, **kwargs):
@@ -590,10 +599,10 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
     if rule_type == "metric":
         return
-    OrganizationOnboardingTask.objects.create_or_update(
+    OrganizationOnboardingTask.objects.update_or_create(
         organization_id=project.organization_id,
         task=OnboardingTask.ALERT_RULE,
-        values={
+        defaults={
             "status": OnboardingTaskStatus.COMPLETE,
             "user_id": user.id if user else None,
             "project_id": project.id,

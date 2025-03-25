@@ -421,7 +421,7 @@ const CellExpander = styled('div')`
 
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   min-width: 0px;
 `;

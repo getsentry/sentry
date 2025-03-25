@@ -9,7 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.serializers.rest_framework import RuleActionSerializer
+from sentry.api.serializers.rest_framework import DummyRuleSerializer
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.processing.processor import activate_downstream_actions
@@ -33,10 +33,11 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             {method} {path}
             {{
                 "actions": []
+                "name": string
             }}
 
         """
-        serializer = RuleActionSerializer(
+        serializer = DummyRuleSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )
 
@@ -58,7 +59,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
                 "frequency": 30,
             }
         )
-        rule = Rule(id=-1, project=project, data=data)
+        rule = Rule(id=-1, project=project, data=data, label=data.get("name"))
 
         test_event = create_sample_event(
             project, platform=project.platform, default="javascript", tagged=True
