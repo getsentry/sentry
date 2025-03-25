@@ -160,7 +160,7 @@ function CronsOverview() {
             <PageFilterBar>
               <ProjectPageFilter resetParamsOnChange={['cursor']} />
               <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              <DatePageFilter />
+              <DatePageFilter maxPickableDays={30} />
             </PageFilterBar>
             <SearchBar
               query={decodeScalar(qs.parse(location.search)?.query, '')}
