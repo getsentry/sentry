@@ -114,7 +114,6 @@ class MetricIssueContext:
     new_status: IncidentStatus
     subscription: QuerySubscription | None
     metric_value: float | None
-    group: Group | None
 
     @classmethod
     def _get_new_status(cls, group: Group, occurrence: IssueOccurrence) -> IncidentStatus:
@@ -163,7 +162,6 @@ class MetricIssueContext:
             subscription=cls._get_subscription(occurrence),
             new_status=cls._get_new_status(group, occurrence),
             metric_value=cls._get_metric_value(occurrence),
-            group=group,
         )
 
     @classmethod
@@ -180,7 +178,6 @@ class MetricIssueContext:
             subscription=incident.subscription,
             new_status=new_status,
             metric_value=metric_value,
-            group=None,
         )
 
 
