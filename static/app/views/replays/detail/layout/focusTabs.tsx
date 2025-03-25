@@ -69,6 +69,12 @@ function FocusTabs({isVideoReplay}: Props) {
 
 const TabContainer = styled('div')`
   margin-bottom: ${space(1)};
+  padding-inline: ${space(1)};
+  border-bottom: solid 1px #e0dce5;
+
+  & > * {
+    margin-bottom: -1px;
+  }
 `;
 
 export default FocusTabs;
