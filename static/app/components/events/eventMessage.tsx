@@ -67,7 +67,7 @@ function EventMessage({
 
 const LevelMessageContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   align-items: center;
   line-height: 1.2;
   overflow: hidden;
