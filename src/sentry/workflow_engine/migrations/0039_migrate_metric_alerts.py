@@ -84,6 +84,16 @@ class AlertRuleTriggerActionType(Enum):
     DISCORD = 7
 
 
+MAX_ACTIONS = 3
+
+ACTION_TYPE_TO_STRING = {
+    AlertRuleTriggerActionType.PAGERDUTY.value: "PagerDuty",
+    AlertRuleTriggerActionType.SLACK.value: "Slack",
+    AlertRuleTriggerActionType.MSTEAMS.value: "Microsoft Teams",
+    AlertRuleTriggerActionType.OPSGENIE.value: "Opsgenie",
+}
+
+
 class ActionTarget(IntEnum):
     """
     Explains the contents of target_identifier
@@ -225,6 +235,62 @@ def _get_trigger_action_target(apps: Apps, trigger_action: Any) -> Any:
     elif trigger_action.target_type == ActionTarget.SPECIFIC.value:
         return trigger_action.target_identifier
     return None
+
+
+def _get_action_description(apps: Apps, action: Any) -> str:
+    """
+    Returns a human readable action description
+    """
+    if action.type == AlertRuleTriggerActionType.EMAIL.value:
+        target = _get_trigger_action_target(apps, action)
+        if target:
+            if action.target_type == ActionTarget.USER.value:
+                action_target_user = target
+                return "Email " + action_target_user.user_email
+            elif action.target_type == ActionTarget.TEAM.value:
+                action_target_team = target
+                return "Email #" + action_target_team.slug
+    elif action.type == AlertRuleTriggerActionType.SENTRY_APP.value:
+        return f"Notify {action.target_display}"
+
+    return f"Notify {action.target_display} via {ACTION_TYPE_TO_STRING[action.type]}"
+
+
+def _get_workflow_name(apps: Apps, alert_rule: Any) -> str:
+    """
+    Generate a workflow name like 'Slack @michelle.fu, Email michelle.fu@sentry.io...(+3)' if there is only a critical trigger
+    or with priority label: 'Critical - Slack @michelle.fu, Warning email michelle.fu@sentry.io...(+3)''
+    """
+    AlertRuleTrigger = apps.get_model("sentry", "AlertRuleTrigger")
+    AlertRuleTriggerAction = apps.get_model("sentry", "AlertRuleTriggerAction")
+
+    name = ""
+    triggers = AlertRuleTrigger.objects.filter(alert_rule_id=alert_rule.id).order_by("label")
+    include_label = False if triggers.count() == 1 else True
+
+    actions = AlertRuleTriggerAction.objects.filter(
+        alert_rule_trigger_id__in=[trigger.id for trigger in triggers]
+    )
+    actions_counter = 0
+
+    for trigger in triggers:
+        name += f"{trigger.label.title()} - " if include_label else ""
+        for action in actions.filter(alert_rule_trigger_id=trigger.id):
+            description = _get_action_description(apps, action) + ", "
+
+            if actions_counter < MAX_ACTIONS:
+                name += description
+                actions_counter += 1
+            else:
+                remaining_actions = actions.count() - actions_counter
+                name = name[:-2]
+                name += f"...(+{remaining_actions})"
+                break
+
+    if name[-2:] == ", ":
+        name = name[:-2]  # chop off the trailing comma
+
+    return name
 
 
 def _migrate_trigger(apps: Apps, trigger: Any, detector: Any, alert_rule_workflow: Any) -> None:
@@ -579,7 +645,7 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                         )
                         # create workflow
                         workflow = Workflow.objects.create(
-                            name=alert_rule.name,
+                            name=_get_workflow_name(apps, alert_rule),
                             organization_id=organization_id,
                             when_condition_group=None,
                             enabled=True,
@@ -615,7 +681,6 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
                             extra={"alert_rule_id": alert_rule.id},
                         )
                 except Exception as e:
-                    raise
                     logger.info(
                         "error when migrating alert rule",
                         extra={"error": str(e), "alert_rule_id": alert_rule.id},
