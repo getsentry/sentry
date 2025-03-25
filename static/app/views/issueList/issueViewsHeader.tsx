@@ -119,7 +119,6 @@ function IssueViewsIssueListHeader({
                 environments: viewEnvironments,
                 projects: viewProjects,
                 timeFilters: viewTimeFilters,
-                isAllProjects,
               },
               index
             ): IssueView => {
@@ -132,7 +131,7 @@ function IssueViewsIssueListHeader({
                 query: viewQuery,
                 querySort: viewQuerySort,
                 environments: viewEnvironments,
-                projects: isAllProjects ? [-1] : viewProjects,
+                projects: viewProjects,
                 timeFilters: viewTimeFilters,
                 isCommitted: true,
               };

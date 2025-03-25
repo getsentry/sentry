@@ -19,7 +19,6 @@ export type IssueUpdateData =
 export type GroupSearchView = {
   environments: string[];
   id: string;
-  isAllProjects: boolean;
   name: string;
   projects: number[];
   query: string;
@@ -29,8 +28,8 @@ export type GroupSearchView = {
 
 export interface UpdateGroupSearchViewPayload extends Omit<GroupSearchView, 'id'> {
   environments: string[];
-  isAllProjects: boolean;
   projects: number[];
   timeFilters: PageFilters['datetime'];
   id?: string;
+  isAllProjects?: boolean;
 }

@@ -27,7 +27,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:high',
       querySort: IssueSortOptions.DATE,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         end: '2024-01-01',
@@ -42,7 +41,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:medium',
       querySort: IssueSortOptions.DATE,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         start: null,
@@ -57,7 +55,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:low',
       querySort: IssueSortOptions.NEW,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         end: '2024-01-01',
