@@ -276,8 +276,7 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
       },
       desiredBuckets: eventSeries.length,
       minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
-      maxTime:
-        eventSeries.length && (eventSeries.at(eventSeries.length - 1)?.name as number),
+      maxTime: eventSeries.length && (eventSeries.at(-1)?.name as number),
       releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
     });
 
