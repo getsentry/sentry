@@ -19,7 +19,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.users.services.user.service import user_service
-from sentry.workflow_engine.migration_helpers.alert_rule import get_workflow_name
+from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
