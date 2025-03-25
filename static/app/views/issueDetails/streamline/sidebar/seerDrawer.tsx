@@ -128,7 +128,7 @@ const AiSetupDataConsent = HookOrDefault({
 
 export function SeerDrawer({group, project, event}: SeerDrawerProps) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
 
   useRouteAnalyticsParams({autofix_status: autofixData?.status ?? 'none'});
 
@@ -402,7 +402,7 @@ const StyledButton = styled(Button)`
 
 const StyledCard = styled('div')`
   background: ${p => p.theme.backgroundElevated};
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(3)};

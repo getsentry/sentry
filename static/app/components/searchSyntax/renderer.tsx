@@ -385,7 +385,7 @@ const Unit = styled('span')`
 
 const LogicBoolean = styled('span')<{invalid: boolean}>`
   font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   ${p => p.invalid && `color: ${p.theme.red400}`}
 `;
 
@@ -398,11 +398,11 @@ const DateTime = styled('span')`
 `;
 
 const ListComma = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Paren = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const InList = styled('span')`

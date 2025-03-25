@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef, memo, useMemo, useRef, useState} from 'react';
+import {forwardRef as reactForwardRef, memo, useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
@@ -19,7 +19,6 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import domId from 'sentry/utils/domId';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
@@ -121,8 +120,8 @@ function BaseMenuListItem({
   ...props
 }: Props) {
   const itemRef = useRef<HTMLLIElement>(null);
-  const labelId = useMemo(() => domId('menuitem-label-'), []);
-  const detailId = useMemo(() => domId('menuitem-details-'), []);
+  const labelId = useId();
+  const detailId = useId();
 
   return (
     <MenuItemWrap

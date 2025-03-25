@@ -804,10 +804,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
     return data_source
 
 
-def dual_delete_migrated_alert_rule(
-    alert_rule: AlertRule,
-    user: RpcUser | None = None,
-) -> None:
+def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
     try:
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
     except AlertRuleDetector.DoesNotExist:
@@ -866,10 +863,7 @@ def dual_delete_migrated_alert_rule(
     return
 
 
-def dual_delete_migrated_alert_rule_trigger(
-    alert_rule_trigger: AlertRuleTrigger,
-    user: RpcUser | None = None,
-) -> None:
+def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger) -> None:
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
     detector_trigger = get_detector_trigger(alert_rule_trigger, priority)
     if detector_trigger is None:
@@ -896,10 +890,7 @@ def dual_delete_migrated_alert_rule_trigger(
     return None
 
 
-def dual_delete_migrated_alert_rule_trigger_action(
-    trigger_action: AlertRuleTriggerAction,
-    user: RpcUser | None = None,
-) -> None:
+def dual_delete_migrated_alert_rule_trigger_action(trigger_action: AlertRuleTriggerAction) -> None:
     alert_rule_trigger = trigger_action.alert_rule_trigger
     # Check that we dual wrote this action
     priority = PRIORITY_MAP.get(alert_rule_trigger.label, DetectorPriorityLevel.HIGH)
