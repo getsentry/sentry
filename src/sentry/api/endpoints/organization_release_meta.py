@@ -104,6 +104,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "version": release.version,
                 "versionInfo": expose_version_info(release.version_info),
                 "projects": projects,
+                # This value is deprecated. Read from the `ReleaseProject` model instead.
                 "newGroups": sum(project["newGroups"] for project in projects),
                 "deployCount": release.total_deploys,
                 "commitCount": release.commit_count,
