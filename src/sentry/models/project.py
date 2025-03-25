@@ -343,6 +343,9 @@ class Project(Model, PendingDeletionMixin):
         # This Project has sent feature flags
         has_flags: bool
 
+        # This Project has sent continuous profiles
+        has_continuous_profiles: bool
+
         bitfield_default = 10
         bitfield_null = True
 
