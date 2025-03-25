@@ -1117,6 +1117,11 @@ urlpatterns += [
                     name="sentry-organization-cron-monitor-details",
                 ),
                 re_path(
+                    r"^(?P<organization_slug>[\w_-]+)/alerts/rules/crons/(?P<project_slug>[\w_-]+)/(?P<monitor_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-cron-monitor-details",
+                ),
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     generic_react_page_view,
                     name="sentry-restore-organization",
