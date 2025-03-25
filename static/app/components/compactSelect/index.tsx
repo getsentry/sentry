@@ -75,7 +75,6 @@ function CompactSelect<Value extends SelectKey>({
   disabled,
   emptyMessage,
   size = 'md',
-  shouldUseVirtualFocus = false,
   closeOnSelect,
   triggerProps,
   ...controlProps
@@ -93,7 +92,6 @@ function CompactSelect<Value extends SelectKey>({
         onChange,
         closeOnSelect,
         grid,
-        shouldUseVirtualFocus,
       };
     }
     return {
@@ -103,17 +101,8 @@ function CompactSelect<Value extends SelectKey>({
       onChange,
       closeOnSelect,
       grid,
-      shouldUseVirtualFocus,
     };
-  }, [
-    multiple,
-    value,
-    defaultValue,
-    onChange,
-    closeOnSelect,
-    grid,
-    shouldUseVirtualFocus,
-  ]);
+  }, [multiple, value, defaultValue, onChange, closeOnSelect, grid]);
 
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
 

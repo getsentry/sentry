@@ -45,6 +45,7 @@ interface BaseListProps<Value extends SelectKey>
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
       | 'autoFocus'
+      | 'shouldUseVirtualFocus'
     >,
     Omit<
       AriaGridListOptions<any>,
@@ -53,6 +54,7 @@ interface BaseListProps<Value extends SelectKey>
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
       | 'autoFocus'
+      | 'shouldUseVirtualFocus'
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
