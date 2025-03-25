@@ -21,6 +21,10 @@ type Props = {
 
 const LIMIT = 10;
 
+// TODO: When the span buffer is finalized, we will be able to expand this list and allow breakdowns on more categories.
+// for now, it will only allow categories that match the hardcoded list of span ops that were supported in the previous iteration
+const ALLOWED_CATEGORIES = ['http', 'db', 'browser', 'resource', 'ui'];
+
 export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const {selection} = usePageFilters();
@@ -47,6 +51,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const {options: categoryOptions} = useCompactSelectOptionsCache(
     data
       .filter(d => !!d[SpanIndexedField.SPAN_CATEGORY])
+      .filter(d => ALLOWED_CATEGORIES.includes(d[SpanIndexedField.SPAN_CATEGORY]))
       .map(d => ({
         value: d[SpanIndexedField.SPAN_CATEGORY],
         label: d[SpanIndexedField.SPAN_CATEGORY],
