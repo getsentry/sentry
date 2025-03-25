@@ -30,6 +30,8 @@ const PRODUCTS = {
   [DataCategory.ATTACHMENTS]: 'Attachments',
   [DataCategory.SPANS]: 'Spans',
   [DataCategory.UPTIME]: 'Uptime Monitoring',
+  [DataCategory.PROFILE_DURATION]: 'Profile Hours',
+  [DataCategory.PROFILE_DURATION_UI]: 'UI Profile Hours',
 };
 
 const PRODUCT_URLS = {
@@ -42,6 +44,8 @@ const PRODUCT_URLS = {
     'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/',
   [DataCategory.SPANS]: 'https://docs.sentry.io/product/performance/', // TODO: update with real docs link
   [DataCategory.UPTIME]: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
+  [DataCategory.PROFILE_DURATION]: 'https://docs.sentry.io/product/explore/profiling/', // TODO(Continuous Profiling)
+  [DataCategory.PROFILE_DURATION_UI]: 'https://docs.sentry.io/product/explore/profiling/', // TODO(Continuous Profiling)
 };
 
 export interface ProductTrialAlertProps {

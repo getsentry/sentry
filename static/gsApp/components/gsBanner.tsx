@@ -1277,6 +1277,15 @@ class GSBanner extends Component<Props, State> {
       product: DataCategory.UPTIME,
       categories: [DataCategory.UPTIME],
     },
+    // TODO(Continuous Profiling)
+    '/profile-duration/': {
+      product: DataCategory.PROFILE_DURATION,
+      categories: [DataCategory.PROFILE_DURATION],
+    },
+    '/profile-duration-ui/': {
+      product: DataCategory.PROFILE_DURATION_UI,
+      categories: [DataCategory.PROFILE_DURATION_UI],
+    },
   };
 
   renderProductTrialAlerts() {
