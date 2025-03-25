@@ -176,7 +176,9 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
 
 
 def get_issue_summary(
-    group: Group, user: User | RpcUser | AnonymousUser, force_event_id: str | None = None
+    group: Group,
+    user: User | RpcUser | AnonymousUser | None = None,
+    force_event_id: str | None = None,
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for an issue.
@@ -189,6 +191,8 @@ def get_issue_summary(
     Returns:
         A tuple containing (summary_data, status_code)
     """
+    if user is None:
+        user = AnonymousUser()
     if not features.has("organizations:gen-ai-features", group.organization, actor=user):
         return {"detail": "Feature flag not enabled"}, 400
 
