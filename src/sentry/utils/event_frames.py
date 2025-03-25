@@ -106,7 +106,7 @@ def package_relative_path(abs_path: str | None, package: str | None) -> str | No
     return None
 
 
-PLATFORM_FRAME_MUNGER: Mapping[str, SdkFrameMunger] = {
+PLATFORM_FRAME_MUNGER: dict[str, SdkFrameMunger] = {
     "java": SdkFrameMunger(java_frame_munger),
     "cocoa": SdkFrameMunger(cocoa_frame_munger),
     "other": SdkFrameMunger(flutter_frame_munger, True, {"sentry.dart.flutter"}),
@@ -135,7 +135,7 @@ def try_munge_frame_path(
 
 
 def munged_filename_and_frames(
-    platform: str,
+    platform: str | None,
     data_frames: Sequence[Mapping[str, Any]],
     key: str = "munged_filename",
     sdk_name: str | None = None,
@@ -146,6 +146,9 @@ def munged_filename_and_frames(
     Returns the key used to insert into the frames and a deepcopy of the input data_frames with munging applied,
     otherwise returns None.
     """
+    if platform is None:
+        return None
+
     munger = PLATFORM_FRAME_MUNGER.get(platform)
     if not munger or (munger.requires_sdk and sdk_name not in munger.supported_sdks):
         return None
