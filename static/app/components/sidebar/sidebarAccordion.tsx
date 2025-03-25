@@ -70,7 +70,7 @@ function SidebarAccordion({
 
   const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
-      return isItemActive(child.props);
+      return isItemActive(child.props as SidebarItemProps);
     }
 
     return false;
@@ -217,8 +217,8 @@ function findChildElementsInTree(
       return;
     }
 
-    if (child?.props?.children) {
-      findChildElementsInTree(child.props.children, componentName, found);
+    if ((child.props as any)?.children) {
+      findChildElementsInTree((child.props as any).children, componentName, found);
       return;
     }
 

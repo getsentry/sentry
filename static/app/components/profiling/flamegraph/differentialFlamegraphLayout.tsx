@@ -107,7 +107,7 @@ export function DifferentialFlamegraphLayout(props: DifferentialFlamegraphLayout
           {cloneElement(props.flamegraphDrawer, {
             onResize: onMouseDown,
             onResizeReset: onDoubleClick,
-          })}
+          } as any)}
         </DifferentialFlamegraphDrawerContainer>
       </DifferentialFlamegraphGrid>
     </DifferentialFlamegraphLayoutContainer>

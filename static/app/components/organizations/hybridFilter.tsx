@@ -33,6 +33,7 @@ export interface HybridFilterProps<Value extends SelectKey>
     | 'closeOnSelect'
     | 'onKeyDown'
     | 'onKeyUp'
+    | 'onToggle'
   > {
   /**
    * Default selection value. When the user clicks "Reset", the selection value will
