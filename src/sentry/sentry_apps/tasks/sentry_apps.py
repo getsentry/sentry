@@ -47,6 +47,7 @@ from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
@@ -309,8 +310,13 @@ def _process_resource_change(
             if isinstance(instance, (Event, GroupEvent)):
                 assert instance.group_id, "group id is required to create webhook event data"
                 data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
+                instance_cache_key = f"process-resource-change-bound:{instance.event_id}"
             else:
                 data[name] = serialize(instance)
+                instance_cache_key = f"process-resource-change-bound:{instance.id}"
+
+            # Cache the event/issue for 5 minutes
+            cache.set(instance_cache_key, data, 300)
 
             for installation in installations:
                 # Trigger a new task for each webhook
@@ -318,6 +324,7 @@ def _process_resource_change(
                     installation_id=installation.id,
                     event=str(event),
                     data=data,
+                    cache_key=instance_cache_key,
                 )
 
 
@@ -511,6 +518,8 @@ def send_resource_change_webhook(
             raise SentryAppSentryError(
                 message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
+
+        cache.get()
 
     send_webhooks(installation, event, data=data)
 
