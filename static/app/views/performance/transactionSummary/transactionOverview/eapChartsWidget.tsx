@@ -14,44 +14,65 @@ enum EAPWidgetType {
   // USER_MISERY = 5
 }
 
-const WIDGET_OPTIONS: Record<
-  EAPWidgetType,
-  {description: string; title: string; visualization: React.ReactNode}
-> = {
+const WIDGET_OPTIONS: Record<EAPWidgetType, {description: string; title: string}> = {
   [EAPWidgetType.DURATION_BREAKDOWN]: {
     title: t('Duration Breakdown'),
     description: t(
       'Duration Breakdown reflects transaction durations by percentile over time.'
     ),
-    visualization: null,
   },
   [EAPWidgetType.DURATION_PERCENTILES]: {
     title: t('Duration Percentiles'),
     description: t(
       `Compare the duration at each percentile. Compare with Latency Histogram to see transaction volume at duration intervals.`
     ),
-    visualization: null,
   },
   [EAPWidgetType.DURATION_DISTRIBUTION]: {
     title: t('Duration Distribution'),
     description: t(
       'Duration Distribution reflects the volume of transactions per median duration.'
     ),
-    visualization: null,
   },
   [EAPWidgetType.TRENDS]: {
     title: t('Trends'),
     description: t('Trends shows the smoothed value of an aggregate over time.'),
-    visualization: null,
   },
   [EAPWidgetType.WEB_VITALS]: {
     title: t('Web Vitals'),
     description: t(
       'Web Vitals Breakdown reflects the 75th percentile of web vitals over time.'
     ),
-    visualization: null,
   },
 };
+
+function getWidgetContents(widgetType: EAPWidgetType) {
+  const widget = WIDGET_OPTIONS[widgetType];
+  const {title, description} = widget;
+
+  let visualization: React.ReactNode | null = null;
+
+  switch (widgetType) {
+    case EAPWidgetType.DURATION_BREAKDOWN:
+      visualization = null;
+      break;
+    case EAPWidgetType.DURATION_PERCENTILES:
+      visualization = null;
+      break;
+    case EAPWidgetType.DURATION_DISTRIBUTION:
+      visualization = null;
+      break;
+    case EAPWidgetType.TRENDS:
+      visualization = null;
+      break;
+    case EAPWidgetType.WEB_VITALS:
+      visualization = null;
+      break;
+    default:
+      visualization = null;
+  }
+
+  return {title, description, visualization};
+}
 
 export function EAPChartsWidget() {
   const [selectedWidget, setSelectedWidget] = useState<EAPWidgetType>(
@@ -65,12 +86,11 @@ export function EAPChartsWidget() {
     }));
   }, []);
 
-  const widget = WIDGET_OPTIONS[selectedWidget];
-  const {title, description, visualization} = widget;
+  const {title, description, visualization} = getWidgetContents(selectedWidget);
 
   return (
     <Widget
-      Title={<Widget.WidgetTitle title={WIDGET_OPTIONS[selectedWidget].title} />}
+      Title={<Widget.WidgetTitle title={title} />}
       Actions={
         <Widget.WidgetToolbar>
           <Widget.WidgetDescription title={title} description={description} />
