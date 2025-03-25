@@ -138,29 +138,6 @@ function getPerformanceBreadCrumbs(
         ),
       });
       break;
-    case Tab.SPANS: {
-      crumbs.push({
-        label: t('Spans'),
-        to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/spans`,
-          location.query,
-          organization
-        ),
-      });
-
-      const {spanSlug} = location.query;
-      if (spanSlug) {
-        crumbs.push({
-          label: t('Span Summary'),
-          to: getBreadCrumbTarget(
-            `${transactionSummaryUrl}/spans/${spanSlug}`,
-            location.query,
-            organization
-          ),
-        });
-      }
-      break;
-    }
     default:
       crumbs.push({
         label: t('Transaction Summary'),
@@ -224,7 +201,7 @@ function getDashboardsBreadCrumbs(organization: Organization, location: Location
       crumbs.push({
         label: t('Widget'),
         to: getBreadCrumbTarget(
-          `dashboard/${location.query.dashboardId}/widget/${location.query.widgetId}/`,
+          `dashboard/${location.query.dashboardId}/widget/$location.query.widgetId/`,
           location.query,
           organization
         ),
