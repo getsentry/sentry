@@ -28,6 +28,10 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type TableColumnKeys =
@@ -66,6 +70,8 @@ export default function SpanTable(props: Props) {
     pageLinks,
     transactionName,
   } = props;
+
+  const domainViewFilters = useDomainViewFilters();
 
   if (!defined(examples)) {
     return null;
@@ -109,7 +115,8 @@ export default function SpanTable(props: Props) {
               location,
               organization,
               transactionName,
-              suspectSpan
+              suspectSpan,
+              domainViewFilters.view
             ),
           }}
         />
@@ -137,7 +144,8 @@ function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
   transactionName: string,
-  suspectSpan?: SuspectSpan
+  suspectSpan?: SuspectSpan,
+  view?: DomainView
 ) {
   return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
     // if the transaction duration is falsey, then just render the span duration on its own
@@ -172,6 +180,7 @@ function renderBodyCellWithMeta(
         spanId: worstSpan.id,
         transactionName,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+        view,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;

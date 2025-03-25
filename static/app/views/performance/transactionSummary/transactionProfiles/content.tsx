@@ -42,6 +42,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   FlamegraphProvider,
   useFlamegraph,
@@ -363,6 +364,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const domainViewFilters = useDomainViewFilters();
 
   const sortValue = useMemo(() => {
     const rawSort = decodeScalar(location.query[PROFILES_SORT]);
@@ -478,6 +480,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
               organization,
               transactionName: transaction,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+              view: domainViewFilters.view,
             });
 
             const profileTarget = generateProfileLink()(
