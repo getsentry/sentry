@@ -264,7 +264,7 @@ const InsightGrid = styled('div')`
   gap: ${space(1.5)};
 `;
 
-const InsightCardButton = styled(motion.button)`
+const InsightCardButton = styled(motion.button)<React.HTMLAttributes<HTMLButtonElement>>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   width: 100%;

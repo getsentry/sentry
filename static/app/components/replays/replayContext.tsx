@@ -195,7 +195,7 @@ export function Provider({
   const oldEvents = usePrevious(events);
   // Note we have to check this outside of hooks, see `usePrevious` comments
   const hasNewEvents = events !== oldEvents;
-  const replayerRef = useRef<Replayer>(null);
+  const replayerRef = useRef<Replayer | null>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);

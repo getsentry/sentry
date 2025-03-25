@@ -33,14 +33,14 @@ interface UseVirtualizedListResult {
 export const useVirtualizedList = (
   props: UseVirtualizedListProps
 ): UseVirtualizedListResult => {
-  const list = useRef<VirtualizedList | null>();
+  const list = useRef<VirtualizedList | null>(null);
 
   const scrollTopRef = useRef<number>(0);
   const scrollHeightRef = useRef<number>(0);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
 
-  const renderCache = useRef<Map<number, React.ReactNode>>();
-  const styleCache = useRef<Map<number, React.CSSProperties>>();
+  const renderCache = useRef<Map<number, React.ReactNode>>(null);
+  const styleCache = useRef<Map<number, React.CSSProperties>>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   if (!styleCache.current) {

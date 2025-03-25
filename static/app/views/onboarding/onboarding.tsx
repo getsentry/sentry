@@ -1,9 +1,7 @@
 import {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
@@ -271,10 +269,32 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter}>
-        <Back
+        <BackMotionDiv
           animate={stepIndex > 0 ? 'visible' : 'hidden'}
-          onClick={() => handleGoBack()}
-        />
+          transition={testableTransition()}
+          variants={{
+            initial: {opacity: 0, visibility: 'hidden'},
+            visible: {
+              opacity: 1,
+              visibility: 'visible',
+              transition: testableTransition({delay: 1}),
+            },
+            hidden: {
+              opacity: 0,
+              transitionEnd: {
+                visibility: 'hidden',
+              },
+            },
+          }}
+        >
+          <Button
+            onClick={() => handleGoBack()}
+            icon={<IconArrow direction="left" />}
+            priority="link"
+          >
+            {t('Back')}
+          </Button>
+        </BackMotionDiv>
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep
             initial="initial"
@@ -370,36 +390,7 @@ const StyledStepper = styled(Stepper)`
   }
 `;
 
-interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
-  animate: MotionProps['animate'];
-  className?: string;
-}
-
-const Back = styled(({className, animate, ...props}: BackButtonProps) => (
-  <motion.div
-    className={className}
-    animate={animate}
-    transition={testableTransition()}
-    variants={{
-      initial: {opacity: 0, visibility: 'hidden'},
-      visible: {
-        opacity: 1,
-        visibility: 'visible',
-        transition: testableTransition({delay: 1}),
-      },
-      hidden: {
-        opacity: 0,
-        transitionEnd: {
-          visibility: 'hidden',
-        },
-      },
-    }}
-  >
-    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
-      {t('Back')}
-    </Button>
-  </motion.div>
-))`
+const BackMotionDiv = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 40px;
   left: 20px;
