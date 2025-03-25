@@ -41,7 +41,7 @@ class SerializedEvent(TypedDict):
 
 
 class SerializedIssue(SerializedEvent):
-    issue_ids: list[int]
+    issue_id: int
     level: str
 
 
@@ -97,7 +97,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 transaction=event["transaction"],
                 description=occurrence.issue_title,
                 level=occurrence.level,
-                issue_ids=event["issue_data"]["issue_ids"],
+                issue_id=event["issue_data"]["issue_id"],
                 event_type="occurrence",
             )
         elif event.get("event_type") == "error":
@@ -109,7 +109,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                 transaction=event["transaction"],
                 description=event["message"],
                 level=event["tags[level]"],
-                issue_ids=[event["issue.id"]],
+                issue_id=event["issue.id"],
                 event_type="error",
             )
         else:
@@ -214,9 +214,8 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         result = []
         for issue in issue_occurrences:
             if issue:
-                result.append(
-                    {"occurrence": issue, "issue_ids": occurrence_issue_ids.get(issue.id)}
-                )
+                for issue_id in occurrence_issue_ids.get(issue.id, []):
+                    result.append({"occurrence": issue, "issue_id": issue_id})
 
         return result
 

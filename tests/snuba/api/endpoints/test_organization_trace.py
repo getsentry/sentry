@@ -147,7 +147,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert error_event["event_id"] == error.data["event_id"]
         assert error_event["project_slug"] == self.gen1_project.slug
         assert error_event["level"] == "error"
-        assert error_event["issue_ids"] == [error.group_id]
+        assert error_event["issue_id"] == error.group_id
 
     def test_with_performance_issues(self):
         self.load_trace(is_eap=True)
