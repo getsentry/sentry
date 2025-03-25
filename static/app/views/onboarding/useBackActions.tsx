@@ -11,7 +11,6 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {onboardingSteps} from 'sentry/views/onboarding/onboarding';
-import {hasDocsOnPlatformClickEnabled} from 'sentry/views/onboarding/platformSelection';
 import type {StepDescriptor} from 'sentry/views/onboarding/types';
 
 /**
@@ -36,8 +35,6 @@ export function useBackActions({
   const onboardingContext = useContext(OnboardingContext);
   const currentStep = onboardingSteps[stepIndex];
 
-  const docsOnPlatformClickEnabled = hasDocsOnPlatformClickEnabled(organization);
-
   const deleteRecentCreatedProject = useCallback(async () => {
     if (!recentCreatedProject) {
       return;
@@ -52,18 +49,11 @@ export function useBackActions({
     }, {});
 
     try {
-      if (docsOnPlatformClickEnabled) {
-        onboardingContext.setData({
-          ...onboardingContext.data,
-          projects: newProjects,
-          selectedSDK: undefined,
-        });
-      } else {
-        onboardingContext.setData({
-          ...onboardingContext.data,
-          projects: newProjects,
-        });
-      }
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        projects: newProjects,
+        selectedSDK: undefined,
+      });
       await removeProject({
         api,
         orgSlug: organization.slug,
@@ -82,28 +72,15 @@ export function useBackActions({
         ...onboardingContext.data,
         projects: currentProjects,
       });
-      if (docsOnPlatformClickEnabled) {
-        onboardingContext.setData({
-          ...onboardingContext.data,
-          projects: currentProjects,
-          selectedSDK: undefined,
-        });
-      } else {
-        onboardingContext.setData({
-          ...onboardingContext.data,
-          projects: currentProjects,
-        });
-      }
+      onboardingContext.setData({
+        ...onboardingContext.data,
+        projects: currentProjects,
+        selectedSDK: undefined,
+      });
       handleXhrErrorResponse('Unable to delete project in onboarding', error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
-  }, [
-    api,
-    organization,
-    onboardingContext,
-    recentCreatedProject,
-    docsOnPlatformClickEnabled,
-  ]);
+  }, [api, organization, onboardingContext, recentCreatedProject]);
 
   const backStepActions = useCallback(
     ({
