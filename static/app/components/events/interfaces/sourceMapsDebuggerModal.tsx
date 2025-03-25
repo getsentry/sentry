@@ -1879,7 +1879,7 @@ const InstructionList = styled('ul')`
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   border-left: 2px solid ${p => p.theme.gray200};
   padding-left: ${space(1)};
   margin-top: -${space(1)};

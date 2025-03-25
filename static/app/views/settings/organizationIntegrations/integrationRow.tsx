@@ -191,7 +191,7 @@ const IntegrationDetails = styled('div')`
 `;
 
 const StyledLink = styled(Link)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   &:before {
     content: '|';
     color: ${p => p.theme.gray200};
@@ -200,7 +200,7 @@ const StyledLink = styled(Link)`
 `;
 
 const LearnMore = styled(Link)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 type PublishStatusProps = {status: SentryApp['status']; theme?: any};

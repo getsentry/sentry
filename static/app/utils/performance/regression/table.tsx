@@ -97,7 +97,7 @@ const Change = styled('span')`
 `;
 
 const ChangeDescription = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   grid-column: span 3;
   text-align: right;

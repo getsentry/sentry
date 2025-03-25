@@ -105,7 +105,7 @@ const SubscriptionInfo = styled('div')`
 const SubscriptionDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SubscriptionTitle = styled('div')`

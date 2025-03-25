@@ -109,6 +109,6 @@ const InsufficientSamples = styled('span')`
 `;
 
 const Container = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

@@ -368,7 +368,7 @@ const QuestionContent = styled('div')`
 const StyledHeaderContainer = styled(HeaderContainer)`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: flex;
   gap: ${space(0.5)};
   align-items: center;
