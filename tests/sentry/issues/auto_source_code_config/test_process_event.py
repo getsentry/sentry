@@ -728,11 +728,13 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 }
             ],
             platform=self.platform,
-            expected_new_code_mapping={
-                "stack_root": "a/",
-                "source_root": "src/a/",
-                "repo_name": REPO1,
-            },
+            expected_new_code_mappings=[
+                {
+                    "stack_root": "a/",
+                    "source_root": "src/a/",
+                    "repo_name": REPO1,
+                }
+            ],
             expected_num_code_mappings=0,
         )
 
@@ -742,10 +744,12 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
             frames=[{"module": "com.example.foo.Bar$InnerClass", "abs_path": "Bar.kt"}],
             platform=self.platform,
-            expected_new_code_mapping={
-                "stack_root": "com/example/foo/",
-                "source_root": "src/com/example/foo/",
-                "repo_name": REPO1,
-            },
+            expected_new_code_mappings=[
+                {
+                    "stack_root": "com/example/foo/",
+                    "source_root": "src/com/example/foo/",
+                    "repo_name": REPO1,
+                }
+            ],
             expected_num_code_mappings=0,
         )
