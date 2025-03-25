@@ -23,7 +23,6 @@ def are_views_equal(
         and view_1["query"] == view_2["query"]
         and view_1["querySort"] == view_2["querySort"]
         and view_1["position"] == view_2["position"]
-        and view_1["isAllProjects"] == view_2["isAllProjects"]
         and view_1["environments"] == view_2["environments"]
         and view_1["timeFilters"] == view_2["timeFilters"]
         and view_1["projects"] == view_2["projects"]
@@ -264,7 +263,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
                 "query": "is:unresolved",
                 "querySort": "date",
                 "projects": [],
-                "isAllProjects": False,
                 "environments": [],
                 "timeFilters": {"period": "14d"},
             }
@@ -599,7 +597,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
                 "query": "is:unresolved",
                 "querySort": "date",
                 "projects": [],
-                "isAllProjects": False,
                 "environments": [],
                 "timeFilters": {"period": "14d"},
             }
@@ -609,7 +606,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert response.data[3]["timeFilters"] == {"period": "14d"}
         assert response.data[3]["projects"] == []
         assert response.data[3]["environments"] == []
-        assert response.data[3]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -620,7 +616,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         response = self.get_success_response(self.organization.slug, views=views)
         assert len(response.data) == 3
         assert response.data[0]["projects"] == []
-        assert response.data[0]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -631,7 +626,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         response = self.get_success_response(self.organization.slug, views=views)
         assert len(response.data) == 3
         assert response.data[0]["projects"] == [-1]
-        assert response.data[0]["isAllProjects"] is True
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -889,17 +883,14 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
         assert response.data[0]["projects"] == [self.project3.id]
         assert response.data[0]["environments"] == []
-        assert response.data[0]["isAllProjects"] is False
 
         assert response.data[1]["timeFilters"] == {"period": "7d"}
         assert response.data[1]["projects"] == []
         assert response.data[1]["environments"] == ["staging", "production"]
-        assert response.data[1]["isAllProjects"] is False
 
         assert response.data[2]["timeFilters"] == {"period": "30d"}
         assert response.data[2]["projects"] == [-1]
         assert response.data[2]["environments"] == ["development"]
-        assert response.data[2]["isAllProjects"] is True
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -910,17 +901,14 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
         assert response.data[0]["projects"] == [self.project3.id]
         assert response.data[0]["environments"] == []
-        assert response.data[0]["isAllProjects"] is False
 
         assert response.data[1]["timeFilters"] == {"period": "7d"}
         assert response.data[1]["projects"] == [self.project3.id]
         assert response.data[1]["environments"] == ["staging", "production"]
-        assert response.data[1]["isAllProjects"] is False
 
         assert response.data[2]["timeFilters"] == {"period": "30d"}
         assert response.data[2]["projects"] == [self.project3.id]
         assert response.data[2]["environments"] == ["development"]
-        assert response.data[2]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -931,7 +919,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
         assert response.data[0]["projects"] == [self.project2.id]
         assert response.data[0]["environments"] == []
-        assert response.data[0]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -949,7 +936,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             # Global views means default project should be "My Projects"
             assert view["projects"] == []
             assert view["environments"] == []
-            assert view["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -967,7 +953,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             # No global views means default project should be a single project
             assert view["projects"] == [self.project3.id]
             assert view["environments"] == []
-            assert view["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -1012,7 +997,6 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
                 "query": "is:unresolved",
                 "querySort": "date",
                 "projects": [],
-                "isAllProjects": False,
                 "environments": [],
                 "timeFilters": {"period": "14d"},
             }

@@ -35,7 +35,6 @@ class ViewValidator(serializers.Serializer):
     projects = serializers.ListField(required=True, allow_empty=True)
     environments = serializers.ListField(required=True, allow_empty=True)
     timeFilters = serializers.DictField(required=True, allow_empty=False)
-    isAllProjects = serializers.BooleanField(required=False)
 
     def validate_projects(self, value):
         if not features.has("organizations:global-views", self.context["organization"]) and (
@@ -57,7 +56,7 @@ class ViewValidator(serializers.Serializer):
 
         return value
 
-    def validate(self, data):
+    def validate(self, data) -> GroupSearchViewValidatorResponse:
         if data["projects"] == [-1]:
             data["projects"] = []
             data["isAllProjects"] = True
