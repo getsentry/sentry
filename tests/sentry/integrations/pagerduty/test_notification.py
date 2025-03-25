@@ -6,6 +6,7 @@ import responses
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
+from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
@@ -188,6 +189,43 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             == f"[{self.project_rule.label}]: {group_event.occurrence.issue_title}"
         )
         assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
+
+    @responses.activate
+    def test_truncates_summary(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "ohhh noooo" * 100,
+                "timestamp": event_time.isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        rule = self.get_rule(
+            data={
+                "account": self.integration.id,
+                "service": str(self.service["id"]),
+                "name": "Test Alert",
+            }
+        )
+
+        results = list(rule.after(event=event))
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            json={},
+            status=202,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        results[0].callback(event, futures=[rule_future])
+        data = orjson.loads(responses.calls[0].request.body)
+
+        assert len(data["payload"]["summary"]) == PAGERDUTY_SUMMARY_MAX_LENGTH
+        assert data["payload"]["summary"].endswith("...")
 
     def test_render_label_without_severity(self):
         rule_data = {
