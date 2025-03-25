@@ -1,9 +1,11 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 const IconTelescope = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+  const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M4.66,16a.76.76,0,0,1-.73-1l1.24-4.38a.75.75,0,1,1,1.45.41L5.38,15.46A.77.77,0,0,1,4.66,16Z" />

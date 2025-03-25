@@ -1,10 +1,12 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 
 const IconSentryPrideLogo = forwardRef<SVGSVGElement, Omit<SVGIconProps, 'fill'>>(
   (props, ref) => {
+    const theme = useTheme();
     return (
       <SvgIcon {...props} ref={ref}>
         <defs>

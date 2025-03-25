@@ -1,9 +1,11 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 const IconCursorArrow = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+  const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref}>
       <path

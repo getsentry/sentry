@@ -1,4 +1,5 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -8,6 +9,7 @@ interface IconLabProps extends SVGIconProps {
 }
 
 const IconLab = forwardRef<SVGSVGElement, IconLabProps>(({isSolid, ...props}, ref) => {
+  const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref}>
       {isSolid ? (

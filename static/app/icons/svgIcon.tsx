@@ -2,6 +2,7 @@ import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {Aliases, Color, IconSize} from 'sentry/utils/theme';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
 import {useIconDefaults} from './useIconDefaults';
 
@@ -17,7 +18,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   size?: IconSize;
 }
 
-export const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+const Icon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -35,8 +36,8 @@ export const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
     <svg
       // The icons only ever contain a single graphic, so we can use the img role
       role="img"
-      {...rest}
       viewBox={viewBox}
+      {...rest}
       fill={color}
       height={size}
       width={size}
@@ -44,3 +45,36 @@ export const SvgIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
     />
   );
 });
+
+const ChonkIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+  const {
+    color: providedColor = 'currentColor',
+    size: providedSize = 'sm',
+    viewBox = '0 0 16 16',
+    legacySize,
+    ...rest
+  } = useIconDefaults(props);
+
+  const theme = useTheme();
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const color = theme[providedColor] ?? providedColor;
+  const size = legacySize ?? theme.iconSizes[providedSize];
+
+  return (
+    <svg
+      // The icons only ever contain a single graphic, so we can use the img role
+      role="img"
+      viewBox={viewBox}
+      height={size}
+      width={size}
+      ref={ref}
+      stroke={color}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.5}
+      {...rest}
+    />
+  );
+});
+
+export const SvgIcon = withChonk(Icon, ChonkIcon);

@@ -1,9 +1,11 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 const IconGrabbable = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+  const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref}>
       <circle cx="4.73" cy="8" r="1.31" />

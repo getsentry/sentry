@@ -1,9 +1,11 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 const IconFilter = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+  const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M15.1 3.7H.8C.3 3.7 0 3.4 0 3c0-.4.3-.8.8-.8h14.4c.4 0 .8.3.8.8s-.5.7-.9.7Z" />

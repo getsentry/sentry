@@ -1,9 +1,11 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 const IconGraphBar = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+  const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref}>
       <path d="M6.63,15.99H.74c-.41,0-.75-.34-.75-.75V6.71c0-.41.34-.75.75-.75h5.9c.41,0,.75.34.75.75v8.53c0,.41-.34.75-.75.75ZM1.49,14.49h4.4v-7.03H1.49v7.03Z" />

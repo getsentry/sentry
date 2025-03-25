@@ -1,5 +1,5 @@
 import {forwardRef, useMemo} from 'react';
-import {keyframes} from '@emotion/react';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {uniqueId} from 'sentry/utils/guid';
@@ -23,6 +23,7 @@ interface BusinessIconProps extends SVGIconProps {
 
 const IconBusiness = forwardRef<SVGSVGElement, BusinessIconProps>(
   ({gradient = false, withShine = false, ...props}, ref) => {
+    const theme = useTheme();
     const uid = useMemo(() => uniqueId(), []);
     const maskId = `icon-business-mask-${uid}`;
     const gradientId = `icon-business-gradient-${uid}`;

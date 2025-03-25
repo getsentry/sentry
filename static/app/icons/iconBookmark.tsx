@@ -1,4 +1,5 @@
 import {forwardRef} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -9,6 +10,7 @@ interface Props extends SVGIconProps {
 
 const IconBookmark = forwardRef<SVGSVGElement, Props>(
   ({isSolid = false, ...props}, ref) => {
+    const theme = useTheme();
     return (
       <SvgIcon {...props} ref={ref}>
         {isSolid ? (

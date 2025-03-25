@@ -1,4 +1,5 @@
 import {forwardRef, Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
@@ -10,6 +11,7 @@ interface Props extends SVGIconProps {
 
 const IconClose = forwardRef<SVGSVGElement, Props>(
   ({['data-test-id']: dataTestId = 'icon-close', isCircled = false, ...props}, ref) => {
+    const theme = useTheme();
     return (
       <SvgIcon ref={ref} {...props} data-test-id={dataTestId}>
         {isCircled ? (
