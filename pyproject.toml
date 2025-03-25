@@ -171,7 +171,6 @@ module = [
     "sentry.snuba.metrics.query_builder",
     "sentry.tasks.base",
     "sentry.testutils.cases",
-    "sentry.utils.committers",
     "sentry.web.frontend.auth_login",
     "sentry.web.frontend.react_page",
     "sentry.web.frontend.shared_group_details",
