@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
 function Component(props: Partial<React.HTMLAttributes<HTMLInputElement>>) {
-  const {wrapTrigger} = useHoverOverlay('test', {skipWrapper: true});
+  const {wrapTrigger} = useHoverOverlay({skipWrapper: true});
 
   return wrapTrigger(<input {...props} />);
 }

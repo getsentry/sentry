@@ -33,7 +33,6 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {showConfidence} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -142,10 +141,7 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
-        data,
-        isTopN
-      );
+      const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -158,7 +154,6 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
-        isSampled,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -300,8 +295,7 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC &&
-                showConfidence(chartInfo.isSampled) && (
+                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
                     confidence={chartInfo.confidence}

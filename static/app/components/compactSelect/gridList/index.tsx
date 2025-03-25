@@ -1,4 +1,4 @@
-import {Fragment, useContext, useMemo, useRef} from 'react';
+import {Fragment, useContext, useId, useMemo, useRef} from 'react';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
@@ -6,7 +6,6 @@ import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
-import domId from 'sentry/utils/domId';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from '../control';
@@ -76,7 +75,7 @@ function GridList({
   ...props
 }: GridListProps) {
   const ref = useRef<HTMLUListElement>(null);
-  const labelId = domId('grid-label-');
+  const labelId = useId();
   const {gridProps} = useGridList(
     {...props, 'aria-labelledby': label ? labelId : props['aria-labelledby']},
     listState,
