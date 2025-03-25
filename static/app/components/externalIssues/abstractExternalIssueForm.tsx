@@ -4,6 +4,8 @@ import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {
   debouncedOptionLoad,
   ensureCurrentOption,
+  type ExternalIssueAction,
+  type ExternalIssueFormErrors,
   getConfigName,
   getDefaultOptions,
   getDynamicFields,
@@ -20,10 +22,6 @@ import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import type {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
-
-export type ExternalIssueAction = 'create' | 'link';
-
-export type ExternalIssueFormErrors = {[key: string]: React.ReactNode};
 
 type Props = ModalRenderProps & DeprecatedAsyncComponent['props'];
 

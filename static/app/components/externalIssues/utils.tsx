@@ -3,13 +3,15 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
-import type {ExternalIssueAction} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import type FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
+
+export type ExternalIssueAction = 'create' | 'link';
+export type ExternalIssueFormErrors = {[key: string]: React.ReactNode};
 
 // This exists because /extensions/type/search API is not prefixed with
 // /api/0/, but the default API client on the abstract issue form is...
