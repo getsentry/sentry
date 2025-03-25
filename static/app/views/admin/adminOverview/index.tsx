@@ -14,7 +14,7 @@ function AdminOverview() {
   const theme = useTheme();
 
   const resolution = '1h';
-  const since = new Date().getTime() / 1000 - 3600 * 24 * 7;
+  const since = Date.now() / 1000 - 3600 * 24 * 7;
 
   return (
     <SentryDocumentTitle title={t('Admin Overview')}>

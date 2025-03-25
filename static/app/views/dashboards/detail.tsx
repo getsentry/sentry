@@ -307,7 +307,6 @@ class DashboardDetail extends Component<Props, State> {
       seriesResultsType,
       confidence,
       sampleCount,
-      isSampled,
       modifiedDashboard,
     } = this.state;
     if (isWidgetViewerPath(location.pathname)) {
@@ -380,7 +379,6 @@ class DashboardDetail extends Component<Props, State> {
           },
           confidence,
           sampleCount,
-          isSampled,
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,

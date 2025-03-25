@@ -65,7 +65,6 @@ class PluginSerializer(Serializer):
             "canDisable": obj.can_disable,
             "isTestable": hasattr(obj, "is_testable") and obj.is_testable(),
             "hasConfiguration": obj.has_project_conf(),
-            "metadata": obj.get_metadata(),
             "contexts": contexts,
             "doc": doc,
             "firstPartyAlternative": getattr(obj, "alternative", None),

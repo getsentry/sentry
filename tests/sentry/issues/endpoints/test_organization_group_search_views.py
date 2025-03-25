@@ -630,7 +630,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         view["projects"] = [-1]
         response = self.get_success_response(self.organization.slug, views=views)
         assert len(response.data) == 3
-        assert response.data[0]["projects"] == []
+        assert response.data[0]["projects"] == [-1]
         assert response.data[0]["isAllProjects"] is True
 
     @with_feature({"organizations:issue-stream-custom-views": True})
@@ -734,7 +734,6 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
                         "name": issue_view_one.name,
                         "query": issue_view_one.query,
                         "querySort": issue_view_one.query_sort,
-                        "position": issue_view_one.position,
                         "timeFilters": issue_view_one.time_filters,
                         "environments": issue_view_one.environments,
                         "projects": [project1.id, 123456],
@@ -898,7 +897,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[1]["isAllProjects"] is False
 
         assert response.data[2]["timeFilters"] == {"period": "30d"}
-        assert response.data[2]["projects"] == []
+        assert response.data[2]["projects"] == [-1]
         assert response.data[2]["environments"] == ["development"]
         assert response.data[2]["isAllProjects"] is True
 

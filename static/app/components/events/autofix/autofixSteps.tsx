@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -142,9 +142,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
 
-  const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   if (!steps?.length) {
     return null;
   }
@@ -171,7 +168,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     '';
 
   return (
-    <StepsContainer ref={containerRef}>
+    <StepsContainer>
       {steps.map((step, index) => {
         const previousDefaultStepIndex = steps
           .slice(0, index)
@@ -200,12 +197,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           nextStep?.insights?.length === 0;
 
         return (
-          <div
-            ref={el => {
-              stepsRef.current[index] = el;
-            }}
-            key={step.id}
-          >
+          <div key={step.id}>
             <Step
               step={step}
               hasStepBelow={
