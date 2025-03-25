@@ -2810,6 +2810,8 @@ describe('Customer Details', function () {
               reservedAttachments: 25,
               reservedMonitorSeats: 1,
               reservedUptime: 1,
+              reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
             },
           })
         );
@@ -2975,8 +2977,8 @@ describe('Customer Details', function () {
               reservedAttachments: 25,
               reservedMonitorSeats: 1,
               reservedUptime: 1,
-              reservedProfileDuration: undefined,
-              reservedProfileDurationUI: undefined,
+              reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
             },
           })
         )
@@ -3077,8 +3079,8 @@ describe('Customer Details', function () {
               reservedSpans: 20_000_000,
               reservedMonitorSeats: 1,
               reservedAttachments: 25,
-              reservedProfileDuration: undefined,
-              reservedProfileDurationUI: undefined,
+              reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
               reservedUptime: 1,
             },
           })
@@ -3201,8 +3203,8 @@ describe('Customer Details', function () {
               reservedSpans: 20_000_000,
               reservedMonitorSeats: 1,
               reservedAttachments: 25,
-              reservedProfileDuration: undefined,
-              reservedProfileDurationUI: undefined,
+              reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
               reservedUptime: 1,
             },
           })
