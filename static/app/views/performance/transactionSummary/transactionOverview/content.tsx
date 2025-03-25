@@ -40,6 +40,7 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -97,7 +98,6 @@ function OTelSummaryContentInner({
   error,
   projectId,
   transactionName,
-  onChangeFilter,
 }: Props) {
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
@@ -245,11 +245,7 @@ function OTelSummaryContentInner({
     <Fragment>
       <Layout.Main>
         <FilterActions>
-          <Filter
-            organization={organization}
-            currentFilter={spanOperationBreakdownFilter}
-            onChangeFilter={onChangeFilter}
-          />
+          <SpanCategoryFilter search={query} serviceEntrySpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
