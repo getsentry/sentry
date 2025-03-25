@@ -138,7 +138,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
         )
         assert batch_query == {self.event3.group_id: 1}
 
-    def test_batch_query_user_with_conditions(self):
+    def test_batch_query_user__tag_conditions(self):
         batch_query = self.handler().batch_query(
             group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
             start=self.start,
@@ -160,6 +160,46 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             filters=[{"key": "biz", "match": "co", "value": "b"}],
         )
         assert batch_query == {self.event3.group_id: 1}
+
+    def test_batch_query__attribute_conditions(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"attribute": "platform", "match": "eq", "value": "javascript"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }
+
+        batch_query = self.handler().batch_query(
+            group_ids={self.event3.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+            filters=[{"attribute": "http.status_code", "match": "co", "value": "4"}],
+        )
+
+        assert batch_query == {self.event3.group_id: 1}
+
+    def test_batch_query__error_attribute_only(self):
+        # error.handled is only available for errors, not issue platform
+        # perf event should not have any events that match the criteria
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"attribute": "error.handled", "match": "eq", "value": True}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }
 
 
 class PercentSessionsQueryTest(BaseEventFrequencyPercentTest, EventFrequencyQueryTestBase):

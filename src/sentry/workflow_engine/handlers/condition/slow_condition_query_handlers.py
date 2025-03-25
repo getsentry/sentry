@@ -366,16 +366,21 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 
         for category, issue_ids in category_group_ids.items():
             model = get_issue_tsdb_user_group_model(category)
-            results = self.get_chunked_result(
-                model=model,
-                group_ids=issue_ids,
-                organization_id=organization_id,
-                start=start,
-                end=end,
-                environment_id=environment_id,
-                referrer_suffix="batch_alert_event_uniq_user_frequency",
-                filters=filters,
-            )
+            try:
+                results = self.get_chunked_result(
+                    model=model,
+                    group_ids=issue_ids,
+                    organization_id=organization_id,
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
+                    referrer_suffix="batch_alert_event_uniq_user_frequency",
+                    filters=filters,
+                )
+            except InvalidFilter:
+                # Filter is not supported for this issue type
+                # no events meet the query criteria
+                results = {issue_id: 0 for issue_id in issue_ids}
             batch_sums.update(results)
 
         return batch_sums
@@ -450,6 +455,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 continue
 
             model = get_issue_tsdb_group_model(category)
+            # InvalidFilter should not be raised for errors
             results = self.get_chunked_result(
                 model=model,
                 group_ids=issue_ids,
