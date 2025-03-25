@@ -40,10 +40,15 @@ class SerializedEvent(TypedDict):
     transaction: str
 
 
+class SerializedIssue(SerializedEvent):
+    issue_ids: list[int]
+    level: str
+
+
 class SerializedSpan(SerializedEvent):
     children: list["SerializedEvent"]
-    errors: list["SerializedEvent"]
-    occurrences: list["SerializedEvent"]
+    errors: list["SerializedIssue"]
+    occurrences: list["SerializedIssue"]
     duration: float
     end_timestamp: datetime
     op: str
@@ -81,33 +86,41 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             include_all_accessible=True,
         )
 
-    def serialize_rpc_event(self, event: dict[str, Any]) -> SerializedEvent:
+    def serialize_rpc_issue(self, event: dict[str, Any]) -> SerializedIssue:
         if event.get("event_type") == "occurrence":
-            occurrence = event["occurrence"]
-            return SerializedEvent(
+            occurrence = event["issue_data"]["occurrence"]
+            return SerializedIssue(
                 event_id=occurrence.id,
                 project_id=occurrence.project_id,
                 project_slug=event["project_name"],
                 start_timestamp=event["timestamp"],
                 transaction=event["transaction"],
                 description=occurrence.issue_title,
+                level=occurrence.level,
+                issue_ids=event["issue_data"]["issue_ids"],
                 event_type="occurrence",
             )
         elif event.get("event_type") == "error":
-            return SerializedEvent(
+            return SerializedIssue(
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.name"],
                 start_timestamp=event["timestamp"],
                 transaction=event["transaction"],
                 description=event["message"],
+                level=event["tags[level]"],
+                issue_ids=[event["issue.id"]],
                 event_type="error",
             )
-        elif event.get("event_type") == "span":
+        else:
+            raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
+
+    def serialize_rpc_event(self, event: dict[str, Any]) -> SerializedEvent | SerializedIssue:
+        if event.get("event_type") == "span":
             return SerializedSpan(
                 children=[self.serialize_rpc_event(child) for child in event["children"]],
-                errors=[self.serialize_rpc_event(error) for error in event["errors"]],
-                occurrences=[self.serialize_rpc_event(error) for error in event["occurrences"]],
+                errors=[self.serialize_rpc_issue(error) for error in event["errors"]],
+                occurrences=[self.serialize_rpc_issue(error) for error in event["occurrences"]],
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.slug"],
@@ -185,10 +198,12 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         occurrence_data = occurrence_query.process_results(result)["data"]
 
         occurrence_ids = defaultdict(list)
+        occurrence_issue_ids = defaultdict(list)
         issue_occurrences = []
         for event in occurrence_data:
             event["event_type"] = "occurrence"
             occurrence_ids[event["project_id"]].append(event["occurrence_id"])
+            occurrence_issue_ids[event["occurrence_id"]].extend(event["issue.ids"])
         for project_id, occurrence_list in occurrence_ids.items():
             issue_occurrences.extend(
                 IssueOccurrence.fetch_multi(
@@ -196,8 +211,14 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                     project_id,
                 )
             )
+        result = []
+        for issue in issue_occurrences:
+            if issue:
+                result.append(
+                    {"occurrence": issue, "issue_ids": occurrence_issue_ids.get(issue.id)}
+                )
 
-        return issue_occurrences
+        return result
 
     @sentry_sdk.tracing.trace
     def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SerializedEvent]:
@@ -225,7 +246,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         id_to_error = {event["trace.span"]: event for event in errors_data}
         id_to_occurrence = defaultdict(list)
         for event in occurrence_data:
-            for span_id in event.evidence_data["offender_span_ids"]:
+            for span_id in event["occurrence"].evidence_data["offender_span_ids"]:
                 id_to_occurrence[span_id].append(event)
         for span in spans_data:
             if span["parent_span"] in id_to_span:
@@ -244,7 +265,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
                             "timestamp": span["precise.start_ts"],
                             "transaction": span["transaction"],
                             "project_name": span["project.slug"],
-                            "occurrence": occurrence,
+                            "issue_data": occurrence,
                         }
                         for occurrence in id_to_occurrence[span["id"]]
                     ]
