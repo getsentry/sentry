@@ -537,15 +537,9 @@ class ReleaseSerializer(Serializer):
                 single_release_projects = [
                     x for x in single_release_projects if x["id"] == item._for_project_id
                 ]
-                release_new_groups = (issue_counts_by_release.get(item.id) or {}).get(
-                    item._for_project_id
-                ) or 0
-            else:
-                release_new_groups = sum((issue_counts_by_release.get(item.id) or {}).values())
 
             p = {
                 "owner": owners[str(item.owner_id)] if item.owner_id else None,
-                "new_groups": release_new_groups,
                 "projects": single_release_projects,
                 "first_seen": first_seen.get(item.version),
                 "last_seen": last_seen.get(item.version),
@@ -576,7 +570,6 @@ class ReleaseSerializer(Serializer):
             "dateReleased": obj.date_released,
             "dateCreated": obj.date_added,
             "data": obj.data,
-            "newGroups": attrs["new_groups"],
             "owner": attrs["owner"],
             "commitCount": obj.commit_count,
             "lastCommit": attrs.get("last_commit"),

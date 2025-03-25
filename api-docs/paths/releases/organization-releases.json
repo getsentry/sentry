@@ -46,7 +46,6 @@
                 "lastCommit": null,
                 "lastDeploy": null,
                 "lastEvent": null,
-                "newGroups": 0,
                 "owner": null,
                 "projects": [
                   {
@@ -71,7 +70,6 @@
                 "lastCommit": null,
                 "lastDeploy": null,
                 "lastEvent": "2018-11-06T21:19:58.639Z",
-                "newGroups": 0,
                 "owner": null,
                 "projects": [
                   {
@@ -254,7 +252,6 @@
               "lastCommit": null,
               "lastDeploy": null,
               "lastEvent": null,
-              "newGroups": 0,
               "owner": null,
               "projects": [
                 {

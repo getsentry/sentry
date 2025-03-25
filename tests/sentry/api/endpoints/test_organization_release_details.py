@@ -73,7 +73,7 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["version"] == release.version
-        assert response.data["newGroups"] == 5
+        assert response.data["projects"][0]["newGroups"] == 5
 
         # check for current project meta should be empty if project id is not provided
         assert response.data["currentProjectMeta"] == {}

@@ -295,9 +295,6 @@
           "lastEvent": {
             "type": "string"
           },
-          "newGroups": {
-            "type": "integer"
-          },
           "owner": {
             "type": "string",
             "nullable": true

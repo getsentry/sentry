@@ -348,7 +348,6 @@
           "lastCommit",
           "lastDeploy",
           "lastEvent",
-          "newGroups",
           "owner",
           "projects",
           "ref",
@@ -402,9 +401,6 @@
           "lastEvent": {
             "type": "string",
             "nullable": true
-          },
-          "newGroups": {
-            "type": "integer"
           },
           "owner": {
             "type": "string",

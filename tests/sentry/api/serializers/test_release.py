@@ -73,8 +73,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         result = serialize(release, user)
         assert result["version"] == release.version
-        # should be sum of all projects
-        assert result["newGroups"] == 2
+        assert result["projects"][0]["newGroups"] == 1
+        assert result["projects"][1]["newGroups"] == 1
         (tagvalue1,) = tagstore.backend.get_release_tags(
             1, [project.id], environment_id=None, versions=[release_version]
         )
@@ -101,7 +101,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         result = serialize(
             release, user, project=project, current_project_meta=current_project_meta
         )
-        assert result["newGroups"] == 1
+
         assert result["firstEvent"] == tagvalue1.first_seen
         assert result["lastEvent"] == tagvalue1.last_seen
 
@@ -202,7 +202,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -242,7 +242,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         self.create_member(user=user, organization=project.organization)
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -285,7 +285,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -322,7 +322,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit = Commit.objects.create(
@@ -351,7 +351,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author1 = CommitAuthor.objects.create(

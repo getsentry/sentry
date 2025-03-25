@@ -648,7 +648,6 @@ class OrganizationExamples:
                 "dateReleased": None,
                 "dateCreated": "2024-05-21T11:26:16.190281Z",
                 "data": {},
-                "newGroups": 0,
                 "owner": None,
                 "commitCount": 2,
                 "lastCommit": {

@@ -432,7 +432,6 @@
               },
               "release": {
                 "dateReleased": "2020-06-17T19:21:02.186004Z",
-                "newGroups": 4,
                 "commitCount": 11,
                 "url": "https://freight.getsentry.net/deploys/getsentry/production/8868/",
                 "data": {},

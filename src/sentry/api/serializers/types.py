@@ -30,7 +30,6 @@ class ReleaseSerializerResponseOptional(TypedDict, total=False):
 class ReleaseSerializerResponse(ReleaseSerializerResponseOptional):
     id: int
     version: str
-    newGroups: int
     status: str
     shortVersion: str
     versionInfo: VersionInfo | None

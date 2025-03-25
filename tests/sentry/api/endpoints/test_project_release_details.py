@@ -45,7 +45,7 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data["version"] == release.version
-        assert response.data["newGroups"] == 5
+        assert response.data["projects"][0]["newGroups"] == 5
 
 
 class UpdateReleaseDetailsTest(APITestCase):

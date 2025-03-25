@@ -8,6 +8,7 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
@@ -58,10 +59,12 @@ class ReleaseMetaTest(APITestCase):
             filename="/static/js/widget.js",
             type="A",
         )
+        ReleaseProject.objects.create(
+            organization_id=project.organization_id, release=release, project=project, new_groups=5
+        )
 
         release.commit_count = 2
         release.total_deploys = 1
-        release.new_groups = 42
         release.save()
 
         self.create_member(teams=[team1, team2], user=user, organization=org)
@@ -79,10 +82,10 @@ class ReleaseMetaTest(APITestCase):
         data = orjson.loads(response.content)
         assert data["deployCount"] == 1
         assert data["commitCount"] == 2
-        assert data["newGroups"] == 42
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
         assert len(data["projects"]) == 2
+        assert data["projects"][0]["newGroups"] == 5
 
     def test_artifact_count_without_weak_association(self):
         user = self.create_user(is_staff=False, is_superuser=False)
