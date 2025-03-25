@@ -43,8 +43,13 @@ function SessionHistory({location, routes, params}: RouteComponentProps) {
     return null;
   }
 
+  const maybeTab = location.pathname.split('/').at(-2);
   const activeTab =
-    location.pathname.split('/').at(-2) === 'settings' ? 'settings' : 'sessionHistory';
+    maybeTab === 'settings'
+      ? 'settings'
+      : maybeTab === 'session-history'
+        ? 'sessionHistory'
+        : 'settings';
 
   const recreateRouteProps = {routes, params, location};
 
