@@ -16,3 +16,14 @@ class SummarizeIssueResponse(BaseModel):
     trace: str | None = None
     possible_cause: str | None = None
     scores: SummarizeIssueScores | None = None
+
+
+class SeerRepoDefinition(BaseModel):
+    provider: str
+    owner: str
+    name: str
+    external_id: str
+    branch_name: str | None = None
+    instructions: str | None = None
+    base_commit_sha: str | None = None
+    provider_raw: str | None = None

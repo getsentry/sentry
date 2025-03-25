@@ -38,7 +38,12 @@ class GroupAutofixEndpoint(GroupEndpoint):
             RateLimitCategory.IP: RateLimit(limit=10, window=60),
             RateLimitCategory.USER: RateLimit(limit=10, window=60),
             RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
-        }
+        },
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=256, window=60),
+            RateLimitCategory.USER: RateLimit(limit=256, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=2048, window=60),
+        },
     }
 
     def post(self, request: Request, group: Group) -> Response:
