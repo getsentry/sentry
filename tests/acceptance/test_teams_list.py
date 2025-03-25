@@ -28,9 +28,9 @@ class TeamsListTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         # Click projects tab
-        self.browser.click(".nav-tabs li:nth-child(2) a")
+        self.browser.click('[role="tablist"] li:nth-child(2) span')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         # Click projects tab
-        self.browser.click(".nav-tabs li:nth-child(3) a")
+        self.browser.click('[role="tablist"] li:nth-child(3) span')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
