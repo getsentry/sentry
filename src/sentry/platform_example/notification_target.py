@@ -10,10 +10,14 @@ class NotificationType(StrEnum):
     Workflows = "workflows"
     IssueAlert = "issue_alert"
     SpikeProtection = "spike_protection"
-
+    OrganizationEmailBlast = "organization_email_blast"
     # Billing concerns
     BillingEmail = "billing_email"
     ...
+
+    @staticmethod
+    def get_choices() -> list[tuple[str, str]]:
+        return [(choice.value, choice.name) for choice in NotificationType]
 
 
 # Target Types
@@ -29,13 +33,12 @@ class NotificationIntegrationTarget:
 
     @property
     def integration_installation(self) -> IntegrationInstallation:
-        return IntegrationInstallation.objects.get(
-            id=self.integration_installation_id,
-        )
+        raise NotImplementedError("Subclasses must implement this method")
 
 
+@dataclass
 class NotificationUserTarget:
-    user_id: str
+    user_id: int
 
     @property
     def user(self) -> User:

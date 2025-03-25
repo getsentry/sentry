@@ -1,18 +1,35 @@
+from dataclasses import dataclass
+from typing import Any
+
 from sentry.models.organization import Organization
-from sentry.platform_example.notification import NotificationService, NotificationTemplate
-from sentry.platform_example.notification_target import (
-    NotificationOrganizationTargetStrategy,
-    NotificationSource,
+from sentry.platform_example.notification import (
+    NotificationData,
+    NotificationService,
+    NotificationTemplate,
 )
+from sentry.platform_example.notification_target import NotificationType
+from sentry.platform_example.notification_target_strategies import (
+    NotificationOrganizationTargetStrategy,
+)
+
+
+class ExampleNotificationData(NotificationData):
+    pass
+
+
+@dataclass
+class ExampleNotificationTemplate(NotificationTemplate[ExampleNotificationData]):
+    template_data: dict[str, Any] = {}
+    notification_type: NotificationType = NotificationType.OrganizationEmailBlast
 
 
 def notify_all_sentry_members():
     organization_id = Organization.objects.get(slug="sentry").id
-
     strategy = NotificationOrganizationTargetStrategy(organization_id=organization_id)
-    NotificationService.notify(
-        target_strategy=strategy,
-        template=NotificationTemplate(template_data={}),
-        data={"message": "Hello, world!"},
-        notification_type=NotificationSource.OrganizationEmailBlast,
+    targets = strategy.get_targets()
+
+    NotificationService.notify_many(
+        targets=targets,
+        template=ExampleNotificationTemplate(),
+        data=ExampleNotificationData(message="Hello, world!"),
     )
