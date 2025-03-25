@@ -70,7 +70,7 @@ const LoadingContainer = styled('div')<{animate: boolean; error?: boolean}>`
   position: absolute;
   height: auto;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   z-index: 30;
   padding: 24px;
   background-color: ${p => p.theme.background};

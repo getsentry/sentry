@@ -770,7 +770,6 @@ def update_alert_rule(
     :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import dual_update_migrated_alert_rule
 
     snuba_query = _unpack_snuba_query(alert_rule)
     organization = _unpack_organization(alert_rule)
@@ -907,8 +906,6 @@ def update_alert_rule(
 
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rule.update(**updated_fields)
-            # if an exception occurs in this helper, don't catch it so we can see the full stack trace
-            dual_update_migrated_alert_rule(alert_rule, updated_fields)
 
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule,
@@ -1014,7 +1011,7 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
 
 
 def delete_alert_rule(
-    alert_rule: AlertRule, user: RpcUser | None = None, ip_address: str | None = None
+    alert_rule: AlertRule, user: User | RpcUser | None = None, ip_address: str | None = None
 ) -> None:
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
@@ -1115,10 +1112,6 @@ def update_alert_rule_trigger(
     alert rule
     :return: The updated AlertRuleTrigger
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import (
-        dual_update_migrated_alert_rule_trigger,
-    )
-
     if (
         AlertRuleTrigger.objects.filter(alert_rule=trigger.alert_rule, label=label)
         .exclude(id=trigger.id)
@@ -1137,8 +1130,6 @@ def update_alert_rule_trigger(
 
     with transaction.atomic(router.db_for_write(AlertRuleTrigger)):
         if updated_fields:
-            # exceptions from this helper are purposely uncaught
-            dual_update_migrated_alert_rule_trigger(trigger, updated_fields)
             trigger.update(**updated_fields)
 
     return trigger
@@ -1367,9 +1358,6 @@ def update_alert_rule_trigger_action(
     :param input_channel_id: (Optional) Slack channel ID. If provided skips lookup
     :return:
     """
-    from sentry.workflow_engine.migration_helpers.alert_rule import (
-        dual_update_migrated_alert_rule_trigger_action,
-    )
 
     updated_fields: dict[str, Any] = {}
     if type is not None:
@@ -1423,8 +1411,6 @@ def update_alert_rule_trigger_action(
 
     with transaction.atomic(router.db_for_write(AlertRuleTriggerAction)):
         trigger_action.update(**updated_fields)
-        # exceptions from this helper are purposely left uncaught
-        dual_update_migrated_alert_rule_trigger_action(trigger_action, updated_fields)
     return trigger_action
 
 
@@ -1852,7 +1838,7 @@ def translate_aggregate_field(
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(
     organization: Organization,
-    user: RpcUser | None,
+    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     """Return Slack trigger actions that require async lookup"""
@@ -1893,7 +1879,7 @@ def get_slack_actions_with_async_lookups(
 
 def get_slack_channel_ids(
     organization: Organization,
-    user: RpcUser | None,
+    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     slack_actions = get_slack_actions_with_async_lookups(organization, user, data)

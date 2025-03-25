@@ -87,7 +87,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
         projectId: project?.id,
       }),
       () => {
-        const dimissedTs = new Date().getTime() / 1000;
+        const dimissedTs = Date.now() / 1000;
         return {
           data: {dismissed_ts: dimissedTs},
           features: {[METRIC_ALERT_IGNORE_ARCHIVED_ISSUES]: {dismissed_ts: dimissedTs}},

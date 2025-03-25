@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
@@ -326,6 +327,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         {
           title: t('High Throughput Transactions'),
           displayType: DisplayType.TOP_N,
+          limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
@@ -404,6 +406,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         {
           title: t('Errors by Browser Over Time'),
           displayType: DisplayType.TOP_N,
+          limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
@@ -443,6 +446,7 @@ export const getDashboardTemplates = (organization: Organization) => {
         {
           title: t('Top 5 Issues by Unique Users Over Time'),
           displayType: DisplayType.TOP_N,
+          limit: TOP_N,
           interval: '5m',
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
@@ -854,6 +858,7 @@ export const getDashboardTemplates = (organization: Organization) => {
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
+          limit: TOP_N,
           layout: {
             h: 4,
             minH: 2,
@@ -880,6 +885,7 @@ export const getDashboardTemplates = (organization: Organization) => {
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
           tempId: uniqueId(),
+          limit: TOP_N,
           layout: {
             h: 2,
             minH: 2,

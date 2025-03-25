@@ -923,7 +923,7 @@ const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -936,7 +936,7 @@ const CountTooltipContent = styled('div')`
   align-items: center;
 
   h4 {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeExtraSmall};
     text-transform: uppercase;
     grid-column: 1 / -1;

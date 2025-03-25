@@ -55,7 +55,6 @@ class GroupSearchViewSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
         if self.has_global_views is False:
             is_all_projects = False
-
             projects = list(obj.projects.values_list("id", flat=True))
             num_projects = len(projects)
             if num_projects != 1:
@@ -63,7 +62,9 @@ class GroupSearchViewSerializer(Serializer):
 
         else:
             is_all_projects = obj.is_all_projects
-            projects = list(obj.projects.values_list("id", flat=True))
+            projects = (
+                [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
+            )
 
         return {
             "id": str(obj.id),
