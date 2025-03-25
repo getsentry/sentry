@@ -335,7 +335,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
         notificationOptionsQueryKey(notificationType),
         currentNotificationOptions => {
           return currentNotificationOptions?.filter(
-            option => !(option.id.toString() === id.toString())
+            option => option.id.toString() !== id.toString()
           );
         }
       );
