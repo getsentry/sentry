@@ -54,6 +54,7 @@ class MemberPermission(OrganizationPermission):
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
