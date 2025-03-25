@@ -121,12 +121,9 @@ def send_incident_alert_notification(
 
     attachment = build_incident_attachment(
         alert_context=alert_context,
-        open_period_identifier=metric_issue_context.open_period_identifier,
-        snuba_query=metric_issue_context.snuba_query,
+        metric_issue_context=metric_issue_context,
         organization=organization,
         date_started=open_period_context.date_started,
-        new_status=metric_issue_context.new_status,
-        metric_value=metric_issue_context.metric_value,
         notification_uuid=notification_uuid,
     )
     success = integration_service.send_msteams_incident_alert_notification(
