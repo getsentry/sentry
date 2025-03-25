@@ -427,7 +427,9 @@ function AutofixHighlightPopup(props: Props) {
   );
 }
 
-const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
+const Wrapper = styled(motion.div)<
+  {isFocused?: boolean} & React.HTMLAttributes<HTMLDivElement>
+>`
   z-index: ${p => (p.isFocused ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.tooltip)};
   display: flex;
   flex-direction: column;
@@ -448,7 +450,7 @@ const ScaleContainer = styled(motion.div)`
   padding-left: ${space(2)};
 `;
 
-const Container = styled(motion.div)`
+const Container = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
