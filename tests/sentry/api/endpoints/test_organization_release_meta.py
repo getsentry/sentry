@@ -8,6 +8,7 @@ from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releasefile import ReleaseFile
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 
@@ -28,6 +29,9 @@ class ReleaseMetaTest(APITestCase):
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
         release.add_project(project)
         release.add_project(project2)
+
+        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=10)
+        ReleaseProject.objects.filter(project=project2, release=release).update(new_groups=10)
 
         ReleaseFile.objects.create(
             organization_id=project.organization_id,
@@ -61,7 +65,7 @@ class ReleaseMetaTest(APITestCase):
 
         release.commit_count = 2
         release.total_deploys = 1
-        release.new_groups = 42
+        release.new_groups = 20
         release.save()
 
         self.create_member(teams=[team1, team2], user=user, organization=org)
@@ -79,9 +83,51 @@ class ReleaseMetaTest(APITestCase):
         data = orjson.loads(response.content)
         assert data["deployCount"] == 1
         assert data["commitCount"] == 2
-        assert data["newGroups"] == 42
+        assert data["newGroups"] == 20
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
+        assert len(data["projects"]) == 2
+
+    def test_favor_project_new_group_sum(self):
+        # test that the release meta `newGroups` field is the sum of the
+        # `newGroups` value across all projects, in the case that
+        # the release `newGroups` field is not the same value.
+
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team1], organization=org)
+        project2 = self.create_project(teams=[team2], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+        release.add_project(project2)
+
+        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=10)
+        ReleaseProject.objects.filter(project=project2, release=release).update(new_groups=10)
+
+        release.new_groups = 12  # incorrect value
+        release.save()
+
+        self.create_member(teams=[team1, team2], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-meta",
+            kwargs={"organization_id_or_slug": org.slug, "version": release.version},
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+
+        data = orjson.loads(response.content)
+        # should be the sum of the `newGroups` values across all projects rather than release.new_groups
+        assert data["newGroups"] == 20
         assert len(data["projects"]) == 2
 
     def test_artifact_count_without_weak_association(self):
