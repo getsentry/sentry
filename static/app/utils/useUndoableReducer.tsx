@@ -1,5 +1,7 @@
-import type {ReducerAction, ReducerState} from 'react';
+import type {ReducerState} from 'react';
 import {useMemo, useReducer} from 'react';
+
+import type {ReducerAction} from 'sentry/types/reducerAction';
 
 export type UndoableNode<S> = {
   current: S;

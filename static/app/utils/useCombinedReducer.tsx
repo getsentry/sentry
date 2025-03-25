@@ -1,5 +1,7 @@
-import type {Reducer, ReducerAction} from 'react';
+import type {Reducer} from 'react';
 import {useReducer} from 'react';
+
+import type {ReducerAction} from 'sentry/types/reducerAction';
 
 type ReducersObject<S = any, A = any> = {
   [K in keyof S]: Reducer<S, A>;
