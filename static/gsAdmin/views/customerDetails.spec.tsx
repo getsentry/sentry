@@ -2108,7 +2108,7 @@ describe('Customer Details', function () {
       );
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
         method: 'POST',
         body: {},
       });
@@ -2117,12 +2117,11 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/test-vercel-api/`,
+          `/_admin/${organization.slug}/test-vercel-api/`,
           expect.objectContaining({
             method: 'POST',
             data: {
               extra: null,
-              organization_id: Number(subscription.id),
               vercel_endpoint: 'submit_billing_data',
             },
           })
@@ -2188,7 +2187,7 @@ describe('Customer Details', function () {
       );
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
         method: 'POST',
         body: {},
       });
@@ -2197,12 +2196,11 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/test-vercel-api/`,
+          `/_admin/${organization.slug}/test-vercel-api/`,
           expect.objectContaining({
             method: 'POST',
             data: {
               extra: 'paid',
-              organization_id: Number(subscription.id),
               vercel_endpoint: 'submit_invoice',
             },
           })

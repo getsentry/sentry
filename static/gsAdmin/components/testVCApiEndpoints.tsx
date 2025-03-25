@@ -23,7 +23,6 @@ enum VercelEndpoint {
 
 type AdminTestVercelApiRequest = {
   extra: string | null;
-  organization_id: number;
   vercel_endpoint: VercelEndpoint;
 };
 
@@ -41,19 +40,19 @@ function TestVercelApiEndpointModal({
     VercelEndpoint.SUBMIT_BILLING_DATA
   );
   const [extra, setExtra] = useState<string | null>(null);
+  const orgSlug = subscription.slug;
 
   const onSubmit = () => {
     const data: AdminTestVercelApiRequest = {
       extra: endpoint === VercelEndpoint.SUBMIT_INVOICE ? extra : null,
-      organization_id: Number(subscription.id),
       vercel_endpoint: endpoint,
     };
 
-    api.request(`/_admin/test-vercel-api/`, {
+    api.request(`/_admin/${orgSlug}/test-vercel-api/`, {
       method: 'POST',
       data,
       success: () => {
-        addSuccessMessage('Sent billing data to Vercel API.');
+        addSuccessMessage('Sent request to Vercel API.');
         closeModal();
         onSuccess();
       },
