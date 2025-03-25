@@ -63,7 +63,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.click(".nav-tabs li:nth-child(3) a")
+            self.browser.click("[role='tablist'] li:nth-child(3) span")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
@@ -89,7 +89,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.click(".nav-tabs li:nth-child(4) a")
+            self.browser.click("[role='tablist'] li:nth-child(4) span")
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
