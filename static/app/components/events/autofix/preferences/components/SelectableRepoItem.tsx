@@ -31,15 +31,11 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
       <RepoHeader>
         <RepoInfoWrapper>
           <RepoName>{repo.name}</RepoName>
-          <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
+          <RightAlign>
+            <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
+            {isGithub && <AddIcon size="xs" />}
+          </RightAlign>
         </RepoInfoWrapper>
-        <ActionContainer>
-          {isSelected ? (
-            <SelectedIndicator>{t('Added')}</SelectedIndicator>
-          ) : (
-            isGithub && <AddIcon size="xs" />
-          )}
-        </ActionContainer>
       </RepoHeader>
     </RepoListItemContainer>
   );
@@ -85,13 +81,15 @@ const RepoHeader = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${space(1)};
+  padding: ${space(1)} ${space(1.5)};
 `;
 
 const RepoInfoWrapper = styled('div')`
   display: flex;
-  flex-direction: column;
-  margin-left: ${space(1)};
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
 `;
 
 const RepoName = styled('div')`
@@ -104,29 +102,16 @@ const RepoProvider = styled('div')`
   margin-top: ${space(0.25)};
 `;
 
-const SelectedIndicator = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
-  color: ${p => p.theme.activeText};
-  background-color: ${p => p.theme.active};
-  padding: ${space(0.25)} ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-`;
-
-const ActionContainer = styled('div')`
-  display: flex;
-  align-items: center;
-`;
-
 const AddIcon = styled(IconAdd)`
   color: ${p => p.theme.gray300};
-  visibility: hidden;
 
   ${RepoListItemContainer}:hover & {
-    visibility: visible;
-  }
-
-  &:hover {
     color: ${p => p.theme.purple300};
   }
+`;
+
+const RightAlign = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
