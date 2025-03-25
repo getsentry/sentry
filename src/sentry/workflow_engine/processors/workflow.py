@@ -18,7 +18,6 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
-    WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
@@ -88,23 +87,24 @@ def evaluate_workflows_action_filters(
     # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
     workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
 
-    action_conditions = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
-    ).distinct()
-
-    workflow_to_dcg = dict(
-        WorkflowDataConditionGroup.objects.filter(
-            condition_group_id__in=action_conditions
-        ).values_list("condition_group_id", "workflow_id")
+    action_conditions = (
+        DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
+        )
+        .prefetch_related("workflowdataconditiongroup_set")
+        .distinct()
     )
 
     for action_condition in action_conditions:
         workflow_job = job
 
+        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
+
         # Populate the workflow_env in the job for the action_condition evaluation
-        workflow_id = workflow_to_dcg.get(action_condition.id)
-        if workflow_id:
-            workflow_job = replace(job, workflow_env=workflow_ids_to_envs[workflow_id])
+        if workflow_data_condition_group:
+            workflow_job = replace(
+                job, workflow_env=workflow_data_condition_group.workflow.environment
+            )
 
         (evaluation, result), remaining_conditions = process_data_condition_group(
             action_condition.id, workflow_job
@@ -113,10 +113,9 @@ def evaluate_workflows_action_filters(
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            condition_group = action_condition.workflowdataconditiongroup_set.first()
-            if condition_group:
+            if workflow_data_condition_group:
                 enqueue_workflow(
-                    condition_group.workflow,
+                    workflow_data_condition_group.workflow,
                     remaining_conditions,
                     job.event,
                     WorkflowDataConditionGroupType.ACTION_FILTER,
