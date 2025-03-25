@@ -34,10 +34,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   children: React.ReactNode;
   /**
-   * Whether the tour can be accessed by the user
-   */
-  isAvailable: TourState<T>['isAvailable'];
-  /**
    * Whether the tour has been completed.
    */
   isCompleted: TourState<T>['isCompleted'];
@@ -61,7 +57,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
 
 export function TourContextProvider<T extends TourEnumType>({
   children,
-  isAvailable,
   isCompleted,
   tourKey,
   tourContext,
@@ -71,7 +66,6 @@ export function TourContextProvider<T extends TourEnumType>({
   const organization = useOrganization();
   const {mutate} = useMutateAssistant();
   const tourContextValue = useTourReducer<T>({
-    isAvailable,
     isCompleted,
     isRegistered: false,
     orderedStepIds,
