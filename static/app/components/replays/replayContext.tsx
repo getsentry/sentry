@@ -371,7 +371,6 @@ export function Provider({
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
 
       applyInitialOffset();
