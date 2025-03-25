@@ -44,7 +44,7 @@ function NetworkDetails({
         onDoubleClick={onDoubleClick}
         onMouseDown={onMouseDown}
       >
-        <NetworkDetailsTabs underlined={false} />
+        <NetworkDetailsTabs />
       </DetailsSplitDivider>
 
       <NetworkDetailsContent
