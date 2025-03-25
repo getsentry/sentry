@@ -1,8 +1,7 @@
-import {useMemo} from 'react';
+import {useId, useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
 import {t} from 'sentry/locale';
-import domId from 'sentry/utils/domId';
 
 import type {ControlProps} from './control';
 import {Control} from './control';
@@ -80,7 +79,7 @@ function CompactSelect<Value extends SelectKey>({
   triggerProps,
   ...controlProps
 }: SelectProps<Value>) {
-  const triggerId = useMemo(() => domId('select-trigger-'), []);
+  const triggerId = useId();
 
   // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.

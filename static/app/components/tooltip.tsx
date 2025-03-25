@@ -60,7 +60,7 @@ function Tooltip({
     arrowProps,
     reset,
     update,
-  } = useHoverOverlay('tooltip', hoverOverlayProps);
+  } = useHoverOverlay(hoverOverlayProps);
 
   const {forceVisible} = hoverOverlayProps;
 
