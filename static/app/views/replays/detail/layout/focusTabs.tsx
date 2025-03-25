@@ -57,7 +57,9 @@ function FocusTabs({isVideoReplay}: Props) {
       >
         <TabList>
           {Object.entries(getReplayTabs({isVideoReplay})).map(([tab, label]) => (
-            <TabList.Item key={tab}>{label}</TabList.Item>
+            <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
+              {label}
+            </TabList.Item>
           ))}
         </TabList>
       </Tabs>
