@@ -96,6 +96,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -420,6 +421,21 @@ class Factories:
             for team in teams:
                 Factories.create_team_membership(team=team, member=om, role=teamRole)
         return om
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_member_invite(
+        organization: Organization | None = None,
+        email: str | None = None,
+        **kwargs,
+    ) -> OrganizationMemberInvite:
+        if organization is None:
+            organization = Factories.create_organization()
+        if email is None:
+            email = f"{petname.generate().title()}@email.com"
+        return OrganizationMemberInvite.objects.create(
+            organization=organization, email=email, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -2198,15 +2214,30 @@ class Factories:
     def create_action(
         config: dict[str, Any] | None = None,
         type: Action.Type | None = None,
+        data: dict[str, Any] | None = None,
         **kwargs,
     ) -> Action:
+        if config is None and type is None and data is None:
+            # Default to a slack action with nice defaults so someone can just do
+            # self.create_action() and have a sane default
+            config = {
+                "target_identifier": "1",
+                "target_display": "Sentry User",
+                "target_type": ActionTarget.SPECIFIC,
+            }
+
+            data = {"notes": "bufos are great", "tags": "bufo-bot"}
+
         if config is None:
             config = {}
+
+        if data is None:
+            data = {}
 
         if type is None:
             type = Action.Type.SLACK
 
-        return Action.objects.create(type=type, config=config, **kwargs)
+        return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

@@ -61,10 +61,10 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
         cache_key = f"organizationonboardingtask:{organization_id}:{task}"
 
         if cache.get(cache_key) is None:
-            _, created = self.create_or_update(
+            _, created = self.update_or_create(
                 organization_id=organization_id,
                 task=task,
-                values=kwargs,
+                defaults=kwargs,
             )
 
             # Store marker to prevent running all the time

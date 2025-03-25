@@ -32,7 +32,6 @@ from sentry.workflow_engine.typings.notification_action import (
     SentryAppIdentifier,
     SlackDataBlob,
     TicketFieldMappingKeys,
-    TicketingActionDataBlobHelper,
 )
 
 logger = logging.getLogger(__name__)
@@ -111,10 +110,7 @@ class BaseIssueAlertHandler(ABC):
         :param job: WorkflowEventData
         :return: Rule instance
         """
-        workflow = job.workflow
-        environment_id = None
-        if workflow and workflow.environment:
-            environment_id = workflow.environment.id
+        environment_id = job.workflow_env.id if job.workflow_env else None
 
         # TODO(iamrajjoshi): Remove the project null check once https://github.com/getsentry/sentry/pull/85240/files is merged
         if detector.project is None:
@@ -272,9 +268,10 @@ class TicketingIssueAlertHandler(BaseIssueAlertHandler):
     @classmethod
     def get_additional_fields(cls, action: Action, mapping: ActionFieldMapping) -> dict[str, Any]:
         # Use helper to separate fields
-        dynamic_form_fields, additional_fields = TicketingActionDataBlobHelper.separate_fields(
-            action.data
+        dynamic_form_fields = action.data.get(
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {}
         )
+        additional_fields = action.data.get(TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value, {})
 
         final_blob = {
             TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value: dynamic_form_fields,

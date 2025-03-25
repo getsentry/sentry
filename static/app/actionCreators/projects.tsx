@@ -349,10 +349,14 @@ export function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
-    method: 'DELETE',
-    data: {origin},
-  });
+  return api
+    .requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+      method: 'DELETE',
+      data: {origin},
+    })
+    .then(() => {
+      ProjectsStore.onDeleteProject(projectSlug);
+    });
 }
 
 /**

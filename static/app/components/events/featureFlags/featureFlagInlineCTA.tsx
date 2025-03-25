@@ -1,4 +1,7 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
+
+import onboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button, LinkButton} from 'sentry/components/core/button';
@@ -15,8 +18,41 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
+export function FeatureFlagCTAContent({
+  handleSetupButtonClick,
+}: {
+  handleSetupButtonClick: (e: any) => void;
+}) {
+  return (
+    <Fragment>
+      <BannerContent>
+        <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
+        <BannerDescription>
+          {t(
+            'Want to know which feature flags were associated with this issue? Set up your feature flag integration.'
+          )}
+        </BannerDescription>
+        <ActionButton>
+          <Button onClick={handleSetupButtonClick} priority="primary">
+            {t('Set Up Now')}
+          </Button>
+          <LinkButton
+            priority="default"
+            href="https://docs.sentry.io/product/explore/feature-flags/"
+            external
+          >
+            {t('Read More')}
+          </LinkButton>
+        </ActionButton>
+      </BannerContent>
+      <BannerIllustration src={onboardingInstall} alt={t('Install')} />
+    </Fragment>
+  );
+}
+
 export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   const organization = useOrganization();
+
   const {activateSidebar} = useFeatureFlagOnboarding({
     analyticsSurface: 'issue_details.flags_section',
   });
@@ -70,26 +106,7 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
       actions={actions}
     >
       <BannerWrapper>
-        <div>
-          <BannerTitle>{t('Set Up Feature Flags')}</BannerTitle>
-          <BannerDescription>
-            {t(
-              'Want to know which feature flags were associated with this error? Set up your feature flag integration.'
-            )}
-          </BannerDescription>
-          <ActionButton>
-            <Button onClick={activateSidebar} priority="primary">
-              {t('Set Up Now')}
-            </Button>
-            <LinkButton
-              priority="default"
-              href="https://docs.sentry.io/product/explore/feature-flags/"
-              external
-            >
-              {t('Read More')}
-            </LinkButton>
-          </ActionButton>
-        </div>
+        <FeatureFlagCTAContent handleSetupButtonClick={activateSidebar} />
         <CloseDropdownMenu
           position="bottom-end"
           triggerProps={{
@@ -128,6 +145,11 @@ export default function FeatureFlagInlineCTA({projectId}: {projectId: string}) {
   );
 }
 
+const ActionButton = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
+
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
@@ -139,6 +161,40 @@ const BannerDescription = styled('div')`
   max-width: 340px;
 `;
 
+const BannerContent = styled('div')`
+  padding: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+`;
+
+const BannerIllustration = styled('img')`
+  height: 100%;
+  object-fit: contain;
+  max-width: 30%;
+  margin-right: 10px;
+  margin-bottom: -${space(2)};
+  padding: ${space(2)};
+`;
+
+export const BannerWrapper = styled('div')`
+  position: relative;
+  border: 1px solid ${p => p.theme.border};
+  border-radius: ${p => p.theme.borderRadius};
+  margin: ${space(1)} 0;
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary}00 0%,
+    ${p => p.theme.backgroundSecondary}FF 70%,
+    ${p => p.theme.backgroundSecondary}FF 100%
+  );
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: ${space(1)};
+`;
+
 const CloseDropdownMenu = styled(DropdownMenu)`
   position: absolute;
   display: block;
@@ -147,23 +203,4 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   color: ${p => p.theme.white};
   cursor: pointer;
   z-index: 1;
-`;
-
-const ActionButton = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-`;
-
-const BannerWrapper = styled('div')`
-  position: relative;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(2)};
-  margin: ${space(1)} 0;
-  background: linear-gradient(
-    90deg,
-    ${p => p.theme.backgroundSecondary}00 0%,
-    ${p => p.theme.backgroundSecondary}FF 70%,
-    ${p => p.theme.backgroundSecondary}FF 100%
-  );
 `;

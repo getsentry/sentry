@@ -1,8 +1,8 @@
 import {
   createContext,
   Fragment,
-  useCallback,
   useContext,
+  useId,
   useLayoutEffect,
   useMemo,
 } from 'react';
@@ -13,7 +13,6 @@ import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
 import {defined} from 'sentry/utils';
-import domId from 'sentry/utils/domId';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from './control';
@@ -45,6 +44,7 @@ interface BaseListProps<Value extends SelectKey>
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
       | 'autoFocus'
+      | 'shouldUseVirtualFocus'
     >,
     Omit<
       AriaGridListOptions<any>,
@@ -53,6 +53,7 @@ interface BaseListProps<Value extends SelectKey>
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
       | 'autoFocus'
+      | 'shouldUseVirtualFocus'
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
   /**
@@ -284,60 +285,50 @@ function List<Value extends SelectKey>({
    * when an arrow key is pressed. Returns a boolean indicating whether the keyboard
    * event was intercepted. If yes, then no further callback function should be run.
    */
-  const keyDownHandler = useCallback(
-    (e: React.KeyboardEvent<HTMLUListElement>) => {
-      // Don't handle ArrowDown/Up key presses if focus already wraps
-      if (shouldFocusWrap && !grid) {
-        return true;
-      }
-
-      // Move focus to next region when ArrowDown is pressed and the last item in this
-      // list is currently focused
-      if (
-        e.key === 'ArrowDown' &&
-        listState.selectionManager.focusedKey === lastFocusableKey
-      ) {
-        focusManager?.focusNext({
-          wrap: true,
-          accept: element =>
-            (element.getAttribute('role') === 'option' ||
-              element.getAttribute('role') === 'row') &&
-            element.getAttribute('aria-disabled') !== 'true',
-        });
-
-        return false; // event intercepted, don't run any further callbacks
-      }
-
-      // Move focus to previous region when ArrowUp is pressed and the first item in this
-      // list is currently focused
-      if (
-        e.key === 'ArrowUp' &&
-        listState.selectionManager.focusedKey === firstFocusableKey
-      ) {
-        focusManager?.focusPrevious({
-          wrap: true,
-          accept: element =>
-            (element.getAttribute('role') === 'option' ||
-              element.getAttribute('role') === 'row') &&
-            element.getAttribute('aria-disabled') !== 'true',
-        });
-
-        return false; // event intercepted, don't run any further callbacks
-      }
-
+  const keyDownHandler = (e: React.KeyboardEvent<HTMLUListElement>) => {
+    // Don't handle ArrowDown/Up key presses if focus already wraps
+    if (shouldFocusWrap && !grid) {
       return true;
-    },
-    [
-      focusManager,
-      firstFocusableKey,
-      lastFocusableKey,
-      listState.selectionManager.focusedKey,
-      shouldFocusWrap,
-      grid,
-    ]
-  );
+    }
 
-  const listId = useMemo(() => domId('select-list-'), []);
+    // Move focus to next region when ArrowDown is pressed and the last item in this
+    // list is currently focused
+    if (
+      e.key === 'ArrowDown' &&
+      listState.selectionManager.focusedKey === lastFocusableKey
+    ) {
+      focusManager?.focusNext({
+        wrap: true,
+        accept: element =>
+          (element.getAttribute('role') === 'option' ||
+            element.getAttribute('role') === 'row') &&
+          element.getAttribute('aria-disabled') !== 'true',
+      });
+
+      return false; // event intercepted, don't run any further callbacks
+    }
+
+    // Move focus to previous region when ArrowUp is pressed and the first item in this
+    // list is currently focused
+    if (
+      e.key === 'ArrowUp' &&
+      listState.selectionManager.focusedKey === firstFocusableKey
+    ) {
+      focusManager?.focusPrevious({
+        wrap: true,
+        accept: element =>
+          (element.getAttribute('role') === 'option' ||
+            element.getAttribute('role') === 'row') &&
+          element.getAttribute('aria-disabled') !== 'true',
+      });
+
+      return false; // event intercepted, don't run any further callbacks
+    }
+
+    return true;
+  };
+
+  const listId = useId();
 
   const sections = useMemo(
     () =>

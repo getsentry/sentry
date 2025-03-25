@@ -194,7 +194,7 @@ const CollapsedAvatarsCicle = styled('div')<{size: number}>`
   text-align: center;
   font-weight: ${p => p.theme.fontWeightBold};
   background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => Math.floor(p.size / 2.3)}px;
   width: ${p => p.size}px;
   height: ${p => p.size}px;
@@ -209,7 +209,7 @@ const CollapsedAvatarPill = styled('div')`
   align-items: center;
   gap: ${space(0.25)};
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   height: 24px;
   padding: 0 ${space(1)};
   background-color: ${p => p.theme.surface400};
