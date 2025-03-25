@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
 import {Badge} from 'sentry/components/core/badge';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Switch} from 'sentry/components/core/switch';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
@@ -12,6 +13,7 @@ import type {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -58,6 +60,8 @@ export function DomainViewHeader({
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
   const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const [useEap, setUseEap] = useLocalStorageState('insights-modules-eap', false);
+  const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
   const crumbs: Crumb[] = [
     {
@@ -118,6 +122,9 @@ export function DomainViewHeader({
               }
             />
             {additonalHeaderActions}
+            {hasEapFlag && (
+              <Switch checked={useEap} onChange={() => setUseEap(!useEap)} />
+            )}
           </ButtonBar>
         </Layout.HeaderActions>
         <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
