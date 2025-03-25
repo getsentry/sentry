@@ -52,7 +52,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project) -> Response:
         if not features.has("organizations:autofix-seer-preferences", project.organization):
-            return Response(status=403, body="Feature flag not enabled")
+            return Response("Feature flag not enabled", status=403)
 
         data = orjson.loads(request.body)
 
