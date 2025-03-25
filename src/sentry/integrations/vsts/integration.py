@@ -34,6 +34,7 @@ from sentry.integrations.services.repository import RpcRepository, repository_se
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.integrations.tasks.migrate_repo import migrate_repo
 from sentry.integrations.utils.metrics import (
+    IntegrationPipelineHaltReason,
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
@@ -688,7 +689,7 @@ class AccountConfigView(PipelineView):
                 "accounts": accounts,
             }
             if not accounts or not accounts.get("value"):
-                lifecycle.record_failure("no_accounts", extra=extra)
+                lifecycle.record_halt(IntegrationPipelineHaltReason.NO_ACCOUNTS, extra=extra)
                 return render_to_response(
                     template="sentry/integrations/vsts-config.html",
                     context={"no_accounts": True},
