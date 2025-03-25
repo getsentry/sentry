@@ -245,7 +245,7 @@ function OTelSummaryContentInner({
     <Fragment>
       <Layout.Main>
         <FilterActions>
-          <SpanCategoryFilter search={query} serviceEntrySpanName={transactionName} />
+          <SpanCategoryFilter serviceEntrySpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
