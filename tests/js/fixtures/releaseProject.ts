@@ -1,8 +1,9 @@
+import { HealthFixture } from 'sentry-fixture/health';
 import type {ReleaseProject} from 'sentry/types/release';
 
 export function ReleaseProjectFixture(
   params: Partial<ReleaseProject> = {}
-): ReleaseProject {
+): Required<ReleaseProject> {
   return {
     id: 2,
     name: 'Project Name',
@@ -11,6 +12,7 @@ export function ReleaseProjectFixture(
     platforms: ['android'],
     slug: 'project-slug',
     hasHealthData: false,
+    healthData: HealthFixture(),
     ...params,
   };
 }

@@ -1,6 +1,7 @@
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
+import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
@@ -23,6 +24,12 @@ const mockedReleaseWithHealth = ReleaseFixture({
   commitCount: 4,
   lastCommit: mockedCommit,
   authors: [mockedUser1, mockedUser2],
+  projects: [
+    ReleaseProjectFixture({
+      newGroups: 21,
+      hasHealthData: false,
+    }),
+  ],
 });
 
 const renderReleaseContext = () => {
