@@ -433,6 +433,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         method: 'POST',
         data: {
           actions: rule?.actions ?? [],
+          name: rule?.name,
         },
       })
       .then(() => {
