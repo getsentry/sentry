@@ -18,7 +18,7 @@ export const useProgressiveExploreTimeseries = ({
 }) => {
   const organization = useOrganization();
   const canUseProgressiveLoading = organization.features.includes(
-    'organizations:visibility-explore-progressive-loading'
+    'visibility-explore-progressive-loading'
   );
 
   const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({
