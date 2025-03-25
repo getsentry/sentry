@@ -20,6 +20,9 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
+  queryExtras?: {
+    fidelity?: 'low' | 'auto';
+  };
 }
 
 interface UseExploreTimeseriesResults {
@@ -30,6 +33,7 @@ interface UseExploreTimeseriesResults {
 export function useExploreTimeseries({
   enabled,
   query,
+  queryExtras,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useExploreDataset();
   const groupBys = useExploreGroupBys();
@@ -79,8 +83,9 @@ export function useExploreTimeseries({
       orderby,
       topEvents,
       enabled,
+      ...queryExtras,
     };
-  }, [query, yAxes, interval, fields, orderby, topEvents, enabled]);
+  }, [query, yAxes, interval, fields, orderby, topEvents, enabled, queryExtras]);
 
   const previousQuery = usePrevious(query);
   const previousOptions = usePrevious(options);

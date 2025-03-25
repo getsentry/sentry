@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -47,6 +48,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  isProgressivelyLoading?: boolean;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -71,6 +73,7 @@ export function ExploreCharts({
   confidences,
   query,
   timeseriesResult,
+  isProgressivelyLoading,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const dataset = useExploreDataset();
@@ -196,6 +199,15 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
+                TitleBadges={[
+                  isProgressivelyLoading ? (
+                    <Tooltip
+                      title={t('This widget is currently loading higher fidelity data.')}
+                    >
+                      <ProgressiveLoadingIndicator relative hideMessage size={16} />
+                    </Tooltip>
+                  ) : null,
+                ]}
               />
             );
           }
@@ -239,6 +251,15 @@ export function ExploreCharts({
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
+              TitleBadges={[
+                isProgressivelyLoading ? (
+                  <Tooltip
+                    title={t('This widget is currently loading higher fidelity data.')}
+                  >
+                    <ProgressiveLoadingIndicator relative hideMessage size={16} />
+                  </Tooltip>
+                ) : null,
+              ]}
               Actions={[
                 <Tooltip
                   key="visualization"
@@ -376,4 +397,10 @@ const ChartLabel = styled('div')`
 const ChartTitle = styled('div')`
   display: flex;
   margin-left: ${space(2)};
+`;
+
+const ProgressiveLoadingIndicator = styled(LoadingIndicator)`
+  .loading-indicator {
+    border-width: 2px;
+  }
 `;
