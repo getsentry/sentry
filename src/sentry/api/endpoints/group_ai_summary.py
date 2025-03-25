@@ -15,7 +15,7 @@ from sentry import eventstore, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.group import GroupAiEndpoint
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.autofix.utils import get_autofix_state
@@ -37,7 +37,7 @@ from rest_framework.request import Request
 
 
 @region_silo_endpoint
-class GroupAiSummaryEndpoint(GroupEndpoint):
+class GroupAiSummaryEndpoint(GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
