@@ -38,22 +38,24 @@ function getBaseTraceUrl(
     : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
 
   if (source === TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY) {
-    if (view) {
-      return getTransactionSummaryBaseUrl(organization, view, true);
-    }
-
     return normalizeUrl(
-      `/organizations/${organization.slug}/${routesMap.performance_transaction_summary}`
+      `/organizations/${organization.slug}/${
+        view
+          ? getTransactionSummaryBaseUrl(organization, view, true)
+          : routesMap.performance_transaction_summary
+      }`
     );
   }
 
-  if (view) {
-    return getPerformanceBaseUrl(organization.slug, view, true);
-  }
-
-  const routeSuffix = source && source in routesMap ? routesMap[source] : 'traces';
-
-  return normalizeUrl(`/organizations/${organization.slug}/${routeSuffix}`);
+  return normalizeUrl(
+    `/organizations/${organization.slug}/${
+      view
+        ? getPerformanceBaseUrl(organization.slug, view, true)
+        : source && source in routesMap
+          ? routesMap[source]
+          : 'traces'
+    }`
+  );
 }
 
 export function getTraceDetailsUrl({
@@ -106,7 +108,7 @@ export function getTraceDetailsUrl({
       queryParams.node = path;
     }
     return {
-      pathname: normalizeUrl(`/${baseUrl}/trace/${traceSlug}/`),
+      pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
       query: {
         ...queryParams,
         timestamp: getTimeStampFromTableDateField(timestamp),
