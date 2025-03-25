@@ -1,11 +1,13 @@
 import type {ReactNode} from 'react';
+import styled from '@emotion/styled';
 
-import ListLink from 'sentry/components/links/listLink';
-import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs({
@@ -27,41 +29,52 @@ function getReplayTabs({
 
 type Props = {
   isVideoReplay: boolean;
-  className?: string;
 };
 
-function FocusTabs({className, isVideoReplay}: Props) {
+function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {pathname, query} = useLocation();
+  const navigate = useNavigate();
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
 
   return (
-    <ScrollableTabs className={className} underlined>
-      {Object.entries(getReplayTabs({isVideoReplay})).map(([tab, label]) =>
-        label ? (
-          <ListLink
-            data-test-id={`replay-details-${tab}-btn`}
-            key={tab}
-            isActive={() => tab === activeTab}
-            to={{pathname, query: {...query, t_main: tab}}}
-            onClick={e => {
-              e.preventDefault();
-              setActiveTab(tab);
-
-              trackAnalytics('replay.details-tab-changed', {
-                tab,
-                organization,
-                mobile: isVideoReplay,
-              });
-            }}
-          >
-            {label}
-          </ListLink>
-        ) : null
-      )}
-    </ScrollableTabs>
+    <TabContainer>
+      <Tabs
+        value={activeTab}
+        onChange={tab => {
+          setActiveTab(tab);
+          navigate({
+            pathname,
+            query: {...query, t_main: tab},
+          });
+          trackAnalytics('replay.details-tab-changed', {
+            tab,
+            organization,
+            mobile: isVideoReplay,
+          });
+        }}
+      >
+        <TabList>
+          {Object.entries(getReplayTabs({isVideoReplay})).map(([tab, label]) => (
+            <TabList.Item key={tab} data-test-id={`replay-details-${tab}-btn`}>
+              {label}
+            </TabList.Item>
+          ))}
+        </TabList>
+      </Tabs>
+    </TabContainer>
   );
 }
+
+const TabContainer = styled('div')`
+  margin-bottom: ${space(1)};
+  padding-inline: ${space(1)};
+  border-bottom: solid 1px #e0dce5;
+
+  & > * {
+    margin-bottom: -1px;
+  }
+`;
 
 export default FocusTabs;
