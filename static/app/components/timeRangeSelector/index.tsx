@@ -296,8 +296,15 @@ export function TimeRangeSelector({
   );
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
+
+  const restrictedDefaultPeriods = Object.fromEntries(
+    Object.entries(DEFAULT_RELATIVE_PERIODS).filter(
+      ([period]) => parsePeriodToHours(period) <= maxPickableDays * 24
+    )
+  );
+
   const defaultRelativePeriods = {
-    ...DEFAULT_RELATIVE_PERIODS,
+    ...restrictedDefaultPeriods,
     ...arbitraryRelativePeriods,
   };
   return (
