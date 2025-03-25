@@ -41,7 +41,7 @@ export const useProgressiveExploreTimeseries = ({
     canUsePreviousResults: canUsePreviousHighFidelityResults,
   } = useExploreTimeseries({
     query,
-    enabled: enabled && !canUseProgressiveLoading,
+    enabled: enabled && canUseProgressiveLoading,
     queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
   });
 
