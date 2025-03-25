@@ -482,7 +482,7 @@ export function SourceMapsDebuggerModal({
       <Body>
         <p>
           {t(
-            'It looks like the original source code for this stack frame. To get the original code for this stack frame, Sentry needs source maps to be uploaded.'
+            'It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be uploaded.'
           )}
         </p>
         {isReactNativeSDK({
