@@ -427,10 +427,15 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     including only items from the MainThread and app frames.
     Calculates accurate durations for all nodes based on call stack transitions.
     """
-    profile = profile_data["profile"]
-    frames = profile["frames"]
-    stacks = profile["stacks"]
-    samples = profile["samples"]
+    profile = profile_data.get("profile")
+    if not profile:
+        return []
+
+    frames = profile.get("frames")
+    stacks = profile.get("stacks")
+    samples = profile.get("samples")
+    if not all([frames, stacks, samples]):
+        return []
 
     # Find the MainThread ID
     thread_metadata = profile.get("thread_metadata", {})
