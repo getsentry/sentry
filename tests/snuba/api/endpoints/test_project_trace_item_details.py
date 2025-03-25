@@ -16,12 +16,12 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
 
     def test_simple(self):
         one_min_ago = before_now(minutes=1)
-        trace_id = str(uuid.uuid4())
+        trace_uuid = str(uuid.uuid4())
         logs = [
             self.create_ourlog(
                 {
                     "body": "foo",
-                    "trace_id": trace_id,
+                    "trace_id": trace_uuid,
                 },
                 attributes={
                     "str_attr": {
@@ -49,7 +49,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
             item_list_response = self.client.get(
                 item_list_url,
                 {
-                    "field": ["log.body", "sentry.item_id"],
+                    "field": ["log.body", "sentry.item_id", "sentry.trace_id"],
                     "query": "",
                     "orderby": "sentry.item_id",
                     "project": self.project.id,
@@ -59,6 +59,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
             )
         assert item_list_response.data is not None
         item_id = item_list_response.data["data"][0]["sentry.item_id"]
+        trace_id = item_list_response.data["data"][0]["sentry.trace_id"]
 
         item_details_url = reverse(
             "sentry-api-0-project-trace-item-details",
@@ -70,7 +71,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
         )
         with self.feature(self.features):
             trace_details_response = self.client.get(
-                item_details_url + "?dataset=ourlogs", format="json"
+                item_details_url + f"?dataset=ourlogs&trace_id={trace_id}", format="json"
             )
 
         assert trace_details_response.status_code == 200, trace_details_response.content
@@ -91,7 +92,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
                 "sentry.project_id": {"value": str(self.project.id), "type": "int"},
                 "sentry.severity_number": {"value": "0", "type": "int"},
                 "sentry.severity_text": {"value": "INFO", "type": "str"},
-                "sentry.trace_id": {"value": trace_id, "type": "str"},
+                "sentry.trace_id": {"value": trace_uuid, "type": "str"},
                 "str_attr": {"value": "1", "type": "str"},
             },
             "itemId": item_id,
