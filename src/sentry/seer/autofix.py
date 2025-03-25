@@ -659,7 +659,7 @@ def _respond_with_error(reason: str, status: int):
 
 def _call_autofix(
     *,
-    user: User | AnonymousUser,
+    user: User | AnonymousUser | RpcUser,
     group: Group,
     repos: list[dict],
     serialized_event: dict[str, Any],
@@ -721,7 +721,7 @@ def trigger_autofix(
     *,
     group: Group,
     event_id: str | None = None,
-    user: User | AnonymousUser,
+    user: User | AnonymousUser | RpcUser,
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,

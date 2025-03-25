@@ -1,9 +1,11 @@
 import datetime
+from typing import Any
 from unittest.mock import ANY, Mock, call, patch
 
 import orjson
 
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.models.group import Group
 from sentry.seer.issue_summary import (
     _call_seer,
     _get_event,
@@ -213,8 +215,8 @@ class IssueSummaryTest(APITestCase, SnubaTestCase):
                 "data": "test_event_data",
                 "project_id": self.project.id,
             }
-            connected_groups = []
-            connected_serialized_events = []
+            connected_groups: list[Group] = []
+            connected_serialized_events: list[dict[str, Any]] = []
 
             mock_sign.return_value = {"Authorization": "Bearer test_token"}
             mock_post.return_value.json.return_value = {
