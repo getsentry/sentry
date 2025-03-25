@@ -292,7 +292,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
             type=Action.Type.PAGERDUTY,
             integration_id="1234567890",
             config={"target_identifier": "service789", "target_type": ActionTarget.SPECIFIC},
-            data={"priority": "P1"},
+            data={"priority": "default"},
         )
 
     def test_build_rule_action_blob(self):
@@ -303,7 +303,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
             "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
             "account": "1234567890",
             "service": "service789",
-            "severity": "P1",
+            "severity": "default",
         }
 
     def test_build_rule_action_blob_no_priority(self):
