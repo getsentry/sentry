@@ -9,6 +9,7 @@ const AM2_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'profileDuration',
+  'profileDurationUI',
   'uptime',
 ];
 
@@ -18,7 +19,8 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   replays: {singular: 'replay', plural: 'replays'},
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
-  profileDuration: {plural: 'profile hours', singular: 'profile hour'},
+  profileDuration: {plural: 'continuous profile hours', singular: 'continuous profile hour'},
+  profileDurationUI: {plural: 'ui profile hours', singular: 'ui profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
 };
 

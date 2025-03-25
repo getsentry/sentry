@@ -8,6 +8,7 @@ const AM3_CATEGORIES = [
   'monitorSeats',
   'spans',
   'profileDuration',
+  'profileDurationUI',
   'uptime',
 ];
 
@@ -19,7 +20,8 @@ const AM3_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   spans: {plural: 'spans', singular: 'span'},
-  profileDuration: {plural: 'profile hours', singular: 'profile hour'},
+  profileDuration: {plural: 'continuous profile hours', singular: 'continuous profile hour'},
+  profileDurationUI: {plural: 'ui profile hours', singular: 'ui profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
 };
 
