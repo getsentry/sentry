@@ -8,7 +8,6 @@ import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphChart} from 'sentry/utils/profiling/flamegraphChart';
 import type {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
-import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {
@@ -18,7 +17,6 @@ import {
 } from './flamegraphTooltip';
 
 export interface FlamegraphChartTooltipProps {
-  canvasBounds: Rect;
   chart: FlamegraphChart;
   chartCanvas: FlamegraphCanvas;
   chartRenderer: FlamegraphChartRenderer;
@@ -28,7 +26,6 @@ export interface FlamegraphChartTooltipProps {
 }
 
 export function FlamegraphChartTooltip({
-  canvasBounds,
   configSpaceCursor,
   chartCanvas,
   chart,
@@ -44,12 +41,7 @@ export function FlamegraphChartTooltip({
   }, [chartRenderer, configSpaceCursor, configViewUnit]);
 
   return series.length > 0 ? (
-    <BoundTooltip
-      cursor={configSpaceCursor}
-      canvas={chartCanvas}
-      canvasBounds={canvasBounds}
-      canvasView={chartView}
-    >
+    <BoundTooltip cursor={configSpaceCursor} canvas={chartCanvas} canvasView={chartView}>
       {series.map((p, i) => {
         return (
           <React.Fragment key={i}>

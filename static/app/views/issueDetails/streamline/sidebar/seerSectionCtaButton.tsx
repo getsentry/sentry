@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useOpenSolutionsDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 interface Props {
   aiConfig: {
@@ -33,7 +33,7 @@ interface Props {
   project: Project;
 }
 
-export function SolutionsSectionCtaButton({
+export function SeerSectionCtaButton({
   aiConfig,
   event,
   group,
@@ -43,17 +43,9 @@ export function SolutionsSectionCtaButton({
   const openButtonRef = useRef<HTMLButtonElement>(null);
 
   const {isPending: isAutofixPending} = useAutofixData({groupId: group.id});
-  const {autofixData} = useAiAutofix(group, event, {
-    isSidebar: true,
-    pollInterval: 1500,
-  });
+  const {autofixData} = useAiAutofix(group, event, {isSidebar: true, pollInterval: 1500});
 
-  const openSolutionsDrawer = useOpenSolutionsDrawer(
-    group,
-    project,
-    event,
-    openButtonRef
-  );
+  const openSeerDrawer = useOpenSeerDrawer(group, project, event, openButtonRef);
   const isDrawerOpenRef = useRef(false);
 
   // Keep track of previous steps to detect state transitions and notify the user
@@ -113,7 +105,7 @@ export function SolutionsSectionCtaButton({
   // Update drawer state when opening
   const handleOpenDrawer = () => {
     isDrawerOpenRef.current = true;
-    openSolutionsDrawer();
+    openSeerDrawer();
   };
 
   // Listen for drawer close events
@@ -200,11 +192,9 @@ export function SolutionsSectionCtaButton({
     <StyledButton
       ref={openButtonRef}
       onClick={handleOpenDrawer}
-      analyticsEventKey="issue_details.solutions_hub_opened"
-      analyticsEventName="Issue Details: Solutions Hub Opened"
-      analyticsParams={{
-        has_streamlined_ui: hasStreamlinedUI,
-      }}
+      analyticsEventKey="issue_details.seer_opened"
+      analyticsEventName="Issue Details: Seer Opened"
+      analyticsParams={{has_streamlined_ui: hasStreamlinedUI}}
     >
       {getButtonText()}
       <ChevronContainer>

@@ -88,6 +88,7 @@ class OrganizationSerializerTest(TestCase):
             "invite-members",
             "minute-resolution-sessions",
             "new-page-filter",
+            "onboarding-load-docs-on-platform-click-and-silent-delete-on-back",
             "open-membership",
             "performance-tracing-without-performance",
             "relay",

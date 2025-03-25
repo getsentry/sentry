@@ -20,16 +20,16 @@ import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfi
 import Resources from 'sentry/views/issueDetails/streamline/sidebar/resources';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
-import {SolutionsSectionCtaButton} from './solutionsSectionCtaButton';
+import {SeerSectionCtaButton} from './seerSectionCtaButton';
 
-function SolutionsHubFeedbackButton({hidden}: {hidden: boolean}) {
+function SeerFeedbackButton({hidden}: {hidden: boolean}) {
   const openFeedbackForm = useFeedbackForm();
   if (hidden) {
     return null;
   }
   return (
     <Button
-      aria-label={t('Give feedback on the solutions hub')}
+      aria-label={t('Give feedback on Seer')}
       icon={<IconMegaphone />}
       size="xs"
       onClick={() =>
@@ -45,7 +45,7 @@ function SolutionsHubFeedbackButton({hidden}: {hidden: boolean}) {
   );
 }
 
-function SolutionsSectionContent({
+function SeerSectionContent({
   group,
   project,
   event,
@@ -54,7 +54,7 @@ function SolutionsSectionContent({
   group: Group;
   project: Project;
 }) {
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
 
   if (!event) {
     return <Placeholder height="160px" />;
@@ -84,7 +84,7 @@ function SolutionsSectionContent({
   return null;
 }
 
-export default function SolutionsSection({
+export default function SeerSection({
   group,
   project,
   event,
@@ -97,7 +97,7 @@ export default function SolutionsSection({
   // We don't use this on the streamlined UI, since the section folds.
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
   const issueTypeConfig = getConfigForIssueType(group, project);
   const showCtaButton =
     aiConfig.needsGenAIConsent ||
@@ -106,16 +106,14 @@ export default function SolutionsSection({
 
   const titleComponent = (
     <HeaderContainer>
-      {t('Solutions Hub')}
+      {t('Seer')}
       {aiConfig.hasSummary && (
         <StyledFeatureBadge
           type="beta"
           tooltipProps={{
             title: tct(
               'This feature is in beta. Try it out and let us know your feedback at [email:autofix@sentry.io].',
-              {
-                email: <a href="mailto:autofix@sentry.io" />,
-              }
+              {email: <a href="mailto:autofix@sentry.io" />}
             ),
           }}
         />
@@ -126,17 +124,17 @@ export default function SolutionsSection({
   return (
     <SidebarFoldSection
       title={titleComponent}
-      sectionKey={SectionKey.SOLUTIONS_HUB}
-      actions={<SolutionsHubFeedbackButton hidden={!aiConfig.hasSummary} />}
+      sectionKey={SectionKey.SEER}
+      actions={<SeerFeedbackButton hidden={!aiConfig.hasSummary} />}
       preventCollapse={!hasStreamlinedUI}
     >
-      <SolutionsSectionContainer>
+      <SeerSectionContainer>
         {aiConfig.needsGenAIConsent ? (
           <Summary>
             {t('Explore potential root causes and solutions with Autofix.')}
           </Summary>
         ) : aiConfig.hasAutofix || aiConfig.hasSummary ? (
-          <SolutionsSectionContent group={group} project={project} event={event} />
+          <SeerSectionContent group={group} project={project} event={event} />
         ) : issueTypeConfig.resources ? (
           <ResourcesWrapper isExpanded={hasStreamlinedUI ? true : isExpanded}>
             <ResourcesContent isExpanded={hasStreamlinedUI ? true : isExpanded}>
@@ -154,7 +152,7 @@ export default function SolutionsSection({
           </ResourcesWrapper>
         ) : null}
         {event && showCtaButton && (
-          <SolutionsSectionCtaButton
+          <SeerSectionCtaButton
             aiConfig={aiConfig}
             event={event}
             group={group}
@@ -162,12 +160,12 @@ export default function SolutionsSection({
             hasStreamlinedUI={hasStreamlinedUI}
           />
         )}
-      </SolutionsSectionContainer>
+      </SeerSectionContainer>
     </SidebarFoldSection>
   );
 }
 
-const SolutionsSectionContainer = styled('div')`
+const SeerSectionContainer = styled('div')`
   display: flex;
   flex-direction: column;
 `;

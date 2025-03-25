@@ -2536,6 +2536,83 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     features: AM1_BUSINESS_FEATURES,
   },
+  am1_business_ent: {
+    id: 'am1_business_ent',
+    name: 'Enterprise (Business)',
+    description: '',
+    price: 0,
+    basePrice: 0,
+    totalPrice: 0,
+    trialPlan: 'am1_business',
+    isTestPlan: false,
+    maxMembers: null,
+    retentionDays: 90,
+    userSelectable: false,
+    features: AM1_BUSINESS_FEATURES,
+    billingInterval: MONTHLY,
+    contractInterval: MONTHLY,
+    onDemandEventPrice: 0,
+    allowOnDemand: true,
+    reservedMinimum: 0,
+    allowAdditionalReservedEvents: true,
+    categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
+    categories: AM1_CATEGORIES,
+    checkoutCategories: AM1_CATEGORIES,
+    availableCategories: AM1_CATEGORIES,
+    onDemandCategories: AM1_CATEGORIES,
+    hasOnDemandModes: false,
+    planCategories: {
+      errors: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      transactions: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      replays: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      attachments: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      monitorSeats: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      uptime: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+    },
+  },
 };
 
 export default AM1_PLANS;

@@ -24,6 +24,53 @@ class NotificationHandlerException(Exception):
     pass
 
 
+MESSAGING_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a Messaging Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": ["string"]},
+        "target_display": {"type": ["string"]},
+        "target_type": {
+            "type": ["integer"],
+            "enum": [*ActionTarget],
+        },
+    },
+    "required": ["target_identifier", "target_display", "target_type"],
+    "additionalProperties": False,
+}
+
+# Main difference between the discord and slack action config schemas is that
+# the target_display is null
+DISCORD_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a Discord Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": "string"},
+        "target_display": {
+            "type": ["null"],
+        },
+        "target_type": {
+            "type": ["integer"],
+            "enum": [*ActionTarget],
+        },
+    },
+    "required": ["target_identifier", "target_type"],
+    "additionalProperties": False,
+}
+
+TAGS_SCHEMA = {
+    "type": "string",
+    "description": "Tags to add to the message",
+}
+
+NOTES_SCHEMA = {
+    "type": "string",
+    "description": "Notes to add to the message",
+}
+
+
 class LegacyRegistryInvoker(ABC):
     """
     Abstract base class that defines the interface for notification handlers.
@@ -55,17 +102,20 @@ def execute_via_group_type_registry(
         )
 
 
-def execute_via_metric_alert_handler(
+def execute_via_issue_alert_handler(
     job: WorkflowEventData, action: Action, detector: Detector
 ) -> None:
-    # TODO(iamrajjoshi): Implement this, it should be used for the ticketing actions
-    pass
+    """
+    This exists so that all ticketing actions can use the same handler as issue alerts since that's the only way we can
+    ensure that the same thread is used for the notification action.
+    """
+    IssueAlertRegistryInvoker.handle_workflow_action(job, action, detector)
 
 
 class NotificationActionHandler(ActionHandler, ABC):
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for a Notification Action",
+        "description": "The configuration schema for Notification Actions",
         "type": "object",
         "properties": {
             "target_identifier": {
@@ -92,18 +142,102 @@ class NotificationActionHandler(ActionHandler, ABC):
         execute_via_group_type_registry(job, action, detector)
 
 
+class TicketingActionHandler(ActionHandler, ABC):
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "The configuration schema for a Ticketing Action",
+        "type": "object",
+        "properties": {
+            "target_identifier": {
+                "type": ["null"],
+            },
+            "target_display": {
+                "type": ["null"],
+            },
+            "target_type": {
+                "type": ["integer"],
+                "enum": [*ActionTarget],
+            },
+        },
+    }
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for ticket creation action data blob",
+        "properties": {
+            "dynamic_form_fields": {
+                "type": "array",
+                "description": "Dynamic form fields from customer configuration",
+                "items": {"type": "object"},
+                "default": [],
+            },
+            "additional_fields": {
+                "type": "object",
+                "description": "Additional fields that aren't part of standard fields",
+                "additionalProperties": True,
+                "default": {},
+            },
+        },
+        "additionalProperties": False,
+    }
+
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_issue_alert_handler(job, action, detector)
+
+
 @action_handler_registry.register(Action.Type.DISCORD)
 class DiscordActionHandler(NotificationActionHandler):
     group = NotificationActionHandler.Group.NOTIFICATION
 
+    config_schema = DISCORD_ACTION_CONFIG_SCHEMA
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for Discord action data blob",
+        "properties": {
+            "tags": TAGS_SCHEMA,
+        },
+        "additionalProperties": False,
+    }
+
 
 @action_handler_registry.register(Action.Type.SLACK)
 class SlackActionHandler(NotificationActionHandler):
+    config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for Slack action data blob",
+        "properties": {
+            "tags": TAGS_SCHEMA,
+            "notes": NOTES_SCHEMA,
+        },
+        "additionalProperties": False,
+    }
+
     group = ActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.MSTEAMS)
 class MsteamsActionHandler(NotificationActionHandler):
+    config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
+
+    data_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "description": "Schema for MSTeams action data blob",
+        "properties": {},
+        "additionalProperties": False,
+    }
+
     group = ActionHandler.Group.NOTIFICATION
 
 
@@ -133,27 +267,27 @@ class PluginActionHandler(NotificationActionHandler):
 
 
 @action_handler_registry.register(Action.Type.GITHUB)
-class GithubActionHandler(NotificationActionHandler):
+class GithubActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
-class GithubEnterpriseActionHandler(NotificationActionHandler):
+class GithubEnterpriseActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.JIRA)
-class JiraActionHandler(NotificationActionHandler):
+class JiraActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.JIRA_SERVER)
-class JiraServerActionHandler(NotificationActionHandler):
+class JiraServerActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
 @action_handler_registry.register(Action.Type.AZURE_DEVOPS)
-class AzureDevopsActionHandler(NotificationActionHandler):
+class AzureDevopsActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
 
 
