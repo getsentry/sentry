@@ -40,7 +40,7 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         )
         assert batch_query == {self.event3.group_id: 1}
 
-    def test_batch_query__tag_conditions(self):
+    def test_batch_query__tag_conditions__equal(self):
         batch_query = self.handler().batch_query(
             group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
             start=self.start,
@@ -54,6 +54,77 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             self.perf_event.group_id: 0,
         }
 
+    def test_batch_query__tag_conditions__not_equal(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "region", "match": "ne", "value": "EU"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 1,
+        }
+
+    def test_batch_query__tag_conditions__starts_with(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "region", "match": "sw", "value": "U"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }
+
+    def test_batch_query__tag_conditions__not_starts_with(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "region", "match": "nsw", "value": "E"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 1,
+        }
+
+    def test_batch_query__tag_conditions__ends_with(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "region", "match": "ew", "value": "S"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }
+
+    def test_batch_query__tag_conditions__not_ends_with(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "region", "match": "new", "value": "U"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 1,
+        }
+
+    def test_batch_query__tag_conditions__contains(self):
         batch_query = self.handler().batch_query(
             group_ids={self.event3.group_id},
             start=self.start,
@@ -62,6 +133,82 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             filters=[{"key": "biz", "match": "co", "value": "b"}],
         )
         assert batch_query == {self.event3.group_id: 1}
+
+    def test_batch_query__tag_conditions__not_contains(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event3.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment2.id,
+            filters=[{"key": "biz", "match": "nc", "value": "b"}],
+        )
+        assert batch_query == {self.event3.group_id: 0}
+
+    def test_batch_query__tag_conditions__is_set(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "foo", "match": "is"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 1,
+            self.perf_event.group_id: 1,
+        }
+
+    def test_batch_query__tag_conditions__is_not_set(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "foo", "match": "ns"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 0,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 0,
+        }
+
+    def test_batch_query__tag_conditions__is_in(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "region", "match": "in", "value": "US,EU"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 1,
+            self.event2.group_id: 1,
+            self.perf_event.group_id: 0,
+        }
+
+    def test_batch_query__tag_conditions__is_not_in(self):
+        batch_query = self.handler().batch_query(
+            group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+            filters=[{"key": "region", "match": "nin", "value": "US,EU"}],
+        )
+        assert batch_query == {
+            self.event.group_id: 0,
+            self.event2.group_id: 0,
+            self.perf_event.group_id: 1,
+        }
+
+    def test_batch_query__tag_conditions__invalid(self):
+        with pytest.raises(ValueError):
+            self.handler().batch_query(
+                group_ids={self.event.group_id, self.event2.group_id, self.perf_event.group_id},
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+                filters=[{"key": "region", "match": "asdf", "value": "U"}],
+            )
 
     def test_batch_query__attribute_conditions(self):
         batch_query = self.handler().batch_query(
@@ -193,7 +340,7 @@ class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
             start=self.start,
             end=self.end,
             environment_id=self.environment.id,
-            filters=[{"attribute": "error.handled", "match": "eq", "value": True}],
+            filters=[{"attribute": "error.unhandled", "match": "eq", "value": False}],
         )
         assert batch_query == {
             self.event.group_id: 1,
