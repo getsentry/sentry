@@ -2,6 +2,18 @@ import type {Actor} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
+type Query = {
+  fields: string[];
+  groupby: string[];
+  mode: string;
+  orderby: string;
+  query: string;
+  visualize: Array<{
+    chartType: number;
+    yAxes: string[];
+  }>;
+};
+
 // Comes from ExploreSavedQueryModelSerializer
 export type SavedQuery = {
   createdBy: Actor;
@@ -14,17 +26,7 @@ export type SavedQuery = {
   lastVisited: string;
   name: string;
   projects: number[];
-  query: Array<{
-    fields: string[];
-    groupby: string[];
-    mode: string;
-    orderby: string;
-    query: string;
-    visualize: Array<{
-      chartType: number;
-      yAxes: string[];
-    }>;
-  }>;
+  query: [Query, ...Query[]];
   queryDataset: string;
   range: string;
   start: string;

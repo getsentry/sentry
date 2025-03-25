@@ -53,10 +53,6 @@ export function SavedQueriesTable({mode, perPage}: Props) {
   const {deleteQuery} = useDeleteQuery();
   const renderBodyCell = (col: Column, row: SavedQuery) => {
     const query = row.query[0];
-    // This shouldn't happen, but adding this to enforce type safety
-    if (query === undefined) {
-      return null;
-    }
     if (col.key === 'name') {
       return (
         <NoOverflow>
