@@ -9,10 +9,12 @@ from pydantic import BaseModel
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.project import Project
 from sentry.seer.models import SeerRepoDefinition
 from sentry.seer.signed_seer_api import sign_with_seer_secret
@@ -29,6 +31,7 @@ class SeerProjectPreference(BaseModel):
 
 class PreferenceResponse(BaseModel):
     preference: SeerProjectPreference | None
+    code_mapping_repos: list[SeerRepoDefinition]
 
 
 @region_silo_endpoint
@@ -48,6 +51,9 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     }
 
     def post(self, request: Request, project: Project) -> Response:
+        if not features.has("organizations:autofix-seer-preferences", project.organization):
+            return Response(status=403, body="Feature flag not enabled")
+
         data = orjson.loads(request.body)
 
         path = "/v1/project-preference/set"
@@ -74,9 +80,7 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
         response.raise_for_status()
 
-        result = response.json()
-
-        return Response(PreferenceResponse.validate(result).dict())
+        return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
         path = "/v1/project-preference"
@@ -99,4 +103,13 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
 
         result = response.json()
 
-        return Response(PreferenceResponse.validate(result).dict())
+        code_mapping_repos = get_autofix_repos_from_project_code_mappings(project)
+
+        return Response(
+            PreferenceResponse.validate(
+                {
+                    **result,
+                    "code_mapping_repos": code_mapping_repos,
+                }
+            ).dict()
+        )
