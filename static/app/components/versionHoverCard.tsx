@@ -113,7 +113,9 @@ function VersionHoverCard({
           <Flex gap={space(2)} justify="space-between">
             <div>
               <h6>{t('New Issues')}</h6>
-              <CountSince>{release.newGroups}</CountSince>
+              <CountSince>
+                {release.projects.reduce((acc, proj) => acc + proj.newGroups, 0)}
+              </CountSince>
             </div>
             <div>
               <h6 style={{textAlign: 'right'}}>{t('Date Created')}</h6>

@@ -22,7 +22,6 @@ const mockedReleaseWithHealth = ReleaseFixture({
   status: ReleaseStatus.ACTIVE,
   commitCount: 4,
   lastCommit: mockedCommit,
-  newGroups: 21,
   authors: [mockedUser1, mockedUser2],
 });
 

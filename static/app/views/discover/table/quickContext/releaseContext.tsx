@@ -166,7 +166,9 @@ function ReleaseContext(props: BaseContextProps) {
             <ContextHeader>
               <ContextTitle>{t('New Issues')}</ContextTitle>
             </ContextHeader>
-            <ContextBody>{data.newGroups}</ContextBody>
+            <ContextBody>
+              {data.projects.reduce((acc, proj) => acc + proj.newGroups, 0)}
+            </ContextBody>
           </div>
         </ContextRow>
       </ReleaseContextContainer>

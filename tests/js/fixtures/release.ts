@@ -9,7 +9,6 @@ export function ReleaseFixture(
   healthParams?: Health
 ): ReleaseWithHealth {
   return {
-    newGroups: 0,
     commitCount: 0,
     url: '',
     data: {},

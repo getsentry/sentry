@@ -92,7 +92,6 @@ interface ReleaseData {
   firstEvent: string;
   lastEvent: string;
   // TODO(ts)
-  newGroups: number;
   versionInfo: VersionInfo;
   adoptionStages?: Record<
     string,
