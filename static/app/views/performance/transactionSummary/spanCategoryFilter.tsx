@@ -10,6 +10,7 @@ import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -22,6 +23,7 @@ const LIMIT = 10;
 
 export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const {selection} = usePageFilters();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -37,6 +39,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       fields: [SpanIndexedField.SPAN_CATEGORY, 'count()'],
       search: searchQuery,
       sorts: [{field: 'count()', kind: 'desc'}],
+      pageFilters: selection,
     },
     'api.transaction-summary.span-selectedCategory-filter'
   );
@@ -47,6 +50,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
       .map(d => ({
         value: d[SpanIndexedField.SPAN_CATEGORY],
         label: d[SpanIndexedField.SPAN_CATEGORY],
+        key: d[SpanIndexedField.SPAN_CATEGORY],
         leadingItems: (
           <OperationDot
             backgroundColor={pickBarColor(d[SpanIndexedField.SPAN_CATEGORY])}
