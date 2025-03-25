@@ -61,7 +61,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
             <CrumbLink to={recreateRoute(route, {routes, params})}>
               {pathTitle || route.name}
             </CrumbLink>
-            <Divider isLast={isLast} />
+            {isLast ? null : <Divider />}
           </Crumb>
         );
       })}
