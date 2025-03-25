@@ -23,7 +23,6 @@ const replayConfig: IssueCategoryConfigMapping = {
       resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
-    defaultTimePeriod: {sinceFirstSeen: false},
     pages: {
       landingPage: Tab.DETAILS,
       events: {enabled: true},
