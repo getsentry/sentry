@@ -248,6 +248,7 @@
     "fix:prettier": "prettier \"**/*.md\" \"**/*.yaml\" \"**/*.[jt]s(x)?\" --write --log-level=error",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
     "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 webpack serve",
+    "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 yarn dev-ui",
     "dev-ui-storybook": "STORYBOOK_TYPES=1 yarn dev-ui",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development webpack --watch",
     "webpack-profile": "NO_TS_FORK=1 webpack --profile --json > stats.json",

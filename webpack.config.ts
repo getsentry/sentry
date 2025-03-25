@@ -44,7 +44,10 @@ const IS_CI = !!env.CI;
 // `CI` env var set.
 const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
+
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
+const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
+
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION
   ? 'production'
@@ -765,6 +768,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
    * is deployed.
    */
   const HtmlWebpackPlugin = require('html-webpack-plugin');
+
   appConfig.plugins?.push(
     new HtmlWebpackPlugin({
       // Local dev vs vercel slightly differs...
@@ -774,7 +778,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: ['pipeline', 'gsAdmin'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,
