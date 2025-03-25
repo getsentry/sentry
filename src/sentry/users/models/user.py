@@ -96,6 +96,8 @@ class User(Model, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
     __relocation_custom_ordinal__ = ["username"]
 
+    backend: str  # abstract -- from `django.contrib.auth`
+
     replication_version: int = 2
 
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
