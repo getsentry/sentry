@@ -488,8 +488,7 @@ export function SourceMapsDebuggerModal({
         {isReactNativeSDK({
           sdkName: sourceResolutionResults.sdkName,
         }) ? (
-          <Fragment>
-            <WizardInstructionParagraph>
+         <WizardInstructionParagraph>
               {tct(
                 "For React Native projects, source maps should be generated and uploaded automatically during the build process. If your source maps aren't showing up, consult our [link:React Native source maps documentation].",
                 {
@@ -499,7 +498,6 @@ export function SourceMapsDebuggerModal({
                 }
               )}
             </WizardInstructionParagraph>
-          </Fragment>
         ) : metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
           <MetaFrameworkConfigInfo
             framework={platform}
