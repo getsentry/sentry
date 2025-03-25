@@ -203,8 +203,11 @@ export function ExploreCharts({
                   isProgressivelyLoading ? (
                     <Tooltip
                       title={t('This widget is currently loading higher fidelity data.')}
+                      key="progressive-loading-indicator"
                     >
-                      <ProgressiveLoadingIndicator relative hideMessage size={16} />
+                      <div data-test-id="progressive-loading-indicator">
+                        <ProgressiveLoadingIndicator relative hideMessage size={16} />
+                      </div>
                     </Tooltip>
                   ) : null,
                 ]}
@@ -255,8 +258,11 @@ export function ExploreCharts({
                 isProgressivelyLoading ? (
                   <Tooltip
                     title={t('This widget is currently loading higher fidelity data.')}
+                    key="progressive-loading-indicator"
                   >
-                    <ProgressiveLoadingIndicator relative hideMessage size={16} />
+                    <div data-test-id="progressive-loading-indicator">
+                      <ProgressiveLoadingIndicator relative hideMessage size={16} />
+                    </div>
                   </Tooltip>
                 ) : null,
               ]}
