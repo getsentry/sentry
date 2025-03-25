@@ -6,9 +6,13 @@ export default function useProjectHasSessions() {
   const {projects: allProjects} = useProjects();
 
   const projectIds = selection.projects;
-  const projects = projectIds.map(projectId => {
-    return allProjects.find(p => p.id === projectId.toString());
-  });
+
+  const projects = projectIds.length
+    ? projectIds.map(projectId => {
+        return allProjects.find(p => p.id === projectId.toString());
+      })
+    : allProjects;
+
   const hasSessionData = projects.some(p => p?.hasSessions);
 
   return hasSessionData;
