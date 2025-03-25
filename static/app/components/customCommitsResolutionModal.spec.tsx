@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {CommitFixture} from 'sentry-fixture/commit';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
 
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
@@ -37,7 +36,8 @@ describe('CustomCommitsResolutionModal', function () {
       expect(commitsMock).toHaveBeenCalled();
     });
 
-    await selectEvent.select(screen.getByText('e.g. d86b832'), 'f7f395d14b2f');
+    await userEvent.click(await screen.findByRole('button', {name: 'Select Commit'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'f7f395d14b2f'}));
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
     expect(onSelected).toHaveBeenCalledWith(
