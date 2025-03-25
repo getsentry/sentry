@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
@@ -31,17 +31,14 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const searchQuery = useMemo(() => {
-    const query = new MutableSearch('');
-    query.addFilterValue('transaction', serviceEntrySpanName);
-    return query;
-  }, [serviceEntrySpanName]);
+  const query = new MutableSearch('');
+  query.addFilterValue('transaction', serviceEntrySpanName);
 
   const {data, isError} = useEAPSpans(
     {
       limit: LIMIT,
       fields: [SpanIndexedField.SPAN_CATEGORY, 'count()'],
-      search: searchQuery,
+      search: query,
       sorts: [{field: 'count()', kind: 'desc'}],
       pageFilters: selection,
     },
