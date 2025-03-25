@@ -40,11 +40,7 @@ export type InsightEventParameters = {
   'insight.vital.overview.toggle_tab': {tab: string};
   'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
-  'insights.page_loads.overview': {
-    domain: DomainView | undefined;
-    hasAllProjectsSelected: boolean;
-    platforms: string[];
-  };
+  'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
 };
 
 export type InsightEventKey = keyof InsightEventParameters;

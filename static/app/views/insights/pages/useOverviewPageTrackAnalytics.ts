@@ -21,7 +21,6 @@ export function useOverviewPageTrackPageload() {
   const selectedProjects = eventView
     .getFullSelectedProjects(allProjects)
     .filter(p => p !== undefined);
-  const hasAllProjectsSelected = pageFilters.selection.projects.length === 0;
 
   // Stringifying this is just to avoid missing dependencies in the useEffect,
   // Any performance implications are negligible for such a small array
@@ -37,7 +36,6 @@ export function useOverviewPageTrackPageload() {
       trackAnalytics(`insights.page_loads.overview`, {
         organization,
         platforms: selectedPlatforms,
-        hasAllProjectsSelected,
         domain: view,
       });
     }
@@ -46,7 +44,6 @@ export function useOverviewPageTrackPageload() {
     pageFilters.isReady,
     projects.initiallyLoaded,
     selectedPlatformsString,
-    hasAllProjectsSelected,
     view,
   ]);
 }
