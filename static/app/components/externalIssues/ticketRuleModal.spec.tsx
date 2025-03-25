@@ -1,13 +1,17 @@
-import type {PropsWithChildren, ReactElement} from 'react';
-import styled from '@emotion/styled';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
-import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from 'sentry/components/globalModal/components';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import type {IssueConfigField} from 'sentry/types/integrations';
 
@@ -15,65 +19,62 @@ jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/actionCreators/onboardingTasks');
 
+const defaultIssueConfig = [
+  {
+    name: 'project',
+    label: 'Jira Project',
+    choices: [['10000', 'TEST']],
+    default: '10000',
+    type: 'select',
+    updatesForm: true,
+  },
+  {
+    name: 'issuetype',
+    label: 'Issue Type',
+    default: '10001',
+    type: 'select',
+    choices: [
+      ['10001', 'Improvement'],
+      ['10002', 'Task'],
+      ['10003', 'Sub-task'],
+      ['10004', 'New Feature'],
+      ['10005', 'Bug'],
+      ['10000', 'Epic'],
+    ],
+    updatesForm: true,
+    required: true,
+  },
+];
+
 describe('ProjectAlerts -> TicketRuleModal', function () {
+  const organization = OrganizationFixture();
+  const router = RouterFixture();
+  const onSubmitAction = jest.fn();
   const closeModal = jest.fn();
-  const modalElements = {
-    Header: (p: PropsWithChildren) => p.children as ReactElement,
-    Body: (p: PropsWithChildren) => p.children,
-    Footer: (p: PropsWithChildren) => p.children,
-  };
 
   afterEach(function () {
     closeModal.mockReset();
     MockApiClient.clearMockResponses();
   });
 
-  const doSubmit = async () =>
-    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
-
   const submitSuccess = async () => {
-    await doSubmit();
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
     expect(addSuccessMessage).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
   };
 
   const addMockConfigsAPICall = (otherField = {}) => {
     return MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/1/?ignored=Sprint',
+      url: '/organizations/org-slug/integrations/1/',
+      match: [MockApiClient.matchQuery({action: 'create', ignored: ['Sprint']})],
       method: 'GET',
       body: {
-        createIssueConfig: [
-          {
-            name: 'project',
-            label: 'Jira Project',
-            choices: [['10000', 'TEST']],
-            default: '10000',
-            type: 'select',
-            updatesForm: true,
-          },
-          {
-            name: 'issuetype',
-            label: 'Issue Type',
-            default: '10001',
-            type: 'select',
-            choices: [
-              ['10001', 'Improvement'],
-              ['10002', 'Task'],
-              ['10003', 'Sub-task'],
-              ['10004', 'New Feature'],
-              ['10005', 'Bug'],
-              ['10000', 'Epic'],
-            ],
-            updatesForm: true,
-            required: true,
-          },
-          otherField,
-        ],
+        createIssueConfig: [...defaultIssueConfig, otherField],
       },
     });
   };
 
-  const renderComponent = (
+  const renderTicketRuleModal = async (
     props: Partial<IssueAlertRuleAction> = {},
     otherField: IssueConfigField = {
       label: 'Reporter',
@@ -83,32 +84,29 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       name: 'reporter',
     }
   ) => {
-    const {organization, router} = initializeOrg();
     addMockConfigsAPICall(otherField);
 
-    const body = styled((c: PropsWithChildren) => c.children);
-    return render(
+    const wrapper = render(
       <TicketRuleModal
-        {...modalElements}
-        CloseButton={makeCloseButton(() => {})}
+        Body={ModalBody}
+        Header={makeClosableHeader(closeModal)}
+        Footer={ModalFooter}
+        CloseButton={makeCloseButton(closeModal)}
         closeModal={closeModal}
-        Body={body()}
-        Footer={body()}
-        formFields={{}}
         link=""
         ticketType=""
         instance={{...props.data, integration: 1}}
-        index={0}
-        onSubmitAction={() => {}}
-        organization={organization}
+        onSubmitAction={onSubmitAction}
       />,
-      {router}
+      {router, organization}
     );
+    expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+    return wrapper;
   };
 
   describe('Create Rule', function () {
-    it('should render the Ticket Rule modal', function () {
-      renderComponent();
+    it('should render the Ticket Rule modal', async function () {
+      await renderTicketRuleModal();
 
       expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Title'})).toBeInTheDocument();
@@ -116,14 +114,14 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     });
 
     it('should save the modal data when "Apply Changes" is clicked with valid data', async function () {
-      renderComponent();
+      await renderTicketRuleModal();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
       await submitSuccess();
     });
 
     it('submit button shall be disabled if form is incomplete', async function () {
-      // This doesn't test anything TicketRules specific but I'm leaving it here as an example.
-      renderComponent();
+      await renderTicketRuleModal();
+      await userEvent.click(screen.getByRole('textbox', {name: 'Reporter'}));
       expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeDisabled();
       await userEvent.hover(screen.getByRole('button', {name: 'Apply Changes'}));
       expect(
@@ -132,49 +130,83 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     });
 
     it('should reload fields when an "updatesForm" field changes', async function () {
-      renderComponent();
+      await renderTicketRuleModal();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
 
-      addMockConfigsAPICall({
-        label: 'Assignee',
-        required: true,
-        choices: [['b', 'b']],
-        type: 'select',
-        name: 'assignee',
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Assignee',
+              required: true,
+              choices: [['b', 'b']],
+              type: 'select',
+              name: 'assignee',
+            },
+          ],
+        },
       });
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      expect(dynamicQuery).toHaveBeenCalled();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Assignee'}), 'b');
-
       await submitSuccess();
     });
 
     it('should ignore error checking when default is empty array', async function () {
-      renderComponent(undefined, {
-        label: 'Labels',
-        required: false,
-        choices: [['bug', `bug`]],
-        default: undefined,
-        type: 'select',
-        multiple: true,
-        name: 'labels',
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Labels',
+              required: false,
+              choices: [['bug', `bug`]],
+              default: undefined,
+              type: 'select',
+              multiple: true,
+              name: 'labels',
+            },
+          ],
+        },
       });
+
+      await renderTicketRuleModal();
       expect(
         screen.queryAllByText(`Could not fetch saved option for Labels. Please reselect.`)
       ).toHaveLength(0);
-
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      expect(dynamicQuery).toHaveBeenCalled();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'bug');
       await submitSuccess();
     });
 
     it('should persist single select values when the modal is reopened', async function () {
-      renderComponent({data: {reporter: 'a'}});
+      await renderTicketRuleModal({data: {reporter: 'a'}});
       await submitSuccess();
     });
 
     it('should persist multi select values when the modal is reopened', async function () {
-      renderComponent(
+      await renderTicketRuleModal(
         {data: {components: ['a', 'c']}},
         {
           name: 'components',
@@ -194,19 +226,36 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     });
 
     it('should not persist value when unavailable in new choices', async function () {
-      renderComponent({data: {reporter: 'a'}});
+      await renderTicketRuleModal({data: {reporter: 'a'}});
 
-      addMockConfigsAPICall({
-        label: 'Reporter',
-        required: true,
-        choices: [['b', 'b']],
-        type: 'select',
-        name: 'reporter',
-        ignorePriorChoices: true,
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Reporter',
+              required: true,
+              choices: [['b', 'b']],
+              type: 'select',
+              name: 'reporter',
+              ignorePriorChoices: true,
+            },
+          ],
+        },
       });
 
       // Switch Issue Type so we refetch the config and update Reporter choices
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      expect(dynamicQuery).toHaveBeenCalled();
       await expect(
         selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a')
       ).rejects.toThrow();
@@ -222,20 +271,37 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         type: 'string',
         name: 'textField',
       };
-      renderComponent({data: {textField: 'foo'}}, textField);
+      await renderTicketRuleModal({data: {textField: 'foo'}}, textField);
 
       expect(screen.getByRole('textbox', {name: 'Text Field'})).toHaveValue('foo');
       await submitSuccess();
     });
 
     it('should get async options from URL', async function () {
-      renderComponent();
-      addMockConfigsAPICall({
-        label: 'Assignee',
-        required: true,
-        url: 'http://example.com',
-        type: 'select',
-        name: 'assignee',
+      await renderTicketRuleModal();
+
+      const dynamicQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/1/',
+        match: [
+          MockApiClient.matchQuery({
+            action: 'create',
+            issuetype: '10001',
+            project: '10000',
+          }),
+        ],
+        method: 'GET',
+        body: {
+          createIssueConfig: [
+            ...defaultIssueConfig,
+            {
+              label: 'Assignee',
+              required: true,
+              url: 'http://example.com',
+              type: 'select',
+              name: 'assignee',
+            },
+          ],
+        },
       });
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
@@ -250,7 +316,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
           body: [{label: 'Joe', value: 'Joe'}],
         });
       }
-
+      expect(dynamicQuery).toHaveBeenCalled();
       const menu = screen.getByRole('textbox', {name: 'Assignee'});
       await selectEvent.openMenu(menu);
       await userEvent.type(menu, 'Joe{Escape}');

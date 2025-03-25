@@ -1,4 +1,4 @@
-import {type ReactElement, useCallback, useRef} from 'react';
+import {type ReactElement, useCallback, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -278,6 +278,7 @@ function ReleaseBubbleSeries({
     name: t('Releases'),
     data,
     color: theme.blue300,
+    animation: false,
     markLine: {
       silent: true,
       symbol: 'none',
@@ -362,13 +363,55 @@ export function useReleaseBubbles({
     : Date.now();
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
-  const handleChartRef = useCallback((e: ReactEchartsRef | null) => {
-    chartRef.current = e;
+  const totalBubblePaddingY = bubblePadding * 2;
+  const releaseBubbleXAxis = useMemo(
+    () => ({
+      // configure `axisLine` and `offset` to move axis line below 0 so that
+      // bubbles sit between bottom of the main chart and the axis line
+      axisLine: {onZero: false},
+      offset: bubbleSize + totalBubblePaddingY - 1,
+    }),
+    [bubbleSize, totalBubblePaddingY]
+  );
+  const releaseBubbleGrid = useMemo(
+    () => ({
+      // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
+      // drawn below grid (but above x axis label)
+      bottom: bubbleSize + totalBubblePaddingY + 1,
+    }),
+    [bubbleSize, totalBubblePaddingY]
+  );
 
-    if (e?.getEchartsInstance) {
-      createReleaseBubbleHighlighter(e.getEchartsInstance());
-    }
-  }, []);
+  const handleChartRef = useCallback(
+    (e: ReactEchartsRef | null) => {
+      chartRef.current = e;
+
+      if (e?.getEchartsInstance) {
+        const echartsInstance = e.getEchartsInstance();
+        createReleaseBubbleHighlighter(echartsInstance, {
+          onLegendChange: (selected: boolean) => {
+            // Callback for when Releases legend status changes -- we want to
+            // adjust the xAxis/grid accordingly when Releases are visible or
+            // not
+            echartsInstance.setOption({
+              xAxis: selected
+                ? releaseBubbleXAxis
+                : {
+                    axisLine: {onZero: true},
+                    offset: 0,
+                  },
+              grid: selected
+                ? releaseBubbleGrid
+                : {
+                    bottom: 0,
+                  },
+            });
+          },
+        });
+      }
+    },
+    [releaseBubbleXAxis, releaseBubbleGrid]
+  );
 
   const buckets =
     (hasReleaseBubbles &&
@@ -392,8 +435,6 @@ export function useReleaseBubbles({
       releaseBubbleGrid: {},
     };
   }
-
-  const totalBubblePaddingY = bubblePadding * 2;
 
   return {
     connectReleaseBubbleChartRef: handleChartRef,
@@ -426,20 +467,11 @@ export function useReleaseBubbles({
     /**
      * ECharts xAxis configuration. Spread/override charts `xAxis` prop
      */
-    releaseBubbleXAxis: {
-      // configure `axisLine` and `offset` to move axis line below 0 so that
-      // bubbles sit between bottom of the main chart and the axis line
-      axisLine: {onZero: false},
-      offset: bubbleSize + totalBubblePaddingY - 1,
-    },
+    releaseBubbleXAxis,
 
     /**
      * ECharts grid configuration. Spread/override charts `grid` prop
      */
-    releaseBubbleGrid: {
-      // Moves bottom of grid "up" `bubbleSize` pixels so that bubbles are
-      // drawn below grid (but above x axis label)
-      bottom: bubbleSize + totalBubblePaddingY + 1,
-    },
+    releaseBubbleGrid,
   };
 }

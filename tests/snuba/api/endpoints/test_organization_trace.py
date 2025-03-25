@@ -10,7 +10,11 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 
 class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
     url_name = "sentry-api-0-organization-trace"
-    FEATURES = ["organizations:trace-spans-format"]
+    FEATURES = [
+        "organizations:trace-spans-format",
+        "organizations:performance-file-io-main-thread-detector",
+        "organizations:performance-slow-db-issue",
+    ]
 
     def assert_event(self, result, event_data, message):
         assert result["transaction"] == event_data.transaction, message
@@ -137,9 +141,30 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         data = response.data
         assert len(data) == 1
         self.assert_trace_data(data[0])
-        error_event = None
         assert len(data[0]["errors"]) == 1
         error_event = data[0]["errors"][0]
         assert error_event is not None
         assert error_event["event_id"] == error.data["event_id"]
         assert error_event["project_slug"] == self.gen1_project.slug
+        assert error_event["level"] == "error"
+        assert error_event["issue_id"] == error.group_id
+
+    def test_with_performance_issues(self):
+        self.load_trace(is_eap=True)
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={},
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+        self.assert_trace_data(data[0])
+        for child in data[0]["children"]:
+            if child["event_id"] == "0012001200120012":
+                break
+        assert len(child["occurrences"]) == 1
+        error_event = child["occurrences"][0]
+        assert error_event is not None
+        assert error_event["description"] == "File IO on Main Thread"
+        assert error_event["project_slug"] == self.project.slug
+        assert error_event["level"] == "info"

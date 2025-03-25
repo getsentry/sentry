@@ -14,6 +14,21 @@ import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
 
+const multiValueSizeMapping = {
+  md: {
+    height: '20px',
+    spacing: '4px',
+  },
+  sm: {
+    height: '18px',
+    spacing: '2px',
+  },
+  xs: {
+    height: '16px',
+    spacing: '2px',
+  },
+} satisfies Record<FormSize, {height: string; spacing: string}>;
+
 export const getChonkStylesConfig = ({
   theme,
   size = 'md',
@@ -64,7 +79,7 @@ export const getChonkStylesConfig = ({
       }),
       ...omit(theme.form[size], 'height'),
       ...(state.isMulti && {
-        maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
+        maxHeight: '12em', // 10 lines (1.2em * 10) + padding
         overflow: 'hidden',
       }),
     }),
@@ -78,10 +93,13 @@ export const getChonkStylesConfig = ({
       width: 'auto',
       minWidth: '100%',
       maxWidth: maxMenuWidth ?? 'auto',
-      top: theme.form[size].height,
+      top: '100%',
       marginTop: '8px',
     }),
-
+    noOptionsMessage: provided => ({
+      ...provided,
+      color: theme.disabled,
+    }),
     menuPortal: provided => ({
       ...provided,
       maxWidth: maxMenuWidth ?? '24rem',
@@ -112,10 +130,7 @@ export const getChonkStylesConfig = ({
       paddingBottom: 0,
       paddingLeft: theme.formPadding[size].paddingLeft,
       paddingRight: theme.formSpacing[size],
-      // offset horizontal margin/padding from multiValue (space(0.25)) &
-      // multiValueLabel (space(0.75))
       ...(state.isMulti && {
-        marginLeft: `-${space(1)}`,
         maxHeight: 'inherit',
         overflowY: 'auto',
         scrollbarColor: `${theme.purple200} ${theme.background}`,
@@ -139,34 +154,41 @@ export const getChonkStylesConfig = ({
       ...provided,
       color: state.isDisabled ? theme.disabled : theme.subText,
     }),
-    multiValue: (provided, state) => ({
+    multiValue: provided => ({
       ...provided,
-      color: state.isDisabled ? theme.disabled : theme.textColor,
+      color: isDisabled ? theme.disabled : theme.textColor,
       backgroundColor: theme.background,
-      borderRadius: '2px',
+      borderRadius: '4px',
       border: `1px solid ${theme.border}`,
       display: 'flex',
-      marginLeft: space(0.25),
+      margin: 0,
+      marginTop: multiValueSizeMapping[size].spacing,
+      marginBottom: multiValueSizeMapping[size].spacing,
+      marginRight: multiValueSizeMapping[size].spacing,
     }),
     multiValueLabel: provided => ({
       ...provided,
-      color: theme.textColor,
-      padding: '0',
-      paddingLeft: space(0.75),
-      lineHeight: '1.8',
+      color: isDisabled ? theme.disabled : theme.textColor,
+      padding: multiValueSizeMapping[size].spacing,
+      paddingLeft: multiValueSizeMapping[size].spacing,
+      height: multiValueSizeMapping[size].height,
+      display: 'flex',
+      alignItems: 'center',
     }),
     multiValueRemove: () => ({
       alignItems: 'center',
-      borderLeft: `1px solid ${theme.innerBorder}`,
-      borderRadius: '0 2px 2px 0',
       display: 'flex',
       padding: '0 4px',
-      marginLeft: '4px',
 
-      '&:hover': {
-        color: theme.headingColor,
-        background: theme.backgroundTertiary,
-      },
+      ...(isDisabled
+        ? {
+            pointerEvents: 'none',
+          }
+        : {
+            '&:hover': {
+              background: theme.hover,
+            },
+          }),
     }),
     indicatorsContainer: () => ({
       display: 'grid',
@@ -242,21 +264,24 @@ export function ChonkDropdownIndicator(
 export const ChonkCheckWrap = chonkStyled('div')<{
   isMultiple: boolean;
   isSelected: boolean;
+  size: FormSize;
 }>`
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 1em;
+  height: 1.2em;
 
   ${p =>
     p.isMultiple
       ? `
-      width: 1em;
-      height: 1em;
       padding: 1px;
       border: solid 1px ${p.theme.border};
       background: ${p.theme.backgroundElevated};
       border-radius: 2px;
       box-shadow: inset ${p.theme.dropShadowMedium};
+      height: 1em;
+      margin-top: 2px;
       ${
         p.isSelected &&
         `
@@ -266,9 +291,6 @@ export const ChonkCheckWrap = chonkStyled('div')<{
       }
     `
       : `
-      width: 1em;
-      height: 1.4em;
-      padding-bottom: 1px;
       ${
         p.isSelected &&
         `

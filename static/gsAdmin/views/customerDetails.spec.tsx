@@ -613,6 +613,11 @@ function renderMocks(
     },
   });
   MockApiClient.addMockResponse({
+    url: `/customers/${organization.slug}/billing-config/?tier=all`,
+    body: BillingConfigFixture(PlanTier.ALL),
+  });
+  // TODO(isabella): remove this once all billing config api calls are updated to use tier=all
+  MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/billing-config/?tier=mm2`,
     body: BillingConfigFixture(PlanTier.MM2),
   });
@@ -2103,7 +2108,7 @@ describe('Customer Details', function () {
       );
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
         method: 'POST',
         body: {},
       });
@@ -2112,12 +2117,11 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/test-vercel-api/`,
+          `/_admin/${organization.slug}/test-vercel-api/`,
           expect.objectContaining({
             method: 'POST',
             data: {
               extra: null,
-              organization_id: Number(subscription.id),
               vercel_endpoint: 'submit_billing_data',
             },
           })
@@ -2183,7 +2187,7 @@ describe('Customer Details', function () {
       );
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
         method: 'POST',
         body: {},
       });
@@ -2192,12 +2196,11 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/test-vercel-api/`,
+          `/_admin/${organization.slug}/test-vercel-api/`,
           expect.objectContaining({
             method: 'POST',
             data: {
               extra: 'paid',
-              organization_id: Number(subscription.id),
               vercel_endpoint: 'submit_invoice',
             },
           })
@@ -2725,13 +2728,17 @@ describe('Customer Details', function () {
       // reservedMonitorSeats
       await userEvent.click(inputs[4]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       // reservedUptime
       await userEvent.click(inputs[5]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -2864,13 +2871,17 @@ describe('Customer Details', function () {
       // reservedMonitorSeats
       await userEvent.click(inputs[4]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       // reservedUptime
       await userEvent.click(inputs[6]!);
       await userEvent.click(
-        screen.getAllByText('1').filter(e => e.id.includes('menuitem-label'))[0]!
+        screen
+          .getAllByText('1')
+          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));

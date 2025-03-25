@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -20,6 +21,7 @@ import {
 import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
 import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
+import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
 import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
 import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
@@ -27,6 +29,7 @@ import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessio
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -90,6 +93,8 @@ function ViewSpecificCharts({
   setFilters: (filter: string[]) => void;
   view: DomainView | '';
 }) {
+  const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
+
   switch (view) {
     case FRONTEND_LANDING_SUB_PATH:
       return (
@@ -114,11 +119,20 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
+          {/* only show this chart if the project has user feedback set up */}
+          {hasSetupOneFeedback && (
+            <Fragment>
+              <ModuleLayout.Third>
+                <NewAndResolvedIssueChart type="feedback" />
+              </ModuleLayout.Third>
+            </Fragment>
+          )}
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="feedback" />
+            <GiveFeedbackSection />
           </ModuleLayout.Third>
         </Fragment>
       );
+
     case MOBILE_LANDING_SUB_PATH:
       return (
         <Fragment>
@@ -128,7 +142,9 @@ function ViewSpecificCharts({
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New issues per release</ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <ReleaseNewIssuesChart />
+          </ModuleLayout.Third>
 
           <ModuleLayout.Third>
             <ReleaseSessionCountChart />
@@ -150,8 +166,16 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
+          {/* only show this chart if the project has user feedback set up */}
+          {hasSetupOneFeedback && (
+            <Fragment>
+              <ModuleLayout.Third>
+                <NewAndResolvedIssueChart type="feedback" />
+              </ModuleLayout.Third>
+            </Fragment>
+          )}
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="feedback" />
+            <GiveFeedbackSection />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
@@ -169,10 +193,7 @@ function ViewSpecificCharts({
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="http"
-      analyticEventName="insight.page_loads.sessions"
-    >
+    <ModulePageProviders moduleName="sessions">
       <SessionsOverview />
     </ModulePageProviders>
   );

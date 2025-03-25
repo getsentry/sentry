@@ -6,6 +6,7 @@ import responses
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
+from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
@@ -15,6 +16,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.rules import RuleFuture
 
 pytestmark = [requires_snuba]
 
@@ -35,6 +37,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
     def setUp(self):
+        self.project_rule = self.create_project_rule(name="Check #project-channel")
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration, org_integration = self.create_provider_integration_for(
                 self.organization,
@@ -66,12 +69,21 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         rule = self.get_rule(
-            data={"account": self.integration.id, "service": str(self.service["id"])}
+            data={
+                "account": self.integration.id,
+                "service": str(self.service["id"]),
+                "name": "Test Alert",
+            }
         )
 
         notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
 
-        results = list(rule.after(event=event, notification_uuid=notification_uuid))
+        results = list(
+            rule.after(
+                event=event,
+                notification_uuid=notification_uuid,
+            )
+        )
         assert len(results) == 1
 
         responses.add(
@@ -83,11 +95,12 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        results[0].callback(event, futures=[])
+        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
-        assert data["payload"]["summary"] == event.message
+        assert data["payload"]["summary"] == f"[{self.project_rule.label}]: {event.message}"
         assert data["payload"]["custom_details"]["message"] == event.message
         assert event.group is not None
         assert data["links"][0]["href"] == event.group.get_absolute_url(
@@ -97,7 +110,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         mock_record.assert_called_with(
             "alert.sent",
             provider="pagerduty",
-            alert_id="",
+            alert_id=self.project_rule.id,
             alert_type="issue_alert",
             organization_id=self.organization.id,
             project_id=event.project_id,
@@ -111,7 +124,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             project_id=event.project_id,
             group_id=event.group_id,
             notification_uuid=notification_uuid,
-            alert_id=None,
+            alert_id=self.project_rule.id,
         )
 
     @responses.activate
@@ -130,13 +143,14 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        results[0].callback(event, futures=[])
+        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         perf_issue_title = "N+1 Query"
 
         assert data["event_action"] == "trigger"
-        assert data["payload"]["summary"] == perf_issue_title
+        assert data["payload"]["summary"] == f"[{self.project_rule.label}]: {perf_issue_title}"
         assert data["payload"]["custom_details"]["title"] == perf_issue_title
 
     @responses.activate
@@ -165,12 +179,53 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         # Trigger rule callback
-        results[0].callback(group_event, futures=[])
+        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
-        assert data["payload"]["summary"] == group_event.occurrence.issue_title
+        assert (
+            data["payload"]["summary"]
+            == f"[{self.project_rule.label}]: {group_event.occurrence.issue_title}"
+        )
         assert data["payload"]["custom_details"]["title"] == group_event.occurrence.issue_title
+
+    @responses.activate
+    def test_truncates_summary(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "ohhh noooo" * 100,
+                "timestamp": event_time.isoformat(),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        rule = self.get_rule(
+            data={
+                "account": self.integration.id,
+                "service": str(self.service["id"]),
+                "name": "Test Alert",
+            }
+        )
+
+        results = list(rule.after(event=event))
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            json={},
+            status=202,
+            content_type="application/json",
+        )
+
+        # Trigger rule callback
+        rule_future = RuleFuture(rule=self.project_rule, kwargs=results[0].kwargs)
+        results[0].callback(event, futures=[rule_future])
+        data = orjson.loads(responses.calls[0].request.body)
+
+        assert len(data["payload"]["summary"]) == PAGERDUTY_SUMMARY_MAX_LENGTH
+        assert data["payload"]["summary"].endswith("...")
 
     def test_render_label_without_severity(self):
         rule_data = {

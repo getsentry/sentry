@@ -31,7 +31,7 @@ from sentry.search.eap.utils import transform_binary_formula_to_expression
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
+from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
@@ -271,6 +271,7 @@ def build_top_event_conditions(
     )
 
 
+@sentry_sdk.trace
 def run_top_events_timeseries_query(
     params: SnubaParams,
     query_string: str,
@@ -361,6 +362,7 @@ def run_top_events_timeseries_query(
     # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
     for index, row in enumerate(top_events["data"]):
         result_key = create_result_key(row, groupby_columns, {})
+        result_groupby = create_groupby_dict(row, groupby_columns, {})
         result = _process_all_timeseries(
             map_result_key_to_timeseries[result_key],
             params,
@@ -369,7 +371,9 @@ def run_top_events_timeseries_query(
         final_result[result_key] = SnubaTSResult(
             {
                 "data": result.timeseries,
+                "groupby": result_groupby,
                 "processed_timeseries": result,
+                "is_other": False,
                 "order": index,
                 "meta": final_meta,
             },
@@ -389,6 +393,8 @@ def run_top_events_timeseries_query(
                 "processed_timeseries": result,
                 "order": limit,
                 "meta": final_meta,
+                "groupby": None,
+                "is_other": True,
             },
             params.start,
             params.end,
@@ -429,6 +435,7 @@ def _process_all_timeseries(
     return result
 
 
+@sentry_sdk.trace
 def run_trace_query(
     trace_id: str,
     params: SnubaParams,
@@ -469,6 +476,7 @@ def run_trace_query(
                 "id": span_item.id,
                 "children": [],
                 "errors": [],
+                "occurrences": [],
                 "event_type": "span",
             }
             for attribute in span_item.attributes:

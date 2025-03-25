@@ -1,6 +1,14 @@
-import {type CSSProperties, useEffect, useMemo, useState} from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useResizeObserver} from '@react-aria/utils';
 import Color from 'color';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -27,8 +35,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/streamline/hooks/useEventMarkLineSeries';
-import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/useFlagSeries';
 import {
   useIssueDetailsDiscoverQuery,
   useIssueDetailsEventView,
@@ -71,14 +79,30 @@ function createSeriesAndCount(stats: EventsStats) {
 export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
-  const eventView = useIssueDetailsEventView({group});
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();
+  const [isSmallContainer, setIsSmallContainer] = useState(false);
+
+  const onResize = useCallback(() => {
+    if (!chartContainerRef.current) {
+      return;
+    }
+
+    const {width} = chartContainerRef.current.getBoundingClientRect();
+    setIsSmallContainer(width < 450);
+  }, []);
+
+  useResizeObserver({
+    ref: chartContainerRef,
+    onResize,
+  });
+  const eventView = useIssueDetailsEventView({group, isSmallContainer});
 
   const {
     data: groupStats = {},
@@ -330,7 +354,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             label={t('Users')}
           />
         </SummaryContainer>
-        <LoadingChartContainer>
+        <LoadingChartContainer ref={chartContainerRef}>
           <Placeholder height="96px" testId="event-graph-loading" />
         </LoadingChartContainer>
       </GraphWrapper>
@@ -361,7 +385,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
           count={String(userCount)}
         />
       </SummaryContainer>
-      <ChartContainer role="figure">
+      <ChartContainer role="figure" ref={chartContainerRef}>
         <BarChart
           height={100}
           series={series}
