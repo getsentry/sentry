@@ -13,6 +13,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 interface ContextDataSectionProps {
   event: Event;
+  disableCollapsePersistence?: boolean;
   group?: Group;
   project?: Project;
 }
@@ -21,6 +22,7 @@ export default function ContextDataSection({
   event,
   group,
   project,
+  disableCollapsePersistence,
 }: ContextDataSectionProps) {
   const cards = getOrderedContextItems(event).map(
     ({alias, type, value: contextValue}) => (
@@ -52,6 +54,7 @@ export default function ContextDataSection({
         }
       )}
       isHelpHoverable
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       <ErrorBoundary mini message={t('There was a problem loading event context.')}>
         <KeyValueData.Container>{cards}</KeyValueData.Container>

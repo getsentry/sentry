@@ -11,9 +11,9 @@ import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
   isDemoModeActive,
-  openDemoEmailModal,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
+import {openDemoEmailModal} from 'sentry/utils/demoMode/utils';
 
 export const DEMO_HEADER_HEIGHT_PX = 70;
 
