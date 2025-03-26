@@ -29,18 +29,22 @@ export function useSaveQuery() {
     return {
       name: title,
       dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
-      groupby: groupBys,
-      orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-      visualize,
-      fields,
-      query: query ?? '',
-      mode,
       start,
       end,
       range: period,
       interval,
       projects,
       environment: environments,
+      query: [
+        {
+          fields,
+          orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
+          groupby: groupBys.filter(groupBy => groupBy !== ''),
+          query: query ?? '',
+          visualize,
+          mode,
+        },
+      ],
     };
   }, [
     groupBys,

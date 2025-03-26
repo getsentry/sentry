@@ -9,7 +9,7 @@ import {LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import Count from 'sentry/components/count';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ErrorLevel from 'sentry/components/events/errorLevel';
+import EventMessage from 'sentry/components/events/eventMessage';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import Link from 'sentry/components/links/link';
@@ -120,25 +120,9 @@ export default function StreamlinedGroupHeader({
           </ButtonBar>
         </Flex>
         <HeaderGrid>
-          <Flex gap={space(0.75)} align="baseline">
-            <PrimaryTitle
-              title={primaryTitle}
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-            >
-              {primaryTitle}
-            </PrimaryTitle>
-            <SecondaryTitle
-              title={secondaryTitle}
-              isHoverable
-              showOnlyOnOverflow
-              delay={1000}
-              isDefault={!secondaryTitle}
-            >
-              {secondaryTitle ?? t('No error message')}
-            </SecondaryTitle>
-          </Flex>
+          <PrimaryTitle title={primaryTitle} isHoverable showOnlyOnOverflow delay={1000}>
+            {primaryTitle}
+          </PrimaryTitle>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
               <StatLink
@@ -162,14 +146,27 @@ export default function StreamlinedGroupHeader({
                 </StatLink>
               ))}
           </StatTitle>
-          <Flex gap={space(1)} align="center" justify="flex-start">
+          <EventMessage
+            data={group}
+            level={group.level}
+            message={secondaryTitle}
+            type={group.type}
+          />
+          {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
-              {issueTypeConfig.logLevel.enabled && (
-                <ErrorLevel level={group.level} size={10} />
-              )}
-              {group.isUnhandled && <UnhandledTag />}
-              {(issueTypeConfig.logLevel.enabled || group.isUnhandled) && <Divider />}
+              <StatCount value={eventCount} aria-label={t('Event count')} />
+              <GuideAnchor target="issue_header_stats">
+                <StatCount value={userCount} aria-label={t('User count')} />
+              </GuideAnchor>
             </Fragment>
+          )}
+          <Flex gap={space(1)} align="center">
+            {group.isUnhandled && (
+              <Fragment>
+                <UnhandledTag />
+                <Divider />
+              </Fragment>
+            )}
             {statusProps?.status ? (
               <Fragment>
                 <Tooltip title={statusProps?.tooltip}>
@@ -191,14 +188,6 @@ export default function StreamlinedGroupHeader({
               <ReplayBadge group={group} project={project} />
             </ErrorBoundary>
           </Flex>
-          {issueTypeConfig.eventAndUserCounts.enabled && (
-            <Fragment>
-              <StatCount value={eventCount} aria-label={t('Event count')} />
-              <GuideAnchor target="issue_header_stats">
-                <StatCount value={userCount} aria-label={t('User count')} />
-              </GuideAnchor>
-            </Fragment>
-          )}
         </HeaderGrid>
       </Header>
       <TourElement<IssueDetailsTour>
@@ -258,13 +247,6 @@ const PrimaryTitle = styled(Tooltip)`
   font-size: 20px;
   font-weight: ${p => p.theme.fontWeightBold};
   flex-shrink: 0;
-`;
-
-const SecondaryTitle = styled(Tooltip)<{isDefault: boolean}>`
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-style: ${p => (p.isDefault ? 'italic' : 'initial')};
 `;
 
 const StatTitle = styled('div')`

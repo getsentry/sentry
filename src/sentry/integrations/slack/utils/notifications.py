@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 
 import orjson
 import sentry_sdk
@@ -9,19 +11,10 @@ from slack_sdk.errors import SlackApiError, SlackRequestError
 from slack_sdk.webhook import WebhookClient
 
 from sentry import features
-from sentry.api.serializers import serialize
 from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-)
-from sentry.incidents.endpoints.serializers.incident import (
-    DetailedIncidentSerializer,
-    DetailedIncidentSerializerResponse,
-)
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -32,13 +25,20 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.repository import get_default_metric_alert_repository
+from sentry.integrations.repository import (
+    get_default_metric_alert_repository,
+    get_default_notification_action_repository,
+)
 from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessage,
     MetricAlertNotificationMessageRepository,
     NewMetricAlertNotificationMessage,
+)
+from sentry.integrations.repository.notification_action import (
+    NewNotificationActionNotificationMessage,
+    NotificationActionNotificationMessage,
+    NotificationActionNotificationMessageRepository,
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
@@ -50,11 +50,26 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
+from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.utils import metrics
+from sentry.workflow_engine.models.action import Action
 
 _logger = logging.getLogger(__name__)
+
+
+def _get_thread_config(
+    parent_notification_message: (
+        NotificationActionNotificationMessage | MetricAlertNotificationMessage | None
+    ),
+) -> tuple[bool, str | None]:
+    if parent_notification_message is None:
+        return False, None
+
+    return True, parent_notification_message.message_identifier
 
 
 def _fetch_parent_notification_message_for_incident(
@@ -91,17 +106,97 @@ def _fetch_parent_notification_message_for_incident(
     return parent_notification_message
 
 
+def _fetch_parent_notification_message_for_notification_action(
+    organization: Organization,
+    notification_context: NotificationContext,
+    group: Group,
+    open_period_start: datetime | None,
+    thread_option_default: bool,
+) -> NotificationActionNotificationMessage | None:
+    parent_notification_message = None
+
+    try:
+        action = Action.objects.get(id=notification_context.id)
+    except Action.DoesNotExist:
+        _logger.info(
+            "Action not found",
+            extra={"action_id": notification_context.id},
+        )
+        return None
+
+    with MessagingInteractionEvent(
+        interaction_type=MessagingInteractionType.GET_PARENT_NOTIFICATION,
+        spec=SlackMessagingSpec(),
+    ).capture() as lifecycle:
+        parent_notification_message = (
+            NotificationActionThreadUtils._get_notification_action_for_notification_action(
+                organization=organization,
+                lifecycle=lifecycle,
+                action=action,
+                group=group,
+                open_period_start=open_period_start,
+                thread_option_default=thread_option_default,
+            )
+        )
+
+    return parent_notification_message
+
+
+def _build_new_notification_message_payload(
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_start: datetime | None,
+    parent_notification_message: NotificationActionNotificationMessage | None,
+) -> NewNotificationActionNotificationMessage:
+    new_notification_message_object = NewNotificationActionNotificationMessage(
+        action_id=notification_context.id,
+        group_id=metric_issue_context.id,
+        open_period_start=open_period_start,
+    )
+
+    if parent_notification_message is not None:
+        # Make sure we track that this reply will be in relation to the parent row
+        new_notification_message_object.parent_notification_message_id = (
+            parent_notification_message.id
+        )
+
+    return new_notification_message_object
+
+
+def _build_new_metric_alert_notification_message_payload(
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    parent_notification_message: MetricAlertNotificationMessage | None,
+) -> NewMetricAlertNotificationMessage:
+    new_notification_message_object = NewMetricAlertNotificationMessage(
+        incident_id=metric_issue_context.id,
+        trigger_action_id=notification_context.id,
+    )
+
+    if parent_notification_message is not None:
+        # Make sure we track that this reply will be in relation to the parent row
+        new_notification_message_object.parent_notification_message_id = (
+            parent_notification_message.id
+        )
+
+    return new_notification_message_object
+
+
 def _build_notification_payload(
     organization: Organization,
     alert_context: AlertContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
-    incident_serialized_response: DetailedIncidentSerializerResponse,
+    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
+    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None,
 ) -> tuple[str, str]:
     chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
+    if (
+        features.has("organizations:metric-alert-chartcuterie", organization)
+        and alert_rule_serialized_response
+        and incident_serialized_response
+    ):
         try:
             chart_url = build_metric_alert_chart(
                 organization=organization,
@@ -138,8 +233,13 @@ def _send_notification(
     channel: str,
     thread_ts: str | None,
     reply_broadcast: bool,
-    notification_message_object: NewMetricAlertNotificationMessage,
-    repository: MetricAlertNotificationMessageRepository,
+    notification_message_object: (
+        NewMetricAlertNotificationMessage | NewNotificationActionNotificationMessage
+    ),
+    save_notification_method: Callable,
+    repository: (
+        MetricAlertNotificationMessageRepository | NotificationActionNotificationMessageRepository
+    ),
 ) -> bool:
     with MessagingInteractionEvent(
         interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
@@ -183,11 +283,11 @@ def _send_notification(
 
             notification_message_object.message_identifier = str(ts) if ts is not None else None
 
-    _save_notification_message(notification_message_object, repository)
+    save_notification_method(notification_message_object, repository)
     return True
 
 
-def _save_notification_message(
+def _save_notification_message_metric_alert(
     notification_message_object: NewMetricAlertNotificationMessage,
     repository: MetricAlertNotificationMessageRepository,
 ) -> None:
@@ -198,16 +298,114 @@ def _save_notification_message(
         pass
 
 
+def _save_notification_message_notification_action(
+    notification_message_object: NewNotificationActionNotificationMessage,
+    repository: NotificationActionNotificationMessageRepository,
+) -> None:
+    try:
+        repository.create_notification_message(data=notification_message_object)
+    except Exception:
+        pass
+
+
+def _handle_workflow_engine_notification(
+    organization: Organization,
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    integration: RpcIntegration,
+    attachments: str,
+    text: str,
+    channel: str,
+) -> bool:
+    assert metric_issue_context.group is not None
+
+    open_period_start = open_period_start_for_group(metric_issue_context.group)
+
+    parent_notification_message = _fetch_parent_notification_message_for_notification_action(
+        organization=organization,
+        notification_context=notification_context,
+        group=metric_issue_context.group,
+        open_period_start=open_period_start,
+        thread_option_default=METRIC_ALERTS_THREAD_DEFAULT,
+    )
+
+    new_notification_message_object = _build_new_notification_message_payload(
+        notification_context=notification_context,
+        metric_issue_context=metric_issue_context,
+        open_period_start=open_period_start,
+        parent_notification_message=parent_notification_message,
+    )
+
+    reply_broadcast, thread_ts = _get_thread_config(parent_notification_message)
+
+    return _send_notification(
+        integration=integration,
+        metric_issue_context=metric_issue_context,
+        attachments=attachments,
+        text=text,
+        channel=channel,
+        thread_ts=thread_ts,
+        reply_broadcast=reply_broadcast,
+        notification_message_object=new_notification_message_object,
+        save_notification_method=_save_notification_message_notification_action,
+        repository=get_default_notification_action_repository(),
+    )
+
+
+def _handle_legacy_notification(
+    organization: Organization,
+    alert_context: AlertContext,
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    integration: RpcIntegration,
+    attachments: str,
+    text: str,
+    channel: str,
+) -> bool:
+    repository = get_default_metric_alert_repository()
+    parent_notification_message = _fetch_parent_notification_message_for_incident(
+        organization=organization,
+        alert_context=alert_context,
+        notification_context=notification_context,
+        metric_issue_context=metric_issue_context,
+        repository=repository,
+    )
+
+    new_notification_message_object = _build_new_metric_alert_notification_message_payload(
+        notification_context=notification_context,
+        metric_issue_context=metric_issue_context,
+        parent_notification_message=parent_notification_message,
+    )
+
+    reply_broadcast, thread_ts = _get_thread_config(parent_notification_message)
+
+    return _send_notification(
+        integration=integration,
+        metric_issue_context=metric_issue_context,
+        attachments=attachments,
+        text=text,
+        channel=channel,
+        thread_ts=thread_ts,
+        reply_broadcast=reply_broadcast,
+        notification_message_object=new_notification_message_object,
+        save_notification_method=_save_notification_message_metric_alert,
+        repository=repository,
+    )
+
+
 def send_incident_alert_notification(
-    action: AlertRuleTriggerAction,
-    incident: Incident,
-    metric_value: float | int | None,
-    new_status: IncidentStatus,
+    organization: Organization,
+    alert_context: AlertContext,
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
+    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:
     result = integration_service.organization_context(
-        organization_id=incident.organization_id, integration_id=action.integration_id
+        organization_id=organization.id, integration_id=notification_context.integration_id
     )
     integration = result.integration
     org_integration = result.organization_integration
@@ -215,85 +413,43 @@ def send_incident_alert_notification(
         # Integration removed, but rule is still active.
         return False
 
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
-
-    alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
-    notification_context = NotificationContext.from_alert_rule_trigger_action(action)
-    incident_context = MetricIssueContext.from_legacy_models(
-        incident=incident,
-        new_status=new_status,
-        metric_value=metric_value,
-    )
-    open_period_context = OpenPeriodContext.from_incident(incident)
-
-    organization = incident.organization
-
     channel = notification_context.target_identifier
     if channel is None:
         sentry_sdk.capture_message("Channel is None", level="error")
         return False
 
-    alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-        incident.alert_rule, None, AlertRuleSerializer()
-    )
-    incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-        incident, None, DetailedIncidentSerializer()
-    )
     attachments, text = _build_notification_payload(
         organization=organization,
         alert_context=alert_context,
-        metric_issue_context=incident_context,
+        metric_issue_context=metric_issue_context,
         open_period_context=open_period_context,
         alert_rule_serialized_response=alert_rule_serialized_response,
         incident_serialized_response=incident_serialized_response,
         notification_uuid=notification_uuid,
     )
 
-    repository = get_default_metric_alert_repository()
-
-    parent_notification_message = _fetch_parent_notification_message_for_incident(
-        organization=organization,
-        alert_context=alert_context,
-        notification_context=notification_context,
-        metric_issue_context=incident_context,
-        repository=repository,
-    )
-
-    new_notification_message_object = NewMetricAlertNotificationMessage(
-        incident_id=incident_context.id,
-        trigger_action_id=notification_context.id,
-    )
-
-    reply_broadcast = False
-    thread_ts = None
-    # If a parent notification exists for this rule and action, then we can reply in a thread
-    if parent_notification_message is not None:
-        # Make sure we track that this reply will be in relation to the parent row
-        new_notification_message_object.parent_notification_message_id = (
-            parent_notification_message.id
+    if features.has("organizations:workflow-engine-notification-action", organization):
+        return _handle_workflow_engine_notification(
+            organization=organization,
+            notification_context=notification_context,
+            metric_issue_context=metric_issue_context,
+            integration=integration,
+            attachments=attachments,
+            text=text,
+            channel=channel,
         )
-        # To reply to a thread, use the specific key in the payload as referenced by the docs
-        # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
-        thread_ts = parent_notification_message.message_identifier
-
-        # If the incident is critical status, even if it's in a thread, send to main channel
-        if incident_context.new_status.value == IncidentStatus.CRITICAL.value:
-            reply_broadcast = True
-
-    success = _send_notification(
-        integration=integration,
-        metric_issue_context=incident_context,
-        attachments=attachments,
-        text=text,
-        channel=channel,
-        thread_ts=thread_ts,
-        reply_broadcast=reply_broadcast,
-        notification_message_object=new_notification_message_object,
-        repository=repository,
-    )
-
-    return success
+    else:
+        # TODO(iamrajjoshi): This needs to be deleted after ACI
+        return _handle_legacy_notification(
+            organization=organization,
+            alert_context=alert_context,
+            notification_context=notification_context,
+            metric_issue_context=metric_issue_context,
+            integration=integration,
+            attachments=attachments,
+            text=text,
+            channel=channel,
+        )
 
 
 @dataclass(frozen=True, eq=True)

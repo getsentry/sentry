@@ -117,7 +117,6 @@ export function getChonkButtonStyles(
     '> span:last-child': {
       position: 'relative',
       zIndex: 1,
-      height: 'auto',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

@@ -193,6 +193,30 @@ describe('IssueRuleEditor', function () {
       expect(await screen.findByLabelText('Save Rule')).toBeEnabled();
       expect(screen.queryByTestId('project-permission-alert')).not.toBeInTheDocument();
     });
+
+    it('allows test notifications', async () => {
+      const {organization, project} = createWrapper();
+      const mockTestNotification = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/rule-actions/`,
+        method: 'POST',
+        body: {},
+      });
+      await userEvent.click(screen.getByText('Send Test Notification'));
+      expect(mockTestNotification).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/rule-actions/`,
+        expect.objectContaining({
+          data: {
+            actions: [
+              {
+                id: 'sentry.rules.actions.notify_event.NotifyEventAction',
+                name: 'Send a notification (for all legacy integrations)',
+              },
+            ],
+            name: 'My alert rule',
+          },
+        })
+      );
+    });
   });
 
   describe('Edit Rule', function () {

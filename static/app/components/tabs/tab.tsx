@@ -210,7 +210,7 @@ const FloatingTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})
   &[aria-selected='false'] {
     border-top: 1px solid transparent;
   }
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   border-radius: 6px;
   padding: ${space(0.5)} ${space(1)};
   transform: translateY(1px);

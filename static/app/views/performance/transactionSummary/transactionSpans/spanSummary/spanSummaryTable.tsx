@@ -350,7 +350,7 @@ const EmptySpanDurationBar = styled('div')`
   background-color: ${p => p.theme.gray100};
   padding-left: ${space(1)};
 
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-variant-numeric: tabular-nums;
   line-height: 1;

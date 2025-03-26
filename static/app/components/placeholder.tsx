@@ -37,7 +37,7 @@ const Placeholder = styled(
   align-items: center;
   border-radius: ${p => p.theme.borderRadius};
   background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
-  ${p => p.error && `color: ${p.theme.red200};`}
+  ${p => !!p.error && `color: ${p.theme.red200};`}
   width: ${p => p.width ?? '100%'};
   height: ${p => p.height ?? '60px'};
   ${({shape = 'rect'}) => (shape === 'circle' ? 'border-radius: 100%;' : '')}

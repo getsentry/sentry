@@ -5,11 +5,12 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 
 import type {NotificationOptionsObject, NotificationProvidersObject} from './constants';
-import NotificationSettingsByType from './notificationSettingsByType';
+import {NotificationSettingsByType} from './notificationSettingsByType';
 import type {Identity} from './types';
 
 function renderMockRequests({
@@ -84,20 +85,19 @@ function renderComponent({
   });
   organizations = organizations.length ? organizations : [org];
 
-  return render(
-    <NotificationSettingsByType
-      notificationType={notificationType}
-      organizations={organizations}
-    />
-  );
+  OrganizationsStore.load(organizations);
+
+  return render(<NotificationSettingsByType notificationType={notificationType} />);
 }
 
 describe('NotificationSettingsByType', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    OrganizationsStore.init();
     jest.clearAllMocks();
   });
   beforeEach(() => {
+    OrganizationsStore.init();
     MockApiClient.addMockResponse({
       url: '/notification-defaults/',
       method: 'GET',
@@ -105,7 +105,7 @@ describe('NotificationSettingsByType', function () {
     });
   });
 
-  it('should render when default is disabled', function () {
+  it('should render when default is disabled', async function () {
     renderComponent({
       notificationOptions: [
         {
@@ -119,7 +119,7 @@ describe('NotificationSettingsByType', function () {
     });
 
     // There is only one field and it is the default and it is set to "off".
-    expect(screen.getByRole('textbox', {name: 'Issue Alerts'})).toBeInTheDocument();
+    await screen.findByRole('textbox', {name: 'Issue Alerts'});
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
@@ -169,7 +169,7 @@ describe('NotificationSettingsByType', function () {
   it('adds a project override and removes it', async function () {
     renderComponent({});
 
-    await selectEvent.select(screen.getByText('Project\u2026'), 'foo');
+    await selectEvent.select(await screen.findByText('Project\u2026'), 'foo');
     await selectEvent.select(screen.getByText('Value\u2026'), 'On');
 
     const addSettingMock = MockApiClient.addMockResponse({
@@ -256,7 +256,7 @@ describe('NotificationSettingsByType', function () {
       method: 'PUT',
       body: [],
     });
-    const multiSelect = screen.getByRole('textbox', {name: 'Delivery Method'});
+    const multiSelect = await screen.findByRole('textbox', {name: 'Delivery Method'});
     await selectEvent.select(multiSelect, ['Email']);
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);
   });
@@ -270,7 +270,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organizationWithFlag, organizationNoFlag],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
+    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
     expect(screen.queryByText('Quota Notifications')).not.toBeInTheDocument();
     expect(
       screen.getByText('Control the notifications you receive for organization spend.')
@@ -286,7 +286,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organizationWithFlag, organizationNoFlag],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
+    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
 
     const editSettingMock = MockApiClient.addMockResponse({
       url: `/users/me/notification-options/`,
@@ -330,7 +330,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
+    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
@@ -384,7 +384,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization, otherOrganization],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
+    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Spans')).toBeInTheDocument();
@@ -407,7 +407,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization, otherOrganization],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
+    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
@@ -428,7 +428,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization],
     });
 
-    expect(await screen.getAllByText('Quota Notifications').length).toBe(1);
+    expect(await screen.findAllByText('Quota Notifications')).toHaveLength(1);
     expect(screen.queryByText('Spend Notifications')).not.toBeInTheDocument();
 
     expect(screen.getByText('Errors')).toBeInTheDocument();
@@ -482,7 +482,7 @@ describe('NotificationSettingsByType', function () {
       organizations: [organization],
     });
 
-    expect(await screen.getAllByText('Spend Notifications').length).toBe(2);
+    expect(await screen.findAllByText('Spend Notifications')).toHaveLength(2);
 
     // These should be present
     expect(screen.getByText('Errors')).toBeInTheDocument();

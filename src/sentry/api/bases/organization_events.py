@@ -682,7 +682,12 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 row_value = row.get(column, None)
                 if row_value == 0 and null_zero:
                     row_value = None
-                serialized_values.append({"timestamp": timestamp, "value": row_value})
+                serialized_values.append(
+                    {
+                        "timestamp": timestamp,
+                        "value": row_value,
+                    }
+                )
         return serialized_values
 
 
