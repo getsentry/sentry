@@ -94,14 +94,14 @@ export const useExploreTimeseries = ({
     return {
       timeseriesResult: highFidelityTimeseriesResult,
       canUsePreviousResults: canUsePreviousHighFidelityResults,
-      isLoading: false,
+      isFetchingHighFidelityData: false,
     };
   }
 
   return {
     timeseriesResult: lowFidelityTimeseriesResult,
     canUsePreviousResults: canUsePreviousLowFidelityResults,
-    isLoading: !highFidelityTimeseriesResult.isFetched,
+    isFetchingHighFidelityData: true,
   };
 };
 
