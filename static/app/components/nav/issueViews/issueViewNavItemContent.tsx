@@ -6,7 +6,6 @@ import isEqual from 'lodash/isEqual';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useNavContext} from 'sentry/components/nav/context';
-import {GrabHandleIcon} from 'sentry/components/nav/issueViews/grabHandleIcon';
 import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueViewNavEditableTitle';
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
@@ -15,6 +14,7 @@ import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -177,7 +177,7 @@ export function IssueViewNavItemContent({
               }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
-              <GrabHandleIcon color="gray300" />
+              <IconGrabbable color="gray300" />
             </GrabHandleWrapper>
             <ProjectIcon projectPlatforms={projectPlatforms} />
           </LeadingItemsWrapper>
