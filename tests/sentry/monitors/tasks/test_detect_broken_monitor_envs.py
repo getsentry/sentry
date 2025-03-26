@@ -372,7 +372,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         monitor.slug,
                         self.project.slug,
-                        f"{self.generate_cron_monitor_url(self.organization.slug, self.project.slug, monitor.slug)}??environment={self.environment.name}",
+                        f"{self.generate_cron_monitor_url(self.organization.slug, self.project.slug, monitor.slug)}?environment={self.environment.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
