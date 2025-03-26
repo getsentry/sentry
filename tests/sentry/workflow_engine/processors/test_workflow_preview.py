@@ -126,7 +126,7 @@ class TestPreviewDataConditionGroup(TestCase):
 
     @patch("sentry.workflow_engine.processors.workflow_preview.preview_conditions")
     def test_groups_to_check(self, mock_preview_conditions):
-        mock_preview_conditions.return_value = [(self.group_ids, self.group_ids), (set(), set())]
+        mock_preview_conditions.side_effect = [(self.group_ids, self.group_ids), (set(), set())]
 
         preview_groups = preview_condition_group(
             logic_type=DataConditionGroup.Type.ALL,
