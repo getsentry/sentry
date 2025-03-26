@@ -4,6 +4,7 @@ import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {
   ChonkContentWrap,
@@ -19,7 +20,6 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -130,7 +130,7 @@ function BaseMenuListItem({
       aria-labelledby={labelId}
       aria-describedby={detailId}
       as={as}
-      ref={mergeRefs([forwardRef, itemRef])}
+      ref={mergeRefs(forwardRef, itemRef)}
       {...props}
     >
       <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>

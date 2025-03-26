@@ -4,6 +4,7 @@ import {useButton} from '@react-aria/button';
 import {useLocale} from '@react-aria/i18n';
 import type {AriaNumberFieldProps} from '@react-aria/numberfield';
 import {useNumberField} from '@react-aria/numberfield';
+import {mergeRefs} from '@react-aria/utils';
 import {useNumberFieldState} from '@react-stately/numberfield';
 
 import {Button} from 'sentry/components/core/button';
@@ -11,7 +12,6 @@ import type {InputStylesProps} from 'sentry/components/core/input';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
 export interface NumberInputProps
@@ -72,7 +72,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
       <InputGroup {...groupProps}>
         <InputGroup.Input
           {...inputProps}
-          ref={mergeRefs([localRef, ref])}
+          ref={mergeRefs(localRef, ref)}
           placeholder={placeholder}
           size={size}
           nativeSize={nativeSize}
