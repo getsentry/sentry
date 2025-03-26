@@ -14,7 +14,11 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  type Fidelity,
+  QUERY_MODE,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -22,7 +26,7 @@ interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
   queryExtras?: {
-    fidelity?: 'low' | 'auto';
+    fidelity?: Fidelity;
   };
 }
 
@@ -41,7 +45,7 @@ export const useExploreTimeseries = ({
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
     queryHookArgs: {query, enabled},
-    queryMode: 'serial',
+    queryMode: QUERY_MODE.SERIAL,
   });
 };
 

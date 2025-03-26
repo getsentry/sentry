@@ -57,7 +57,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
   const {
     result: timeseriesResult,
     canUsePreviousResults,
-    isFetchingHighFidelityData: isProgressivelyLoading,
+    fidelity,
   } = useMultiQueryTimeseries({
     index,
     enabled: true,
@@ -101,7 +101,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
-            isProgressivelyLoading={isProgressivelyLoading}
+            isProgressivelyLoading={fidelity !== 'auto'}
           />
           <MultiQueryTable
             confidences={[]}

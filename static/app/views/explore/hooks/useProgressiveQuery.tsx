@@ -6,20 +6,32 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   queryMode: 'serial' | 'parallel';
 }
 
+export const FIDELITY = {
+  LOW: 'low',
+  AUTO: 'auto',
+} as const;
+
+export const QUERY_MODE = {
+  SERIAL: 'serial',
+  PARALLEL: 'parallel',
+} as const;
+
 const LOW_FIDELITY_QUERY_EXTRAS = {
-  fidelity: 'low',
+  fidelity: FIDELITY.LOW,
 } as const;
 
 const HIGH_FIDELITY_QUERY_EXTRAS = {
-  fidelity: 'auto',
+  fidelity: FIDELITY.AUTO,
 } as const;
+
+export type Fidelity = (typeof FIDELITY)[keyof typeof FIDELITY];
 
 export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
   queryHookImplementation,
   queryHookArgs,
   queryMode,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
-  fidelity?: 'low' | 'auto';
+  fidelity?: Fidelity;
 } {
   const organization = useOrganization();
   const canUseProgressiveLoading = organization.features.includes(
@@ -42,7 +54,7 @@ export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
     enabled:
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
-      (queryMode === 'parallel' || lowFidelityResult.isFetched),
+      (queryMode === QUERY_MODE.PARALLEL || lowFidelityResult.isFetched),
   });
 
   if (!canUseProgressiveLoading) {
@@ -52,12 +64,12 @@ export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
   if (highFidelityResult.result.isFetched) {
     return {
       ...highFidelityResult,
-      fidelity: 'auto',
+      fidelity: FIDELITY.AUTO,
     };
   }
 
   return {
     ...lowFidelityResult,
-    fidelity: 'low',
+    fidelity: FIDELITY.LOW,
   };
 }

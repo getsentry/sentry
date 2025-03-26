@@ -7,7 +7,11 @@ import usePrevious from 'sentry/utils/usePrevious';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  type Fidelity,
+  QUERY_MODE,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   getQueryMode,
   useReadQueriesFromLocation,
@@ -18,7 +22,7 @@ interface UseMultiQueryTimeseriesOptions {
   enabled: boolean;
   index: number;
   queryExtras?: {
-    fidelity?: 'low' | 'auto';
+    fidelity?: Fidelity;
   };
 }
 
@@ -36,6 +40,7 @@ export function useMultiQueryTimeseries({
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
     queryHookArgs: {enabled, index},
+    queryMode: QUERY_MODE.SERIAL,
   });
 }
 
