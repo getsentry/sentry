@@ -1,5 +1,5 @@
 import {forwardRef, Fragment} from 'react';
-import {css, Theme, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
