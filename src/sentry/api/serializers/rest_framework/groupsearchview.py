@@ -82,15 +82,6 @@ class GroupSearchViewPostValidator(ViewValidator):
     starred = serializers.BooleanField(required=False)
 
     def validate(self, data):
-        if data.get("projects") is None:
-            data["projects"] = (
-                []
-                if features.has("organizations:global-views", self.context["organization"])
-                else [
-                    pick_default_project(self.context["organization"], self.context["request"].user)
-                ]
-            )
-
         return super().validate(data)
 
 
