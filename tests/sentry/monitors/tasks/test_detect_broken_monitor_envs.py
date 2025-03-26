@@ -493,7 +493,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}??environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
@@ -504,7 +504,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}??environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
