@@ -1,5 +1,5 @@
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from enum import StrEnum
 
 import sentry_sdk
@@ -84,27 +84,38 @@ def evaluate_workflows_action_filters(
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids = {workflow.id for workflow in workflows}
+    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
+    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
 
-    action_conditions = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow_id__in=workflow_ids
-    ).distinct()
+    action_conditions = (
+        DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
+        )
+        .prefetch_related("workflowdataconditiongroup_set")
+        .distinct()
+    )
 
     for action_condition in action_conditions:
-        # TODO(cathy): attach correct workflow to job
+        workflow_job = job
+
+        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
+
+        # Populate the workflow_env in the job for the action_condition evaluation
+        if workflow_data_condition_group:
+            workflow_job = replace(
+                job, workflow_env=workflow_data_condition_group.workflow.environment
+            )
 
         (evaluation, result), remaining_conditions = process_data_condition_group(
-            action_condition.id, job
+            action_condition.id, workflow_job
         )
 
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            condition_group = action_condition.workflowdataconditiongroup_set.first()
-            if condition_group:
+            if workflow_data_condition_group:
                 enqueue_workflow(
-                    condition_group.workflow,
+                    workflow_data_condition_group.workflow,
                     remaining_conditions,
                     job.event,
                     WorkflowDataConditionGroupType.ACTION_FILTER,
