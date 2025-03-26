@@ -181,7 +181,6 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
 
     weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[web_vital]
 
-    # TODO: We should be multiplying by the weight in the formula, but we can't until https://github.com/getsentry/eap-planning/issues/202
     return Column.BinaryFormula(
         left=Column(formula=score_ratio),
         op=Column.BinaryFormula.OP_MULTIPLY,
