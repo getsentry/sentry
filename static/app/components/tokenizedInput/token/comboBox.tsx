@@ -12,12 +12,12 @@ import {ariaHideOutside} from '@react-aria/overlays';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
-import {ListBox} from 'sentry/components/compactSelect/listBox';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectOptionOrSectionWithKey,
   SelectOptionWithKey,
-} from 'sentry/components/compactSelect/types';
-import {itemIsSectionWithKey} from 'sentry/components/compactSelect/utils';
+} from 'sentry/components/core/compactSelect/types';
+import {itemIsSectionWithKey} from 'sentry/components/core/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Overlay} from 'sentry/components/overlay';
 import {defined} from 'sentry/utils';

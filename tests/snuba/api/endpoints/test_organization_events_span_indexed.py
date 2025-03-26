@@ -5,7 +5,6 @@ from unittest import mock
 import pytest
 import urllib3
 
-from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -3201,14 +3200,11 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             }
         )
 
-        lcp_score = (
-            0.27 / WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["lcp"]
-        )  # TODO: we should multiplying by the weight in the formula, but we can't until https://github.com/getsentry/eap-planning/issues/202
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], lcp_score)
+        self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], 0.27)
         assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
         assert meta["dataset"] == self.dataset
 

@@ -8,14 +8,14 @@ import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combob
 import type {Key} from '@react-types/shared';
 import omit from 'lodash/omit';
 
-import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
-import {ListBox} from 'sentry/components/compactSelect/listBox';
+import type {SelectKey, SelectOption} from 'sentry/components/core/compactSelect';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import {
   getDisabledOptions,
   getEscapedKey,
   getHiddenOptions,
   getItemsWithKeys,
-} from 'sentry/components/compactSelect/utils';
+} from 'sentry/components/core/compactSelect/utils';
 import {Input} from 'sentry/components/core/input';
 import {GrowingInput} from 'sentry/components/growingInput';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
