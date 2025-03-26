@@ -211,6 +211,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       '`TimeSeriesWidgetVisualization` assigned fallback to left Y axis instead of right Y axis',
       {
         labels: props.plottables.map(plottable => plottable.label),
+        types: props.plottables.map(plottable => plottable.dataType),
+        units: props.plottables.map(plottable => plottable.dataUnit),
         leftYAxisType,
         rightYAxisType,
       }
