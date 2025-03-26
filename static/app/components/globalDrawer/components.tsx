@@ -121,8 +121,6 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
         return;
       }
       handle.setAttribute('data-resizing', 'true');
-
-      // Add resizing class to the panel to hide scrollbars
       panel.classList.add('resizing');
 
       const viewportWidth = window.innerWidth;
@@ -157,7 +155,6 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
           handle.removeAttribute('data-resizing');
         }
 
-        // Remove resizing class to restore scrollbars
         if (panel) {
           panel.classList.remove('resizing');
           const currentWidth = parseFloat(panel.style.width) || widthPercent;
