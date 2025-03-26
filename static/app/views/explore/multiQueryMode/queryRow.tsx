@@ -6,9 +6,11 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {FIDELITY} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -33,6 +35,7 @@ type Props = {
 };
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
+  const organization = useOrganization();
   const deleteQuery = useDeleteQueryAtIndex();
 
   const {groupBys, query, yAxes, sortBys} = queryParts;
@@ -101,7 +104,10 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
-            isProgressivelyLoading={fidelity !== 'auto'}
+            isProgressivelyLoading={
+              organization.features.includes('visibility-explore-progressive-loading') &&
+              fidelity !== FIDELITY.BEST_EFFORT
+            }
           />
           <MultiQueryTable
             confidences={[]}
