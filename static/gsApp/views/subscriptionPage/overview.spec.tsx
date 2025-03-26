@@ -17,8 +17,6 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
-  waitFor,
-  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -933,7 +931,6 @@ describe('Subscription > Overview', () => {
       },
     });
 
-    // Render the component
     render(<Overview location={mockLocation} />, {organization});
 
     expect(mockApi).toHaveBeenCalled();
@@ -944,27 +941,23 @@ describe('Subscription > Overview', () => {
     );
     expect(performanceHeading).toBeInTheDocument();
 
-    // Get the Performance units card and expand button
-    const expandButtons = screen.getAllByTestId('expand-usage-totals');
+    await userEvent.click(screen.getByTestId('expand-usage-totals-transactions'));
 
-    // The second expand button should be for transactions
-    const expandButton = expandButtons[1];
-    if (!expandButton) throw new Error('Expand button for transactions not found');
-
-    // Click the expand button to reveal the tables
-    await userEvent.click(expandButton);
-
-    // Check for the category-table-transactions which should be present
     const transactionsTable = screen.getByTestId('category-table-transactions');
     expect(transactionsTable).toBeInTheDocument();
 
-    // There should be event tables for accepted, dropped, etc.
+    // event-table-accepted should be present means breakdown is shown
     const acceptedTable = screen.getByTestId('event-table-accepted');
     expect(acceptedTable).toBeInTheDocument();
 
-    // Verify showEventBreakdown is working by checking for all these tables
-    // We should see multiple tables that have different event breakdowns
-    const tables = screen.getAllByRole('table');
-    expect(tables.length).toBeGreaterThan(1);
+    // hide transactions breakdown
+    await userEvent.click(screen.getByTestId('expand-usage-totals-transactions'));
+    expect(screen.queryByTestId('event-table-accepted')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('expand-usage-totals-profileDuration'));
+    expect(screen.getByTestId('category-table-profileDuration')).toBeInTheDocument();
+
+    // event breakdown is not shown for profileDuration
+    expect(screen.queryByTestId('event-table-accepted')).not.toBeInTheDocument();
   });
 });

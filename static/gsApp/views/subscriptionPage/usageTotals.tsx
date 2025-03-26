@@ -553,7 +553,7 @@ function UsageTotals({
               )}
               {!disableTable && (
                 <Button
-                  data-test-id="expand-usage-totals"
+                  data-test-id={`expand-usage-totals-${category}`}
                   size="sm"
                   onClick={() => setState({...state, expanded: !state.expanded})}
                   icon={<IconChevron direction={state.expanded ? 'up' : 'down'} />}
