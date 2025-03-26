@@ -2,7 +2,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   queryHookArgs: Parameters<TQueryFn>[0];
-  queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn>;
+  queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
+    result: {
+      isFetched: boolean;
+    };
+  };
   queryMode: 'serial' | 'parallel';
 }
 
@@ -26,7 +30,9 @@ const HIGH_FIDELITY_QUERY_EXTRAS = {
 
 export type Fidelity = (typeof FIDELITY)[keyof typeof FIDELITY];
 
-export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
+export function useProgressiveQuery<
+  TQueryFn extends (...args: any[]) => ReturnType<TQueryFn>,
+>({
   queryHookImplementation,
   queryHookArgs,
   queryMode,
