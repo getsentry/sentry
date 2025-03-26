@@ -417,17 +417,11 @@ class GetRulesToFireTest(TestCase):
     # def tearDown(self):
     #     self.patcher.stop()
 
-    def test_env_picker_vs_filter(self):
+    def test_event_sent_late(self):
         from datetime import UTC, datetime, timedelta
 
         from sentry.testutils.factories import EventType
 
-        prod_env = self.create_environment(
-            self.project, name="production", organization=self.organization
-        )
-        staging_env = self.create_environment(
-            self.project, name="staging", organization=self.organization
-        )
         actions = [
             {
                 "targetType": "IssueOwners",
@@ -439,38 +433,25 @@ class GetRulesToFireTest(TestCase):
         conditions = [
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                "interval": "1h",
+                "interval": "1w",
                 "value": 2,
             }
         ]
-        env_filter = {
-            "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
-            "attribute": "environment",
-            "match": "eq",
-            "value": "production",
-        }
-        env_picker_rule = self.create_project_rule(
+        rule = self.create_project_rule(
             project=self.project,
-            name="env picker rule",
-            action_data=actions,
-            condition_data=conditions,
-            environment_id=prod_env.id,
-        )
-        conditions.append(env_filter)
-        env_filter_rule = self.create_project_rule(
-            project=self.project,
-            name="env filter rule",
+            name="late events rule",
             action_data=actions,
             condition_data=conditions,
         )
 
         now = datetime.now(UTC)
         thirty_mins_ago = now - timedelta(minutes=30)
+        twenty_nine_mins_ago = thirty_mins_ago + timedelta(minutes=1)
 
         data = {
             "timestamp": thirty_mins_ago.isoformat(),
+            "received": twenty_nine_mins_ago.isoformat(),
             "fingerprint": ["group-1"],
-            "tags": [("environment", prod_env.name)],
             "level": "error",
             "exception": {
                 "values": [
@@ -481,19 +462,25 @@ class GetRulesToFireTest(TestCase):
                 ]
             },
         }
-        # store 3 prod env events
+        # store 3 events
         self.store_event(
             data=data,
             project_id=self.project.id,
             assert_no_errors=False,
             default_event_type=EventType.DEFAULT,
         )
+        # send one 1 min later
+        data["timestamp"] = (thirty_mins_ago + timedelta(minutes=1)).isoformat()
+        data["received"] = (twenty_nine_mins_ago + timedelta(minutes=1)).isoformat()
         self.store_event(
             data=data,
             project_id=self.project.id,
             assert_no_errors=False,
             default_event_type=EventType.DEFAULT,
         )
+        # send another 1 minute later than the last
+        data["timestamp"] = (thirty_mins_ago + timedelta(minutes=2)).isoformat()
+        data["received"] = (twenty_nine_mins_ago + timedelta(minutes=2)).isoformat()
         event = self.store_event(
             data=data,
             project_id=self.project.id,
@@ -502,28 +489,17 @@ class GetRulesToFireTest(TestCase):
         )
         group1 = event.group
 
-        # store a staging env event
-        data["tags"] = [("environment", staging_env.name)]
-        self.store_event(
-            data=data,
-            project_id=self.project.id,
-            assert_no_errors=False,
-            default_event_type=EventType.DEFAULT,
-        )
-
         rules_to_slow_conditions = defaultdict(list)
-        for rule in [env_picker_rule, env_filter_rule]:
-            rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
+        rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
 
         rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
-        rules_to_groups[env_picker_rule.id].add(group1.id)
+        rules_to_groups[rule.id].add(group1.id)
 
         rules_to_groups = {
-            env_picker_rule.id: {group1.id},
-            env_filter_rule.id: {group1.id},
+            rule.id: {group1.id},
         }
 
-        condition_groups = get_condition_query_groups([env_picker_rule, env_filter_rule], rules_to_groups)  # type: ignore[arg-type]
+        condition_groups = get_condition_query_groups([rule], rules_to_groups)  # type: ignore[arg-type]
         condition_group_results = get_condition_group_results(condition_groups, self.project)
 
         result = get_rules_to_fire(
@@ -533,8 +509,7 @@ class GetRulesToFireTest(TestCase):
             self.project.id,
         )
 
-        assert result[env_filter_rule] == {group1.id}
-        assert result[env_picker_rule] == {group1.id}
+        assert result[rule] == {group1.id}
 
     def test_comparison(self):
         self.mock_passes_comparison.return_value = True
