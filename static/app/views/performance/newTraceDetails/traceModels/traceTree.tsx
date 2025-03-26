@@ -1788,6 +1788,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
     child.reparent_reason = reason;
     parent.reparent_reason = reason;
+
+    // We need to sort the children of the child node as the swap may have broken the chronological order
+    child.children.sort(traceChronologicalSort);
   }
 
   static IsLastChild(n: TraceTreeNode<TraceTree.NodeValue>): boolean {

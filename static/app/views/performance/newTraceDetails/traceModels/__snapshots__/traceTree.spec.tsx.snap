@@ -51,6 +51,15 @@ trace root
 "
 `;
 
+exports[`TraceTree FromTrace swaps only pageload transaction child with parent http.server transaction 1`] = `
+"
+trace root
+  / - pageload
+    /api-1/ - http.server
+    /api-2/ - http.server
+"
+`;
+
 exports[`TraceTree appendTree appends tree to end of current tree 1`] = `
 "
 trace root

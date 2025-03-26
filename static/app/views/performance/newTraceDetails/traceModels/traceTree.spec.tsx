@@ -443,6 +443,37 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
+    it('swaps only pageload transaction child with parent http.server transaction', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'http.server',
+              transaction: '/api-1/',
+              start_timestamp: 2,
+              children: [
+                makeTransaction({
+                  'transaction.op': 'pageload',
+                  transaction: '/',
+                  start_timestamp: 1,
+                  children: [
+                    makeTransaction({
+                      'transaction.op': 'http.server',
+                      transaction: '/api-2/',
+                      start_timestamp: 4,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+        traceMetadata
+      );
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
     it('initializes canFetch based on spanChildrenCount', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
