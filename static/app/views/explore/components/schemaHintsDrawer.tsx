@@ -1,7 +1,7 @@
-import {Fragment, memo, useCallback, useMemo, useState} from 'react';
-import {AutoSizer, List as VirtualizedList} from 'react-virtualized';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
@@ -33,6 +33,8 @@ function SchemaHintsDrawer({
 }: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
+  // const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(exploreQuery);
@@ -78,6 +80,15 @@ function SchemaHintsDrawer({
     );
   }, [sortedHints, searchQuery]);
 
+  const virtualizer = useVirtualizer({
+    count: sortedAndFilteredHints.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 35,
+    overscan: 5,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
       const filterQuery = new MutableSearch(exploreQuery);
@@ -112,43 +123,33 @@ function SchemaHintsDrawer({
     </NoAttributesMessage>
   );
 
-  const HintItem = memo(
-    ({hint, style}: {hint: Tag; style: React.CSSProperties}) => {
-      const hintFieldDefinition = useMemo(
-        () => getFieldDefinition(hint.key, 'span', hint.kind),
-        [hint.key, hint.kind]
-      );
+  function HintItem({hint, index}: {hint: Tag; index: number}) {
+    const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
 
-      const hintType = useMemo(
-        () =>
-          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-            ? t('boolean')
-            : hint.kind === FieldKind.MEASUREMENT
-              ? t('number')
-              : t('string'),
-        [hintFieldDefinition?.valueType, hint.kind]
-      );
-      return (
-        <div style={style}>
-          <StyledMultipleCheckboxItem
-            key={hint.key}
-            value={hint.key}
-            onChange={() => handleCheckboxChange(hint)}
-          >
-            <CheckboxLabelContainer>
-              <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
-                <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
-              </Tooltip>
-              <Badge>{hintType}</Badge>
-            </CheckboxLabelContainer>
-          </StyledMultipleCheckboxItem>
-        </div>
-      );
-    },
-    (prevProps, nextProps) => {
-      return prevProps.hint.key === nextProps.hint.key;
-    }
-  );
+    const hintType =
+      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
+        ? t('boolean')
+        : hint.kind === FieldKind.MEASUREMENT
+          ? t('number')
+          : t('string');
+
+    return (
+      <div ref={virtualizer.measureElement} data-index={index}>
+        <StyledMultipleCheckboxItem
+          key={hint.key}
+          value={hint.key}
+          onChange={() => handleCheckboxChange(hint)}
+        >
+          <CheckboxLabelContainer>
+            <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
+              <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+            </Tooltip>
+            <Badge>{hintType}</Badge>
+          </CheckboxLabelContainer>
+        </StyledMultipleCheckboxItem>
+      </div>
+    );
+  }
 
   return (
     <Fragment>
@@ -169,30 +170,21 @@ function SchemaHintsDrawer({
           </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
-          {sortedAndFilteredHints.length === 0 ? (
-            noAttributesMessage
-          ) : (
-            <AutoSizer>
-              {({width, height}) => {
-                return (
-                  <VirtualizedList
-                    width={width}
-                    height={height}
-                    rowCount={sortedAndFilteredHints.length}
-                    rowHeight={37}
-                    key={exploreQuery}
-                    rowRenderer={({index, key, style}) => (
+          <ScrollContainer ref={scrollContainerRef}>
+            <AllItemsContainer height={virtualizer.getTotalSize()}>
+              {sortedAndFilteredHints.length === 0
+                ? noAttributesMessage
+                : virtualItems.map(item => (
+                    <VirtualOffset offset={item.start} key={item.key}>
                       <HintItem
-                        key={key}
-                        hint={sortedAndFilteredHints[index]!}
-                        style={style}
+                        key={item.key}
+                        hint={sortedAndFilteredHints[item.index]!}
+                        index={item.index}
                       />
-                    )}
-                  />
-                );
-              }}
-            </AutoSizer>
-          )}
+                    </VirtualOffset>
+                  ))}
+            </AllItemsContainer>
+          </ScrollContainer>
         </StyledMultipleCheckbox>
       </DrawerBody>
     </Fragment>
@@ -247,6 +239,7 @@ const CheckboxLabel = styled('span')`
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
   display: block;
   height: 100%;
+  overflow: auto;
 `;
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
@@ -266,10 +259,6 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
     background-color: ${p => p.theme.gray100};
   }
 
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-
   & > label {
     width: 100%;
     margin: 0;
@@ -280,6 +269,25 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
     width: 100%;
     ${p => p.theme.overflowEllipsis};
   }
+`;
+
+const ScrollContainer = styled('div')`
+  height: 100%;
+  overflow: auto;
+`;
+
+const AllItemsContainer = styled('div')<{height: number}>`
+  position: relative;
+  width: 100%;
+  height: ${p => p.height}px;
+`;
+
+const VirtualOffset = styled('div')<{offset: number}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(${p => p.offset}px);
 `;
 
 const SearchInput = styled(InputGroup.Input)`
