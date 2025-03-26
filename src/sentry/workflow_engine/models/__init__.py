@@ -4,6 +4,7 @@ __all__ = [
     "ActionGroupStatus",
     "AlertRuleDetector",
     "AlertRuleWorkflow",
+    "Condition",
     "DataCondition",
     "DataConditionGroup",
     "DataConditionGroupAction",
@@ -22,7 +23,7 @@ from .action_alertruletriggeraction import ActionAlertRuleTriggerAction
 from .action_group_status import ActionGroupStatus
 from .alertrule_detector import AlertRuleDetector
 from .alertrule_workflow import AlertRuleWorkflow
-from .data_condition import DataCondition
+from .data_condition import Condition, DataCondition
 from .data_condition_group import DataConditionGroup
 from .data_condition_group_action import DataConditionGroupAction
 from .data_source import DataPacket, DataSource

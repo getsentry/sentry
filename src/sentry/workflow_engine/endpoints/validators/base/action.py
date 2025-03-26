@@ -45,7 +45,7 @@ class BaseActionValidator(CamelSnakeModelSerializer[T], Generic[T]):
         try:
             Action.Type(value)
         except ValueError:
-            raise ValidationError("Invalid action type")
+            raise ValidationError(f"Invalid Action.type, {value}")
 
         return value
 
