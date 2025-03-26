@@ -34,11 +34,12 @@ family:native path:/usr/local/lib/**                                 -app
 family:native path:/usr/local/Cellar/**                              -app
 family:native package:linux-gate.so*                                 -app
 
-# rust common modules
+# rust common modules/functions
 family:native function:std::*                                     -app
 family:native function:core::*                                    -app
 family:native function:alloc::*                                   -app
 family:native function:__rust_*                                   -app
+family:native function:rust_begin_unwind                          -app
 
 # rust borders
 family:native function:std::panicking::begin_panic                ^-group -group ^-app -app
