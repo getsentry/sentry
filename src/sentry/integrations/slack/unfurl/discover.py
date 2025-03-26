@@ -328,7 +328,7 @@ discover_link_regex = re.compile(
 )
 
 customer_domain_discover_link_regex = re.compile(
-    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/discover/(results|homepage)"
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/discover/(results|homepage)"
 )
 
 explore_link_regex = re.compile(
