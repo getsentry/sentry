@@ -2,7 +2,8 @@ import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,7 +34,6 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {showConfidence} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -48,6 +48,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  isProgressivelyLoading?: boolean;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -72,6 +73,7 @@ export function ExploreCharts({
   confidences,
   query,
   timeseriesResult,
+  isProgressivelyLoading,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const dataset = useExploreDataset();
@@ -142,10 +144,7 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
-        data,
-        isTopN
-      );
+      const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -158,7 +157,6 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
-        isSampled,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -201,6 +199,22 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
+                TitleBadges={[
+                  isProgressivelyLoading ? (
+                    <Tooltip
+                      title={t('This widget is currently loading higher fidelity data.')}
+                      key="progressive-loading-indicator"
+                    >
+                      <ProgressiveLoadingIndicator
+                        relative
+                        hideMessage
+                        mini
+                        size={16}
+                        data-test-id="progressive-loading-indicator"
+                      />
+                    </Tooltip>
+                  ) : null,
+                ]}
               />
             );
           }
@@ -244,6 +258,22 @@ export function ExploreCharts({
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
+              TitleBadges={[
+                isProgressivelyLoading ? (
+                  <Tooltip
+                    title={t('This widget is currently loading higher fidelity data.')}
+                    key="progressive-loading-indicator"
+                  >
+                    <ProgressiveLoadingIndicator
+                      relative
+                      hideMessage
+                      mini
+                      size={16}
+                      data-test-id="progressive-loading-indicator"
+                    />
+                  </Tooltip>
+                ) : null,
+              ]}
               Actions={[
                 <Tooltip
                   key="visualization"
@@ -300,8 +330,7 @@ export function ExploreCharts({
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC &&
-                showConfidence(chartInfo.isSampled) && (
+                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
                     confidence={chartInfo.confidence}
@@ -382,4 +411,14 @@ const ChartLabel = styled('div')`
 const ChartTitle = styled('div')`
   display: flex;
   margin-left: ${space(2)};
+`;
+
+const ProgressiveLoadingIndicator = styled(LoadingIndicator)`
+  .loading-indicator {
+    border-width: 2px;
+  }
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;

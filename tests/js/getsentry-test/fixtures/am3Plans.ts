@@ -1,17 +1,21 @@
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {CheckoutType, type Plan} from 'getsentry/types';
 
-const AM3_CATEGORIES = [
+const AM3_CHECKOUT_CATEGORIES = [
   'errors',
   'replays',
   'attachments',
   'monitorSeats',
   'spans',
-  'profileDuration',
   'uptime',
-];
+]
+const AM3_CATEGORIES = [...AM3_CHECKOUT_CATEGORIES, 'profileDuration'];
 
-const AM3_DS_CATEGORIES = [...AM3_CATEGORIES, 'spansIndexed'];
+const AM3_DS_CHECKOUT_CATEGORIES = [
+  ...AM3_CHECKOUT_CATEGORIES,
+  'spansIndexed'
+]
+const AM3_DS_CATEGORIES = [...AM3_DS_CHECKOUT_CATEGORIES, 'profileDuration']
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -118,7 +122,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -672,7 +676,7 @@ const AM3_PLANS: Record<string, Plan> = {
         },
         {
           events: 20000000,
-          unitPrice: 0.0003,
+          unitPrice: 0.00032,
           price: 3200,
           onDemandPrice: 0.0004,
         },
@@ -821,7 +825,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -1287,22 +1291,22 @@ const AM3_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
   },
-  am3_business_ent_auf: {
-    id: 'am3_business_ent_auf',
-    name: 'Business',
+  am3_business_ent: {
+    id: 'am3_business_ent',
+    name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
     basePrice: 0,
     totalPrice: 10_000_00,
     trialPlan: 'am3_business',
+    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
-    isTestPlan: false,
     userSelectable: false,
     checkoutType: CheckoutType.STANDARD,
     features: AM3_BUSINESS_FEATURES,
-    billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
+    billingInterval: MONTHLY,
+    contractInterval: MONTHLY,
     onDemandEventPrice: 0.1157,
     allowOnDemand: true,
     reservedMinimum: UNLIMITED_RESERVED,
@@ -1372,9 +1376,187 @@ const AM3_PLANS: Record<string, Plan> = {
     },
     categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
   },
+  am3_business_ent_auf: {
+    id: 'am3_business_ent_auf',
+    name: 'Enterprise (Business)',
+    description: '',
+    price: 10_000_00,
+    basePrice: 0,
+    totalPrice: 10_000_00,
+    trialPlan: 'am3_business',
+    maxMembers: null,
+    retentionDays: 90,
+    isTestPlan: false,
+    userSelectable: false,
+    checkoutType: CheckoutType.STANDARD,
+    features: AM3_BUSINESS_FEATURES,
+    billingInterval: ANNUAL,
+    contractInterval: ANNUAL,
+    onDemandEventPrice: 0.1157,
+    allowOnDemand: true,
+    reservedMinimum: UNLIMITED_RESERVED,
+    allowAdditionalReservedEvents: true,
+    categories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
+    availableCategories: AM3_CATEGORIES,
+    onDemandCategories: AM3_CATEGORIES,
+    hasOnDemandModes: false,
+    planCategories: {
+      errors: [
+        {
+          events: 1_000_000,
+          unitPrice: 0.0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+      replays: [
+        {
+          events: 10_000,
+          unitPrice: 0.0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+      spans: [
+        {
+          events: 100_000_000,
+          unitPrice: 0.0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+      monitorSeats: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      uptime: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      profileDuration: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      attachments: [
+        {
+          events: 1,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+    },
+    categoryDisplayNames: AM3_CATEGORY_DISPLAY_NAMES,
+  },
+  am3_business_ent_ds: {
+    id: 'am3_business_ent_ds',
+    name: 'Enterprise (Business)',
+    description: '',
+    price: 10_000_00,
+    basePrice: 0,
+    totalPrice: 10_000_00,
+    trialPlan: 'am3_business',
+    isTestPlan: false,
+    maxMembers: null,
+    retentionDays: 90,
+    userSelectable: false,
+    checkoutType: CheckoutType.STANDARD,
+    features: AM3_DS_FEATURES,
+    billingInterval: MONTHLY,
+    contractInterval: MONTHLY,
+    onDemandEventPrice: 0.1157,
+    allowOnDemand: true,
+    reservedMinimum: UNLIMITED_RESERVED,
+    allowAdditionalReservedEvents: true,
+    categories: AM3_DS_CATEGORIES,
+    checkoutCategories: AM3_DS_CATEGORIES,
+    availableCategories: AM3_DS_CATEGORIES,
+    onDemandCategories: AM3_DS_CATEGORIES,
+    hasOnDemandModes: false,
+    planCategories: {
+      errors: [
+        {
+          events: 1_000_000,
+          unitPrice: 0.0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+      replays: [
+        {
+          events: 10_000,
+          unitPrice: 0.0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+      spans: [
+        {
+          events: 0,
+          unitPrice: 0.0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+      spansIndexed: [
+        {
+          events: 0,
+          unitPrice: 0.0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+      monitorSeats: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      uptime: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      profileDuration: [
+        {
+          events: 100,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0,
+        },
+      ],
+      attachments: [
+        {
+          events: 1,
+          unitPrice: 0,
+          price: 0,
+          onDemandPrice: 0.0,
+        },
+      ],
+    },
+    categoryDisplayNames: AM3_DS_CATEGORY_DISPLAY_NAMES,
+  },
   am3_business_ent_ds_auf: {
     id: 'am3_business_ent_ds_auf',
-    name: 'Business',
+    name: 'Enterprise (Business)',
     description: '',
     price: 10_000_00,
     basePrice: 0,
@@ -1393,7 +1575,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: true,
     categories: AM3_DS_CATEGORIES,
-    checkoutCategories: AM3_DS_CATEGORIES,
+    checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
     availableCategories: AM3_DS_CATEGORIES,
     onDemandCategories: AM3_DS_CATEGORIES,
     hasOnDemandModes: false,
@@ -1486,7 +1668,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 5000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -1571,7 +1753,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -1656,7 +1838,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
     categories: AM3_DS_CATEGORIES,
-    checkoutCategories: AM3_DS_CATEGORIES,
+    checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
     availableCategories: AM3_DS_CATEGORIES,
     onDemandCategories: AM3_DS_CATEGORIES,
     hasOnDemandModes: false,
@@ -1749,7 +1931,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -2242,7 +2424,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -2729,7 +2911,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,

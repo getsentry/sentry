@@ -57,7 +57,6 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
             query: 'is:unresolved',
             querySort: IssueSortOptions.DATE,
             projects: defaultProject,
-            isAllProjects: false,
             environments: DEFAULT_ENVIRONMENTS,
             timeFilters: DEFAULT_TIME_FILTERS,
           },

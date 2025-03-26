@@ -3,9 +3,11 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
+from concurrent import futures
 from typing import Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import BrokerValue
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
@@ -21,6 +23,8 @@ from sentry.utils.imports import import_string
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
+
+ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
 
 
 class TaskNamespace:
@@ -125,16 +129,30 @@ class TaskNamespace:
 
         return wrapped
 
-    def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
-        metrics.incr(
-            "taskworker.registry.send_task",
-            tags={"taskname": activation.taskname, "namespace": activation.namespace},
-        )
+    def _handle_produce_future(self, future: ProducerFuture, tags: dict[str, str]) -> None:
+        if future.cancelled():
+            metrics.incr("taskworker.registry.send_task.cancelled", tags=tags)
+        elif future.exception(1):
+            # this does not block since this callback only gets run when the future is finished and exception is set
+            metrics.incr("taskworker.registry.send_task.failed", tags=tags)
+        else:
+            metrics.incr("taskworker.registry.send_task.success", tags=tags)
 
+    def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
         topic = self.router.route_namespace(self.name)
         produce_future = self._producer(topic).produce(
             ArroyoTopic(name=topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
+        )
+        produce_future.add_done_callback(
+            lambda future: self._handle_produce_future(
+                future=future,
+                tags={
+                    "namespace": activation.namespace,
+                    "taskname": activation.taskname,
+                    "topic": topic.value,
+                },
+            )
         )
         if wait_for_delivery:
             try:

@@ -1,6 +1,9 @@
+from functools import reduce
+from operator import or_
+
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,12 +14,19 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewStarredSerializer
+from sentry.api.serializers.models.groupsearchview import (
+    GroupSearchViewSerializer,
+    GroupSearchViewStarredSerializer,
+)
 from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
 )
-from sentry.models.groupsearchview import DEFAULT_TIME_FILTER, GroupSearchView
+from sentry.models.groupsearchview import (
+    DEFAULT_TIME_FILTER,
+    GroupSearchView,
+    GroupSearchViewVisibility,
+)
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
@@ -48,6 +58,13 @@ class MemberPermission(OrganizationPermission):
     }
 
 
+class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
+    visibility = serializers.MultipleChoiceField(
+        choices=GroupSearchViewVisibility.as_choices(),
+        required=False,
+    )
+
+
 @region_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -71,11 +88,16 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         has_global_views = features.has("organizations:global-views", organization)
 
+        serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
         query = GroupSearchView.objects.filter(
             organization=organization, user_id=request.user.id
         ).prefetch_related("projects")
 
         # Return only the default view(s) if user has no custom views yet
+        # TODO(msun): Delete this logic once left-nav views have been fully rolled out.
         if not query.exists():
             return self.paginate(
                 request=request,
@@ -106,6 +128,42 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                     data={"detail": "You do not have access to any projects."},
                 )
+
+        visibility = serializer.validated_data.get("visibility")
+        if visibility:
+            org_query = GroupSearchView.objects.filter(
+                organization=organization,
+                visibility=GroupSearchViewVisibility.ORGANIZATION,
+            ).prefetch_related("projects")
+
+            owner_query = GroupSearchView.objects.filter(
+                organization=organization,
+                user_id=request.user.id,
+                visibility=GroupSearchViewVisibility.OWNER,
+            ).prefetch_related("projects")
+
+            param_query_map = {
+                GroupSearchViewVisibility.ORGANIZATION: org_query,
+                GroupSearchViewVisibility.OWNER: owner_query,
+            }
+
+            query_list = [param_query_map[v] for v in visibility]
+            query = reduce(or_, query_list)
+
+            return self.paginate(
+                request=request,
+                queryset=query,
+                order_by="id",
+                on_results=lambda x: serialize(
+                    x,
+                    request.user,
+                    serializer=GroupSearchViewSerializer(
+                        has_global_views=has_global_views,
+                        default_project=default_project,
+                        organization=organization,
+                    ),
+                ),
+            )
 
         starred_views = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
@@ -173,8 +231,11 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                             "name": view.name,
                             "query": view.query,
                             "querySort": view.query_sort,
-                            "projects": list(view.projects.values_list("id", flat=True)),
-                            "isAllProjects": view.is_all_projects,
+                            "projects": (
+                                [-1]
+                                if view.is_all_projects
+                                else list(view.projects.values_list("id", flat=True))
+                            ),
                             "environments": view.environments,
                             "timeFilters": view.time_filters,
                             "dateCreated": view.date_added,

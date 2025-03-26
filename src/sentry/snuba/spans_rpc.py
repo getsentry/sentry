@@ -31,7 +31,7 @@ from sentry.search.eap.utils import transform_binary_formula_to_expression
 from sentry.search.events.fields import is_function
 from sentry.search.events.types import EventsMeta, SnubaData, SnubaParams
 from sentry.snuba import rpc_dataset_common
-from sentry.snuba.discover import OTHER_KEY, create_result_key, zerofill
+from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
 
@@ -63,10 +63,15 @@ class ProcessedTimeseries:
     sample_count: SnubaData = field(default_factory=list)
 
 
-def get_resolver(params: SnubaParams, config: SearchResolverConfig) -> SearchResolver:
+def get_resolver(
+    params: SnubaParams,
+    config: SearchResolverConfig,
+    granularity_secs: int | None = None,
+) -> SearchResolver:
     return SearchResolver(
         params=params,
         config=config,
+        granularity_secs=granularity_secs,
         definitions=SPAN_DEFINITIONS,
     )
 
@@ -110,7 +115,7 @@ def get_timeseries_query(
     list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
     list[ResolvedAttribute],
 ]:
-    resolver = get_resolver(params=params, config=config)
+    resolver = get_resolver(params=params, config=config, granularity_secs=granularity_secs)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
     (functions, _) = resolver.resolve_functions(y_axes)
@@ -289,7 +294,7 @@ def run_top_events_timeseries_query(
     change this"""
     """Make a table query first to get what we need to filter by"""
     validate_granularity(params, granularity_secs)
-    search_resolver = get_resolver(params, config)
+    search_resolver = get_resolver(params=params, config=config, granularity_secs=granularity_secs)
     top_events = run_table_query(
         params,
         query_string,
@@ -362,6 +367,7 @@ def run_top_events_timeseries_query(
     # Top Events actually has the order, so we need to iterate through it, regenerate the result keys
     for index, row in enumerate(top_events["data"]):
         result_key = create_result_key(row, groupby_columns, {})
+        result_groupby = create_groupby_dict(row, groupby_columns, {})
         result = _process_all_timeseries(
             map_result_key_to_timeseries[result_key],
             params,
@@ -370,7 +376,9 @@ def run_top_events_timeseries_query(
         final_result[result_key] = SnubaTSResult(
             {
                 "data": result.timeseries,
+                "groupby": result_groupby,
                 "processed_timeseries": result,
+                "is_other": False,
                 "order": index,
                 "meta": final_meta,
             },
@@ -390,6 +398,8 @@ def run_top_events_timeseries_query(
                 "processed_timeseries": result,
                 "order": limit,
                 "meta": final_meta,
+                "groupby": None,
+                "is_other": True,
             },
             params.start,
             params.end,

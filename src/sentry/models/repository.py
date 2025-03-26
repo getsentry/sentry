@@ -10,7 +10,6 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -20,12 +19,17 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.array import ArrayField
+from sentry.db.pending_deletion import (
+    delete_pending_deletion_option,
+    rename_on_pending_deletion,
+    reset_pending_deletion_field_names,
+)
 from sentry.signals import pending_delete
 from sentry.users.services.user import RpcUser
 
 
 @region_silo_model
-class Repository(Model, PendingDeletionMixin):
+class Repository(Model):
     __relocation_scope__ = RelocationScope.Global
 
     organization_id = BoundedBigIntegerField(db_index=True)
@@ -48,8 +52,6 @@ class Repository(Model, PendingDeletionMixin):
         unique_together = (("organization_id", "provider", "external_id"),)
 
     __repr__ = sane_repr("organization_id", "name", "provider")
-
-    _rename_fields_on_pending_delete = frozenset(["name", "external_id"])
 
     def has_integration_provider(self):
         return self.provider and self.provider.startswith("integrations:")
@@ -80,23 +82,26 @@ class Repository(Model, PendingDeletionMixin):
             html_template="sentry/emails/unable-to-delete-repo.html",
         )
 
-    def rename_on_pending_deletion(
-        self,
-        fields: set[str] | None = None,
-        extra_fields_to_save: list[str] | None = None,
-    ) -> None:
+    # pending deletion implementation
+    _pending_fields = ("name", "external_id")
+
+    def rename_on_pending_deletion(self) -> None:
         # Due to the fact that Repository is shown to the user
         # as it is pending deletion, this is added to display the fields
         # correctly to the user.
         self.config["pending_deletion_name"] = self.name
-        super().rename_on_pending_deletion(fields, ["config"])
+        rename_on_pending_deletion(
+            self.organization_id, self, self._pending_fields, extra_fields_to_save=("config",)
+        )
 
-    def reset_pending_deletion_field_names(
-        self,
-        extra_fields_to_save: list[str] | None = None,
-    ) -> bool:
+    def reset_pending_deletion_field_names(self) -> bool:
         del self.config["pending_deletion_name"]
-        return super().reset_pending_deletion_field_names(["config"])
+        return reset_pending_deletion_field_names(
+            self.organization_id, self, self._pending_fields, extra_fields_to_save=("config",)
+        )
+
+    def delete_pending_deletion_option(self) -> None:
+        delete_pending_deletion_option(self.organization_id, self)
 
     @classmethod
     def sanitize_relocation_json(
@@ -145,4 +150,8 @@ def on_delete(instance, actor: RpcUser | None = None, **kwargs):
 
 
 pending_delete.connect(on_delete, sender=Repository, weak=False)
-pre_delete.connect(delete_pending_deletion_option, sender=Repository, weak=False)
+pre_delete.connect(
+    lambda instance, **k: instance.delete_pending_deletion_option(),
+    sender=Repository,
+    weak=False,
+)

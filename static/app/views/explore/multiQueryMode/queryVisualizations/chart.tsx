@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
@@ -36,7 +36,7 @@ import {
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries, showConfidence} from 'sentry/views/explore/utils';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -130,7 +130,7 @@ export function MultiQueryModeChart({
   ]);
 
   const {data, error, loading} = getSeries();
-  const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+  const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
 
   const visualizationType =
     queryParts.chartType === ChartType.LINE
@@ -319,13 +319,11 @@ export function MultiQueryModeChart({
         />
       }
       Footer={
-        showConfidence(isSampled) && (
-          <ConfidenceFooter
-            sampleCount={sampleCount}
-            confidence={confidence}
-            topEvents={isTopN ? numSeries : undefined}
-          />
-        )
+        <ConfidenceFooter
+          sampleCount={sampleCount}
+          confidence={confidence}
+          topEvents={isTopN ? numSeries : undefined}
+        />
       }
     />
   );

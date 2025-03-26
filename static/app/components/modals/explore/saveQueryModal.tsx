@@ -21,28 +21,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSetExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 
-export type SaveQueryModalProps = {
-  organization: Organization;
+type SingleQueryProps = {
   query: string;
-  saveQuery: (name: string) => Promise<SavedQuery>;
   visualizes: Visualize[];
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
+export type SaveQueryModalProps = {
+  organization: Organization;
+  queries: SingleQueryProps[];
+  saveQuery: (name: string) => Promise<SavedQuery>;
+};
+
 type Props = ModalRenderProps & SaveQueryModalProps;
 
-function SaveQueryModal({
-  Header,
-  Body,
-  Footer,
-  closeModal,
-  groupBys,
-  query,
-  visualizes,
-  saveQuery,
-}: Props) {
-  const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
-
+function SaveQueryModal({Header, Body, Footer, closeModal, queries, saveQuery}: Props) {
   const organization = useOrganization();
 
   const [name, setName] = useState('');
@@ -78,6 +71,10 @@ function SaveQueryModal({
     }
   }, [saveQuery, name, updatePageIdAndTitle, closeModal, organization]);
 
+  if (queries.length === 0) {
+    return null;
+  }
+
   return (
     <Fragment>
       <Header closeButton>
@@ -95,35 +92,9 @@ function SaveQueryModal({
         </Wrapper>
         <Wrapper>
           <SectionHeader>{t('Query')}</SectionHeader>
-          <ExploreParamsContainer>
-            <ExploreParamSection>
-              <ExploreParamTitle>{t('Visualize')}</ExploreParamTitle>
-              <ExploreParamSection>
-                {yAxes.map(yAxis => (
-                  <ExploreVisualizes key={yAxis}>{yAxis}</ExploreVisualizes>
-                ))}
-              </ExploreParamSection>
-            </ExploreParamSection>
-            {query && (
-              <ExploreParamSection>
-                <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-                <FormattedQueryWrapper>
-                  <FormattedQuery query={query} />
-                </FormattedQueryWrapper>
-              </ExploreParamSection>
-            )}
-            {groupBys && groupBys.length > 0 && (
-              <ExploreParamSection>
-                <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-                <ExploreParamSection>
-                  {groupBys.map(groupBy => (
-                    <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
-                  ))}
-                </ExploreParamSection>
-              </ExploreParamSection>
-            )}
-            <ExploreParamSection>...</ExploreParamSection>
-          </ExploreParamsContainer>
+          {queries.map((q, index) => (
+            <ExploreParams key={index} {...q} />
+          ))}
         </Wrapper>
       </Body>
 
@@ -138,6 +109,42 @@ function SaveQueryModal({
         </StyledButtonBar>
       </Footer>
     </Fragment>
+  );
+}
+
+function ExploreParams({query, visualizes, groupBys}: SingleQueryProps) {
+  const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
+
+  return (
+    <ExploreParamsContainer>
+      <ExploreParamSection>
+        <ExploreParamTitle>{t('Visualize')}</ExploreParamTitle>
+        <ExploreParamSection>
+          {yAxes.map(yAxis => (
+            <ExploreVisualizes key={yAxis}>{yAxis}</ExploreVisualizes>
+          ))}
+        </ExploreParamSection>
+      </ExploreParamSection>
+      {query && (
+        <ExploreParamSection>
+          <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
+          <FormattedQueryWrapper>
+            <FormattedQuery query={query} />
+          </FormattedQueryWrapper>
+        </ExploreParamSection>
+      )}
+      {groupBys && groupBys.length > 0 && (
+        <ExploreParamSection>
+          <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
+          <ExploreParamSection>
+            {groupBys.map(groupBy => (
+              <ExploreGroupBys key={groupBy}>{groupBy}</ExploreGroupBys>
+            ))}
+          </ExploreParamSection>
+        </ExploreParamSection>
+      )}
+      <ExploreParamSection>...</ExploreParamSection>
+    </ExploreParamsContainer>
   );
 }
 
@@ -174,6 +181,7 @@ const ExploreParamsContainer = styled('span')`
   flex-direction: row;
   gap: ${space(1)};
   flex-wrap: wrap;
+  margin-bottom: ${space(2)};
 `;
 
 const ExploreParamSection = styled('span')`
@@ -186,7 +194,7 @@ const ExploreParamSection = styled('span')`
 
 const ExploreParamTitle = styled('span')`
   font-size: ${p => p.theme.form.sm.fontSize};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   padding-top: 3px;
 `;

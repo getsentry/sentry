@@ -6,11 +6,13 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {newExploreTarget} from 'sentry/views/explore/contexts/pageParamsContext';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 import type {TimeSeries} from '../dashboards/widgets/common/types';
@@ -67,6 +69,50 @@ export function getExploreUrl({
       path: '/',
     }) + `?${qs.stringify(queryParams, {skipNull: true})}`
   );
+}
+
+export function getExploreMultiQueryUrl({
+  organization,
+  selection,
+  interval,
+  queries,
+  title,
+  id,
+}: {
+  interval: string;
+  mode: Mode;
+  organization: Organization;
+  queries: ReadableExploreQueryParts[];
+  selection: PageFilters;
+  id?: number;
+  title?: string;
+}) {
+  const {start, end, period: statsPeriod, utc} = selection.datetime;
+  const {environments, projects} = selection;
+  const queryParams = {
+    dataset: DiscoverDatasets.SPANS_EAP_RPC,
+    project: projects,
+    environment: environments,
+    statsPeriod,
+    start,
+    end,
+    interval,
+    queries: queries.map(({chartType, fields, groupBys, query, sortBys, yAxes}) =>
+      JSON.stringify({
+        chartType,
+        fields,
+        groupBys,
+        query,
+        sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
+        yAxes,
+      })
+    ),
+    title,
+    id,
+    utc,
+  };
+
+  return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function combineConfidenceForSeries(

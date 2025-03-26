@@ -127,6 +127,7 @@ IOS_MODELS: dict[str, str] = {
     "iPhone17,2": "iPhone 16 Pro Max",
     "iPhone17,3": "iPhone 16",
     "iPhone17,4": "iPhone 16 Plus",
+    "iPhone17,5": "iPhone 16e",
     # iPod Touch
     "iPod1,1": "iPod touch (1st gen)",
     "iPod2,1": "iPod touch (2nd gen)",

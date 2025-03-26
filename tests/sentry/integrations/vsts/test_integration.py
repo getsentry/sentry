@@ -17,7 +17,7 @@ from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
 from sentry.silo.base import SiloMode
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
@@ -186,7 +186,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert resp.status_code == 200, resp.content
         assert b"No accounts found" in resp.content
 
-        assert_failure_metric(mock_record, "no_accounts")
+        assert_halt_metric(mock_record, "no_accounts")
 
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_webhook_subscription_created_once(self, mock_get_scopes):

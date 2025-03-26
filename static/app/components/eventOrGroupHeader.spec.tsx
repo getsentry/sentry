@@ -44,13 +44,12 @@ describe('EventOrGroupHeader', function () {
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      render(<EventOrGroupHeader organization={organization} data={group} {...router} />);
+      render(<EventOrGroupHeader data={group} {...router} />);
     });
 
     it('renders with `type = csp`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             type: EventOrGroupType.CSP,
@@ -63,7 +62,6 @@ describe('EventOrGroupHeader', function () {
     it('renders with `type = default`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             type: EventOrGroupType.DEFAULT,
@@ -80,7 +78,6 @@ describe('EventOrGroupHeader', function () {
     it('renders metadata values in message for error events', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             type: EventOrGroupType.ERROR,
@@ -95,7 +92,6 @@ describe('EventOrGroupHeader', function () {
     it('renders location', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             metadata: {
@@ -120,13 +116,9 @@ describe('EventOrGroupHeader', function () {
         body: group,
       });
 
-      render(
-        <EventOrGroupHeader
-          organization={{...organization, features: ['issue-stream-table-layout']}}
-          data={group}
-          {...router}
-        />
-      );
+      render(<EventOrGroupHeader data={group} {...router} />, {
+        organization: {...organization, features: ['issue-stream-table-layout']},
+      });
 
       const groupLink = screen.getByRole('link');
 
@@ -144,7 +136,6 @@ describe('EventOrGroupHeader', function () {
     it('renders with `type = error`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={EventFixture({
             ...event,
             type: EventOrGroupType.ERROR,
@@ -157,7 +148,6 @@ describe('EventOrGroupHeader', function () {
     it('renders with `type = csp`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.CSP,
@@ -170,7 +160,6 @@ describe('EventOrGroupHeader', function () {
     it('renders with `type = default`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -188,7 +177,6 @@ describe('EventOrGroupHeader', function () {
       render(
         <EventOrGroupHeader
           hideLevel
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -204,7 +192,6 @@ describe('EventOrGroupHeader', function () {
     it('keeps sort in link when query has sort', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -233,7 +220,6 @@ describe('EventOrGroupHeader', function () {
     it('lack of project adds all parameter', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -260,7 +246,6 @@ describe('EventOrGroupHeader', function () {
   it('renders group tombstone without link to group', function () {
     render(
       <EventOrGroupHeader
-        organization={organization}
         data={{
           id: '123',
           level: 'error',

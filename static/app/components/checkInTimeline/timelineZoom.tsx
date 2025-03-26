@@ -167,7 +167,7 @@ function useTimelineZoom<E extends HTMLElement>({enabled = true, onSelect}: Opti
   return {selectionContainerRef: containerRef, isActive, timelineSelector};
 }
 
-const Selection = styled(motion.div)`
+const Selection = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   pointer-events: none;
   background: ${p => p.theme.translucentBorder};
   border-left: 1px solid ${p => p.theme.purple200};

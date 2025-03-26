@@ -1,14 +1,19 @@
+import styled from '@emotion/styled';
+
 import {IconChevron} from 'sentry/icons';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
-type Props = {
-  isHover?: boolean;
-  isLast?: boolean;
-};
+const ChonkDivider = chonkStyled(IconChevron)`
+color: ${p => p.theme.subText};
+`;
 
-function Divider({isHover, isLast}: Props) {
-  return isLast ? null : (
-    <IconChevron color="gray200" direction={isHover ? 'down' : 'right'} size="xs" />
-  );
+const Icon = styled(IconChevron)`
+  color: ${p => p.theme.gray200};
+`;
+
+const DividerIcon = withChonk(Icon, ChonkDivider);
+
+export default function Divider({isHover}: {isHover?: boolean}) {
+  return <DividerIcon direction={isHover ? 'down' : 'right'} size="xs" />;
 }
-
-export default Divider;
