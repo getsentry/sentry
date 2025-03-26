@@ -226,23 +226,28 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.post(GitLabApiClientPath.issues.format(project=project), data=data)
 
-    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]):
+    def create_comment(self, repo: Repository, issue_id: str, data: dict[str, Any]):
         """Create an issue note/comment
 
         See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
         """
         return self.post(
-            GitLabApiClientPath.create_note.format(project=repo, issue_id=issue_id), data=data
+            GitLabApiClientPath.create_note.format(
+                project=repo.config["project_id"], issue_id=issue_id
+            ),
+            data=data,
         )
 
-    def update_comment(self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]):
+    def update_comment(
+        self, repo: Repository, issue_id: str, comment_id: str, data: dict[str, Any]
+    ):
         """Modify existing issue note
 
         See https://docs.gitlab.com/ee/api/notes.html#modify-existing-issue-note
         """
         return self.put(
             GitLabApiClientPath.update_note.format(
-                project=repo, issue_id=issue_id, note_id=comment_id
+                project=repo.config["project_id"], issue_id=issue_id, note_id=comment_id
             ),
             data=data,
         )
@@ -309,7 +314,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         """
         return self.get_cached(GitLabApiClientPath.commit.format(project=project_id, sha=sha))
 
-    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+    def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         raise IntegrationFeatureNotImplementedError
 
     def compare_commits(self, project_id, start_sha, end_sha):
