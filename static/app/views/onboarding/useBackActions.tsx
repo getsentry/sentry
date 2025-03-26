@@ -1,9 +1,9 @@
-import {useCallback, useContext} from 'react';
+import {useCallback} from 'react';
 import {useBlocker} from 'react-router-dom';
 import type {useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useOnboardingSDK} from 'sentry/components/onboarding/useOnboardingSDK';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,28 +32,17 @@ export function useBackActions({
 }) {
   const api = useApi();
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
+  const onboardingSDK = useOnboardingSDK();
   const currentStep = onboardingSteps[stepIndex];
 
   const deleteRecentCreatedProject = useCallback(async () => {
     if (!recentCreatedProject) {
       return;
     }
-    const currentProjects = {...onboardingContext.data.projects};
-    const newProjects = Object.keys(currentProjects).reduce((acc, key) => {
-      if (currentProjects[key]!.slug !== onboardingContext.data.selectedSDK?.key) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        acc[key] = currentProjects[key];
-      }
-      return acc;
-    }, {});
+
+    onboardingSDK.setSelectedSDK(undefined);
 
     try {
-      onboardingContext.setData({
-        ...onboardingContext.data,
-        projects: newProjects,
-        selectedSDK: undefined,
-      });
       await removeProject({
         api,
         orgSlug: organization.slug,
@@ -68,19 +57,10 @@ export function useBackActions({
         project_id: recentCreatedProject.id,
       });
     } catch (error) {
-      onboardingContext.setData({
-        ...onboardingContext.data,
-        projects: currentProjects,
-      });
-      onboardingContext.setData({
-        ...onboardingContext.data,
-        projects: currentProjects,
-        selectedSDK: undefined,
-      });
       handleXhrErrorResponse('Unable to delete project in onboarding', error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
-  }, [api, organization, onboardingContext, recentCreatedProject]);
+  }, [api, organization, onboardingSDK, recentCreatedProject]);
 
   const backStepActions = useCallback(
     ({
@@ -110,7 +90,7 @@ export function useBackActions({
 
       // from selected platform to welcome
       if (currentStep.id === 'select-platform') {
-        onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+        onboardingSDK.setSelectedSDK(undefined);
 
         if (!browserBackButton) {
           goToStep(prevStep);
@@ -141,7 +121,7 @@ export function useBackActions({
       goToStep,
       organization,
       cornerVariantControl,
-      onboardingContext,
+      onboardingSDK,
       isRecentCreatedProjectActive,
       recentCreatedProject,
       currentStep,

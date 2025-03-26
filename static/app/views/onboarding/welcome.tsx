@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {MotionProps} from 'framer-motion';
 import {motion} from 'framer-motion';
@@ -7,7 +7,7 @@ import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useOnboardingSDK} from 'sentry/components/onboarding/useOnboardingSDK';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,7 +50,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 
 function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
+  const onboardingSDK = useOnboardingSDK();
   const {activateSidebar} = useOnboardingSidebar();
 
   const source = 'targeted_onboarding';
@@ -61,11 +61,11 @@ function TargetedOnboardingWelcome(props: StepProps) {
       source,
     });
 
-    if (onboardingContext.data.selectedSDK) {
+    if (onboardingSDK.selectedSDK) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
+      onboardingSDK.setSelectedSDK(undefined);
     }
-  }, [organization, onboardingContext]);
+  }, [organization, onboardingSDK]);
 
   const handleComplete = useCallback(() => {
     trackAnalytics('growth.onboarding_clicked_instrument_app', {

@@ -1,4 +1,4 @@
-import {useCallback, useContext} from 'react';
+import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {
@@ -9,13 +9,10 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useOnboardingSDK} from 'sentry/components/onboarding/useOnboardingSDK';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {
-  OnboardingProjectStatus,
-  type OnboardingSelectedSDK,
-} from 'sentry/types/onboarding';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
@@ -36,7 +33,7 @@ export function useConfigureSdk({
   const {teams} = useTeams();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
+  const onboardingSDK = useOnboardingSDK();
 
   const createPlatformProject = useCallback(
     async (selectedPlatform?: OnboardingSelectedSDK) => {
@@ -51,10 +48,7 @@ export function useConfigureSdk({
         : selectedPlatform;
 
       if (!createProjectForPlatform) {
-        onboardingContext.setData({
-          ...onboardingContext.data,
-          selectedSDK: selectedPlatform,
-        });
+        onboardingSDK.setSelectedSDK(selectedPlatform);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -81,29 +75,7 @@ export function useConfigureSdk({
 
         ProjectsStore.onCreateSuccess(response, organization.slug);
 
-        // Measure to filter out projects that might have been created during the onboarding and not deleted from the session due to an error
-        // Note: in the onboarding flow the projects are created based on the platform slug
-        const newProjects = Object.keys(onboardingContext.data.projects).reduce(
-          (acc, key) => {
-            if (onboardingContext.data.projects[key]!.slug !== response.slug) {
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              acc[key] = onboardingContext.data.projects[key];
-            }
-            return acc;
-          },
-          {}
-        );
-
-        onboardingContext.setData({
-          selectedSDK: createProjectForPlatform,
-          projects: {
-            ...newProjects,
-            [response.id]: {
-              slug: response.slug,
-              status: OnboardingProjectStatus.WAITING,
-            },
-          },
-        });
+        onboardingSDK.setSelectedSDK(createProjectForPlatform);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -117,7 +89,7 @@ export function useConfigureSdk({
         Sentry.captureException(err);
       }
     },
-    [onboardingContext, api, organization, teams, projects, onComplete]
+    [onboardingSDK, api, organization, teams, projects, onComplete]
   );
 
   const configureSdk = useCallback(
@@ -160,15 +132,12 @@ export function useConfigureSdk({
               platform: selectedPlatform.key,
               organization,
             });
-            onboardingContext.setData({
-              ...onboardingContext.data,
-              selectedSDK: undefined,
-            });
+            onboardingSDK.setSelectedSDK(undefined);
           },
         }
       );
     },
-    [createPlatformProject, onboardingContext, organization]
+    [createPlatformProject, onboardingSDK, organization]
   );
 
   return {configureSdk};
