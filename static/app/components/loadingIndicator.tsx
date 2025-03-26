@@ -5,6 +5,7 @@ type Props = {
   children?: React.ReactNode;
   className?: string;
   dark?: boolean;
+  ['data-test-id']?: string;
   hideMessage?: boolean;
   hideSpinner?: boolean;
   mini?: boolean;
@@ -26,6 +27,7 @@ function LoadingIndicator(props: Props) {
     relative,
     size,
     hideSpinner,
+    ['data-test-id']: dataTestId,
   } = props;
   const cx = classNames(className, {
     overlay,
@@ -48,7 +50,7 @@ function LoadingIndicator(props: Props) {
   }
 
   return (
-    <div className={cx} style={style} data-test-id="loading-indicator">
+    <div className={cx} style={style} data-test-id={dataTestId ?? 'loading-indicator'}>
       {!hideSpinner && <div className={loadingCx} style={loadingStyle} />}
       {!hideMessage && <div className="loading-message">{children}</div>}
     </div>
