@@ -50,9 +50,11 @@ const HIGH_FIDELITY_QUERY_EXTRAS = {
 export const useExploreTimeseries = ({
   query,
   enabled,
+  queryMode,
 }: {
   enabled: boolean;
   query: string;
+  queryMode: 'serial' | 'parallel';
 }) => {
   const organization = useOrganization();
   const canUseProgressiveLoading = organization.features.includes(
@@ -79,7 +81,10 @@ export const useExploreTimeseries = ({
     canUsePreviousResults: canUsePreviousHighFidelityResults,
   } = useExploreTimeseriesImpl({
     query,
-    enabled: enabled && canUseProgressiveLoading,
+    enabled:
+      enabled &&
+      canUseProgressiveLoading &&
+      (queryMode === 'parallel' || lowFidelityTimeseriesResult.isFetched),
     queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
   });
 
@@ -94,14 +99,14 @@ export const useExploreTimeseries = ({
     return {
       timeseriesResult: highFidelityTimeseriesResult,
       canUsePreviousResults: canUsePreviousHighFidelityResults,
-      isFetchingHighFidelityData: false,
+      fidelity: 'high',
     };
   }
 
   return {
     timeseriesResult: lowFidelityTimeseriesResult,
     canUsePreviousResults: canUsePreviousLowFidelityResults,
-    isFetchingHighFidelityData: true,
+    fidelity: 'low',
   };
 };
 

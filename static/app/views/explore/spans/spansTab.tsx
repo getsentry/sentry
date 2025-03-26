@@ -132,11 +132,15 @@ export function SpansTabContentImpl({
     enabled: isAllowedSelection && queryType === 'traces',
   });
 
-  const {timeseriesResult, canUsePreviousResults, isFetchingHighFidelityData} =
-    useExploreTimeseries({
-      query,
-      enabled: isAllowedSelection,
-    });
+  const {
+    timeseriesResult,
+    canUsePreviousResults,
+    fidelity: timeseriesFidelity,
+  } = useExploreTimeseries({
+    query,
+    enabled: isAllowedSelection,
+    queryMode: 'serial',
+  });
 
   const confidences = useMemo(
     () =>
@@ -259,7 +263,7 @@ export function SpansTabContentImpl({
             confidences={confidences}
             query={query}
             timeseriesResult={timeseriesResult}
-            isProgressivelyLoading={isFetchingHighFidelityData}
+            isProgressivelyLoading={timeseriesFidelity !== 'high'}
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}
