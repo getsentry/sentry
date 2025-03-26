@@ -255,7 +255,7 @@ class SpansBuffer:
         segment_ids = []
         queue_sizes = []
 
-        with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
+        with metrics.timer("spans.buffer.flush_segments.load_span_ids"):
             with self.client.pipeline(transaction=False) as p:
                 # ZRANGEBYSCORE output
                 for segment_span_ids in result:
@@ -267,7 +267,7 @@ class SpansBuffer:
                     # ZCARD output
                     queue_sizes.append(next(result))
 
-                segments = p.execute()
+                segment_span_ids = p.execute()
 
         for shard_i, queue_size in zip(self.assigned_shards, queue_sizes):
             metrics.timing(
@@ -276,36 +276,50 @@ class SpansBuffer:
                 tags={"shard_i": shard_i},
             )
 
+        batches_per_segment = []
+        with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
+            with self.client.pipeline(transaction=False) as p:
+                for segment_id, span_ids in zip(segment_ids, segment_span_ids):
+                    batches = list(itertools.batched(span_ids, 10000))
+                    batches_per_segment.append(len(batches))
+                    for batch in batches:
+                        project_id, trace_id, _ = parse_segment_id(segment_id)
+                        payload_map_key = b"span-buf:p:{%s:%s}" % (project_id, trace_id)
+                        p.hmget(payload_map_key, batch)
+
+                segments = iter(p.execute())
+
         return_segments = {}
 
-        for segment_id, segment in zip(segment_ids, segments):
+        for segment_id, num_batches in zip(segment_ids, batches_per_segment):
             segment_span_id = _segment_to_span_id(segment_id).decode("ascii")
 
             return_segment = []
-            metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
-            for payload in segment:
-                val = rapidjson.loads(payload)
-                old_segment_id = val.get("segment_id")
-                if old_segment_id:
-                    val_data = val.setdefault("data", {})
-                    if isinstance(val_data, dict):
-                        val_data["__sentry_internal_old_segment_id"] = old_segment_id
-                val["segment_id"] = segment_span_id
-                is_segment = val["is_segment"] = segment_span_id == val["span_id"]
+            for _ in range(num_batches):
+                for payload in next(segments):
+                    val = rapidjson.loads(payload)
+                    old_segment_id = val.get("segment_id")
+                    if old_segment_id:
+                        val_data = val.setdefault("data", {})
+                        if isinstance(val_data, dict):
+                            val_data["__sentry_internal_old_segment_id"] = old_segment_id
+                    val["segment_id"] = segment_span_id
+                    is_segment = val["is_segment"] = segment_span_id == val["span_id"]
 
-                outcome = "same" if old_segment_id == segment_span_id else "different"
+                    outcome = "same" if old_segment_id == segment_span_id else "different"
 
-                metrics.incr(
-                    "spans.buffer.flush_segments.is_same_segment",
-                    tags={
-                        "outcome": outcome,
-                        "is_segment_span": is_segment,
-                        "old_segment_is_null": "true" if old_segment_id is None else "false",
-                    },
-                )
+                    metrics.incr(
+                        "spans.buffer.flush_segments.is_same_segment",
+                        tags={
+                            "outcome": outcome,
+                            "is_segment_span": is_segment,
+                            "old_segment_is_null": "true" if old_segment_id is None else "false",
+                        },
+                    )
 
-                return_segment.append(OutputSpan(payload=val))
+                    return_segment.append(OutputSpan(payload=val))
 
+            metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(return_segment))
             return_segments[segment_id] = return_segment
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
 
@@ -317,23 +331,23 @@ class SpansBuffer:
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
                 for segment_id, output_spans in segment_ids.items():
-                    hrs_key = b"span-buf:hrs:" + segment_id
-                    p.get(hrs_key)
-                    p.delete(hrs_key)
+                    has_root_span_key = b"span-buf:hrs:" + segment_id
+                    p.get(has_root_span_key)
+                    p.delete(has_root_span_key)
                     p.delete(segment_id)
 
                     project_id, trace_id, _ = parse_segment_id(segment_id)
                     redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
+                    payload_map_key = b"span-buf:p:{%s:%s}" % (project_id, trace_id)
                     shard = self.assigned_shards[int(trace_id, 16) % len(self.assigned_shards)]
                     p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
 
                     i = 0
                     for span_batch in itertools.batched(output_spans, 100):
                         i += 1
-                        p.hdel(
-                            redirect_map_key,
-                            *[output_span.payload["span_id"] for output_span in span_batch],
-                        )
+                        span_ids = [output_span.payload["span_id"] for output_span in span_batch]
+                        p.hdel(redirect_map_key, *span_ids)
+                        p.hdel(payload_map_key, *span_ids)
 
                     num_hdels.append(i)
 
@@ -348,6 +362,7 @@ class SpansBuffer:
                 next(results)  # DEL segment_id
                 next(results)  # ZREM ...
                 for _ in range(num_hdel):  # HDEL ...
-                    next(results)
+                    next(results)  # redirect_map_key
+                    next(results)  # payload_map_key
 
             metrics.timing("spans.buffer.done_flush_segments.has_root_span", has_root_span_count)
