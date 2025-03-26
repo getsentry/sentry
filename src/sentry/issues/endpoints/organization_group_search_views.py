@@ -1,7 +1,6 @@
 from functools import reduce
 from operator import or_
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request
