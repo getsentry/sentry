@@ -540,8 +540,8 @@ def find_roots(frame_filename: FrameInfo, source_path: str) -> tuple[str, str]:
     elif source_path.endswith(stack_path):  # "Packaged" logic
         source_prefix = source_path.rpartition(stack_path)[0]
         return (
-            f"{stack_root}{frame_filename.stack_root}/",
-            f"{source_prefix}{frame_filename.stack_root}/",
+            f"{stack_root}{frame_filename.stack_root}/".replace("//", "/"),
+            f"{source_prefix}{frame_filename.stack_root}/".replace("//", "/"),
         )
     elif stack_path.endswith(source_path):
         stack_prefix = stack_path.rpartition(source_path)[0]
@@ -594,11 +594,16 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
         raise DoesNotFollowJavaPackageNamingConvention
 
     parts = module.split(".")
-    # Take the first two parts of the module
-    stack_root = "/".join(parts[:2])
-    file_path = "/".join(parts[:-1]) + "/" + abs_path
 
-    # com.example.foo.Bar$InnerClass, Bar.kt ->
-    #    stack_root: com/example/
-    #    file_path:  com/example/foo/Bar.kt
+    if len(parts) > 2:
+        # com.example.foo.bar.Baz$InnerClass, Baz.kt ->
+        #    stack_root: com/example/
+        #    file_path:  com/example/foo/bar/Baz.kt
+        stack_root = "/".join(parts[:2])
+        file_path = "/".join(parts[:-1]) + "/" + abs_path
+    else:
+        # a.Bar, Bar.kt -> stack_root: a/, file_path:  a/Bar.kt
+        stack_root = parts[0] + "/"
+        file_path = f"{stack_root}{abs_path}"
+
     return stack_root, file_path
