@@ -2,11 +2,11 @@ import {forwardRef, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSliderThumb} from '@react-aria/slider';
+import {mergeRefs} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SliderState} from '@react-stately/slider';
 
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 export interface SliderThumbProps extends Omit<AriaSliderThumbOptions, 'inputRef'> {
   getFormattedValue: (value: number) => React.ReactNode;
@@ -55,7 +55,7 @@ function BaseSliderThumb(
         </SliderThumbLabel>
       )}
       <VisuallyHidden>
-        <input ref={mergeRefs([inputRef, forwardedRef])} {...inputProps} />
+        <input ref={mergeRefs(inputRef, forwardedRef)} {...inputProps} />
       </VisuallyHidden>
     </SliderThumbWrap>
   );
