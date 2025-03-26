@@ -217,7 +217,7 @@ function findChildElementsInTree(
       return;
     }
 
-    if ((child.props as any)?.children) {
+    if ((child?.props as any)?.children) {
       findChildElementsInTree((child.props as any).children, componentName, found);
       return;
     }
