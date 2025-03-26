@@ -4,6 +4,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
@@ -12,6 +14,7 @@ import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -168,18 +171,24 @@ const addNewCredentials = (
   organization: Organization,
   project: Project
 ) => (
-  <Tooltip
-    title={t('You must be an organization admin to add new credentials.')}
-    disabled={hasWriteAccess}
-  >
-    <Button
-      priority="primary"
-      size="sm"
-      data-test-id="create-new-credentials"
-      disabled={!hasWriteAccess}
-      onClick={() => openAddTempestCredentialsModal({organization, project})}
-    >
-      {t('Add Credentials')}
-    </Button>
-  </Tooltip>
+  <Fragment>
+    <ButtonBar gap={1.5}>
+      <FeedbackWidgetButton />
+      <Tooltip
+        title={t('You must be an organization admin to add new credentials.')}
+        disabled={hasWriteAccess}
+      >
+        <Button
+          priority="primary"
+          size="sm"
+          data-test-id="create-new-credentials"
+          disabled={!hasWriteAccess}
+          icon={<IconAdd isCircled />}
+          onClick={() => openAddTempestCredentialsModal({organization, project})}
+        >
+          {t('Add Credentials')}
+        </Button>
+      </Tooltip>
+    </ButtonBar>
+  </Fragment>
 );
