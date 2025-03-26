@@ -1,15 +1,19 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {css} from '@emotion/react';
+import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {Flex} from 'sentry/components/container/flex';
 import {Button} from 'sentry/components/core/button';
-import SelectAsyncField from 'sentry/components/deprecatedforms/selectAsyncField';
 import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import type {Commit} from 'sentry/types/integrations';
+import {keepPreviousData, useApiQuery} from 'sentry/utils/queryClient';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;
@@ -26,26 +30,28 @@ function CustomCommitsResolutionModal({
   Body,
   Footer,
 }: CustomCommitsResolutionModalProps) {
+  const [searchQuery, setSearchQuery] = useState('');
   const [commit, setCommit] = useState<Commit | undefined>();
-  const [commits, setCommits] = useState<Commit[] | undefined>();
 
-  const onChange = (value: string | number | boolean) => {
-    setCommit(commits?.find(result => result.id === value));
-  };
+  const debouncedSetSearch = useMemo(
+    () =>
+      debounce(newSearch => {
+        setSearchQuery(newSearch);
+      }, 250),
+    []
+  );
 
-  const onAsyncFieldResults = (results: Commit[]) => {
-    setCommits(results);
-    return results.map(c => ({
-      value: c.id,
-      label: <Version version={c.id} anchor={false} />,
-      details: (
-        <span>
-          {t('Created')} <TimeSince date={c.dateCreated} />
-        </span>
-      ),
-      c,
-    }));
-  };
+  const {data: commits, isPending} = useApiQuery<Commit[]>(
+    [
+      `/projects/${orgSlug}/${projectSlug}/commits/`,
+      {
+        query: {
+          query: searchQuery,
+        },
+      },
+    ],
+    {staleTime: 30_000, placeholderData: keepPreviousData}
+  );
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,18 +70,35 @@ function CustomCommitsResolutionModal({
         <h4>{t('Resolved In')}</h4>
       </Header>
       <Body>
-        <SelectAsyncField
-          label={t('Commit')}
-          id="commit"
-          name="commit"
-          onChange={onChange}
-          placeholder={t('e.g. d86b832')}
-          url={`/projects/${orgSlug}/${projectSlug}/commits/`}
-          onResults={onAsyncFieldResults}
-          onQuery={(query: any) => ({
-            query,
-          })}
-        />
+        <Flex>
+          <StyledCompactSelect
+            searchable
+            value={commit?.id ?? ''}
+            onChange={selectedOption => {
+              setCommit(commits?.find(result => result.id === selectedOption.value));
+            }}
+            options={
+              commits?.map(
+                (c): SelectOption<string> => ({
+                  value: c.id,
+                  textValue: c.id,
+                  label: <Version version={c.id} anchor={false} />,
+                  details: (
+                    <span>
+                      {t('Created')} <TimeSince date={c.dateCreated} />
+                    </span>
+                  ),
+                })
+              ) ?? []
+            }
+            searchPlaceholder={t('e.g. d86b832')}
+            loading={isPending}
+            onSearch={debouncedSetSearch}
+            triggerLabel={
+              commit ? <Version version={commit.id} anchor={false} /> : t('Select Commit')
+            }
+          />
+        </Flex>
       </Body>
       <Footer>
         <Button
@@ -95,3 +118,11 @@ function CustomCommitsResolutionModal({
 }
 
 export default CustomCommitsResolutionModal;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  flex-grow: 1;
+
+  > button {
+    width: 100%;
+  }
+`;
