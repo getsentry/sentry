@@ -768,10 +768,7 @@ class SpanTree extends Component<PropType> {
     }
 
     return (
-      <TraceViewContainer
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={this.props.traceViewRef}
-      >
+      <TraceViewContainer ref={this.props.traceViewRef}>
         <WindowScroller onScroll={this.throttledOnScroll}>
           {({height, isScrolling, onChildScroll, scrollTop}) => (
             <AutoSizer disableHeight>

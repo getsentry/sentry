@@ -422,7 +422,6 @@ function TransactionBar(props: Props) {
 
     return (
       <DividerLine
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -459,7 +458,6 @@ function TransactionBar(props: Props) {
         }}
       >
         <DividerLine
-          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={addGhostDividerLineRef()}
           style={{
             right: 0,

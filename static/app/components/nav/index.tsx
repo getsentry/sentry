@@ -9,10 +9,7 @@ function Nav() {
   const {layout, navParentRef} = useNavContext();
 
   return (
-    <NavContainer
-      // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-      ref={navParentRef}
-    >
+    <NavContainer ref={navParentRef}>
       {layout === NavLayout.SIDEBAR ? <Sidebar /> : <MobileTopbar />}
     </NavContainer>
   );

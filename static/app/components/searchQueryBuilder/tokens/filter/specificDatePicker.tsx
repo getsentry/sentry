@@ -107,7 +107,6 @@ function SpecificDatePicker({
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SearchBarDatePickerOverlay
         data-test-id="specific-date-picker"
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={popoverRef}
         // Otherwise clicks will propagate to the grid and close the dropdown
         onClick={e => e.stopPropagation()}

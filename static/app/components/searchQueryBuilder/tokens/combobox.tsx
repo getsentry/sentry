@@ -277,13 +277,9 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <ListBoxOverlay
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={popoverRef}
-      >
+      <ListBoxOverlay ref={popoverRef}>
         <ListBox
           {...listBoxProps}
-          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={!!filterValue}

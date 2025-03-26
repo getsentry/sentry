@@ -68,10 +68,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
   const valueListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={popoverRef}
-      >
+      <SectionedOverlay ref={popoverRef}>
         {isLoading && hiddenOptions.size >= totalOptions ? (
           <LoadingWrapper>
             <LoadingIndicator mini />
@@ -80,7 +77,6 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
           <Fragment>
             <StyledListBox
               {...listBoxProps}
-              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={listBoxRef}
               listState={state}
               hasSearch={!!filterValue}

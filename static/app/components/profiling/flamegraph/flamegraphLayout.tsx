@@ -293,7 +293,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
           {cloneElement(props.flamegraphDrawer, {
             onResize: onMouseDown,
             onResizeReset: onDoubleClick,
-          })}
+          } as any)}
         </FlamegraphDrawerContainer>
       </FlamegraphGrid>
     </FlamegraphLayoutContainer>
