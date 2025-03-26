@@ -431,8 +431,6 @@ describe('AddDataVolume for legacy plans', function () {
   });
 });
 
-// TODO(isabella): temporarily skipping some tests here that rely on the new checkout steps to
-// be added to checkout flow
 describe('AddDataVolume for modern plans', function () {
   const api = new MockApiClient();
   const {organization, router, routerProps} = initializeOrg();
@@ -481,8 +479,7 @@ describe('AddDataVolume for modern plans', function () {
     });
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('renders a heading', async function () {
+  it('renders a heading', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -504,8 +501,7 @@ describe('AddDataVolume for modern plans', function () {
     expect(heading).toBeInTheDocument();
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('renders with default event volumes', async function () {
+  it('renders with default event volumes', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -667,8 +663,7 @@ describe('AddDataVolume for modern plans', function () {
     ]);
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('can complete step', async function () {
+  it('can complete step', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',

@@ -76,7 +76,7 @@ export function getCategoryOptions({
 }): CategoryOption[] {
   return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
     opt =>
-      plan.categories.includes(opt.value as DataCategory) &&
+      plan.checkoutCategories.includes(opt.value as DataCategory) &&
       (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
   );
 }
