@@ -162,8 +162,9 @@ export function hasFileExtension(filepath: string) {
  * @param event The event to extract the origin from
  * @returns The origin URL string, or empty string if not found/invalid
  */
-function extractEventOrigin(event: Event): string {
-  const urlTag = event.tags.find(({key}) => key === 'url');
+function extractEventOrigin(event: {tags: Event['tags'] | null}): string {
+  // TODO(ts): tags can be null for shared issues
+  const urlTag = event.tags?.find(({key}) => key === 'url');
 
   if (!urlTag?.value) {
     return '';
