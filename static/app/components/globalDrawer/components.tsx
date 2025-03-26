@@ -4,6 +4,7 @@ import {
   Fragment,
   useCallback,
   useContext,
+  useRef,
   useState,
 } from 'react';
 import styled from '@emotion/styled';
@@ -57,7 +58,7 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
   }: DrawerPanelProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
-  const [isResizing, setIsResizing] = useState(false);
+  const resizeHandleRef = useRef<HTMLDivElement>(null);
 
   // Calculate initial width from props or default to 50%
   const calculateInitialWidth = (savedWidth?: number) => {
@@ -89,7 +90,7 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
     return 50; // Default to 50%
   };
 
-  // Use normal state for when no drawerKey is provided
+  // Use normal state for the initial width and persisted width
   const [localWidthPercent, setLocalWidthPercent] = useState<number>(() =>
     calculateInitialWidth()
   );
@@ -110,24 +111,54 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      setIsResizing(true);
+
+      const handle = resizeHandleRef.current;
+      if (!handle) {
+        return;
+      }
+      const panel = handle.closest('.drawer-panel') as HTMLElement;
+      if (!panel) {
+        return;
+      }
+      handle.setAttribute('data-resizing', 'true');
+
+      const viewportWidth = window.innerWidth;
+      const minWidthPercent = 30;
+      const maxWidthPercent = 85;
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         moveEvent.preventDefault();
-        const viewportWidth = window.innerWidth;
         const newWidthPercent =
           ((viewportWidth - moveEvent.clientX) / viewportWidth) * 100;
-        const minWidthPercent = 30;
-        const maxWidthPercent = 85;
         const clampedWidthPercent = Math.min(
           Math.max(newWidthPercent, minWidthPercent),
           maxWidthPercent
         );
-        setWidthPercent(clampedWidthPercent);
+
+        panel.style.width = `${clampedWidthPercent}%`;
+
+        if (handle) {
+          handle.setAttribute(
+            'data-at-min-width',
+            (clampedWidthPercent <= minWidthPercent).toString()
+          );
+          handle.setAttribute(
+            'data-at-max-width',
+            (Math.abs(clampedWidthPercent - maxWidthPercent) < 1).toString()
+          );
+        }
       };
 
       const handleMouseUp = () => {
-        setIsResizing(false);
+        if (handle) {
+          handle.removeAttribute('data-resizing');
+        }
+
+        if (panel) {
+          const currentWidth = parseFloat(panel.style.width) || widthPercent;
+          setWidthPercent(currentWidth);
+        }
+
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
       };
@@ -135,7 +166,7 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [setWidthPercent]
+    [setWidthPercent, widthPercent]
   );
 
   const minWidthPercent = 30;
@@ -156,10 +187,10 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
       >
         {drawerKey && (
           <ResizeHandle
+            ref={resizeHandleRef}
             onMouseDown={handleResizeStart}
-            isResizing={isResizing}
-            isAtMinWidth={isAtMinWidth}
-            isAtMaxWidth={isAtMaxWidth}
+            data-at-min-width={isAtMinWidth.toString()}
+            data-at-max-width={isAtMaxWidth.toString()}
           />
         )}
         <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
@@ -259,26 +290,22 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   pointer-events: auto;
 `;
 
-const ResizeHandle = styled('div')<{
-  isResizing: boolean;
-  isAtMaxWidth?: boolean;
-  isAtMinWidth?: boolean;
-}>`
+const ResizeHandle = styled('div')`
   position: absolute;
   left: -4px;
   top: 0;
   bottom: 0;
-  width: 8px;
-  cursor: ${p => {
-    if (p.isAtMinWidth) {
-      return 'w-resize';
-    }
-    if (p.isAtMaxWidth) {
-      return 'e-resize';
-    }
-    return 'ew-resize';
-  }};
+  width: 16px;
+  cursor: ew-resize;
   z-index: ${p => p.theme.zIndex.drawer + 2};
+
+  &[data-at-min-width='true'] {
+    cursor: w-resize;
+  }
+
+  &[data-at-max-width='true'] {
+    cursor: e-resize;
+  }
 
   &:hover,
   &:active {
@@ -295,8 +322,12 @@ const ResizeHandle = styled('div')<{
     bottom: 0;
     width: 4px;
     opacity: 0.8;
-    background: ${p => (p.isResizing ? p.theme.purple400 : 'transparent')};
+    background: transparent;
     transition: background 0.1s ease;
+  }
+
+  &[data-resizing='true']::after {
+    background: ${p => p.theme.purple400};
   }
 `;
 
