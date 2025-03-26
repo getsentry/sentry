@@ -1577,6 +1577,7 @@ function buildRoutes() {
           () => import('sentry/views/performance/transactionSummary/transactionOverview')
         )}
       />
+      {traceViewRoute}
       <Route
         path="replays/"
         component={make(
