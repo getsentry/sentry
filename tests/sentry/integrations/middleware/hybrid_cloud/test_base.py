@@ -187,4 +187,4 @@ class BaseRequestParserTest(TestCase):
             parser.get_organizations_from_integration(integration)
 
         assert mock_record.call_count == 2
-        assert_halt_metric(mock_record, MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST.value)
+        assert_halt_metric(mock_record, MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST)
