@@ -171,7 +171,5 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             "teams": [t["id"] for t in teams],
             "teams_slugs": [t["slug"] for t in teams],
             "role": self.role,
-            "invite_status": (
-                invite_status_names[self.invite_status] if self.invite_status is not None else None
-            ),
+            "invite_status": (invite_status_names[self.invite_status]),
         }

@@ -10,7 +10,6 @@ from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.outbox import outbox_runner
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -75,7 +74,24 @@ class OrganizationMemberInviteRequestSerializerTest(TestCase):
 
         assert not serializer.is_valid()
         assert serializer.errors == {
-            "orgRole": ["You do not have permission to set that org-level role"]
+            "orgRole": ["You do not have permission to invite a member with that org-level role"]
+        }
+
+    def test_cannot_invite_with_existing_request(self):
+        email = "test@gmail.com"
+
+        self.create_member_invite(
+            email=email,
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
+        data = {"email": email, "orgRole": "member", "teams": [self.team.slug]}
+        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
+
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            "email": ["There is an existing invite request for test@gmail.com"]
         }
 
     @with_feature({"organizations:team-roles": False})
@@ -317,46 +333,6 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
         data = {"email": "eric@localhost", "orgRole": "owner", "teams": []}
         response = self.get_success_response(self.organization.slug, **data)
         assert response.data["email"] == "eric@localhost"
-
-    @patch.object(OrganizationMemberInvite, "send_invite_email")
-    def test_can_invite_member_with_pending_invite_request(self, mock_send_invite_email):
-        email = "test@gmail.com"
-
-        invite_request = self.create_member_invite(
-            email=email,
-            organization=self.organization,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
-        data = {"email": email, "orgRole": "member", "teams": [self.team.slug]}
-        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
-            self.get_success_response(self.organization.slug, **data)
-
-        assert not OrganizationMemberInvite.objects.filter(id=invite_request.id).exists()
-        assert OrganizationMemberInvite.objects.filter(
-            organization=self.organization, email=email
-        ).exists()
-
-        mock_send_invite_email.assert_called_once()
-
-    @patch.object(OrganizationMemberInvite, "send_invite_email")
-    def test_can_invite_member_with_pending_join_request(self, mock_send_invite_email):
-        email = "test@gmail.com"
-        join_request = self.create_member_invite(
-            email=email,
-            organization=self.organization,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-        )
-
-        data = {"email": email, "orgRole": "member", "teams": [self.team.slug]}
-        with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks(), outbox_runner():
-            self.get_success_response(self.organization.slug, **data)
-
-        assert not OrganizationMemberInvite.objects.filter(id=join_request.id).exists()
-        assert OrganizationMemberInvite.objects.filter(
-            organization=self.organization, email=email
-        ).exists()
-
-        mock_send_invite_email.assert_called_once()
 
 
 class OrganizationMemberInviteListPostTest(APITestCase):

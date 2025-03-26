@@ -28,7 +28,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
@@ -81,8 +80,6 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
     regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
-        # TODO (mifu67): once we remove invite fields from OrganizationMember model,
-        # remove all checks for these fields on the model
         users = user_service.get_many_by_email(
             emails=[email],
             is_active=True,
@@ -99,23 +96,6 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
 
         if not self.context.get("allow_existing_invite_request"):
             if queryset.filter(
-                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
-            ).exists():
-                raise MemberConflictValidationError(
-                    "There is an existing invite request for %s" % email
-                )
-
-        # check for OrganizationMemberInvites
-        invite_queryset = OrganizationMemberInvite.objects.filter(
-            Q(email=email),
-            organization=self.context["organization"],
-        )
-        if invite_queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
-            raise MemberConflictValidationError("The user %s has already been invited" % email)
-
-        if not self.context.get("allow_existing_invite_request"):
-            if invite_queryset.filter(
                 Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
                 | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
             ).exists():

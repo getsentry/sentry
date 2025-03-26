@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
@@ -79,14 +78,13 @@ class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
         if invite_queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
             raise MemberConflictValidationError("The user %s has already been invited" % email)
 
-        if not self.context.get("allow_existing_invite_request"):
-            if invite_queryset.filter(
-                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
-            ).exists():
-                raise MemberConflictValidationError(
-                    "There is an existing invite request for %s" % email
-                )
+        if invite_queryset.filter(
+            Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
+            | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
+        ).exists():
+            raise MemberConflictValidationError(
+                "There is an existing invite request for %s" % email
+            )
 
         return email
 
@@ -98,11 +96,11 @@ class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
         role_obj = next((r for r in self.context["allowed_roles"] if r.id == role), None)
         if role_obj is None:
             raise serializers.ValidationError(
-                "You do not have permission to set that org-level role"
+                "You do not have permission to invite a member with that org-level role"
             )
         if not self.context.get("allow_retired_roles", True) and role_obj.is_retired:
             raise serializers.ValidationError(
-                f"The role '{role}' is deprecated and may no longer be assigned."
+                f"The role '{role}' is deprecated, and members may no longer be invited with it."
             )
         return role
 
@@ -179,7 +177,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             context={
                 "organization": organization,
                 "allowed_roles": allowed_roles,
-                "allow_existing_invite_request": True,
                 "allow_retired_roles": not features.has("organizations:team-roles", organization),
             },
         )
@@ -237,16 +234,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             )
 
         with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-            # remove any invitation requests for this email before inviting
-            existing_invite = OrganizationMemberInvite.objects.filter(
-                Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-                | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
-                email=result["email"],
-                organization=organization,
-            )
-            for omi in existing_invite:
-                omi.delete()
-
             teams = []
             for team in result.get("teams", []):
                 teams.append({"id": team.id, "slug": team.slug})
@@ -261,7 +248,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
 
             omi.save()
 
-        if settings.SENTRY_ENABLE_INVITES and result.get("sendInvite"):
+        if result.get("sendInvite"):
             referrer = request.query_params.get("referrer")
             omi.send_invite_email(referrer)
             member_invited.send_robust(
@@ -273,11 +260,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             target_object=omi.id,
             data=omi.get_audit_log_data(),
-            event=(
-                audit_log.get_event_id("MEMBER_INVITE")
-                if settings.SENTRY_ENABLE_INVITES
-                else audit_log.get_event_id("MEMBER_ADD")
-            ),
+            event=(audit_log.get_event_id("MEMBER_INVITE")),
         )
 
         return Response(serialize(omi), status=201)
