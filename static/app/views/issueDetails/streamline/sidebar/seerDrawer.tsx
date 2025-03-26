@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import starImage from 'sentry-images/spot/banner-star.svg';
 
+import Feature from 'sentry/components/acl/feature';
 import {SeerIcon, SeerWaitingIcon} from 'sentry/components/ai/SeerIcon';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -12,6 +13,7 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import AutofixFeedback from 'sentry/components/events/autofix/autofixFeedback';
 import {AutofixSteps} from 'sentry/components/events/autofix/autofixSteps';
+import AutofixPreferenceDropdown from 'sentry/components/events/autofix/preferences/autofixPreferenceDropdown';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
@@ -204,6 +206,9 @@ export function SeerDrawer({group, project, event}: SeerDrawerProps) {
         {!aiConfig.needsGenAIConsent && (
           <ButtonBarWrapper data-test-id="autofix-button-bar">
             <ButtonBar gap={1}>
+              <Feature features={['organizations:autofix-seer-preferences']}>
+                <AutofixPreferenceDropdown project={project} />
+              </Feature>
               <AutofixFeedback />
               {aiConfig.hasAutofix && (
                 <Button

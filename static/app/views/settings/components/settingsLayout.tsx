@@ -50,7 +50,8 @@ function SettingsLayout(props: Props) {
   const {renderNavigation, children, params, routes, route} = props;
 
   // We want child's view's props
-  const childProps = children && isValidElement(children) ? children.props : props;
+  const childProps =
+    children && isValidElement(children) ? (children.props as Props) : props;
   const childRoutes = childProps.routes || routes || [];
   const childRoute = childProps.route || route || {};
   const shouldRenderNavigation = typeof renderNavigation === 'function';
