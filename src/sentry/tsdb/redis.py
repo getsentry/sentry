@@ -530,7 +530,7 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, Any]] | None = None,
     ) -> dict[int, Any]:
         """
         Count distinct items during a time range.
