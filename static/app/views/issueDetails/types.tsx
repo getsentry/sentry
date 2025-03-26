@@ -18,7 +18,7 @@ export const TabPaths: Record<Tab, string> = {
   [Tab.ACTIVITY]: 'activity/',
   [Tab.USER_FEEDBACK]: 'feedback/',
   [Tab.ATTACHMENTS]: 'attachments/',
-  [Tab.TAGS]: 'tags/',
+  [Tab.TAGS]: 'distributions/',
   [Tab.EVENTS]: 'events/',
   [Tab.MERGED]: 'merged/',
   [Tab.SIMILAR_ISSUES]: 'similar/',
