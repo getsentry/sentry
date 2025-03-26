@@ -31,7 +31,7 @@ describe('Checkbox', function () {
     render(<Checkbox checked="indeterminate" onChange={jest.fn()} />);
     expect(screen.getByRole('checkbox')).not.toBeChecked();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
-    expect((screen.getByRole('checkbox') as HTMLInputElement).indeterminate).toBe(true);
+    expect(screen.getByRole('checkbox').indeterminate).toBe(true);
   });
 
   describe('controlled checkbox', function () {

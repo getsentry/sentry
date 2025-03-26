@@ -248,10 +248,7 @@ const OwnershipTag = styled(
     <div {...props}>{tagType}</div>
   )
 )`
-  background: ${p =>
-    p.tagColors[
-      p.tagType.includes('tags') ? 'tag' : (p.tagType as keyof typeof p.tagColors)
-    ]};
+  background: ${p => p.tagColors[p.tagType.includes('tags') ? 'tag' : p.tagType]};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};

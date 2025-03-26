@@ -44,7 +44,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           color: params => {
             const datum = markedSeries.data[params.dataIndex]!;
 
-            return datum.delayed ? Color(color).lighten(0.5).string() : color!;
+            return datum.delayed ? Color(color).lighten(0.5).string() : color;
           },
           opacity: 1.0,
         },
