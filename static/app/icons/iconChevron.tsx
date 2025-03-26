@@ -28,7 +28,7 @@ function getChevronPath({
         </Fragment>
       );
     }
-    return <path d="m2.75,8.25l2.79,2.79c.39.39,1.02.39,1.41,0l6.29-6.29" />;
+    return <path d="m3.25,10l4.04-4.04c.39-.39,1.02-.39,1.41,0l4.04,4.04" />;
   }
 
   if (isCircled) {
