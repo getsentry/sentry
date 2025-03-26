@@ -205,9 +205,13 @@ export function ExploreCharts({
                       title={t('This widget is currently loading higher fidelity data.')}
                       key="progressive-loading-indicator"
                     >
-                      <div data-test-id="progressive-loading-indicator">
-                        <ProgressiveLoadingIndicator relative hideMessage size={16} />
-                      </div>
+                      <ProgressiveLoadingIndicator
+                        relative
+                        hideMessage
+                        mini
+                        size={16}
+                        data-test-id="progressive-loading-indicator"
+                      />
                     </Tooltip>
                   ) : null,
                 ]}
@@ -260,9 +264,13 @@ export function ExploreCharts({
                     title={t('This widget is currently loading higher fidelity data.')}
                     key="progressive-loading-indicator"
                   >
-                    <div data-test-id="progressive-loading-indicator">
-                      <ProgressiveLoadingIndicator relative hideMessage size={16} />
-                    </div>
+                    <ProgressiveLoadingIndicator
+                      relative
+                      hideMessage
+                      mini
+                      size={16}
+                      data-test-id="progressive-loading-indicator"
+                    />
                   </Tooltip>
                 ) : null,
               ]}
@@ -409,4 +417,8 @@ const ProgressiveLoadingIndicator = styled(LoadingIndicator)`
   .loading-indicator {
     border-width: 2px;
   }
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
