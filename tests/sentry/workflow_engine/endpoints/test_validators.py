@@ -7,6 +7,7 @@ from rest_framework.exceptions import ErrorDetail, ValidationError
 from sentry import audit_log
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
+from sentry.incidents.endpoints.validators import NumericComparisonConditionValidator
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -19,7 +20,6 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
     DataSourceCreator,
-    NumericComparisonConditionValidator,
 )
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource
 from sentry.workflow_engine.models.data_condition import Condition
@@ -37,47 +37,76 @@ class BaseValidatorTest(TestCase):
         )
 
 
-class TestNumericComparisonConditionValidator(BaseValidatorTest):
-    def setUp(self):
-        super().setUp()
+class MockModel(Model):
+    __relocation_scope__ = RelocationScope.Excluded
 
-        # Create a concrete implementation for testing
-        class ConcreteNumericValidator(NumericComparisonConditionValidator):
-            @property
-            def supported_conditions(self):
-                return frozenset([Condition.GREATER, Condition.LESS])
-
-            @property
-            def supported_condition_results(self):
-                return frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
-
-        self.validator_class = ConcreteNumericValidator
-
-    def test_validate_condition_valid(self):
-        validator = self.validator_class()
-        assert validator.validate_type("gt") == Condition.GREATER
-
-    def test_validate_condition_invalid(self):
-        validator = self.validator_class()
-        with pytest.raises(
-            ValidationError,
-            match="[ErrorDetail(string='Unsupported type invalid_condition', code='invalid')]",
-        ):
-            validator.validate_type("invalid_condition")
-
-    def test_validate_result_valid(self):
-        validator = self.validator_class()
-        assert validator.validate_condition_result("75") == DetectorPriorityLevel.HIGH
-
-    def test_validate_result_invalid(self):
-        validator = self.validator_class()
-        with pytest.raises(
-            ValidationError,
-            match="[ErrorDetail(string='Unsupported condition result', code='invalid')]",
-        ):
-            validator.validate_condition_result("invalid_result")
+    class Meta:
+        app_label = "fixtures"
 
 
+class TestDataSourceCreator(TestCase):
+    def test_create_calls_once(self):
+        mock_instance = MockModel()
+        mock_fn = mock.Mock(return_value=mock_instance)
+        creator = DataSourceCreator(create_fn=mock_fn)
+
+        result1 = creator.create()
+        assert result1 == mock_instance
+        mock_fn.assert_called_once()
+
+        result2 = creator.create()
+        assert result2 == mock_instance
+        mock_fn.assert_called_once()
+
+
+class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
+    field1 = serializers.CharField()
+    field2 = serializers.IntegerField()
+    data_source_type_handler = QuerySubscriptionDataSourceHandler
+
+    class Meta:
+        model = MockModel
+        fields = [
+            "field1",
+            "field2",
+        ]
+
+    def create_source(self, validated_data) -> MockModel:
+        return MockModel.objects.create()
+
+
+class TestBaseDataSourceValidator(TestCase):
+    def test_validate_adds_creator_and_type(self):
+        validator = MockDataSourceValidator(
+            data={
+                "field1": "test",
+                "field2": 123,
+            }
+        )
+        assert validator.is_valid()
+        assert "_creator" in validator.validated_data
+        assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
+        assert validator.validated_data["data_source_type"] == data_source_type_registry.get_key(
+            QuerySubscriptionDataSourceHandler
+        )
+
+
+# TODO - @saponifi3d - Refactor to use the base condition vaildator
+class MockDataConditionValidator(NumericComparisonConditionValidator):
+    supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
+    supported_condition_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
+
+
+class MockConditionGroupValidator(BaseDataConditionGroupValidator):
+    conditions = MockDataConditionValidator(many=True)
+
+
+class MockDetectorValidator(BaseDetectorTypeValidator):
+    data_source = MockDataSourceValidator()
+    condition_group = MockConditionGroupValidator()
+
+
+# TODO - see if we can refactor and mock the grouptype / grouptype.registry
 class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
     def setUp(self):
         super().setUp()
@@ -159,6 +188,7 @@ class DetectorValidatorTest(BaseValidatorTest):
             },
         }
 
+    # TODO - Refactor into multiple tests - basically where there are comment blocks
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.detector.create_audit_entry")
     def test_create_with_mock_validator(self, mock_audit):
         validator = MockDetectorValidator(data=self.valid_data, context=self.context)
@@ -216,71 +246,3 @@ class DetectorValidatorTest(BaseValidatorTest):
             assert validator.errors.get("detectorType") == [
                 ErrorDetail(string="Detector type not compatible with detectors", code="invalid")
             ]
-
-
-class MockModel(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    class Meta:
-        app_label = "fixtures"
-
-
-class TestDataSourceCreator(TestCase):
-    def test_create_calls_once(self):
-        mock_instance = MockModel()
-        mock_fn = mock.Mock(return_value=mock_instance)
-        creator = DataSourceCreator(create_fn=mock_fn)
-
-        result1 = creator.create()
-        assert result1 == mock_instance
-        mock_fn.assert_called_once()
-
-        result2 = creator.create()
-        assert result2 == mock_instance
-        mock_fn.assert_called_once()
-
-
-class MockDataSourceValidator(BaseDataSourceValidator[MockModel]):
-    field1 = serializers.CharField()
-    field2 = serializers.IntegerField()
-    data_source_type_handler = QuerySubscriptionDataSourceHandler
-
-    class Meta:
-        model = MockModel
-        fields = [
-            "field1",
-            "field2",
-        ]
-
-    def create_source(self, validated_data) -> MockModel:
-        return MockModel.objects.create()
-
-
-class TestBaseDataSourceValidator(TestCase):
-    def test_validate_adds_creator_and_type(self):
-        validator = MockDataSourceValidator(
-            data={
-                "field1": "test",
-                "field2": 123,
-            }
-        )
-        assert validator.is_valid()
-        assert "_creator" in validator.validated_data
-        assert isinstance(validator.validated_data["_creator"], DataSourceCreator)
-        assert validator.validated_data["data_source_type"] == data_source_type_registry.get_key(
-            QuerySubscriptionDataSourceHandler
-        )
-
-
-class MockDataConditionValidator(NumericComparisonConditionValidator):
-    supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
-    supported_condition_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
-
-
-class MockConditionGroupValidator(BaseDataConditionGroupValidator):
-    conditions = MockDataConditionValidator(many=True)
-
-
-class MockDetectorValidator(BaseDetectorTypeValidator):
-    data_source = MockDataSourceValidator()
-    condition_group = MockConditionGroupValidator()
