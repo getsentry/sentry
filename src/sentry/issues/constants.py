@@ -13,7 +13,7 @@ ISSUE_TSDB_USER_GROUP_MODELS = {
 }
 
 # Use this with DATASETS from sentry/utils/snuba.py
-TSDB_MODEL_DATASET = {
+TSDB_MODEL_DATASET: dict[TSDBModel, Dataset] = {
     TSDBModel.group: Dataset.Events,
     TSDBModel.group_generic: Dataset.IssuePlatform,
     TSDBModel.users_affected_by_group: Dataset.Events,

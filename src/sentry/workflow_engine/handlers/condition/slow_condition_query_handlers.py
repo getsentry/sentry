@@ -31,6 +31,9 @@ from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
 
+QueryFilter = dict[str, Any]
+SnubaCondition = tuple[str, str, str | None]
+
 
 class InvalidFilter(Exception):
     """
@@ -81,7 +84,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         end: datetime,
         environment_id: int | None,
         referrer_suffix: str,
-        conditions: list[tuple[str, str, str | None]] | None = None,
+        conditions: list[SnubaCondition] | None = None,
     ) -> Mapping[int, int]:
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -106,7 +109,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         end: datetime,
         environment_id: int | None,
         referrer_suffix: str,
-        filters: list[dict[str, Any]] | None = None,
+        filters: list[QueryFilter] | None = None,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         group_id = group_ids[0]
@@ -155,8 +158,8 @@ class BaseEventFrequencyQueryHandler(ABC):
         return result
 
     def get_extra_snuba_conditions(
-        self, category: TSDBModel, filters: list[dict[str, Any]]
-    ) -> list[tuple[str, str, str | None]]:
+        self, category: TSDBModel, filters: list[QueryFilter]
+    ) -> list[SnubaCondition]:
         conditions = []
         for filter in filters:
             snuba_condition = self.convert_filter_to_snuba_condition(filter, category)
@@ -167,7 +170,7 @@ class BaseEventFrequencyQueryHandler(ABC):
     @staticmethod
     def convert_filter_to_snuba_condition(
         condition: dict[str, Any], tsdb_model: TSDBModel
-    ) -> tuple[str, str, str | None] | None:
+    ) -> SnubaCondition | None:
         # condition can be TaggedEventFilter (key) or EventAttributeFilter (attribute)
         key = condition.get("key")
         attribute = condition.get("attribute")
@@ -249,7 +252,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        filters: list[dict[str, Any]] | None = None,
+        filters: list[QueryFilter] | None = None,
     ) -> dict[int, int]:
         """
         Abstract method that specifies how to query Snuba for multiple groups
@@ -264,7 +267,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         environment_id: int | None,
         current_time: datetime,
         comparison_interval: timedelta | None,
-        filters: list[dict[str, Any]] | None,
+        filters: list[QueryFilter] | None,
     ) -> dict[int, int]:
         """
         Make a batch query for multiple groups. The return value is a dictionary
@@ -306,7 +309,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        filters: list[dict[str, Any]] | None = None,
+        filters: list[QueryFilter] | None = None,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -352,7 +355,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        filters: list[dict[str, Any]] | None = None,
+        filters: list[QueryFilter] | None = None,
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
@@ -422,7 +425,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
         start: datetime,
         end: datetime,
         environment_id: int | None,
-        filters: list[dict[str, Any]] | None = None,
+        filters: list[QueryFilter] | None = None,
     ) -> dict[int, int]:
         batch_percents: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values(
