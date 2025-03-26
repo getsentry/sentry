@@ -67,6 +67,7 @@ export function useProgressiveQuery<
   const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
+    enabled: queryHookArgs.enabled && canUseProgressiveLoading,
   });
 
   const bestEffortRequest = queryHookImplementation({

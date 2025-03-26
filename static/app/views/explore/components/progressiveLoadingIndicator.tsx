@@ -6,10 +6,7 @@ import {t} from 'sentry/locale';
 
 function ProgressiveLoadingIndicator() {
   return (
-    <Tooltip
-      title={t('This widget is currently loading higher fidelity data.')}
-      key="progressive-loading-indicator"
-    >
+    <Tooltip title={t('This widget is currently loading higher fidelity data.')}>
       <_ProgressiveLoadingIndicator
         relative
         hideMessage
@@ -23,7 +20,7 @@ function ProgressiveLoadingIndicator() {
 
 export const getProgressiveLoadingIndicator = (isProgressivelyLoading = false) => {
   if (isProgressivelyLoading) {
-    return <ProgressiveLoadingIndicator />;
+    return <ProgressiveLoadingIndicator key="progressive-loading-indicator" />;
   }
   return null;
 };
