@@ -622,9 +622,9 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             frames=[
                 # This will not create a code mapping because
                 # the stacktrace root would be empty
-                self.frame(module="Foo", abs_path="Foo.java", in_app=True),
-                self.frame(module="a.Bar", abs_path="Bar.java", in_app=True),
-                self.frame(module="x.y.Baz", abs_path="Baz.java", in_app=True),
+                self.frame(module="Foo", abs_path="Foo.java", in_app=False),
+                self.frame(module="a.Bar", abs_path="Bar.java", in_app=False),
+                self.frame(module="x.y.Baz", abs_path="Baz.java", in_app=False),
             ],
             platform=self.platform,
             expected_new_code_mappings=[
@@ -642,12 +642,11 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         # No code mapping will be stored, however, we get what would have been created
         self._process_and_assert_configuration_changes(
             repo_trees={REPO1: ["src/com/example/foo/Bar.kt"]},
-            frames=[self.frame(module="com.example.foo.Bar$InnerClass", abs_path="Bar.kt")],
-            platform=self.platform,
-            expected_new_code_mappings=[
-                self.code_mapping("com/example/foo/", "src/com/example/foo/")
+            frames=[
+                self.frame(module="com.example.foo.Bar$InnerClass", abs_path="Bar.kt", in_app=False)
             ],
-            # Notice that the in-app stack trace rule does not include "foo" as the stacktrace root does
+            platform=self.platform,
+            expected_new_code_mappings=[self.code_mapping("com/example/", "src/com/example/")],
             expected_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
             expected_num_code_mappings=0,
         )
@@ -657,38 +656,26 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
         self._process_and_assert_configuration_changes(
             repo_trees={
                 REPO1: [
-                    "src/com/example/foo/Bar.kt",
-                    "src/com/example/foo/Baz.kt",
+                    "src/com/example/foo/bar/Baz.kt",
                     "src/com/example/utils/Helper.kt",
                     "src/org/other/service/Service.kt",
-                    "src/uk/co/example/foo/Bar.kt",
                 ]
             },
             frames=[
-                self.frame(module="com.example.foo.Bar", abs_path="Bar.kt"),
-                self.frame(module="com.example.foo.Baz", abs_path="Baz.kt"),
-                self.frame(module="com.example.utils.Helper", abs_path="Helper.kt"),
-                self.frame(module="org.other.service.Service", abs_path="Service.kt"),
+                self.frame(module="com.example.foo.bar.Baz", abs_path="Baz.kt", in_app=False),
+                self.frame(module="com.example.utils.Helper", abs_path="Helper.kt", in_app=False),
+                self.frame(module="org.other.service.Service", abs_path="Service.kt", in_app=False),
             ],
             platform=self.platform,
             expected_new_code_mappings=[
-                self.code_mapping(
-                    stack_root="com/example/foo/", source_root="src/com/example/foo/"
-                ),
-                self.code_mapping(
-                    stack_root="com/example/utils/", source_root="src/com/example/utils/"
-                ),
-                self.code_mapping(
-                    stack_root="org/other/service/", source_root="src/org/other/service/"
-                ),
+                self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
+                self.code_mapping(stack_root="org/other/", source_root="src/org/other/"),
             ],
-            # We have three code mappings, but only two in-app stack trace rules
-            # because the "foo" code mapping coalesces with the "com.example.**" rule
             expected_in_app_stack_trace_rules=[
                 "stack.module:com.example.** +app",
                 "stack.module:org.other.** +app",
             ],
-            expected_num_code_mappings=4,
+            expected_num_code_mappings=3,
         )
 
     def test_multiple_tlds(self) -> None:

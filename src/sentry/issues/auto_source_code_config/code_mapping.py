@@ -595,10 +595,10 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
 
     parts = module.split(".")
     # Take the first two parts of the module
-    stack_root = ".".join(parts[:2])
-    file_path = "/".join(parts[2:]) + "/" + abs_path
+    stack_root = "/".join(parts[:2])
+    file_path = "/".join(parts[:-1]) + "/" + abs_path
 
-    # com.example.foo.Bar$InnerClass ->
+    # com.example.foo.Bar$InnerClass, Bar.kt ->
     #    stack_root: com/example/
     #    file_path:  com/example/foo/Bar.kt
     return stack_root, file_path
