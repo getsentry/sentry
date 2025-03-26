@@ -160,7 +160,7 @@ def _unfurl_discover(
             try:
                 response = client.get(
                     auth=ApiKey(organization_id=org.id, scope_list=["org:read"]),
-                    path=f"/organizations/{org_slug}/explore/saved/{query_id}/",
+                    path=f"/organizations/{org_slug}/discover/saved/{query_id}/",
                 )
 
             except Exception:
@@ -324,15 +324,28 @@ def map_discover_query_args(url: str, args: Mapping[str, str | None]) -> Mapping
 
 
 discover_link_regex = re.compile(
-    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/explore/discover/(results|homepage)"
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
 )
 
 customer_domain_discover_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/discover/(results|homepage)"
 )
 
+explore_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/discover/(results|homepage)"
+)
+
+customer_domain_explore_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^.]+?)\.(?#url_prefix)[^/]+/explore/discover/(results|homepage)"
+)
+
 discover_handler = Handler(
     fn=unfurl_discover,
-    matcher=[discover_link_regex, customer_domain_discover_link_regex],
+    matcher=[
+        discover_link_regex,
+        customer_domain_discover_link_regex,
+        explore_link_regex,
+        customer_domain_explore_link_regex,
+    ],
     arg_mapper=map_discover_query_args,
 )
