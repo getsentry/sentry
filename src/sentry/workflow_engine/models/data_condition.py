@@ -170,7 +170,9 @@ class DataCondition(DefaultFieldsModel):
         return self.get_condition_result() if result else None
 
     def get_preview_groups(self, group_ids: set[int]) -> set[int]:
-        return set()
+        # TODO(cathy): grab the handler which should implement how to
+        # filter the groups based on the condition
+        return group_ids
 
 
 def is_slow_condition(condition: DataCondition) -> bool:
