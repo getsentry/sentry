@@ -11,19 +11,10 @@ from slack_sdk.errors import SlackApiError, SlackRequestError
 from slack_sdk.webhook import WebhookClient
 
 from sentry import features
-from sentry.api.serializers import serialize
 from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-)
-from sentry.incidents.endpoints.serializers.incident import (
-    DetailedIncidentSerializer,
-    DetailedIncidentSerializerResponse,
-)
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -34,7 +25,6 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.repository import (
     get_default_metric_alert_repository,
@@ -400,15 +390,18 @@ def _handle_legacy_notification(
 
 
 def send_incident_alert_notification(
-    action: AlertRuleTriggerAction,
-    incident: Incident,
-    metric_value: float | int | None,
-    new_status: IncidentStatus,
+    organization: Organization,
+    alert_context: AlertContext,
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    alert_rule_serialized_response: AlertRuleSerializerResponse,
+    incident_serialized_response: DetailedIncidentSerializerResponse,
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:
     result = integration_service.organization_context(
-        organization_id=incident.organization_id, integration_id=action.integration_id
+        organization_id=organization.id, integration_id=notification_context.integration_id
     )
     integration = result.integration
     org_integration = result.organization_integration
@@ -416,31 +409,11 @@ def send_incident_alert_notification(
         # Integration removed, but rule is still active.
         return False
 
-    organization = incident.organization
-
-    alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
-    notification_context = NotificationContext.from_alert_rule_trigger_action(action)
-    metric_issue_context = MetricIssueContext.from_legacy_models(
-        incident=incident,
-        new_status=new_status,
-        metric_value=metric_value,
-    )
-    open_period_context = OpenPeriodContext.from_incident(incident)
-
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
-
     channel = notification_context.target_identifier
     if channel is None:
         sentry_sdk.capture_message("Channel is None", level="error")
         return False
 
-    alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-        incident.alert_rule, None, AlertRuleSerializer()
-    )
-    incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-        incident, None, DetailedIncidentSerializer()
-    )
     attachments, text = _build_notification_payload(
         organization=organization,
         alert_context=alert_context,
