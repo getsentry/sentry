@@ -210,7 +210,7 @@ describe('OnDemandBudgets AM Checkout', function () {
     expect(mockedEndpoint).toHaveBeenCalledWith(
       '/customers/org-slug/subscription/',
       expect.objectContaining({
-        data: expect.objectContaining({
+        data: {
           onDemandBudget: {
             budgetMode: 'per_category',
             errorsBudget: 1000,
@@ -219,6 +219,8 @@ describe('OnDemandBudgets AM Checkout', function () {
             monitorSeatsBudget: 4000,
             uptimeBudget: 0,
             replaysBudget: 0,
+            profileDurationBudget: 0,
+            profileDurationUIBudget: 0,
             budgets: {
               errors: 1000,
               transactions: 2000,
@@ -226,10 +228,22 @@ describe('OnDemandBudgets AM Checkout', function () {
               replays: 0,
               monitorSeats: 4000,
               uptime: 0,
+              profileDuration: 0,
+              profileDurationUI: 0,
             },
           },
-          onDemandMaxSpend: 1000 + 2000 + 3000 + 4000,
-        }),
+          onDemandMaxSpend: 10000,
+          plan: 'am2_business',
+          referrer: 'billing',
+          reservedAttachments: 1,
+          reservedErrors: 50000,
+          reservedMonitorSeats: 1,
+          reservedProfileDuration: undefined,
+          reservedReplays: 500,
+          reservedSpans: undefined,
+          reservedTransactions: 100000,
+          reservedUptime: 1,
+        },
       })
     );
   });

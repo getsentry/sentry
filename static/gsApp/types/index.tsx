@@ -203,6 +203,8 @@ export type PerCategoryOnDemandBudget = {
   replaysBudget: number;
   transactionsBudget: number;
   monitorSeatsBudget?: number;
+  profileDurationBudget?: number;
+  profileDurationUIBudget?: number;
   uptimeBudget?: number;
 };
 

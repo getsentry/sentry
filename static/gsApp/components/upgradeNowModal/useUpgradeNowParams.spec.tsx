@@ -60,7 +60,7 @@ describe('useUpgradeNowParams', () => {
           reservedMonitorSeats: 1,
           reservedUptime: 1,
           reservedProfileDuration: 0,
-          reservedProfileDurationUI: undefined,
+          reservedProfileDurationUI: 0,
         },
       })
     );

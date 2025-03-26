@@ -665,7 +665,7 @@ describe('provisionSubscriptionAction', function () {
       billingConfig: mockBillingConfig,
     });
 
-    loadModal();
+    await loadModal();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -692,7 +692,8 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '100');
+    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
     await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
@@ -700,6 +701,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
     await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.1');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
@@ -707,6 +709,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -734,6 +737,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceReplays: 150000,
           customPriceTransactions: 100000,
           customPriceProfileDuration: 0,
+          customPriceProfileDurationUI: 0,
           managed: true,
           onDemandInvoicedManual: 'SHARED',
           plan: 'am2_business_ent',
@@ -743,6 +747,7 @@ describe('provisionSubscriptionAction', function () {
           paygCpeTransactions: 10000000,
           paygCpeUptime: 10000000,
           paygCpeProfileDuration: 10000000,
+          paygCpeProfileDurationUI: 10000000,
           paygCpeAttachments: 10000000,
           reservedAttachments: 50,
           reservedErrors: 2000000,
@@ -750,7 +755,8 @@ describe('provisionSubscriptionAction', function () {
           reservedUptime: 250,
           reservedReplays: 75000,
           reservedTransactions: 1000000,
-          reservedProfileDuration: 100,
+          reservedProfileDuration: 0,
+          reservedProfileDurationUI: 0,
           retainOnDemandBudget: true,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
@@ -759,6 +765,7 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeReplays: null,
           softCapTypeTransactions: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             attachments: false,
             errors: false,
@@ -767,12 +774,13 @@ describe('provisionSubscriptionAction', function () {
             replays: false,
             transactions: false,
             profileDuration: false,
+            profileDurationUI: false,
           },
           type: 'invoiced',
         },
       })
     );
-  }, 10000);
+  }, 10_000);
 
   it('removes retain on-demand budget toggle when plan changes', async () => {
     const am2Sub = SubscriptionFixture({
@@ -844,7 +852,8 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '100');
+    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
     await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
@@ -852,6 +861,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
     await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.1');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
@@ -859,6 +869,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -886,6 +897,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceReplays: 150000,
           customPriceTransactions: 100000,
           customPriceProfileDuration: 0,
+          customPriceProfileDurationUI: 0,
           managed: true,
           onDemandInvoicedManual: 'PER_CATEGORY',
           plan: 'am2_business_ent',
@@ -895,6 +907,7 @@ describe('provisionSubscriptionAction', function () {
           paygCpeTransactions: 10000000,
           paygCpeUptime: 10000000,
           paygCpeProfileDuration: 10000000,
+          paygCpeProfileDurationUI: 10000000,
           paygCpeAttachments: 10000000,
           reservedAttachments: 50,
           reservedErrors: 2000000,
@@ -902,7 +915,8 @@ describe('provisionSubscriptionAction', function () {
           reservedUptime: 250,
           reservedReplays: 75000,
           reservedTransactions: 1000000,
-          reservedProfileDuration: 100,
+          reservedProfileDuration: 0,
+          reservedProfileDurationUI: 0,
           retainOnDemandBudget: false,
           softCapTypeAttachments: null,
           softCapTypeErrors: null,
@@ -911,6 +925,7 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeReplays: null,
           softCapTypeTransactions: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             attachments: false,
             errors: false,
@@ -919,6 +934,7 @@ describe('provisionSubscriptionAction', function () {
             replays: false,
             transactions: false,
             profileDuration: false,
+            profileDurationUI: false,
           },
           type: 'invoiced',
         },
@@ -986,7 +1002,8 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '100');
+    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
@@ -994,6 +1011,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -1021,6 +1039,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceUptime: 0,
           customPriceTransactions: 100000,
           customPriceProfileDuration: 0,
+          customPriceProfileDurationUI: 0,
           managed: true,
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am2_business_ent',
@@ -1030,7 +1049,8 @@ describe('provisionSubscriptionAction', function () {
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedTransactions: 1_000_000,
-          reservedProfileDuration: 100,
+          reservedProfileDuration: 0,
+          reservedProfileDurationUI: 0,
           retainOnDemandBudget: false,
           type: 'invoiced',
           softCapTypeErrors: 'TRUE_FORWARD',
@@ -1040,6 +1060,7 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeUptime: 'TRUE_FORWARD',
           softCapTypeAttachments: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             errors: true,
             transactions: false,
@@ -1048,11 +1069,12 @@ describe('provisionSubscriptionAction', function () {
             uptime: true,
             attachments: false,
             profileDuration: false,
+            profileDurationUI: false,
           },
         },
       })
     );
-  });
+  }, 10_000);
 
   it('calls api with correct am3 args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -1063,7 +1085,7 @@ describe('provisionSubscriptionAction', function () {
       billingConfig: mockBillingConfig,
     });
 
-    loadModal();
+    await loadModal();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -1114,7 +1136,8 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '100');
+    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Spans', '1000');
     await typeNum('Price for Replays', '1500');
@@ -1122,6 +1145,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -1149,6 +1173,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceUptime: 0,
           customPriceSpans: 100000,
           customPriceProfileDuration: 0,
+          customPriceProfileDurationUI: 0,
           managed: true,
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am3_business_ent',
@@ -1158,7 +1183,8 @@ describe('provisionSubscriptionAction', function () {
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedSpans: 10_000_000,
-          reservedProfileDuration: 100,
+          reservedProfileDuration: 0,
+          reservedProfileDurationUI: 0,
           retainOnDemandBudget: false,
           type: 'invoiced',
           softCapTypeErrors: 'TRUE_FORWARD',
@@ -1168,6 +1194,7 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeUptime: 'TRUE_FORWARD',
           softCapTypeAttachments: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             errors: true,
             spans: false,
@@ -1176,11 +1203,12 @@ describe('provisionSubscriptionAction', function () {
             uptime: true,
             attachments: false,
             profileDuration: false,
+            profileDurationUI: false,
           },
         },
       })
     );
-  });
+  }, 10_000);
 
   it('calls api with correct am3 dynamic sampling args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -1192,7 +1220,7 @@ describe('provisionSubscriptionAction', function () {
       billingConfig: mockBillingConfig,
     });
 
-    loadModal();
+    await loadModal();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -1227,7 +1255,8 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '100');
+    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Reserved Cost-Per-Event Accepted Spans', '1');
     await typeNum('Reserved Cost-Per-Event Stored Spans', '2');
     await typeNum('Price for Errors', '3000');
@@ -1237,6 +1266,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '17450');
 
@@ -1265,6 +1295,7 @@ describe('provisionSubscriptionAction', function () {
           customPriceSpans: 1200000,
           customPriceSpansIndexed: 0,
           customPriceProfileDuration: 0,
+          customPriceProfileDurationUI: 0,
           managed: true,
           onDemandInvoicedManual: 'DISABLE',
           plan: 'am3_business_ent_ds',
@@ -1273,7 +1304,8 @@ describe('provisionSubscriptionAction', function () {
           reservedReplays: 75_000,
           reservedMonitorSeats: 250,
           reservedUptime: 250,
-          reservedProfileDuration: 100,
+          reservedProfileDuration: 0,
+          reservedProfileDurationUI: 0,
           reservedSpans: RESERVED_BUDGET_QUOTA,
           reservedSpansIndexed: RESERVED_BUDGET_QUOTA,
           reservedCpeSpans: 100_000_000,
@@ -1294,6 +1326,7 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeUptime: null,
           softCapTypeAttachments: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             errors: false,
             spans: true,
@@ -1303,6 +1336,7 @@ describe('provisionSubscriptionAction', function () {
             uptime: false,
             attachments: false,
             profileDuration: false,
+            profileDurationUI: false,
           },
         },
       })
@@ -1319,7 +1353,7 @@ describe('provisionSubscriptionAction', function () {
     });
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
-    loadModal();
+    await loadModal();
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -1350,7 +1384,8 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '100');
+    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
@@ -1358,6 +1393,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.5');
@@ -1367,6 +1403,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.0001');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.0002');
     await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.0001');
+    await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.0001');
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
       method: 'POST',
@@ -1391,12 +1428,14 @@ describe('provisionSubscriptionAction', function () {
           customPriceUptime: 0,
           customPriceTransactions: 100000,
           customPriceProfileDuration: 0,
+          customPriceProfileDurationUI: 0,
           managed: true,
           paygCpeErrors: 50000000,
           paygCpeTransactions: 1110000,
           paygCpeReplays: 100000000,
           paygCpeAttachments: 20000,
           paygCpeProfileDuration: 10000,
+          paygCpeProfileDurationUI: 10000,
           paygCpeMonitorSeats: 10000,
           paygCpeUptime: 10000,
           onDemandInvoicedManual: 'SHARED',
@@ -1407,7 +1446,8 @@ describe('provisionSubscriptionAction', function () {
           reservedMonitorSeats: 250,
           reservedUptime: 250,
           reservedTransactions: 1_000_000,
-          reservedProfileDuration: 100,
+          reservedProfileDuration: 0,
+          reservedProfileDurationUI: 0,
           retainOnDemandBudget: false,
           type: 'invoiced',
           softCapTypeErrors: null,
@@ -1417,10 +1457,12 @@ describe('provisionSubscriptionAction', function () {
           softCapTypeUptime: null,
           softCapTypeAttachments: null,
           softCapTypeProfileDuration: null,
+          softCapTypeProfileDurationUI: null,
           trueForward: {
             errors: false,
             transactions: false,
             profileDuration: false,
+            profileDurationUI: false,
             replays: false,
             monitorSeats: false,
             uptime: false,
