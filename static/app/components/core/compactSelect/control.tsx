@@ -18,6 +18,7 @@ import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -560,7 +561,7 @@ export function Control({
                   onFocus={onSearchFocus}
                   onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
-                  visualSize={size}
+                  size={searchInputSizeMapping[size]}
                   {...searchKeyboardProps}
                 />
               )}
@@ -654,22 +655,15 @@ const ClearButton = styled(Button)`
   margin: -${space(0.25)} -${space(0.5)};
 `;
 
-const searchVerticalPadding: Record<FormSize, string> = {
-  xs: space(0.25),
-  sm: space(0.5),
-  md: space(0.5),
+const searchInputSizeMapping: Record<FormSize, FormSize> = {
+  md: 'sm',
+  sm: 'xs',
+  xs: 'xs',
 };
-const SearchInput = styled('input')<{visualSize: FormSize}>`
+
+const SearchInput = styled(Input)`
   appearance: none;
   width: calc(100% - ${space(0.5)} * 2);
-  border: solid 1px ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-  background: ${p => p.theme.backgroundSecondary};
-  font-size: ${p =>
-    p.visualSize === 'xs' ? p.theme.fontSizeSmall : p.theme.fontSizeMedium};
-
-  /* Subtract 1px to account for border width */
-  padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);
   margin: ${space(0.5)} ${space(0.5)};
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
@@ -677,16 +671,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   [data-menu-has-header='true'] > & {
     margin-top: calc(${space(0.5)} + 1px);
   }
-
-  &:focus,
-  &:focus-visible {
-    outline: none;
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;
-    background: transparent;
-  }
 `;
-
 const withUnits = (value: any) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
