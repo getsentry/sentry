@@ -959,6 +959,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           meta={props.meta}
           traceType={shape}
           trace={props.tree}
+          traceId={props.traceSlug}
           traceGridRef={traceGridRef}
           manager={viewManager}
           scheduler={traceScheduler}

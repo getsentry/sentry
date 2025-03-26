@@ -18,7 +18,6 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {
   LogsPageDataProvider,
@@ -272,11 +271,11 @@ export function SpanNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
+  traceId,
 }: TraceTreeNodeDetailsProps<
   TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
 >) {
   const location = useLocation();
-  const {traceSlug} = useParams<{traceSlug: string}>();
   const hasNewTraceUi = useHasTraceNewUi();
   const {projects} = useProjects();
   const issues = useMemo(() => {
@@ -300,7 +299,7 @@ export function SpanNodeDetails({
         <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
           <LogsPageParamsProvider
             isOnEmbeddedView
-            limitToTraceId={traceSlug}
+            limitToTraceId={traceId}
             limitToSpanId={node.value.event_id}
             limitToProjectIds={[node.value.project_id]}
             analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
