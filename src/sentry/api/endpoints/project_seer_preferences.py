@@ -13,7 +13,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.project import Project
 from sentry.seer.models import SeerRepoDefinition
@@ -36,6 +36,9 @@ class PreferenceResponse(BaseModel):
 
 @region_silo_endpoint
 class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
+    permission_classes = (
+        ProjectEventPermission,  # Anyone in the org should be able to set preferences, follows event permissions.
+    )
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
