@@ -263,7 +263,9 @@ export function SpansTabContentImpl({
             confidences={confidences}
             query={query}
             timeseriesResult={timeseriesResult}
-            isProgressivelyLoading={timeseriesFidelity !== 'high'}
+            isProgressivelyLoading={
+              defined(timeseriesFidelity) && timeseriesFidelity !== 'high'
+            }
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}
