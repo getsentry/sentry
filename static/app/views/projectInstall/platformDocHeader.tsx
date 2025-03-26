@@ -26,7 +26,7 @@ type Props = {
 
 export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const router = useRouter();
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
