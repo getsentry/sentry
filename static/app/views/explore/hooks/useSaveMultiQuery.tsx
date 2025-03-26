@@ -35,16 +35,14 @@ export function useSaveMultiQuery() {
       interval,
       projects,
       environment: environments,
-      query: [
-        ...queries.map(q => ({
-          fields: q.fields,
-          orderby: q.sortBys[0] ? encodeSort(q.sortBys[0]) : undefined, // Explore only handles a single sort by
-          groupby: q.groupBys,
-          query: q.query ?? '',
-          visualize: [{yAxes: q.yAxes, chartType: q.chartType}],
-          mode: q.groupBys.length > 0 ? 'aggregate' : 'samples',
-        })),
-      ],
+      query: queries.map(q => ({
+        fields: q.fields,
+        orderby: q.sortBys[0] ? encodeSort(q.sortBys[0]) : undefined, // Explore only handles a single sort by
+        groupby: q.groupBys.filter(groupBy => groupBy !== ''),
+        query: q.query ?? '',
+        visualize: [{yAxes: q.yAxes, chartType: q.chartType}],
+        mode: q.groupBys.length > 0 ? 'aggregate' : 'samples',
+      })),
     };
   }, [title, start, end, period, interval, projects, environments, queries]);
 

@@ -39,7 +39,7 @@ export function useSaveQuery() {
         {
           fields,
           orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-          groupby: groupBys,
+          groupby: groupBys.filter(groupBy => groupBy !== ''),
           query: query ?? '',
           visualize,
           mode,

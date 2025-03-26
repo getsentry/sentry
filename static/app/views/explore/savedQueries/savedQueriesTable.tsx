@@ -85,6 +85,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
               organization,
               ...row,
               ...query,
+              groupBy: query.groupby.length === 0 ? [''] : query.groupby,
               query: query.query,
               title: row.name,
               mode: query.mode as Mode,
