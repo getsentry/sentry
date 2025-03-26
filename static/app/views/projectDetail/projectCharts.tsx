@@ -124,7 +124,7 @@ class ProjectCharts extends Component<Props, State> {
       .map(urlKey => {
         return decodeScalar(
           location.query[urlKey],
-          this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]!
+          this.defaultDisplayModes[visibleCharts.indexOf(urlKey)]!
         );
       });
   }
