@@ -1,9 +1,11 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {SentryAppComponent, SentryAppInstallation} from 'sentry/types/integrations';
@@ -27,18 +29,6 @@ function SentryAppExternalIssueModal(props: Props) {
     event,
   } = props;
 
-  const showLink = () => {
-    setAction('link');
-  };
-
-  const showCreate = () => {
-    setAction('create');
-  };
-
-  const onSubmitSuccess = () => {
-    closeModal();
-  };
-
   const name = sentryAppComponent.sentryApp.name;
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const config = sentryAppComponent.schema[action];
@@ -46,14 +36,14 @@ function SentryAppExternalIssueModal(props: Props) {
   return (
     <Fragment>
       <Header closeButton>{tct('[name] Issue', {name})}</Header>
-      <NavTabs underlined>
-        <li className={action === 'create' ? 'active create' : 'create'}>
-          <a onClick={showCreate}>{t('Create')}</a>
-        </li>
-        <li className={action === 'link' ? 'active link' : 'link'}>
-          <a onClick={showLink}>{t('Link')}</a>
-        </li>
-      </NavTabs>
+      <TabsContainer>
+        <Tabs value={action} onChange={setAction}>
+          <TabList>
+            <TabList.Item key="create">{t('Create')}</TabList.Item>
+            <TabList.Item key="link">{t('Link')}</TabList.Item>
+          </TabList>
+        </Tabs>
+      </TabsContainer>
       <Body>
         <SentryAppExternalIssueForm
           group={group}
@@ -61,12 +51,16 @@ function SentryAppExternalIssueModal(props: Props) {
           appName={name}
           config={config}
           action={action}
-          onSubmitSuccess={onSubmitSuccess}
+          onSubmitSuccess={closeModal}
           event={event}
         />
       </Body>
     </Fragment>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default SentryAppExternalIssueModal;
