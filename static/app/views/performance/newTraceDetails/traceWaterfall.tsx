@@ -115,7 +115,7 @@ export interface TraceWaterfallProps {
   source: string;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
-  traceSlug: string | undefined;
+  traceSlug: string;
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
