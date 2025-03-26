@@ -1,3 +1,4 @@
+import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -5,9 +6,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanProperty, SpanIndexedField} from 'sentry/views/insights/types';
+import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 type Options = {
+  p95: number;
   query: string;
+  selected: DropdownOption;
   sort: Sort;
   transactionName: string;
 };
@@ -15,7 +19,13 @@ type Options = {
 const LIMIT = 5;
 const CURSOR_NAME = 'serviceEntrySpansCursor';
 
-export function useServiceEntrySpansQuery({query, transactionName, sort}: Options) {
+export function useServiceEntrySpansQuery({
+  query,
+  transactionName,
+  sort,
+  p95,
+  selected,
+}: Options) {
   const location = useLocation();
   const spanCategoryUrlParam = decodeScalar(
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
@@ -45,11 +55,22 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
   // - Then make a second query to fetch the table data for these spans
   // - If no span category is selected, only one query is made to fetch the table data.
 
-  const {data: categorizedSpanIds, isLoading: isCategorizedSpanIdsLoading} = useEAPSpans(
+  const categorizedSpansQuery = new MutableSearch(
+    `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
+  );
+  if (selected.value === TransactionFilterOptions.SLOW && p95) {
+    categorizedSpansQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
+  }
+
+  const {
+    data: categorizedSpanIds,
+    isLoading: isCategorizedSpanIdsLoading,
+    error: categorizedSpanIdsError,
+  } = useEAPSpans(
     {
-      search: `transaction:${transactionName} span.category:${spanCategoryUrlParam}`,
+      search: categorizedSpansQuery,
       fields: ['transaction.span_id', 'sum(span.self_time)'],
-      sorts: [{field: 'sum(span.self_time)', kind: 'desc'}],
+      sorts: [{field: 'sum(span.self_time)', kind: sort.kind}],
       limit: LIMIT,
       cursor,
       pageFilters: selection,
@@ -60,6 +81,7 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
   );
 
   const specificSpansQuery = new MutableSearch('');
+
   if (categorizedSpanIds && !isCategorizedSpanIdsLoading) {
     let spanIdsString = categorizedSpanIds
       .map(datum => datum['transaction.span_id'])
@@ -104,10 +126,10 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
   if (spanCategoryUrlParam) {
     return {
       data: categorizedSpansData,
-      isLoading: isCategorizedSpansLoading,
+      isLoading: isCategorizedSpanIdsLoading || isCategorizedSpansLoading,
       pageLinks: categorizedSpansPageLinks,
       meta: categorizedSpansMeta,
-      error: categorizedSpansError,
+      error: categorizedSpanIdsError || categorizedSpansError,
     };
   }
 

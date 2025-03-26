@@ -150,6 +150,8 @@ export function ServiceEntrySpansTable({
     query: eventViewQuery.formatString(),
     sort: selected.sort,
     transactionName,
+    p95,
+    selected,
   });
 
   const consolidatedData = tableData?.map(row => {
