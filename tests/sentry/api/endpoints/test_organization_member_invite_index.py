@@ -355,7 +355,9 @@ class OrganizationMemberInviteListPostTest(APITestCase):
         omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
         assert omi.email == "mifu@email.com"
         assert omi.role == "member"
-        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+        assert omi.organization_member_team_data == [
+            {"id": self.team.id, "role": None, "slug": self.team.slug}
+        ]
         assert omi.inviter_id == self.user.id
 
         mock_send_invite_email.assert_called_once()
@@ -383,7 +385,9 @@ class OrganizationMemberInviteListPostTest(APITestCase):
         omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
         assert omi.email == "mifu@email.com"
         assert omi.role == "member"
-        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+        assert omi.organization_member_team_data == [
+            {"id": self.team.id, "role": None, "slug": self.team.slug}
+        ]
         assert omi.inviter_id == self.user.id
 
         assert not mock_send_invite_email.mock_calls
@@ -398,7 +402,9 @@ class OrganizationMemberInviteListPostTest(APITestCase):
         omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
         assert omi.email == "mifu@email.com"
         assert omi.role == "member"
-        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+        assert omi.organization_member_team_data == [
+            {"id": self.team.id, "role": None, "slug": self.team.slug}
+        ]
         assert omi.inviter_id == self.user.id
 
         mock_send_invite_email.assert_called_with("test_referrer")
@@ -444,7 +450,9 @@ class OrganizationMemberInviteListPostTest(APITestCase):
         omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
         assert omi.email == "mifu@email.com"
         assert omi.role == "member"
-        assert omi.organization_member_team_data == [{"id": self.team.id, "slug": self.team.slug}]
+        assert omi.organization_member_team_data == [
+            {"id": self.team.id, "slug": self.team.slug, "role": None}
+        ]
 
         mock_send_invite_email.assert_called_once()
 

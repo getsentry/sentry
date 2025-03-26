@@ -231,7 +231,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
             teams = []
             for team in result.get("teams", []):
-                teams.append({"id": team.id, "slug": team.slug})
+                teams.append({"id": team.id, "slug": team.slug, "role": None})
 
             omi = OrganizationMemberInvite(
                 organization=organization,
