@@ -1,11 +1,14 @@
+import datetime
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import features, options, tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.utils import clamp_date_range, default_start_end_dates
 from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
 
@@ -23,7 +26,7 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             tag_keys = []
         else:
-            kwargs = {}
+            kwargs: dict = {}
             if request.GET.get("onlySamplingTags") == "1":
                 kwargs["denylist"] = DS_DENYLIST
 
@@ -37,6 +40,15 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 backend = tagstore.backend
 
             include_values_seen = request.GET.get("includeValuesSeen") != "0"
+
+            if True or features.has("organizations:tag-key-sample-n", project.organization):
+                # Tag queries longer than 14 days tend to time out for large customers. For getting a list of tags, clamping to 14 days is a reasonable compromise of speed vs. completeness
+                (start, end) = clamp_date_range(
+                    default_start_end_dates(),
+                    datetime.timedelta(days=options.get("visibility.tag-key-max-date-range.days")),
+                )
+                kwargs["start"] = start
+                kwargs["end"] = end
 
             tag_keys = sorted(
                 backend.get_tag_keys(

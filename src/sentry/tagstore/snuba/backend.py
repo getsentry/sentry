@@ -236,6 +236,12 @@ class SnubaTagStorage(TagStorage):
         tenant_ids=None,
         **kwargs,
     ):
+        optimize_kwargs = {}
+        if kwargs.get("turbo"):
+            optimize_kwargs["turbo"] = True
+        if kwargs.get("sample"):
+            optimize_kwargs["sample"] = kwargs.get("sample")
+
         return self.__get_tag_keys_for_projects(
             get_project_list(project_id),
             group,
@@ -248,6 +254,7 @@ class SnubaTagStorage(TagStorage):
             dataset=dataset,
             denylist=denylist,
             tenant_ids=tenant_ids,
+            **optimize_kwargs,
         )
 
     def __get_tag_keys_for_projects(
@@ -404,8 +411,21 @@ class SnubaTagStorage(TagStorage):
         include_values_seen=False,
         denylist=None,
         tenant_ids=None,
+        **kwargs,
     ):
         assert status is TagKeyStatus.ACTIVE
+
+        optimize_kwargs: _OptimizeKwargs = {}
+
+        organization_id = get_organization_id_from_project_ids(get_project_list(project_id))
+        organization = Organization.objects.get_from_cache(id=organization_id)
+        if True or features.has("organizations:tag-key-sample-n", organization):
+            # Add static sample amount to the query. Turbo will sample at 10% by
+            # default, but organizations with many events still get timeouts. A
+            # static sample creates more consistent performance.
+            optimize_kwargs["turbo"] = True
+            optimize_kwargs["sample"] = options.get("visibility.tag-key-sample-size")
+
         return self.__get_tag_keys(
             project_id,
             None,
@@ -413,6 +433,8 @@ class SnubaTagStorage(TagStorage):
             denylist=denylist,
             tenant_ids=tenant_ids,
             include_values_seen=include_values_seen,
+            **optimize_kwargs,
+            **kwargs,
         )
 
     def get_tag_keys_for_projects(
