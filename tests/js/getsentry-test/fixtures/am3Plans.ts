@@ -1,17 +1,21 @@
 import {ANNUAL, MONTHLY, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {CheckoutType, type Plan} from 'getsentry/types';
 
-const AM3_CATEGORIES = [
+const AM3_CHECKOUT_CATEGORIES = [
   'errors',
   'replays',
   'attachments',
   'monitorSeats',
   'spans',
-  'profileDuration',
   'uptime',
-];
+]
+const AM3_CATEGORIES = [...AM3_CHECKOUT_CATEGORIES, 'profileDuration'];
 
-const AM3_DS_CATEGORIES = [...AM3_CATEGORIES, 'spansIndexed'];
+const AM3_DS_CHECKOUT_CATEGORIES = [
+  ...AM3_CHECKOUT_CATEGORIES,
+  'spansIndexed'
+]
+const AM3_DS_CATEGORIES = [...AM3_DS_CHECKOUT_CATEGORIES, 'profileDuration']
 
 const AM3_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
@@ -118,7 +122,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -821,7 +825,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -1393,7 +1397,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: true,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -1571,7 +1575,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: true,
     categories: AM3_DS_CATEGORIES,
-    checkoutCategories: AM3_DS_CATEGORIES,
+    checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
     availableCategories: AM3_DS_CATEGORIES,
     onDemandCategories: AM3_DS_CATEGORIES,
     hasOnDemandModes: false,
@@ -1664,7 +1668,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 5000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -1749,7 +1753,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -1834,7 +1838,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
     categories: AM3_DS_CATEGORIES,
-    checkoutCategories: AM3_DS_CATEGORIES,
+    checkoutCategories: AM3_DS_CHECKOUT_CATEGORIES,
     availableCategories: AM3_DS_CATEGORIES,
     onDemandCategories: AM3_DS_CATEGORIES,
     hasOnDemandModes: false,
@@ -1927,7 +1931,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -2420,7 +2424,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: 50000,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
@@ -2907,7 +2911,7 @@ const AM3_PLANS: Record<string, Plan> = {
     reservedMinimum: UNLIMITED_RESERVED,
     allowAdditionalReservedEvents: false,
     categories: AM3_CATEGORIES,
-    checkoutCategories: AM3_CATEGORIES,
+    checkoutCategories: AM3_CHECKOUT_CATEGORIES,
     availableCategories: AM3_CATEGORIES,
     onDemandCategories: AM3_CATEGORIES,
     hasOnDemandModes: false,
