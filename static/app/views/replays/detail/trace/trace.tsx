@@ -225,7 +225,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
     >
       <TraceViewWaterfallWrapper>
         <TraceWaterfall
-          traceSlug={undefined}
+          traceSlug={firstTrace?.traceSlug}
           trace={trace}
           tree={tree}
           rootEvent={rootEvent}
