@@ -249,6 +249,29 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   border-left: 1px solid ${p => p.theme.border};
   position: relative;
   pointer-events: auto;
+
+  &.resizing {
+    /* Hide scrollbars during resize */
+    overflow: hidden !important;
+
+    /* Hide scrollbars in Firefox */
+    scrollbar-width: none;
+
+    /* Hide scrollbars in WebKit browsers */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Apply to all scrollable children */
+    * {
+      overflow: hidden !important;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+  }
 `;
 
 const ResizeHandle = styled('div')<{
