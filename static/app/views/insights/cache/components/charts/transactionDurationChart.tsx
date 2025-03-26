@@ -1,5 +1,10 @@
 import {t} from 'sentry/locale';
-import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
+import type {
+  EChartHighlightHandler,
+  EChartsHighlightEventParam,
+  Series,
+  SeriesDataUnit,
+} from 'sentry/types/echarts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -17,7 +22,10 @@ import type {MetricsQueryFilters} from 'sentry/views/insights/types';
 
 type Props = {
   averageTransactionDuration: number;
-  onHighlight: EChartHighlightHandler;
+  onHighlight: (
+    data: Array<{dataPoint: SeriesDataUnit | undefined; series: Series}>,
+    event: EChartsHighlightEventParam
+  ) => void;
   samples: DataRow[];
   highlightedSpanId?: string;
 };
@@ -56,14 +64,23 @@ export function TransactionDurationChart({
 
   // TODO: This is duplicated from `DurationChart` in `SampleList`. Resolve the duplication
   const handleChartHighlight: EChartHighlightHandler = function (event) {
+    // ignore mouse hovering over the chart legend
+    if (!event.batch) {
+      return;
+    }
+
     // TODO: Gross hack. Even though `scatterPlot` is a separate prop, it's just an array of `Series` that gets appended to the main series. To find the point that was hovered, we re-construct the correct series order. It would have been cleaner to just pass the scatter plot as its own, single series
     const allSeries = [
-      data['avg(transaction.duration)'],
+      data['avg(transaction.duration)'], // Complete data series
+      data['avg(transaction.duration)'], // Incomplete data
       ...(sampledSpanDataSeries ?? []),
     ];
 
-    const highlightedDataPoints = event.batch.map((batch: any) => {
-      const {seriesIndex, dataIndex} = batch;
+    const highlightedDataPoints = event.batch.map(eventData => {
+      let {seriesIndex} = eventData;
+      const {dataIndex} = eventData;
+      // TODO: More hacks. The Chart component partitions the data series into a complete and incomplete series. Wrap the series index to work around overflowing index.
+      seriesIndex = seriesIndex % allSeries.length;
 
       const highlightedSeries = allSeries?.[seriesIndex]!;
       const highlightedDataPoint = highlightedSeries.data?.[dataIndex];

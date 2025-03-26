@@ -289,7 +289,7 @@ export function MessageSpanSamplesPanel() {
               onHighlight={highlights => {
                 const firstHighlight = highlights[0];
 
-                if (!firstHighlight) {
+                if (!firstHighlight || !firstHighlight.dataPoint) {
                   setHighlightedSpanId(undefined);
                   return;
                 }

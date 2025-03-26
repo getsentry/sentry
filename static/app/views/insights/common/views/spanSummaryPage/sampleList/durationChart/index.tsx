@@ -4,6 +4,7 @@ import type {
   EChartHighlightHandler,
   Series,
 } from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -145,8 +146,20 @@ function DurationChart({
     }
   };
 
-  const handleChartHighlight: EChartHighlightHandler = e => {
-    const {seriesIndex} = e.batch[0];
+  const handleChartHighlight: EChartHighlightHandler = event => {
+    // ignore mouse hovering over the chart legend
+    if (!event.batch) {
+      return;
+    }
+
+    const firstEventData = event.batch[0];
+
+    if (!defined(firstEventData)) {
+      return;
+    }
+
+    const {seriesIndex} = firstEventData;
+
     const isSpanSample =
       seriesIndex > 1 && seriesIndex < 2 + sampledSpanDataSeries.length;
     if (isSpanSample && onMouseOverSample) {
