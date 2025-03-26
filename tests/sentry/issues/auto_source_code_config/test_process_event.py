@@ -167,19 +167,19 @@ class BaseDeriveCodeMappings(TestCase):
                         key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                     )
 
-                if expected_in_app_stack_trace_rules:
-                    expected_enhancements = "\n".join(expected_in_app_stack_trace_rules)
-                    assert current_enhancements == (
-                        f"{starting_enhancements}\n{expected_enhancements}"
-                        if starting_enhancements
-                        else expected_enhancements
-                    )
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.in_app_stack_trace_rules.created",
-                        amount=len(expected_in_app_stack_trace_rules),
-                        tags=tags,
-                        sample_rate=1.0,
-                    )
+            if expected_in_app_stack_trace_rules:
+                expected_enhancements = "\n".join(expected_in_app_stack_trace_rules)
+                assert current_enhancements == (
+                    f"{starting_enhancements}\n{expected_enhancements}"
+                    if starting_enhancements
+                    else expected_enhancements
+                )
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.in_app_stack_trace_rules.created",
+                    amount=len(expected_in_app_stack_trace_rules),
+                    tags=tags,
+                    sample_rate=1.0,
+                )
 
             # Returning these to inspect the results
             return event
