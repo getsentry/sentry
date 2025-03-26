@@ -10,6 +10,10 @@ export default function useReplayAutoPause() {
   const {playerState} = useReplayPlayerState();
 
   useEffect(() => {
+    if (playerState !== 'playing') {
+      return () => {};
+    }
+
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && playerState === 'playing') {
         userAction({type: 'pause'});
