@@ -187,12 +187,16 @@ def _build_notification_payload(
     alert_context: AlertContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
-    incident_serialized_response: DetailedIncidentSerializerResponse,
+    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
+    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None,
 ) -> tuple[str, str]:
     chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
+    if (
+        features.has("organizations:metric-alert-chartcuterie", organization)
+        and alert_rule_serialized_response
+        and incident_serialized_response
+    ):
         try:
             chart_url = build_metric_alert_chart(
                 organization=organization,
@@ -395,8 +399,8 @@ def send_incident_alert_notification(
     notification_context: NotificationContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
-    incident_serialized_response: DetailedIncidentSerializerResponse,
+    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
+    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None = None,
 ) -> bool:
     # Make sure organization integration is still active:

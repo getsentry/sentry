@@ -110,8 +110,8 @@ def send_incident_alert_notification(
     notification_context: NotificationContext,
     metric_issue_context: MetricIssueContext,
     open_period_context: OpenPeriodContext,
-    alert_rule_serialized_response: AlertRuleSerializerResponse,
-    incident_serialized_response: DetailedIncidentSerializerResponse,
+    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
+    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None = None,
 ) -> bool:
     from .card_builder.incident_attachment import build_incident_attachment
