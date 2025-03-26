@@ -5,7 +5,6 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.api.serializers.rest_framework import ValidationError
-from sentry.models.groupsearchview import DEFAULT_TIME_FILTER
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
@@ -80,13 +79,7 @@ class GroupSearchViewValidator(serializers.Serializer):
 
 
 class GroupSearchViewPostValidator(ViewValidator):
-    projects = serializers.ListField(required=False, allow_empty=True)
-    environments = serializers.ListField(required=False, allow_empty=True, default=[])
-    timeFilters = serializers.DictField(
-        required=False, allow_empty=False, default=DEFAULT_TIME_FILTER
-    )
-    # Pass in position to indicate this new view is starred.
-    position = serializers.IntegerField(required=False)
+    starred = serializers.BooleanField(required=False)
 
     def validate(self, data):
         if data.get("projects") is None:

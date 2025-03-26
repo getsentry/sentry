@@ -223,6 +223,9 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
             "name": "Custom View One",
             "query": "is:unresolved",
             "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
         }
 
         response = self.get_success_response(self.organization.slug, **data, status_code=201)
@@ -335,26 +338,25 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    def test_create_view_with_position(self) -> None:
+    def test_create_view_with_starred(self) -> None:
         data = {
-            "name": "Positioned View",
+            "name": "Starred View",
             "query": "is:unresolved",
             "querySort": "date",
             "projects": [],
             "environments": [],
             "timeFilters": {"period": "14d"},
-            "position": 0,
+            "starred": True,
         }
 
         response = self.get_success_response(self.organization.slug, **data, status_code=201)
 
         view_id = response.data["id"]
-        starred = GroupSearchViewStarred.objects.get(
+        assert GroupSearchViewStarred.objects.filter(
             organization=self.organization,
             user_id=self.user.id,
             group_search_view_id=view_id,
-        )
-        assert starred.position == 0
+        ).exists()
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -462,66 +464,6 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
 
         response = self.get_error_response(self.organization.slug, **data)
         assert "projects" in response.data
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
-    @with_feature({"organizations:global-views": True})
-    def test_create_view_between_existing_starred_views(self) -> None:
-        """Test creating a view that's positioned between existing starred views"""
-        # First create two views
-        first_view_data = {
-            "name": "First View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "position": 0,
-        }
-        self.get_success_response(self.organization.slug, **first_view_data, status_code=201)
-
-        last_view_data = {
-            "name": "Last View",
-            "query": "is:resolved",
-            "querySort": "freq",
-            "position": 1,
-        }
-        self.get_success_response(self.organization.slug, **last_view_data, status_code=201)
-
-        # Now create a new view that should be inserted between them
-        middle_view_data = {
-            "name": "Middle View",
-            "query": "is:ignored",
-            "querySort": "new",
-            "position": 1,  # This should insert it at position 1, pushing the "Last View" to position 2
-        }
-
-        middle_view_response = self.get_success_response(
-            self.organization.slug, **middle_view_data, status_code=201
-        )
-        assert middle_view_response.data["name"] == "Middle View"
-
-        # Get all views to verify the correct ordering
-        all_views_response = self.client.get(self.url)
-        assert len(all_views_response.data) == 3
-
-        # Verify the names and positions of all views
-        assert all_views_response.data[0]["name"] == "First View"
-        assert all_views_response.data[0]["position"] == 0
-        assert all_views_response.data[1]["name"] == "Middle View"
-        assert all_views_response.data[1]["position"] == 1
-        assert all_views_response.data[2]["name"] == "Last View"
-        assert all_views_response.data[2]["position"] == 2
-
-        # Verify in the database that the position was updated for all related starred views
-        starred_views = GroupSearchViewStarred.objects.filter(
-            organization=self.organization, user_id=self.user.id
-        ).order_by("position")
-
-        assert len(starred_views) == 3
-        assert starred_views[0].position == 0
-        assert starred_views[1].position == 1
-        assert starred_views[2].position == 2
-
-        assert starred_views[0].group_search_view.name == "First View"
-        assert starred_views[1].group_search_view.name == "Middle View"
-        assert starred_views[2].group_search_view.name == "Last View"
 
 
 class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):

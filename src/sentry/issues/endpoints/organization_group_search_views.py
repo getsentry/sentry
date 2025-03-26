@@ -160,12 +160,11 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         )
         view.projects.set(validated_data["projects"])
 
-        if validated_data.get("position") is not None:
+        if validated_data.get("starred"):
             GroupSearchViewStarred.objects.insert_starred_view(
                 organization=organization,
                 user_id=request.user.id,
                 view=view,
-                position=validated_data["position"],
             )
 
         has_global_views = features.has("organizations:global-views", organization)
