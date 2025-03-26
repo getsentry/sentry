@@ -1,5 +1,4 @@
 import {forwardRef} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {SVGIconProps} from './svgIcon';
@@ -10,7 +9,6 @@ interface Props extends SVGIconProps {
 
 const IconParenthesis = forwardRef<SVGSVGElement, Props>(
   ({side = 'left', ...props}, ref) => {
-    const theme = useTheme();
     return (
       <StyledIcon
         ref={ref}
