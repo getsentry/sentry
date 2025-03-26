@@ -27,6 +27,10 @@ class NotificationOrganizationTargetStrategy(NotificationTargetStrategy):
         ]
 
 
+class NotificationTeamTargetStrategy(NotificationTargetStrategy):
+    pass
+
+
 class NotificationProjectTargetStrategy(NotificationTargetStrategy):
     project_id: str
 

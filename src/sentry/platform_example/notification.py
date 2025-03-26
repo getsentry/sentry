@@ -1,19 +1,27 @@
 from __future__ import annotations
 
+import abc
 import uuid
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Generic, TypedDict, TypeVar
+from typing import Any, Generic, TypeVar
 
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models.base import Model
-from sentry.platform_example.notification_target import NotificationTarget, NotificationType
+from sentry.platform_example.notification_provider import ProviderTarget
+from sentry.platform_example.notification_target import (
+    NotificationIntegrationTarget,
+    NotificationTarget,
+    NotificationType,
+    NotificationUserTarget,
+)
+from sentry.platform_example.registry import ProviderRegistry
 
 
-class NotificationData(TypedDict):
-    message: str
+class NotificationData(abc.ABC):
+    pass
 
 
 class Notification(Model):
@@ -57,6 +65,32 @@ class NotificationService(Generic[T]):
         Send a notification to a single target. Targets can be a user,
         an integration resource, or a team.
         """
+
+        if isinstance(target, NotificationUserTarget):
+            raise NotImplementedError("User notifications are not yet implemented")
+
+        if isinstance(target, NotificationIntegrationTarget):
+            integration_installation = target.integration_installation
+
+            # This is a little hand-wavy, but we'll need to use the
+            # installation to get the target provider.
+            # An organization can have multiple integration installations for a
+            # single provider. Ensuring we target the correct one is essential.
+            provider_target = ProviderTarget(
+                provider_name=integration_installation.provider,
+                resource_id=target.resource_id,
+                resource_type=target.resource_type,
+            )
+
+        provider = ProviderRegistry.get_provider(provider_target.provider_name)
+        renderer = provider.get_renderer(template.notification_type)
+        notification_content = renderer.render(data, template)
+
+        provider.send_notification(
+            notification_content, template.notification_type, provider_target
+        )
+
+        # This is where we'd either return a notification ID
         return ""
 
     @staticmethod
@@ -81,6 +115,11 @@ class NotificationService(Generic[T]):
         # Validate the template & Data
         # Per notification target, find the correct provider
         # If user, get user settings, preferences, fan out to different specified providers
+
         # Notify via the provider by queueing a task, an outbox with an RPC, etc
         # TODO(Gabe): Figure out if some emails need overrides/specific requirements
+
+        # This would either return a list of individual notification IDs, or a
+        # single "batch" ID potentially, since this fans out to many targets.
+        # Conceptually, these are all bound to the same notification though.
         return ""

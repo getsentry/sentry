@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.platform_example.notification_provider import ProviderResourceType
 from sentry.users.models.user import User
 
 
@@ -27,12 +28,13 @@ type NotificationTarget = NotificationIntegrationTarget | NotificationUserTarget
 @dataclass
 class NotificationIntegrationTarget:
     # By querying the integration installation, we can get the provider, integration ID, etc.
-    integration_installation_id: str
-    resource_type: str
+    organization_id: int
+    integration_id: int
+    resource_type: ProviderResourceType
     resource_id: str
 
     @property
-    def integration_installation(self) -> IntegrationInstallation:
+    def integration_installation(self) -> RpcIntegration:
         raise NotImplementedError("Subclasses must implement this method")
 
 

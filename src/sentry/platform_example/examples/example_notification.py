@@ -13,8 +13,9 @@ from sentry.platform_example.notification_target_strategies import (
 )
 
 
+@dataclass
 class ExampleNotificationData(NotificationData):
-    pass
+    message: str
 
 
 @dataclass
@@ -31,5 +32,5 @@ def notify_all_sentry_members():
     NotificationService.notify_many(
         targets=targets,
         template=ExampleNotificationTemplate(),
-        data=ExampleNotificationData(message="Hello, world!"),
+        data=ExampleNotificationData(message="Notification Test"),
     )
