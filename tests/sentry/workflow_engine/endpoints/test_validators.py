@@ -5,8 +5,6 @@ from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from sentry import audit_log
-from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model
 from sentry.incidents.endpoints.validators import NumericComparisonConditionValidator
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.metric_alert_detector import MetricAlertsDetectorValidator
@@ -26,6 +24,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.workflow_engine.test_base import MockModel
 
 
 class BaseValidatorTest(TestCase):
@@ -35,13 +34,6 @@ class BaseValidatorTest(TestCase):
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ANY,
         )
-
-
-class MockModel(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    class Meta:
-        app_label = "fixtures"
 
 
 class TestDataSourceCreator(TestCase):

@@ -2,19 +2,11 @@ from unittest import mock
 
 from rest_framework import serializers
 
-from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionHandler
-
-
-class MockModel(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    class Meta:
-        app_label = "fixtures"
+from tests.sentry.workflow_engine.test_base import MockModel
 
 
 class MockActionHandler(ActionHandler):
