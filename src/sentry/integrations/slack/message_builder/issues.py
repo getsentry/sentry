@@ -447,18 +447,18 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
-        self.issue_summary = None
+        self.issue_summary: dict[str, Any] | None = None
 
     def fetch_issue_summary(self) -> dict[str, Any] | None:
         """
         Try to fetch an issue summary with a timeout of 5 seconds.
         Returns the summary data if successful, None otherwise.
         """
-        if not (
-            self.group.issue_category == GroupCategory.ERROR
-            and features.has("organizations:gen-ai-features", self.group.organization)
-            and features.has("projects:trigger-issue-summary-on-alerts", self.group.project)
-        ):
+        if self.group.issue_category != GroupCategory.ERROR:
+            return None
+        if not features.has("organizations:gen-ai-features", self.group.organization):
+            return None
+        if not features.has("projects:trigger-issue-summary-on-alerts", self.group.project):
             return None
 
         try:
@@ -468,10 +468,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
                 if status_code == 200:
                     return summary_result
+                return None
         except (concurrent.futures.TimeoutError, Exception) as e:
             logger.exception("Error generating issue summary: %s", e)
-
-        return None
+            return None
 
     def get_title_block(
         self,
@@ -491,11 +491,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             notification_uuid=notification_uuid,
         )
         # Use summary headline if available, otherwise use default title
-        title = (
-            self.issue_summary.get("headline")
-            if self.issue_summary and self.issue_summary.get("headline")
-            else build_attachment_title(event_or_group)
-        )
+        headline = None
+        if self.issue_summary is not None:
+            headline = self.issue_summary.get("headline")
+
+        title = headline if headline else build_attachment_title(event_or_group)
 
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
         title_emoji = None
@@ -518,7 +518,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self.get_markdown_block(title_text)
 
     def get_issue_summary_text(self) -> str | None:
-        if not self.issue_summary:
+        """Generate formatted text from issue summary fields."""
+        if self.issue_summary is None:
             return None
 
         parts = []
