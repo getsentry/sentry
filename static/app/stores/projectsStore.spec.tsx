@@ -171,4 +171,19 @@ describe('ProjectsStore', function () {
     const state = ProjectsStore.getState();
     expect(Object.is(state, ProjectsStore.getState())).toBe(true);
   });
+
+  it('should remove a project from the store when it is deleted', function () {
+    ProjectsStore.loadInitialData([projectFoo, projectBar]);
+    ProjectsStore.onDeleteProject('foo');
+    expect(ProjectsStore.getById(projectFoo.id)).toBeUndefined();
+    expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
+      id: '10',
+      slug: 'bar',
+      name: 'Bar',
+      teams: [
+        expect.objectContaining({slug: 'team-foo'}),
+        expect.objectContaining({slug: 'team-bar'}),
+      ],
+    });
+  });
 });

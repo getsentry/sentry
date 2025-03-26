@@ -1,5 +1,6 @@
 import logging
-from typing import Any
+from collections.abc import Generator
+from typing import Any, TypedDict
 
 import sentry_sdk
 
@@ -137,7 +138,12 @@ def report_hydration_error(
 ) -> None:
     metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
 
-    if not replay_event or not _should_report_hydration_error_issue(project):
+    # Eagerly exit to prevent unnecessary I/O.
+    if (
+        len(event_meta.hydration_errors) == 0
+        or not replay_event
+        or not _should_report_hydration_error_issue(project)
+    ):
         return None
 
     for error in event_meta.hydration_errors:
@@ -150,17 +156,30 @@ def report_hydration_error(
         )
 
 
-@sentry_sdk.trace
-def report_rage_click(
+class RageClickIssue(TypedDict):
+    component_name: str
+    node: dict[str, Any]
+    project_id: int
+    replay_event: dict[str, Any]
+    replay_id: str
+    selector: str
+    timestamp: int
+    url: str
+
+
+def gen_rage_clicks(
     event_meta: ParsedEventMeta,
-    project: Project,
+    project_id: int,
     replay_id: str,
     replay_event: dict[str, Any] | None,
-) -> None:
-    for click in filter(lambda c: c.is_rage, event_meta.click_events):
-        metrics.incr("replay.rage_click_detected")
-        if replay_event is not None and click.url and _should_report_rage_click_issue(project):
-            node = {
+) -> Generator[RageClickIssue]:
+    if not replay_event:
+        return None
+
+    for click in filter(lambda c: c.is_rage and c.url, event_meta.click_events):
+        yield {
+            "component_name": click.component_name,
+            "node": {
                 "id": click.node_id,
                 "tagName": click.tag,
                 "attributes": {
@@ -174,17 +193,40 @@ def report_rage_click(
                     "data-sentry-component": click.component_name,
                 },
                 "textContent": click.text,
-            }
-            report_rage_click_issue_with_replay_event(
-                project.id,
-                replay_id,
-                click.timestamp,
-                click.selector,
-                click.url,
-                node,
-                click.component_name,
-                replay_event,
-            )
+            },
+            "project_id": project_id,
+            "replay_event": replay_event,
+            "replay_id": replay_id,
+            "selector": click.selector,
+            "timestamp": click.timestamp,
+            "url": str(click.url),
+        }
+
+
+@sentry_sdk.trace
+def report_rage_click(
+    event_meta: ParsedEventMeta,
+    project: Project,
+    replay_id: str,
+    replay_event: dict[str, Any] | None,
+) -> None:
+    clicks = list(gen_rage_clicks(event_meta, project.id, replay_id, replay_event))
+    if len(clicks) == 0 or not _should_report_rage_click_issue(project):
+        return None
+
+    metrics.incr("replay.rage_click_detected", amount=len(clicks))
+
+    for click in clicks:
+        report_rage_click_issue_with_replay_event(
+            click["project_id"],
+            click["replay_id"],
+            click["timestamp"],
+            click["selector"],
+            click["url"],
+            click["node"],
+            click["component_name"],
+            click["replay_event"],
+        )
 
 
 @sentry_sdk.trace

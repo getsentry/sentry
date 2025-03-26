@@ -381,7 +381,7 @@ const Title = styled('label')`
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
@@ -400,7 +400,7 @@ const CategoryInfoDescription = styled(Description)`
 const CategoryInfoList = styled('ul')`
   margin: ${space(1)} 0;
   padding: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 
   li {

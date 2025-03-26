@@ -208,7 +208,7 @@ const startedStyle = (theme: Theme) => css`
   }
 `;
 
-const Wrapper = styled(motion.div)`
+const Wrapper = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   margin: 0 -20px 0 -5px;
   padding: 0 20px 0 5px;
   border-radius: 4px 0 0 4px;

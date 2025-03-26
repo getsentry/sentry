@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {getEscapedKey} from 'sentry/components/compactSelect/utils';
+import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {

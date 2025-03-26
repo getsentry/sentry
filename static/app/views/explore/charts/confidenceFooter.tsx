@@ -24,84 +24,40 @@ function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
       : t('* Chart extrapolated from \u2026');
   }
 
+  const lowAccuracySampleCount = (
+    <Tooltip
+      title={t(
+        'You may not have enough samples for high accuracy. Increase your sampling rates to get more samples and accurate trends.'
+      )}
+    >
+      <InsufficientSamples>
+        <Count value={sampleCount} />
+      </InsufficientSamples>
+    </Tooltip>
+  );
+
   if (confidence === 'low') {
     if (isTopN) {
-      if (sampleCount === 1) {
-        return tct(
-          '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample ([lowAccuracy])',
-          {
-            topEvents,
-            sampleCount: <Count value={sampleCount} />,
-            lowAccuracy: <LowAccuracy />,
-          }
-        );
-      }
-      return tct(
-        '* Chart for top [topEvents] groups extrapolated from [sampleCount] samples ([lowAccuracy])',
-        {
-          topEvents,
-          sampleCount: <Count value={sampleCount} />,
-          lowAccuracy: <LowAccuracy />,
-        }
-      );
-    }
-
-    if (sampleCount === 1) {
-      return tct('* Chart extrapolated from [sampleCount] sample ([lowAccuracy])', {
-        sampleCount: <Count value={sampleCount} />,
-        lowAccuracy: <LowAccuracy />,
+      return tct('Sample count for top [topEvents] groups: [sampleCount]', {
+        topEvents,
+        sampleCount: lowAccuracySampleCount,
       });
     }
-
-    return tct('* Chart extrapolated from [sampleCount] samples ([lowAccuracy])', {
-      sampleCount: <Count value={sampleCount} />,
-      lowAccuracy: <LowAccuracy />,
+    return tct('Sample count: [sampleCount]', {
+      sampleCount: lowAccuracySampleCount,
     });
   }
 
   if (isTopN) {
-    if (sampleCount === 1) {
-      return tct(
-        '* Chart for top [topEvents] groups extrapolated from [sampleCount] sample',
-        {
-          topEvents,
-          sampleCount: <Count value={sampleCount} />,
-        }
-      );
-    }
-
-    return tct(
-      '* Chart for top [topEvents] groups extrapolated from [sampleCount] samples',
-      {
-        topEvents,
-        sampleCount: <Count value={sampleCount} />,
-      }
-    );
-  }
-
-  if (sampleCount === 1) {
-    return tct('* Chart extrapolated from [sampleCount] sample', {
+    return tct('Sample count for top [topEvents] groups: [sampleCount]', {
+      topEvents,
       sampleCount: <Count value={sampleCount} />,
     });
   }
 
-  return tct('* Chart extrapolated from [sampleCount] samples', {
+  return tct('Sample count: [sampleCount]', {
     sampleCount: <Count value={sampleCount} />,
   });
-}
-
-function LowAccuracy() {
-  return (
-    <Tooltip
-      title={t(
-        'Increase your sampling rates to get more samples and more accurate trends.'
-      )}
-    >
-      <InsufficientSamples>
-        {t('Sampling rate may be low for accuracy')}
-      </InsufficientSamples>
-    </Tooltip>
-  );
 }
 
 const InsufficientSamples = styled('span')`
@@ -109,6 +65,6 @@ const InsufficientSamples = styled('span')`
 `;
 
 const Container = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

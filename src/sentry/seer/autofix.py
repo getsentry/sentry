@@ -427,10 +427,15 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
     including only items from the MainThread and app frames.
     Calculates accurate durations for all nodes based on call stack transitions.
     """
-    profile = profile_data["profile"]
-    frames = profile["frames"]
-    stacks = profile["stacks"]
-    samples = profile["samples"]
+    profile = profile_data.get("profile")
+    if not profile:
+        return []
+
+    frames = profile.get("frames")
+    stacks = profile.get("stacks")
+    samples = profile.get("samples")
+    if not all([frames, stacks, samples]):
+        return []
 
     # Find the MainThread ID
     thread_metadata = profile.get("thread_metadata", {})
@@ -659,7 +664,7 @@ def _respond_with_error(reason: str, status: int):
 
 def _call_autofix(
     *,
-    user: User | AnonymousUser,
+    user: User | AnonymousUser | RpcUser,
     group: Group,
     repos: list[dict],
     serialized_event: dict[str, Any],
@@ -721,7 +726,7 @@ def trigger_autofix(
     *,
     group: Group,
     event_id: str | None = None,
-    user: User | AnonymousUser,
+    user: User | AnonymousUser | RpcUser,
     instruction: str | None = None,
     pr_to_comment_on_url: str | None = None,
     auto_run_source: str | None = None,

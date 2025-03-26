@@ -7,9 +7,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {AlertLink} from 'sentry/components/core/alert/alertLink';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -21,10 +21,9 @@ import {IconAdd, IconDelete, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import {PlanTier, type Subscription} from 'getsentry/types';
@@ -34,7 +33,6 @@ import SubscriptionHeader from './subscriptionHeader';
 import {trackSubscriptionView} from './utils';
 
 interface SubscriptionNotificationsProps extends RouteComponentProps<unknown, unknown> {
-  organization: Organization;
   subscription: Subscription;
 }
 
@@ -61,10 +59,8 @@ function isThresholdsEqual(value: ThresholdsType, other: ThresholdsType): boolea
   return isEqual(value, other);
 }
 
-function SubscriptionNotifications({
-  organization,
-  subscription,
-}: SubscriptionNotificationsProps) {
+function SubscriptionNotifications({subscription}: SubscriptionNotificationsProps) {
+  const organization = useOrganization();
   const api = useApi();
   useEffect(() => {
     trackSubscriptionView(organization, subscription, 'notifications');
@@ -333,7 +329,7 @@ function GenericConsumptionGroup(props: GenericConsumptionGroupProps) {
   );
 }
 
-export default withOrganization(withSubscription(SubscriptionNotifications));
+export default withSubscription(SubscriptionNotifications);
 
 const PageDescription = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
