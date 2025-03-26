@@ -256,6 +256,9 @@ export function GroupSummary({
                 size: 'xs',
                 borderless: true,
                 showChevron: false,
+                style: {
+                  zIndex: 0,
+                },
               }}
               isDisabled={isPending}
               position="bottom-end"

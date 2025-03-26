@@ -128,3 +128,7 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
 
   return changesStep?.status === AutofixStatus.PROCESSING;
 };
+
+export const isSupportedAutofixProvider = (provider: string) => {
+  return provider.toLowerCase().includes('github');
+};
