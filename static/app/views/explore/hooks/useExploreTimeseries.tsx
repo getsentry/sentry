@@ -28,7 +28,6 @@ interface UseExploreTimeseriesOptions {
 
 interface UseExploreTimeseriesResults {
   canUsePreviousResults: boolean;
-  isFetched: boolean;
   result: ReturnType<typeof useSortedTimeSeries>;
 }
 
@@ -135,6 +134,5 @@ function useExploreTimeseriesImpl({
   return {
     result: timeseriesResult,
     canUsePreviousResults,
-    isFetched: timeseriesResult.isFetched,
   };
 }
