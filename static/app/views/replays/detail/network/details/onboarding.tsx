@@ -81,7 +81,7 @@ export function Setup({
           'Request and response headers or bodies are currently not available for mobile platforms. Track this [link:GitHub issue] to get progress on support for this feature.',
           {
             link: (
-              <ExternalLink href="https://github.com/getsentry/sentry-react-native/issues/4106" />
+              <ExternalLink href="https://github.com/getsentry/sentry/issues/84596" />
             ),
           }
         )}
