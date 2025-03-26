@@ -262,10 +262,16 @@ def sync_status_inbound(
                 )
                 if not created:
                     resolution.update(datetime=django_timezone.now(), **resolution_params)
+
+            try:
+                default_user_id = str(organizations[0].get_default_owner().id)
+            except IndexError:
+                logger.exception("Error getting default user")
+                default_user_id = "<unknown>"
             analytics.record(
                 "issue.resolved",
                 project_id=group.project.id,
-                default_user_id=organizations[0].get_default_owner().id,
+                default_user_id=default_user_id,
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type="with_third_party_app",
