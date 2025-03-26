@@ -36,7 +36,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
     codeMappingRepos,
     isLoading: isLoadingPreferences,
   } = useProjectPreferences(project);
-  const savePreferences = useSaveProjectPreferences(project);
+  const {mutate: savePreferences} = useSaveProjectPreferences(project);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
@@ -87,7 +87,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
 
         setRepoSettings(initialSettings);
 
-        savePreferences.mutate({repositories: codeMappingRepos});
+        savePreferences({repositories: codeMappingRepos});
       }
     }
   }, [preference, repositories, codeMappingRepos, savePreferences]);
@@ -116,7 +116,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
         };
       });
 
-      savePreferences.mutate({
+      savePreferences({
         repositories: reposData,
       });
 
