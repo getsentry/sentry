@@ -289,6 +289,12 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.span_ops.ops.ui",
             search_type="millisecond",
         ),
+        ResolvedAttribute(
+            public_alias="span.system",
+            internal_name="db.system",
+            search_type="string",
+            secondary_alias=True,
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
