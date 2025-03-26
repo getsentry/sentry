@@ -391,8 +391,11 @@ def time_spent_percentage(
 
 
 def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the period time"""
     extrapolation_mode = settings["extrapolation_mode"]
+    interval = settings["query_settings"]["snuba_params"].interval
+    granularity_secs = settings["query_settings"]["granularity_secs"]
+
+    divisor = granularity_secs if granularity_secs else interval
 
     return Column.BinaryFormula(
         left=Column(
@@ -404,11 +407,7 @@ def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                extrapolation_mode=extrapolation_mode,
-            )
+            literal=LiteralValue(val_double=divisor / 60),
         ),
     )
 
