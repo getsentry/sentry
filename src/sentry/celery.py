@@ -1,5 +1,6 @@
 import gc
 from datetime import datetime
+from enum import Enum
 from itertools import chain
 from typing import Any
 
@@ -11,7 +12,7 @@ from django.db import models
 from sentry.utils import metrics
 
 # XXX: Pickle parameters are not allowed going forward
-LEGACY_PICKLE_TASKS = frozenset([])
+LEGACY_PICKLE_TASKS: frozenset[str] = frozenset([])
 
 
 def holds_bad_pickle_object(value, memo=None):
@@ -40,7 +41,9 @@ def holds_bad_pickle_object(value, memo=None):
             "django database models are large and likely to be stale when your task is run. "
             "Instead pass primary key values to the task and load records from the database within your task.",
         )
-    if type(value).__module__.startswith(("sentry.", "getsentry.")):
+    app_module = type(value).__module__
+    ok_class = isinstance(value, Enum)
+    if app_module.startswith(("sentry.", "getsentry.")) and not ok_class:
         return value, "do not pickle custom classes"
 
     return None
