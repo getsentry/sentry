@@ -428,12 +428,10 @@ function NewTraceView({
                               width: 0,
                               height: '1px',
                             }}
-                            // @ts-expect-error TODO(react19): Remove ts-ignore once we upgrade to React 19
                             ref={scrollBarAreaRef}
                           />
                           <VirtualScrollbar
                             data-type="virtual-scrollbar"
-                            // @ts-expect-error TODO(react19): Remove ts-ignore once we upgrade to React 19
                             ref={virtualScrollbarRef}
                             onMouseDown={onDragStart}
                           >

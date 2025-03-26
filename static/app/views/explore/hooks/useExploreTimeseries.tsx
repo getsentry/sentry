@@ -41,6 +41,7 @@ export const useExploreTimeseries = ({
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
     queryHookArgs: {query, enabled},
+    queryMode: 'serial',
   });
 };
 

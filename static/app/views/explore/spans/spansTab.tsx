@@ -135,7 +135,7 @@ export function SpansTabContentImpl({
   const {
     result: timeseriesResult,
     canUsePreviousResults,
-    isFetchingHighFidelityData,
+    fidelity: timeseriesFidelity,
   } = useExploreTimeseries({
     query,
     enabled: isAllowedSelection,
@@ -262,7 +262,7 @@ export function SpansTabContentImpl({
             confidences={confidences}
             query={query}
             timeseriesResult={timeseriesResult}
-            isProgressivelyLoading={isFetchingHighFidelityData}
+            isProgressivelyLoading={timeseriesFidelity !== 'high'}
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}

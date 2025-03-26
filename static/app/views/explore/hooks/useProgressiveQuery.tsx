@@ -3,6 +3,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   queryHookArgs: Parameters<TQueryFn>[0];
   queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn>;
+  queryMode: 'serial' | 'parallel';
 }
 
 const LOW_FIDELITY_QUERY_EXTRAS = {
@@ -16,8 +17,9 @@ const HIGH_FIDELITY_QUERY_EXTRAS = {
 export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
   queryHookImplementation,
   queryHookArgs,
+  queryMode,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
-  isFetchingHighFidelityData?: boolean;
+  fidelity?: 'low' | 'auto';
 } {
   const organization = useOrganization();
   const canUseProgressiveLoading = organization.features.includes(
@@ -37,6 +39,10 @@ export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
   const highFidelityResult = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
+    enabled:
+      queryHookArgs.enabled &&
+      canUseProgressiveLoading &&
+      (queryMode === 'parallel' || lowFidelityResult.isFetched),
   });
 
   if (!canUseProgressiveLoading) {
@@ -46,12 +52,12 @@ export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
   if (highFidelityResult.result.isFetched) {
     return {
       ...highFidelityResult,
-      isFetchingHighFidelityData: false,
+      fidelity: 'auto',
     };
   }
 
   return {
     ...lowFidelityResult,
-    isFetchingHighFidelityData: true,
+    fidelity: 'low',
   };
 }

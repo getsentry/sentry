@@ -39,11 +39,16 @@ def get_anomaly_data_from_seer(
         "organization_id": subscription.project.organization.id,
         "project_id": subscription.project_id,
         "alert_rule_id": alert_rule.id,
+        "threshold_type": alert_rule.threshold_type,
+        "sensitivity": alert_rule.sensitivity,
+        "seasonality": alert_rule.seasonality,
+        "aggregation_value": aggregation_value,
     }
     if not snuba_query:
         logger.warning("Snuba query is empty", extra=extra_data)
         return None
 
+    extra_data["dataset"] = snuba_query.dataset
     # XXX: we know we have these things because the serializer makes sure we do, but mypy insists
     if (
         alert_rule.threshold_type is None
@@ -51,14 +56,10 @@ def get_anomaly_data_from_seer(
         or not alert_rule.seasonality
         or not snuba_query.time_window
     ):
+        logger.info("Missing anomaly detection rule data", extra=extra_data)
         return None
 
     if aggregation_value is None:
-        extra_data["threshold_type"] = alert_rule.threshold_type
-        extra_data["sensitivity"] = alert_rule.sensitivity
-        extra_data["seasonality"] = alert_rule.seasonality
-        extra_data["aggregation_value"] = aggregation_value
-
         metrics.incr("anomaly_detection.aggregation_value.none")
         logger.warning("Aggregation value is none", extra=extra_data)
         aggregation_value = 0
@@ -79,13 +80,15 @@ def get_anomaly_data_from_seer(
         config=anomaly_detection_config,
         context=context,
     )
-    extra_data["dataset"] = snuba_query.dataset
     try:
-        logger.info("Sending subscription update data to Seer", extra=extra_data)
+        data = json.dumps(detect_anomalies_request).encode("utf-8")
+        update_log_data = extra_data.copy()
+        update_log_data["data"] = data
+        logger.info("Sending subscription update data to Seer", extra=update_log_data)
         response = make_signed_seer_api_request(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,
-            json.dumps(detect_anomalies_request).encode("utf-8"),
+            data,
         )
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
