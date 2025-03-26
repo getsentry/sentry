@@ -1,14 +1,14 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {type EAPSpanProperty, SpanIndexedField} from 'sentry/views/insights/types';
 
 type Options = {
   query: string;
   sort: Sort;
-
   transactionName: string;
 };
 
@@ -22,6 +22,23 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
   );
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
   const {selection} = usePageFilters();
+
+  const fields: EAPSpanProperty[] = [
+    'span_id',
+    'user.id',
+    'user.email',
+    'user.username',
+    'user.ip',
+    'span.duration',
+    'trace',
+    'timestamp',
+    'replayId',
+    'profile.id',
+    'profiler.id',
+    'thread.id',
+    'precise.start_ts',
+    'precise.finish_ts',
+  ];
 
   // If a span category is selected, we must query the data differently for this to work on the EAP dataset.
   // - Make an initial query to fetch service entry spans with the highest cumulative durations of spans that have the span category.
@@ -42,27 +59,36 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
     true
   );
 
-  console.dir(categorizedSpanIds);
+  const specificSpansQuery = new MutableSearch('');
+  if (categorizedSpanIds && !isCategorizedSpanIdsLoading) {
+    categorizedSpanIds.forEach(datum => {
+      const spanId = datum['transaction.span_id'];
+      specificSpansQuery.addFilterValue('span_id', spanId);
+    });
+  }
 
+  // specificSpansQuery.addFilterValue('is_transaction', 'true');
+
+  // Second query to fetch the table data for these spans
+  const {data: daData} = useEAPSpans(
+    {
+      search: specificSpansQuery,
+      fields,
+      cursor,
+      limit: LIMIT,
+      enabled: !!categorizedSpanIds && categorizedSpanIds.length > 0,
+    },
+    'api.performance.service-entry-spans-table-with-category',
+    true
+  );
+
+  console.dir(daData);
+
+  // Default query to fetch table data for spans when no category is selected
   const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
     {
       search: query,
-      fields: [
-        'span_id',
-        'user.id',
-        'user.email',
-        'user.username',
-        'user.ip',
-        'span.duration',
-        'trace',
-        'timestamp',
-        'replayId',
-        'profile.id',
-        'profiler.id',
-        'thread.id',
-        'precise.start_ts',
-        'precise.finish_ts',
-      ],
+      fields,
       sorts: [sort],
       limit: LIMIT,
       cursor,
