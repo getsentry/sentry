@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
@@ -9,7 +10,7 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
@@ -52,6 +53,7 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
+from sentry.seer.issue_summary import get_issue_summary
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
@@ -445,6 +447,31 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.is_unfurl = is_unfurl
         self.skip_fallback = skip_fallback
         self.notes = notes
+        self.issue_summary = None
+
+    def fetch_issue_summary(self) -> dict[str, Any] | None:
+        """
+        Try to fetch an issue summary with a timeout of 5 seconds.
+        Returns the summary data if successful, None otherwise.
+        """
+        if not (
+            self.group.issue_category == GroupCategory.ERROR
+            and features.has("organizations:gen-ai-features", self.group.organization)
+            and features.has("projects:trigger-issue-summary-on-alerts", self.group.project)
+        ):
+            return None
+
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(get_issue_summary, self.group)
+                summary_result, status_code = future.result(timeout=5)
+
+                if status_code == 200:
+                    return summary_result
+        except (concurrent.futures.TimeoutError, Exception) as e:
+            logger.exception("Error generating issue summary: %s", e)
+
+        return None
 
     def get_title_block(
         self,
@@ -463,7 +490,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             rule_id,
             notification_uuid=notification_uuid,
         )
-        title = build_attachment_title(event_or_group)
+        # Use summary headline if available, otherwise use default title
+        title = (
+            self.issue_summary.get("headline")
+            if self.issue_summary and self.issue_summary.get("headline")
+            else build_attachment_title(event_or_group)
+        )
 
         is_error_issue = self.group.issue_category == GroupCategory.ERROR
         title_emoji = None
@@ -484,6 +516,25 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         title_text = title_emoji + f"<{title_link}|*{escape_slack_text(title)}*>"
 
         return self.get_markdown_block(title_text)
+
+    def get_issue_summary_text(self) -> str | None:
+        if not self.issue_summary:
+            return None
+
+        parts = []
+
+        if whats_wrong := self.issue_summary.get("whatsWrong"):
+            parts.append("### What's Wrong\n" + escape_slack_markdown_text(whats_wrong))
+
+        if trace := self.issue_summary.get("trace"):
+            parts.append("### In The Trace\n" + escape_slack_markdown_text(trace))
+
+        if possible_cause := self.issue_summary.get("possibleCause"):
+            parts.append("### Possible Cause\n" + escape_slack_markdown_text(possible_cause))
+
+        if not parts:
+            return None
+        return "\n".join(parts)
 
     def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
@@ -540,6 +591,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
+        self.issue_summary = self.fetch_issue_summary()
+
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         text = text.strip(" \n")
@@ -580,11 +633,14 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         if culprit_block := self.get_culprit_block(event_or_group):
             blocks.append(culprit_block)
 
-        # build up text block
-        text = text.lstrip(" ")
-        # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
-        if text:
-            blocks.append(self.get_text_block(text))
+        # Use issue summary if available, otherwise use the default text
+        if summary_text := self.get_issue_summary_text():
+            blocks.append(self.get_text_block(summary_text))
+        else:
+            text = text.lstrip(" ")
+            # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
+            if text:
+                blocks.append(self.get_text_block(text))
 
         if self.actions:
             blocks.append(self.get_markdown_block(action_text))
