@@ -55,7 +55,7 @@ def build_pagerduty_event_payload(
     routing_key: str,
     event: Event | GroupEvent,
     notification_uuid: str | None,
-    severity: PagerdutySeverity | None = None,
+    severity: PagerdutySeverity,
 ) -> PagerDutyEventPayload:
     source = event.transaction or event.culprit or "<unknown>"
     group = event.group
