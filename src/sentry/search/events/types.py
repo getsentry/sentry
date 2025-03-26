@@ -179,9 +179,7 @@ class SnubaParams:
 
     @property
     def interval(self) -> float:
-        if self.start_date and self.end_date:
-            return (self.end - self.start).total_seconds()
-        return None
+        return (self.end_date - self.start_date).total_seconds()
 
     @property
     def organization_id(self) -> int | None:
