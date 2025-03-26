@@ -593,9 +593,12 @@ def get_path_from_module(module: str, abs_path: str) -> tuple[str, str]:
     if "." not in module:
         raise DoesNotFollowJavaPackageNamingConvention
 
-    # If module has a dot, take everything before the last dot
-    # com.example.foo.Bar$InnerClass -> com/example/foo
-    stack_root = module.rsplit(".", 1)[0].replace(".", "/")
-    file_path = f"{stack_root}/{abs_path}"
+    parts = module.split(".")
+    # Take the first two parts of the module
+    stack_root = ".".join(parts[:2])
+    file_path = "/".join(parts[2:]) + "/" + abs_path
 
+    # com.example.foo.Bar$InnerClass ->
+    #    stack_root: com/example/
+    #    file_path:  com/example/foo/Bar.kt
     return stack_root, file_path
