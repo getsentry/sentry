@@ -2,6 +2,7 @@ import uuid
 from datetime import timedelta
 from unittest.mock import Mock, call, patch
 
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -42,6 +43,12 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             monitor=monitor,
             environment_id=environment_id,
             status=MonitorStatus.OK,
+        )
+
+    def generate_cron_monitor_url(self, org_slug: str, project_slug: str, monitor_slug: str) -> str:
+        return "http://testserver" + reverse(
+            "sentry-organization-cron-monitor-details",
+            args=[org_slug, project_slug, monitor_slug],
         )
 
     def create_monitor_and_env(
@@ -226,7 +233,7 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         monitor.slug,
                         self.project.slug,
-                        f"http://testserver/organizations/{self.organization.slug}/alerts/rules/crons/{self.project.slug}/{monitor.slug}/?environment={self.environment.name}",
+                        f"{self.generate_cron_monitor_url(self.organization.slug, self.project.slug, monitor.slug)}?environment={self.environment.name}",
                         timezone.now() - timedelta(days=14),
                     )
                 ],
@@ -237,13 +244,13 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/alerts/rules/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/alerts/rules/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
@@ -254,13 +261,13 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/alerts/rules/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/alerts/rules/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
@@ -376,13 +383,13 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
                     (
                         second_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/alerts/rules/crons/{second_project.slug}/{second_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, second_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                     (
                         third_monitor.slug,
                         second_project.slug,
-                        f"http://testserver/organizations/{second_org.slug}/alerts/rules/crons/{second_project.slug}/{third_monitor.slug}/?environment={second_env.name}",
+                        f"{self.generate_cron_monitor_url(second_org.slug, second_project.slug, third_monitor.slug)}?environment={second_env.name}",
                         timezone.now() - timedelta(days=14),
                     ),
                 ],
