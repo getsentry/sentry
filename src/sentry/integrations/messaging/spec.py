@@ -7,10 +7,27 @@ from django.urls.resolvers import URLPattern
 from django.views.generic import View
 
 from sentry import analytics
+from sentry.api.serializers import serialize
 from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+)
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    DetailedIncidentSerializerResponse,
+)
 from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+    OpenPeriodContext,
+)
 from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.rules import rules
@@ -131,11 +148,13 @@ class MessagingIntegrationSpec(ABC):
     @abstractmethod
     def send_incident_alert_notification(
         self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        project: Project,
-        metric_value: int | float | None,
-        new_status: IncidentStatus,
+        organization: Organization,
+        alert_context: AlertContext,
+        notification_context: NotificationContext,
+        metric_issue_context: MetricIssueContext,
+        open_period_context: OpenPeriodContext,
+        alert_rule_serialized_response: AlertRuleSerializerResponse,
+        incident_serialized_response: DetailedIncidentSerializerResponse,
         notification_uuid: str | None = None,
     ) -> bool:
         raise NotImplementedError
@@ -179,12 +198,33 @@ class MessagingActionHandler(DefaultActionHandler):
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ) -> None:
-        success = self._spec.send_incident_alert_notification(
-            action=action,
+        if metric_value is None:
+            metric_value = get_metric_count_from_incident(incident)
+
+        alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+            incident.alert_rule, None, AlertRuleSerializer()
+        )
+        incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+            incident, None, DetailedIncidentSerializer()
+        )
+        open_period_context = OpenPeriodContext.from_incident(incident=incident)
+
+        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+        metric_issue_context = MetricIssueContext.from_legacy_models(
             incident=incident,
-            project=project,
-            metric_value=metric_value,
             new_status=new_status,
+            metric_value=metric_value,
+        )
+
+        success = self._spec.send_incident_alert_notification(
+            organization=incident.organization,
+            alert_context=alert_context,
+            notification_context=notification_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            alert_rule_serialized_response=alert_rule_serialized_response,
+            incident_serialized_response=incident_serialized_response,
             notification_uuid=notification_uuid,
         )
         if success:

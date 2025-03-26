@@ -484,7 +484,7 @@ function QueryItem({item, additionalSearchConfig}: QueryItemProps) {
   );
 }
 
-const SearchDropdownOverlay = styled(Overlay)`
+const SearchDropdownOverlay = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 100%;
   left: -1px;

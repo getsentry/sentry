@@ -92,10 +92,12 @@ const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
-})<{
-  panelWidth?: string;
-  slidePosition?: 'right' | 'bottom' | 'left';
-}>`
+})<
+  {
+    panelWidth?: string;
+    slidePosition?: 'right' | 'bottom' | 'left';
+  } & React.HTMLAttributes<HTMLDivElement>
+>`
   position: fixed;
 
   top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
