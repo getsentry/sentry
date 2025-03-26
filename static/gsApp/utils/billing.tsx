@@ -360,7 +360,9 @@ export const isNewPayingCustomer = (
   subscription: Subscription,
   organization: Organization
 ) =>
-  subscription.isFree || subscription.isTrial || hasPartnerMigrationFeature(organization);
+  subscription.isFree ||
+  isTrialPlan(subscription.plan) ||
+  hasPartnerMigrationFeature(organization);
 
 /**
  * Promotion utility functions that are based off of formData which has the plan as a string
