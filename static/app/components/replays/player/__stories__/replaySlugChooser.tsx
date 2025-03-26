@@ -2,12 +2,30 @@ import {Fragment, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 
 import Providers from 'sentry/components/replays/player/__stories__/providers';
-import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import useOrganization from 'sentry/utils/useOrganization';
+import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-export default function ReplaySlugChooser({children}: {children: ReactNode}) {
+type Props =
+  | {render: (replaySlug: string) => ReactNode; children?: never}
+  | {children: ReactNode; render?: never};
+
+export default function ReplaySlugChooser(props: Props) {
+  const {children, render} = props;
+
   const [replaySlug, setReplaySlug] = useSessionStorage('stories:replaySlug', '');
+
+  let content = null;
+  if (replaySlug) {
+    if (children) {
+      content = (
+        <ReplayLoadingState replaySlug={replaySlug}>
+          {({replay}) => <Providers replay={replay}>{children}</Providers>}
+        </ReplayLoadingState>
+      );
+    } else if (render) {
+      content = render(replaySlug);
+    }
+  }
 
   return (
     <Fragment>
@@ -22,24 +40,7 @@ export default function ReplaySlugChooser({children}: {children: ReactNode}) {
         `}
         size={34}
       />
-      {replaySlug ? <LoadReplay replaySlug={replaySlug}>{children}</LoadReplay> : null}
+      {content}
     </Fragment>
   );
-}
-
-function LoadReplay({children, replaySlug}: {children: ReactNode; replaySlug: string}) {
-  const organization = useOrganization();
-  const {fetchError, fetching, replay} = useLoadReplayReader({
-    orgSlug: organization.slug,
-    replaySlug,
-  });
-
-  if (fetchError) {
-    return fetchError.message;
-  }
-  if (!replay || fetching) {
-    return 'Loading...';
-  }
-
-  return <Providers replay={replay}>{children}</Providers>;
 }
