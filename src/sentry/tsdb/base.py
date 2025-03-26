@@ -446,7 +446,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[tuple[str, str, Any]] | None = None,
     ) -> dict[int, int]:
         range_set = self.get_range(
             model,
