@@ -6,7 +6,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
@@ -961,6 +961,121 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         response = self.client.get(self.url)
         assert response.status_code == 400
         assert response.data["detail"] == "You do not have access to any projects."
+
+
+class OrganizationGroupSearchViewsGetVisibilityTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-views"
+    method = "get"
+
+    def setUp(self) -> None:
+        self.user_1 = self.user
+        self.user_2 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_2)
+
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+        self.starred_view = GroupSearchView.objects.create(
+            name="User 1's Starred View",
+            organization=self.organization,
+            user_id=self.user_1.id,
+            query="is:unresolved",
+            query_sort="date",
+            visibility=GroupSearchViewVisibility.OWNER,
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=self.organization,
+            user_id=self.user_1.id,
+            group_search_view=self.starred_view,
+            position=0,
+        )
+
+        self.unstarred_view = GroupSearchView.objects.create(
+            name="User 1's Unstarred View",
+            organization=self.organization,
+            user_id=self.user_1.id,
+            query="is:unresolved",
+            query_sort="date",
+            visibility=GroupSearchViewVisibility.OWNER,
+        )
+
+        GroupSearchView.objects.create(
+            name="User 2's Unstarred View",
+            organization=self.organization,
+            user_id=self.user_2.id,
+            query="is:unresolved",
+            query_sort="date",
+            visibility=GroupSearchViewVisibility.OWNER,
+        )
+
+        self.organization_view = GroupSearchView.objects.create(
+            name="Organization View",
+            organization=self.organization,
+            user_id=self.user_2.id,
+            query="is:unresolved",
+            query_sort="date",
+            visibility=GroupSearchViewVisibility.ORGANIZATION,
+        )
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_get_views_no_visibility(self) -> None:
+        self.login_as(user=self.user_1)
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.starred_view.id)
+        assert response.data[0]["name"] == self.starred_view.name
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_get_views_owner_visibility(self) -> None:
+        self.login_as(user=self.user_1)
+        response = self.client.get(self.url, {"visibility": "owner"})
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert response.data[0]["id"] == str(self.starred_view.id)
+        assert response.data[0]["name"] == self.starred_view.name
+        assert response.data[1]["id"] == str(self.unstarred_view.id)
+        assert response.data[1]["name"] == self.unstarred_view.name
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_get_views_organization_visibility(self) -> None:
+        self.login_as(user=self.user_2)
+        response = self.client.get(self.url, {"visibility": "organization"})
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.organization_view.id)
+        assert response.data[0]["name"] == self.organization_view.name
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_get_views_with_user_organization_visibility(self) -> None:
+        self.login_as(user=self.user_1)
+        response = self.client.get(self.url, {"visibility": ["owner", "organization"]})
+
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(self.starred_view.id)
+        assert response.data[0]["name"] == self.starred_view.name
+        assert response.data[1]["id"] == str(self.unstarred_view.id)
+        assert response.data[1]["name"] == self.unstarred_view.name
+        assert response.data[2]["id"] == str(self.organization_view.id)
+        assert response.data[2]["name"] == self.organization_view.name
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_get_views_with_invalid_visibility(self) -> None:
+        self.login_as(user=self.user_1)
+        response = self.client.get(self.url, {"visibility": ["random"]})
+        assert response.status_code == 400
+        assert str(response.data["visibility"][0]) == '"random" is not a valid choice.'
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
