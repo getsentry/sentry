@@ -157,6 +157,16 @@ class BaseDeriveCodeMappings(TestCase):
                         assert code_mapping is not None
                         assert code_mapping.repository.name == expected_cm["repo_name"]
 
+                if Repository.objects.all().count() > starting_repositories_count:
+                    mock_incr.assert_any_call(
+                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                    )
+
+                if code_mappings.count() > starting_code_mappings_count:
+                    mock_incr.assert_any_call(
+                        key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                    )
+
                 if expected_in_app_stack_trace_rules:
                     expected_enhancements = "\n".join(expected_in_app_stack_trace_rules)
                     assert current_enhancements == (
@@ -169,16 +179,6 @@ class BaseDeriveCodeMappings(TestCase):
                         amount=len(expected_in_app_stack_trace_rules),
                         tags=tags,
                         sample_rate=1.0,
-                    )
-
-                if Repository.objects.all().count() > starting_repositories_count:
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                    )
-
-                if code_mappings.count() > starting_code_mappings_count:
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                     )
 
             # Returning these to inspect the results
