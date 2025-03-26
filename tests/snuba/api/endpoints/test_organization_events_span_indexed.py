@@ -2191,6 +2191,10 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert response.status_code == 200, response.content
             assert response.data["data"] == [{"foo": "bar", "count()": 1}]
 
+    @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
+    def test_spm(self):
+        super().test_spm()
+
     def test_epm(self):
         self.store_spans(
             [
