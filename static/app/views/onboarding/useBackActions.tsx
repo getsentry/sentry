@@ -3,7 +3,7 @@ import {useBlocker} from 'react-router-dom';
 import type {useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import {useOnboardingSDK} from 'sentry/components/onboarding/useOnboardingSDK';
+import {useOnboardingData} from 'sentry/components/onboarding/useOnboardingData';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -32,7 +32,7 @@ export function useBackActions({
 }) {
   const api = useApi();
   const organization = useOrganization();
-  const onboardingSDK = useOnboardingSDK();
+  const onboardingData = useOnboardingData();
   const currentStep = onboardingSteps[stepIndex];
 
   const deleteRecentCreatedProject = useCallback(async () => {
@@ -40,7 +40,7 @@ export function useBackActions({
       return;
     }
 
-    onboardingSDK.setSelectedSDK(undefined);
+    onboardingData.setSelectedSDK(undefined);
 
     try {
       await removeProject({
@@ -60,7 +60,7 @@ export function useBackActions({
       handleXhrErrorResponse('Unable to delete project in onboarding', error);
       // we don't give the user any feedback regarding this error as this shall be silent
     }
-  }, [api, organization, onboardingSDK, recentCreatedProject]);
+  }, [api, organization, onboardingData, recentCreatedProject]);
 
   const backStepActions = useCallback(
     ({
@@ -90,7 +90,7 @@ export function useBackActions({
 
       // from selected platform to welcome
       if (currentStep.id === 'select-platform') {
-        onboardingSDK.setSelectedSDK(undefined);
+        onboardingData.setSelectedSDK(undefined);
 
         if (!browserBackButton) {
           goToStep(prevStep);
@@ -121,7 +121,7 @@ export function useBackActions({
       goToStep,
       organization,
       cornerVariantControl,
-      onboardingSDK,
+      onboardingData,
       isRecentCreatedProjectActive,
       recentCreatedProject,
       currentStep,

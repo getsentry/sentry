@@ -9,7 +9,7 @@ export type OnboardingContextProps = {
 };
 
 /**
- * Prefer using `useOnboardingSDK` hook instead of directly using this context.
+ * Prefer using `useOnboardingData` hook instead of directly using this context.
  */
 export const OnboardingContext = createContext<OnboardingContextProps>({
   selectedSDK: undefined,

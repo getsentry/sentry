@@ -9,7 +9,7 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {createProject} from 'sentry/actionCreators/projects';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import {useOnboardingSDK} from 'sentry/components/onboarding/useOnboardingSDK';
+import {useOnboardingData} from 'sentry/components/onboarding/useOnboardingData';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -33,7 +33,7 @@ export function useConfigureSdk({
   const {teams} = useTeams();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const onboardingSDK = useOnboardingSDK();
+  const onboardingData = useOnboardingData();
 
   const createPlatformProject = useCallback(
     async (selectedPlatform?: OnboardingSelectedSDK) => {
@@ -48,7 +48,7 @@ export function useConfigureSdk({
         : selectedPlatform;
 
       if (!createProjectForPlatform) {
-        onboardingSDK.setSelectedSDK(selectedPlatform);
+        onboardingData.setSelectedSDK(selectedPlatform);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -75,7 +75,7 @@ export function useConfigureSdk({
 
         ProjectsStore.onCreateSuccess(response, organization.slug);
 
-        onboardingSDK.setSelectedSDK(createProjectForPlatform);
+        onboardingData.setSelectedSDK(createProjectForPlatform);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -89,7 +89,7 @@ export function useConfigureSdk({
         Sentry.captureException(err);
       }
     },
-    [onboardingSDK, api, organization, teams, projects, onComplete]
+    [onboardingData, api, organization, teams, projects, onComplete]
   );
 
   const configureSdk = useCallback(
@@ -132,12 +132,12 @@ export function useConfigureSdk({
               platform: selectedPlatform.key,
               organization,
             });
-            onboardingSDK.setSelectedSDK(undefined);
+            onboardingData.setSelectedSDK(undefined);
           },
         }
       );
     },
-    [createPlatformProject, onboardingSDK, organization]
+    [createPlatformProject, onboardingData, organization]
   );
 
   return {configureSdk};
