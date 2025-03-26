@@ -8,6 +8,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -25,6 +26,7 @@ import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
+import EmptyState from './EmptyState';
 
 interface Props {
   organization: Organization;
@@ -67,6 +69,10 @@ export default function TempestSettings({organization, project}: Props) {
     return tempestCredentials?.filter(
       credential => credential.messageType === MessageType.ERROR && credential.message
     );
+  }, [tempestCredentials]);
+
+  const isEmpty = useMemo(() => {
+    return !tempestCredentials?.length;
   }, [tempestCredentials]);
 
   if (!hasTempestAccess(organization)) {
@@ -133,20 +139,26 @@ export default function TempestSettings({organization, project}: Props) {
         />
       </Form>
 
-      <PanelTable
-        headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
-        isLoading={isLoading}
-        isEmpty={!tempestCredentials?.length}
-      >
-        {tempestCredentials?.map(credential => (
-          <CredentialRow
-            key={credential.id}
-            credential={credential}
-            isRemoving={isRemoving}
-            removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-          />
-        ))}
-      </PanelTable>
+      {!isLoading && isEmpty ? (
+        <Panel>
+          <EmptyState />
+        </Panel>
+      ) : (
+        <PanelTable
+          headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
+          isLoading={isLoading}
+          isEmpty={isEmpty}
+        >
+          {tempestCredentials?.map(credential => (
+            <CredentialRow
+              key={credential.id}
+              credential={credential}
+              isRemoving={isRemoving}
+              removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+            />
+          ))}
+        </PanelTable>
+      )}
     </Fragment>
   );
 }
