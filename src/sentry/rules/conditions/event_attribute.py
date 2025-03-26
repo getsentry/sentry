@@ -41,7 +41,7 @@ attribute_registry = Registry[AttributeHandler]()
 ATTR_CHOICES: dict[str, Columns | None] = {
     "message": Columns.MESSAGE,
     "platform": Columns.PLATFORM,
-    "environment": Columns.MESSAGE,
+    "environment": Columns.ENVIRONMENT,
     "type": Columns.TYPE,
     "error.handled": Columns.ERROR_HANDLED,
     "error.unhandled": Columns.ERROR_HANDLED,

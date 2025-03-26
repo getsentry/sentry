@@ -57,6 +57,22 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
                 "fingerprint": ["group-1"],
                 "user": {"id": uuid4().hex},
                 "tags": {"foo": "bar", "baz": "quux", "region": "US"},
+                "platform": "javascript",
+                "contexts": {
+                    "response": {
+                        "type": "response",
+                        "status_code": 200,
+                    },
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Generic",
+                            "value": "hello world",
+                            "mechanism": {"type": "UncaughtExceptionHandler", "handled": True},
+                        }
+                    ]
+                },
             },
             project_id=self.project.id,
         )
@@ -80,6 +96,13 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
                 "fingerprint": ["group-3"],
                 "user": {"id": uuid4().hex},
                 "tags": {"foo": None, "biz": "baz", "region": "US"},
+                "platform": "javascript",
+                "contexts": {
+                    "response": {
+                        "type": "response",
+                        "status_code": 400,
+                    },
+                },
             },
             project_id=self.project.id,
         )
@@ -93,6 +116,7 @@ class EventFrequencyQueryTestBase(SnubaTestCase, RuleTestCase, PerformanceIssueT
         )
         perf_event_data["user"] = {"id": uuid4().hex}
         perf_event_data["environment"] = self.environment.name
+        perf_event_data["platform"] = "python"
 
         # Store a performance event
         self.perf_event = self.create_performance_issue(
