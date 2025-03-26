@@ -51,6 +51,7 @@ import {useAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
+import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -61,7 +62,6 @@ import {
   type MaxPickableDays,
 } from 'sentry/views/explore/utils';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {useProgressiveExploreTimeseries} from 'sentry/views/insights/common/queries/useProgressiveExploreTimeseries';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 
 // eslint-disable-next-line no-restricted-imports
@@ -136,7 +136,7 @@ export function SpansTabContentImpl({
     timeseriesResult,
     canUsePreviousResults,
     isLoading: isProgressivelyLoading,
-  } = useProgressiveExploreTimeseries({
+  } = useExploreTimeseries({
     query,
     enabled: isAllowedSelection,
   });

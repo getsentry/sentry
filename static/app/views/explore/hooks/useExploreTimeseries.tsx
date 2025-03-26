@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
   useExploreDataset,
@@ -30,7 +31,81 @@ interface UseExploreTimeseriesResults {
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }
 
-export function useExploreTimeseries({
+const LOW_FIDELITY_QUERY_EXTRAS = {
+  fidelity: 'low',
+} as const;
+
+const HIGH_FIDELITY_QUERY_EXTRAS = {
+  fidelity: 'auto',
+} as const;
+
+/**
+ * This hook is used to fetch timeseries data from the EAP dataset.
+ * It will trigger two queries, one that should resolve data quickly and
+ * one that will resolve more data but takes longer to execute.
+ *
+ * The hook will bias towards the high fidelity results if they are available.
+ * isLoading will be true if the high fidelity results are not available.
+ */
+export const useExploreTimeseries = ({
+  query,
+  enabled,
+}: {
+  enabled: boolean;
+  query: string;
+}) => {
+  const organization = useOrganization();
+  const canUseProgressiveLoading = organization.features.includes(
+    'visibility-explore-progressive-loading'
+  );
+
+  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseriesImpl({
+    query,
+    enabled: enabled && !canUseProgressiveLoading,
+  });
+
+  // Start two queries with different fidelities, we will bias towards the high
+  // fidelity results if they are available
+  const {
+    timeseriesResult: lowFidelityTimeseriesResult,
+    canUsePreviousResults: canUsePreviousLowFidelityResults,
+  } = useExploreTimeseriesImpl({
+    query,
+    enabled: enabled && canUseProgressiveLoading,
+    queryExtras: LOW_FIDELITY_QUERY_EXTRAS,
+  });
+  const {
+    timeseriesResult: highFidelityTimeseriesResult,
+    canUsePreviousResults: canUsePreviousHighFidelityResults,
+  } = useExploreTimeseriesImpl({
+    query,
+    enabled: enabled && canUseProgressiveLoading,
+    queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
+  });
+
+  if (!canUseProgressiveLoading) {
+    return {
+      timeseriesResult,
+      canUsePreviousResults,
+    };
+  }
+
+  if (highFidelityTimeseriesResult.isFetched) {
+    return {
+      timeseriesResult: highFidelityTimeseriesResult,
+      canUsePreviousResults: canUsePreviousHighFidelityResults,
+      isLoading: false,
+    };
+  }
+
+  return {
+    timeseriesResult: lowFidelityTimeseriesResult,
+    canUsePreviousResults: canUsePreviousLowFidelityResults,
+    isLoading: !highFidelityTimeseriesResult.isFetched,
+  };
+};
+
+function useExploreTimeseriesImpl({
   enabled,
   query,
   queryExtras,
