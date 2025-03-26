@@ -7,8 +7,8 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
 }
 
 export const FIDELITY = {
-  LOW: 'low',
-  AUTO: 'auto',
+  PREFLIGHT: 'PREFLIGHT',
+  BEST_EFFORT: 'BEST_EFFORT',
 } as const;
 
 export const QUERY_MODE = {
@@ -17,11 +17,11 @@ export const QUERY_MODE = {
 } as const;
 
 const LOW_FIDELITY_QUERY_EXTRAS = {
-  fidelity: FIDELITY.LOW,
+  samplingMode: FIDELITY.PREFLIGHT,
 } as const;
 
 const HIGH_FIDELITY_QUERY_EXTRAS = {
-  fidelity: FIDELITY.AUTO,
+  samplingMode: FIDELITY.BEST_EFFORT,
 } as const;
 
 export type Fidelity = (typeof FIDELITY)[keyof typeof FIDELITY];
@@ -43,33 +43,33 @@ export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
     enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
   });
 
-  const lowFidelityRequest = queryHookImplementation({
+  const preflightFidelityRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_FIDELITY_QUERY_EXTRAS,
   });
 
-  const highFidelityRequest = queryHookImplementation({
+  const bestEffortFidelityRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
     enabled:
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
-      (queryMode === QUERY_MODE.PARALLEL || lowFidelityRequest.result.isFetched),
+      (queryMode === QUERY_MODE.PARALLEL || preflightFidelityRequest.result.isFetched),
   });
 
   if (!canUseProgressiveLoading) {
     return singleQueryResult;
   }
 
-  if (highFidelityRequest.result.isFetched) {
+  if (bestEffortFidelityRequest.result.isFetched) {
     return {
-      ...highFidelityRequest,
-      fidelity: FIDELITY.AUTO,
+      ...bestEffortFidelityRequest,
+      fidelity: FIDELITY.BEST_EFFORT,
     };
   }
 
   return {
-    ...lowFidelityRequest,
-    fidelity: FIDELITY.LOW,
+    ...preflightFidelityRequest,
+    fidelity: FIDELITY.PREFLIGHT,
   };
 }

@@ -265,7 +265,8 @@ export function SpansTabContentImpl({
             timeseriesResult={timeseriesResult}
             isProgressivelyLoading={
               organization.features.includes('visibility-explore-progressive-loading') &&
-              timeseriesFidelity !== FIDELITY.AUTO
+              defined(timeseriesFidelity) &&
+              timeseriesFidelity !== FIDELITY.BEST_EFFORT
             }
           />
           <ExploreTables

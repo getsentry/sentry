@@ -35,12 +35,12 @@ type SeriesMap = {
 
 interface Options<Fields> {
   enabled?: boolean;
-  fidelity?: Fidelity;
   fields?: string[];
   interval?: string;
   orderby?: string | string[];
   overriddenRoute?: string;
   referrer?: string;
+  samplingMode?: Fidelity;
   search?: MutableSearch;
   topEvents?: number;
   yAxis?: Fields;
@@ -64,7 +64,7 @@ export const useSortedTimeSeries = <
     orderby,
     overriddenRoute,
     enabled,
-    fidelity,
+    samplingMode,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -99,7 +99,7 @@ export const useSortedTimeSeries = <
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
-      fidelity,
+      sampling: samplingMode,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
