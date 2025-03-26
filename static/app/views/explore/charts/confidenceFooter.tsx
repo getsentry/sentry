@@ -26,9 +26,22 @@ function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
 
   const lowAccuracySampleCount = (
     <Tooltip
-      title={t(
-        'You many not have enough samples for high accuracy. Increase your sampling rates to get more samples and accurate trends.'
-      )}
+      title={
+        <div>
+          {t('You may not have enough samples for high accuracy.')}
+          <br />
+          <br />
+          {t(
+            'You can try adjusting your query by removing filters or increasing the time interval.'
+          )}
+          <br />
+          <br />
+          {t(
+            'You can also increase your sampling rates to get more samples and accurate trends.'
+          )}
+        </div>
+      }
+      maxWidth={270}
     >
       <InsufficientSamples>
         <Count value={sampleCount} />
@@ -65,6 +78,6 @@ const InsufficientSamples = styled('span')`
 `;
 
 const Container = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
 `;

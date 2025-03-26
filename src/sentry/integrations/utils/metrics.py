@@ -274,6 +274,20 @@ class IntegrationPipelineViewType(StrEnum):
     ACCOUNT_CONFIG = "account_config"
 
 
+class IntegrationPipelineErrorReason(StrEnum):
+    # OAuth identity
+    TOKEN_EXCHANGE_ERROR = "token_exchange_error"
+    TOKEN_EXCHANGE_MISMATCHED_STATE = "token_exchange_mismatched_state"
+
+
+class IntegrationPipelineHaltReason(StrEnum):
+    # OAuth identity
+    NO_CODE_PROVIDED = "no_code_provided"
+
+    # VSTS
+    NO_ACCOUNTS = "no_accounts"
+
+
 @dataclass
 class IntegrationPipelineViewEvent(IntegrationEventLifecycleMetric):
     """An instance to be recorded of a user going through an integration pipeline view (step)."""

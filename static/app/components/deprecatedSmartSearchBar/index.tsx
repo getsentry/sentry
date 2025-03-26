@@ -1,4 +1,3 @@
-import type {VFC} from 'react';
 import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -188,7 +187,10 @@ export type ActionBarItem = {
    * Name of the action
    */
   key: string;
-  makeAction: (props: ActionProps) => {Button: VFC; menuItem: MenuItemProps};
+  makeAction: (props: ActionProps) => {
+    Button: React.ComponentType<any>;
+    menuItem: MenuItemProps;
+  };
 };
 
 type DefaultProps = {
@@ -2248,14 +2250,14 @@ const SearchIconContainer = styled('div')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SearchLabel = styled('label')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const InputWrapper = styled('div')`

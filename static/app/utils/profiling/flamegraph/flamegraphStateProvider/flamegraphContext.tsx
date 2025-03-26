@@ -1,5 +1,6 @@
 import {createContext} from 'react';
 
+import type {ReducerAction} from 'sentry/types/reducerAction';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import type {
@@ -64,7 +65,7 @@ export type FlamegraphStateValue = [
 ];
 
 export type FlamegraphStateDispatch = React.Dispatch<
-  UndoableReducerAction<React.ReducerAction<FlamegraphReducer>>
+  UndoableReducerAction<ReducerAction<FlamegraphReducer>>
 >;
 
 export const FlamegraphStateValueContext = createContext<FlamegraphStateValue | null>(

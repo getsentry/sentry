@@ -484,7 +484,7 @@ function QueryItem({item, additionalSearchConfig}: QueryItemProps) {
   );
 }
 
-const SearchDropdownOverlay = styled(Overlay)`
+const SearchDropdownOverlay = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 100%;
   left: -1px;
@@ -503,7 +503,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -517,7 +517,7 @@ const SearchDropdownGroupTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -641,7 +641,7 @@ const DropdownFooter = styled(`div`)`
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-right: ${space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

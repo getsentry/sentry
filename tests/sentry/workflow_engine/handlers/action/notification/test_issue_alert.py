@@ -74,7 +74,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -123,8 +123,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        workflow = self.create_workflow()
-        job = WorkflowEventData(event=self.group_event, workflow=workflow)
+        self.create_workflow()
+        job = WorkflowEventData(event=self.group_event, workflow_env=None)
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
         assert isinstance(rule, Rule)
@@ -291,8 +291,8 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id="1234567890",
-            config={"target_identifier": "service789"},
-            data={"priority": "P1"},
+            config={"target_identifier": "service789", "target_type": ActionTarget.SPECIFIC},
+            data={"priority": "default"},
         )
 
     def test_build_rule_action_blob(self):
@@ -303,7 +303,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
             "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
             "account": "1234567890",
             "service": "service789",
-            "severity": "P1",
+            "severity": "default",
         }
 
     def test_build_rule_action_blob_no_priority(self):
@@ -327,7 +327,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id="1234567890",
-            config={"target_identifier": "team789"},
+            config={"target_identifier": "team789", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
 

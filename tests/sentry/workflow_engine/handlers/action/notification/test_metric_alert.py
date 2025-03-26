@@ -168,7 +168,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
@@ -344,8 +344,8 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id=1234567890,
-            config={"target_identifier": "service123"},
-            data={"priority": "P1"},
+            config={"target_identifier": "service123", "target_type": ActionTarget.SPECIFIC},
+            data={"priority": "default"},
         )
         self.snuba_query = self.create_snuba_query()
 
@@ -359,7 +359,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
@@ -413,7 +413,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             integration_id=1234567890,
             target_identifier="service123",
             target_display=None,
-            sentry_app_config={"priority": "P1"},
+            sentry_app_config={"priority": "default"},
             sentry_app_id=None,
         )
 
@@ -448,7 +448,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id=1234567890,
-            config={"target_identifier": "team123"},
+            config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
         self.snuba_query = self.create_snuba_query()
@@ -463,7 +463,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.workflow.environment)
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
@@ -536,6 +536,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            group=self.group_event.group,
         )
 
         assert organization == self.detector.project.organization

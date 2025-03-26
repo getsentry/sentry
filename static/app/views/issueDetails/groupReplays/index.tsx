@@ -35,7 +35,7 @@ function GroupReplaysWithGroup() {
   return <GroupReplays group={group} />;
 }
 
-function GroupReplaysContainer() {
+export default function GroupReplaysContainer() {
   const organization = useOrganization();
 
   return (
@@ -48,5 +48,3 @@ function GroupReplaysContainer() {
     </Feature>
   );
 }
-
-export default GroupReplaysContainer;

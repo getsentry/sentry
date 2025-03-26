@@ -103,7 +103,7 @@ const Heading = styled(motion.div)`
 `;
 
 const Subtext = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0;
   align-self: center;
   text-transform: none;

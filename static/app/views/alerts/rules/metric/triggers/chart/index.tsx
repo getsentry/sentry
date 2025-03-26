@@ -21,7 +21,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingMask from 'sentry/components/loadingMask';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';

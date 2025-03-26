@@ -12,7 +12,6 @@ from django.conf import settings
 from django.db import migrations, models
 
 import bitfield.models
-import sentry.db.mixin
 import sentry.db.models.fields.array
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.citext
@@ -1381,7 +1380,7 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_project",
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
+            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name="ProjectAvatar",
@@ -2228,7 +2227,7 @@ class Migration(CheckedMigration):
                     ("organization_id", "provider", "external_id"),
                 },
             },
-            bases=(models.Model, sentry.db.mixin.PendingDeletionMixin),
+            bases=(models.Model,),
         ),
         migrations.AddField(
             model_name="release",

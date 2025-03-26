@@ -22,6 +22,7 @@ export const GIFT_CATEGORIES: string[] = [
   DataCategory.SPANS,
   DataCategory.SPANS_INDEXED,
   DataCategory.PROFILE_DURATION,
+  DataCategory.PROFILE_DURATION_UI,
   DataCategory.UPTIME,
 ];
 
@@ -40,6 +41,7 @@ const CREDIT_TYPE_TO_DATA_CATEGORY = {
   [CreditType.TRANSACTION]: DataCategory.TRANSACTIONS,
   [CreditType.SPAN]: DataCategory.SPANS,
   [CreditType.PROFILE_DURATION]: DataCategory.PROFILE_DURATION,
+  [CreditType.PROFILE_DURATION_UI]: DataCategory.PROFILE_DURATION_UI,
   [CreditType.ATTACHMENT]: DataCategory.ATTACHMENTS,
   [CreditType.REPLAY]: DataCategory.REPLAYS,
   [CreditType.MONITOR_SEAT]: DataCategory.MONITOR_SEATS,
@@ -108,6 +110,7 @@ export function getSingularCategoryName({
   category,
   hadCustomDynamicSampling = false,
   capitalize = true,
+  title = false,
 }: CategoryNameProps) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
@@ -117,7 +120,11 @@ export function getSingularCategoryName({
       : displayNames
         ? displayNames.singular
         : category.substring(0, category.length - 1);
-  return capitalize ? upperFirst(categoryName) : categoryName;
+  return title
+    ? titleCase(categoryName)
+    : capitalize
+      ? upperFirst(categoryName)
+      : categoryName;
 }
 
 /**
