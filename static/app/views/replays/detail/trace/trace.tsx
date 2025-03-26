@@ -214,7 +214,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
 
-  if (replayTraces.length === 0) {
+  if (!firstTrace) {
     return <TracesNotFound performanceActive={performanceActive} />;
   }
 
@@ -225,7 +225,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
     >
       <TraceViewWaterfallWrapper>
         <TraceWaterfall
-          traceSlug={replayTraces[0].traceSlug}
+          traceSlug={firstTrace.traceSlug}
           trace={trace}
           tree={tree}
           rootEvent={rootEvent}
