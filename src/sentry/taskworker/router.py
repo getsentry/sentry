@@ -19,4 +19,4 @@ class DefaultRouter:
             return Topic(overrides[name])
         if name in settings.TASKWORKER_ROUTES:
             return Topic(settings.TASKWORKER_ROUTES[name])
-        return Topic.TASK_WORKER
+        return Topic.TASKWORKER

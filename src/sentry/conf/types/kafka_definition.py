@@ -64,6 +64,7 @@ class Topic(Enum):
     SNUBA_OURLOGS = "snuba-ourlogs"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
+    TASKWORKER = "taskworker"
     TASK_WORKER = "task-worker"
 
 
