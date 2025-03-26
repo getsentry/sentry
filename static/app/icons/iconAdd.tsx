@@ -6,7 +6,7 @@ import {SvgIcon} from './svgIcon';
 
 interface IconAddProps extends SVGIconProps {
   /**
-   * @deprecated Circled variant will be removed.
+   * @deprecated circled variant will be removed.
    */
   isCircled?: boolean;
 }
