@@ -472,7 +472,7 @@ class ExhaustiveFixtures(Fixtures):
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
         ProjectSDK.objects.create(
-            project_id=project.id,
+            project=project,
             event_type=EventType.PROFILE_CHUNK.value,
             sdk_name="sentry.python",
             sdk_version="2.41.0",
