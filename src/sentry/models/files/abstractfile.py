@@ -45,7 +45,7 @@ class ChunkedFileBlobIndexWrapper:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(self, exc_type, exc_value, tb) -> None:
         self.close()
 
     def detach_tempfile(self):
@@ -58,7 +58,7 @@ class ChunkedFileBlobIndexWrapper:
         rv.seek(0)
         return rv
 
-    def _nextidx(self):
+    def _nextidx(self) -> None:
         assert not self.prefetched, "this makes no sense"
         old_file = self._curfile
         try:
@@ -76,7 +76,7 @@ class ChunkedFileBlobIndexWrapper:
     def size(self):
         return sum(i.blob.size for i in self._indexes)
 
-    def open(self):
+    def open(self) -> None:
         self.closed = False
         self.seek(0)
 
@@ -94,7 +94,7 @@ class ChunkedFileBlobIndexWrapper:
 
         mem = mmap.mmap(f.fileno(), size)
 
-        def fetch_file(offset, getfile):
+        def fetch_file(offset, getfile) -> None:
             with getfile() as sf:
                 while True:
                     chunk = sf.read(65535)
@@ -110,7 +110,7 @@ class ChunkedFileBlobIndexWrapper:
         mem.flush()
         self._curfile = f
 
-    def close(self):
+    def close(self) -> None:
         if self._curfile:
             self._curfile.close()
         self._curfile = None
@@ -262,7 +262,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         return FileObj(impl, self.name)
 
     @sentry_sdk.tracing.trace
-    def save_to(self, path):
+    def save_to(self, path) -> None:
         """Fetches the file and emplaces it at a certain location.  The
         write is done atomically to a tempfile first and then moved over.
         If the directory does not exist it is created.
@@ -384,7 +384,7 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     @sentry_sdk.tracing.trace
     def delete(self, *args, **kwargs):
         blob_ids = [blob.id for blob in self.blobs.all()]
-        super().delete(*args, **kwargs)
+        ret = super().delete(*args, **kwargs)
 
         # Wait to delete blobs. This helps prevent
         # races around frequently used blobs in debug images and release files.
@@ -394,3 +394,5 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
             ),
             using=router.db_for_write(type(self)),
         )
+
+        return ret

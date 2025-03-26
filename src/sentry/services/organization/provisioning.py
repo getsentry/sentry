@@ -98,15 +98,14 @@ class OrganizationProvisioningService:
 
     def _control_based_slug_change(
         self, organization_id: int, slug: str, region_name: str | None = None
-    ):
+    ) -> None:
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
         from sentry.hybridcloud.services.control_organization_provisioning import (
-            RpcOrganizationSlugReservation,
             control_organization_provisioning_rpc_service,
         )
 
-        rpc_slug_reservation: RpcOrganizationSlugReservation = (
+        rpc_slug_reservation = (
             control_organization_provisioning_rpc_service.update_organization_slug(
                 organization_id=organization_id,
                 desired_slug=slug,
@@ -124,7 +123,7 @@ class OrganizationProvisioningService:
 
     def change_organization_slug(
         self, organization_id: int, slug: str, region_name: str | None = None
-    ) -> RpcOrganization:
+    ) -> None:
         """
         Updates an organization with the given slug if available.
 
@@ -136,13 +135,13 @@ class OrganizationProvisioningService:
         :return:
         """
 
-        return self._control_based_slug_change(
+        self._control_based_slug_change(
             organization_id=organization_id, slug=slug, region_name=region_name
         )
 
     def bulk_create_organization_slugs(
         self, slug_mapping: dict[int, str], region_name: str | None = None
-    ):
+    ) -> None:
         """
         CAUTION: DO NOT USE THIS OUTSIDE OF THE IMPORT/RELOCATION CONTEXT
 
@@ -301,7 +300,9 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE)
-def update_organization_slug_reservation(object_identifier: int, region_name: str, **kwds: Any):
+def update_organization_slug_reservation(
+    object_identifier: int, region_name: str, **kwds: Any
+) -> None:
     handle_possible_organization_slug_swap(
         region_name=region_name,
         org_slug_reservation_id=object_identifier,

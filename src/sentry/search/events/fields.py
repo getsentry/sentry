@@ -92,7 +92,7 @@ class PseudoField:
             return expression
         return self.alias
 
-    def validate(self):
+    def validate(self) -> None:
         assert self.alias is not None, f"{self.name}: alias is required"
         assert (
             self.expression is None or self.expression_fn is None
@@ -453,7 +453,7 @@ FIELD_ALIASES = {
 }
 
 
-def format_column_arguments(column_args, arguments):
+def format_column_arguments(column_args, arguments) -> None:
     for i in range(len(column_args)):
         if isinstance(column_args[i], (list, tuple)):
             if isinstance(column_args[i][0], ArgValue):
@@ -803,7 +803,7 @@ class FunctionArg:
         self.name = name
         self.has_default = False
 
-    def get_default(self, _):
+    def get_default(self, _) -> object:
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
     def normalize(
@@ -811,7 +811,7 @@ class FunctionArg:
     ) -> str | float | datetime | list[Any] | None:
         return value
 
-    def get_type(self, _):
+    def get_type(self, _) -> str:
         raise InvalidFunctionArgument(f"{self.name} has no type defined")
 
 
@@ -1441,7 +1441,7 @@ class DiscoverFunction:
         self.validate_result_type(result_type)
         return result_type
 
-    def validate(self):
+    def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
             assert (
@@ -1507,7 +1507,7 @@ class DiscoverFunction:
                     f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
-    def validate_result_type(self, result_type):
+    def validate_result_type(self, result_type) -> None:
         assert (
             result_type is None or result_type in RESULT_TYPES
         ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"

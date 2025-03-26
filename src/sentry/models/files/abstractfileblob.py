@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from concurrent.futures import ThreadPoolExecutor
 from threading import Semaphore
 from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar
 from uuid import uuid4
@@ -64,7 +63,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
 
     @classmethod
     @sentry_sdk.tracing.trace
-    def from_files(cls, files, organization=None, logger=nooplogger):
+    def from_files(cls, files, organization=None, logger=nooplogger) -> None:
         """A faster version of `from_file` for multiple files at the time.
         If an organization is provided it will also create `FileBlobOwner`
         entries.  Files can be a list of files or tuples of file and checksum.
@@ -85,7 +84,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
         blobs_to_save = []
         semaphore = Semaphore(value=MULTI_BLOB_UPLOAD_CONCURRENCY)
 
-        def _upload_and_pend_chunk(fileobj, size, checksum):
+        def _upload_and_pend_chunk(fileobj, size, checksum) -> None:
             logger.debug(
                 "FileBlob.from_files._upload_and_pend_chunk.start",
                 extra={"checksum": checksum, "size": size},
@@ -103,7 +102,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 extra={"checksum": checksum, "path": blob.path},
             )
 
-        def _save_blob(blob: Self):
+        def _save_blob(blob: Self) -> None:
             logger.debug("FileBlob.from_files._save_blob.start", extra={"path": blob.path})
             try:
                 blob.save()
@@ -123,7 +122,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             blob._ensure_blob_owned(organization)
             logger.debug("FileBlob.from_files._save_blob.end", extra={"path": blob.path})
 
-        def _flush_blobs():
+        def _flush_blobs() -> None:
             while True:
                 try:
                     blob = blobs_to_save.pop()
@@ -134,41 +133,40 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
                 semaphore.release()
 
         try:
-            with ThreadPoolExecutor(max_workers=MULTI_BLOB_UPLOAD_CONCURRENCY) as exe:
-                for fileobj, reference_checksum in files_with_checksums:
-                    logger.debug(
-                        "FileBlob.from_files.executor_start", extra={"checksum": reference_checksum}
-                    )
-                    _flush_blobs()
+            for fileobj, reference_checksum in files_with_checksums:
+                logger.debug(
+                    "FileBlob.from_files.executor_start", extra={"checksum": reference_checksum}
+                )
+                _flush_blobs()
 
-                    # Before we go and do something with the files we calculate
-                    # the checksums and compare it against the reference.  This
-                    # also deduplicates duplicates uploaded in the same request.
-                    # This is necessary because we acquire multiple locks in one
-                    # go which would let us deadlock otherwise.
-                    size, checksum = get_size_and_checksum(fileobj)
-                    if reference_checksum is not None and checksum != reference_checksum:
-                        raise OSError("Checksum mismatch")
-                    if checksum in checksums_seen:
-                        continue
-                    checksums_seen.add(checksum)
+                # Before we go and do something with the files we calculate
+                # the checksums and compare it against the reference.  This
+                # also deduplicates duplicates uploaded in the same request.
+                # This is necessary because we acquire multiple locks in one
+                # go which would let us deadlock otherwise.
+                size, checksum = get_size_and_checksum(fileobj)
+                if reference_checksum is not None and checksum != reference_checksum:
+                    raise OSError("Checksum mismatch")
+                if checksum in checksums_seen:
+                    continue
+                checksums_seen.add(checksum)
 
-                    # Check if we need to upload the blob.  If we get a result back
-                    # here it means the blob already exists.
-                    existing = get_and_optionally_update_blob(cls, checksum)
-                    if existing is not None:
-                        existing._ensure_blob_owned(organization)
-                        continue
+                # Check if we need to upload the blob.  If we get a result back
+                # here it means the blob already exists.
+                existing = get_and_optionally_update_blob(cls, checksum)
+                if existing is not None:
+                    existing._ensure_blob_owned(organization)
+                    continue
 
-                    # Otherwise we leave the blob locked and submit the task.
-                    # We use the semaphore to ensure we never schedule too
-                    # many.  The upload will be done with a certain amount
-                    # of concurrency controlled by the semaphore and the
-                    # `_flush_blobs` call will take all those uploaded
-                    # blobs and associate them with the database.
-                    semaphore.acquire()
-                    exe.submit(_upload_and_pend_chunk(fileobj, size, checksum))
-                    logger.debug("FileBlob.from_files.end", extra={"checksum": reference_checksum})
+                # Otherwise we leave the blob locked and submit the task.
+                # We use the semaphore to ensure we never schedule too
+                # many.  The upload will be done with a certain amount
+                # of concurrency controlled by the semaphore and the
+                # `_flush_blobs` call will take all those uploaded
+                # blobs and associate them with the database.
+                semaphore.acquire()
+                _upload_and_pend_chunk(fileobj, size, checksum)
+                logger.debug("FileBlob.from_files.end", extra={"checksum": reference_checksum})
 
             _flush_blobs()
         finally:
@@ -234,7 +232,7 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
             self._delete_file_task().apply_async(
                 kwargs={"path": self.path, "checksum": self.checksum}, countdown=60
             )
-        super().delete(*args, **kwargs)
+        return super().delete(*args, **kwargs)
 
     def getfile(self):
         """
