@@ -423,11 +423,11 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           return;
         }
 
-        if (outcome === Outcome.ACCEPTED) {
-          stats[projectId!]!.accepted_stored += value;
-        }
-
-        if (outcome === Outcome.FILTERED || outcome === Outcome.INVALID) {
+        if (
+          outcome === Outcome.ACCEPTED ||
+          outcome === Outcome.FILTERED ||
+          outcome === Outcome.INVALID
+        ) {
           stats[projectId!]![outcome] += value;
         }
 
