@@ -162,7 +162,7 @@ def report_rage_click(
     replay_id: str,
     replay_event: dict[str, Any] | None,
 ) -> None:
-    clicks = list(filter(lambda c: c.is_rage and click.url, event_meta.click_events))
+    clicks = list(filter(lambda c: c.is_rage and c.url, event_meta.click_events))
 
     # Eagerly exit to prevent unnecessary I/O.
     if len(clicks) == 0 or not replay_event or not _should_report_rage_click_issue(project):
@@ -191,7 +191,7 @@ def report_rage_click(
             replay_id,
             click.timestamp,
             click.selector,
-            click.url,
+            str(click.url),
             node,
             click.component_name,
             replay_event,
