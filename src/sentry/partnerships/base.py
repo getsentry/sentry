@@ -1,6 +1,4 @@
-from collections.abc import Sequence
-
-from sentry.relay.types import RuleCondition
+from sentry.relay.types import GenericFilter
 from sentry.utils.services import Service
 
 
@@ -10,10 +8,10 @@ class Partnership(Service):
     Based on the partnership agreementsome behavior is enabled or disabled.
     """
 
-    __all__ = "get_inbound_filters"
+    __all__ = ("get_inbound_filters",)
 
     def __init__(self, **options):
         pass
 
-    def get_inbound_filters(self, org) -> Sequence[tuple[str, RuleCondition]]:
+    def get_inbound_filters(self, org) -> list[GenericFilter]:
         return []
