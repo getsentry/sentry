@@ -1,11 +1,7 @@
 import {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import type {OpenConfirmOptions} from 'sentry/components/confirm';
-import Confirm, {openConfirmModal} from 'sentry/components/confirm';
-import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
@@ -31,7 +27,7 @@ import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import Stepper from './components/stepper';
-import {hasDocsOnPlatformClickEnabled, PlatformSelection} from './platformSelection';
+import {PlatformSelection} from './platformSelection';
 import SetupDocs from './setupDocs';
 import type {StepDescriptor} from './types';
 import TargetedOnboardingWelcome from './welcome';
@@ -70,7 +66,6 @@ function Onboarding(props: Props) {
   const onboardingContext = useContext(OnboardingContext);
   const selectedSDK = onboardingContext.data.selectedSDK;
   const selectedProjectSlug = selectedSDK?.key;
-  const docsOnPlatformClickEnabled = hasDocsOnPlatformClickEnabled(organization);
 
   const {
     params: {step: stepId},
@@ -245,37 +240,6 @@ function Onboarding(props: Props) {
     );
   }
 
-  const goBackDeletionAlertModalProps: OpenConfirmOptions = {
-    message: t(
-      "Hey, just a heads up - we haven't received any data for this SDK yet and by going back all changes will be discarded. Are you sure you want to head back?"
-    ),
-    priority: 'danger',
-    confirmText: t("Yes I'm sure"),
-    onConfirm: handleGoBack,
-    onClose: () => {
-      if (!recentCreatedProject) {
-        return;
-      }
-
-      trackAnalytics('onboarding.data_removal_modal_dismissed', {
-        organization,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    },
-    onRender: () => {
-      if (!recentCreatedProject) {
-        return;
-      }
-
-      trackAnalytics('onboarding.data_removal_modal_rendered', {
-        organization,
-        platform: recentCreatedProject.slug,
-        project_id: recentCreatedProject.id,
-      });
-    },
-  };
-
   return (
     <OnboardingWrapper data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
@@ -287,16 +251,8 @@ function Onboarding(props: Props) {
             currentStepIndex={stepIndex}
             onClick={i => {
               if ((i as number) < stepIndex && shallProjectBeDeleted) {
-                if (docsOnPlatformClickEnabled) {
-                  // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
-                  handleGoBack(i);
-                } else {
-                  openConfirmModal({
-                    ...goBackDeletionAlertModalProps,
-                    // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
-                    onConfirm: () => handleGoBack(i),
-                  });
-                }
+                // @ts-expect-error TS(2345): Argument of type 'number | MouseEvent<HTMLDivEleme... Remove this comment to see the full error message
+                handleGoBack(i);
                 return;
               }
 
@@ -313,16 +269,32 @@ function Onboarding(props: Props) {
         </UpsellWrapper>
       </Header>
       <Container hasFooter={containerHasFooter}>
-        {docsOnPlatformClickEnabled ? (
-          <Back
-            animate={stepIndex > 0 ? 'visible' : 'hidden'}
+        <BackMotionDiv
+          animate={stepIndex > 0 ? 'visible' : 'hidden'}
+          transition={testableTransition()}
+          variants={{
+            initial: {opacity: 0, visibility: 'hidden'},
+            visible: {
+              opacity: 1,
+              visibility: 'visible',
+              transition: testableTransition({delay: 1}),
+            },
+            hidden: {
+              opacity: 0,
+              transitionEnd: {
+                visibility: 'hidden',
+              },
+            },
+          }}
+        >
+          <Button
             onClick={() => handleGoBack()}
-          />
-        ) : (
-          <Confirm bypass={!shallProjectBeDeleted} {...goBackDeletionAlertModalProps}>
-            <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
-          </Confirm>
-        )}
+            icon={<IconArrow direction="left" />}
+            priority="link"
+          >
+            {t('Back')}
+          </Button>
+        </BackMotionDiv>
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep
             initial="initial"
@@ -418,36 +390,7 @@ const StyledStepper = styled(Stepper)`
   }
 `;
 
-interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
-  animate: MotionProps['animate'];
-  className?: string;
-}
-
-const Back = styled(({className, animate, ...props}: BackButtonProps) => (
-  <motion.div
-    className={className}
-    animate={animate}
-    transition={testableTransition()}
-    variants={{
-      initial: {opacity: 0, visibility: 'hidden'},
-      visible: {
-        opacity: 1,
-        visibility: 'visible',
-        transition: testableTransition({delay: 1}),
-      },
-      hidden: {
-        opacity: 0,
-        transitionEnd: {
-          visibility: 'hidden',
-        },
-      },
-    }}
-  >
-    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
-      {t('Back')}
-    </Button>
-  </motion.div>
-))`
+const BackMotionDiv = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 40px;
   left: 20px;

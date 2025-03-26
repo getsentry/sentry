@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
+import {useBlocker} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
-import Confirm from 'sentry/components/confirm';
 import {Button, LinkButton} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
@@ -26,15 +26,13 @@ type Props = {
 
 export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const router = useRouter();
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
-
-  const shallProjectBeDeleted = !isProjectActive;
 
   const handleGoBack = useCallback(async () => {
     if (!recentCreatedProject) {
@@ -45,7 +43,7 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       organization,
     });
 
-    if (shallProjectBeDeleted) {
+    if (!isProjectActive) {
       trackAnalytics('project_creation.data_removal_modal_confirm_button_clicked', {
         organization,
         platform: recentCreatedProject.slug,
@@ -78,7 +76,14 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
         orgSlug: organization.slug,
       }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
     );
-  }, [api, recentCreatedProject, organization, shallProjectBeDeleted, router]);
+  }, [api, recentCreatedProject, organization, isProjectActive, router]);
+
+  useBlocker(({historyAction}) => {
+    if (historyAction === 'POP') {
+      handleGoBack();
+    }
+    return false;
+  });
 
   return (
     <StyledPageHeader>
@@ -86,39 +91,13 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
         {title ?? t('Configure %(platform)s SDK', {platform: platform.name ?? 'other'})}
       </h2>
       <ButtonBar gap={1}>
-        <Confirm
-          bypass={!shallProjectBeDeleted}
-          message={t(
-            "Hey, just a heads up - we haven't received any data for this SDK yet and by going back all changes will be discarded. Are you sure you want to head back?"
-          )}
-          priority="danger"
-          confirmText={t("Yes I'm sure")}
-          onConfirm={handleGoBack}
-          onCancel={() => {
-            if (!recentCreatedProject) {
-              return;
-            }
-            trackAnalytics('project_creation.data_removal_modal_dismissed', {
-              organization,
-              platform: recentCreatedProject.slug,
-              project_id: recentCreatedProject.id,
-            });
-          }}
-          onRender={() => {
-            if (!recentCreatedProject) {
-              return;
-            }
-            trackAnalytics('project_creation.data_removal_modal_rendered', {
-              organization,
-              platform: recentCreatedProject.slug,
-              project_id: recentCreatedProject.id,
-            });
-          }}
+        <Button
+          icon={<IconChevron direction="left" size="sm" />}
+          size="sm"
+          onClick={handleGoBack}
         >
-          <Button icon={<IconChevron direction="left" size="sm" />} size="sm">
-            {t('Back to Platform Selection')}
-          </Button>
-        </Confirm>
+          {t('Back to Platform Selection')}
+        </Button>
         {platform.key !== 'other' && (
           <LinkButton size="sm" href={platform.link ?? ''} external>
             {t('Full Documentation')}

@@ -199,7 +199,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
@@ -234,7 +234,7 @@ const FinishedWell = styled(Well)`
     font-size: 14px;
   }
   a:hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 

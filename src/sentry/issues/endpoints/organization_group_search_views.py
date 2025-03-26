@@ -178,7 +178,6 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                                 if view.is_all_projects
                                 else list(view.projects.values_list("id", flat=True))
                             ),
-                            "isAllProjects": view.is_all_projects,
                             "environments": view.environments,
                             "timeFilters": view.time_filters,
                             "dateCreated": view.date_added,

@@ -85,6 +85,7 @@ export function LogRowContent({
   const hoverProps = usePrefetchLogTableRowOnHover({
     logId: String(dataRow[OurLogKnownFieldKey.ID]),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
     sharedHoverTimeoutRef,
   });
 
@@ -171,8 +172,9 @@ function LogRowDetails({
   );
   const missingLogId = !dataRow[OurLogKnownFieldKey.ID];
   const {data, isPending} = useExploreLogsTableRow({
-    log_id: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
-    project_id: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
+    logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
+    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
+    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
     enabled: !missingLogId,
   });
 

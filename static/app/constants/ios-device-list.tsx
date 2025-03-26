@@ -74,6 +74,7 @@ const iOSDeviceMapping: Record<string, string> = {
   'iPhone17,2': 'iPhone 16 Pro Max',
   'iPhone17,3': 'iPhone 16',
   'iPhone17,4': 'iPhone 16 Plus',
+  'iPhone17,5': 'iPhone 16e',
   // iPad Pro
   'iPad6,7': 'iPad Pro (12.9-inch)',
   'iPad6,8': 'iPad Pro (12.9-inch)',

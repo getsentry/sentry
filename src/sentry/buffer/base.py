@@ -140,13 +140,18 @@ class Buffer(Service):
 
     def process(
         self,
-        model: type[models.Model],
-        columns: dict[str, int],
-        filters: dict[str, Any],
+        model: type[models.Model] | None,
+        columns: dict[str, int] | None,
+        filters: dict[str, Any] | None,
         extra: dict[str, Any] | None = None,
         signal_only: bool | None = None,
     ) -> None:
         from sentry.models.group import Group
+
+        if not columns:
+            columns = {}
+        if not filters:
+            filters = {}
 
         created = False
 
@@ -172,7 +177,7 @@ class Buffer(Service):
                 else:
                     group.update(using=None, **update_kwargs)
                 created = False
-            else:
+            elif model:
                 _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(

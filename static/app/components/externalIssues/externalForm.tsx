@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import type {ExternalIssueFormErrors} from 'sentry/components/externalIssues/utils';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';

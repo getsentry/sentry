@@ -248,7 +248,7 @@ const ContactRow = styled(TextOverflow)`
 
 const ShortId = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
