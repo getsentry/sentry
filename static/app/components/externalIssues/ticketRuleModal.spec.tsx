@@ -44,13 +44,17 @@ const defaultIssueConfig = [
     updatesForm: true,
     required: true,
   },
-];
+] as const;
 
 describe('ProjectAlerts -> TicketRuleModal', function () {
   const organization = OrganizationFixture();
   const router = RouterFixture();
   const onSubmitAction = jest.fn();
   const closeModal = jest.fn();
+  const [
+    issueTypeCode, // 10004
+    issueTypeLabel, // New Feature
+  ] = defaultIssueConfig[1].choices[3];
 
   afterEach(function () {
     closeModal.mockReset();
@@ -138,7 +142,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         match: [
           MockApiClient.matchQuery({
             action: 'create',
-            issuetype: '10001',
+            issuetype: issueTypeCode,
             project: '10000',
           }),
         ],
@@ -157,7 +161,10 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         },
       });
 
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        issueTypeLabel
+      );
       expect(dynamicQuery).toHaveBeenCalled();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Assignee'}), 'b');
       await submitSuccess();
@@ -169,7 +176,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         match: [
           MockApiClient.matchQuery({
             action: 'create',
-            issuetype: '10001',
+            issuetype: issueTypeCode,
             project: '10000',
           }),
         ],
@@ -194,7 +201,10 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       expect(
         screen.queryAllByText(`Could not fetch saved option for Labels. Please reselect.`)
       ).toHaveLength(0);
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        issueTypeLabel
+      );
       expect(dynamicQuery).toHaveBeenCalled();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Labels'}), 'bug');
       await submitSuccess();
@@ -233,7 +243,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         match: [
           MockApiClient.matchQuery({
             action: 'create',
-            issuetype: '10001',
+            issuetype: issueTypeCode,
             project: '10000',
           }),
         ],
@@ -254,7 +264,10 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       });
 
       // Switch Issue Type so we refetch the config and update Reporter choices
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        issueTypeLabel
+      );
       expect(dynamicQuery).toHaveBeenCalled();
       await expect(
         selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a')
@@ -285,7 +298,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         match: [
           MockApiClient.matchQuery({
             action: 'create',
-            issuetype: '10001',
+            issuetype: issueTypeCode,
             project: '10000',
           }),
         ],
@@ -304,7 +317,10 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
         },
       });
 
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue Type'}),
+        issueTypeLabel
+      );
 
       // Component makes 1 request per character typed.
       let txt = '';

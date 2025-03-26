@@ -8,10 +8,10 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
+import {useDynamicFields} from 'sentry/components/externalIssues/useDynamicFields';
 import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
 import {
   getConfigName,
-  getDynamicFields,
   getFieldProps,
   getOptions,
   hasErrorInFields,
@@ -119,11 +119,10 @@ export default function ExternalIssueForm({
       retry: false,
     }
   );
-
-  const dynamicFieldValues = useMemo(
-    () => getDynamicFields({action, integrationDetails}),
-    [action, integrationDetails]
-  );
+  const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({
+    action,
+    integrationDetails: integrationDetails ?? null,
+  });
 
   /**
    * XXX: This function seems illegal but it's necessary.
@@ -133,51 +132,53 @@ export default function ExternalIssueForm({
    * the user entered as a query param. Since we can't conditionally call hooks, we have to avoid
    * `useApiQuery`, and instead manually call the api, and update the cache ourselves.
    */
-  const refetchWithDynamicFields = useCallback(() => {
-    setIsDynamicallyRefetching(true);
-    const requestOptions: RequestOptions = {
-      method: 'GET',
-      query: {action, ...dynamicFieldValues},
-      success: (
-        data: IntegrationIssueConfig,
-        _textStatus: string | undefined,
-        _responseMeta: ResponseMeta | undefined
-      ) => {
-        setApiQueryData(
-          queryClient,
-          makeIntegrationIssueConfigQueryKey({
-            orgSlug: organization.slug,
-            groupId: group.id,
-            integrationId: integration.id,
-            action,
-          }),
-          existingData => (data ? data : existingData)
-        );
-        setIsDynamicallyRefetching(false);
-      },
-      error: (err: any) => {
-        // This behavior comes from the DeprecatedAsyncComponent
-        if (err?.responseText) {
-          Sentry.addBreadcrumb({
-            message: err.responseText,
-            category: 'xhr',
-            level: 'error',
-          });
-        }
-        setIsDynamicallyRefetching(false);
-      },
-    };
-    return api.request(endpointString, requestOptions);
-  }, [
-    action,
-    dynamicFieldValues,
-    queryClient,
-    organization.slug,
-    group.id,
-    integration.id,
-    api,
-    endpointString,
-  ]);
+  const refetchWithDynamicFields = useCallback(
+    (dynamicValues: Record<string, FieldValue>) => {
+      setIsDynamicallyRefetching(true);
+      const requestOptions: RequestOptions = {
+        method: 'GET',
+        query: {action, ...dynamicValues},
+        success: (
+          data: IntegrationIssueConfig,
+          _textStatus: string | undefined,
+          _responseMeta: ResponseMeta | undefined
+        ) => {
+          setApiQueryData(
+            queryClient,
+            makeIntegrationIssueConfigQueryKey({
+              orgSlug: organization.slug,
+              groupId: group.id,
+              integrationId: integration.id,
+              action,
+            }),
+            existingData => (data ? data : existingData)
+          );
+          setIsDynamicallyRefetching(false);
+        },
+        error: (err: any) => {
+          // This behavior comes from the DeprecatedAsyncComponent
+          if (err?.responseText) {
+            Sentry.addBreadcrumb({
+              message: err.responseText,
+              category: 'xhr',
+              level: 'error',
+            });
+          }
+          setIsDynamicallyRefetching(false);
+        },
+      };
+      return api.request(endpointString, requestOptions);
+    },
+    [
+      action,
+      queryClient,
+      organization.slug,
+      group.id,
+      integration.id,
+      api,
+      endpointString,
+    ]
+  );
 
   const startSpan = useCallback(
     (type: 'load' | 'submit') => {
@@ -253,13 +254,20 @@ export default function ExternalIssueForm({
   );
 
   const onFieldChange = useCallback(
-    (fieldName: string, _value: FieldValue) => {
+    (fieldName: string, value: FieldValue) => {
       if (dynamicFieldValues.hasOwnProperty(fieldName)) {
-        refetchWithDynamicFields();
+        setDynamicFieldValue(fieldName, value);
+        refetchWithDynamicFields({...dynamicFieldValues, [fieldName]: value});
       }
     },
-    [refetchWithDynamicFields, dynamicFieldValues]
+    [dynamicFieldValues, refetchWithDynamicFields, setDynamicFieldValue]
   );
+
+  // Even if we pass onFieldChange as a prop, the model only uses the first instance.
+  // In order to use the correct dynamicFieldValues, we need to set it whenever this function is changed.
+  useEffect(() => {
+    model.setFormOptions({onFieldChange});
+  }, [model, onFieldChange]);
 
   const getExternalIssueFieldProps = useCallback(
     (field: IssueConfigField) => {
