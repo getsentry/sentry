@@ -1,5 +1,5 @@
 __all__ = [
-    "NotificationActionHandler",
+    "ActionHandler",
 ]
 
-from .notification.handler import NotificationActionHandler
+from .notification.handler import ActionHandler
