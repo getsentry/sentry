@@ -452,7 +452,7 @@ export const EventGraph = forwardRef<ReactEchartsRef, EventGraphProps>(
               label={t('Users')}
             />
           </SummaryContainer>
-          <LoadingChartContainer>
+          <LoadingChartContainer ref={chartContainerRef}>
             <Placeholder height="96px" testId="event-graph-loading" />
           </LoadingChartContainer>
         </GraphWrapper>
