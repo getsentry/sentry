@@ -92,7 +92,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
 
         rule = Rule.objects.get(project=self.project)
-        AlertRuleWorkflow.objects.create(workflow=self.error_workflow, rule=rule)
+        AlertRuleWorkflow.objects.create(workflow=self.error_workflow, rule_id=rule)
 
         triggered_workflows = process_workflows(self.job)
         assert triggered_workflows == {self.error_workflow}

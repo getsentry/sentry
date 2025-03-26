@@ -706,8 +706,8 @@ class ExhaustiveFixtures(Fixtures):
         )
         detector.workflow_condition_group = detector_conditions
 
-        AlertRuleDetector.objects.create(detector=detector, alert_rule=alert)
-        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule=alert)
+        AlertRuleDetector.objects.create(detector=detector, alert_rule_id=alert.id)
+        AlertRuleWorkflow.objects.create(workflow=workflow, alert_rule_id=alert.id)
         ActionGroupStatus.objects.create(action=send_notification_action, group=group)
 
         TempestCredentials.objects.create(

@@ -89,7 +89,7 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     data = rule.data
 
     try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
     except AlertRuleWorkflow.DoesNotExist:
         # OK state, rule may not have been migrated
         logger.exception(
@@ -188,7 +188,7 @@ def update_dcg(
 
 def delete_migrated_issue_alert(rule: Rule) -> int | None:
     try:
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
     except AlertRuleWorkflow.DoesNotExist:
         # OK state, rule may not have been migrated
         logger.exception(

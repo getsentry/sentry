@@ -1686,7 +1686,7 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         IssueAlertMigrator(rule, user_id=self.user.id).run()
 
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule)
         workflow = alert_rule_workflow.workflow
         when_dcg = workflow.when_condition_group
         assert when_dcg
@@ -1696,7 +1696,7 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
 
-        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule).exists()
         assert not Workflow.objects.filter(id=workflow.id).exists()
         assert not DataConditionGroup.objects.filter(id=when_dcg.id).exists()
         assert not DataConditionGroup.objects.filter(id=if_dcg.id).exists()

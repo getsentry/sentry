@@ -25,4 +25,4 @@ tempest: 0002_make_message_type_nullable
 
 uptime: 0031_translate_uptime_object_headers_to_lists_take_three
 
-workflow_engine: 0038_add_detector_workflow_unique_together
+workflow_engine: 0039_lookup_table_fks_to_ids
