@@ -16,7 +16,12 @@ const IconClose = forwardRef<SVGSVGElement, Props>(
   ({['data-test-id']: dataTestId = 'icon-close', isCircled = false, ...props}, ref) => {
     const theme = useTheme();
     return (
-      <SvgIcon ref={ref} {...props} data-test-id={dataTestId}>
+      <SvgIcon
+        ref={ref}
+        {...props}
+        data-test-id={dataTestId}
+        kind={theme.isChonk ? 'stroke' : 'path'}
+      >
         {theme.isChonk ? (
           <Fragment>
             <line x1="12.24" y1="3.76" x2="3.75" y2="12.25" />

@@ -12,7 +12,7 @@ const IconFocus = forwardRef<SVGSVGElement, Props>(
   ({isFocused = true, ...props}, ref) => {
     const theme = useTheme();
     return (
-      <SvgIcon {...props} ref={ref}>
+      <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
         {theme.isChonk ? (
           <Fragment>
             <path d="m3.25,6.25v-2c0-.55.45-1,1-1h2" />

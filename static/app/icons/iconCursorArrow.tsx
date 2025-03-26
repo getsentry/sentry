@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconCursorArrow = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <polygon points="13.31 11.54 10.47 8.71 13.12 6.06 2.69 2.7 6.05 13.13 8.7 10.48 11.54 13.31 13.31 11.54" />
       ) : (

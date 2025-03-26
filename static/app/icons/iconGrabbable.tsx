@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconGrabbable = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <circle cx="5.5" cy="3.25" r=".5" />

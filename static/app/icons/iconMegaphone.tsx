@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconMegaphone = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m3.75,5.5h2.5v3.75h-2.5c-.55,0-1-.45-1-1v-1.75c0-.55.45-1,1-1Z" />

@@ -25,13 +25,15 @@ function getChevronPath({
   if (theme.isChonk) {
     if (isDouble) {
       return (
-        <Fragment>
+        <g rotate={'90deg'}>
           <path d="m7.84,12.75l-4.04-4.04c-.39-.39-.39-1.02,0-1.41L7.84,3.25" />
           <path d="m12.25,12.75l-4.04-4.04c-.39-.39-.39-1.02,0-1.41l4.04-4.04" />
-        </Fragment>
+        </g>
       );
     }
-    return <path d="m3.25,10l4.04-4.04c.39-.39,1.02-.39,1.41,0l4.04,4.04" />;
+    return (
+      <path rotate={'90deg'} d="m3.25,10l4.04-4.04c.39-.39,1.02-.39,1.41,0l4.04,4.04" />
+    );
   }
 
   if (isCircled) {
@@ -63,6 +65,7 @@ const IconChevron = forwardRef<SVGSVGElement, Props>(
       <SvgIcon
         {...props}
         ref={ref}
+        kind={theme.isChonk ? 'stroke' : 'path'}
         css={
           direction
             ? css`

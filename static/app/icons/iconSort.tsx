@@ -14,6 +14,7 @@ const IconSort = forwardRef<SVGSVGElement, Props>(({rotated, ...props}, ref) => 
     <SvgIcon
       {...props}
       ref={ref}
+      kind={theme.isChonk ? 'stroke' : 'path'}
       css={
         rotated &&
         css`

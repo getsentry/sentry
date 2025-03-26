@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconMoon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <path d="m8,3.09c.54.71.87,1.58.9,2.59.04,1.77-1.03,3.46-2.65,4.18-.92.41-1.86.48-2.73.3-.41-.08-.74.36-.53.72,1.35,2.35,4.25,3.55,7.02,2.52,2.37-.88,3.92-3.33,3.7-5.85-.26-2.94-2.59-5.05-5.29-5.26-.41-.03-.68.46-.43.79Z" />
       ) : (

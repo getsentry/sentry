@@ -1,6 +1,8 @@
 import {forwardRef, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {useIconDefaults} from 'sentry/icons/useIconDefaults';
+
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
@@ -10,12 +12,20 @@ interface Props extends SVGIconProps {
 
 const IconPin = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, ref) => {
   const theme = useTheme();
+  const {color: providedColor = 'currentColor'} = useIconDefaults(props);
+
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const color = theme[providedColor] ?? providedColor;
+
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <line x1="8.66" y1="2.04" x2="13.96" y2="7.34" />
-          <path d="m8.87,12.85L3.15,7.13c-.29-.29-.13-.77.26-.85l2.95-.54,3.01-3.01,3.89,3.89-3.01,3.01-.54,2.95c-.07.4-.56.55-.85.26Z" />
+          <path
+            fill={isSolid ? color : 'none'}
+            d="m8.87,12.85L3.15,7.13c-.29-.29-.13-.77.26-.85l2.95-.54,3.01-3.01,3.89,3.89-3.01,3.01-.54,2.95c-.07.4-.56.55-.85.26Z"
+          />
           <line x1="6.01" y1="9.99" x2="2.75" y2="13.25" />
         </Fragment>
       ) : isSolid ? (

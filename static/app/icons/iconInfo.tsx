@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconInfo = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <polyline points="7.25 7.75 8.25 7.75 8.25 10.75" />

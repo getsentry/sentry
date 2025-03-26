@@ -16,6 +16,7 @@ const IconArrow = forwardRef<SVGSVGElement, ArrowProps>(
       <SvgIcon
         {...props}
         ref={ref}
+        kind={theme.isChonk ? 'stroke' : 'path'}
         css={
           direction
             ? direction === 'down'

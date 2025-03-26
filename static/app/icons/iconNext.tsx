@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconNext = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m10.25,7.57L3.5,3.67c-.33-.19-.75.05-.75.43v7.79c0,.38.42.63.75.43l6.75-3.9c.33-.19.33-.67,0-.87Z" />

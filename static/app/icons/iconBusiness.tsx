@@ -38,7 +38,7 @@ const IconBusiness = forwardRef<SVGSVGElement, BusinessIconProps>(
     }
 
     return (
-      <SvgIcon {...props} ref={ref}>
+      <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
         <mask id={maskId}>
           <path
             fill="white"

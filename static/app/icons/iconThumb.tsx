@@ -16,6 +16,7 @@ const IconThumb = forwardRef<SVGSVGElement, Props>(
       <SvgIcon
         {...props}
         ref={ref}
+        kind={theme.isChonk ? 'stroke' : 'path'}
         css={
           direction
             ? css`

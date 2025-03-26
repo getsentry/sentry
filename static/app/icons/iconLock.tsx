@@ -11,7 +11,7 @@ interface Props extends SVGIconProps {
 const IconLock = forwardRef<SVGSVGElement, Props>(({locked = false, ...props}, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         locked ? (
           <Fragment>

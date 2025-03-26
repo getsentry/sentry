@@ -5,7 +5,7 @@ import {SvgIcon} from 'sentry/icons/svgIcon';
 
 const GrabHandleIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={'path'}>
       <circle cx="5" cy="2" r="1.5" />
       <circle cx="11" cy="2" r="1.5" />
 

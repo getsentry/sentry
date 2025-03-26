@@ -15,7 +15,12 @@ export const IconAdd = forwardRef<SVGSVGElement, IconAddProps>(
   ({isCircled = false, ...props}, ref) => {
     const theme = useTheme();
     return (
-      <SvgIcon {...props} ref={ref} data-test-id="icon-add">
+      <SvgIcon
+        {...props}
+        ref={ref}
+        data-test-id="icon-add"
+        kind={theme.isChonk ? 'stroke' : 'path'}
+      >
         {theme.isChonk ? (
           <Fragment>
             <line x1="13.25" y1="8.01" x2="2.74" y2="8.01" />

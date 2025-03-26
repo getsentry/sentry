@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconTimer = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <polyline points="8 4.75 8 8 10 9.5" />

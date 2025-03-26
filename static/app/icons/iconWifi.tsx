@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconWifi = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m4,8.26c2.35-2.35,5.65-2.35,8,0" />

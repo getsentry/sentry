@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconClock = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <circle cx="8" cy="8" r="5.75" />

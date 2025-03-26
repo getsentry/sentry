@@ -15,6 +15,7 @@ const IconSliders = forwardRef<SVGSVGElement, Props>(
     return (
       <SvgIcon
         {...props}
+        kind={theme.isChonk ? 'stroke' : 'path'}
         ref={ref}
         css={
           direction

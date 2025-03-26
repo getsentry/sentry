@@ -15,7 +15,12 @@ const IconSubtract = forwardRef<SVGSVGElement, Props>(
   ({isCircled = false, ...props}, ref) => {
     const theme = useTheme();
     return (
-      <SvgIcon {...props} data-test-id="icon-subtract" ref={ref}>
+      <SvgIcon
+        {...props}
+        data-test-id="icon-subtract"
+        ref={ref}
+        kind={theme.isChonk ? 'stroke' : 'path'}
+      >
         {theme.isChonk ? (
           <line x1="2.75" y1="8" x2="13.25" y2="8" />
         ) : isCircled ? (

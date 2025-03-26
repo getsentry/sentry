@@ -7,7 +7,7 @@ import {SvgIcon} from './svgIcon';
 const IconRewind10 = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <polyline className="cls-1" points="5.25 13.25 3.37 11.37 5.25 9.48" />

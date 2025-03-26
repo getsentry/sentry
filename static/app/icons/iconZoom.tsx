@@ -11,7 +11,7 @@ interface Props extends SVGIconProps {
 const IconZoom = forwardRef<SVGSVGElement, Props>(({isZoomIn = false, ...props}, ref) => {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         isZoomIn ? (
           <Fragment>
