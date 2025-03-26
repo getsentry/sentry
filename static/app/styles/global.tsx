@@ -176,6 +176,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
   code {
     background-color: transparent;
   }
+  .tsqd-queries-container code {
+    background-color: unset;
+    color: inherit;
+  }
 
   ${prismStyles(theme)}
 
