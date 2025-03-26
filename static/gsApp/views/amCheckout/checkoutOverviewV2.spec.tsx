@@ -120,6 +120,9 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getByTestId('profileDuration-reserved')).toHaveTextContent(
       'Profile HoursAvailable'
     );
+    expect(screen.getByTestId('profileDurationUI-reserved')).toHaveTextContent(
+      'Profile HoursAvailable'
+    );
     expect(screen.queryByTestId('spansIndexed-reserved')).not.toBeInTheDocument();
     expect(
       screen.getByText('This is your standard yearly subscription charge.')
