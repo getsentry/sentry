@@ -25,43 +25,43 @@ import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import UsageHistory from 'getsentry/views/subscriptionPage/usageHistory';
 
 describe('Subscription > UsageHistory', () => {
-  const billingOrg = OrganizationFixture({access: ['org:billing']});
+  const organization = OrganizationFixture({access: ['org:billing']});
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/billing-config/`,
+      url: `/customers/${organization.slug}/billing-config/`,
       method: 'GET',
       body: BillingConfigFixture(PlanTier.AM1),
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/subscription/preview/`,
+      url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
       body: PreviewDataFixture({}),
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${billingOrg.slug}/members/`,
+      url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${billingOrg.slug}/promotions/trigger-check/`,
+      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
     });
     MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/plan-migrations/`,
+      url: `/customers/${organization.slug}/plan-migrations/`,
       query: {scheduled: 1, applied: 0},
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${billingOrg.slug}/prompts-activity/`,
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: {},
     });
   });
 
   it('shows an error for non-billing roles', async function () {
     MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [BillingHistoryFixture()],
     });
@@ -74,13 +74,13 @@ describe('Subscription > UsageHistory', () => {
     });
     SubscriptionStore.set(org.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={org} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization: org});
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
   });
 
   it('shows the tab when user is a billing admin', function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [BillingHistoryFixture()],
     });
@@ -88,18 +88,18 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
     expect(screen.queryByTestId('permission-denied')).not.toBeInTheDocument();
     expect(mockCall).toHaveBeenCalled();
   });
 
   it('shows expanders for details, and they work', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [BillingHistoryFixture()],
     });
@@ -107,11 +107,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
     expect(mockCall).toHaveBeenCalled();
 
     // Expand button should be present.
@@ -131,7 +131,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('hides on-demand when it is not relevant', function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [BillingHistoryFixture()],
     });
@@ -139,11 +139,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(screen.queryByText('On-demand Spend')).not.toBeInTheDocument();
     expect(mockCall).toHaveBeenCalled();
@@ -151,7 +151,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('overage is shown as >100%', async function () {
     MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -181,11 +181,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
     expect(await screen.findByText('>100%')).toBeInTheDocument();
     expect(screen.queryByText('Gifted')).not.toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '1 GB'})).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('shows gifted when relevant', async function () {
     MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -224,11 +224,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
     expect(await screen.findByText('Gifted')).toBeInTheDocument();
     expect(screen.queryByText('>100%')).not.toBeInTheDocument();
     expect(screen.queryByRole('cell', {name: '∞'})).not.toBeInTheDocument();
@@ -236,7 +236,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays shared on-demand when relevant', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -266,11 +266,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     // Shared On-demand should show up
     expect(await screen.findByText('On-Demand Spend (Shared)')).toBeInTheDocument();
@@ -290,7 +290,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays per-category on-demand when relevant', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -318,11 +318,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     // Per-category On-demand should show up
     expect(await screen.findByText('On-Demand Spend (Per-Category)')).toBeInTheDocument();
@@ -340,7 +340,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays historical usage for unlimited on-demand', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -352,11 +352,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(await screen.findByText('On-Demand Spend (Shared)')).toBeInTheDocument();
     expect(
@@ -367,7 +367,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays soft cap per-category on-demand when relevant', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -395,11 +395,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     // Per-category Soft Cap On-demand should show up
     expect(await screen.findAllByText('Errors (On Demand)')).toHaveLength(2);
@@ -410,7 +410,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays soft cap per-category true forward when relevant', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -438,11 +438,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     // Per-category Soft Cap True Forward should show up
     expect(await screen.findAllByText('Errors (True Forward)')).toHaveLength(2);
@@ -454,7 +454,7 @@ describe('Subscription > UsageHistory', () => {
   // Ensure orgs with True Forward set prior to the soft cap types will display correctly
   it('displays per-category true forward without soft cap when relevant', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -482,11 +482,11 @@ describe('Subscription > UsageHistory', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_team',
       planTier: PlanTier.AM1,
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     // Per-category True Forward should show up
     expect(await screen.findAllByText('Errors (True Forward)')).toHaveLength(2);
@@ -497,7 +497,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays attachments correctly for am1 plan', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -523,12 +523,12 @@ describe('Subscription > UsageHistory', () => {
     });
 
     const subscription = SubscriptionFixture({
-      organization: billingOrg,
+      organization,
       plan: 'am1_team',
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {
@@ -542,7 +542,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays attachments correctly for mm2 plan', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -567,12 +567,12 @@ describe('Subscription > UsageHistory', () => {
     });
 
     const subscription = SubscriptionFixture({
-      organization: billingOrg,
+      organization,
       plan: 'mm2_b_100k',
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {
@@ -588,15 +588,15 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays performance units for am2 plan', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [BillingHistoryFixture({plan: 'am2_f'})],
     });
 
-    const subscription = SubscriptionFixture({organization: billingOrg, plan: 'am2_f'});
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    const subscription = SubscriptionFixture({organization, plan: 'am2_f'});
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {
@@ -609,15 +609,15 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays transactions for am1 plan', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [BillingHistoryFixture({plan: 'am1_f'})],
     });
 
-    const subscription = SubscriptionFixture({organization: billingOrg, plan: 'am1_f'});
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    const subscription = SubscriptionFixture({organization, plan: 'am1_f'});
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {
@@ -630,7 +630,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays spans for am3 DS without custom dynamic sampling', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -653,12 +653,12 @@ describe('Subscription > UsageHistory', () => {
     });
 
     const subscription = Am3DsEnterpriseSubscriptionFixture({
-      organization: billingOrg,
+      organization,
       hadCustomDynamicSampling: true, // even if the current status is true, we rely on the status from the history
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {
@@ -673,7 +673,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays accepted and stored spans for am3 DS with custom dynamic sampling', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -696,11 +696,11 @@ describe('Subscription > UsageHistory', () => {
     });
 
     const subscription = Am3DsEnterpriseSubscriptionFixture({
-      organization: billingOrg,
+      organization,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {
@@ -718,7 +718,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays spans for am3 DS trial without custom dynamic sampling', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -740,10 +740,10 @@ describe('Subscription > UsageHistory', () => {
       ],
     });
 
-    const subscription = Am3DsEnterpriseSubscriptionFixture({organization: billingOrg});
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    const subscription = Am3DsEnterpriseSubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {
@@ -758,7 +758,7 @@ describe('Subscription > UsageHistory', () => {
 
   it('displays accepted and stored spans for am3 DS trial with custom dynamic sampling', async function () {
     const mockCall = MockApiClient.addMockResponse({
-      url: `/customers/${billingOrg.slug}/history/`,
+      url: `/customers/${organization.slug}/history/`,
       method: 'GET',
       body: [
         BillingHistoryFixture({
@@ -781,12 +781,12 @@ describe('Subscription > UsageHistory', () => {
     });
 
     const subscription = Am3DsEnterpriseSubscriptionFixture({
-      organization: billingOrg,
+      organization,
       hadCustomDynamicSampling: true,
     });
-    SubscriptionStore.set(billingOrg.slug, subscription);
+    SubscriptionStore.set(organization.slug, subscription);
 
-    render(<UsageHistory {...RouteComponentPropsFixture()} organization={billingOrg} />);
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
 
     expect(
       await screen.findByRole('row', {

@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Badge} from 'sentry/components/core/badge';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';

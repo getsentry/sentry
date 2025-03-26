@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import ContextIcon from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

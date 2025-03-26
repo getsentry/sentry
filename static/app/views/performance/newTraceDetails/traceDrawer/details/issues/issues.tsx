@@ -127,11 +127,7 @@ function Issue(props: IssueProps) {
       </IconWrapper>
       {hasNewLayout ? (
         <NarrowSummaryWrapper>
-          <EventOrGroupHeader
-            data={fetchedIssue}
-            organization={organization}
-            eventId={props.issue.event_id}
-          />
+          <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
           <EventOrGroupExtraDetails data={fetchedIssue} />
         </NarrowSummaryWrapper>
       ) : (
@@ -261,7 +257,7 @@ function LegacyIssue(
     <StyledLegacyPanelItem>
       {hasNewLayout ? (
         <NarrowIssueSummaryWrapper>
-          <EventOrGroupHeader data={props.fetchedIssue} organization={organization} />
+          <EventOrGroupHeader data={props.fetchedIssue} />
           <EventOrGroupExtraDetails data={props.fetchedIssue} />
         </NarrowIssueSummaryWrapper>
       ) : (
