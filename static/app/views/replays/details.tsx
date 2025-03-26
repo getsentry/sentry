@@ -1,17 +1,15 @@
 import {Fragment, useEffect} from 'react';
 
-import {Flex} from 'sentry/components/container/flex';
 import {Alert} from 'sentry/components/core/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import ArchivedReplayAlert from 'sentry/components/replays/alerts/archivedReplayAlert';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
@@ -121,12 +119,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
       >
         <Layout.Page>
           <Alert.Container>
-            <Alert system type="warning" data-test-id="replay-deleted">
-              <Flex gap={space(0.5)}>
-                <IconDelete color="gray500" size="sm" />
-                {t('This replay has been deleted.')}
-              </Flex>
-            </Alert>
+            <ArchivedReplayAlert />
           </Alert.Container>
         </Layout.Page>
       </Page>

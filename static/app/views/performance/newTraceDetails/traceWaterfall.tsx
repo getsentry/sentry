@@ -93,8 +93,8 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
-const MIN_HEIGHT = 0;
-const DEFAULT_HEIGHT = 0;
+const MIN_HEIGHT = 150;
+const DEFAULT_HEIGHT = 330;
 const MAX_HEIGHT = 1500;
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -120,6 +120,10 @@ export interface TraceWaterfallProps {
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
   replayTraces?: ReplayTrace[];
+}
+
+function clampHeight(height: number) {
+  return Math.max(MIN_HEIGHT, Math.min(height, MAX_HEIGHT));
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
@@ -586,7 +590,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId ?? path!) ?? node;
+          node = TraceTree.FindByID(node.head, path ?? eventId!) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
           node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path!)) ?? node;
         }
@@ -840,7 +844,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     const loadedHeight = preferences.drawer.sizes['trace grid height'];
 
     if (traceGridRef && typeof loadedHeight !== 'undefined') {
-      setHeight(loadedHeight);
+      const newHeight = clampHeight(loadedHeight);
+      setHeight(newHeight);
       traceGridRef.style.setProperty('--panel-height', `${loadedHeight}px`);
     }
   }, [preferences.drawer.sizes, traceGridRef]);
@@ -861,10 +866,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
 
         const deltaY = moveEvent.clientY - startY;
-        const newHeight = Math.max(
-          MIN_HEIGHT,
-          Math.min(startHeight + deltaY, MAX_HEIGHT)
-        );
+        const newHeight = clampHeight(startHeight + deltaY);
 
         traceGridRef.style.setProperty('--panel-height', `${newHeight}px`);
       }

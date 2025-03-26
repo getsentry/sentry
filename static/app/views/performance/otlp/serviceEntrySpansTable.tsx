@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import GridEditable, {

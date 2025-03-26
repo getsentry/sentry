@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import useHaveSelectedProjectsSetupFeedback from 'sentry/components/feedback/useFeedbackOnboarding';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -93,8 +92,6 @@ function ViewSpecificCharts({
   setFilters: (filter: string[]) => void;
   view: DomainView | '';
 }) {
-  const {hasSetupOneFeedback} = useHaveSelectedProjectsSetupFeedback();
-
   switch (view) {
     case FRONTEND_LANDING_SUB_PATH:
       return (
@@ -119,14 +116,9 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
-          {/* only show this chart if the project has user feedback set up */}
-          {hasSetupOneFeedback && (
-            <Fragment>
-              <ModuleLayout.Third>
-                <NewAndResolvedIssueChart type="feedback" />
-              </ModuleLayout.Third>
-            </Fragment>
-          )}
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>
             <GiveFeedbackSection />
           </ModuleLayout.Third>
@@ -166,14 +158,9 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
-          {/* only show this chart if the project has user feedback set up */}
-          {hasSetupOneFeedback && (
-            <Fragment>
-              <ModuleLayout.Third>
-                <NewAndResolvedIssueChart type="feedback" />
-              </ModuleLayout.Third>
-            </Fragment>
-          )}
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>
             <GiveFeedbackSection />
           </ModuleLayout.Third>
