@@ -27,13 +27,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   type EAPSpanResponse,
   ModuleName,
   SpanIndexedField,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 
 // TODO: When supported, also add span operation breakdown as a field
@@ -104,7 +104,6 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
 const CURSOR_NAME = 'serviceEntrySpansCursor';
 
@@ -147,32 +146,10 @@ export function ServiceEntrySpansTable({
     pageLinks,
     meta,
     error,
-  } = useEAPSpans(
-    {
-      search: eventViewQuery.formatString(),
-      fields: [
-        'span_id',
-        'user.id',
-        'user.email',
-        'user.username',
-        'user.ip',
-        'span.duration',
-        'trace',
-        'timestamp',
-        'replayId',
-        'profile.id',
-        'profiler.id',
-        'thread.id',
-        'precise.start_ts',
-        'precise.finish_ts',
-      ],
-      sorts: [selected.sort],
-      limit: LIMIT,
-      cursor,
-    },
-    'api.performance.service-entry-spans-table',
-    true
-  );
+  } = useServiceEntrySpansQuery({
+    query: eventViewQuery.formatString(),
+    sort: selected.sort,
+  });
 
   const consolidatedData = tableData?.map(row => {
     const user =
