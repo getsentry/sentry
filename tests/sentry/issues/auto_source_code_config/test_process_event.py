@@ -124,12 +124,13 @@ class BaseDeriveCodeMappings(TestCase):
                         assert cm.stacktrace_root == expected_cm["stack_root"]
                         assert cm.source_path == expected_cm["source_root"]
                         assert cm.repo.name == expected_cm["repo_name"]
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                    )
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
-                    )
+
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                )
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                )
 
                 if expected_in_app_stack_trace_rules:
                     assert sorted(in_app_stack_trace_rules) == sorted(
@@ -170,15 +171,15 @@ class BaseDeriveCodeMappings(TestCase):
                         sample_rate=1.0,
                     )
 
-            if Repository.objects.all().count() > starting_repositories_count:
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                )
+                if Repository.objects.all().count() > starting_repositories_count:
+                    mock_incr.assert_any_call(
+                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                    )
 
-            if code_mappings.count() > starting_code_mappings_count:
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
-                )
+                if code_mappings.count() > starting_code_mappings_count:
+                    mock_incr.assert_any_call(
+                        key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                    )
 
             # Returning these to inspect the results
             return event
