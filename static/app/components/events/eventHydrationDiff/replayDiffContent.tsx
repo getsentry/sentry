@@ -17,6 +17,8 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getReplayDiffOffsetsFromEvent} from 'sentry/utils/replays/getDiffTimestamps';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
@@ -40,9 +42,17 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
       );
     };
   }
+
+  const organization = useOrganization();
+  const readerResult = useLoadReplayReader({
+    orgSlug: organization.slug,
+    replaySlug,
+    clipWindow: undefined,
+  });
+
   return (
     <ReplayLoadingState
-      replaySlug={replaySlug}
+      readerResult={readerResult}
       renderArchived={wrapInSection(() => (
         <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
       ))}
