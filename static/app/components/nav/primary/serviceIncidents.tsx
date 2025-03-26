@@ -10,7 +10,7 @@ import {
   usePrimaryButtonOverlay,
 } from 'sentry/components/nav/primary/primaryButtonOverlay';
 import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
-import {IconWarning} from 'sentry/icons';
+import {IconFire} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {StatuspageIncident} from 'sentry/types/system';
@@ -30,8 +30,8 @@ function ServiceIncidentsButton({incidents}: {incidents: StatuspageIncident[]}) 
         label={t('Service status')}
         buttonProps={overlayTriggerProps}
       >
-        <IconWarning />
-        <WarningUnreadIndicator />
+        <IconFire />
+        <DangerUnreadIndicator />
       </SidebarButton>
       {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
@@ -66,6 +66,6 @@ const IncidentItemWrapper = styled('div')`
   }
 `;
 
-const WarningUnreadIndicator = styled(SidebarItemUnreadIndicator)`
-  background: ${p => p.theme.warning};
+const DangerUnreadIndicator = styled(SidebarItemUnreadIndicator)`
+  background: ${p => p.theme.danger};
 `;

@@ -1,4 +1,4 @@
-import {lazy} from 'react';
+import {Fragment, lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
@@ -37,6 +37,7 @@ import {OrganizationHeader} from 'getsentry/components/organizationHeader';
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
+import QuotaExceededSidebarItem from 'getsentry/components/quotaExceededSidebarItem';
 import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import ReplayZendeskFeedback from 'getsentry/components/replayZendeskFeedback';
 import SidebarNavigationItem from 'getsentry/components/sidebarNavigationItem';
@@ -121,7 +122,12 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'sidebar:organization-dropdown-menu': hookSidebarDropdownMenu,
   'sidebar:help-menu': hookSidebarHelpMenu,
   'sidebar:item-label': () => LabelWithPowerIcon,
-  'sidebar:bottom-items': props => <TryBusinessSidebarItem {...props} />,
+  'sidebar:bottom-items': props => (
+    <Fragment>
+      <TryBusinessSidebarItem key="try-business-sidebar-item" {...props} />
+      <QuotaExceededSidebarItem key="quota-exceeded-sidebar-item" {...props} />
+    </Fragment>
+  ),
 
   /**
    * Augment the global help search modal with a contat support button
