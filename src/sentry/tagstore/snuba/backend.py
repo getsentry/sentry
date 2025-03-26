@@ -236,11 +236,13 @@ class SnubaTagStorage(TagStorage):
         tenant_ids=None,
         **kwargs,
     ):
-        optimize_kwargs = {}
-        if kwargs.get("turbo"):
-            optimize_kwargs["turbo"] = True
-        if kwargs.get("sample"):
-            optimize_kwargs["sample"] = kwargs.get("sample")
+        optimize_kwargs: _OptimizeKwargs = {}
+        if turbo := kwargs.get("turbo"):
+            if isinstance(turbo, bool):
+                optimize_kwargs["turbo"] = turbo
+        if sample := kwargs.get("sample"):
+            if isinstance(sample, int):
+                optimize_kwargs["sample"] = sample
 
         return self.__get_tag_keys_for_projects(
             get_project_list(project_id),
