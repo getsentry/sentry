@@ -3,21 +3,13 @@ from __future__ import annotations
 import sentry_sdk
 
 from sentry import features
-from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.endpoints.serializers.alert_rule import (
-    AlertRuleSerializer,
-    AlertRuleSerializerResponse,
-)
-from sentry.incidents.endpoints.serializers.incident import (
-    DetailedIncidentSerializer,
-    DetailedIncidentSerializerResponse,
-)
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
+    NotificationContext,
     OpenPeriodContext,
 )
 from sentry.integrations.discord.client import DiscordClient
@@ -30,62 +22,56 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.metric_alerts import get_metric_count_from_incident
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
 
 
 def send_incident_alert_notification(
-    action: AlertRuleTriggerAction,
-    incident: Incident,
-    metric_value: int | float | None,
-    new_status: IncidentStatus,
+    organization: Organization,
+    alert_context: AlertContext,
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
+    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None = None,
 ) -> bool:
     chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", incident.organization):
+    if (
+        features.has("organizations:metric-alert-chartcuterie", organization)
+        and alert_rule_serialized_response
+        and incident_serialized_response
+    ):
         try:
-            alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
-                incident.alert_rule, None, AlertRuleSerializer()
-            )
-            incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
-                incident, None, DetailedIncidentSerializer()
-            )
             chart_url = build_metric_alert_chart(
-                organization=incident.organization,
+                organization=organization,
                 alert_rule_serialized_response=alert_rule_serialized_response,
-                snuba_query=incident.alert_rule.snuba_query,
-                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-                open_period_context=OpenPeriodContext.from_incident(incident),
+                snuba_query=metric_issue_context.snuba_query,
+                alert_context=alert_context,
+                open_period_context=open_period_context,
                 selected_incident_serialized=incident_serialized_response,
-                subscription=incident.subscription,
+                subscription=metric_issue_context.subscription,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
 
-    channel = action.target_identifier
+    channel = notification_context.target_identifier
 
     if not channel:
         # We can't send a message if we don't know the channel
         logger.warning(
             "discord.metric_alert.no_channel",
-            extra={"incident_id": incident.id},
+            extra={"incident_id": metric_issue_context.id},
         )
         return False
 
-    if metric_value is None:
-        metric_value = get_metric_count_from_incident(incident)
-
     message = DiscordMetricAlertMessageBuilder(
-        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-        metric_issue_context=MetricIssueContext.from_legacy_models(
-            incident=incident,
-            new_status=new_status,
-            metric_value=metric_value,
-        ),
-        organization=incident.organization,
-        date_started=incident.date_started,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        organization=organization,
+        date_started=open_period_context.date_started,
         chart_url=chart_url,
     ).build(notification_uuid=notification_uuid)
 
@@ -103,7 +89,7 @@ def send_incident_alert_notification(
         except Exception as error:
             lifecycle.add_extras(
                 {
-                    "incident_id": incident.id,
+                    "incident_id": metric_issue_context.id,
                     "channel_id": channel,
                 }
             )

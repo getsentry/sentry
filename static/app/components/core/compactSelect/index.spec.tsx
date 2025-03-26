@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from './';
 
 describe('CompactSelect', function () {
   it('renders', async function () {
