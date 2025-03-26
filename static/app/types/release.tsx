@@ -91,7 +91,6 @@ interface ReleaseData {
   fileCount: number | null;
   firstEvent: string;
   lastEvent: string;
-  // TODO(ts)
   versionInfo: VersionInfo;
   adoptionStages?: Record<
     string,
