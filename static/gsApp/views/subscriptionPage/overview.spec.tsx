@@ -891,4 +891,29 @@ describe('Subscription > Overview', () => {
       ).toBeInTheDocument();
     });
   });
+
+  it('renders breakdown for transactions only', async function () {
+    const subscription = SubscriptionFixture({
+      plan: 'am2_f',
+      planTier: PlanTier.AM2,
+      organization,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+    organization.features.push('profiling-billing');
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(
+      await screen.findByText('Performance units usage this period')
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getAllByTestId('expand-usage-totals')[1]!);
+
+    expect(
+      screen.getByRole('columnheader', {name: 'Transaction Events'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Profile Events'})
+    ).toBeInTheDocument();
+  });
 });
