@@ -26,7 +26,7 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.SEVERITY_TEXT,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.PROJECT_ID,
-  OurLogKnownFieldKey.SPAN_ID,
+  OurLogKnownFieldKey.PARENT_SPAN_ID,
   OurLogKnownFieldKey.TIMESTAMP,
 ];
 

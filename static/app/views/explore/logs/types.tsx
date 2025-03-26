@@ -19,7 +19,7 @@ export enum OurLogKnownFieldKey {
   ORGANIZATION_ID = 'sentry.organization_id',
   PROJECT_ID = 'project_id',
   SENTRY_PROJECT_ID = 'sentry.project_id',
-  SPAN_ID = 'sentry.span_id',
+  PARENT_SPAN_ID = 'sentry.trace.parent_span_id',
   TIMESTAMP = 'timestamp',
   ITEM_TYPE = 'sentry.item_type',
 }
@@ -32,7 +32,6 @@ export type OurLogsKnownFieldResponseMap = {
   [OurLogKnownFieldKey.SEVERITY_TEXT]: string;
   [OurLogKnownFieldKey.ORGANIZATION_ID]: number;
   [OurLogKnownFieldKey.PROJECT_ID]: number;
-  [OurLogKnownFieldKey.SPAN_ID]: string;
   [OurLogKnownFieldKey.TIMESTAMP]: string;
 };
 
