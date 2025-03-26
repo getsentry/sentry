@@ -589,10 +589,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // just gives us the first match which may not be the one the user is looking for.
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
+        const id = path ?? eventId!;
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, path ?? eventId!) ?? node;
+          node = TraceTree.FindByID(node.head, id) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
-          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path!)) ?? node;
+          node = node.children.find(n => TraceTree.FindByID(n, id)) ?? node;
         }
       }
     }
