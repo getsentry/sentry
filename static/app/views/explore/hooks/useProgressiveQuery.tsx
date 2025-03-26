@@ -43,33 +43,33 @@ export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
     enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
   });
 
-  const lowFidelityResult = queryHookImplementation({
+  const lowFidelityRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: LOW_FIDELITY_QUERY_EXTRAS,
   });
 
-  const highFidelityResult = queryHookImplementation({
+  const highFidelityRequest = queryHookImplementation({
     ...queryHookArgs,
     queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
     enabled:
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
-      (queryMode === QUERY_MODE.PARALLEL || lowFidelityResult.isFetched),
+      (queryMode === QUERY_MODE.PARALLEL || lowFidelityRequest.result.isFetched),
   });
 
   if (!canUseProgressiveLoading) {
     return singleQueryResult;
   }
 
-  if (highFidelityResult.result.isFetched) {
+  if (highFidelityRequest.result.isFetched) {
     return {
-      ...highFidelityResult,
+      ...highFidelityRequest,
       fidelity: FIDELITY.AUTO,
     };
   }
 
   return {
-    ...lowFidelityResult,
+    ...lowFidelityRequest,
     fidelity: FIDELITY.LOW,
   };
 }
