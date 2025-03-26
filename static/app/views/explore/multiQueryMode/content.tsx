@@ -1,5 +1,11 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -33,7 +39,7 @@ export const MAX_QUERIES_ALLOWED = 5;
 function Content() {
   const location = useLocation();
   const organization = useOrganization();
-  const {saveQuery} = useSaveMultiQuery();
+  const {saveQuery, updateQuery} = useSaveMultiQuery();
   const {defaultPeriod, maxPickableDays, relativeOptions} =
     limitMaxPickableDays(organization);
   const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
@@ -93,6 +99,21 @@ function Content() {
                             <FeatureBadge type="alpha" />
                           </span>
                         ),
+                        onAction: async () => {
+                          try {
+                            addLoadingMessage(t('Updating query...'));
+                            await updateQuery();
+                            addSuccessMessage(t('Query updated successfully'));
+                            trackAnalytics('trace_explorer.save_as', {
+                              save_type: 'update_query',
+                              ui_source: 'toolbar',
+                              organization,
+                            });
+                          } catch (error) {
+                            addErrorMessage(t('Failed to update query'));
+                            Sentry.captureException(error);
+                          }
+                        },
                       },
                     ]
                   : []),
