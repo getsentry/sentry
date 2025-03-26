@@ -135,6 +135,8 @@ def report_hydration_error(
     replay_id: str,
     replay_event: dict[str, Any] | None,
 ) -> None:
+    metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
+
     # Eagerly exit to prevent unnecessary I/O.
     if (
         len(event_meta.hydration_errors) == 0
@@ -142,8 +144,6 @@ def report_hydration_error(
         or not _should_report_hydration_error_issue(project)
     ):
         return None
-
-    metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
 
     for error in event_meta.hydration_errors:
         report_hydration_error_issue_with_replay_event(
