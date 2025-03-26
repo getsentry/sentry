@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOption} from 'sentry/components/compactSelect/types';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';

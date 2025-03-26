@@ -115,7 +115,7 @@ export interface TraceWaterfallProps {
   source: string;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
-  traceSlug: string | undefined;
+  traceSlug: string;
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
@@ -589,10 +589,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // just gives us the first match which may not be the one the user is looking for.
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
+        const id = path ?? eventId!;
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId ?? path!) ?? node;
+          node = TraceTree.FindByID(node.head, id) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
-          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path!)) ?? node;
+          node = node.children.find(n => TraceTree.FindByID(n, id)) ?? node;
         }
       }
     }
@@ -959,6 +960,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           meta={props.meta}
           traceType={shape}
           trace={props.tree}
+          traceId={props.traceSlug}
           traceGridRef={traceGridRef}
           manager={viewManager}
           scheduler={traceScheduler}
