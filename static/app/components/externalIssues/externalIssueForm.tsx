@@ -336,7 +336,7 @@ export default function ExternalIssueForm({
       title={title}
       navTabs={
         <TabsContainer>
-          <Tabs value={action} onChange={tab => handleClick(tab)}>
+          <Tabs value={action} onChange={handleClick}>
             <TabList>
               <TabList.Item key="create">{t('Create')}</TabList.Item>
               <TabList.Item key="link">{t('Link')}</TabList.Item>
