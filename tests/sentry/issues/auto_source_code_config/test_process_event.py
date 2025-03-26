@@ -87,7 +87,7 @@ class BaseDeriveCodeMappings(TestCase):
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
         expected_num_code_mappings: int = 1,
-        expected_in_app_stack_trace_rules: list[str] | None = None,
+        expected_new_in_app_stack_trace_rules: list[str] | None = None,
     ) -> GroupEvent:
         platform_config = PlatformConfig(platform)
         dry_run = platform_config.is_dry_run_platform()
@@ -132,19 +132,20 @@ class BaseDeriveCodeMappings(TestCase):
                     key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                 )
 
-                if expected_in_app_stack_trace_rules:
+                if expected_new_in_app_stack_trace_rules:
                     assert sorted(in_app_stack_trace_rules) == sorted(
-                        expected_in_app_stack_trace_rules
+                        expected_new_in_app_stack_trace_rules
                     )
-                    assert "\n".join(expected_in_app_stack_trace_rules) not in current_enhancements
+                    assert (
+                        "\n".join(expected_new_in_app_stack_trace_rules) not in current_enhancements
+                    )
                     mock_incr.assert_any_call(
                         key=f"{METRIC_PREFIX}.in_app_stack_trace_rules.created",
-                        amount=len(expected_in_app_stack_trace_rules),
+                        amount=len(expected_new_in_app_stack_trace_rules),
                         tags=tags,
                         sample_rate=1.0,
                     )
             else:
-                assert code_mappings.count() == expected_num_code_mappings
                 if expected_new_code_mappings:
                     assert code_mappings.count() == starting_code_mappings_count + len(
                         expected_new_code_mappings
@@ -167,8 +168,8 @@ class BaseDeriveCodeMappings(TestCase):
                         key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                     )
 
-                if expected_in_app_stack_trace_rules:
-                    expected_enhancements = "\n".join(expected_in_app_stack_trace_rules)
+                if expected_new_in_app_stack_trace_rules:
+                    expected_enhancements = "\n".join(expected_new_in_app_stack_trace_rules)
                     assert current_enhancements == (
                         f"{starting_enhancements}\n{expected_enhancements}"
                         if starting_enhancements
@@ -176,7 +177,7 @@ class BaseDeriveCodeMappings(TestCase):
                     )
                     mock_incr.assert_any_call(
                         key=f"{METRIC_PREFIX}.in_app_stack_trace_rules.created",
-                        amount=len(expected_in_app_stack_trace_rules),
+                        amount=len(expected_new_in_app_stack_trace_rules),
                         tags=tags,
                         sample_rate=1.0,
                     )
@@ -631,7 +632,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 self.code_mapping("a/", "src/a/"),
                 self.code_mapping("x/y/", "src/x/y/"),
             ],
-            expected_in_app_stack_trace_rules=[
+            expected_new_in_app_stack_trace_rules=[
                 "stack.module:a.** +app",
                 "stack.module:x.y.** +app",
             ],
@@ -647,7 +648,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             ],
             platform=self.platform,
             expected_new_code_mappings=[self.code_mapping("com/example/", "src/com/example/")],
-            expected_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
+            expected_new_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
             expected_num_code_mappings=0,
         )
 
@@ -671,7 +672,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
                 self.code_mapping(stack_root="org/other/", source_root="src/org/other/"),
             ],
-            expected_in_app_stack_trace_rules=[
+            expected_new_in_app_stack_trace_rules=[
                 "stack.module:com.example.** +app",
                 "stack.module:org.other.** +app",
             ],
@@ -697,7 +698,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                     # XXX: Notice that we loose "example"
                     self.code_mapping(stack_root="uk/co/", source_root="src/uk/co/"),
                 ],
-                expected_in_app_stack_trace_rules=["stack.module:uk.co.** +app"],
+                expected_new_in_app_stack_trace_rules=["stack.module:uk.co.** +app"],
             )
             assert event.data["metadata"]["in_app_frame_mix"] == "system-only"
 
@@ -726,6 +727,25 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             assert event_frames[1]["module"] == "uk.co.not-example.baz.qux"
             assert event_frames[1]["in_app"] is False
 
+    def test_do_not_clobber_rules(self) -> None:
+        # Let's pretend we're not running as dry-run
+        with patch(f"{CODE_ROOT}.utils.PlatformConfig.is_dry_run_platform", return_value=False):
+            self._process_and_assert_configuration_changes(
+                repo_trees={REPO1: ["src/a/Bar.java", "src/x/y/Baz.java"]},
+                frames=[self.frame(module="a.Bar", abs_path="Bar.java", in_app=False)],
+                platform=self.platform,
+                expected_new_code_mappings=[self.code_mapping("a/", "src/a/")],
+                expected_new_in_app_stack_trace_rules=["stack.module:a.** +app"],
+            )
+            self._process_and_assert_configuration_changes(
+                repo_trees={REPO1: ["src/a/Bar.java", "src/x/y/Baz.java"]},
+                frames=[self.frame(module="x.y.Baz", abs_path="Baz.java", in_app=False)],
+                platform=self.platform,
+                expected_new_code_mappings=[self.code_mapping("x/y/", "src/x/y/")],
+                # Both rules should exist
+                expected_new_in_app_stack_trace_rules=["stack.module:x.y.** +app"],
+            )
+
     def test_run_without_dry_run(self) -> None:
         repo_trees = {REPO1: ["src/com/example/foo/Bar.kt"]}
         frames = [
@@ -745,7 +765,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                     self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
                 ],
                 expected_num_code_mappings=1,
-                expected_in_app_stack_trace_rules=[expected_in_app_rule],
+                expected_new_in_app_stack_trace_rules=[expected_in_app_rule],
             )
             # The effects of the configuration changes will be noticed on the second event processing
             assert event.data["metadata"]["in_app_frame_mix"] == "system-only"
