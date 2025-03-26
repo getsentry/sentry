@@ -107,6 +107,103 @@ describe('ExternalIssueForm', () => {
       const submitButton = screen.getByRole('button', {name: 'Create Issue'});
       expect(submitButton).toBeDisabled();
     });
+
+    it('should refetch the form when a dynamic field is changed', async () => {
+      const initialQuery = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        match: [MockApiClient.matchQuery({action: 'create'})],
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Project',
+              required: true,
+              choices: [
+                ['#proj-1', 'Project 1'],
+                ['#proj-2', 'Project 2'],
+              ],
+              type: 'select',
+              name: 'project',
+              updatesForm: true,
+            },
+          ],
+        },
+      });
+      const projectQuery = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        match: [MockApiClient.matchQuery({action: 'create', project: '#proj-1'})],
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Project',
+              required: true,
+              choices: [
+                ['#proj-1', 'Project 1'],
+                ['#proj-2', 'Project 2'],
+              ],
+              type: 'select',
+              name: 'project',
+              updatesForm: true,
+            },
+            {
+              label: 'Summary',
+              required: false,
+              type: 'text',
+              name: 'summary',
+            },
+            {
+              label: 'Reporter',
+              required: true,
+              choices: [
+                ['#user-1', 'User 1'],
+                ['#user-2', 'User 2'],
+              ],
+              type: 'select',
+              name: 'reporter',
+            },
+          ],
+        },
+      });
+
+      render(
+        <ExternalIssueForm
+          Body={ModalBody}
+          Header={makeClosableHeader(closeModal)}
+          Footer={ModalFooter}
+          CloseButton={makeCloseButton(closeModal)}
+          closeModal={closeModal}
+          onChange={onChange}
+          group={group}
+          integration={integration}
+        />,
+        {organization}
+      );
+      expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(initialQuery).toHaveBeenCalled();
+
+      // Initial query may only have a few fields
+      const projectSelect = screen.getByRole('textbox', {name: 'Project'});
+      expect(screen.queryByRole('textbox', {name: 'Summary'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox', {name: 'Reporter'})).not.toBeInTheDocument();
+
+      // If the field has `updatesForm`, refetch the config.
+      // If new fields are in the response, they should be visible.
+      await userEvent.click(projectSelect);
+      await userEvent.click(screen.getByText('Project 1'));
+      expect(projectQuery).toHaveBeenCalled();
+
+      // Project 1 should be selected, Project 2 should not
+      expect(screen.getByText('Project 1')).toBeInTheDocument();
+      expect(screen.queryByText('Project 2')).not.toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Summary'})).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Reporter'})).toBeInTheDocument();
+
+      // We should also respect new required fields
+      const submitButton = screen.getByRole('button', {name: 'Create Issue'});
+      expect(submitButton).toBeDisabled();
+      await userEvent.click(screen.getByRole('textbox', {name: 'Reporter'}));
+      await userEvent.click(screen.getByText('User 1'));
+      expect(submitButton).toBeEnabled();
+    });
   });
   describe('link', () => {
     let externalIssueField!: any;
