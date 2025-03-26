@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {useBlocker} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {removeProject} from 'sentry/actionCreators/projects';
@@ -25,7 +26,7 @@ type Props = {
 
 export function PlatformDocHeader({platform, projectSlug, title}: Props) {
   const organization = useOrganization();
-  const api = useApi();
+  const api = useApi({persistInFlight: true});
   const router = useRouter();
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
@@ -76,6 +77,13 @@ export function PlatformDocHeader({platform, projectSlug, title}: Props) {
       }) + `?referrer=getting-started&project=${recentCreatedProject.id}`
     );
   }, [api, recentCreatedProject, organization, isProjectActive, router]);
+
+  useBlocker(({historyAction}) => {
+    if (historyAction === 'POP') {
+      handleGoBack();
+    }
+    return false;
+  });
 
   return (
     <StyledPageHeader>
