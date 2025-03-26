@@ -91,7 +91,7 @@ class TestConvertProfileToExecutionTree(TestCase):
                 ],
                 "stacks": [[0]],
                 "samples": [{"stack_id": 0, "thread_id": "2", "elapsed_since_start_ns": 10000000}],
-                "thread_metadata": {"2": {"name": "WorkerThread"}},
+                "thread_metadata": {"2": {"name": "WorkerThread"}, "3": {"name": "WorkerThread2"}},
             }
         }
 
