@@ -53,7 +53,6 @@ export const SENTRY_LOG_STRING_TAGS: string[] = [
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.PROJECT_ID,
   OurLogKnownFieldKey.SENTRY_PROJECT_ID,
-  OurLogKnownFieldKey.SPAN_ID,
   OurLogKnownFieldKey.TIMESTAMP,
   OurLogKnownFieldKey.ITEM_TYPE,
 ];

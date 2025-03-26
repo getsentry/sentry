@@ -2191,11 +2191,41 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert response.status_code == 200, response.content
             assert response.data["data"] == [{"foo": "bar", "count()": 1}]
 
-    @pytest.mark.xfail(
-        reason="RPC does not support static number operations (https://github.com/getsentry/eap-planning/issues/202) which is required by this function"
-    )
+    @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
     def test_spm(self):
         super().test_spm()
+
+    def test_epm(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["description", "epm()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data == [
+            {
+                "description": "foo",
+                "epm()": 1 / (90 * 24 * 60),
+            },
+        ]
+        assert meta["dataset"] == self.dataset
 
     def test_is_transaction(self):
         self.store_spans(

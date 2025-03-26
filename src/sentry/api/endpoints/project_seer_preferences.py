@@ -13,7 +13,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.project import Project
 from sentry.seer.models import SeerRepoDefinition
@@ -36,6 +36,9 @@ class PreferenceResponse(BaseModel):
 
 @region_silo_endpoint
 class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
+    permission_classes = (
+        ProjectEventPermission,  # Anyone in the org should be able to set preferences, follows event permissions.
+    )
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -51,7 +54,9 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
     }
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has("organizations:autofix-seer-preferences", project.organization):
+        if not features.has(
+            "organizations:autofix-seer-preferences", project.organization, actor=request.user
+        ):
             return Response("Feature flag not enabled", status=403)
 
         data = orjson.loads(request.body)
@@ -83,7 +88,9 @@ class ProjectSeerPreferencesEndpoint(ProjectEndpoint):
         return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
-        if not features.has("organizations:autofix-seer-preferences", project.organization):
+        if not features.has(
+            "organizations:autofix-seer-preferences", project.organization, actor=request.user
+        ):
             return Response("Feature flag not enabled", status=403)
 
         path = "/v1/project-preference"

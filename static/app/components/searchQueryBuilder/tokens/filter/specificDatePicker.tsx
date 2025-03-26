@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
 
 import {DatePicker} from 'sentry/components/calendar';
@@ -24,7 +25,6 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, getInternalDate} from 'sentry/utils/dates';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 interface SearchBarDatePickerProps
   extends CustomComboboxMenuProps<SelectOptionWithKey<string>> {
@@ -229,7 +229,7 @@ const TimeInput = forwardRef(
 
     return (
       <StyledInput
-        ref={mergeRefs([ref, timeInputRef])}
+        ref={mergeRefs(ref, timeInputRef)}
         aria-label={t('Time')}
         disabled={disabled}
         type="time"

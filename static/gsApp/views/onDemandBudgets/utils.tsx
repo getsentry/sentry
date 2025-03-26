@@ -166,6 +166,12 @@ export function getOnDemandBudget(budget: OnDemandBudgets, dataCategory: DataCat
       case DataCategory.UPTIME: {
         return budget.budgets.uptime ?? 0;
       }
+      case DataCategory.PROFILE_DURATION: {
+        return budget.budgets.profileDuration ?? 0;
+      }
+      case DataCategory.PROFILE_DURATION_UI: {
+        return budget.budgets.profileDurationUI ?? 0;
+      }
       default:
         return getTotalBudget(budget);
     }
@@ -266,6 +272,8 @@ export function convertOnDemandBudget(
     let replaysBudget = 0;
     let monitorSeatsBudget = 0;
     let uptimeBudget = 0;
+    let profileDurationBudget = 0;
+    let profileDurationUIBudget = 0;
     if (currentOnDemandBudget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
       errorsBudget = currentOnDemandBudget.budgets.errors ?? 0;
       transactionsBudget = currentOnDemandBudget.budgets.transactions ?? 0;
@@ -273,6 +281,8 @@ export function convertOnDemandBudget(
       replaysBudget = currentOnDemandBudget.budgets.replays ?? 0;
       monitorSeatsBudget = currentOnDemandBudget.budgets.monitorSeats ?? 0;
       uptimeBudget = currentOnDemandBudget.budgets.uptime ?? 0;
+      profileDurationBudget = currentOnDemandBudget.budgets.profileDuration ?? 0;
+      profileDurationUIBudget = currentOnDemandBudget.budgets.profileDurationUI ?? 0;
     } else {
       // should split 50:50 between transactions and errors (whole dollars, remainder added to errors)
       const total = getTotalBudget(currentOnDemandBudget);
@@ -288,6 +298,8 @@ export function convertOnDemandBudget(
       replaysBudget,
       monitorSeatsBudget,
       uptimeBudget,
+      profileDurationBudget,
+      profileDurationUIBudget,
       budgets: {
         errors: errorsBudget,
         transactions: transactionsBudget,
@@ -295,6 +307,8 @@ export function convertOnDemandBudget(
         replays: replaysBudget,
         monitorSeats: monitorSeatsBudget,
         uptime: uptimeBudget,
+        profileDuration: profileDurationBudget,
+        profileDurationUI: profileDurationUIBudget,
       },
     };
   }
