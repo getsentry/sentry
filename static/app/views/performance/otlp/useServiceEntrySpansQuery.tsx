@@ -53,7 +53,7 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
       limit: LIMIT,
       cursor,
       pageFilters: selection,
-      enabled: !!spanCategoryUrlParam,
+      enabled: Boolean(spanCategoryUrlParam),
     },
     'api.performance.service-entry-spans-table',
     true
@@ -61,16 +61,21 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
 
   const specificSpansQuery = new MutableSearch('');
   if (categorizedSpanIds && !isCategorizedSpanIdsLoading) {
-    categorizedSpanIds.forEach(datum => {
-      const spanId = datum['transaction.span_id'];
-      specificSpansQuery.addFilterValue('span_id', spanId);
-    });
+    let spanIdsString = categorizedSpanIds
+      .map(datum => datum['transaction.span_id'])
+      .join(',');
+    spanIdsString = spanIdsString.slice(0, -1);
+    specificSpansQuery.addFilterValue('span_id', `[${spanIdsString}]`);
   }
 
-  // specificSpansQuery.addFilterValue('is_transaction', 'true');
-
   // Second query to fetch the table data for these spans
-  const {data: daData} = useEAPSpans(
+  const {
+    data: categorizedSpansData,
+    isLoading: isCategorizedSpansLoading,
+    pageLinks: categorizedSpansPageLinks,
+    meta: categorizedSpansMeta,
+    error: categorizedSpansError,
+  } = useEAPSpans(
     {
       search: specificSpansQuery,
       fields,
@@ -81,8 +86,6 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
     'api.performance.service-entry-spans-table-with-category',
     true
   );
-
-  console.dir(daData);
 
   // Default query to fetch table data for spans when no category is selected
   const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
@@ -97,6 +100,16 @@ export function useServiceEntrySpansQuery({query, transactionName, sort}: Option
     'api.performance.service-entry-spans-table',
     true
   );
+
+  if (spanCategoryUrlParam) {
+    return {
+      data: categorizedSpansData,
+      isLoading: isCategorizedSpansLoading,
+      pageLinks: categorizedSpansPageLinks,
+      meta: categorizedSpansMeta,
+      error: categorizedSpansError,
+    };
+  }
 
   return {
     data,
