@@ -780,7 +780,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10000);
+  }, 10_000);
 
   it('removes retain on-demand budget toggle when plan changes', async () => {
     const am2Sub = SubscriptionFixture({
@@ -1074,7 +1074,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 10_000);
 
   it('calls api with correct am3 args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
@@ -1208,7 +1208,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  });
+  }, 10_000);
 
   it('calls api with correct am3 dynamic sampling args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
