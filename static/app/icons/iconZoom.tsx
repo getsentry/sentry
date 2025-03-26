@@ -13,12 +13,20 @@ const IconZoom = forwardRef<SVGSVGElement, Props>(({isZoomIn = false, ...props},
   return (
     <SvgIcon {...props} ref={ref}>
       {theme.isChonk ? (
-        <Fragment>
-          <line x1="8.5" y1="7" x2="5.5" y2="7" />
-          <circle cx="7" cy="7" r="4.25" />
-          <line x1="13.25" y1="13.25" x2="10" y2="10" />
-          <line x1="7" y1="8.5" x2="7" y2="5.5" />
-        </Fragment>
+        isZoomIn ? (
+          <Fragment>
+            <line x1="8.5" y1="7" x2="5.5" y2="7" />
+            <circle cx="7" cy="7" r="4.25" />
+            <line x1="13.25" y1="13.25" x2="10" y2="10" />
+          </Fragment>
+        ) : (
+          <Fragment>
+            <line x1="8.5" y1="7" x2="5.5" y2="7" />
+            <circle cx="7" cy="7" r="4.25" />
+            <line x1="13.25" y1="13.25" x2="10" y2="10" />
+            <line x1="7" y1="8.5" x2="7" y2="5.5" />
+          </Fragment>
+        )
       ) : isZoomIn ? (
         <Fragment>
           <path d="m6,11.95C2.72,11.95.05,9.28.05,6S2.72.05,6,.05s5.95,2.67,5.95,5.95-2.67,5.95-5.95,5.95Zm0-10.41C3.54,1.55,1.55,3.54,1.55,6s2,4.45,4.45,4.45,4.45-2,4.45-4.45S8.45,1.55,6,1.55Z" />

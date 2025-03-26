@@ -6,6 +6,9 @@ import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   ['data-test-id']?: string;
+  /**
+   * @deprecated Circled variant will be removed.
+   */
   isCircled?: boolean;
 }
 

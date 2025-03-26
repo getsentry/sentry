@@ -1,7 +1,8 @@
 import {forwardRef, useMemo} from 'react';
-import {keyframes} from '@emotion/react';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {IconLightning} from 'sentry/icons/iconLightning';
 import {uniqueId} from 'sentry/utils/guid';
 
 import {SvgIcon, type SVGIconProps} from './svgIcon';
@@ -21,12 +22,20 @@ interface BusinessIconProps extends SVGIconProps {
   withShine?: boolean;
 }
 
+/**
+ * @deprecated Use IconLightning instead
+ */
 const IconBusiness = forwardRef<SVGSVGElement, BusinessIconProps>(
   ({gradient = false, withShine = false, ...props}, ref) => {
+    const theme = useTheme();
     const uid = useMemo(() => uniqueId(), []);
     const maskId = `icon-business-mask-${uid}`;
     const gradientId = `icon-business-gradient-${uid}`;
     const shineId = `icon-business-shine-${uid}`;
+
+    if (theme.isChonk) {
+      return <IconLightning {...props} ref={ref} />;
+    }
 
     return (
       <SvgIcon {...props} ref={ref}>

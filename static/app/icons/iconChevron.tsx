@@ -6,6 +6,9 @@ import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
+  /**
+   * @deprecated Circled variant will be removed.
+   */
   isCircled?: boolean;
   isDouble?: boolean;
 }
