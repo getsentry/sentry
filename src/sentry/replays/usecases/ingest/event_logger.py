@@ -135,10 +135,15 @@ def report_hydration_error(
     replay_id: str,
     replay_event: dict[str, Any] | None,
 ) -> None:
-    metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
-
-    if not replay_event or not _should_report_hydration_error_issue(project):
+    # Eagerly exit to prevent unnecessary I/O.
+    if (
+        len(event_meta.hydration_errors) == 0
+        or not replay_event
+        or not _should_report_hydration_error_issue(project)
+    ):
         return None
+
+    metrics.incr("replay.hydration_error_breadcrumb", amount=len(event_meta.hydration_errors))
 
     for error in event_meta.hydration_errors:
         report_hydration_error_issue_with_replay_event(
@@ -157,34 +162,40 @@ def report_rage_click(
     replay_id: str,
     replay_event: dict[str, Any] | None,
 ) -> None:
-    for click in filter(lambda c: c.is_rage, event_meta.click_events):
-        metrics.incr("replay.rage_click_detected")
-        if replay_event is not None and click.url and _should_report_rage_click_issue(project):
-            node = {
-                "id": click.node_id,
-                "tagName": click.tag,
-                "attributes": {
-                    "id": click.id,
-                    "class": " ".join(click.classes),
-                    "aria-label": click.aria_label,
-                    "role": click.role,
-                    "alt": click.alt,
-                    "data-testid": click.testid,
-                    "title": click.title,
-                    "data-sentry-component": click.component_name,
-                },
-                "textContent": click.text,
-            }
-            report_rage_click_issue_with_replay_event(
-                project.id,
-                replay_id,
-                click.timestamp,
-                click.selector,
-                click.url,
-                node,
-                click.component_name,
-                replay_event,
-            )
+    clicks = list(filter(lambda c: c.is_rage and click.url, event_meta.click_events))
+
+    # Eagerly exit to prevent unnecessary I/O.
+    if len(clicks) == 0 or not replay_event or not _should_report_rage_click_issue(project):
+        return None
+
+    metrics.incr("replay.rage_click_detected", amount=len(clicks))
+
+    for click in clicks:
+        node = {
+            "id": click.node_id,
+            "tagName": click.tag,
+            "attributes": {
+                "id": click.id,
+                "class": " ".join(click.classes),
+                "aria-label": click.aria_label,
+                "role": click.role,
+                "alt": click.alt,
+                "data-testid": click.testid,
+                "title": click.title,
+                "data-sentry-component": click.component_name,
+            },
+            "textContent": click.text,
+        }
+        report_rage_click_issue_with_replay_event(
+            project.id,
+            replay_id,
+            click.timestamp,
+            click.selector,
+            click.url,
+            node,
+            click.component_name,
+            replay_event,
+        )
 
 
 @sentry_sdk.trace
