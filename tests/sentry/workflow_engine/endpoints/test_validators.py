@@ -83,7 +83,6 @@ class TestBaseDataSourceValidator(TestCase):
         )
 
 
-# TODO - @saponifi3d - Refactor to use the base condition vaildator
 class MockDataConditionValidator(NumericComparisonConditionValidator):
     supported_conditions = frozenset([Condition.GREATER_OR_EQUAL, Condition.LESS_OR_EQUAL])
     supported_condition_results = frozenset([DetectorPriorityLevel.HIGH, DetectorPriorityLevel.LOW])
@@ -103,7 +102,6 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
-
         self.validator_class = BaseDetectorTypeValidator
 
     def test_validate_detector_type_valid(self):
@@ -145,6 +143,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
                 validator.validate_detector_type("test_type")
 
 
+# TODO - Move these tests into a base detector test file
 class DetectorValidatorTest(BaseValidatorTest):
     def setUp(self):
         super().setUp()

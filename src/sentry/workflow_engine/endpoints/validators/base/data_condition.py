@@ -22,9 +22,3 @@ class BaseDataConditionValidator(CamelSnakeSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
         return attrs
-
-
-class BaseDataConditionGroupValidator(CamelSnakeSerializer):
-    logic_type = serializers.CharField(required=True)
-    organization_id = serializers.IntegerField(required=True)
-    conditions = BaseDataConditionValidator(many=True)
