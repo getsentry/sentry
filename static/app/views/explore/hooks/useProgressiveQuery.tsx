@@ -1,15 +1,5 @@
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
-  queryHookArgs: Parameters<TQueryFn>[0];
-  queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
-    result: {
-      isFetched: boolean;
-    };
-  };
-  queryMode: 'serial' | 'parallel';
-}
-
 export const FIDELITY = {
   PREFLIGHT: 'PREFLIGHT',
   BEST_EFFORT: 'BEST_EFFORT',
@@ -28,7 +18,21 @@ const HIGH_FIDELITY_QUERY_EXTRAS = {
   samplingMode: FIDELITY.BEST_EFFORT,
 } as const;
 
+export type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
 export type Fidelity = (typeof FIDELITY)[keyof typeof FIDELITY];
+
+interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
+  queryHookArgs: Parameters<TQueryFn>[0];
+
+  // Enforces that isFetched is always present in the result, required for the
+  // progressive loading to surface the correct data.
+  queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn> & {
+    result: {
+      isFetched: boolean;
+    };
+  };
+  queryMode: QueryMode;
+}
 
 export function useProgressiveQuery<
   TQueryFn extends (...args: any[]) => ReturnType<TQueryFn>,
