@@ -17,7 +17,11 @@ from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.integrations.middleware.metrics import MiddlewareOperationEvent, MiddlewareOperationType
+from sentry.integrations.middleware.metrics import (
+    MiddlewareHaltReason,
+    MiddlewareOperationEvent,
+    MiddlewareOperationType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -308,6 +312,9 @@ class BaseRequestParser(ABC):
             )
 
             if organization_integrations.count() == 0:
+                lifecycle.record_halt(
+                    halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
+                )
                 raise OrganizationIntegration.DoesNotExist()
 
             organization_ids = [oi.organization_id for oi in organization_integrations]
