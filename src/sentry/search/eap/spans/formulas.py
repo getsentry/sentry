@@ -390,7 +390,7 @@ def time_spent_percentage(
     )
 
 
-def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
     interval = settings["query_settings"]["snuba_params"].interval
     granularity_secs = settings["query_settings"]["granularity_secs"]
@@ -534,7 +534,7 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
     ),
-    "spm": FormulaDefinition(
-        default_search_type="percentage", arguments=[], formula_resolver=spm, is_aggregate=True
+    "epm": FormulaDefinition(
+        default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
     ),
 }
