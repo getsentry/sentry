@@ -36,7 +36,7 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
     codeMappingRepos,
     isLoading: isLoadingPreferences,
   } = useProjectPreferences(project);
-  const savePreferences = useSaveProjectPreferences(project);
+  const {mutate: savePreferences} = useSaveProjectPreferences(project);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>([]);
@@ -87,10 +87,10 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
 
         setRepoSettings(initialSettings);
 
-        savePreferences.mutate({repositories: codeMappingRepos});
+        savePreferences({repositories: codeMappingRepos});
       }
     }
-  }, [preference, repositories, codeMappingRepos, savePreferences.mutate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [preference, repositories, codeMappingRepos, savePreferences]);
 
   const savePreferencesToServer = useCallback(
     (updatedIds?: string[], updatedSettings?: Record<string, RepoSettings>) => {
@@ -116,13 +116,13 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
         };
       });
 
-      savePreferences.mutate({
+      savePreferences({
         repositories: reposData,
       });
 
       setShowSaveNotice(true);
     },
-    [repositories, selectedRepoIds, repoSettings, savePreferences.mutate] // eslint-disable-line react-hooks/exhaustive-deps
+    [repositories, selectedRepoIds, repoSettings, savePreferences]
   );
 
   const saveScrollPosition = useCallback(() => {
