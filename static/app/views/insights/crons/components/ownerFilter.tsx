@@ -1,4 +1,4 @@
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';

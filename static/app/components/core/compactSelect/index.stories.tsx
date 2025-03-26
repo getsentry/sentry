@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import countryNameToCode from 'sentry/data/countryCodesMap';
 import {t} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
+
+import {CompactSelect} from './';
 
 export default storyBook('CompactSelect', story => {
   story('Basics', () => {

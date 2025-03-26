@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, ProjectKey} from 'sentry/types/project';

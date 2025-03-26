@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {BreadcrumbMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {

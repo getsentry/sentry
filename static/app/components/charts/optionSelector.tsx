@@ -1,14 +1,14 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import type {
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,
-} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 

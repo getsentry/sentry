@@ -1,5 +1,5 @@
-import {CompositeSelect} from 'sentry/components/compactSelect/composite';
-import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';

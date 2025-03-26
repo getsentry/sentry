@@ -2,7 +2,7 @@ import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'r
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';

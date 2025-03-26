@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {t} from 'sentry/locale';

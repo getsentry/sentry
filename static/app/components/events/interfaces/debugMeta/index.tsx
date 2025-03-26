@@ -4,8 +4,8 @@ import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualize
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {
   DebugImageDetails,
   modalCss,

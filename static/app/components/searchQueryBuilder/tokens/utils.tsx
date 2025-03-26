@@ -6,7 +6,7 @@ import type {Key, Node} from '@react-types/shared';
 import type {
   SelectOptionOrSectionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils';
 import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
