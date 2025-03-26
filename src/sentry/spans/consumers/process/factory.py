@@ -2,10 +2,9 @@ import logging
 import time
 from collections.abc import Mapping
 from functools import partial
+from multiprocessing.connection import Connection
 
 import rapidjson
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaProducer, build_kafka_configuration
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
@@ -13,11 +12,9 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, FilteredPayload, Message, Partition
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -41,6 +38,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_flush_segments: int,
         input_block_size: int | None,
         output_block_size: int | None,
+        produce_to_pipe: Connection | None = None,
     ):
         super().__init__()
 
@@ -51,17 +49,10 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.num_processes = num_processes
+        self.produce_to_pipe = produce_to_pipe
 
         if self.num_processes != 1:
             self.__pool = MultiprocessingPool(num_processes)
-
-        cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
-
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-        self.output_topic = ArroyoTopic(
-            get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
-        )
 
     def create_with_partitions(
         self,
@@ -77,9 +68,8 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         flusher = self._flusher = SpanFlusher(
             buffer,
-            self.producer,
-            self.output_topic,
             self.max_flush_segments,
+            self.produce_to_pipe,
             next_step=committer,
         )
 
@@ -124,7 +114,6 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         return add_timestamp
 
     def shutdown(self) -> None:
-        self.producer.close()
         if self.num_processes != 1:
             self.__pool.close()
 

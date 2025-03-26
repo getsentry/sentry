@@ -1,3 +1,4 @@
+import multiprocessing
 from concurrent import futures
 from datetime import datetime
 
@@ -13,6 +14,8 @@ def test_basic(monkeypatch, request):
     monkeypatch.setattr("time.sleep", lambda _: None)
 
     topic = Topic("test")
+    produce_recv, produce_send = multiprocessing.Pipe(False)
+
     fac = ProcessSpansStrategyFactory(
         max_batch_size=10,
         max_batch_time=10,
@@ -20,17 +23,8 @@ def test_basic(monkeypatch, request):
         max_flush_segments=10,
         input_block_size=None,
         output_block_size=None,
+        produce_to_pipe=produce_send,
     )
-
-    produced_messages = []
-
-    def produce(produce_topic, message):
-        produced_messages.append(message)
-        # The real produce would return a future here, but it doesn't matter
-        # because we also patched futures.wait
-        return None
-
-    fac.producer.produce = produce  # type:ignore[method-assign]
 
     commits = []
 
@@ -65,11 +59,13 @@ def test_basic(monkeypatch, request):
         fac.shutdown()
 
     step.poll()
-    fac._flusher.current_drift = 9000  # "advance" our "clock"
+    fac._flusher.current_drift.value = 9000  # "advance" our "clock"
 
     step.join()
 
-    (msg,) = produced_messages
+    assert produce_recv.poll(timeout=10)
+    msg = produce_recv.recv()
+
     assert rapidjson.loads(msg.value) == {
         "spans": [
             {
