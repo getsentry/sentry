@@ -1,41 +1,51 @@
+from typing import Generic, TypeVar
+
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
-from sentry.workflow_engine.models import Condition
+from sentry.db.models import Model
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.endpoints.validators.utils import (
+    validate_json_primitive,
+    validate_json_schema,
+)
+from sentry.workflow_engine.models.data_condition import CONDITION_OPS, Condition
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import DataConditionHandler
+
+T = TypeVar("T", bound=Model)
 
 
-class BaseDataConditionValidator(CamelSnakeSerializer):
-    type = serializers.CharField(
-        required=True,
-        max_length=200,
-    )
+class BaseDataConditionValidator(CamelSnakeSerializer[T], Generic[T]):
+    type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
 
     comparison = serializers.JSONField(required=True)
     condition_result = serializers.JSONField(required=True)
-    # condition_group
+    # condition_group_id = serializers.IntegerField(required=True)
 
-    def validate_type(self, value):
+    def _get_handler(self) -> DataConditionHandler | None:
+        condition_type = self.initial_data.get("type")
+        if condition_type in CONDITION_OPS:
+            return None
+
         try:
-            vaildated_type = Condition(value)
-        except ValueError:
-            raise serializers.ValidationError(f"Invalid DataCondition.type: {value}")
-
-        return vaildated_type
+            return condition_handler_registry.get(condition_type)
+        except NoRegistrationExistsError:
+            raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
     def validate_comparison(self, value):
-        # TODO - validate against schema
-        # handler = self._get_handler_handler()
-        # schema = handler.comparison_json_schmea
-        # validate_json(value, schema)
+        handler = self._get_handler()
+
+        if handler:
+            schema = handler.comparison_json_schema
+            validate_json_schema(value, schema)
+        else:
+            validate_json_primitive(value)
+
         return value
 
     def validate_condition_result(self, value):
-        if isinstance(value, (dict, list)):
-            raise serializers.ValidationError(
-                f"Invalid DataCondition.condition_result, {value}, must be a primitive value"
-            )
-
-        return value
+        return validate_json_primitive(value)
 
     def validate_condition_group(self, value):
         # TODO - validate that the condition group exists
