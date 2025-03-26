@@ -24,21 +24,22 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
+import {
+  type QuerySource,
+  SchemaHintsProvider,
+  useSchemaHintsQueryHooks,
+} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsContext';
 import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
-interface SchemaHintsListProps extends SchemaHintsPageParams {
+interface SchemaHintsListProps {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   isLoading?: boolean;
-}
-
-export interface SchemaHintsPageParams {
-  exploreQuery: string;
-  setExploreQuery: (query: string) => void;
+  source?: QuerySource;
 }
 
 const seeFullListTag: Tag = {
@@ -73,13 +74,13 @@ function SchemaHintsList({
   numberTags,
   stringTags,
   isLoading,
-  exploreQuery,
-  setExploreQuery,
+  source = 'explore',
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
+  const {exploreQuery, setExploreQuery} = useSchemaHintsQueryHooks();
 
   const functionTags = useMemo(() => {
     return getFunctionTags(supportedAggregates);
@@ -183,11 +184,9 @@ function SchemaHintsList({
         if (!isDrawerOpen) {
           openDrawer(
             () => (
-              <SchemaHintsDrawer
-                hints={filterTagsSorted}
-                exploreQuery={exploreQuery}
-                setExploreQuery={setExploreQuery}
-              />
+              <SchemaHintsProvider source={source}>
+                <SchemaHintsDrawer hints={filterTagsSorted} />
+              </SchemaHintsProvider>
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
@@ -249,9 +248,10 @@ function SchemaHintsList({
     [
       exploreQuery,
       setExploreQuery,
-      isDrawerOpen,
       organization,
+      isDrawerOpen,
       openDrawer,
+      source,
       filterTagsSorted,
       location.pathname,
       location.query,

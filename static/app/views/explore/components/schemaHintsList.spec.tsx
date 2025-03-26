@@ -4,11 +4,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHintsList';
-import {
-  PageParamsProvider,
-  useExploreQuery,
-  useSetExploreQuery,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import {SchemaHintsProvider} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsContext';
 
 const mockStringTags: TagCollection = {
   stringTag1: {key: 'stringTag1', kind: FieldKind.TAG, name: 'stringTag1'},
@@ -27,18 +23,14 @@ jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-function Subject(
-  props: Omit<Parameters<typeof SchemaHintsList>[0], 'exploreQuery' | 'setExploreQuery'>
-) {
+function Subject(props: Parameters<typeof SchemaHintsList>[0]) {
   function Content() {
-    const query = useExploreQuery();
-    const setQuery = useSetExploreQuery();
-    return <SchemaHintsList {...props} exploreQuery={query} setExploreQuery={setQuery} />;
+    return <SchemaHintsList {...props} />;
   }
   return (
-    <PageParamsProvider>
+    <SchemaHintsProvider source="explore">
       <Content />
-    </PageParamsProvider>
+    </SchemaHintsProvider>
   );
 }
 
