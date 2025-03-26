@@ -382,6 +382,7 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
         from_column_name="sentry.category",
         to_column_name="span.module",
         value_map=value_map,
+        default_value="other",
     )
 
 

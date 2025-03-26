@@ -2102,11 +2102,62 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_module_alias(self):
         super().test_module_alias()
 
-    @pytest.mark.xfail(
-        reason="wip: depends on rpc having a way to set a different default in virtual contexts"
-    )
     def test_span_module(self):
         super().test_span_module()
+
+    @pytest.mark.skip(
+        reason="There is a bug in snuba https://github.com/getsentry/eap-planning/issues/226 that causes this test to fail"
+    )
+    def test_virtual_context_missing_data(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "op": "http",
+                            "category": "http",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "op": "alternative",
+                            "category": "other",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "op": "alternative",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.module", "count()"],
+                "query": "",
+                "orderby": "-count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert data[0]["span.module"] == "other"
+        assert data[1]["span.module"] == "http"
+        assert meta["dataset"] == self.dataset
 
     def test_inp_span(self):
         replay_id = uuid.uuid4().hex
