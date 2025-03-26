@@ -927,6 +927,12 @@ describe('Subscription > Overview', () => {
             filtered: 0,
             projected: 0,
           },
+          profileDuration: {
+            accepted: 25000,
+            dropped: 0,
+            droppedOther: 0,
+            droppedOverQuota: 0,
+          },
         },
       },
     });
