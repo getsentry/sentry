@@ -77,6 +77,8 @@ describe('CheckoutOverviewV2', function () {
         spans: 10_000_000,
         monitorSeats: 1,
         profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 1,
       },
       onDemandMaxSpend: 5000,
     };
@@ -118,6 +120,9 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getByTestId('profileDuration-reserved')).toHaveTextContent(
       'Profile HoursAvailable'
     );
+    expect(screen.getByTestId('profileDurationUI-reserved')).toHaveTextContent(
+      'Profile HoursAvailable'
+    );
     expect(screen.queryByTestId('spansIndexed-reserved')).not.toBeInTheDocument();
     expect(
       screen.getByText('This is your standard yearly subscription charge.')
@@ -132,6 +137,9 @@ describe('CheckoutOverviewV2', function () {
         attachments: 25,
         replays: 500,
         monitorSeats: 1,
+        uptime: 1,
+        profileDuration: 0,
+        profileDurationUI: 0,
       },
       onDemandMaxSpend: 0,
     };
@@ -151,6 +159,6 @@ describe('CheckoutOverviewV2', function () {
     expect(screen.getByText('Pay-as-you-go (PAYG) Budget')).toBeInTheDocument();
     expect(screen.getByText('$0/mo')).toBeInTheDocument();
     expect(screen.queryByTestId('additional-monthly-charge')).not.toBeInTheDocument();
-    expect(screen.getByText('Product not available')).toBeInTheDocument();
+    expect(screen.getAllByText('Product not available')[0]).toBeInTheDocument();
   });
 });

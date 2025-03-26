@@ -132,9 +132,8 @@ class TaskNamespace:
     def _handle_produce_future(self, future: ProducerFuture, tags: dict[str, str]) -> None:
         if future.cancelled():
             metrics.incr("taskworker.registry.send_task.cancelled", tags=tags)
-        elif future.exception(
-            1
-        ):  # this does not block since this callback only gets run when the future is finished and exception is set
+        elif future.exception(1):
+            # this does not block since this callback only gets run when the future is finished and exception is set
             metrics.incr("taskworker.registry.send_task.failed", tags=tags)
         else:
             metrics.incr("taskworker.registry.send_task.success", tags=tags)
