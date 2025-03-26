@@ -6,7 +6,7 @@ import responses
 from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
-from sentry.integrations.pagerduty.client import build_pagerduty_event_payload
+from sentry.integrations.pagerduty.client import PagerdutySeverity, build_pagerduty_event_payload
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric
@@ -118,7 +118,7 @@ class PagerDutyClientTest(APITestCase):
             routing_key=self.integration_key,
             event=self.event,
             notification_uuid=None,
-            severity="default",
+            severity=PagerdutySeverity("default"),
         )
         client.send_trigger(data=data)
 
@@ -179,7 +179,7 @@ class PagerDutyClientTest(APITestCase):
             routing_key=self.integration_key,
             event=self.event,
             notification_uuid=None,
-            severity="info",
+            severity=PagerdutySeverity("info"),
         )
         client.send_trigger(data=data)
 

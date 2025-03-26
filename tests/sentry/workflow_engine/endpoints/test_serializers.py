@@ -298,7 +298,7 @@ class TestActionSerializer(TestCase):
             data={"tags": "bar"},
             integration_id=self.integration.id,
             config={
-                "target_type": ActionTarget.USER,
+                "target_type": ActionTarget.SPECIFIC,
                 "target_display": "freddy frog",
                 "target_identifier": "123-id",
             },
@@ -311,7 +311,7 @@ class TestActionSerializer(TestCase):
             "type": "slack",
             "data": '{"tags":"bar"}',
             "integration_id": self.integration.id,
-            "config": '{"target_type":1,"target_display":"freddy frog","target_identifier":"123-id"}',
+            "config": '{"target_type":0,"target_display":"freddy frog","target_identifier":"123-id"}',
         }
 
 

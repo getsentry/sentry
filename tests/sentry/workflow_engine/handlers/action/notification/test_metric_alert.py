@@ -344,8 +344,8 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id=1234567890,
-            config={"target_identifier": "service123"},
-            data={"priority": "P1"},
+            config={"target_identifier": "service123", "target_type": ActionTarget.SPECIFIC},
+            data={"priority": "default"},
         )
         self.snuba_query = self.create_snuba_query()
 
@@ -413,7 +413,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             integration_id=1234567890,
             target_identifier="service123",
             target_display=None,
-            sentry_app_config={"priority": "P1"},
+            sentry_app_config={"priority": "default"},
             sentry_app_id=None,
         )
 
@@ -448,7 +448,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id=1234567890,
-            config={"target_identifier": "team123"},
+            config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
         self.snuba_query = self.create_snuba_query()

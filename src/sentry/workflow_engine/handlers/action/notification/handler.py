@@ -2,6 +2,8 @@ import logging
 from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
+from sentry.integrations.pagerduty.client import PagerdutySeverity
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
@@ -33,7 +35,7 @@ MESSAGING_ACTION_CONFIG_SCHEMA = {
         "target_display": {"type": ["string"]},
         "target_type": {
             "type": ["integer"],
-            "enum": [*ActionTarget],
+            "enum": [ActionTarget.SPECIFIC.value],
         },
     },
     "required": ["target_identifier", "target_display", "target_type"],
@@ -53,7 +55,7 @@ DISCORD_ACTION_CONFIG_SCHEMA = {
         },
         "target_type": {
             "type": ["integer"],
-            "enum": [*ActionTarget],
+            "enum": [ActionTarget.SPECIFIC.value],
         },
     },
     "required": ["target_identifier", "target_type"],
@@ -68,6 +70,48 @@ TAGS_SCHEMA = {
 NOTES_SCHEMA = {
     "type": "string",
     "description": "Notes to add to the message",
+}
+
+ONCALL_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a on-call Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": ["string"]},
+        "target_display": {"type": ["string", "null"]},
+        "target_type": {
+            "type": ["integer"],
+            "enum": [ActionTarget.SPECIFIC.value],
+        },
+    },
+    "required": ["target_identifier", "target_type"],
+    "additionalProperties": False,
+}
+
+PAGERDUTY_ACTION_DATA_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "priority": {
+            "type": "string",
+            "description": "The priority of the pagerduty action",
+            "enum": [severity for severity in PagerdutySeverity],
+        },
+        "additionalProperties": False,
+    },
+}
+
+OPSGENIE_ACTION_DATA_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "priority": {
+            "type": "string",
+            "description": "The priority of the opsgenie action",
+            "enum": [*OPSGENIE_CUSTOM_PRIORITIES],
+        },
+        "additionalProperties": False,
+    },
 }
 
 
@@ -156,7 +200,7 @@ class TicketingActionHandler(ActionHandler, ABC):
             },
             "target_type": {
                 "type": ["integer"],
-                "enum": [*ActionTarget],
+                "enum": [ActionTarget.SPECIFIC.value],
             },
         },
     }
@@ -243,11 +287,15 @@ class MsteamsActionHandler(NotificationActionHandler):
 
 @action_handler_registry.register(Action.Type.PAGERDUTY)
 class PagerdutyActionHandler(NotificationActionHandler):
+    config_schema = ONCALL_ACTION_CONFIG_SCHEMA
+    data_schema = PAGERDUTY_ACTION_DATA_SCHEMA
     group = NotificationActionHandler.Group.NOTIFICATION
 
 
 @action_handler_registry.register(Action.Type.OPSGENIE)
 class OpsgenieActionHandler(NotificationActionHandler):
+    config_schema = ONCALL_ACTION_CONFIG_SCHEMA
+    data_schema = OPSGENIE_ACTION_DATA_SCHEMA
     group = ActionHandler.Group.NOTIFICATION
 
 
