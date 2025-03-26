@@ -658,6 +658,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
 
       let offset = filterTokens[0]!.location.end.offset;
       if (token) {
+        // @ts-expect-error: Mismatched types
         const tokenIndex = filterTokens.indexOf(token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
           offset = filterTokens[tokenIndex + 1]!.location.end.offset;
@@ -677,6 +678,7 @@ class DeprecatedSmartSearchBar extends Component<DefaultProps & Props, State> {
     const hasExecCommand = typeof document.execCommand === 'function';
 
     if (token && filterTokens.length > 0) {
+      // @ts-expect-error: Mismatched types
       const index = filterTokens.indexOf(token) ?? -1;
       const newQuery =
         // We trim to remove any remaining spaces
