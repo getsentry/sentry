@@ -3024,6 +3024,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
+    "taskworker": "default",
     "task-worker": "default",
     "snuba-ourlogs": "default",
 }

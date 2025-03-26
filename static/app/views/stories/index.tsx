@@ -1,9 +1,9 @@
 import {useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSettings} from 'sentry/icons';
@@ -52,9 +52,12 @@ export default function Stories() {
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate({
-        query: {...location.query, query: e.target.value, name: location.query.name},
-      });
+      navigate(
+        {
+          query: {...location.query, query: e.target.value, name: location.query.name},
+        },
+        {replace: true}
+      );
     },
     [location.query, navigate]
   );
