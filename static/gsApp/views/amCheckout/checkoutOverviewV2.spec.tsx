@@ -74,7 +74,9 @@ describe('CheckoutOverviewV2', function () {
         replays: 50,
         spans: 10_000_000,
         monitorSeats: 1,
-        profileDuration: 50,
+        profileDuration: 0,
+        profileDurationUI: 0,
+        uptime: 1,
       },
       onDemandMaxSpend: 5000,
     };
@@ -114,7 +116,7 @@ describe('CheckoutOverviewV2', function () {
       '1 Cron monitorIncluded'
     );
     expect(screen.getByTestId('profileDuration-reserved')).toHaveTextContent(
-      '50 Profile hoursIncluded'
+      '0 Profile hoursIncluded'
     );
     expect(screen.queryByTestId('spansIndexed-reserved')).not.toBeInTheDocument();
     expect(
@@ -129,7 +131,11 @@ describe('CheckoutOverviewV2', function () {
         errors: 100000,
         attachments: 25,
         replays: 500,
+        spans: 10_000_000,
         monitorSeats: 1,
+        uptime: 1,
+        profileDuration: 0,
+        profileDurationUI: 0,
       },
       onDemandMaxSpend: 0,
     };
