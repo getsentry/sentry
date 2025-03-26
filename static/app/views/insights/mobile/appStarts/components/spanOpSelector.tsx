@@ -1,4 +1,4 @@
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import {
   CompactSelect,
   type SelectOption,
   type SelectOptionOrSection,
-} from 'sentry/components/compactSelect';
-import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
-import {Button} from 'sentry/components/core/button';
+} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
