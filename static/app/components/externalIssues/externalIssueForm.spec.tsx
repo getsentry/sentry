@@ -128,7 +128,7 @@ describe('ExternalIssueForm', () => {
           ],
         },
       });
-      const projectQuery = MockApiClient.addMockResponse({
+      const projectOneQuery = MockApiClient.addMockResponse({
         url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
         match: [MockApiClient.matchQuery({action: 'create', project: '#proj-1'})],
         body: {
@@ -163,6 +163,25 @@ describe('ExternalIssueForm', () => {
           ],
         },
       });
+      const projectTwoQuery = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/integrations/${integration.id}/`,
+        match: [MockApiClient.matchQuery({action: 'create', project: '#proj-2'})],
+        body: {
+          createIssueConfig: [
+            {
+              label: 'Project',
+              required: true,
+              choices: [
+                ['#proj-1', 'Project 1'],
+                ['#proj-2', 'Project 2'],
+              ],
+              type: 'select',
+              name: 'project',
+              updatesForm: true,
+            },
+          ],
+        },
+      });
 
       render(
         <ExternalIssueForm
@@ -189,7 +208,7 @@ describe('ExternalIssueForm', () => {
       // If new fields are in the response, they should be visible.
       await userEvent.click(projectSelect);
       await userEvent.click(screen.getByText('Project 1'));
-      expect(projectQuery).toHaveBeenCalled();
+      expect(projectOneQuery).toHaveBeenCalled();
 
       // Project 1 should be selected, Project 2 should not
       expect(screen.getByText('Project 1')).toBeInTheDocument();
@@ -202,6 +221,18 @@ describe('ExternalIssueForm', () => {
       expect(submitButton).toBeDisabled();
       await userEvent.click(screen.getByRole('textbox', {name: 'Reporter'}));
       await userEvent.click(screen.getByText('User 1'));
+      expect(submitButton).toBeEnabled();
+
+      // Swapping projects should refetch, and remove stale fields
+      await userEvent.click(projectSelect);
+      await userEvent.click(screen.getByText('Project 2'));
+      expect(projectTwoQuery).toHaveBeenCalled();
+
+      // Project 2 should be selected, Project 1 should not
+      expect(screen.getByText('Project 2')).toBeInTheDocument();
+      expect(screen.queryByText('Project 1')).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox', {name: 'Summary'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('textbox', {name: 'Reporter'})).not.toBeInTheDocument();
       expect(submitButton).toBeEnabled();
     });
   });
