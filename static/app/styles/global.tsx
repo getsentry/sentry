@@ -177,6 +177,7 @@ const styles = (theme: Theme, isDark: boolean) => css`
     background-color: transparent;
   }
   .tsqd-queries-container code {
+    /* Don't override colors inside @tanstack/react-query-devtools */
     background-color: unset;
     color: inherit;
   }
