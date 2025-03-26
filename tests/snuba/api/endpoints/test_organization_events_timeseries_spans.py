@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.urls import reverse
@@ -9,24 +10,54 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 pytestmark = pytest.mark.sentry_metrics
 
 
-def _timeseries(start, interval, expected, expected_comparison=None):
+def _timeseries(
+    start,
+    interval,
+    expected,
+    expected_comparison=None,
+    ignore_accuracy=False,
+    sample_count=None,
+    sample_rate=None,
+    confidence=None,
+):
     if expected_comparison is not None:
         assert len(expected_comparison) == len(expected)
-        return [
-            {
-                "timestamp": start.timestamp() * 1000 + interval * index,
-                "value": value,
-                "comparisonValue": expected_comparison[index],
-            }
-            for index, value in enumerate(expected)
-        ]
-    return [
-        {
+    if ignore_accuracy:
+        sample_count = [mock.ANY for val in expected]
+        sample_rate = [mock.ANY for val in expected]
+        confidence = [mock.ANY for val in expected]
+    else:
+        if sample_count is not None:
+            assert len(sample_count) == len(expected)
+        if sample_rate is not None:
+            assert len(sample_rate) == len(expected)
+        if confidence is not None:
+            assert len(confidence) == len(expected)
+
+    expected_value = []
+    for index, value in enumerate(expected):
+        current_value = {
             "timestamp": start.timestamp() * 1000 + interval * index,
             "value": value,
         }
-        for index, value in enumerate(expected)
-    ]
+        if expected_comparison is not None:
+            current_value["comparisonValue"] = expected_comparison[index]
+        if sample_count is not None:
+            current_value["sampleCount"] = sample_count[index]
+        if sample_rate is not None:
+            current_value["sampleRate"] = sample_rate[index]
+        if confidence is not None:
+            current_value["confidence"] = confidence[index]
+        expected_value.append(current_value)
+    return expected_value
+
+
+class AnyConfidence:
+    def __eq__(self, o: object):
+        return o in ["high", "low"]
+
+
+any_confidence = AnyConfidence()
 
 
 class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpointTestBase):
@@ -87,8 +118,15 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 3_600_000, event_counts)
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start,
+            3_600_000,
+            event_counts,
+            sample_count=event_counts,
+            sample_rate=[1 if val else 0 for val in event_counts],
+            confidence=[any_confidence if val else None for val in event_counts],
+        )
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 3_600_000,
@@ -161,8 +199,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(response.data["timeseries"]) == 4
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 7
-        assert timeseries["axis"] == "p50(measurements.lcp)"
-        assert timeseries["values"] == _timeseries(seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2])
+        assert timeseries["yaxis"] == "p50(measurements.lcp)"
+        assert timeseries["values"] == _timeseries(
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"span.description": "bar"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
@@ -174,8 +214,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 7
-        assert timeseries["axis"] == "avg(measurements.lcp)"
-        assert timeseries["values"] == _timeseries(seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2])
+        assert timeseries["yaxis"] == "avg(measurements.lcp)"
+        assert timeseries["values"] == _timeseries(
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 2], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"span.description": "bar"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
@@ -187,8 +229,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 7
-        assert timeseries["axis"] == "p50(measurements.lcp)"
-        assert timeseries["values"] == _timeseries(seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1])
+        assert timeseries["yaxis"] == "p50(measurements.lcp)"
+        assert timeseries["values"] == _timeseries(
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
@@ -200,8 +244,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][3]
         assert len(timeseries["values"]) == 7
-        assert timeseries["axis"] == "avg(measurements.lcp)"
-        assert timeseries["values"] == _timeseries(seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1])
+        assert timeseries["yaxis"] == "avg(measurements.lcp)"
+        assert timeseries["values"] == _timeseries(
+            seven_days_ago, interval, [0, 0, 0, 0, 0, 0, 1], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
@@ -250,8 +296,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count_unique(foo)"
-        assert timeseries["values"] == _timeseries(self.start, 3_600_000, event_counts)
+        assert timeseries["yaxis"] == "count_unique(foo)"
+        assert timeseries["values"] == _timeseries(
+            self.start, 3_600_000, event_counts, ignore_accuracy=True
+        )
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 3_600_000,
@@ -291,8 +339,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert len(response.data["timeseries"]) == 1
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "p95()"
-        assert timeseries["values"] == _timeseries(self.start, 3_600_000, event_durations)
+        assert timeseries["yaxis"] == "p95()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 3_600_000, event_durations, ignore_accuracy=True
+        )
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
             "valueType": "duration",
@@ -339,8 +389,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 3_600_000, event_counts)
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 3_600_000, event_counts, ignore_accuracy=True
+        )
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 3_600_000,
@@ -348,8 +400,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "p95()"
-        assert timeseries["values"] == _timeseries(self.start, 3_600_000, event_counts)
+        assert timeseries["yaxis"] == "p95()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 3_600_000, event_counts, ignore_accuracy=True
+        )
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
             "valueType": "duration",
@@ -409,8 +463,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "foo"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -421,8 +477,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "bar"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -433,8 +491,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 2, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 2, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -482,8 +542,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "foo"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -494,8 +556,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "bar"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -543,8 +607,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "bar"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -555,8 +621,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "p50(span.duration)"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 2000, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "p50(span.duration)"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 2000, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "bar"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
@@ -568,8 +636,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "baz"}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -580,8 +650,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][3]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "p50(span.duration)"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 2000, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "p50(span.duration)"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 2000, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"transaction": "baz"}]
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
@@ -593,8 +665,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][4]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -605,8 +679,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][5]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "p50(span.duration)"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 2000, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "p50(span.duration)"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 2000, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "valueUnit": "millisecond",
@@ -661,8 +737,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"project": projects[0].slug}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -673,8 +751,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [{"project": projects[1].slug}]
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -685,8 +765,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -738,8 +820,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [
             {"project": projects[0].slug},
             {"project.id": str(projects[0].id)},
@@ -753,8 +837,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][1]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] == [
             {"project": projects[1].slug},
             {"project.id": str(projects[1].id)},
@@ -768,8 +854,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][2]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0, 1, 0, 0, 0, 0])
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0, 0, 0, 0], ignore_accuracy=True
+        )
         assert timeseries["groupBy"] is None
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -833,19 +921,15 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
+        assert timeseries["yaxis"] == "count()"
         assert timeseries["values"] == _timeseries(
-            self.start, 3_600_000, [val * 10 for val in event_counts]
+            self.start,
+            3_600_000,
+            [val * 10 for val in event_counts],
+            sample_count=event_counts,
+            sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+            confidence=["low" if val else None for val in event_counts],
         )
-        assert timeseries["accuracy"] == {
-            "sampleCount": _timeseries(self.start, 3_600_000, event_counts),
-            "sampleRate": _timeseries(
-                self.start, 3_600_000, [pytest.approx(0.1) if val else 0 for val in event_counts]
-            ),
-            "confidence": _timeseries(
-                self.start, 3_600_000, ["low" if val else None for val in event_counts]
-            ),
-        }
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 3_600_000,
@@ -903,18 +987,21 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
             timeseries = response.data["timeseries"][0]
             assert len(timeseries["values"]) == 6
-            assert timeseries["axis"] == y_axis
-            assert timeseries["accuracy"]["sampleCount"] == _timeseries(
-                self.start, 3_600_000, event_counts
-            )
-            assert timeseries["accuracy"]["sampleRate"] == _timeseries(
-                self.start, 3_600_000, [pytest.approx(0.1) if val else 0 for val in event_counts]
-            )
-            for confidence, value in zip(timeseries["accuracy"]["confidence"], event_counts):
-                if value:
-                    assert confidence["value"] in ("high", "low")
-                else:
-                    assert confidence["value"] is None
+            assert timeseries["yaxis"] == y_axis
+            if y_axis.startswith("count"):
+                expected_values = [val * 10 for val in event_counts]
+            elif y_axis == "sum(span.duration)":
+                expected_values = [val * 10000 for val in event_counts]
+            else:
+                expected_values = [1000 if val else 0 for val in event_counts]
+            assert timeseries["values"] == _timeseries(
+                self.start,
+                3_600_000,
+                expected_values,
+                sample_count=event_counts,
+                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                confidence=[any_confidence if val else None for val in event_counts],
+            ), y_axis
 
     def test_extrapolation_with_multiaxis(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -957,18 +1044,15 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for index, y_axis in enumerate(["count()", "p95()"]):
             timeseries = response.data["timeseries"][index]
             assert len(timeseries["values"]) == 6
-            assert timeseries["axis"] == y_axis
-            assert timeseries["accuracy"]["sampleCount"] == _timeseries(
-                self.start, 3_600_000, event_counts
+            assert timeseries["yaxis"] == y_axis
+            assert timeseries["values"] == _timeseries(
+                self.start,
+                3_600_000,
+                [val * 10 if y_axis == "count()" else val for val in event_counts],
+                sample_count=event_counts,
+                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                confidence=[any_confidence if val else None for val in event_counts],
             )
-            assert timeseries["accuracy"]["sampleRate"] == _timeseries(
-                self.start, 3_600_000, [pytest.approx(0.1) if val else 0 for val in event_counts]
-            )
-            for confidence, value in zip(timeseries["accuracy"]["confidence"], event_counts):
-                if value:
-                    assert confidence["value"] in ("high", "low")
-                else:
-                    assert confidence["value"] is None
 
     def test_top_events_with_extrapolation(self):
         self.store_spans(
@@ -1029,22 +1113,19 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         for index, groupby in enumerate(["foo", "bar", None]):
             timeseries = response.data["timeseries"][index]
             assert len(timeseries["values"]) == 6
-            assert timeseries["axis"] == "count()"
+            assert timeseries["yaxis"] == "count()"
             if groupby is not None:
                 assert timeseries["groupBy"] == [{"transaction": groupby}]
             else:
                 assert timeseries["groupBy"] is None
-            assert timeseries["accuracy"]["sampleCount"] == _timeseries(
-                self.start, 60_000, event_counts
+            assert timeseries["values"] == _timeseries(
+                self.start,
+                60_000,
+                [val * 10 for val in event_counts],
+                sample_count=event_counts,
+                sample_rate=[pytest.approx(0.1) if val else 0 for val in event_counts],
+                confidence=[any_confidence if val else None for val in event_counts],
             )
-            assert timeseries["accuracy"]["sampleRate"] == _timeseries(
-                self.start, 60_000, [pytest.approx(0.1) if val else 0 for val in event_counts]
-            )
-            for confidence, value in zip(timeseries["accuracy"]["confidence"], event_counts):
-                if value:
-                    assert confidence["value"] in ("high", "low")
-                else:
-                    assert confidence["value"] is None
 
     def test_comparison_delta(self):
         event_counts = [6, 0, 6, 4, 0, 4]
@@ -1088,9 +1169,13 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
+        assert timeseries["yaxis"] == "count()"
         assert timeseries["values"] == _timeseries(
-            self.start, 3_600_000, event_counts, [value / 2 for value in event_counts]
+            self.start,
+            3_600_000,
+            event_counts,
+            [value / 2 for value in event_counts],
+            ignore_accuracy=True,
         )
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -1133,9 +1218,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 6
-        assert timeseries["axis"] == "count()"
+        assert timeseries["yaxis"] == "count()"
         assert timeseries["values"] == _timeseries(
-            self.start, 3_600_000, event_counts, [0] * len(event_counts)
+            self.start, 3_600_000, event_counts, [0] * len(event_counts), ignore_accuracy=True
         )
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -1211,8 +1296,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
             timeseries = response.data["timeseries"][0]
             assert len(timeseries["values"]) == 6
-            assert timeseries["axis"] == "count()"
-            assert timeseries["values"] == _timeseries(self.start, 3_600_000, event_counts)
+            assert timeseries["yaxis"] == "count()"
+            assert timeseries["values"] == _timeseries(
+                self.start, 3_600_000, event_counts, ignore_accuracy=True
+            )
             assert timeseries["meta"] == {
                 "valueType": "integer",
                 "interval": 3_600_000,
@@ -1273,8 +1360,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
             timeseries = response.data["timeseries"][0]
             assert len(timeseries["values"]) == 6
-            assert timeseries["axis"] == "count()"
-            assert timeseries["values"] == _timeseries(self.start, 3_600_000, event_counts)
+            assert timeseries["yaxis"] == "count()"
+            assert timeseries["values"] == _timeseries(
+                self.start, 3_600_000, event_counts, ignore_accuracy=True
+            )
             assert timeseries["meta"] == {
                 "valueType": "integer",
                 "interval": 3_600_000,
@@ -1347,7 +1436,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         }
 
         timeseries = response.data["timeseries"][0]
-        assert timeseries["axis"] == "count()"
+        assert timeseries["yaxis"] == "count()"
         assert len(timeseries["values"]) == 73
         assert timeseries["meta"] == {
             "valueType": "integer",
@@ -1412,8 +1501,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
-        assert timeseries["axis"] == "cache_miss_rate()"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0.0, 1.0, 0.25])
+        assert timeseries["yaxis"] == "cache_miss_rate()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0.0, 1.0, 0.25], ignore_accuracy=True
+        )
         assert timeseries["meta"] == {
             "valueType": "percentage",
             "interval": 60_000,
@@ -1471,8 +1562,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
-        assert timeseries["axis"] == "trace_status_rate(ok)"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0.0, 0.5, 0.75])
+        assert timeseries["yaxis"] == "trace_status_rate(ok)"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0.0, 0.5, 0.75], ignore_accuracy=True
+        )
         assert timeseries["meta"] == {
             "valueType": "percentage",
             "interval": 60_000,
@@ -1518,8 +1611,10 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
 
         timeseries = response.data["timeseries"][0]
         assert len(timeseries["values"]) == 3
-        assert timeseries["axis"] == "count_op(queue.publish)"
-        assert timeseries["values"] == _timeseries(self.start, 60_000, [0.0, 2.0, 1.0])
+        assert timeseries["yaxis"] == "count_op(queue.publish)"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0.0, 2.0, 1.0], ignore_accuracy=True
+        )
         assert timeseries["meta"] == {
             "valueType": "integer",
             "interval": 60_000,

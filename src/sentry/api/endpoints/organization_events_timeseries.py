@@ -61,11 +61,9 @@ class Row(TypedDict):
     timestamp: float
     value: float
     comparisonValue: NotRequired[float]
-
-
-class Confidence(TypedDict):
-    timestamp: float
-    value: Literal["low", "high"] | None
+    sampleCount: NotRequired[float]
+    sampleRate: NotRequired[float]
+    confidence: NotRequired[Literal["low", "high"] | None]
 
 
 class SeriesMeta(TypedDict):
@@ -76,18 +74,11 @@ class SeriesMeta(TypedDict):
     interval: float
 
 
-class AccuracyData(TypedDict):
-    sampleCount: list[Row]
-    sampleRate: list[Row]
-    confidence: list[Confidence]
-
-
 class TimeSeries(TypedDict):
     values: list[Row]
-    axis: str
+    yaxis: str
     groupBy: NotRequired[list[str]]
     meta: SeriesMeta
-    accuracy: NotRequired[AccuracyData]
 
 
 class StatsResponse(TypedDict):
@@ -358,31 +349,32 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
 
         timeseries = TimeSeries(
             values=[],
-            axis=axis,
+            yaxis=axis,
             meta=series_meta,
         )
 
+        timeseries_values = []
         for row in result.data["data"]:
             value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0))
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
-            timeseries["values"].append(value_row)
+            timeseries_values.append(value_row)
 
         if "groupby" in result.data:
             timeseries["groupBy"] = result.data["groupby"]
 
         if "processed_timeseries" in result.data:
             processed_timeseries = result.data["processed_timeseries"]
-            timeseries["accuracy"] = AccuracyData(
-                sampleCount=self.serialize_accuracy_data(
-                    processed_timeseries.sample_count, axis, convert_to_milliseconds=True
-                ),
-                sampleRate=self.serialize_accuracy_data(
-                    processed_timeseries.sampling_rate, axis, convert_to_milliseconds=True
-                ),
-                confidence=self.serialize_accuracy_data(
-                    processed_timeseries.confidence, axis, convert_to_milliseconds=True
-                ),
-            )
+            for value, count, rate, confidence in zip(
+                timeseries_values,
+                processed_timeseries.sample_count,
+                processed_timeseries.sampling_rate,
+                processed_timeseries.confidence,
+            ):
+                value["sampleCount"] = count[axis]
+                value["sampleRate"] = rate[axis]
+                value["confidence"] = confidence[axis]
+
+        timeseries["values"] = timeseries_values
 
         return timeseries
