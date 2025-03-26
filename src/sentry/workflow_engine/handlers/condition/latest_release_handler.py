@@ -48,10 +48,8 @@ class LatestReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
     @staticmethod
     def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
         event = job.event
-        workflow = job.workflow
-        environment = workflow.environment if workflow else None
 
-        latest_release = get_latest_release_for_env(environment, event)
+        latest_release = get_latest_release_for_env(job.workflow_env, event)
         if not latest_release:
             return False
 

@@ -45,10 +45,10 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
 
   // Create a map of status to their data
   const statusData = {
-    healthy: getCountStatusSeries('healthy', userData.groups),
     crashed: getCountStatusSeries('crashed', userData.groups),
     errored: getCountStatusSeries('errored', userData.groups),
     abnormal: getCountStatusSeries('abnormal', userData.groups),
+    healthy: getCountStatusSeries('healthy', userData.groups),
   };
 
   const createDatapoints = (data: number[]) =>

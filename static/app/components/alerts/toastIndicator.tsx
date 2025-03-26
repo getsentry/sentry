@@ -68,7 +68,7 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
   );
 }
 
-const Toast = styled(motion.div)`
+const Toast = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   display: flex;
   align-items: center;
   height: 40px;

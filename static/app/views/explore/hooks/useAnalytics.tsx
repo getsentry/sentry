@@ -396,10 +396,9 @@ export function useLogAnalytics({
     }
 
     const columns = fields as unknown as string[];
-    trackAnalytics('log.explorer.metadata', {
+    trackAnalytics('logs.explorer.metadata', {
       organization,
       dataset,
-      result_mode: 'aggregates',
       columns,
       columns_count: columns.length,
       query_status,

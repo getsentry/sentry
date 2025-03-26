@@ -270,7 +270,7 @@ const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const SearchBarDatePickerOverlay = styled(Overlay)`
+const SearchBarDatePickerOverlay = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
   min-width: 332px;
   min-height: 380px;
   cursor: default;

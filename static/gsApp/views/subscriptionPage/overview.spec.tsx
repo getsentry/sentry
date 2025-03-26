@@ -528,8 +528,8 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
+    render(<Overview location={mockLocation} />, {
+      organization: billingOrg,
     });
 
     expect(await screen.findByText('On-Demand Max Spend')).toBeInTheDocument();
@@ -552,8 +552,8 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
+    render(<Overview location={mockLocation} />, {
+      organization: billingOrg,
     });
 
     expect(await screen.findByText('On-Demand Max Spend')).toBeInTheDocument();
@@ -580,9 +580,7 @@ describe('Subscription > Overview', () => {
     expect('onDemandBudgets' in subscription).toBe(false);
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByText('On-Demand Max Spend')).toBeInTheDocument();
     expect(screen.queryByText('on-demand budget')).not.toBeInTheDocument();
@@ -611,9 +609,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(
       await screen.findByRole('button', {name: 'Set Up Pay-as-you-go'})
@@ -644,9 +640,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(
       await screen.findByText(
@@ -677,9 +671,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(
       await screen.findByText(
@@ -711,9 +703,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByText('Errors usage this period')).toBeInTheDocument();
     expect(
@@ -735,9 +725,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByTestId('usage-chart')).toBeInTheDocument();
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -757,9 +745,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByTestId('usage-chart')).not.toBeInTheDocument();
@@ -836,9 +822,7 @@ describe('Subscription > Overview', () => {
       });
       SubscriptionStore.set(billingOrg.slug, subscription);
 
-      render(<Overview location={mockLocation} organization={billingOrg} />, {
-        organization: billingOrg,
-      });
+      render(<Overview location={mockLocation} />, {organization: billingOrg});
 
       expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
       expect(
@@ -860,9 +844,7 @@ describe('Subscription > Overview', () => {
       });
       SubscriptionStore.set(nonBillingOrg.slug, subscription);
 
-      render(<Overview location={mockLocation} organization={nonBillingOrg} />, {
-        organization: nonBillingOrg,
-      });
+      render(<Overview location={mockLocation} />, {organization: nonBillingOrg});
 
       expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
       expect(
