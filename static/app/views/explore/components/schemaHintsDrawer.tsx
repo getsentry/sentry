@@ -1,4 +1,5 @@
 import {Fragment, memo, useCallback, useMemo, useState} from 'react';
+import {AutoSizer, List as VirtualizedList} from 'react-virtualized';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -112,7 +113,7 @@ function SchemaHintsDrawer({
   );
 
   const HintItem = memo(
-    ({hint}: {hint: Tag}) => {
+    ({hint, style}: {hint: Tag; style: React.CSSProperties}) => {
       const hintFieldDefinition = useMemo(
         () => getFieldDefinition(hint.key, 'span', hint.kind),
         [hint.key, hint.kind]
@@ -128,18 +129,20 @@ function SchemaHintsDrawer({
         [hintFieldDefinition?.valueType, hint.kind]
       );
       return (
-        <StyledMultipleCheckboxItem
-          key={hint.key}
-          value={hint.key}
-          onChange={() => handleCheckboxChange(hint)}
-        >
-          <CheckboxLabelContainer>
-            <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
-              <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
-            </Tooltip>
-            <Badge>{hintType}</Badge>
-          </CheckboxLabelContainer>
-        </StyledMultipleCheckboxItem>
+        <div style={style}>
+          <StyledMultipleCheckboxItem
+            key={hint.key}
+            value={hint.key}
+            onChange={() => handleCheckboxChange(hint)}
+          >
+            <CheckboxLabelContainer>
+              <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
+                <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+              </Tooltip>
+              <Badge>{hintType}</Badge>
+            </CheckboxLabelContainer>
+          </StyledMultipleCheckboxItem>
+        </div>
       );
     },
     (prevProps, nextProps) => {
@@ -150,7 +153,7 @@ function SchemaHintsDrawer({
   return (
     <Fragment>
       <DrawerHeader hideBar />
-      <DrawerBody>
+      <DrawerBody style={{height: '100%'}}>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
@@ -166,9 +169,30 @@ function SchemaHintsDrawer({
           </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
-          {sortedAndFilteredHints.length === 0
-            ? noAttributesMessage
-            : sortedAndFilteredHints.map(hint => <HintItem key={hint.key} hint={hint} />)}
+          {sortedAndFilteredHints.length === 0 ? (
+            noAttributesMessage
+          ) : (
+            <AutoSizer>
+              {({width, height}) => {
+                return (
+                  <VirtualizedList
+                    width={width}
+                    height={height}
+                    rowCount={sortedAndFilteredHints.length}
+                    rowHeight={37}
+                    key={exploreQuery}
+                    rowRenderer={({index, key, style}) => (
+                      <HintItem
+                        key={key}
+                        hint={sortedAndFilteredHints[index]!}
+                        style={style}
+                      />
+                    )}
+                  />
+                );
+              }}
+            </AutoSizer>
+          )}
         </StyledMultipleCheckbox>
       </DrawerBody>
     </Fragment>
@@ -221,7 +245,8 @@ const CheckboxLabel = styled('span')`
 `;
 
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
-  flex-direction: column;
+  display: block;
+  height: 100%;
 `;
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
