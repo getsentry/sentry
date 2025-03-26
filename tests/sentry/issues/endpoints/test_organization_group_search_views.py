@@ -983,7 +983,6 @@ class OrganizationGroupSearchViewsGetVisibilityTest(APITestCase):
             user_id=self.user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             visibility=GroupSearchViewVisibility.OWNER,
         )
         GroupSearchViewStarred.objects.create(
@@ -999,7 +998,6 @@ class OrganizationGroupSearchViewsGetVisibilityTest(APITestCase):
             user_id=self.user_1.id,
             query="is:unresolved",
             query_sort="date",
-            position=1,
             visibility=GroupSearchViewVisibility.OWNER,
         )
 
@@ -1009,7 +1007,6 @@ class OrganizationGroupSearchViewsGetVisibilityTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=0,
             visibility=GroupSearchViewVisibility.OWNER,
         )
 
@@ -1019,7 +1016,6 @@ class OrganizationGroupSearchViewsGetVisibilityTest(APITestCase):
             user_id=self.user_2.id,
             query="is:unresolved",
             query_sort="date",
-            position=1,
             visibility=GroupSearchViewVisibility.ORGANIZATION,
         )
 
