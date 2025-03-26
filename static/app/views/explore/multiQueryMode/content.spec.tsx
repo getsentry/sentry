@@ -23,7 +23,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 describe('MultiQueryModeContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['visibility-explore-rpc'],
+      features: ['visibility-explore-rpc', 'performance-saved-queries'],
     },
   });
   let eventsRequest: any;
@@ -579,5 +579,12 @@ describe('MultiQueryModeContent', function () {
         ],
       }),
     });
+  });
+
+  it('renders a save query button', async function () {
+    render(<MultiQueryModeContent />, {organization});
+    expect(await screen.findByLabelText('Save')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Save'));
+    expect(await screen.findByText('A New Query')).toBeInTheDocument();
   });
 });
