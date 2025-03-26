@@ -14,21 +14,37 @@ class BaseWorkflowValidator(CamelSnakeModelSerializer):
     organization = serializers.IntegerField(required=True)
     environment_id = serializers.IntegerField(required=False, allow_null=True)
     created_by_id = serializers.IntegerField()
+    when_condition_group = serializers.DictField(required=True)
+    actions = serializers.ListField(child=serializers.DictField(), required=True)
 
     class Meta:
         model = Workflow
         fields = "__all__"
 
     def validate_when_condition_group(self, value):
-        return BaseDataConditionGroupValidator().validate(value)
+        if not BaseDataConditionGroupValidator(data=value).is_valid():
+            raise serializers.ValidationError("Invalid Workflow.when_condition_group")
+
+        return value
 
     def validate_config(self, value):
         schema = Workflow.config_schema
         validate_json_schema(value, schema)
+        return value
 
     def validate_actions(self, value):
-        raise NotImplementedError
-        # return DataConditionGroupActionValidator().validate(value)
+        if len(value) == 0:
+            return value
+
+        validator = BaseDataConditionGroupValidator(data=value)
+
+        import pdb
+        pdb.set_trace()
+
+        if not validator.is_valid():
+            raise serializers.ValidationError("Invalid Workflow.actions: %s" % validator.errors)
+
+        return value
 
     def update(self, instance, validated_data):
         # TODO - @saponifi3d - implement this

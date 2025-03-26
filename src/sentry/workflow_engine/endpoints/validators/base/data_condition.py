@@ -29,7 +29,7 @@ class BaseDataConditionValidator(CamelSnakeSerializer):
 class BaseDataConditionGroupValidator(CamelSnakeSerializer):
     logic_type = serializers.CharField(required=True)
     organization_id = serializers.IntegerField(required=True)
-    conditions = BaseDataConditionValidator(many=True)
+    conditions = serializers.ListField(child=BaseDataConditionValidator)
 
 
 class NumericComparisonConditionValidator(BaseDataConditionValidator):
