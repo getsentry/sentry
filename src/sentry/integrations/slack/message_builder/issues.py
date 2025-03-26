@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import concurrent.futures
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
@@ -10,7 +9,7 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.constants import LOG_LEVELS
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
@@ -36,6 +35,7 @@ from sentry.integrations.slack.message_builder.types import (
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
 from sentry.issues.endpoints.group_details import get_group_global_count
 from sentry.issues.grouptype import GroupCategory, NotificationContextField
 from sentry.models.commit import Commit
@@ -53,7 +53,6 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.seer.issue_summary import get_issue_summary
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
@@ -449,30 +448,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.notes = notes
         self.issue_summary: dict[str, Any] | None = None
 
-    def fetch_issue_summary(self) -> dict[str, Any] | None:
-        """
-        Try to fetch an issue summary with a timeout of 5 seconds.
-        Returns the summary data if successful, None otherwise.
-        """
-        if self.group.issue_category != GroupCategory.ERROR:
-            return None
-        if not features.has("organizations:gen-ai-features", self.group.organization):
-            return None
-        if not features.has("projects:trigger-issue-summary-on-alerts", self.group.project):
-            return None
-
-        try:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(get_issue_summary, self.group)
-                summary_result, status_code = future.result(timeout=5)
-
-                if status_code == 200:
-                    return summary_result
-                return None
-        except (concurrent.futures.TimeoutError, Exception) as e:
-            logger.exception("Error generating issue summary: %s", e)
-            return None
-
     def get_title_block(
         self,
         event_or_group: Event | GroupEvent | Group,
@@ -592,7 +567,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             return self.get_context_block(text=footer, timestamp=timestamp)
 
     def build(self, notification_uuid: str | None = None) -> SlackBlock:
-        self.issue_summary = self.fetch_issue_summary()
+        self.issue_summary = fetch_issue_summary(self.group)
 
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""

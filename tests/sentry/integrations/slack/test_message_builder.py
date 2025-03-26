@@ -57,6 +57,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -827,6 +828,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "text": f"<{link}|*{title}*>",
         }
 
+    @override_options({"alerts.issue_summary_timeout": 5})
     def test_build_group_block_with_ai_summary(self):
         event = self.store_event(
             data={
@@ -860,8 +862,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "trace": "This is trace information",
             "possibleCause": "This is a possible cause",
         }
-        patch_path = "sentry.integrations.slack.message_builder.issues.get_issue_summary"
-        features_path = "sentry.integrations.slack.message_builder.issues.features.has"
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+        features_path = "sentry.integrations.utils.issue_summary_for_alerts.features.has"
         serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
         serializer_mock = Mock(return_value={})
 
