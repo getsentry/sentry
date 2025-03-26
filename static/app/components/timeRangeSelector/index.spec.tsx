@@ -258,6 +258,14 @@ describe('TimeRangeSelector', function () {
     });
   });
 
+  it('respects maxPickableDays for defaults', async () => {
+    renderComponent({maxPickableDays: 30});
+
+    await userEvent.click(screen.getByRole('button', {expanded: false}));
+
+    expect(screen.queryByRole('option', {name: 'Last 90 days'})).not.toBeInTheDocument();
+  });
+
   it('respects maxPickableDays for arbitrary time ranges', async () => {
     renderComponent({maxPickableDays: 30});
 

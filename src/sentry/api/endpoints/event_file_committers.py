@@ -36,6 +36,8 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
+        elif event.group_id is None:
+            raise NotFound(detail="Issue not found")
 
         try:
             committers = get_serialized_event_file_committers(

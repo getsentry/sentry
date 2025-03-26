@@ -592,7 +592,7 @@ const EmptyResultsContainer = styled('div')`
 const EmptyResultsBody = styled('div')`
   font-size: 16px;
   line-height: 28px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   padding-bottom: ${space(2)};
 `;
 

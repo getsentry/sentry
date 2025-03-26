@@ -130,7 +130,7 @@ const StyledScrubber = styled('div')`
 `;
 
 const Numeric = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
   font-weight: ${p => p.theme.fontWeightBold};

@@ -92,7 +92,7 @@ const Counter = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   padding: 0 1px;
   position: absolute;
   right: -1px;

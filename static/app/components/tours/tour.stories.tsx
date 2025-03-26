@@ -165,8 +165,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
       </CodeSnippet>
 
       <p>
-        Then, whenever you'd like to start your tour, just import your context and
-        dispatch the <code>START_TOUR</code> action.
+        Then, whenever you'd like to start your tour, just import your context and call
+        `startTour()`.
       </p>
       <Alert type="warning">
         <strong>Note:</strong> The tour will not start until all of the steps are present
@@ -177,10 +177,10 @@ export const MY_TOUR_KEY = 'tour.my_tour';
       <br />
       <CodeSnippet language="tsx">
         {`function StartMyTourButton() {
-  const {dispatch, isRegistered} = useMyTour();
+  const {startTour, isRegistered} = useMyTour();
   return (
     <Button
-      onClick={() => dispatch({type: 'START_TOUR'})}
+      onClick={() => startTour()}
       disabled={!isRegistered}
     >
       Start Tour
@@ -311,13 +311,9 @@ export const MY_TOUR_KEY = 'tour.my_tour';
 });
 
 function StartTourButton() {
-  const {dispatch, isRegistered} = useMyTour();
+  const {startTour, isRegistered} = useMyTour();
   return (
-    <Button
-      icon={<IconStar />}
-      onClick={() => dispatch({type: 'START_TOUR'})}
-      disabled={!isRegistered}
-    >
+    <Button icon={<IconStar />} onClick={() => startTour()} disabled={!isRegistered}>
       Start Tour
     </Button>
   );
@@ -334,7 +330,6 @@ function TourProvider({
     <SizingWindow>
       <BlurBoundary>
         <TourContextProvider<MyTour>
-          isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_MY_TOUR}
           tourContext={MyTourContext}

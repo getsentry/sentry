@@ -43,7 +43,7 @@ export default function PluginConfig({
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const [testResults, setTestResults] = useState('');
   const [isPluginLoading, setIsPluginLoading] = useState(!plugins.isLoaded(plugin));
-  const loadingPluginIdRef = useRef<string | undefined>();
+  const loadingPluginIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Avoid loading the same plugin multiple times

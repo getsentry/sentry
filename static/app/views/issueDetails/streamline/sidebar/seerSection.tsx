@@ -206,7 +206,7 @@ const ExpandButton = styled(Button)`
   bottom: -${space(1)};
   right: 0;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   border: none;
   box-shadow: none;
 

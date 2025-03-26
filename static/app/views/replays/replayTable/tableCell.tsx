@@ -442,7 +442,7 @@ const MainLink = styled(Link)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
   display: flex;
   flex-direction: column;

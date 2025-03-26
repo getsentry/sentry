@@ -6,10 +6,11 @@ import {
 } from 'sentry/views/explore/constants';
 import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
-export const LogAttributesHumanLabel: Record<OurLogFieldKey, string> = {
+export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = {
   [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
   [OurLogKnownFieldKey.SEVERITY_TEXT]: t('Severity'),
   [OurLogKnownFieldKey.BODY]: t('Message'),
+  [OurLogKnownFieldKey.TRACE_ID]: t('Trace'),
 };
 
 /**
@@ -18,6 +19,7 @@ export const LogAttributesHumanLabel: Record<OurLogFieldKey, string> = {
 export const AlwaysPresentLogFields: OurLogFieldKey[] = [
   OurLogKnownFieldKey.ID,
   OurLogKnownFieldKey.PROJECT_ID,
+  OurLogKnownFieldKey.TRACE_ID,
   OurLogKnownFieldKey.SEVERITY_NUMBER,
 ];
 
