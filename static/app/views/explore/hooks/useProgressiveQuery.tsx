@@ -39,8 +39,8 @@ interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
  * endpoint and a best effort endpoint for quicker feedback for queries.
  *
  * This hook is meant to be used as a wrapper where another hook is passed along.
- * The hook argument must return `results` and `isFetched` to indicate when
- * the query is complete.
+ * The hook argument must accept `enabled` and `queryExtras` as arguments and
+ * return `results` and `isFetched` to indicate when the query is complete.
  *
  * When the best effort request is complete, the results will always use the
  * best effort results and surface the fidelity of the response that is served.
