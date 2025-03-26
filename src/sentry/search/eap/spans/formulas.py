@@ -395,6 +395,7 @@ def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
     interval = settings["query_settings"]["snuba_params"].interval
     granularity_secs = settings["query_settings"]["granularity_secs"]
 
+    # having a granularity_secs implies that the request is for a time series, and each datapoint should be divided by it
     divisor = granularity_secs if granularity_secs else interval
 
     return Column.BinaryFormula(
