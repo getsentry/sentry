@@ -90,43 +90,41 @@ function OrgDashboards(props: Props) {
   }, [dashboards, dashboardId, organization.slug, location.query, navigate]);
 
   useEffect(() => {
-    if (dashboardId || selectedDashboard) {
-      const queryParamFilters = new Set([
-        'project',
-        'environment',
-        'statsPeriod',
-        'start',
-        'end',
-        'utc',
-        'release',
-      ]);
-      if (
-        selectedDashboard &&
-        // Only redirect if there are saved filters and none of the filters
-        // appear in the query params
-        hasSavedPageFilters(selectedDashboard) &&
-        Object.keys(location.query).filter(unsavedQueryParam =>
-          queryParamFilters.has(unsavedQueryParam)
-        ).length === 0
-      ) {
-        navigate(
-          {
-            ...location,
-            query: {
-              ...location.query,
-              project: selectedDashboard.projects,
-              environment: selectedDashboard.environment,
-              statsPeriod: selectedDashboard.period,
-              start: selectedDashboard.start,
-              end: selectedDashboard.end,
-              utc: selectedDashboard.utc,
-            },
+    const queryParamFilters = new Set([
+      'project',
+      'environment',
+      'statsPeriod',
+      'start',
+      'end',
+      'utc',
+      'release',
+    ]);
+    if (
+      selectedDashboard &&
+      // Only redirect if there are saved filters and none of the filters
+      // appear in the query params
+      hasSavedPageFilters(selectedDashboard) &&
+      Object.keys(location.query).filter(unsavedQueryParam =>
+        queryParamFilters.has(unsavedQueryParam)
+      ).length === 0
+    ) {
+      navigate(
+        {
+          ...location,
+          query: {
+            ...location.query,
+            project: selectedDashboard.projects,
+            environment: selectedDashboard.environment,
+            statsPeriod: selectedDashboard.period,
+            start: selectedDashboard.start,
+            end: selectedDashboard.end,
+            utc: selectedDashboard.utc,
           },
-          {replace: true}
-        );
-      }
+        },
+        {replace: true}
+      );
     }
-  }, [dashboardId, location, navigate, selectedDashboard]);
+  }, [location, navigate, selectedDashboard]);
 
   useEffect(() => {
     if (!organization.features.includes('dashboards-basic')) {
