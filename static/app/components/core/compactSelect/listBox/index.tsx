@@ -1,12 +1,11 @@
 import {forwardRef, Fragment, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {t} from 'sentry/locale';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {ListLabel, ListSeparator, ListWrap, SizeLimitMessage} from '../styles';
@@ -158,7 +157,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
       <ListWrap
         {...mergeProps(listBoxProps, props)}
         onKeyDown={onKeyDown}
-        ref={mergeRefs([ref, forwarderdRef])}
+        ref={mergeRefs(ref, forwarderdRef)}
       >
         {overlayIsOpen &&
           listItems.map(item => {

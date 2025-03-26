@@ -1,7 +1,7 @@
 import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
@@ -14,7 +14,6 @@ import {
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -235,7 +234,7 @@ function BaseDropdownMenuItem(
 
   return (
     <MenuListItem
-      ref={mergeRefs([ref, forwardedRef])}
+      ref={mergeRefs(ref, forwardedRef)}
       as={renderAs}
       data-test-id={key}
       label={itemLabel}

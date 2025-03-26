@@ -7,13 +7,13 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 export interface FoldSectionProps {
   children: React.ReactNode;
@@ -106,7 +106,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   return (
     <Fragment>
       <Section
-        ref={mergeRefs([forwardedRef, scrollToSection])}
+        ref={mergeRefs(forwardedRef, scrollToSection)}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"

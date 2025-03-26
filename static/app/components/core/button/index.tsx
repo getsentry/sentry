@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -12,7 +13,6 @@ import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 import {getChonkButtonStyles} from './index.chonk';
 
@@ -354,13 +354,19 @@ export const StyledButton = styled(
     ) => {
       // XXX: There may be two forwarded refs here, one potentially passed from a
       // wrapped Tooltip, another from callers of Button.
-      const ref = mergeRefs([forwardRef, forwardRefAlt]);
+      const ref = mergeRefs(forwardRef, forwardRefAlt);
 
       // Get component to use based on existence of `to` or `href` properties
       // Can be react-router `Link`, `a`, or `button`
       if (to) {
         return (
-          <Link {...props} ref={ref} to={to} replace={replace} disabled={disabled} />
+          <Link
+            {...props}
+            ref={ref as React.Ref<HTMLAnchorElement>}
+            to={to}
+            replace={replace}
+            disabled={disabled}
+          />
         );
       }
 
@@ -368,7 +374,7 @@ export const StyledButton = styled(
         return (
           <a
             {...props}
-            ref={ref}
+            ref={ref as React.Ref<HTMLAnchorElement>}
             href={href}
             aria-disabled={disabled}
             {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
@@ -376,7 +382,14 @@ export const StyledButton = styled(
         );
       }
 
-      return <button {...props} type={type} ref={ref} disabled={disabled} />;
+      return (
+        <button
+          {...props}
+          type={type}
+          ref={ref as React.Ref<HTMLButtonElement>}
+          disabled={disabled}
+        />
+      );
     }
   ),
   {

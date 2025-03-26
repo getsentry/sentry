@@ -1,8 +1,8 @@
 import {forwardRef, useCallback} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -51,7 +51,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     return (
       <CheckboxWrapper size={size} {...wrapperProps}>
         <NativeHiddenCheckbox
-          ref={mergeRefs([nativeCheckBoxRef, ref])}
+          ref={mergeRefs(nativeCheckBoxRef, ref)}
           checked={checked !== 'indeterminate' && checked}
           type="checkbox"
           {...props}
