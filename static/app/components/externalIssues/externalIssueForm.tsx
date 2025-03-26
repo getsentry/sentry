@@ -1,13 +1,14 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import type {Span} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {RequestOptions, ResponseMeta} from 'sentry/api';
-import type {ExternalIssueAction} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import {ExternalForm} from 'sentry/components/externalIssues/externalForm';
 import {useAsyncOptionsCache} from 'sentry/components/externalIssues/useAsyncOptionsCache';
+import type {ExternalIssueAction} from 'sentry/components/externalIssues/utils';
 import {
   getConfigName,
   getDynamicFields,
@@ -20,8 +21,9 @@ import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {
   Integration,
@@ -333,17 +335,21 @@ export default function ExternalIssueForm({
       }}
       title={title}
       navTabs={
-        <NavTabs underlined>
-          <li className={action === 'create' ? 'active' : ''}>
-            <a onClick={() => handleClick('create')}>{t('Create')}</a>
-          </li>
-          <li className={action === 'link' ? 'active' : ''}>
-            <a onClick={() => handleClick('link')}>{t('Link')}</a>
-          </li>
-        </NavTabs>
+        <TabsContainer>
+          <Tabs value={action} onChange={handleClick}>
+            <TabList>
+              <TabList.Item key="create">{t('Create')}</TabList.Item>
+              <TabList.Item key="link">{t('Link')}</TabList.Item>
+            </TabList>
+          </Tabs>
+        </TabsContainer>
       }
       bodyText={null}
       getFieldProps={getExternalIssueFieldProps}
     />
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;

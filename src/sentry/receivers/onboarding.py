@@ -108,17 +108,6 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     )
     # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
     if not created:
-        # Check if the "first project" task already exists and log an error if needed
-        first_project_task_exists = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
-        ).exists()
-
-        if not first_project_task_exists:
-            sentry_sdk.capture_message(
-                f"An error occurred while trying to record the first project for organization ({project.organization_id})",
-                level="warning",
-            )
-
         OrganizationOnboardingTask.objects.update_or_create(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
@@ -433,16 +422,25 @@ def record_member_invited(member, user, **kwargs):
 
 @member_joined.connect(weak=False)
 def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    OrganizationOnboardingTask.objects.update_or_create(
+    obj, created = OrganizationOnboardingTask.objects.get_or_create(
         organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
-        status=OnboardingTaskStatus.PENDING,
         defaults={
             "status": OnboardingTaskStatus.COMPLETE,
             "date_completed": django_timezone.now(),
             "data": {"invited_member_id": organization_member_id},
         },
     )
+    if created:
+        # The task was just created and marked as complete, no need to do anything extra
+        return
+
+    if obj.status != OnboardingTaskStatus.COMPLETE:
+        # The task exists but is not complete, so we need to update it as complete
+        obj.status = OnboardingTaskStatus.COMPLETE
+        obj.date_completed = django_timezone.now()
+        obj.data = {"invited_member_id": organization_member_id}
+        obj.save()
 
 
 def _record_release_received(project, event, **kwargs):

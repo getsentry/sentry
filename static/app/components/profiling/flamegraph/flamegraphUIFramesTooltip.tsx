@@ -18,7 +18,6 @@ import {
 } from './flamegraphTooltip';
 
 export interface FlamegraphUIFramesTooltipProps {
-  canvasBounds: Rect;
   configSpaceCursor: vec2;
   hoveredNode: UIFrames['frames'];
   uiFrames: UIFrames;
@@ -28,7 +27,6 @@ export interface FlamegraphUIFramesTooltipProps {
 }
 
 export function FlamegraphUIFramesTooltip({
-  canvasBounds,
   configSpaceCursor,
   uiFramesCanvas,
   uiFrames,
@@ -52,7 +50,6 @@ export function FlamegraphUIFramesTooltip({
     <BoundTooltip
       cursor={configSpaceCursor}
       canvas={uiFramesCanvas}
-      canvasBounds={canvasBounds}
       canvasView={uiFramesView}
     >
       {uiFramesInConfigSpace.map((frame, i) => {

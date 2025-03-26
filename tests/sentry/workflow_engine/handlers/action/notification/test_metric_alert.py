@@ -16,8 +16,9 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.handlers.action.notification.metric_alert import (
@@ -26,7 +27,7 @@ from sentry.workflow_engine.handlers.action.notification.metric_alert import (
     PagerDutyMetricAlertHandler,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -114,6 +115,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         new_status: IncidentStatus,
         metric_value: float | None = None,
         subscription: QuerySubscription | None = None,
+        group: Group | None = None,
     ):
         assert asdict(metric_issue_context) == {
             "id": metric_issue_context.id,
@@ -122,6 +124,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "subscription": subscription,
             "new_status": new_status,
             "metric_value": metric_value,
+            "group": group,
         }
 
     def unpack_kwargs(self, mock_send_alert):
@@ -149,7 +152,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.snuba_query = self.create_snuba_query()
@@ -165,11 +168,11 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
-        self.job["event"].occurrence = None
+        self.job.event.occurrence = None
 
         with pytest.raises(ValueError):
             self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
@@ -316,6 +319,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            group=self.group_event.group,
         )
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
@@ -340,8 +344,8 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id=1234567890,
-            config={"target_identifier": "service123"},
-            data={"priority": "P1"},
+            config={"target_identifier": "service123", "target_type": ActionTarget.SPECIFIC},
+            data={"priority": "default"},
         )
         self.snuba_query = self.create_snuba_query()
 
@@ -355,7 +359,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
@@ -409,7 +413,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             integration_id=1234567890,
             target_identifier="service123",
             target_display=None,
-            sentry_app_config={"priority": "P1"},
+            sentry_app_config={"priority": "default"},
             sentry_app_id=None,
         )
 
@@ -428,6 +432,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            group=self.group_event.group,
         )
 
         assert organization == self.detector.project.organization
@@ -443,7 +448,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id=1234567890,
-            config={"target_identifier": "team123"},
+            config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
         self.snuba_query = self.create_snuba_query()
@@ -458,7 +463,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.workflow.environment)
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
@@ -531,6 +536,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             snuba_query=self.snuba_query,
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
+            group=self.group_event.group,
         )
 
         assert organization == self.detector.project.organization

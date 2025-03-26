@@ -1,3 +1,4 @@
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, TypedDict
@@ -6,6 +7,7 @@ import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Column, Function
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -13,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
@@ -37,9 +40,15 @@ class SerializedEvent(TypedDict):
     transaction: str
 
 
+class SerializedIssue(SerializedEvent):
+    issue_id: int
+    level: str
+
+
 class SerializedSpan(SerializedEvent):
     children: list["SerializedEvent"]
-    errors: list["SerializedEvent"]
+    errors: list["SerializedIssue"]
+    occurrences: list["SerializedIssue"]
     duration: float
     end_timestamp: datetime
     op: str
@@ -77,21 +86,41 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             include_all_accessible=True,
         )
 
-    def serialize_rpc_event(self, event: dict[str, Any]) -> SerializedEvent:
-        if event.get("event_type") == "error":
-            return SerializedEvent(
+    def serialize_rpc_issue(self, event: dict[str, Any]) -> SerializedIssue:
+        if event.get("event_type") == "occurrence":
+            occurrence = event["issue_data"]["occurrence"]
+            return SerializedIssue(
+                event_id=occurrence.id,
+                project_id=occurrence.project_id,
+                project_slug=event["project_name"],
+                start_timestamp=event["timestamp"],
+                transaction=event["transaction"],
+                description=occurrence.issue_title,
+                level=occurrence.level,
+                issue_id=event["issue_data"]["issue_id"],
+                event_type="occurrence",
+            )
+        elif event.get("event_type") == "error":
+            return SerializedIssue(
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.name"],
                 start_timestamp=event["timestamp"],
                 transaction=event["transaction"],
                 description=event["message"],
+                level=event["tags[level]"],
+                issue_id=event["issue.id"],
                 event_type="error",
             )
-        elif event.get("event_type") == "span":
+        else:
+            raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
+
+    def serialize_rpc_event(self, event: dict[str, Any]) -> SerializedEvent | SerializedIssue:
+        if event.get("event_type") == "span":
             return SerializedSpan(
                 children=[self.serialize_rpc_event(child) for child in event["children"]],
-                errors=[self.serialize_rpc_event(error) for error in event["errors"]],
+                errors=[self.serialize_rpc_issue(error) for error in event["errors"]],
+                occurrences=[self.serialize_rpc_issue(error) for error in event["occurrences"]],
                 event_id=event["id"],
                 project_id=event["project.id"],
                 project_slug=event["project.slug"],
@@ -108,6 +137,7 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         else:
             raise Exception(f"Unknown event encountered in trace: {event.get('event_type')}")
 
+    @sentry_sdk.tracing.trace
     def run_errors_query(self, snuba_params: SnubaParams, trace_id: str):
         """Run an error query, getting all the errors for a given trace id"""
         # TODO: replace this with EAP calls, this query is copied from the old trace view
@@ -142,6 +172,54 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
         return error_data
 
     @sentry_sdk.tracing.trace
+    def run_perf_issues_query(self, snuba_params: SnubaParams, trace_id: str):
+        occurrence_query = DiscoverQueryBuilder(
+            Dataset.IssuePlatform,
+            params={},
+            snuba_params=snuba_params,
+            query=f"trace:{trace_id}",
+            selected_columns=["event_id", "occurrence_id", "project_id"],
+            config=QueryBuilderConfig(
+                functions_acl=["groupArray"],
+            ),
+        )
+        occurrence_query.columns.extend(
+            [
+                Function("groupArray", parameters=[Column("group_id")], alias="issue.ids"),
+            ]
+        )
+        occurrence_query.groupby = [
+            Column("event_id"),
+            Column("occurrence_id"),
+            Column("project_id"),
+        ]
+
+        result = occurrence_query.run_query(Referrer.API_TRACE_VIEW_GET_EVENTS.value)
+        occurrence_data = occurrence_query.process_results(result)["data"]
+
+        occurrence_ids = defaultdict(list)
+        occurrence_issue_ids = defaultdict(list)
+        issue_occurrences = []
+        for event in occurrence_data:
+            event["event_type"] = "occurrence"
+            occurrence_ids[event["project_id"]].append(event["occurrence_id"])
+            occurrence_issue_ids[event["occurrence_id"]].extend(event["issue.ids"])
+        for project_id, occurrence_list in occurrence_ids.items():
+            issue_occurrences.extend(
+                IssueOccurrence.fetch_multi(
+                    occurrence_list,
+                    project_id,
+                )
+            )
+        result = []
+        for issue in issue_occurrences:
+            if issue:
+                for issue_id in occurrence_issue_ids.get(issue.id, []):
+                    result.append({"occurrence": issue, "issue_id": issue_id})
+
+        return result
+
+    @sentry_sdk.tracing.trace
     def query_trace_data(self, snuba_params: SnubaParams, trace_id: str) -> list[SerializedEvent]:
         """Queries span/error data for a given trace"""
         # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
@@ -155,12 +233,20 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             SearchResolverConfig(),
         )
         errors_future = _query_thread_pool.submit(self.run_errors_query, snuba_params, trace_id)
+        occurrence_future = _query_thread_pool.submit(
+            self.run_perf_issues_query, snuba_params, trace_id
+        )
         spans_data = spans_future.result()
         errors_data = errors_future.result()
+        occurrence_data = occurrence_future.result()
 
         result = []
         id_to_span = {event["id"]: event for event in spans_data}
         id_to_error = {event["trace.span"]: event for event in errors_data}
+        id_to_occurrence = defaultdict(list)
+        for event in occurrence_data:
+            for span_id in event["occurrence"].evidence_data["offender_span_ids"]:
+                id_to_occurrence[span_id].append(event)
         for span in spans_data:
             if span["parent_span"] in id_to_span:
                 parent = id_to_span[span["parent_span"]]
@@ -170,6 +256,19 @@ class OrganizationTraceEndpoint(OrganizationEventsV2EndpointBase):
             if span["id"] in id_to_error:
                 error = id_to_error.pop(span["id"])
                 span["errors"].append(error)
+            if span["id"] in id_to_occurrence:
+                span["occurrences"].extend(
+                    [
+                        {
+                            "event_type": "occurrence",
+                            "timestamp": span["precise.start_ts"],
+                            "transaction": span["transaction"],
+                            "project_name": span["project.slug"],
+                            "issue_data": occurrence,
+                        }
+                        for occurrence in id_to_occurrence[span["id"]]
+                    ]
+                )
         for error in id_to_error.values():
             result.append(error)
         return [self.serialize_rpc_event(root) for root in result]

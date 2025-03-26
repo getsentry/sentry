@@ -382,8 +382,9 @@ export type IssueEventParameters = {
   'tag.clicked': {
     is_clickable: boolean;
   };
-  'tour-guide.dismiss': {id?: string};
-  'tour-guide.open': {id?: string};
+  'tour-guide.dismiss': {id?: string; step_count?: number; tour_key?: string};
+  'tour-guide.finish': {id?: string; step_count?: number; tour_key?: string};
+  'tour-guide.open': {id?: string; step_count?: number; tour_key?: string};
   'whats_new.link_clicked': Pick<Broadcast, 'title'> &
     Partial<Pick<Broadcast, 'category'>>;
 };
@@ -546,5 +547,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.comment_updated': 'Issue Details: Comment Updated',
   'tour-guide.open': 'Tour Guide: Opened',
   'tour-guide.dismiss': 'Tour Guide: Dismissed',
+  'tour-guide.finish': 'Tour Guide: Finished',
   'whats_new.link_clicked': "What's New: Link Clicked",
 };

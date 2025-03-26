@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
@@ -21,7 +23,6 @@ def are_views_equal(
         and view_1["query"] == view_2["query"]
         and view_1["querySort"] == view_2["querySort"]
         and view_1["position"] == view_2["position"]
-        and view_1["isAllProjects"] == view_2["isAllProjects"]
         and view_1["environments"] == view_2["environments"]
         and view_1["timeFilters"] == view_2["timeFilters"]
         and view_1["projects"] == view_2["projects"]
@@ -260,7 +261,10 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
             {
                 "name": "Custom View Four",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
+                "projects": [],
+                "environments": [],
+                "timeFilters": {"period": "14d"},
             }
         )
 
@@ -420,7 +424,14 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         from sentry.api.serializers.rest_framework.groupsearchview import MAX_VIEWS
 
         views = [
-            {"name": f"Custom View {i}", "query": "is:unresolved", "query_sort": "date"}
+            {
+                "name": f"Custom View {i}",
+                "query": "is:unresolved",
+                "querySort": "date",
+                "projects": [],
+                "environments": [],
+                "timeFilters": {"period": "14d"},
+            }
             for i in range(MAX_VIEWS + 1)
         ]
         response = self.get_error_response(self.organization.slug, views=views)
@@ -584,7 +595,10 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
             {
                 "name": "New View",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
+                "projects": [],
+                "environments": [],
+                "timeFilters": {"period": "14d"},
             }
         )
         response = self.get_success_response(self.organization.slug, views=views)
@@ -592,7 +606,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         assert response.data[3]["timeFilters"] == {"period": "14d"}
         assert response.data[3]["projects"] == []
         assert response.data[3]["environments"] == []
-        assert response.data[3]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -603,7 +616,6 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         response = self.get_success_response(self.organization.slug, views=views)
         assert len(response.data) == 3
         assert response.data[0]["projects"] == []
-        assert response.data[0]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -613,8 +625,7 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         view["projects"] = [-1]
         response = self.get_success_response(self.organization.slug, views=views)
         assert len(response.data) == 3
-        assert response.data[0]["projects"] == []
-        assert response.data[0]["isAllProjects"] is True
+        assert response.data[0]["projects"] == [-1]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -638,12 +649,11 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
-    def test_empty_time_filters_resets_to_default(self) -> None:
+    def test_empty_time_filters_fails(self) -> None:
         views = self.client.get(self.url).data
         views[0]["timeFilters"] = {}
-        response = self.get_success_response(self.organization.slug, views=views)
-        assert len(response.data) == 3
-        assert response.data[0]["timeFilters"] == {"period": "14d"}
+        response = self.get_error_response(self.organization.slug, views=views)
+        assert response.data["views"]["timeFilters"][0] == "This dictionary may not be empty."
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -651,9 +661,10 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         views = self.client.get(self.url).data
         views[0]["projects"] = [self.project1.id, self.project2.id]
         response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {
-            "detail": "You do not have the multi project stream feature enabled"
-        }
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="You do not have the multi project stream feature enabled",
+            code="invalid",
+        )
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -661,9 +672,10 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         views = self.client.get(self.url).data
         views[0]["projects"] = [-1]
         response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {
-            "detail": "You do not have the multi project stream feature enabled"
-        }
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="You do not have the multi project stream feature enabled",
+            code="invalid",
+        )
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -671,9 +683,10 @@ class OrganizationGroupSearchViewsWithPageFiltersPutTest(BaseGSVTestCase):
         views = self.client.get(self.url).data
         views[0]["projects"] = []
         response = self.get_error_response(self.organization.slug, views=views)
-        assert response.data == {
-            "detail": "You do not have the multi project stream feature enabled"
-        }
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="You do not have the multi project stream feature enabled",
+            code="invalid",
+        )
 
 
 class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
@@ -706,7 +719,7 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
         )
         issue_view_one.projects.set([project1])
 
-        response = self.client.put(
+        response: Any = self.client.put(
             url,
             data={
                 "views": [
@@ -714,9 +727,8 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
                         "id": issue_view_one.id,
                         "name": issue_view_one.name,
                         "query": issue_view_one.query,
-                        "query_sort": issue_view_one.query_sort,
-                        "position": issue_view_one.position,
-                        "time_filters": issue_view_one.time_filters,
+                        "querySort": issue_view_one.query_sort,
+                        "timeFilters": issue_view_one.time_filters,
                         "environments": issue_view_one.environments,
                         "projects": [project1.id, 123456],
                     }
@@ -726,7 +738,10 @@ class OrganizationGroupSearchViewsProjectsTransactionTest(TransactionTestCase):
             content_type="application/json",
         )
         assert response.status_code == 400
-        assert response.content == b'{"detail":"One or more projects do not exist"}'
+        assert response.data["views"]["projects"][0] == ErrorDetail(
+            string="One or more projects do not exist",
+            code="invalid",
+        )
 
 
 class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
@@ -868,17 +883,14 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
         assert response.data[0]["projects"] == [self.project3.id]
         assert response.data[0]["environments"] == []
-        assert response.data[0]["isAllProjects"] is False
 
         assert response.data[1]["timeFilters"] == {"period": "7d"}
         assert response.data[1]["projects"] == []
         assert response.data[1]["environments"] == ["staging", "production"]
-        assert response.data[1]["isAllProjects"] is False
 
         assert response.data[2]["timeFilters"] == {"period": "30d"}
-        assert response.data[2]["projects"] == []
+        assert response.data[2]["projects"] == [-1]
         assert response.data[2]["environments"] == ["development"]
-        assert response.data[2]["isAllProjects"] is True
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -889,17 +901,14 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
         assert response.data[0]["projects"] == [self.project3.id]
         assert response.data[0]["environments"] == []
-        assert response.data[0]["isAllProjects"] is False
 
         assert response.data[1]["timeFilters"] == {"period": "7d"}
         assert response.data[1]["projects"] == [self.project3.id]
         assert response.data[1]["environments"] == ["staging", "production"]
-        assert response.data[1]["isAllProjects"] is False
 
         assert response.data[2]["timeFilters"] == {"period": "30d"}
         assert response.data[2]["projects"] == [self.project3.id]
         assert response.data[2]["environments"] == ["development"]
-        assert response.data[2]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -910,7 +919,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         assert response.data[0]["timeFilters"] == {"period": "14d"}
         assert response.data[0]["projects"] == [self.project2.id]
         assert response.data[0]["environments"] == []
-        assert response.data[0]["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": True})
@@ -928,7 +936,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             # Global views means default project should be "My Projects"
             assert view["projects"] == []
             assert view["environments"] == []
-            assert view["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -946,7 +953,6 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
             # No global views means default project should be a single project
             assert view["projects"] == [self.project3.id]
             assert view["environments"] == []
-            assert view["isAllProjects"] is False
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     @with_feature({"organizations:global-views": False})
@@ -954,7 +960,7 @@ class OrganizationGroupSearchViewsGetPageFiltersTest(APITestCase):
         self.login_as(user=self.user_4)
         response = self.client.get(self.url)
         assert response.status_code == 400
-        assert response.data == {"detail": "You do not have access to any projects."}
+        assert response.data["detail"] == "You do not have access to any projects."
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
@@ -989,7 +995,10 @@ class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
             {
                 "name": "Custom View Two",
                 "query": "is:unresolved",
-                "query_sort": "date",
+                "querySort": "date",
+                "projects": [],
+                "environments": [],
+                "timeFilters": {"period": "14d"},
             }
         )
 

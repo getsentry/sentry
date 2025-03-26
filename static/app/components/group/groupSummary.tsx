@@ -18,9 +18,8 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
 
-const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.468;
-const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.419;
-// These thresholds were used when embedding the cause and computing simliarities.
+const POSSIBLE_CAUSE_CONFIDENCE_THRESHOLD = 0.0;
+const POSSIBLE_CAUSE_NOVELTY_THRESHOLD = 0.0;
 
 export interface GroupSummaryData {
   groupId: string;
@@ -72,7 +71,7 @@ export function useGroupSummary(
   forceEvent = false
 ) {
   const organization = useOrganization();
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
   const enabled = aiConfig.hasSummary;
   const queryClient = useQueryClient();
   const queryKey = makeGroupSummaryQueryKey(
@@ -121,7 +120,7 @@ export function GroupSummary({
   const organization = useOrganization();
   const [forceEvent, setForceEvent] = useState(false);
   const openFeedbackForm = useFeedbackForm();
-  const aiConfig = useAiConfig(group, event, project);
+  const aiConfig = useAiConfig(group, project);
   const {data, isPending, isError, refresh} = useGroupSummary(
     group,
     event,
@@ -387,6 +386,11 @@ const TooltipWrapper = styled('div')`
   position: absolute;
   top: -${space(0.5)};
   right: 0;
+
+  ul {
+    max-height: none !important;
+    overflow: visible !important;
+  }
 `;
 
 const StyledIconEllipsis = styled(IconEllipsis)`

@@ -154,6 +154,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(prunedProvided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               limit={5}
               includePrevious={false}
               includeTransformedData

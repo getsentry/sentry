@@ -451,7 +451,7 @@ const StyledInput = styled(Input)`
     font-size: 13px;
     padding: ${space(1)};
     font-weight: ${p => p.theme.fontWeightNormal};
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 

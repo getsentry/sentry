@@ -40,7 +40,7 @@ R = TypeVar("R")
 
 
 def ignore_unpublished_app_errors(
-    func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R]
+    func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R],
 ) -> Callable[Concatenate[SentryApp | RpcSentryApp, P], R | None]:
     def wrapper(
         sentry_app: SentryApp | RpcSentryApp, *args: P.args, **kwargs: P.kwargs
@@ -145,10 +145,19 @@ def send_and_save_webhook_request(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK, event_type=event
     ).capture() as lifecycle:
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
-
         org_id = app_platform_event.install.organization_id
         slug = sentry_app.slug_for_metrics
         url = url or sentry_app.webhook_url
+        lifecycle.add_extras(
+            {
+                "org_id": org_id,
+                "sentry_app_slug": sentry_app.slug,
+                "url": url or "",
+                "event": event,
+                "installation_uuid": app_platform_event.install.uuid,
+            }
+        )
+
         assert url is not None
         try:
             response = safe_urlopen(

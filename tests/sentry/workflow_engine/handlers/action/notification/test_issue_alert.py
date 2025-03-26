@@ -5,6 +5,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -27,7 +28,7 @@ from sentry.workflow_engine.handlers.action.notification.issue_alert import (
     WebhookIssueAlertHandler,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     EXCLUDED_ACTION_DATA_KEYS,
@@ -35,6 +36,7 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMappingKeys,
     EmailActionHelper,
     SentryAppIdentifier,
+    TicketingActionDataBlobHelper,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -68,11 +70,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowJob(event=self.group_event, workflow=self.workflow)
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -119,15 +121,10 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
-    def test_create_rule_instance_from_action_missing_action_properties_raises_value_error(self):
-        action = self.create_action(type=Action.Type.DISCORD)
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(action, self.detector, self.job)
-
     def test_create_rule_instance_from_action_no_environment(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        workflow = self.create_workflow()
-        job = WorkflowJob(event=self.group_event, workflow=workflow)
+        self.create_workflow()
+        job = WorkflowEventData(event=self.group_event, workflow_env=None)
         rule = self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
         assert isinstance(rule, Rule)
@@ -168,11 +165,11 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.job["event"], "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY, self.job.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
         )
 
         # Verify callback execution
-        mock_safe_execute.assert_called_once_with(mock_callback, self.job["event"], mock_futures)
+        mock_safe_execute.assert_called_once_with(mock_callback, self.job.event, mock_futures)
 
 
 class TestDiscordIssueAlertHandler(BaseWorkflowTest):
@@ -183,13 +180,13 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         # self.project = self.create_project()
         # self.detector = self.create_detector(project=self.project)
         # self.group, self.event, self.group_event = self.create_group_event()
-        # self.job = WorkflowJob(event=self.group_event)
+        # self.job = WorkflowEventData(event=self.group_event)
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Discord action data"""
@@ -226,6 +223,7 @@ class TestMSTeamsIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": "channel789",
                 "target_display": "General Channel",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
 
@@ -253,6 +251,7 @@ class TestSlackIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": "channel789",
                 "target_display": "#general",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
 
@@ -292,8 +291,8 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id="1234567890",
-            config={"target_identifier": "service789"},
-            data={"priority": "P1"},
+            config={"target_identifier": "service789", "target_type": ActionTarget.SPECIFIC},
+            data={"priority": "default"},
         )
 
     def test_build_rule_action_blob(self):
@@ -304,7 +303,7 @@ class TestPagerDutyIssueAlertHandler(BaseWorkflowTest):
             "id": "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction",
             "account": "1234567890",
             "service": "service789",
-            "severity": "P1",
+            "severity": "default",
         }
 
     def test_build_rule_action_blob_no_priority(self):
@@ -328,7 +327,7 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id="1234567890",
-            config={"target_identifier": "team789"},
+            config={"target_identifier": "team789", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
 
@@ -367,7 +366,7 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
         action = self.create_action(
             type=action_type,
             integration_id=expected["integration"],
-            data=action_data,
+            data=self._form_ticketing_action_blob(action_data),
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
 
@@ -380,6 +379,12 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
             "integration": expected["integration"],
             **expected,
         }
+
+    def _form_ticketing_action_blob(self, expected):
+        dynamic_form_fields, additional_fields = TicketingActionDataBlobHelper.separate_fields(
+            expected
+        )
+        return {"dynamic_form_fields": dynamic_form_fields, "additional_fields": additional_fields}
 
 
 class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):

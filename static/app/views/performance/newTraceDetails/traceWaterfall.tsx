@@ -36,7 +36,6 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -94,8 +93,8 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
-const MIN_HEIGHT = 0;
-const DEFAULT_HEIGHT = 0;
+const MIN_HEIGHT = 150;
+const DEFAULT_HEIGHT = 330;
 const MAX_HEIGHT = 1500;
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -118,7 +117,13 @@ export interface TraceWaterfallProps {
   traceEventView: EventView;
   traceSlug: string | undefined;
   tree: TraceTree;
+  // If set to true, the entire waterfall will not render if it is empty.
+  hideIfNoData?: boolean;
   replayTraces?: ReplayTrace[];
+}
+
+function clampHeight(height: number) {
+  return Math.max(MIN_HEIGHT, Math.min(height, MAX_HEIGHT));
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
@@ -839,7 +844,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     const loadedHeight = preferences.drawer.sizes['trace grid height'];
 
     if (traceGridRef && typeof loadedHeight !== 'undefined') {
-      setHeight(loadedHeight);
+      const newHeight = clampHeight(loadedHeight);
+      setHeight(newHeight);
       traceGridRef.style.setProperty('--panel-height', `${loadedHeight}px`);
     }
   }, [preferences.drawer.sizes, traceGridRef]);
@@ -860,10 +866,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
 
         const deltaY = moveEvent.clientY - startY;
-        const newHeight = Math.max(
-          MIN_HEIGHT,
-          Math.min(startHeight + deltaY, MAX_HEIGHT)
-        );
+        const newHeight = clampHeight(startHeight + deltaY);
 
         traceGridRef.style.setProperty('--panel-height', `${newHeight}px`);
       }
@@ -891,9 +894,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     [height, traceDispatch, traceGridRef]
   );
 
-  const logsTableData = useLogsPageData();
-  if (props.tree.type === 'empty' && logsTableData?.logsData?.data?.length > 0) {
-    return null; // do not show the main trace details if you are in 'logs mode'
+  if (props.tree.type === 'empty' && props.hideIfNoData) {
+    return null;
   }
 
   return (

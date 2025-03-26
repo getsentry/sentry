@@ -9,8 +9,7 @@ from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.models.workflow import Workflow
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
@@ -24,11 +23,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-            }
-        )
+        self.job = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison=True,
@@ -144,12 +139,7 @@ class TestLatestReleaseCondition(ConditionTestCase):
             date_added=datetime(2020, 9, 3, 3, 8, 24, 880386, tzinfo=UTC),
         )
 
-        self.job = WorkflowJob(
-            {
-                "event": self.group_event,
-                "workflow": Workflow(environment_id=self.environment.id),
-            }
-        )
+        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
         self.event.data["tags"] = (("release", new_release.version),)
         self.assert_passes(self.dc, self.job)
