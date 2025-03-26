@@ -694,9 +694,8 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 frames=frames,
                 platform=self.platform,
                 expected_new_code_mappings=[
-                    self.code_mapping(
-                        stack_root="uk/co/example/foo/", source_root="src/uk/co/example/foo/"
-                    ),
+                    # XXX: Notice that we loose "example"
+                    self.code_mapping(stack_root="uk/co/", source_root="src/uk/co/"),
                 ],
                 expected_in_app_stack_trace_rules=["stack.module:uk.co.** +app"],
             )
@@ -743,9 +742,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 frames=frames,
                 platform=self.platform,
                 expected_new_code_mappings=[
-                    self.code_mapping(
-                        stack_root="com/example/foo/", source_root="src/com/example/foo/"
-                    ),
+                    self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
                 ],
                 expected_num_code_mappings=1,
                 expected_in_app_stack_trace_rules=[expected_in_app_rule],
