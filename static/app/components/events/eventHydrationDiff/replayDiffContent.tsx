@@ -44,7 +44,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
     <ReplayLoadingState
       replaySlug={replaySlug}
       renderArchived={wrapInSection(() => (
-        <ArchivedReplayAlert />
+        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
       ))}
       renderLoading={wrapInSection(() => (
         <StyledNegativeSpaceContainer data-test-id="replay-diff-loading-placeholder">
