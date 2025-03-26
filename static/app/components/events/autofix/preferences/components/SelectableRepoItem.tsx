@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {isSupportedAutofixProvider} from 'sentry/components/events/autofix/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,17 +14,17 @@ interface Props {
 }
 
 export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
-  const isGithub = repo.provider?.name?.toLowerCase() === 'github';
+  const isSupportedProvider = isSupportedAutofixProvider(repo.provider?.name || '');
 
-  const tooltipMessage = isGithub
+  const tooltipMessage = isSupportedProvider
     ? ''
     : t('Support for %s will be coming soon', repo.provider?.name || t('this provider'));
 
   const repoContent = (
     <RepoListItemContainer
       selected={isSelected}
-      onClick={() => isGithub && onToggle()}
-      disabled={!isGithub}
+      onClick={() => isSupportedProvider && onToggle()}
+      disabled={!isSupportedProvider}
       role="button"
       tabIndex={0}
       data-repo-id={repo.externalId}
@@ -33,14 +34,14 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
           <RepoName>{repo.name}</RepoName>
           <RightAlign>
             <RepoProvider>{repo.provider?.name || t('Unknown Provider')}</RepoProvider>
-            {isGithub && <AddIcon size="xs" />}
+            {isSupportedProvider && <AddIcon size="xs" />}
           </RightAlign>
         </RepoInfoWrapper>
       </RepoHeader>
     </RepoListItemContainer>
   );
 
-  return isGithub ? (
+  return isSupportedProvider ? (
     repoContent
   ) : (
     <Tooltip title={tooltipMessage} showUnderline={false}>
@@ -93,7 +94,7 @@ const RepoInfoWrapper = styled('div')`
 `;
 
 const RepoName = styled('div')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const RepoProvider = styled('div')`

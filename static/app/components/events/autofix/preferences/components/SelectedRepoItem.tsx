@@ -176,15 +176,13 @@ export function SelectedRepoItem({repo, onRemove, settings, onSettingsChange}: P
   );
 }
 
-const BaseRepoContainer = styled('div')`
+const SelectedRepoContainer = styled('div')`
   display: flex;
   flex-direction: column;
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
-
-const SelectedRepoContainer = styled(BaseRepoContainer)``;
 
 const SelectedRepoHeader = styled('div')`
   display: flex;
