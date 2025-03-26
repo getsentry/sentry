@@ -591,7 +591,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       if (isAutogroupedNode(node) && type !== 'ag') {
         const id = path ?? eventId!;
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, path ?? eventId!) ?? node;
+          node = TraceTree.FindByID(node.head, id) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
           node = node.children.find(n => TraceTree.FindByID(n, id)) ?? node;
         }
