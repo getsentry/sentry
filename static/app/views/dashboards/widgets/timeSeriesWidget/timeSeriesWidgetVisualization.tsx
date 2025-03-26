@@ -160,7 +160,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
 
-  const {ref} = props;
   const handleChartRef = useCallback(
     (e: ReactEchartsRef | null) => {
       if (!e?.getEchartsInstance) {
@@ -452,7 +451,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={mergeRefs(ref, chartRef, handleChartRef)}
+      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
       {...releaseBubbleEventHandlers}
       autoHeightResize
       series={[...series, releaseSeries].filter(defined)}
