@@ -592,7 +592,7 @@ const ControlWrap = styled('div')`
 export const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis}
   text-align: left;
-  line-height: normal;
+  ${p => !p.theme.isChonk && 'line-height: normal;'}
 `;
 
 const StyledBadge = styled(Badge)`
