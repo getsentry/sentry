@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {Fidelity} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
@@ -40,7 +40,7 @@ interface Options<Fields> {
   orderby?: string | string[];
   overriddenRoute?: string;
   referrer?: string;
-  samplingMode?: Fidelity;
+  samplingMode?: SamplingMode;
   search?: MutableSearch;
   topEvents?: number;
   yAxis?: Fields;

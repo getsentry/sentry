@@ -15,8 +15,8 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type Fidelity,
   QUERY_MODE,
+  type SamplingMode,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -26,7 +26,7 @@ interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
   queryExtras?: {
-    fidelity?: Fidelity;
+    samplingMode?: SamplingMode;
   };
 }
 

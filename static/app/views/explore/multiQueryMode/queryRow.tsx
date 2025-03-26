@@ -6,11 +6,12 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
-import {FIDELITY} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -60,7 +61,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
   const {
     result: timeseriesResult,
     canUsePreviousResults,
-    fidelity,
+    samplingMode: timeseriesSamplingMode,
   } = useMultiQueryTimeseries({
     index,
     enabled: true,
@@ -106,7 +107,8 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             canUsePreviousResults={canUsePreviousResults}
             isProgressivelyLoading={
               organization.features.includes('visibility-explore-progressive-loading') &&
-              fidelity !== FIDELITY.BEST_EFFORT
+              defined(timeseriesSamplingMode) &&
+              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
             }
           />
           <MultiQueryTable

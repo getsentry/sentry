@@ -53,7 +53,7 @@ import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAg
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
-import {FIDELITY} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -136,7 +136,7 @@ export function SpansTabContentImpl({
   const {
     result: timeseriesResult,
     canUsePreviousResults,
-    fidelity: timeseriesFidelity,
+    samplingMode: timeseriesSamplingMode,
   } = useExploreTimeseries({
     query,
     enabled: isAllowedSelection,
@@ -265,8 +265,8 @@ export function SpansTabContentImpl({
             timeseriesResult={timeseriesResult}
             isProgressivelyLoading={
               organization.features.includes('visibility-explore-progressive-loading') &&
-              defined(timeseriesFidelity) &&
-              timeseriesFidelity !== FIDELITY.BEST_EFFORT
+              defined(timeseriesSamplingMode) &&
+              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
             }
           />
           <ExploreTables

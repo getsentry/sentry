@@ -1,6 +1,6 @@
 import useOrganization from 'sentry/utils/useOrganization';
 
-export const FIDELITY = {
+export const SAMPLING_MODE = {
   PREFLIGHT: 'PREFLIGHT',
   BEST_EFFORT: 'BEST_EFFORT',
 } as const;
@@ -10,16 +10,16 @@ export const QUERY_MODE = {
   PARALLEL: 'parallel',
 } as const;
 
-const LOW_FIDELITY_QUERY_EXTRAS = {
-  samplingMode: FIDELITY.PREFLIGHT,
+const LOW_SAMPLING_MODE_QUERY_EXTRAS = {
+  samplingMode: SAMPLING_MODE.PREFLIGHT,
 } as const;
 
-const HIGH_FIDELITY_QUERY_EXTRAS = {
-  samplingMode: FIDELITY.BEST_EFFORT,
+const HIGH_SAMPLING_MODE_QUERY_EXTRAS = {
+  samplingMode: SAMPLING_MODE.BEST_EFFORT,
 } as const;
 
 export type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
-export type Fidelity = (typeof FIDELITY)[keyof typeof FIDELITY];
+export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
 
 interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
   queryHookArgs: Parameters<TQueryFn>[0];
@@ -52,7 +52,7 @@ export function useProgressiveQuery<
   queryHookArgs,
   queryMode,
 }: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
-  fidelity?: Fidelity;
+  samplingMode?: SamplingMode;
 } {
   const organization = useOrganization();
   const canUseProgressiveLoading = organization.features.includes(
@@ -64,33 +64,33 @@ export function useProgressiveQuery<
     enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
   });
 
-  const preflightFidelityRequest = queryHookImplementation({
+  const preflightRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: LOW_FIDELITY_QUERY_EXTRAS,
+    queryExtras: LOW_SAMPLING_MODE_QUERY_EXTRAS,
   });
 
-  const bestEffortFidelityRequest = queryHookImplementation({
+  const bestEffortRequest = queryHookImplementation({
     ...queryHookArgs,
-    queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
+    queryExtras: HIGH_SAMPLING_MODE_QUERY_EXTRAS,
     enabled:
       queryHookArgs.enabled &&
       canUseProgressiveLoading &&
-      (queryMode === QUERY_MODE.PARALLEL || preflightFidelityRequest.result.isFetched),
+      (queryMode === QUERY_MODE.PARALLEL || preflightRequest.result.isFetched),
   });
 
   if (!canUseProgressiveLoading) {
     return singleQueryResult;
   }
 
-  if (bestEffortFidelityRequest.result.isFetched) {
+  if (bestEffortRequest.result.isFetched) {
     return {
-      ...bestEffortFidelityRequest,
-      fidelity: FIDELITY.BEST_EFFORT,
+      ...bestEffortRequest,
+      samplingMode: SAMPLING_MODE.BEST_EFFORT,
     };
   }
 
   return {
-    ...preflightFidelityRequest,
-    fidelity: FIDELITY.PREFLIGHT,
+    ...preflightRequest,
+    samplingMode: SAMPLING_MODE.PREFLIGHT,
   };
 }
