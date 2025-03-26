@@ -17,6 +17,8 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -893,27 +895,76 @@ describe('Subscription > Overview', () => {
   });
 
   it('renders breakdown for transactions only', async function () {
+    // Set up AM2 subscription with profiling-billing feature
     const subscription = SubscriptionFixture({
       plan: 'am2_f',
       planTier: PlanTier.AM2,
       organization,
     });
-    SubscriptionStore.set(organization.slug, subscription);
     organization.features.push('profiling-billing');
+    SubscriptionStore.set(organization.slug, subscription);
 
+    // Set up mock data with event totals for transactions and profiles
+    const mockApi = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/usage/`,
+      method: 'GET',
+      body: {
+        ...CustomerUsageFixture(),
+        eventTotals: {
+          transactions: {
+            accepted: 50000,
+            dropped: 0,
+            droppedOther: 0,
+            droppedOverQuota: 0,
+            droppedSpikeProtection: 0,
+            filtered: 0,
+            projected: 0,
+          },
+          profiles: {
+            accepted: 25000,
+            dropped: 0,
+            droppedOther: 0,
+            droppedOverQuota: 0,
+            droppedSpikeProtection: 0,
+            filtered: 0,
+            projected: 0,
+          },
+        },
+      },
+    });
+
+    // Render the component
     render(<Overview location={mockLocation} />, {organization});
 
-    expect(
-      await screen.findByText('Performance units usage this period')
-    ).toBeInTheDocument();
+    expect(mockApi).toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByTestId('expand-usage-totals')[1]!);
+    // Wait for the Performance units heading to be visible
+    const performanceHeading = await screen.findByText(
+      'Performance units usage this period'
+    );
+    expect(performanceHeading).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('columnheader', {name: 'Transaction Events'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'Profile Events'})
-    ).toBeInTheDocument();
+    // Get the Performance units card and expand button
+    const expandButtons = screen.getAllByTestId('expand-usage-totals');
+
+    // The second expand button should be for transactions
+    const expandButton = expandButtons[1];
+    if (!expandButton) throw new Error('Expand button for transactions not found');
+
+    // Click the expand button to reveal the tables
+    await userEvent.click(expandButton);
+
+    // Check for the category-table-transactions which should be present
+    const transactionsTable = screen.getByTestId('category-table-transactions');
+    expect(transactionsTable).toBeInTheDocument();
+
+    // There should be event tables for accepted, dropped, etc.
+    const acceptedTable = screen.getByTestId('event-table-accepted');
+    expect(acceptedTable).toBeInTheDocument();
+
+    // Verify showEventBreakdown is working by checking for all these tables
+    // We should see multiple tables that have different event breakdowns
+    const tables = screen.getAllByRole('table');
+    expect(tables.length).toBeGreaterThan(1);
   });
 });

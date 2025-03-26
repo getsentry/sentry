@@ -498,7 +498,7 @@ function UsageTotals({
     : totals;
 
   return (
-    <SubscriptionCard>
+    <SubscriptionCard data-test-id={`usage-card-${category}`}>
       <CardBody>
         <UsageProgress>
           <BaseRow>
@@ -836,6 +836,7 @@ function UsageTotals({
                   category={key}
                   totals={eventTotal}
                   subscription={subscription}
+                  data-test-id={`event-breakdown-${key}`}
                 />
               );
             })}
