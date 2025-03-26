@@ -49,11 +49,6 @@ class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
         write_only=True,
         help_text="Whether or not to send an invite notification through email. Defaults to True.",
     )
-    reinvite = serializers.BooleanField(
-        required=False,
-        help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
-    )
-    regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
         users = user_service.get_many_by_email(
