@@ -4,6 +4,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry import audit_log
+from sentry.incidents.endpoints.validators import NumericComparisonConditionValidator
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
 from sentry.snuba.subscriptions import update_snuba_query
@@ -11,7 +12,6 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDetectorTypeValidator,
-    NumericComparisonConditionValidator,
 )
 from sentry.workflow_engine.models import DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
