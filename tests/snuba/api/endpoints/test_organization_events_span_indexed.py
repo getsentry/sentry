@@ -3378,3 +3378,64 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_preflight_request(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "PREFLIGHT",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        # There's no way to load data into specific storages
+        # https://github.com/getsentry/eap-planning/issues/212?issue=getsentry%7Ceap-planning%7C228
+        # just checking we still 200 for now
+
+    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/229")
+    def test_best_effort_request(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["span.status", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "BEST_EFFORT",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        # There's no way to load data into specific storages
+        # https://github.com/getsentry/eap-planning/issues/212?issue=getsentry%7Ceap-planning%7C228
+        # just checking we still 200 for now

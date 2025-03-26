@@ -47,6 +47,7 @@ from sentry.search.eap.columns import (
     VirtualColumnDefinition,
 )
 from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
 from sentry.search.events import fields
 from sentry.search.events import filter as event_filter
@@ -75,7 +76,7 @@ class SearchResolver:
     ] = field(default_factory=dict)
 
     @sentry_sdk.trace
-    def resolve_meta(self, referrer: str) -> RequestMeta:
+    def resolve_meta(self, referrer: str, sampling_mode: str | None = None) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
         span = sentry_sdk.get_current_span()
@@ -88,6 +89,7 @@ class SearchResolver:
             start_timestamp=self.params.rpc_start_date,
             end_timestamp=self.params.rpc_end_date,
             trace_item_type=self.definitions.trace_item_type,
+            downsampled_storage_config=validate_sampling(sampling_mode),
         )
 
     @sentry_sdk.trace

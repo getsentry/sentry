@@ -1,5 +1,6 @@
 from typing import Literal
 
+from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import AggregationComparisonFilter
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
@@ -153,4 +154,9 @@ RESPONSE_CODE_MAP = {
         "451",
     ],
     5: ["500", "501", "502", "503", "504", "505", "506", "507", "508", "509", "510", "511"],
+}
+
+SAMPLING_MODES = {
+    "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
+    "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
 }
