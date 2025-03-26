@@ -33,7 +33,6 @@ function SchemaHintsDrawer({
 }: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
-  // const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const selectedFilterKeys = useMemo(() => {
@@ -154,7 +153,7 @@ function SchemaHintsDrawer({
   return (
     <Fragment>
       <DrawerHeader hideBar />
-      <DrawerBody style={{height: '100%'}}>
+      <StyledDrawerBody>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
@@ -186,7 +185,7 @@ function SchemaHintsDrawer({
             </AllItemsContainer>
           </ScrollContainer>
         </StyledMultipleCheckbox>
-      </DrawerBody>
+      </StyledDrawerBody>
     </Fragment>
   );
 }
@@ -211,6 +210,10 @@ export const useSchemaHintsOnLargeScreen = () => {
 
 const SchemaHintsHeader = styled('h4')`
   margin: 0;
+`;
+
+const StyledDrawerBody = styled(DrawerBody)`
+  height: 100%;
 `;
 
 const HeaderContainer = styled('div')`
