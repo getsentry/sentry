@@ -108,7 +108,7 @@ class IdentityManager(BaseManager["Identity"]):
 
         analytics.record(
             "integrations.identity_linked",
-            provider="slack",
+            provider=idp.type,
             # Note that prior to circa March 2023 this was user.actor_id. It changed
             # when actor ids were no longer stable between regions for the same user
             actor_id=user.id,
