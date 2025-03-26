@@ -2,16 +2,24 @@ import {useCallback, useMemo} from 'react';
 
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
+import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
+import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
+import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
 const TRACE_EXPLORER_DATASET = 'spans';
 
-export function useSaveQuery() {
-  const {groupBys, sortBys, visualizes, fields, query, mode, id, title} =
-    useExplorePageParams();
+export function useSaveMultiQuery() {
+  const location = useLocation();
+  const id = getIdFromLocation(location);
+  const title = getTitleFromLocation(location);
+
+  const queries = useReadQueriesFromLocation().slice(0, MAX_QUERIES_ALLOWED);
+
   const {selection} = usePageFilters();
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
@@ -20,14 +28,10 @@ export function useSaveQuery() {
   const api = useApi();
   const organization = useOrganization();
 
-  const visualize = visualizes.map(({chartType, yAxes}) => ({
-    chartType,
-    yAxes,
-  }));
-
   const data = useMemo(() => {
     return {
       name: title,
+      isMultiQuery: true,
       dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
       start,
       end,
@@ -35,32 +39,16 @@ export function useSaveQuery() {
       interval,
       projects,
       environment: environments,
-      query: [
-        {
-          fields,
-          orderby: sortBys[0] ? encodeSort(sortBys[0]) : undefined,
-          groupby: groupBys.filter(groupBy => groupBy !== ''),
-          query: query ?? '',
-          visualize,
-          mode,
-        },
-      ],
+      query: queries.map(q => ({
+        fields: q.fields,
+        orderby: q.sortBys[0] ? encodeSort(q.sortBys[0]) : undefined, // Explore only handles a single sort by
+        groupby: q.groupBys.filter(groupBy => groupBy !== ''),
+        query: q.query ?? '',
+        visualize: [{yAxes: q.yAxes, chartType: q.chartType}],
+        mode: q.groupBys.length > 0 ? 'aggregate' : 'samples',
+      })),
     };
-  }, [
-    groupBys,
-    sortBys,
-    visualize,
-    fields,
-    query,
-    mode,
-    start,
-    end,
-    period,
-    interval,
-    projects,
-    environments,
-    title,
-  ]);
+  }, [title, start, end, period, interval, projects, environments, queries]);
 
   const saveQuery = useCallback(
     async (newTitle: string) => {

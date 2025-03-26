@@ -263,7 +263,10 @@ export function SpansTabContentImpl({
             confidences={confidences}
             query={query}
             timeseriesResult={timeseriesResult}
-            isProgressivelyLoading={timeseriesFidelity !== FIDELITY.AUTO}
+            isProgressivelyLoading={
+              organization.features.includes('visibility-explore-progressive-loading') &&
+              timeseriesFidelity !== FIDELITY.AUTO
+            }
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}
