@@ -419,7 +419,7 @@ class SnubaTagStorage(TagStorage):
 
         organization_id = get_organization_id_from_project_ids(get_project_list(project_id))
         organization = Organization.objects.get_from_cache(id=organization_id)
-        if True or features.has("organizations:tag-key-sample-n", organization):
+        if features.has("organizations:tag-key-sample-n", organization):
             # Add static sample amount to the query. Turbo will sample at 10% by
             # default, but organizations with many events still get timeouts. A
             # static sample creates more consistent performance.

@@ -41,7 +41,7 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
             include_values_seen = request.GET.get("includeValuesSeen") != "0"
 
-            if True or features.has("organizations:tag-key-sample-n", project.organization):
+            if features.has("organizations:tag-key-sample-n", project.organization):
                 # Tag queries longer than 14 days tend to time out for large customers. For getting a list of tags, clamping to 14 days is a reasonable compromise of speed vs. completeness
                 (start, end) = clamp_date_range(
                     default_start_end_dates(),
