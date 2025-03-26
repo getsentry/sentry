@@ -1014,7 +1014,9 @@ describe('trace view', () => {
       expect(rows[4]!.textContent?.includes('Autogrouped')).toBe(true);
     });
     it('scrolls to child of parent autogroup node', async () => {
-      mockQueryString('?node=span-redis0&node=txn-1');
+      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
+      // as path is prioritized over targetId/eventId
+      mockQueryString('?node=span-redis0&node=txn-1&targetId=doesnotexist');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);
