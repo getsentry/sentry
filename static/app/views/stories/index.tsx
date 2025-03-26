@@ -52,9 +52,12 @@ export default function Stories() {
   const navigate = useNavigate();
   const onSearchInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      navigate({
-        query: {...location.query, query: e.target.value, name: location.query.name},
-      });
+      navigate(
+        {
+          query: {...location.query, query: e.target.value, name: location.query.name},
+        },
+        {replace: true}
+      );
     },
     [location.query, navigate]
   );
