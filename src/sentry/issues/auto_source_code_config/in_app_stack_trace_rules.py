@@ -39,7 +39,7 @@ def save_in_app_stack_trace_rules(
 # XXX: This is very Java specific. If we want to support other languages, we need to
 # come up with a better way to generate the rule.
 def generate_rule_for_code_mapping(code_mapping: CodeMapping) -> str:
-    """Generate a rule for a given code mapping"""
+    """Generate an in-app rule for a given code mapping"""
     stacktrace_root = code_mapping.stacktrace_root
     if stacktrace_root == "":
         raise ValueError("Stacktrace root is empty")

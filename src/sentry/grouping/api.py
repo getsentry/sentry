@@ -112,7 +112,7 @@ class GroupingConfigLoader:
             return enhancements
 
         try:
-            # Automatic enhancements are always applied first, so they take precedence over
+            # Automatic enhancements are always applied first, so they can be overridden by
             # project-specific enhancements.
             enhancements_string = project_enhancements or ""
             if derived_enhancements:
