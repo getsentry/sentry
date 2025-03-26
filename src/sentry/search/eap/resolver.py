@@ -62,9 +62,9 @@ class SearchResolver:
     """
 
     params: SnubaParams
-    granularity_secs: int | None
     config: SearchResolverConfig
     definitions: ColumnDefinitions
+    granularity_secs: int | None = None
     _resolved_attribute_cache: dict[
         str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
