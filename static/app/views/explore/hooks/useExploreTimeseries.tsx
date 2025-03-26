@@ -32,14 +32,6 @@ interface UseExploreTimeseriesResults {
   result: ReturnType<typeof useSortedTimeSeries>;
 }
 
-/**
- * This hook is used to fetch timeseries data from the EAP dataset.
- * It will trigger two queries, one that should resolve data quickly and
- * one that will resolve more data but takes longer to execute.
- *
- * The hook will bias towards the high fidelity results if they are available.
- * isLoading will be true if the high fidelity results are not available.
- */
 export const useExploreTimeseries = ({
   query,
   enabled,

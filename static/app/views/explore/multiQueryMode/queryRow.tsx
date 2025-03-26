@@ -54,7 +54,11 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+  const {
+    result: timeseriesResult,
+    canUsePreviousResults,
+    isFetchingHighFidelityData: isProgressivelyLoading,
+  } = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
@@ -97,6 +101,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
+            isProgressivelyLoading={isProgressivelyLoading}
           />
           <MultiQueryTable
             confidences={[]}

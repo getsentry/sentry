@@ -32,7 +32,7 @@ export const DEFAULT_TOP_EVENTS = 5;
 export function useMultiQueryTimeseries({
   enabled,
   index,
-}: UseMultiQueryTimeseriesOptions): UseMultiQueryTimeseriesResults {
+}: UseMultiQueryTimeseriesOptions) {
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl,
     queryHookArgs: {enabled, index},
