@@ -18,6 +18,10 @@ export interface UseResizableDrawerOptions {
    */
   onResize: (size: number, userEvent: boolean) => void;
   /**
+   * The maximum size the container may be dragged to
+   */
+  max?: number;
+  /**
    * The local storage key used to persist the size of the container
    */
   sizeStorageKey?: string;
@@ -100,10 +104,14 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
           Math.max(options.min, sizeRef.current + positionDelta * (isInverted ? -1 : 1))
         );
 
-        updateSize(newSize, true);
+        // Apply max constraint if provided
+        const constrainedSize =
+          options.max === undefined ? newSize : Math.min(newSize, options.max);
+
+        updateSize(constrainedSize, true);
       });
     },
-    [options.direction, options.min, updateSize]
+    [options.direction, options.min, options.max, updateSize]
   );
 
   const onMouseUp = useCallback(() => {
