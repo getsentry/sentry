@@ -15,17 +15,14 @@ from sentry.utils.snowflake import snowflake_id_model
 
 
 class EventType(Enum):
-    PROFILE = "profile"
-    PROFILE_CHUNK = "profile_chunk"
+    PROFILE = 0
+    PROFILE_CHUNK = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[tuple[str, str]]:
-        return tuple(
-            (choice.value, choice.value)
-            for choice in (
-                cls.PROFILE,
-                cls.PROFILE_CHUNK,
-            )
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
+        return (
+            (cls.PROFILE.value, "profile"),
+            (cls.PROFILE_CHUNK.value, "profile_chunk"),
         )
 
 
