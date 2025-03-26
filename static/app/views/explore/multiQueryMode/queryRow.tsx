@@ -54,7 +54,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+  const {result: timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
     index,
     enabled: true,
   });

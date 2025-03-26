@@ -1,20 +1,8 @@
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface QueryProps {
-  enabled: boolean;
-  query: string;
-  queryExtras?: Record<string, any>;
-}
-
-interface QueryResult<T> {
-  canUsePreviousResults: boolean;
-  result: T;
-}
-
-interface ProgressiveQueryOptions<T> {
-  enabled: boolean;
-  query: string;
-  useQueryImpl: (props: QueryProps) => QueryResult<T>;
+interface ProgressiveQueryOptions<TQueryFn extends (...args: any[]) => any> {
+  queryHookArgs: Parameters<TQueryFn>[0];
+  queryHookImplementation: (props: Parameters<TQueryFn>[0]) => ReturnType<TQueryFn>;
 }
 
 const LOW_FIDELITY_QUERY_EXTRAS = {
@@ -25,11 +13,10 @@ const HIGH_FIDELITY_QUERY_EXTRAS = {
   fidelity: 'auto',
 } as const;
 
-export function useProgressiveQuery<T extends {isFetched: boolean}>({
-  enabled,
-  useQueryImpl,
-  query,
-}: ProgressiveQueryOptions<T>): QueryResult<T> & {
+export function useProgressiveQuery<TQueryFn extends (...args: any[]) => any>({
+  queryHookImplementation,
+  queryHookArgs,
+}: ProgressiveQueryOptions<TQueryFn>): ReturnType<TQueryFn> & {
   isFetchingHighFidelityData?: boolean;
 } {
   const organization = useOrganization();
@@ -37,17 +24,18 @@ export function useProgressiveQuery<T extends {isFetched: boolean}>({
     'visibility-explore-progressive-loading'
   );
 
-  const singleQueryResult = useQueryImpl({enabled, query});
+  const singleQueryResult = queryHookImplementation({
+    ...queryHookArgs,
+    enabled: queryHookArgs.enabled && !canUseProgressiveLoading,
+  });
 
-  const lowFidelityResult = useQueryImpl({
-    enabled,
-    query,
+  const lowFidelityResult = queryHookImplementation({
+    ...queryHookArgs,
     queryExtras: LOW_FIDELITY_QUERY_EXTRAS,
   });
 
-  const highFidelityResult = useQueryImpl({
-    enabled,
-    query,
+  const highFidelityResult = queryHookImplementation({
+    ...queryHookArgs,
     queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
   });
 

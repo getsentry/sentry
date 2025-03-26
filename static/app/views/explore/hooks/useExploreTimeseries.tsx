@@ -47,10 +47,9 @@ export const useExploreTimeseries = ({
   enabled: boolean;
   query: string;
 }) => {
-  return useProgressiveQuery<ReturnType<typeof useSortedTimeSeries>>({
-    enabled,
-    useQueryImpl: useExploreTimeseriesImpl,
-    query,
+  return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
+    queryHookImplementation: useExploreTimeseriesImpl,
+    queryHookArgs: {query, enabled},
   });
 };
 
