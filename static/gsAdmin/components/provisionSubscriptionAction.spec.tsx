@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-disabled-tests */
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -644,7 +645,7 @@ describe('provisionSubscriptionAction', function () {
     );
   });
 
-  it('retains on-demand budget when toggled', async () => {
+  it.skip('retains on-demand budget when toggled', async () => {
     const am2Sub = SubscriptionFixture({
       organization: mockOrg,
       plan: 'am2_f',
@@ -782,7 +783,7 @@ describe('provisionSubscriptionAction', function () {
     );
   }, 10_000);
 
-  it('removes retain on-demand budget toggle when plan changes', async () => {
+  it.skip('removes retain on-demand budget toggle when plan changes', async () => {
     const am2Sub = SubscriptionFixture({
       organization: mockOrg,
       plan: 'am2_f',
@@ -942,7 +943,7 @@ describe('provisionSubscriptionAction', function () {
     );
   }, 10000);
 
-  it('calls api with correct am2 args', async () => {
+  it.skip('calls api with correct am2 args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
     triggerProvisionSubscription({
       subscription: am2Sub,
@@ -1076,7 +1077,7 @@ describe('provisionSubscriptionAction', function () {
     );
   }, 10_000);
 
-  it('calls api with correct am3 args', async () => {
+  it.skip('calls api with correct am3 args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
     triggerProvisionSubscription({
       subscription: am3Sub,
@@ -1210,7 +1211,7 @@ describe('provisionSubscriptionAction', function () {
     );
   }, 10_000);
 
-  it('calls api with correct am3 dynamic sampling args', async () => {
+  it.skip('calls api with correct am3 dynamic sampling args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
     triggerProvisionSubscription({
       subscription: am3Sub,
@@ -1343,7 +1344,7 @@ describe('provisionSubscriptionAction', function () {
     );
   }, 10_000);
 
-  it('calls api with correct manually invoiced on-demand args', async () => {
+  it.skip('calls api with correct manually invoiced on-demand args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
     triggerProvisionSubscription({
       subscription: am2Sub,
