@@ -158,6 +158,8 @@ class SpansBuffer:
         has_root_span_count = 0
         min_hole_size = float("inf")
         max_hole_size = float("-inf")
+        min_num_copied_items = float("inf")
+        max_num_copied_items = float("-inf")
 
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
             with self.client.pipeline(transaction=False) as p:
@@ -197,11 +199,13 @@ class SpansBuffer:
                     queue_keys.append(queue_key)
 
                 results = iter(p.execute())
-                for hole_size, delete_item, item, has_root_span in results:
+                for num_copied_items, hole_size, delete_item, item, has_root_span in results:
                     # For each span, hole_size measures how long it took to
                     # find the corresponding intermediate segment. Larger
                     # numbers loosely correlate with fewer siblings per tree
                     # level.
+                    min_num_copied_items = min(min_num_copied_items, num_copied_items)
+                    max_num_copied_items = max(max_num_copied_items, num_copied_items)
                     min_hole_size = min(min_hole_size, hole_size)
                     max_hole_size = max(max_hole_size, hole_size)
                     queue_delete_items.append(delete_item)
@@ -233,8 +237,15 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
 
+        # The following metrics can be used to debug the performance of eval() in Redis:
+        # * hole_size: How many redirect keys did we follow, loosely correlates
+        #   with tree depth.
+        # * num_copied_items: How many times did we copy an entire array into
+        #   another array, loosely correlates with segment size.
         metrics.timing("span.buffer.hole_size.min", min_hole_size)
         metrics.timing("span.buffer.hole_size.max", max_hole_size)
+        metrics.timing("span.buffer.num_copied_items.min", min_num_copied_items)
+        metrics.timing("span.buffer.num_copied_items.max", max_num_copied_items)
 
     def flush_segments(
         self, now: int, max_segments: int = 0
@@ -262,7 +273,7 @@ class SpansBuffer:
                     # process return value of zrevrangebyscore
                     for segment_id in segment_span_ids:
                         segment_ids.append(segment_id)
-                        p.smembers(segment_id)
+                        p.lrange(segment_id, 0, -1)
 
                     # ZCARD output
                     queue_sizes.append(next(result))

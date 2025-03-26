@@ -40,11 +40,16 @@ end
 redis.call("hset", main_redirect_key, span_id, set_span_id)
 local set_key = string.format("span-buf:s:{%s}:%s", project_and_trace, set_span_id)
 
+local num_copied_items = 0
 if not is_root_span then
-    redis.call("sunionstore", set_key, set_key, span_key)
-    redis.call("del", span_key)
+    for i = 0, 100000 do
+        if not redis.call("lmove", span_key, set_key, "RIGHT", "LEFT") then
+            break
+        end
+        num_copied_items = i
+    end
 end
-redis.call("sadd", set_key, payload)
+redis.call("lpush", set_key, payload)
 redis.call("expire", set_key, set_timeout)
 
 redis.call("expire", main_redirect_key, set_timeout)
@@ -55,4 +60,4 @@ if has_root_span or is_root_span then
     redis.call("setex", has_root_span_key, set_timeout, "1")
 end
 
-return {hole_size, span_key, set_key, has_root_span or is_root_span}
+return {hole_size, num_copied_items, span_key, set_key, has_root_span or is_root_span}
