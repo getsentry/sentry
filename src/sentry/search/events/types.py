@@ -178,8 +178,8 @@ class SnubaParams:
         return [team.id for team in self.teams]
 
     @property
-    def interval(self) -> float | None:
-        if self.start and self.end:
+    def interval(self) -> float:
+        if self.start_date and self.end_date:
             return (self.end - self.start).total_seconds()
         return None
 

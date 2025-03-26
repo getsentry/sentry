@@ -397,10 +397,6 @@ def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
 
     divisor = granularity_secs if granularity_secs else interval
 
-    # This should never happen it should get caught earlier
-    if divisor is None:
-        raise ValueError("Invalid query interval or granularity")
-
     return Column.BinaryFormula(
         left=Column(
             aggregation=AttributeAggregation(
