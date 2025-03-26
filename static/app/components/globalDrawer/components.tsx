@@ -122,6 +122,9 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
       }
       handle.setAttribute('data-resizing', 'true');
 
+      // Add resizing class to the panel to hide scrollbars
+      panel.classList.add('resizing');
+
       const viewportWidth = window.innerWidth;
       const minWidthPercent = 30;
       const maxWidthPercent = 85;
@@ -154,7 +157,9 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
           handle.removeAttribute('data-resizing');
         }
 
+        // Remove resizing class to restore scrollbars
         if (panel) {
+          panel.classList.remove('resizing');
           const currentWidth = parseFloat(panel.style.width) || widthPercent;
           setWidthPercent(currentWidth);
         }
@@ -288,6 +293,29 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   border-left: 1px solid ${p => p.theme.border};
   position: relative;
   pointer-events: auto;
+
+  &.resizing {
+    /* Hide scrollbars during resize */
+    overflow: hidden !important;
+
+    /* Hide scrollbars in Firefox */
+    scrollbar-width: none;
+
+    /* Hide scrollbars in WebKit browsers */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Apply to all scrollable children */
+    * {
+      overflow: hidden !important;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+  }
 `;
 
 const ResizeHandle = styled('div')`
