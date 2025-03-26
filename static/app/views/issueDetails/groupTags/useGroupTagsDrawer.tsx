@@ -41,9 +41,9 @@ export function useGroupTagsDrawer({
             {replace: true}
           );
         },
-        shouldCloseOnLocationChange: newLocation => {
-          return !newLocation.pathname.includes('/tags/');
-        },
+        // shouldCloseOnLocationChange: newLocation => {
+        //   return !newLocation.pathname.includes('/tags/');
+        // },
       }
     );
   }, [location, navigate, openDrawer, group, baseUrl, includeFeatureFlagsTab]);

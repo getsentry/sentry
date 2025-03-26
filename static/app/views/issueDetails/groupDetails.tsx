@@ -667,6 +667,8 @@ function GroupDetailsContent({
 
     if (currentTab === Tab.TAGS) {
       openTagsDrawer();
+    } else if (currentTab === Tab.DISTRIBUTIONS) {
+      openTagsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
