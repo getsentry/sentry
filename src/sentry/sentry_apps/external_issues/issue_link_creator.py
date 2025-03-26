@@ -5,7 +5,10 @@ from django.db import router, transaction
 
 from sentry.models.group import Group
 from sentry.sentry_apps.external_issues.external_issue_creator import ExternalIssueCreator
-from sentry.sentry_apps.external_requests.issue_link_requester import IssueLinkRequester
+from sentry.sentry_apps.external_requests.issue_link_requester import (
+    IssueLinkRequester,
+    IssueRequestActionType,
+)
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
@@ -18,7 +21,7 @@ VALID_ACTIONS = ["link", "create"]
 class IssueLinkCreator:
     install: RpcSentryAppInstallation
     group: Group
-    action: str
+    action: IssueRequestActionType
     fields: dict[str, Any]
     uri: str
     user: RpcUser
@@ -31,8 +34,12 @@ class IssueLinkCreator:
             return external_issue
 
     def _verify_action(self) -> None:
-        if self.action not in VALID_ACTIONS:
-            raise SentryAppSentryError(message=f"Invalid action: {self.action}", status_code=401)
+        try:
+            self.action = IssueRequestActionType(self.action)
+        except ValueError as e:
+            raise SentryAppSentryError(
+                message=f"Invalid action: {self.action}", status_code=500
+            ) from e
 
     def _make_external_request(self) -> dict[str, Any]:
         response = IssueLinkRequester(
