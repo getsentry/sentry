@@ -264,7 +264,8 @@ export function SpansTabContentImpl({
             query={query}
             timeseriesResult={timeseriesResult}
             isProgressivelyLoading={
-              defined(timeseriesFidelity) && timeseriesFidelity !== 'high'
+              organization.features.includes('visibility-explore-progressive-loading') &&
+              timeseriesFidelity !== 'high'
             }
           />
           <ExploreTables
