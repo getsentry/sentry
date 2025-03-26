@@ -46,6 +46,8 @@ family:native function:std::panicking::begin_panic                ^-group -group
 family:native function:core::panicking::begin_panic               ^-group -group ^-app -app
 family:native function:failure::backtrace::Backtrace::new         ^-group -group ^-app -app
 family:native function:error_chain::make_backtrace                ^-group -group ^-app -app
+family:native function:std::panicking::panic_fmt                  ^-app -app
+family:native function:core::panicking::panic_fmt                 ^-app -app
 
 # C++ borders
 family:native function:_CxxThrowException                         ^-group -group ^-app -app
