@@ -276,6 +276,7 @@ export const useOpenSeerDrawer = (
 
     openDrawer(() => <SeerDrawer group={group} project={project} event={event} />, {
       ariaLabel: t('Seer drawer'),
+      drawerKey: 'seer-autofix-drawer',
       shouldCloseOnInteractOutside: element => {
         const viewAllButton = buttonRef?.current;
 

@@ -1,4 +1,11 @@
-import {createContext, forwardRef, Fragment, useContext} from 'react';
+import {
+  createContext,
+  forwardRef,
+  Fragment,
+  useCallback,
+  useContext,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import type {AnimationProps} from 'framer-motion';
 
@@ -8,6 +15,7 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 interface DrawerContentContextType {
   ariaLabel: string;
@@ -28,14 +36,113 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   headerContent: React.ReactNode;
   onClose: DrawerContentContextType['onClose'];
+  drawerKey?: string;
   drawerWidth?: DrawerOptions['drawerWidth'];
   transitionProps?: AnimationProps['transition'];
 }
 
-export const DrawerPanel = forwardRef(function _DrawerPanel(
-  {ariaLabel, children, transitionProps, onClose, drawerWidth}: DrawerPanelProps,
+function getDrawerWidthKey(drawerKey: string) {
+  return `drawer-width:${drawerKey}`;
+}
+
+export const DrawerPanel = forwardRef(function DrawerPanel(
+  {
+    ariaLabel,
+    children,
+    transitionProps,
+    onClose,
+    drawerWidth,
+    drawerKey,
+    headerContent: _headerContent,
+  }: DrawerPanelProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Calculate initial width from props or default to 50%
+  const calculateInitialWidth = (savedWidth?: number) => {
+    // If we have a saved width, use it but ensure it's within bounds
+    if (savedWidth !== undefined) {
+      const minWidthPercent = 30;
+      const maxWidthPercent = 90;
+      return Math.min(Math.max(savedWidth, minWidthPercent), maxWidthPercent);
+    }
+
+    if (drawerWidth) {
+      // If width is already in percentage, parse and clamp it
+      if (drawerWidth.endsWith('%')) {
+        const parsedPercent = parseFloat(drawerWidth);
+        const minWidthPercent = 30;
+        const maxWidthPercent = 90;
+        return Math.min(Math.max(parsedPercent, minWidthPercent), maxWidthPercent);
+      }
+      // If width is in pixels, convert to percentage and clamp
+
+      const viewportWidth = typeof window === 'undefined' ? 1000 : window.innerWidth;
+      const parsedPixels = parseFloat(drawerWidth);
+      const percentValue = (parsedPixels / viewportWidth) * 100;
+      const minWidthPercent = 30;
+      const maxWidthPercent = 90;
+      return Math.min(Math.max(percentValue, minWidthPercent), maxWidthPercent);
+    }
+
+    return 50; // Default to 50%
+  };
+
+  // Use normal state for when no drawerKey is provided
+  const [localWidthPercent, setLocalWidthPercent] = useState<number>(() =>
+    calculateInitialWidth()
+  );
+
+  // Use localStorage state when drawerKey is provided
+  const [persistedWidthPercent, setPersistedWidthPercent] =
+    useSyncedLocalStorageState<number>(
+      drawerKey ? getDrawerWidthKey(drawerKey) : 'drawer-width:default',
+      (value?: unknown) => {
+        const savedWidth = typeof value === 'number' ? value : undefined;
+        return calculateInitialWidth(savedWidth);
+      }
+    );
+
+  const widthPercent = drawerKey ? persistedWidthPercent : localWidthPercent;
+  const setWidthPercent = drawerKey ? setPersistedWidthPercent : setLocalWidthPercent;
+
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setIsResizing(true);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        moveEvent.preventDefault();
+        const viewportWidth = window.innerWidth;
+        const newWidthPercent =
+          ((viewportWidth - moveEvent.clientX) / viewportWidth) * 100;
+        const minWidthPercent = 30;
+        const maxWidthPercent = 85;
+        const clampedWidthPercent = Math.min(
+          Math.max(newWidthPercent, minWidthPercent),
+          maxWidthPercent
+        );
+        setWidthPercent(clampedWidthPercent);
+      };
+
+      const handleMouseUp = () => {
+        setIsResizing(false);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [setWidthPercent]
+  );
+
+  const minWidthPercent = 30;
+  const maxWidthPercent = 90;
+  const isAtMinWidth = widthPercent <= minWidthPercent;
+  const isAtMaxWidth = Math.abs(widthPercent - maxWidthPercent) < 1;
+
   return (
     <DrawerContainer>
       <DrawerSlidePanel
@@ -44,13 +151,17 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
         collapsed={false}
         ref={ref}
         transitionProps={transitionProps}
-        panelWidth={drawerWidth}
+        panelWidth={`${widthPercent}%`}
+        className="drawer-panel"
       >
-        {/*
-          This provider allows data passed to openDrawer to be accessed by drawer components.
-          For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
-          when it's button is pressed.
-        */}
+        {drawerKey && (
+          <ResizeHandle
+            onMouseDown={handleResizeStart}
+            isResizing={isResizing}
+            isAtMinWidth={isAtMinWidth}
+            isAtMaxWidth={isAtMaxWidth}
+          />
+        )}
         <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
           {children}
         </DrawerContentContext.Provider>
@@ -142,7 +253,51 @@ const DrawerContainer = styled('div')`
 `;
 
 const DrawerSlidePanel = styled(SlideOverPanel)`
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder};
+  box-shadow: 0 0 0 1px ${p => p.theme.dropShadowHeavy};
+  border-left: 1px solid ${p => p.theme.border};
+  position: relative;
+  pointer-events: auto;
+`;
+
+const ResizeHandle = styled('div')<{
+  isResizing: boolean;
+  isAtMaxWidth?: boolean;
+  isAtMinWidth?: boolean;
+}>`
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ${p => {
+    if (p.isAtMinWidth) {
+      return 'w-resize';
+    }
+    if (p.isAtMaxWidth) {
+      return 'e-resize';
+    }
+    return 'ew-resize';
+  }};
+  z-index: ${p => p.theme.zIndex.drawer + 2};
+
+  &:hover,
+  &:active {
+    &::after {
+      background: ${p => p.theme.purple400};
+    }
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    opacity: 0.8;
+    background: ${p => (p.isResizing ? p.theme.purple400 : 'transparent')};
+    transition: background 0.1s ease;
+  }
 `;
 
 export const DrawerComponents = {

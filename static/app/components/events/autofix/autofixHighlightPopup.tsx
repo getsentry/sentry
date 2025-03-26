@@ -320,8 +320,21 @@ function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
 
-  // Fixed position from the right edge of the viewport
-  const left = viewportWidth / 2 - popupRect.width + 8;
+  // Find the drawer element to get its actual width
+  const drawerElement = document.querySelector('.drawer-panel');
+  const drawerWidth = drawerElement
+    ? drawerElement.getBoundingClientRect().width
+    : viewportWidth * 0.5;
+
+  // Calculate initial position to the left of the drawer
+  let left = viewportWidth - drawerWidth - popupRect.width - 8;
+
+  // Ensure the popup is not cut off on the left side
+  const minLeftMargin = 8;
+  if (left < minLeftMargin) {
+    left = minLeftMargin;
+  }
+
   let top = referenceRect.top;
 
   // Ensure the popup stays within the viewport vertically
@@ -345,6 +358,7 @@ function AutofixHighlightPopup(props: Props) {
     left: 0,
     top: 0,
   });
+  const [width, setWidth] = useState<number | undefined>(undefined);
   const [isFocused, setIsFocused] = useState(false);
 
   useLayoutEffect(() => {
@@ -355,9 +369,22 @@ function AutofixHighlightPopup(props: Props) {
     const updatePosition = () => {
       const referenceRect = referenceElement.getBoundingClientRect();
       const popupRect = popupRef.current!.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+
+      // Find the drawer element to get its actual width
+      const drawerElement = document.querySelector('.drawer-panel');
+      const drawerWidth = drawerElement
+        ? drawerElement.getBoundingClientRect().width
+        : viewportWidth * 0.5;
+
+      // Calculate available width for the popup
+      const availableWidth = viewportWidth - drawerWidth - 16; // 8px padding on each side
+      const defaultWidth = 300;
+      const newWidth = Math.min(defaultWidth, Math.max(200, availableWidth));
 
       startTransition(() => {
         setPosition(getOptimalPosition(referenceRect, popupRect));
+        setWidth(newWidth);
       });
     };
 
@@ -412,6 +439,7 @@ function AutofixHighlightPopup(props: Props) {
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
+        width: width ? `${width}px` : '300px',
       }}
       isFocused={isFocused}
       onFocus={handleFocus}
@@ -436,7 +464,8 @@ const Wrapper = styled(motion.div)<
   align-items: flex-start;
   margin-right: ${space(1)};
   gap: ${space(1)};
-  width: 300px;
+  max-width: 300px;
+  min-width: 200px;
   position: fixed;
   will-change: transform;
 `;

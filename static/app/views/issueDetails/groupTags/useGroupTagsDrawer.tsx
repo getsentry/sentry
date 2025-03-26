@@ -27,6 +27,7 @@ export function useGroupTagsDrawer({
       ),
       {
         ariaLabel: t('Tags Drawer'),
+        drawerKey: 'tags-drawer',
         onClose: () => {
           navigate(
             {
