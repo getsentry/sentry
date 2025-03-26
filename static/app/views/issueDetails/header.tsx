@@ -133,7 +133,7 @@ export function GroupHeaderTabs({
         key={Tab.TAGS}
         hidden={!issueTypeConfig.pages.tagsTab.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
-        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
+        to={{pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`, query: queryParams}}
       >
         {t('Tags')}
       </TabList.Item>
