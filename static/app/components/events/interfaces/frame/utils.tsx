@@ -186,7 +186,10 @@ function getRootDomain(url: string): string {
     return parts.slice(-2).join('.');
   } catch (err) {
     // Capture to review edge cases and handle them properly
-    Sentry.captureException(err);
+    Sentry.withScope(scope => {
+      scope.setExtra('url', url);
+      Sentry.captureException(err);
+    });
     return '';
   }
 }
@@ -202,7 +205,10 @@ function getProtocol(url: string): string {
     return new URL(url).protocol;
   } catch (err) {
     // Capture to review edge cases and handle them properly
-    Sentry.captureException(err);
+    Sentry.withScope(scope => {
+      scope.setExtra('url', url);
+      Sentry.captureException(err);
+    });
     return '';
   }
 }
