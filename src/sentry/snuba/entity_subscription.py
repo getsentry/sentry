@@ -271,6 +271,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             organization=Organization.objects.get_from_cache(id=self.org_id),
             start=now - timedelta(days=1),
             end=now,
+            granularity_secs=self.time_window,
         )
 
         rpc_request, _, _ = get_timeseries_query(
@@ -280,7 +281,6 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             groupby=[],
             referrer=referrer,
             config=SearchResolverConfig(),
-            granularity_secs=self.time_window,
         )
 
         return rpc_request

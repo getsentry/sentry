@@ -33,7 +33,6 @@ class TSResultForComparison(TypedDict):
 def make_rpc_request(
     query: str,
     aggregate: str,
-    time_window: int,
     snuba_params: SnubaParams,
 ) -> TSResultForComparison:
     query = apply_dataset_query_conditions(SnubaQuery.Type.PERFORMANCE, query, None)
@@ -46,7 +45,6 @@ def make_rpc_request(
         query_string=query_parts["query"],
         y_axes=query_parts["selected_columns"],
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
-        granularity_secs=time_window,
         config=SearchResolverConfig(),
     )
 
@@ -181,12 +179,12 @@ def compare_timeseries_for_alert_rule(alert_rule: AlertRule):
         organization=organization,
         start=now - timedelta(days=1),
         end=now,
+        granularity_secs=snuba_query.time_window,
     )
 
     rpc_result = make_rpc_request(
         snuba_query.query,
         snuba_query.aggregate,
-        time_window=snuba_query.time_window,
         snuba_params=snuba_params,
     )
 

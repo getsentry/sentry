@@ -85,6 +85,8 @@ class SnubaParams:
     start: datetime | None = None
     end: datetime | None = None
     stats_period: str | None = None
+    # granularity is used with timeseries requests to specifiy bucket size
+    granularity_secs: int | None = None
     # The None value in this sequence is because the filter params could include that
     environments: Sequence[Environment | None] = field(default_factory=list)
     projects: Sequence[Project] = field(default_factory=list)
@@ -139,6 +141,16 @@ class SnubaParams:
         timestamp = Timestamp()
         timestamp.FromDatetime(self.end_date)
         return timestamp
+
+    @property
+    def timeseries_granularity_secs(self) -> int:
+        if self.granularity_secs is None:
+            raise InvalidSearchQuery("granularity is required")
+        return self.granularity_secs
+
+    @property
+    def is_timeseries_request(self) -> bool:
+        return self.granularity_secs is not None
 
     @property
     def date_range(self) -> timedelta:
