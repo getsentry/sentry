@@ -126,10 +126,10 @@ describe('HTTPSummaryPage', function () {
         ],
         meta: {
           fields: {
-            'spm()': 'rate',
+            'epm()': 'rate',
           },
           units: {
-            'spm()': '1/second',
+            'epm()': '1/second',
           },
         },
       },
@@ -227,7 +227,7 @@ describe('HTTPSummaryPage', function () {
             referrer: 'api.performance.http.domain-summary-throughput-chart',
             statsPeriod: '10d',
             topEvents: undefined,
-            yAxis: 'spm()',
+            yAxis: 'epm()',
             transformAliasToInputFormat: '1',
           },
         })
@@ -299,7 +299,7 @@ describe('HTTPSummaryPage', function () {
           dataset: 'spansMetrics',
           environment: [],
           field: [
-            'spm()',
+            'epm()',
             'avg(span.self_time)',
             'sum(span.self_time)',
             'http_response_rate(3)',
@@ -328,7 +328,7 @@ describe('HTTPSummaryPage', function () {
             'project.id',
             'transaction',
             'transaction.method',
-            'spm()',
+            'epm()',
             'http_response_rate(3)',
             'http_response_rate(4)',
             'http_response_rate(5)',
@@ -384,7 +384,7 @@ describe('HTTPSummaryPage', function () {
             'project.id': 8,
             transaction: '/api/users',
             'transaction.method': 'GET',
-            'spm()': 17.88,
+            'epm()': 17.88,
             'http_response_rate(3)': 0.97,
             'http_response_rate(4)': 0.025,
             'http_response_rate(5)': 0.005,
@@ -394,7 +394,7 @@ describe('HTTPSummaryPage', function () {
         ],
         meta: {
           fields: {
-            'spm()': 'rate',
+            'epm()': 'rate',
             'avg(span.self_time)': 'duration',
             'http_response_rate(3)': 'percentage',
             'http_response_rate(4)': 'percentage',

@@ -103,7 +103,7 @@ export function HTTPLandingPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_THROUGHPUT_CHART
@@ -142,7 +142,7 @@ export function HTTPLandingPage() {
         'project',
         'project.id',
         'span.domain',
-        'spm()',
+        'epm()',
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -184,7 +184,7 @@ export function HTTPLandingPage() {
                 <ModuleLayout.Third>
                   <InsightsLineChartWidget
                     title={getThroughputChartTitle('http')}
-                    series={[throughputData['spm()']]}
+                    series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />
