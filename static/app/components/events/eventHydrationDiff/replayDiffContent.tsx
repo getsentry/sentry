@@ -1,4 +1,3 @@
-import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -30,19 +29,6 @@ interface Props {
 }
 
 export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: Props) {
-  function wrapInSection(render: () => ReactNode) {
-    return function () {
-      return (
-        <InterimSection
-          type={SectionKey.HYDRATION_DIFF}
-          title={t('Hydration Error Diff')}
-        >
-          {render()}
-        </InterimSection>
-      );
-    };
-  }
-
   const organization = useOrganization();
   const readerResult = useLoadReplayReader({
     orgSlug: organization.slug,
@@ -50,23 +36,38 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
     clipWindow: undefined,
   });
 
+  const sectionProps = {
+    type: SectionKey.HYDRATION_DIFF,
+    title: t('Hydration Error Diff'),
+  };
+
   return (
     <ReplayLoadingState
       readerResult={readerResult}
-      renderArchived={wrapInSection(() => (
-        <ArchivedReplayAlert message={t('The replay for this event has been deleted.')} />
-      ))}
-      renderLoading={wrapInSection(() => (
-        <StyledNegativeSpaceContainer data-test-id="replay-diff-loading-placeholder">
-          <LoadingIndicator />
-        </StyledNegativeSpaceContainer>
-      ))}
-      renderError={wrapInSection(() => (
-        <MissingReplayAlert orgSlug={orgSlug} />
-      ))}
-      renderMissing={wrapInSection(() => (
-        <MissingReplayAlert orgSlug={orgSlug} />
-      ))}
+      renderArchived={() => (
+        <InterimSection {...sectionProps}>
+          <ArchivedReplayAlert
+            message={t('The replay for this event has been deleted.')}
+          />
+        </InterimSection>
+      )}
+      renderLoading={() => (
+        <InterimSection {...sectionProps}>
+          <StyledNegativeSpaceContainer data-test-id="replay-diff-loading-placeholder">
+            <LoadingIndicator />
+          </StyledNegativeSpaceContainer>
+        </InterimSection>
+      )}
+      renderError={() => (
+        <InterimSection {...sectionProps}>
+          <MissingReplayAlert orgSlug={orgSlug} />
+        </InterimSection>
+      )}
+      renderMissing={() => (
+        <InterimSection {...sectionProps}>
+          <MissingReplayAlert orgSlug={orgSlug} />
+        </InterimSection>
+      )}
     >
       {({replay}) => {
         const {frameOrEvent, leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromEvent(
@@ -75,8 +76,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
         );
         return (
           <InterimSection
-            type={SectionKey.HYDRATION_DIFF}
-            title={t('Hydration Error Diff')}
+            {...sectionProps}
             actions={
               <OpenReplayComparisonButton
                 frameOrEvent={frameOrEvent}
