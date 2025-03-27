@@ -506,19 +506,19 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         if whats_wrong := self.issue_summary.get("whatsWrong"):
             parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("whatsWrong")
+                ISSUE_SUMMARY_TO_EMOJI.get("whatsWrong", "*What's Wrong:*")
                 + " "
                 + escape_slack_markdown_asterisks(whats_wrong)
             )
-
         if trace := self.issue_summary.get("trace"):
             parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("trace") + " " + escape_slack_markdown_asterisks(trace)
+                ISSUE_SUMMARY_TO_EMOJI.get("trace", "*In the Trace:*")
+                + " "
+                + escape_slack_markdown_asterisks(trace)
             )
-
         if possible_cause := self.issue_summary.get("possibleCause"):
             parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("possibleCause")
+                ISSUE_SUMMARY_TO_EMOJI.get("possibleCause", "*Possible Cause:*")
                 + " "
                 + escape_slack_markdown_asterisks(possible_cause)
             )
