@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
   isZoomIn?: boolean;
 }
 
-const IconZoom = forwardRef<SVGSVGElement, Props>(({isZoomIn = false, ...props}, ref) => {
+function IconZoom({ref, isZoomIn = false, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -43,7 +43,7 @@ const IconZoom = forwardRef<SVGSVGElement, Props>(({isZoomIn = false, ...props},
       )}
     </SvgIcon>
   );
-});
+}
 
 IconZoom.displayName = 'IconZoom';
 
