@@ -1,4 +1,4 @@
-import {Component, forwardRef} from 'react';
+import {Component} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -17,13 +17,13 @@ export type Result = {
 };
 
 export interface SelectAsyncControlProps {
-  forwardedRef: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
   // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => Record<string, unknown>;
   onResults: (data: any) => Result[];
   url: string;
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
+  ref?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
 }
 
 type State = {
@@ -33,7 +33,7 @@ type State = {
 /**
  * Performs an API request to `url` to fetch the options
  */
-class SelectAsyncControl extends Component<SelectAsyncControlProps> {
+export class SelectAsync extends Component<SelectAsyncControlProps> {
   static defaultProps = {
     placeholder: '--',
     defaultOptions: true,
@@ -106,13 +106,13 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   };
 
   render() {
-    const {value, forwardedRef, defaultOptions, ...props} = this.props;
+    const {value, ref, defaultOptions, ...props} = this.props;
     return (
       <Select
         // The key is used as a way to force a reload of the options:
         // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
         key={value}
-        ref={forwardedRef}
+        ref={ref}
         value={value}
         defaultOptions={defaultOptions}
         loadOptions={this.handleLoadOptions}
@@ -124,7 +124,3 @@ class SelectAsyncControl extends Component<SelectAsyncControlProps> {
     );
   }
 }
-
-export const SelectAsync = forwardRef((p: any, ref: any) => {
-  return <SelectAsyncControl {...p} forwardedRef={ref} />;
-});

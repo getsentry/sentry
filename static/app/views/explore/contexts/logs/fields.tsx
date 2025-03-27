@@ -16,7 +16,7 @@ export function defaultLogFields(): OurLogKnownFieldKey[] {
 }
 
 export function getLogFieldsFromLocation(location: Location): OurLogFieldKey[] {
-  const fields = decodeList(location.query[LOGS_FIELDS_KEY]) as OurLogFieldKey[];
+  const fields = decodeList(location.query[LOGS_FIELDS_KEY]);
 
   if (fields.length) {
     return fields;

@@ -392,11 +392,13 @@ def time_spent_percentage(
 
 def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
-    interval = settings["query_settings"]["snuba_params"].interval
-    granularity_secs = settings["query_settings"]["granularity_secs"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
 
-    # having a granularity_secs implies that the request is for a time series, and each datapoint should be divided by it
-    divisor = granularity_secs if granularity_secs else interval
+    divisor = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
 
     return Column.BinaryFormula(
         left=Column(

@@ -11,7 +11,7 @@ from sentry_sdk import Scope
 
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.factories import Factories
+from sentry.utils import sdk
 from sentry.utils.sdk import (
     bind_ambiguous_org_context,
     bind_organization_context,
@@ -132,7 +132,7 @@ class CheckTagForScopeBleedTest(TestCase):
         )
 
     def test_getting_more_specific_doesnt_count_as_mismatch(self, mock_logger_warning: MagicMock):
-        orgs = [self.create_organization() for _ in [None] * 3]
+        orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
             mock_scope.set_tag("organization.slug", "[multiple orgs]")
@@ -150,7 +150,7 @@ class CheckTagForScopeBleedTest(TestCase):
     def test_overwriting_list_with_non_member_single_org_counts_as_mismatch(
         self, mock_logger_warning: MagicMock
     ):
-        orgs = [self.create_organization() for _ in [None] * 3]
+        orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
             mock_scope.set_tag("organization.slug", "[multiple orgs]")
@@ -413,15 +413,11 @@ class BindOrganizationContextTest(TestCase):
 
 
 class BindAmbiguousOrgContextTest(TestCase):
-    orgs: list[Organization]
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.orgs = [Factories.create_organization() for _ in [None] * 52]
+    def _make_orgs(self, n: int) -> list[Organization]:
+        return [self.create_organization() for _ in range(n)]
 
     def test_simple(self):
-        orgs = self.orgs[:3]
+        orgs = self._make_orgs(3)
 
         with patch_isolation_scope() as mock_scope:
             bind_ambiguous_org_context(orgs, "integration id=1231")
@@ -438,7 +434,7 @@ class BindAmbiguousOrgContextTest(TestCase):
             }
 
     def test_doesnt_overwrite_org_in_list(self):
-        orgs = self.orgs[:3]
+        orgs = self._make_orgs(3)
         single_org = orgs[2]
         expected_tags = {
             "organization": single_org.id,
@@ -465,8 +461,7 @@ class BindAmbiguousOrgContextTest(TestCase):
             assert mock_scope._contexts == expected_contexts
 
     def test_does_overwrite_org_not_in_list(self):
-        orgs = self.orgs[:3]
-        other_org = self.create_organization()
+        other_org, *orgs = self._make_orgs(4)
         assert other_org.slug not in [org.slug for org in orgs]
 
         with patch_isolation_scope() as mock_scope:
@@ -498,12 +493,12 @@ class BindAmbiguousOrgContextTest(TestCase):
                 },
             }
 
-    def test_truncates_list_at_50_entries(self):
-        orgs = self.orgs
+    def test_truncates_list(self):
+        orgs = self._make_orgs(5)
 
-        with patch_isolation_scope() as mock_scope:
+        with patch.object(sdk, "_AMBIGUOUS_ORG_CUTOFF", 3), patch_isolation_scope() as mock_scope:
             bind_ambiguous_org_context(orgs, "integration id=1231")
 
             slug_list_in_org_context = mock_scope._contexts["organization"]["multiple possible"]
-            assert len(slug_list_in_org_context) == 50
+            assert len(slug_list_in_org_context) == 3
             assert slug_list_in_org_context[-1] == "... (3 more)"
