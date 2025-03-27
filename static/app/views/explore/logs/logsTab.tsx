@@ -17,6 +17,7 @@ import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schem
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsFields,
@@ -114,6 +115,7 @@ export function LogsTabContent({
               isLoading={numberTagsLoading || stringTagsLoading}
               exploreQuery={logsSearch.formatString()}
               setExploreQuery={setLogsQuery}
+              source={SchemaHintsSources.LOGS}
             />
           </SchemaHintsSection>
         </Feature>
