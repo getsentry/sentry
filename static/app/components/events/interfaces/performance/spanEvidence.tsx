@@ -64,11 +64,11 @@ function SpanEvidenceInteriumSection({
 }
 
 export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
-  const traceId = event.contexts.trace?.trace_id;
-  if (!event || !traceId) {
+  if (!event) {
     return null;
   }
 
+  const traceId = event.contexts.trace?.trace_id;
   return (
     <SpanEvidenceInteriumSection
       event={event}
@@ -76,11 +76,13 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
       projectSlug={projectSlug}
     >
       <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
-      <SpanEvidenceTraceView
-        event={event}
-        organization={organization}
-        traceId={traceId}
-      />
+      {traceId && (
+        <SpanEvidenceTraceView
+          event={event}
+          organization={organization}
+          traceId={traceId}
+        />
+      )}
     </SpanEvidenceInteriumSection>
   );
 }
