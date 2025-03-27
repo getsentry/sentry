@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -134,7 +135,8 @@ type WebVitalDetailHeaderProps = {
 };
 
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
-  const colors = getChartColorPalette(3);
+  const theme = useTheme();
+  const colors = theme.chart.getColorPalette(3);
   const dotColor = colors[ORDER.indexOf(webVital)]!;
   const status = score === undefined ? undefined : scoreToStatus(score);
 

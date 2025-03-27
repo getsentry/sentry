@@ -7,7 +7,6 @@ import {GridBodyCell, GridHeadCell} from 'sentry/components/gridEditable/styles'
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconStack} from 'sentry/icons/iconStack';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -84,6 +83,7 @@ function AggregatesTable({
   query: queryParts,
   index,
 }: AggregateTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const queries = useReadQueriesFromLocation();
 
@@ -105,7 +105,7 @@ function AggregatesTable({
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
 
   return (
     <Fragment>

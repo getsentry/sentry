@@ -73,7 +73,10 @@ type ChartProps = {
     xAxis?: XAXisComponentOption;
     yAxis?: YAXisComponentOption;
   };
-  colors?: string[];
+  colors?:
+    | string[]
+    | readonly string[]
+    | ((theme: Theme) => string[] | ReturnType<Theme['chart']['getColorPalette']>);
   /**
    * By default, only the release series is disableable. This adds
    * a list of series names that are also disableable.
@@ -274,7 +277,7 @@ class Chart extends Component<ChartProps, State> {
       );
     }
     const chartColors = timeseriesData.length
-      ? (colors?.slice(0, series.length) ??
+      ? ((colors as string[])?.slice(0, series.length) ??
         getChartColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)).slice())
       : undefined;
     if (chartColors?.length && hasOther) {
@@ -388,7 +391,11 @@ export type EventsChartProps = {
   /**
    * Override the default color palette.
    */
-  colors?: string[];
+  colors?:
+    | string[]
+    | readonly string[]
+    | ReturnType<Theme['chart']['getColorPalette']>
+    | ((theme: Theme) => string[] | ReturnType<Theme['chart']['getColorPalette']>);
   confirmedQuery?: boolean;
   /**
    * Name of the series
