@@ -190,15 +190,11 @@ function getRegularChanges(subscription: Subscription) {
 
   categories.forEach(category => {
     if (
-      (pendingChanges.customPrices?.[category as DataCategories] ?? 0) !==
-      (subscription.categories?.[category as DataCategories]?.customPrice ?? 0)
+      (pendingChanges.customPrices?.[category] ?? 0) !==
+      (subscription.categories?.[category]?.customPrice ?? 0)
     ) {
-      const old = getStringForPrice(
-        subscription.categories?.[category as DataCategories]?.customPrice
-      );
-      const change = getStringForPrice(
-        pendingChanges.customPrices?.[category as DataCategories]
-      );
+      const old = getStringForPrice(subscription.categories?.[category]?.customPrice);
+      const change = getStringForPrice(pendingChanges.customPrices?.[category]);
       changes.push(
         formatChangeForCategory({
           category: category as DataCategory,

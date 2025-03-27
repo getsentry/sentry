@@ -11,4 +11,4 @@ export function timeSeriesItemToEChartsDataPoint(
 
 // ECharts has a special value to represent missing data, it doesn't nicely
 // support `null` or `undefined`
-export const ECHARTS_MISSING_DATA_VALUE = `-` as const;
+export const ECHARTS_MISSING_DATA_VALUE = `-`;

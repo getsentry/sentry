@@ -94,7 +94,7 @@ describe('DebugMeta', function () {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(
       within(screen.getByRole('dialog')).getByText(
-        eventEntryDebugMeta.data.images![0]!.debug_file!
+        eventEntryDebugMeta.data.images![0].debug_file!
       )
     ).toBeInTheDocument();
   });

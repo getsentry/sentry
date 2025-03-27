@@ -201,7 +201,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
           updates[subscriptionField] = this.findClosestTier(
             selectedPlan,
             category,
-            reservedValue as number
+            reservedValue
           );
         }
       }

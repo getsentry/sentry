@@ -206,7 +206,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
@@ -242,7 +242,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
@@ -278,7 +278,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -376,7 +376,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -805,7 +805,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),

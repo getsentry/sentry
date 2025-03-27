@@ -140,10 +140,9 @@ function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
 }
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
-  const type = props.meta?.fields?.[props.item.fieldKey as OurLogFieldKey];
+  const type = props.meta?.fields?.[props.item.fieldKey];
   const adjustedFieldKey =
-    fullFieldToExistingField[props.item.fieldKey as OurLogFieldKey] ??
-    props.item.fieldKey;
+    fullFieldToExistingField[props.item.fieldKey] ?? props.item.fieldKey;
 
   const adjustedValue =
     props.item.fieldKey === OurLogKnownFieldKey.TRACE_ID

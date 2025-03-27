@@ -203,7 +203,7 @@ export default storyBook('BigNumberWidgetVisualization', story => {
   });
 
   story('Thresholds', () => {
-    const type = 'rate' as const;
+    const type = 'rate';
     const unit = RateUnit.PER_SECOND;
 
     const thresholds = {

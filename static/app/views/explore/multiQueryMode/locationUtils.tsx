@@ -33,8 +33,8 @@ export type ReadableExploreQueryParts = {
 const DEFAULT_QUERY: ReadableExploreQueryParts = {
   chartType: ChartType.LINE,
   yAxes: [DEFAULT_VISUALIZATION],
-  sortBys: [{kind: 'desc', field: DEFAULT_VISUALIZATION_FIELD!}],
-  fields: ['id', DEFAULT_VISUALIZATION_FIELD!],
+  sortBys: [{kind: 'desc', field: DEFAULT_VISUALIZATION_FIELD}],
+  fields: ['id', DEFAULT_VISUALIZATION_FIELD],
   groupBys: [],
   query: '',
 };

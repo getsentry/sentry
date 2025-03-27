@@ -23,8 +23,8 @@ import {
 } from 'getsentry/views/subscriptionPage/utils';
 
 const COLORS = {
-  prepaid: CHART_PALETTE[5]![0]!,
-  ondemand: CHART_PALETTE[5]![1]!,
+  prepaid: CHART_PALETTE[5][0],
+  ondemand: CHART_PALETTE[5][1],
 } as const;
 
 interface UsageCardProps {

@@ -156,7 +156,7 @@ export function PathsTable({query}: {query?: string}) {
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: 'api.performance.landing-table',
-          orderby: getOrderBy(sortField, sortOrder as 'asc' | 'desc'),
+          orderby: getOrderBy(sortField, sortOrder),
           per_page: PER_PAGE,
         },
       },

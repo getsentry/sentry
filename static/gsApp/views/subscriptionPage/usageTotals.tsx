@@ -64,9 +64,9 @@ const EMPTY_STAT_TOTAL = {
 };
 
 const COLORS = {
-  reserved: CHART_PALETTE[5]![0]!,
-  ondemand: CHART_PALETTE[5]![1]!,
-  secondary_reserved: CHART_PALETTE[5]![2]!,
+  reserved: CHART_PALETTE[5][0],
+  ondemand: CHART_PALETTE[5][1],
+  secondary_reserved: CHART_PALETTE[5][2],
 } as const;
 
 function getPercentage(quantity: number, total: number | null) {

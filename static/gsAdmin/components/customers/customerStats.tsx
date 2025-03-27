@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -153,7 +152,7 @@ export function populateChartData(
           if (dateIndex >= filteredData['dynamic-sampling'].data.length) {
             filteredData['dynamic-sampling'].data.push(dataObject);
           } else {
-            filteredData['dynamic-sampling']!.data[dateIndex]!.value += dataObject.value;
+            filteredData['dynamic-sampling'].data[dateIndex]!.value += dataObject.value;
           }
         } else {
           // dynamically adding filtered reasons into graph
@@ -456,17 +455,17 @@ export function CustomerStats({
 
   const {legend, subLabels} = chartSeries.reduce(
     (acc, serie) => {
-      if (!acc.legend.includes(serie!.seriesName) && serie!.data.length > 0) {
-        acc.legend.push(serie!.seriesName);
+      if (!acc.legend.includes(serie.seriesName) && serie.data.length > 0) {
+        acc.legend.push(serie.seriesName);
       }
 
-      if (!serie!.subSeries) {
+      if (!serie.subSeries) {
         return acc;
       }
 
-      for (const subSerie of serie!.subSeries) {
+      for (const subSerie of serie.subSeries) {
         acc.subLabels.push({
-          parentLabel: serie!.seriesName,
+          parentLabel: serie.seriesName,
           label: subSerie.seriesName,
           data: subSerie.data,
         });
@@ -505,7 +504,7 @@ export function CustomerStats({
                     right: 10,
                     top: 0,
                     data: legend,
-                    theme: theme as Theme,
+                    theme,
                   })}
                   grid={{top: 30, bottom: 0, left: 0, right: 0}}
                   {...zoomRenderProps}

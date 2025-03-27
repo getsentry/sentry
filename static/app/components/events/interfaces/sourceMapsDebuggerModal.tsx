@@ -883,12 +883,10 @@ function SentryPluginMessage({
   toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
 }) {
   const activePlugin = Object.keys(pluginConfig).find(
-    key => toolUsedToUploadSourceMaps[key as keyof ToolUsedToUploadSourceMaps]
+    key => toolUsedToUploadSourceMaps[key]
   );
 
-  const plugin = activePlugin
-    ? pluginConfig[activePlugin as keyof typeof pluginConfig]
-    : undefined;
+  const plugin = activePlugin ? pluginConfig[activePlugin] : undefined;
 
   if (plugin) {
     return (

@@ -63,7 +63,7 @@ export function NumberDragInput({
       const min = props.min ?? Number.NEGATIVE_INFINITY;
       const max = props.max ?? Number.POSITIVE_INFINITY;
 
-      const value = clamp(Number(inputRef.current!.value) + deltaStep, min, max);
+      const value = clamp(Number(inputRef.current.value) + deltaStep, min, max);
       setInputValueAndDispatchChange(inputRef.current, value.toString());
     },
     [axis, props.min, props.max, props.step, shiftKeyMultiplier]

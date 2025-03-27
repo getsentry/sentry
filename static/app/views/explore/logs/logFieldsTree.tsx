@@ -503,7 +503,7 @@ function getAttribute(
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
   // Filter out hidden attributes
-  if (hiddenAttributes.includes(attributeKey as OurLogFieldKey)) {
+  if (hiddenAttributes.includes(attributeKey)) {
     return undefined;
   }
 
