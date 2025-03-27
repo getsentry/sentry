@@ -20,7 +20,7 @@ export default function AutomationNew() {
           <LinkButton priority="default" to="/issues/automations">
             {t('Cancel')}
           </LinkButton>
-          <LinkButton priority="primary" to="/issues/automations/new/settings">
+          <LinkButton priority="primary" to="settings">
             {t('Next')}
           </LinkButton>
         </Flex>

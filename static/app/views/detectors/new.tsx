@@ -20,7 +20,7 @@ export default function DetectorNew() {
           <LinkButton priority="default" to="/issues/monitors">
             {t('Cancel')}
           </LinkButton>
-          <LinkButton priority="primary" to="/issues/monitors/new/settings">
+          <LinkButton priority="primary" to="settings">
             {t('Next')}
           </LinkButton>
         </Flex>

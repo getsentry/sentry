@@ -109,12 +109,7 @@ function Actions() {
       <Button onClick={disable} size="sm">
         {t('Disable')}
       </Button>
-      <LinkButton
-        to="/issues/automations/edit"
-        priority="primary"
-        icon={<IconEdit />}
-        size="sm"
-      >
+      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
         {t('Edit')}
       </LinkButton>
     </Fragment>
