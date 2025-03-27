@@ -12,12 +12,7 @@ function FluidPanel({className, children, bottom, title, bodyRef}: Props) {
   return (
     <FluidContainer className={className}>
       {title}
-      <OverflowBody
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={bodyRef}
-      >
-        {children}
-      </OverflowBody>
+      <OverflowBody ref={bodyRef}>{children}</OverflowBody>
       {bottom}
     </FluidContainer>
   );

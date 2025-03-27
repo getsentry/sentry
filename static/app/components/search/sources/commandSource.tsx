@@ -1,15 +1,14 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import Access from 'sentry/components/acl/access';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import {useUser} from 'sentry/utils/useUser';
 
 import type {ChildProps, ResultItem} from './types';
 
@@ -102,79 +101,46 @@ type Props = {
    */
   query: string;
   /**
-   * Array of routes to search
-   */
-  searchMap?: PlainRoute[];
-  /**
    * fuse.js options
    */
   searchOptions?: Fuse.IFuseOptions<Action>;
 };
 
-type State = {
-  fuzzy: null | Fuse<Action>;
-};
-
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-class CommandSource extends Component<Props, State> {
-  static defaultProps = {
-    searchMap: [],
-    searchOptions: {},
-  };
+function CommandSource({searchOptions, query, children}: Props) {
+  const {isSuperuser} = useUser();
+  const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
 
-  state: State = {
-    fuzzy: null,
-  };
+  const createSearch = useCallback(async () => {
+    setFuzzy(
+      await createFuzzySearch<Action>(ACTIONS || [], {
+        ...searchOptions,
+        keys: ['title', 'description'],
+      })
+    );
+  }, [searchOptions]);
 
-  componentDidMount() {
-    this.createSearch(ACTIONS);
-  }
+  useEffect(() => void createSearch(), [createSearch]);
 
-  async createSearch(searchMap: Action[]) {
-    const options = {
-      ...this.props.searchOptions,
-      keys: ['title', 'description'],
-    };
-    this.setState({
-      fuzzy: await createFuzzySearch<Action>(searchMap || [], options),
-    });
-  }
-
-  render() {
-    const {searchMap, query, isSuperuser, children} = this.props;
-    const {fuzzy} = this.state;
-
-    const results =
+  const results = useMemo(
+    () =>
       fuzzy
         ?.search(query)
         .filter(({item}) => !item.requiresSuperuser || isSuperuser)
-        .map(value => {
-          const {item, ...rest} = value;
-          return {
-            item: {
-              ...item,
-              sourceType: 'command',
-              resultType: 'command',
-            } as ResultItem,
-            ...rest,
-          };
-        }) ?? [];
-
-    return children({
-      isLoading: searchMap === null,
-      results,
-    });
-  }
-}
-
-function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
-  return (
-    <Access access={[]} isSuperuser>
-      {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
-    </Access>
+        .map(({item, ...rest}) => ({
+          item: {
+            ...item,
+            sourceType: 'command',
+            resultType: 'command',
+          } as ResultItem,
+          ...rest,
+        })) ?? [],
+    [fuzzy, query, isSuperuser]
   );
+
+  return children({isLoading: fuzzy === null, results});
 }
-export default CommandSourceWithFeature;
-export {CommandSource};
+
+export default CommandSource;

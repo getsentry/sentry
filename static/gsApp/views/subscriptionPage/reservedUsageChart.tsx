@@ -76,7 +76,7 @@ export function getCategoryOptions({
 }): CategoryOption[] {
   return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
     opt =>
-      plan.categories.includes(opt.value as DataCategory) &&
+      plan.checkoutCategories.includes(opt.value as DataCategory) &&
       (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
   );
 }
@@ -100,10 +100,10 @@ interface ReservedUsageChartProps {
 
 function getCategoryColors(theme: Theme) {
   return [
-    theme.outcome.accepted!,
-    theme.outcome.filtered!,
-    theme.outcome.dropped!,
-    theme.chartOther!, // Projected
+    theme.outcome.accepted,
+    theme.outcome.filtered,
+    theme.outcome.dropped,
+    theme.chartOther, // Projected
   ];
 }
 
@@ -687,7 +687,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5]![0]!,
+                color: CHART_PALETTE[5][0],
               }),
               barSeries({
                 name:
@@ -696,7 +696,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5]![1]!,
+                color: CHART_PALETTE[5][1],
               }),
             ]
           : []),

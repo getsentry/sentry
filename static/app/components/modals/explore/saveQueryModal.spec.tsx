@@ -23,15 +23,13 @@ describe('SaveQueryModal', function () {
         CloseButton={stubEl}
         closeModal={() => {}}
         organization={initialData.organization}
-        query={'span.op:pageload'}
-        visualizes={[
+        queries={[
           {
-            chartType: 1,
-            yAxes: ['avg(span.duration)'],
-            label: 'A',
+            query: 'span.op:pageload',
+            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
+            groupBys: ['span.op'],
           },
         ]}
-        groupBys={['span.op']}
         saveQuery={saveQuery}
       />
     );
@@ -56,15 +54,13 @@ describe('SaveQueryModal', function () {
         CloseButton={stubEl}
         closeModal={() => {}}
         organization={initialData.organization}
-        query={'span.op:pageload'}
-        visualizes={[
+        queries={[
           {
-            chartType: 1,
-            yAxes: ['avg(span.duration)'],
-            label: 'A',
+            query: 'span.op:pageload',
+            visualizes: [{chartType: 1, yAxes: ['avg(span.duration)'], label: 'A'}],
+            groupBys: ['span.op'],
           },
         ]}
-        groupBys={[]}
         saveQuery={saveQuery}
       />
     );
