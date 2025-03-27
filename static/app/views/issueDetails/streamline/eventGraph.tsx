@@ -1,6 +1,14 @@
-import {type CSSProperties, useEffect, useMemo, useState} from 'react';
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 import Color from 'color';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -14,7 +22,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
@@ -25,6 +33,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import useFlagSeries from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useFlagSeries';
@@ -36,6 +45,7 @@ import {
 import {useReleaseMarkLineSeries} from 'sentry/views/issueDetails/streamline/hooks/useReleaseMarkLineSeries';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 
 const enum EventGraphSeries {
   EVENT = 'event',
@@ -46,6 +56,24 @@ interface EventGraphProps {
   event: Event | undefined;
   group: Group;
   className?: string;
+  /**
+   * Disables navigation via router when the chart is zoomed. This is so the
+   * release bubbles can zoom in on the chart when it renders and not trigger
+   * navigation (which would update the page filters and affect the main
+   * chart).
+   */
+  disableZoomNavigation?: boolean;
+  ref?: React.Ref<ReactEchartsRef>;
+  /**
+   * Configures showing releases on the chart as bubbles or lines. This is used
+   * when showing the chart inside of the flyout drawer. Bubbles are shown when
+   * this prop is anything besides "line".
+   */
+  showReleasesAs?: 'line' | 'bubble';
+  /**
+   * Enable/disables showing the event and user summary
+   */
+  showSummary?: boolean;
   style?: CSSProperties;
 }
 
@@ -68,17 +96,41 @@ function createSeriesAndCount(stats: EventsStats) {
   );
 }
 
-export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
+export function EventGraph({
+  group,
+  event,
+  disableZoomNavigation = false,
+  showReleasesAs,
+  showSummary = true,
+  ref,
+  ...styleProps
+}: EventGraphProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const [visibleSeries, setVisibleSeries] = useState<EventGraphSeries>(
     EventGraphSeries.EVENT
   );
-  const eventView = useIssueDetailsEventView({group});
   const config = getConfigForIssueType(group, group.project);
   const {dispatch} = useIssueDetails();
   const {currentTab} = useGroupDetailsRoute();
+  const [isSmallContainer, setIsSmallContainer] = useState(false);
+
+  const onResize = useCallback(() => {
+    if (!chartContainerRef.current) {
+      return;
+    }
+
+    const {width} = chartContainerRef.current.getBoundingClientRect();
+    setIsSmallContainer(width < 450);
+  }, []);
+
+  useResizeObserver({
+    ref: chartContainerRef,
+    onResize,
+  });
+  const eventView = useIssueDetailsEventView({group, isSmallContainer});
 
   const {
     data: groupStats = {},
@@ -91,6 +143,8 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       referrer: 'issue_details.streamline_graph',
     },
   });
+
+  const hasReleaseBubblesSeries = organization.features.includes('release-bubbles-ui');
 
   const noQueryEventView = eventView.clone();
   noQueryEventView.query = `issue:${group.shortId}`;
@@ -176,7 +230,75 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
     event,
     group,
   });
-  const releaseSeries = useReleaseMarkLineSeries({group});
+
+  const [legendSelected, setLegendSelected] = useLocalStorageState(
+    'issue-details-graph-legend',
+    {
+      ['Feature Flags']: true,
+      ['Releases']: false,
+    }
+  );
+
+  const {releases = []} = useReleaseStats(
+    {
+      projects: eventView.project,
+      environments: eventView.environment,
+      datetime: {
+        start: eventView.start,
+        end: eventView.end,
+        period: eventView.statsPeriod,
+      },
+    },
+    {
+      staleTime: 0,
+    }
+  );
+
+  const releaseSeries = useReleaseMarkLineSeries({
+    group,
+    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
+  });
+
+  const {
+    connectReleaseBubbleChartRef,
+    releaseBubbleEventHandlers,
+    releaseBubbleSeries,
+    releaseBubbleXAxis,
+    releaseBubbleGrid,
+  } = useReleaseBubbles({
+    chartRenderer: ({chartRef}) => {
+      return (
+        <EventGraph
+          ref={chartRef}
+          group={group}
+          event={event}
+          showSummary={false}
+          showReleasesAs="line"
+          disableZoomNavigation
+          {...styleProps}
+        />
+      );
+    },
+    legendSelected: legendSelected.Releases,
+    desiredBuckets: eventSeries.length,
+    minTime: eventSeries.length && (eventSeries.at(0)?.name as number),
+    maxTime: eventSeries.length && (eventSeries.at(-1)?.name as number),
+    releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? releases : [],
+    projects: eventView.project,
+    environments: eventView.environment,
+    datetime: {
+      start: eventView.start,
+      end: eventView.end,
+      period: eventView.statsPeriod,
+    },
+  });
+
+  const handleConnectRef = useCallback(
+    (e: ReactEchartsRef | null) => {
+      connectReleaseBubbleChartRef(e);
+    },
+    [connectReleaseBubbleChartRef]
+  );
   const flagSeries = useFlagSeries({
     query: {
       start: eventView.start,
@@ -249,7 +371,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
       seriesData.push(currentEventSeries as BarChartSeries);
     }
 
-    if (releaseSeries.markLine) {
+    if (releaseSeries?.markLine) {
       seriesData.push(releaseSeries as BarChartSeries);
     }
 
@@ -273,14 +395,6 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
   ]);
 
   const bucketSize = eventSeries ? getBucketSize(series) : undefined;
-
-  const [legendSelected, setLegendSelected] = useLocalStorageState(
-    'issue-details-graph-legend',
-    {
-      ['Feature Flags']: true,
-      ['Releases']: false,
-    }
-  );
 
   const legend = Legend({
     theme,
@@ -330,7 +444,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             label={t('Users')}
           />
         </SummaryContainer>
-        <LoadingChartContainer>
+        <LoadingChartContainer ref={chartContainerRef}>
           <Placeholder height="96px" testId="event-graph-loading" />
         </LoadingChartContainer>
       </GraphWrapper>
@@ -339,32 +453,39 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
 
   return (
     <GraphWrapper {...styleProps}>
-      <SummaryContainer>
-        <GraphButton
-          onClick={() =>
-            visibleSeries === EventGraphSeries.USER &&
-            setVisibleSeries(EventGraphSeries.EVENT)
-          }
-          isActive={visibleSeries === EventGraphSeries.EVENT}
-          disabled={visibleSeries === EventGraphSeries.EVENT}
-          label={tn('Event', 'Events', eventCount)}
-          count={String(eventCount)}
-        />
-        <GraphButton
-          onClick={() =>
-            visibleSeries === EventGraphSeries.EVENT &&
-            setVisibleSeries(EventGraphSeries.USER)
-          }
-          isActive={visibleSeries === EventGraphSeries.USER}
-          disabled={visibleSeries === EventGraphSeries.USER}
-          label={tn('User', 'Users', userCount)}
-          count={String(userCount)}
-        />
-      </SummaryContainer>
-      <ChartContainer role="figure">
+      {showSummary ? (
+        <SummaryContainer>
+          <GraphButton
+            onClick={() =>
+              visibleSeries === EventGraphSeries.USER &&
+              setVisibleSeries(EventGraphSeries.EVENT)
+            }
+            isActive={visibleSeries === EventGraphSeries.EVENT}
+            disabled={visibleSeries === EventGraphSeries.EVENT}
+            label={tn('Event', 'Events', eventCount)}
+            count={String(eventCount)}
+          />
+          <GraphButton
+            onClick={() =>
+              visibleSeries === EventGraphSeries.EVENT &&
+              setVisibleSeries(EventGraphSeries.USER)
+            }
+            isActive={visibleSeries === EventGraphSeries.USER}
+            disabled={visibleSeries === EventGraphSeries.USER}
+            label={tn('User', 'Users', userCount)}
+            count={String(userCount)}
+          />
+        </SummaryContainer>
+      ) : (
+        <div />
+      )}
+      <ChartContainer role="figure" ref={chartContainerRef}>
         <BarChart
+          {...releaseBubbleEventHandlers}
+          ref={mergeRefs(ref, handleConnectRef)}
           height={100}
           series={series}
+          additionalSeries={releaseBubbleSeries ? [releaseBubbleSeries] : []}
           legend={legend}
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
@@ -373,6 +494,7 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
             right: 8,
             top: 20,
             bottom: 0,
+            ...releaseBubbleGrid,
           }}
           tooltip={{
             formatAxisLabel: (
@@ -404,7 +526,15 @@ export function EventGraph({group, event, ...styleProps}: EventGraphProps) {
               },
             },
           }}
-          {...chartZoomProps}
+          xAxis={{
+            ...releaseBubbleXAxis,
+          }}
+          {...(disableZoomNavigation
+            ? {
+                isGroupedByDate: true,
+                dataZoom: chartZoomProps.dataZoom,
+              }
+            : chartZoomProps)}
         />
       </ChartContainer>
     </GraphWrapper>
@@ -441,8 +571,12 @@ const SummaryContainer = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   flex-direction: column;
-  margin: ${space(1)} ${space(1)} ${space(1)} 0;
+  margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    margin: ${space(1)} ${space(1)} ${space(1)} 0;
+  }
 `;
 
 const Callout = styled(Button)<{isActive: boolean}>`
@@ -477,12 +611,18 @@ const Count = styled('div')<{isActive: boolean}>`
 
 const ChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  padding: ${space(0.75)} 0 ${space(0.75)} 0;
+  margin-right: -2px;
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  }
 `;
 
 const LoadingChartContainer = styled('div')`
   position: relative;
-  padding: ${space(1)} ${space(1)};
+  padding: ${space(0.75)} 0 ${space(0.75)} 0;
+  margin: 0 ${space(1)};
 `;
 
 const GraphAlert = styled(Alert)`

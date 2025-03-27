@@ -1,7 +1,7 @@
-import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
+import {Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
@@ -14,7 +14,6 @@ import {
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -92,6 +91,7 @@ interface DropdownMenuItemProps {
    * Handler that is called when the menu should close after selecting an item
    */
   onClose?: () => void;
+  ref?: React.Ref<HTMLLIElement>;
   /**
    * Tag name for item wrapper
    */
@@ -107,18 +107,16 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-function BaseDropdownMenuItem(
-  {
-    node,
-    state,
-    closeOnSelect,
-    onClose,
-    showDivider,
-    renderAs = 'li',
-    ...props
-  }: DropdownMenuItemProps,
-  forwardedRef: React.Ref<HTMLLIElement>
-) {
+function DropdownMenuItem({
+  node,
+  state,
+  closeOnSelect,
+  onClose,
+  showDivider,
+  renderAs = 'li',
+  ref: forwardedRef,
+  ...props
+}: DropdownMenuItemProps) {
   const ref = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
@@ -235,7 +233,7 @@ function BaseDropdownMenuItem(
 
   return (
     <MenuListItem
-      ref={mergeRefs([ref, forwardedRef])}
+      ref={mergeRefs(ref, forwardedRef)}
       as={renderAs}
       data-test-id={key}
       label={itemLabel}
@@ -261,7 +259,5 @@ function BaseDropdownMenuItem(
     />
   );
 }
-
-const DropdownMenuItem = forwardRef(BaseDropdownMenuItem);
 
 export default DropdownMenuItem;

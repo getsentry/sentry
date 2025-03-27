@@ -161,7 +161,7 @@ def create_incident(
             IncidentProject.objects.bulk_create(incident_projects)
             # `bulk_create` doesn't send `post_save` signals, so we manually fire them here.
             for incident_project in incident_projects:
-                post_save.send(
+                post_save.send_robust(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
 
@@ -1011,7 +1011,7 @@ def disable_alert_rule(alert_rule: AlertRule) -> None:
 
 
 def delete_alert_rule(
-    alert_rule: AlertRule, user: RpcUser | None = None, ip_address: str | None = None
+    alert_rule: AlertRule, user: User | RpcUser | None = None, ip_address: str | None = None
 ) -> None:
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
@@ -1838,7 +1838,7 @@ def translate_aggregate_field(
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(
     organization: Organization,
-    user: RpcUser | None,
+    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     """Return Slack trigger actions that require async lookup"""
@@ -1879,7 +1879,7 @@ def get_slack_actions_with_async_lookups(
 
 def get_slack_channel_ids(
     organization: Organization,
-    user: RpcUser | None,
+    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> Mapping[str, Any]:
     slack_actions = get_slack_actions_with_async_lookups(organization, user, data)

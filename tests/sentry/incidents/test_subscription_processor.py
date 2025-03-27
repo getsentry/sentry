@@ -797,11 +797,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         from urllib3.exceptions import TimeoutError
 
         mock_seer_request.side_effect = TimeoutError
+        aggregation_value = 10
         result = get_anomaly_data_from_seer(
             alert_rule=processor.alert_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
-            aggregation_value=10,
+            aggregation_value=aggregation_value,
         )
         timeout_extra = {
             "subscription_id": self.sub.id,
@@ -809,6 +810,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             "organization_id": self.sub.project.organization.id,
             "project_id": self.sub.project_id,
             "alert_rule_id": rule.id,
+            "threshold_type": rule.threshold_type,
+            "sensitivity": rule.sensitivity,
+            "seasonality": rule.seasonality,
+            "aggregation_value": aggregation_value,
         }
         mock_logger.warning.assert_called_with(
             "Timeout error when hitting anomaly detection endpoint",
@@ -967,11 +972,12 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def test_seer_call_bad_status(self, mock_logger, mock_seer_request):
         processor = SubscriptionProcessor(self.sub)
         mock_seer_request.return_value = HTTPResponse(status=403)
+        aggregation_value = 10
         result = get_anomaly_data_from_seer(
             alert_rule=self.dynamic_rule,
             subscription=processor.subscription,
             last_update=processor.last_update.timestamp(),
-            aggregation_value=10,
+            aggregation_value=aggregation_value,
         )
         mock_logger.info.assert_called_with(
             "Error when hitting Seer detect anomalies endpoint",
@@ -981,6 +987,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "organization_id": self.organization.id,
                 "project_id": self.project.id,
                 "alert_rule_id": self.rule.id,
+                "threshold_type": self.rule.threshold_type,
+                "sensitivity": self.rule.sensitivity,
+                "seasonality": self.rule.seasonality,
+                "aggregation_value": aggregation_value,
                 "response_data": None,
             },
         )

@@ -1,4 +1,3 @@
-import type {LegacyRef, MutableRefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import maxBy from 'lodash/maxBy';
@@ -112,7 +111,6 @@ function renderDivider(
 
   return (
     <DividerLine
-      // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
       ref={addDividerLineRef()}
       style={{
         position: 'absolute',
@@ -169,8 +167,8 @@ function renderMeasurements(
 }
 
 export function SpanGroupBar(props: Props) {
-  const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
-  const spanContentRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
+  const spanTitleRef = useRef<HTMLDivElement | null>(null);
+  const spanContentRef = useRef<HTMLDivElement | null>(null);
 
   const {
     onWheel,
@@ -345,7 +343,6 @@ export function SpanGroupBar(props: Props) {
                 }}
               >
                 <DividerLine
-                  // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                   ref={addGhostDividerLineRef()}
                   style={{
                     right: 0,

@@ -3,6 +3,7 @@ import {
   isValidElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -10,9 +11,8 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 
-import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
@@ -163,28 +163,25 @@ function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
 /**
  * A hook used to trigger a positioned overlay on hover.
  */
-function useHoverOverlay(
-  overlayType: string,
-  {
-    className,
-    style,
-    delay,
-    displayTimeout,
-    isHoverable,
-    showUnderline,
-    underlineColor,
-    showOnlyOnOverflow,
-    skipWrapper,
-    forceVisible,
-    offset = 8,
-    position = 'top',
-    containerDisplayMode = 'inline-block',
-    onHover,
-    onBlur,
-  }: UseHoverOverlayProps
-) {
+function useHoverOverlay({
+  className,
+  style,
+  delay,
+  displayTimeout,
+  isHoverable,
+  showUnderline,
+  underlineColor,
+  showOnlyOnOverflow,
+  skipWrapper,
+  forceVisible,
+  offset = 8,
+  position = 'top',
+  containerDisplayMode = 'inline-block',
+  onHover,
+  onBlur,
+}: UseHoverOverlayProps) {
   const theme = useTheme();
-  const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
+  const describeById = useId();
 
   const [isVisible, setIsVisible] = useState(forceVisible ?? false);
   const isOpen = forceVisible ?? isVisible;
@@ -288,13 +285,14 @@ function useHoverOverlay(
       ) {
         if (showUnderline) {
           const triggerStyle = {
-            ...triggerChildren.props.style,
+            ...(triggerChildren.props as any).style,
             ...theme.tooltipUnderline(underlineColor),
           };
 
           return cloneElement<any>(
             triggerChildren,
-            Object.assign(mergeProps(triggerChildren.props, providedProps), {
+            Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+              ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
               style: triggerStyle,
             })
           );
@@ -303,8 +301,9 @@ function useHoverOverlay(
         // Basic DOM nodes can be cloned and have more props applied.
         return cloneElement<any>(
           triggerChildren,
-          Object.assign(mergeProps(triggerChildren.props, providedProps), {
-            style: triggerChildren.props.style,
+          Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+            ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
+            style: (triggerChildren.props as any).style,
           })
         );
       }

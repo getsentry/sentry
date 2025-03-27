@@ -75,7 +75,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
   // TODO: Fetch sort information using `useLocationQuery`
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const {data: indexedSpansByGroupId, isPending: areIndexedSpansByGroupIdLoading} =
     useSpansIndexed(

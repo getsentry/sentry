@@ -1,5 +1,3 @@
-import type {ReactChild} from 'react';
-
 import {EvidencePreview} from 'sentry/components/groupPreviewTooltip/evidencePreview';
 import {IssueCategory} from 'sentry/types/group';
 
@@ -7,7 +5,7 @@ import {SpanEvidencePreview} from './spanEvidencePreview';
 import {StackTracePreview} from './stackTracePreview';
 
 type GroupPreviewTooltipProps = {
-  children: ReactChild;
+  children: React.ReactNode;
   groupId: string;
   groupingCurrentLevel?: number;
   issueCategory?: IssueCategory;

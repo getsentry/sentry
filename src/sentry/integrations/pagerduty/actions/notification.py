@@ -9,11 +9,14 @@ import sentry_sdk
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import (
     PAGERDUTY_DEFAULT_SEVERITY,
+    PAGERDUTY_SUMMARY_MAX_LENGTH,
     PagerdutySeverity,
     build_pagerduty_event_payload,
 )
+from sentry.models.rule import Rule
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -90,6 +93,14 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 severity=severity,
             )
 
+            rules: list[Rule] = [f.rule for f in futures]
+            rule = rules[0] if rules else None
+
+            if rule and rule.label:
+                data["payload"]["summary"] = truncatechars(
+                    f"[{rule.label}]: {data['payload']['summary']}", PAGERDUTY_SUMMARY_MAX_LENGTH
+                )
+
             try:
                 resp = client.send_trigger(data=data)
             except ApiError as e:
@@ -104,8 +115,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     },
                 )
                 raise
-            rules = [f.rule for f in futures]
-            rule = rules[0] if rules else None
+
             self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)
 
             # TODO(meredith): Maybe have a generic success log statements for

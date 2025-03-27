@@ -1,6 +1,9 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
+import type {Client} from 'sentry/api';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getUTMState} from 'sentry/utils/demoMode/utm';
 
-import {demoEmailModal, demoSignupModal} from '../../actionCreators/modal';
+import {demoSignupModal} from '../../actionCreators/modal';
 
 import {isDemoModeActive} from './index';
 
@@ -17,26 +20,35 @@ export function openDemoSignupModal() {
   }, SIGN_UP_MODAL_DELAY);
 }
 
-export function openDemoEmailModal() {
+export async function captureEmail(api: Client) {
   if (!isDemoModeActive()) {
     return;
   }
 
-  // email already added
-  if (localStorage.getItem(DEMO_MODE_EMAIL_KEY)) {
+  const email = localStorage.getItem(DEMO_MODE_EMAIL_KEY);
+
+  if (email === 'submitted') {
     return;
   }
 
-  demoEmailModal({
-    onAddedEmail,
-    onFailure: () => {
-      setForceHide(false);
-    },
-  });
-}
+  const utmState = getUTMState();
 
-function onAddedEmail(email: string) {
-  setForceHide(false);
-  localStorage.setItem(DEMO_MODE_EMAIL_KEY, email);
-  openDemoSignupModal();
+  try {
+    await api.requestPromise('/internal/demo/email-capture/', {
+      method: 'POST',
+      data: {
+        ...utmState.data,
+        email,
+      },
+    });
+
+    openDemoSignupModal();
+
+    localStorage.setItem(DEMO_MODE_EMAIL_KEY, 'submitted');
+    trackAnalytics('growth.demo_email_submitted', {organization: null});
+  } catch (error) {
+    // do nothing
+  } finally {
+    setForceHide(false);
+  }
 }
