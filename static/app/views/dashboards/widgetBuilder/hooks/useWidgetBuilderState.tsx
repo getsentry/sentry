@@ -362,7 +362,7 @@ function useWidgetBuilderState(): {
             }
 
             const firstActionPayloadNotEquation: QueryFieldValue | undefined =
-              action.payload.filter(field => field.kind !== FieldValueKind.EQUATION)[0];
+              action.payload.find(field => field.kind !== FieldValueKind.EQUATION);
 
             let validSortOptions: QueryFieldValue[] = firstActionPayloadNotEquation
               ? [firstActionPayloadNotEquation]
@@ -442,9 +442,9 @@ function useWidgetBuilderState(): {
             const firstYAxisNotEquation = yAxis?.filter(
               field => field.kind !== FieldValueKind.EQUATION
             )[0];
-            const firstActionPayloadNotEquation = action.payload.filter(
+            const firstActionPayloadNotEquation = action.payload.find(
               field => field.kind !== FieldValueKind.EQUATION
-            )[0];
+            );
             // Adding a grouping, so default the sort to the first aggregate if possible
             setSort([
               {

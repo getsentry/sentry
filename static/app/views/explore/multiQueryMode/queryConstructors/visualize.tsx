@@ -25,7 +25,7 @@ type Props = {
 };
 
 export function VisualizeSection({query, index}: Props) {
-  const parsedFunction = query.yAxes.map(parseFunction).filter(defined)[0];
+  const parsedFunction = query.yAxes.map(parseFunction).find(defined);
 
   const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     yAxes: query.yAxes,

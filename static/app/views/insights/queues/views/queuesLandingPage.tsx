@@ -46,9 +46,8 @@ function QueuesLandingPage() {
   });
 
   const sort =
-    decodeSorts(query[QueryParameterNames.DESTINATIONS_SORT])
-      .filter(isAValidSort)
-      .at(0) ?? DEFAULT_SORT;
+    decodeSorts(query[QueryParameterNames.DESTINATIONS_SORT]).find(isAValidSort) ??
+    DEFAULT_SORT;
 
   const handleSearch = (newDestination: string) => {
     trackAnalytics('insight.general.search', {

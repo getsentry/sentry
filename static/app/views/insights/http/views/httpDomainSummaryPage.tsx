@@ -73,7 +73,7 @@ export function HTTPDomainSummaryPage() {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const {
     domain,

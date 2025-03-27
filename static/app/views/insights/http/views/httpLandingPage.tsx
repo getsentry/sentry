@@ -51,7 +51,7 @@ export function HTTPLandingPage() {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
 
   // TODO: Pull this using `useLocationQuery` below
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const query = useLocationQuery({
     fields: {

@@ -114,9 +114,9 @@ export function TransactionsTable() {
     },
   });
   const sort =
-    decodeSorts(locationQuery[QueryParameterNames.DESTINATIONS_SORT])
-      .filter(isAValidSort)
-      .at(0) ?? DEFAULT_SORT;
+    decodeSorts(locationQuery[QueryParameterNames.DESTINATIONS_SORT]).find(
+      isAValidSort
+    ) ?? DEFAULT_SORT;
 
   const {data, isPending, meta, pageLinks, error} = useQueuesByTransactionQuery({
     destination: locationQuery.destination,

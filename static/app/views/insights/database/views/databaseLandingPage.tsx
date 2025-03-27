@@ -59,7 +59,7 @@ export function DatabaseLandingPage() {
 
   const system = systemQueryParam ?? selectedSystem;
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
     sort = DEFAULT_SORT;
   }

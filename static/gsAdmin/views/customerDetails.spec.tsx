@@ -2858,7 +2858,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
 
       // reservedUptime
@@ -2868,7 +2868,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -3020,7 +3020,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
       await selectEvent.openMenu(
         await screen.findByRole('textbox', {name: 'Cron monitors'})
@@ -3031,7 +3031,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
       await selectEvent.openMenu(
         await screen.findByRole('textbox', {name: 'Uptime monitors'})
