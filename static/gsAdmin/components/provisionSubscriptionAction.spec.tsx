@@ -206,7 +206,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
@@ -242,7 +242,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
@@ -278,7 +278,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -376,7 +376,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Plan'}),
@@ -693,7 +693,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Continuous Profile Hours', '0');
     await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
@@ -701,7 +701,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Continuous Profile Hours', '0.1');
     await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.1');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
@@ -709,7 +709,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Continuous Profile Hours', '0');
     await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
@@ -805,7 +805,7 @@ describe('provisionSubscriptionAction', function () {
     });
 
     const modal = await loadModal();
-    const container = modal.baseElement as HTMLElement;
+    const container = modal.baseElement;
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Billing Type'}),
@@ -853,7 +853,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Continuous Profile Hours', '0');
     await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
@@ -861,7 +861,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.1');
+    await typeNum('On-Demand Cost-Per-Event Continuous Profile Hours', '0.1');
     await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.1');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
@@ -869,7 +869,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Continuous Profile Hours', '0');
     await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
@@ -1003,7 +1003,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Continuous Profile Hours', '0');
     await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
@@ -1011,7 +1011,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Continuous Profile Hours', '0');
     await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
@@ -1137,7 +1137,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Continuous Profile Hours', '0');
     await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Spans', '1000');
@@ -1145,7 +1145,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Continuous Profile Hours', '0');
     await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
@@ -1256,7 +1256,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Continuous Profile Hours', '0');
     await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Reserved Cost-Per-Event Accepted Spans', '1');
     await typeNum('Reserved Cost-Per-Event Stored Spans', '2');
@@ -1266,7 +1266,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Continuous Profile Hours', '0');
     await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '17450');
@@ -1385,7 +1385,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Cron Monitors', '250');
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Profile Hours', '0');
+    await typeNum('Reserved Continuous Profile Hours', '0');
     await typeNum('Reserved Ui Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
@@ -1393,7 +1393,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Cron Monitors', '400');
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Profile Hours', '0');
+    await typeNum('Price for Continuous Profile Hours', '0');
     await typeNum('Price for Ui Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
@@ -1403,7 +1403,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.0001');
     await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.0001');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.0002');
-    await typeNum('On-Demand Cost-Per-Event Profile Hours', '0.0001');
+    await typeNum('On-Demand Cost-Per-Event Continuous Profile Hours', '0.0001');
     await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.0001');
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
