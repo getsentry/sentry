@@ -16,7 +16,6 @@ import type {
   LegendComponentOption,
   LineSeriesOption,
   SeriesOption,
-  TooltipComponentFormatterCallback,
   TooltipComponentFormatterCallbackParams,
   TooltipComponentOption,
   VisualMapComponentOption,
@@ -113,10 +112,7 @@ interface TooltipOption
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
   markerFormatter?: (marker: string, label?: string) => string;
-  nameFormatter?: (
-    name: string,
-    seriesParams?: TooltipComponentFormatterCallback<any>
-  ) => string;
+  nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
    * If true does not display sublabels with a value of 0.
    */
