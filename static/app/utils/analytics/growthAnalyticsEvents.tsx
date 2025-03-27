@@ -76,6 +76,7 @@ export type GrowthEventParameters = {
   'growth.demo_click_docs': Record<string, unknown>;
   'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_request_demo': Record<string, unknown>;
+  'growth.demo_email_submitted': Record<string, unknown>;
   'growth.demo_modal_clicked_close': Record<string, unknown>;
   'growth.demo_modal_clicked_continue': Record<string, unknown>;
   'growth.demo_modal_clicked_demo': Record<string, unknown>;

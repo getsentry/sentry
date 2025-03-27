@@ -416,7 +416,6 @@ class _ClientConfig:
         return True
 
     def get_context(self) -> Mapping[str, Any]:
-        demo_mode = is_demo_mode_enabled() and is_demo_user(self.user)
 
         return {
             "initialTrace": self.tracing_data,
@@ -472,9 +471,9 @@ class _ClientConfig:
             "memberRegions": self.member_regions,
             "regions": self.regions,
             "relocationConfig": {"selectableRegions": options.get("relocation.selectable-regions")},
-            "demoMode": demo_mode,
+            "demoMode": is_demo_mode_enabled() and is_demo_user(self.user),
             # Analytics is initally disabled for demo users until they opt in
-            "enableAnalytics": settings.ENABLE_ANALYTICS and not demo_mode,
+            "enableAnalytics": settings.ENABLE_ANALYTICS,
             "validateSUForm": getattr(
                 settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
             ),
