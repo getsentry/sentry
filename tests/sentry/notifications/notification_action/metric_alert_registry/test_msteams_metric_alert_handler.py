@@ -78,7 +78,7 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
             alert_rule_serialized_response=None,
-            alert_rule_trigger_action_serialized_response=None,
+            incident_serialized_response=None,
         )
 
     @mock.patch(
