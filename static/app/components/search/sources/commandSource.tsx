@@ -9,18 +9,18 @@ import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
-import withLatestContext from 'sentry/utils/withLatestContext';
+import {useParams} from 'sentry/utils/useParams';
 
 import type {ChildProps, ResultItem} from './types';
 
 type Action = {
   action: () => void;
   description: string;
+  isVisible: boolean;
   requiresSuperuser: boolean;
   title: string;
 };
@@ -29,6 +29,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Open Sudo Modal'),
     description: t('Open Sudo Modal to re-identify yourself.'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () =>
       openSudo({
@@ -39,6 +40,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Open Superuser Modal'),
     description: t('Open Superuser Modal to re-identify yourself.'),
+    isVisible: true,
     requiresSuperuser: true,
     action: () =>
       openSudo({
@@ -50,6 +52,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Toggle dark mode'),
     description: t('Toggle dark mode (superuser only atm)'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       removeBodyTheme();
@@ -60,6 +63,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Toggle Translation Markers'),
     description: t('Toggles translation markers on or off in the application'),
+    isVisible: true,
     requiresSuperuser: true,
     action: () => {
       toggleLocaleDebug();
@@ -70,6 +74,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Search Documentation and FAQ'),
     description: t('Open the Documentation and FAQ search modal.'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       openHelpSearchModal();
@@ -88,6 +93,7 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   ACTIONS.push({
     title: t('Open in Production'),
     description: t('Open the current page in sentry.io'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       const url = new URL(window.location.toString());
@@ -99,16 +105,21 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
-async function createCopyDSNAction(api: Client, orgId: string, projectId: string) {
-  const data: ProjectKey[] = await api.requestPromise(
-    `/projects/${orgId}/${projectId}/keys/`
-  );
-
+function createCopyDSNAction(
+  api: Client,
+  orgId: string | undefined,
+  projectId: string | undefined
+) {
   return {
     title: t('Copy Project DSN to Clipboard'),
     description: t('Copies the Project DSN to the clipboard.'),
+    isVisible: !!orgId && !!projectId,
     requiresSuperuser: false,
-    action: () => {
+    action: async () => {
+      const data: ProjectKey[] = await api.requestPromise(
+        `/projects/${orgId}/${projectId}/keys/`
+      );
+
       if (data.length > 0 && data[0]?.dsn?.public) {
         navigator.clipboard.writeText(data[0]?.dsn?.public);
         addSuccessMessage(t('Copied DSN to clipboard'));
@@ -122,12 +133,11 @@ async function createCopyDSNAction(api: Client, orgId: string, projectId: string
 type Props = {
   children: (props: ChildProps) => React.ReactElement;
   isSuperuser: boolean;
-  organization: Organization;
   /**
    * params obtained from the current route
    */
   params: {
-    orgId: string;
+    orgId?: string;
     projectId?: string;
   };
   /**
@@ -152,7 +162,7 @@ type State = {
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-class CommandSource extends Component<Props, State> {
+class _CommandSource extends Component<Props, State> {
   static defaultProps = {
     searchMap: [],
     searchOptions: {},
@@ -169,14 +179,14 @@ class CommandSource extends Component<Props, State> {
   api = new Client();
 
   async createSearch(searchMap: Action[]) {
-    const searchActions = [...searchMap];
-    const {orgId, projectId} = this.props.params;
-    if (orgId && projectId) {
-      // only show copy DSN action if we have an org and project in the url
-      const copyDSNAction = await createCopyDSNAction(this.api, orgId, projectId);
-      searchActions.push(copyDSNAction);
-    }
-
+    const copyDSNAction = createCopyDSNAction(
+      this.api,
+      this.props.params.orgId,
+      this.props.params.projectId
+    );
+    const searchActions = [...searchMap, copyDSNAction].filter(
+      action => action.isVisible
+    );
     const options = {
       ...this.props.searchOptions,
       keys: ['title', 'description'],
@@ -213,6 +223,15 @@ class CommandSource extends Component<Props, State> {
   }
 }
 
+/**
+ * This component is a wrapper around the _CommandSource component that
+ * obtains the params from the current route.
+ */
+function CommandSource(props: Omit<Props, 'params'>) {
+  const params = useParams();
+  return <_CommandSource {...props} params={params} />;
+}
+
 function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
   return (
     <Access access={[]} isSuperuser>
@@ -220,5 +239,5 @@ function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
     </Access>
   );
 }
-export default withLatestContext(CommandSourceWithFeature);
+export default CommandSourceWithFeature;
 export {CommandSource};
