@@ -1,5 +1,6 @@
 import multiprocessing
 import multiprocessing.connection
+import threading
 import time
 from collections.abc import Callable
 from concurrent import futures
@@ -35,7 +36,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self,
         buffer: SpansBuffer,
         max_flush_segments: int,
-        produce_to_pipe: multiprocessing.connection.Connection | None,
+        produce_to_pipe: Callable[[Any], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
     ):
         self.buffer = buffer
@@ -47,9 +48,14 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
 
-        initializer = _get_arroyo_subprocess_initializer(None)
+        if produce_to_pipe is None:
+            initializer = _get_arroyo_subprocess_initializer(None)
+            Process = multiprocessing.Process
+        else:
+            initializer = None
+            Process = threading.Thread
 
-        self.process = multiprocessing.Process(
+        self.process = Process(
             target=SpanFlusher.main,
             args=(
                 initializer,
@@ -61,75 +67,89 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
             ),
             daemon=True,
         )
+
         self.process.start()
 
     @staticmethod
-    def main(initializer, stopped, current_drift, buffer, max_flush_segments, produce_to_pipe):
-        initializer()
+    def main(
+        initializer: Callable | None,
+        stopped,
+        current_drift,
+        buffer: SpansBuffer,
+        max_flush_segments: int,
+        produce_to_pipe: Callable[[Any], None] | None,
+    ) -> None:
+        try:
+            if initializer:
+                initializer()
 
-        producer_futures = []
+            producer_futures = []
 
-        wait: Callable[[list[futures.Future]], Any]
+            wait: Callable[[list[futures.Future]], Any]
 
-        if produce_to_pipe:
-            produce = produce_to_pipe.send
-            producer = None
-            wait = lambda _: None
-        else:
-            cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
+            if produce_to_pipe is not None:
+                produce = produce_to_pipe
+                producer = None
+                wait = lambda _: None
+            else:
+                cluster_name = get_topic_definition(Topic.BUFFERED_SEGMENTS)["cluster"]
 
-            producer_config = get_kafka_producer_cluster_options(cluster_name)
-            producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-            topic = ArroyoTopic(get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"])
-
-            def produce(payload):
-                producer_futures.append(producer.produce(topic, payload))
-
-            wait = futures.wait
-
-        while not stopped.value:
-            now = int(time.time()) + current_drift.value
-
-            queue_size, flushed_segments = buffer.flush_segments(
-                max_segments=max_flush_segments, now=now
-            )
-            metrics.timing("sentry.spans.buffer.inflight_segments", queue_size)
-
-            if not flushed_segments:
-                time.sleep(1)
-                continue
-
-            for _, spans_set in flushed_segments.items():
-                if not spans_set:
-                    # This is a bug, most likely the input topic is not
-                    # partitioned by trace_id so multiple consumers are writing
-                    # over each other. The consequence is duplicated segments,
-                    # worst-case.
-                    metrics.incr("sentry.spans.buffer.empty_segments")
-                    continue
-
-                spans = [span.payload for span in spans_set]
-
-                kafka_payload = KafkaPayload(
-                    None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
+                producer_config = get_kafka_producer_cluster_options(cluster_name)
+                producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+                topic = ArroyoTopic(
+                    get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
                 )
 
-                produce(kafka_payload)
+                def produce(payload):
+                    producer_futures.append(producer.produce(topic, payload))
 
-            wait(producer_futures)
-            producer_futures.clear()
+                wait = futures.wait
 
-            buffer.done_flush_segments(flushed_segments)
+            while not stopped.value:
+                now = int(time.time()) + current_drift.value
 
-        if producer is not None:
-            producer.close()
+                queue_size, flushed_segments = buffer.flush_segments(
+                    max_segments=max_flush_segments, now=now
+                )
+                metrics.timing("sentry.spans.buffer.inflight_segments", queue_size)
+
+                if not flushed_segments:
+                    time.sleep(1)
+                    continue
+
+                for _, spans_set in flushed_segments.items():
+                    if not spans_set:
+                        # This is a bug, most likely the input topic is not
+                        # partitioned by trace_id so multiple consumers are writing
+                        # over each other. The consequence is duplicated segments,
+                        # worst-case.
+                        metrics.incr("sentry.spans.buffer.empty_segments")
+                        continue
+
+                    spans = [span.payload for span in spans_set]
+
+                    kafka_payload = KafkaPayload(
+                        None, rapidjson.dumps({"spans": spans}).encode("utf8"), []
+                    )
+
+                    produce(kafka_payload)
+
+                wait(producer_futures)
+                producer_futures.clear()
+
+                buffer.done_flush_segments(flushed_segments)
+
+            if producer is not None:
+                producer.close()
+        except KeyboardInterrupt:
+            pass
 
     def poll(self) -> None:
         self.next_step.poll()
 
     def submit(self, message: Message[FilteredPayload | int]) -> None:
         if isinstance(message.payload, int):
-            self.current_drift = message.payload - int(time.time())
+            self.current_drift.value = message.payload - int(time.time())
         self.next_step.submit(message)
 
     def terminate(self) -> None:
@@ -151,4 +171,5 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         while self.process.is_alive() and (deadline is None or deadline > time.time()):
             time.sleep(0.1)
 
-        self.process.terminate()
+        if isinstance(self.process, multiprocessing.Process):
+            self.process.terminate()

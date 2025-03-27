@@ -1,5 +1,4 @@
-import multiprocessing
-from concurrent import futures
+import threading
 from datetime import datetime
 
 import rapidjson
@@ -9,12 +8,21 @@ from arroyo.types import Message, Partition, Topic, Value
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 
 
+class FakeProcess(threading.Thread):
+    """
+    Pretend this is multiprocessing.Process
+    """
+
+    def terminate(self):
+        pass
+
+
 def test_basic(monkeypatch, request):
-    monkeypatch.setattr(futures, "wait", lambda _: None)
+    # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
 
     topic = Topic("test")
-    produce_recv, produce_send = multiprocessing.Pipe(False)
+    messages = []
 
     fac = ProcessSpansStrategyFactory(
         max_batch_size=10,
@@ -23,7 +31,7 @@ def test_basic(monkeypatch, request):
         max_flush_segments=10,
         input_block_size=None,
         output_block_size=None,
-        produce_to_pipe=produce_send,
+        produce_to_pipe=messages.append,
     )
 
     commits = []
@@ -63,8 +71,7 @@ def test_basic(monkeypatch, request):
 
     step.join()
 
-    assert produce_recv.poll(timeout=10)
-    msg = produce_recv.recv()
+    (msg,) = messages
 
     assert rapidjson.loads(msg.value) == {
         "spans": [
