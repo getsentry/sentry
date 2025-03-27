@@ -1,13 +1,10 @@
 from datetime import datetime
 
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
+from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-from sentry.integrations.slack.message_builder.types import (
-    INCIDENT_COLOR_MAPPING,
-    LEVEL_TO_COLOR,
-    SlackBody,
-)
+from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING, SlackBody
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models.organization import Organization
 

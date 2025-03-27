@@ -5,7 +5,7 @@ from typing import Any, Literal, TypedDict
 
 from sentry import features
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR, SLACK_URL_FORMAT
+from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
@@ -173,7 +173,7 @@ def build_attachment_text(group: Group, event: Event | GroupEvent | None = None)
 
 
 def build_attachment_replay_link(
-    group: Group, event: Event | GroupEvent | None = None, url_format: str = SLACK_URL_FORMAT
+    group: Group, url_format: str, event: Event | GroupEvent | None = None
 ) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
     has_slack_links = features.has(
@@ -199,8 +199,8 @@ def build_rule_url(rule: Any, group: Group, project: Project) -> str:
 def build_footer(
     group: Group,
     project: Project,
+    url_format: str,
     rules: Sequence[Rule] | None = None,
-    url_format: str = SLACK_URL_FORMAT,
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
@@ -209,9 +209,6 @@ def build_footer(
         # button then the label is not defined, but the url works.
         text = rules[0].label if rules[0].label else "Test Alert"
         footer += f" via {url_format.format(text=text, url=rule_url)}"
-
-        if url_format == SLACK_URL_FORMAT:
-            footer = url_format.format(text=text, url=rule_url)
 
         if len(rules) > 1:
             footer += f" (+{len(rules) - 1} other)"

@@ -17,7 +17,6 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
     build_attachment_title,
-    build_footer,
     format_actor_option_slack,
     format_actor_options_slack,
     get_title_link,
@@ -32,6 +31,7 @@ from sentry.integrations.slack.message_builder.types import (
     SLACK_URL_FORMAT,
     SlackBlock,
 )
+from sentry.integrations.slack.message_builder.util import build_slack_footer
 from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
@@ -506,7 +506,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
     def get_footer(self) -> SlackBlock:
         # This link does not contain user input (it's a static label and a url), must not escape it.
-        replay_link = build_attachment_replay_link(self.group, self.event)
+        replay_link = build_attachment_replay_link(
+            group=self.group,
+            url_format=SLACK_URL_FORMAT,
+            event=self.event,
+        )
 
         timestamp = None
         if not self.issue_details:
@@ -517,7 +521,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         footer = (
             self.notification.build_notification_footer(self.recipient, ExternalProviders.SLACK)
             if self.notification and self.recipient
-            else build_footer(self.group, project, self.rules, SLACK_URL_FORMAT)
+            else build_slack_footer(
+                group=self.group,
+                project=project,
+                rules=self.rules,
+            )
         )
 
         if not self.notification:
