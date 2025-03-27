@@ -407,6 +407,7 @@ module = [
     "sentry.tempest.migrations.*",
     "sentry.testutils.helpers.task_runner",
     "sentry.testutils.pytest.json_report_reruns",
+    "sentry.testutils.pytest.show_flaky_failures",
     "sentry.testutils.skips",
     "sentry.toolbar.utils.*",
     "sentry.types.*",
