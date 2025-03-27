@@ -9,4 +9,5 @@ export enum PrimaryNavGroup {
   EXPLORE = 'explorer',
   INSIGHTS = 'insights',
   SETTINGS = 'settings',
+  PIPELINE = 'pipeline'
 }
