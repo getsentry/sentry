@@ -37,7 +37,7 @@ function OrgDashboards(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {dashboardId} = useParams<{dashboardId: string}>();
-  const appliedDashboardIdRef = useRef<string | null>(null);
+  const dashboardRedirectRef = useRef<string | null>(null);
 
   const ENDPOINT = `/organizations/${organization.slug}/dashboards/`;
 
@@ -97,12 +97,12 @@ function OrgDashboards(props: Props) {
       !selectedDashboard ||
       !hasSavedPageFilters(selectedDashboard) ||
       // Apply redirect once for each dashboard id
-      appliedDashboardIdRef.current === selectedDashboard.id
+      dashboardRedirectRef.current === selectedDashboard.id
     ) {
       return;
     }
 
-    appliedDashboardIdRef.current = selectedDashboard.id;
+    dashboardRedirectRef.current = selectedDashboard.id;
     navigate(
       {
         ...location,
