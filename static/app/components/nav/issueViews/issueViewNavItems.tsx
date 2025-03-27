@@ -297,6 +297,11 @@ export function IssueViewNavItems({
           />
         ))}
       </Reorder.Group>
+      {organization.features.includes('issue-view-sharing') && (
+        <SecondaryNav.Item to={`${baseUrl}/views/`} end>
+          {t('All Views')}
+        </SecondaryNav.Item>
+      )}
     </SecondaryNav.Section>
   );
 }
