@@ -270,8 +270,6 @@ describe('SchemaHintsList', () => {
       router,
     });
 
-    expect(
-      screen.getByText('No schema hints available for these projects')
-    ).toBeInTheDocument();
+    expect(screen.getByText('No tags available for these projects')).toBeInTheDocument();
   });
 });
