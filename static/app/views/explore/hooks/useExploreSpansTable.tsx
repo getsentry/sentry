@@ -32,7 +32,7 @@ export function useExploreSpansTable({
   enabled,
   limit,
   query,
-}: UseExploreSpansTableOptions): SpansTableResult {
+}: UseExploreSpansTableOptions) {
   return useProgressiveQuery<typeof useExploreSpansTableImp>({
     queryHookImplementation: useExploreSpansTableImp,
     queryHookArgs: {enabled, limit, query},
