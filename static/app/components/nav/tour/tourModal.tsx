@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
-import navigationTourDark from 'sentry-images/spot/navigation-tour-dark.png';
-import navigationTourLight from 'sentry-images/spot/navigation-tour-light.png';
+import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -26,7 +25,7 @@ export function NavTourModal({
 
   return (
     <TourContainer prefersDarkMode={prefersDarkMode}>
-      <ImageContainer prefersDarkMode={prefersDarkMode} />
+      <ModalImage src={stackedNavTourSvg} />
       <TextContainer>
         <Header prefersDarkMode={prefersDarkMode}>
           {t('Welcome to a simpler Sentry')}
@@ -43,7 +42,7 @@ export function NavTourModal({
             }}
             borderless
           >
-            {t('Got it')}
+            {t('Maybe later')}
           </TextTourAction>
           <TourAction
             size="sm"
@@ -62,15 +61,12 @@ export function NavTourModal({
   );
 }
 
-const ImageContainer = styled('div')<{prefersDarkMode: boolean}>`
+const ModalImage = styled('img')`
   width: calc(100% - ${space(1.5)} - ${space(1.5)});
-  margin: ${space(1.5)} auto 0;
+  margin: ${space(1.5)} 0 0 ${space(1.5)};
   height: 272px;
-  background-image: ${p =>
-    p.prefersDarkMode ? `url(${navigationTourDark})` : `url(${navigationTourLight})`};
   background-size: cover;
   background-position: center;
-  border: 1px solid ${p => p.theme.inverted.translucentBorder};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
