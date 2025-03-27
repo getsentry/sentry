@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 
-import {Badge} from 'sentry/components/core/badge';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
@@ -111,14 +111,14 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
       {hasWorkflowEngine ? (
         <Fragment>
           <SecondaryNav.Item
-            trailingItems={<Badge type="alpha">A</Badge>}
+            trailingItems={<FeatureBadge type="alpha" variant="short" />}
             to={`${baseUrl}/monitors/`}
             activeTo={`${baseUrl}/monitors/`}
           >
             {t('Monitors')}
           </SecondaryNav.Item>
           <SecondaryNav.Item
-            trailingItems={<Badge type="alpha">A</Badge>}
+            trailingItems={<FeatureBadge type="alpha" variant="short" />}
             to={`${baseUrl}/automations/`}
             activeTo={`${baseUrl}/automations/`}
           >
