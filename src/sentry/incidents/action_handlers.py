@@ -12,9 +12,18 @@ from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
 from sentry import analytics, features
+from sentry.api.serializers import serialize
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    AlertRuleSerializerResponse,
+)
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    DetailedIncidentSerializerResponse,
+)
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
     AlertRuleThresholdType,
@@ -27,8 +36,15 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     TriggerStatus,
 )
-from sentry.integrations.metric_alerts import AlertContext, get_metric_count_from_incident
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+    OpenPeriodContext,
+)
+from sentry.integrations.metric_alerts import get_metric_count_from_incident
 from sentry.integrations.types import ExternalProviders
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
@@ -42,7 +58,6 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry.workflow_engine.typings.notification_action import NotificationContext
 
 
 class ActionHandler(metaclass=abc.ABCMeta):
@@ -170,13 +185,15 @@ class EmailActionHandler(ActionHandler):
             return set()
 
         if action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
-            assert isinstance(target, RpcUser)
+            assert isinstance(target, OrganizationMember)
             if RuleSnooze.objects.is_snoozed_for_user(
-                user_id=target.id, alert_rule=incident.alert_rule
+                user_id=target.user_id, alert_rule=incident.alert_rule
             ):
                 return set()
 
-            return {target.id}
+            if target.user_id:
+                return {target.user_id}
+            return set()
 
         elif action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
             assert isinstance(target, Team)
@@ -310,20 +327,22 @@ class PagerDutyActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 
-        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
-        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
-
         if metric_value is None:
             metric_value = get_metric_count_from_incident(incident)
+
+        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+        metric_issue_context = MetricIssueContext.from_legacy_models(
+            incident=incident,
+            new_status=new_status,
+            metric_value=metric_value,
+        )
 
         success = send_incident_alert_notification(
             notification_context=notification_context,
             alert_context=alert_context,
-            open_period_identifier=incident.identifier,
+            metric_issue_context=metric_issue_context,
             organization=incident.organization,
-            snuba_query=incident.alert_rule.snuba_query,
-            new_status=new_status,
-            metric_value=metric_value,
             notification_uuid=notification_uuid,
         )
         if success:
@@ -354,11 +373,22 @@ class OpsgenieActionHandler(DefaultActionHandler):
     ):
         from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 
-        success = send_incident_alert_notification(
-            action=action,
+        if metric_value is None:
+            metric_value = get_metric_count_from_incident(incident)
+
+        notification_context = NotificationContext.from_alert_rule_trigger_action(action)
+        alert_context = AlertContext.from_alert_rule_incident(incident.alert_rule)
+        metric_issue_context = MetricIssueContext.from_legacy_models(
             incident=incident,
             new_status=new_status,
             metric_value=metric_value,
+        )
+
+        success = send_incident_alert_notification(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            organization=incident.organization,
             notification_uuid=notification_uuid,
         )
         if success:
@@ -470,10 +500,21 @@ def generate_incident_trigger_email_context(
     chart_url = None
     if features.has("organizations:metric-alert-chartcuterie", incident.organization):
         try:
+            alert_rule_serialized_response: AlertRuleSerializerResponse = serialize(
+                incident.alert_rule, None, AlertRuleSerializer()
+            )
+            incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+                incident, None, DetailedIncidentSerializer()
+            )
+            open_period_context = OpenPeriodContext.from_incident(incident)
+
             chart_url = build_metric_alert_chart(
                 organization=incident.organization,
-                alert_rule=incident.alert_rule,
-                selected_incident=incident,
+                alert_rule_serialized_response=alert_rule_serialized_response,
+                selected_incident_serialized=incident_serialized_response,
+                snuba_query=snuba_query,
+                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                open_period_context=open_period_context,
                 size=ChartSize({"width": 600, "height": 200}),
                 subscription=subscription,
             )

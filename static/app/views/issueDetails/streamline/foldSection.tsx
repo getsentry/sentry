@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -15,7 +16,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -46,6 +46,10 @@ export interface FoldSectionProps {
   actions?: React.ReactNode;
   className?: string;
   /**
+   * Disable persisting collapse state to localStorage
+   */
+  disableCollapsePersistence?: boolean;
+  /**
    * Should this section be initially open, gets overridden by user preferences
    */
   initialCollapse?: boolean;
@@ -54,6 +58,22 @@ export interface FoldSectionProps {
    */
   preventCollapse?: boolean;
   style?: CSSProperties;
+}
+
+function useOptionalLocalStorageState(
+  key: SectionKey,
+  initialState: boolean,
+  disablePersistence: boolean
+): [boolean, (value: boolean) => void] {
+  const [localState, setLocalState] = useState(initialState);
+  const [persistedState, setPersistedState] = useSyncedLocalStorageState(
+    getFoldSectionKey(key),
+    initialState
+  );
+
+  return disablePersistence
+    ? [localState, setLocalState]
+    : [persistedState, setPersistedState];
 }
 
 export function FoldSection({
@@ -65,15 +85,19 @@ export function FoldSection({
   className,
   initialCollapse = false,
   preventCollapse = false,
+  disableCollapsePersistence = false,
 }: FoldSectionProps & {
   ref?: React.Ref<HTMLElement>;
 }) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
-  const [isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
-    getFoldSectionKey(sectionKey),
-    initialCollapse
+
+  const [isCollapsed, setIsCollapsed] = useOptionalLocalStorageState(
+    sectionKey,
+    initialCollapse,
+    disableCollapsePersistence
   );
+
   const hasAttemptedScroll = useRef(false);
 
   // If the section is prevented from collapsing, we need to update the local storage state and open
@@ -142,7 +166,7 @@ export function FoldSection({
   return (
     <Fragment>
       <Section
-        ref={mergeRefs([forwardedRef, scrollToSection])}
+        ref={mergeRefs(forwardedRef, scrollToSection)}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"

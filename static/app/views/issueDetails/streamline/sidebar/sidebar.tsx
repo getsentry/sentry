@@ -26,14 +26,10 @@ import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sid
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
+import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
-import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 
-type Props = {
-  group: Group;
-  project: Project;
-  event?: Event;
-};
+type Props = {group: Group; project: Project; event?: Event};
 
 export default function StreamlinedSidebar({group, event, project}: Props) {
   const theme = useTheme();
@@ -54,7 +50,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isBottomSidebar = useMedia(`(max-width: ${theme.breakpoints.large})`);
 
   return (
     <TourElement<IssueDetailsTour>
@@ -64,7 +60,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       description={t(
         'Leave a comment for a teammate or link your favorite ticketing system - this area helps you collaborate and track progress on the issue.'
       )}
-      position={isScreenSmall ? 'top' : 'left-start'}
+      position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
         <GuideAnchor target="issue_sidebar_releases" position="left">
@@ -75,7 +71,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
           issueTypeConfig.issueSummary.enabled &&
           !organization.hideAiFeatures) ||
           issueTypeConfig.resources) && (
-          <SolutionsSection group={group} project={project} event={event} />
+          <SeerSection group={group} project={project} event={event} />
         )}
         {event && (
           <ErrorBoundary mini>

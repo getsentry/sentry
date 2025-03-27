@@ -27,8 +27,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {
@@ -36,6 +36,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateGenericPerformanceEventView,
   generateMobilePerformanceEventView,
@@ -79,6 +80,8 @@ const REACT_NATIVE_COLUMN_TITLES = [
 ];
 
 function MobileOverviewPage() {
+  useOverviewPageTrackPageload();
+
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();

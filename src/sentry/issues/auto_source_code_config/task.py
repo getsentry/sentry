@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
@@ -9,6 +10,7 @@ from sentry_sdk import set_tag, set_user
 from sentry import eventstore
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -40,7 +42,9 @@ class DeriveCodeMappingsErrorReason(StrEnum):
     EMPTY_TREES = "The trees are empty."
 
 
-def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMapping]:
+def process_event(
+    project_id: int, group_id: int, event_id: str
+) -> tuple[list[CodeMapping], list[str]]:
     """
     Process errors for customers with source code management installed and calculate code mappings
     among other things.
@@ -63,31 +67,34 @@ def process_event(project_id: int, group_id: int, event_id: str) -> list[CodeMap
     event = eventstore.backend.get_event_by_id(project_id, event_id, group_id)
     if event is None:
         logger.error("Event not found.", extra=extra)
-        return []
+        return [], []
 
     platform = event.platform
     assert platform is not None
 
     platform_config = PlatformConfig(platform)
     if not platform_config.is_supported():
-        return []
+        return [], []
 
     frames_to_process = get_frames_to_process(event.data, platform)
     if not frames_to_process:
-        return []
+        return [], []
 
-    code_mappings = []
+    code_mappings: list[CodeMapping] = []
+    in_app_stack_trace_rules: list[str] = []
     try:
         installation = get_installation(org)
         trees = get_trees_for_org(installation, org, extra)
         trees_helper = CodeMappingTreesHelper(trees)
         code_mappings = trees_helper.generate_code_mappings(frames_to_process, platform)
-        dry_run = platform_config.is_dry_run_platform()
-        create_repos_and_code_mappings(code_mappings, installation, project, platform, dry_run)
+        _, in_app_stack_trace_rules = create_configurations(
+            code_mappings, installation, project, platform_config
+        )
+
     except (InstallationNotFoundError, InstallationCannotGetTreesError):
         pass
 
-    return code_mappings
+    return code_mappings, in_app_stack_trace_rules
 
 
 def process_error(error: ApiError, extra: dict[str, Any]) -> None:
@@ -160,74 +167,83 @@ def get_trees_for_org(
         return trees
 
 
-def create_repos_and_code_mappings(
+def create_configurations(
     code_mappings: list[CodeMapping],
     installation: IntegrationInstallation,
     project: Project,
-    platform: str,
-    dry_run: bool,
-) -> None:
+    platform_config: PlatformConfig,
+) -> tuple[list[CodeMapping], list[str]]:
     """
-    Given a list of code mappings, create a new repository project path
-    config for each mapping.
+    Given a set of trees and frames to process, create code mappings & in-app stack trace rules.
+
+    Returns a tuple of code mappings and in-app stack trace rules even when running in dry-run mode.
     """
-    organization_integration = installation.org_integration
-    if not organization_integration:
+    org_integration = installation.org_integration
+    if not org_integration:
         raise InstallationNotFoundError
 
-    organization_id = organization_integration.organization_id
-    for code_mapping in code_mappings:
-        repository = (
-            Repository.objects.filter(name=code_mapping.repo.name, organization_id=organization_id)
-            .order_by("-date_added")
-            .first()
-        )
+    dry_run = platform_config.is_dry_run_platform()
+    platform = platform_config.platform
+    tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
+    with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
+        for code_mapping in code_mappings:
+            repository = create_repository(code_mapping.repo.name, org_integration, tags)
+            create_code_mapping(code_mapping, repository, project, org_integration, tags)
 
-        if not repository:
-            if not dry_run:
-                repository = Repository.objects.create(
-                    name=code_mapping.repo.name,
-                    organization_id=organization_id,
-                    integration_id=organization_integration.integration_id,
-                )
-            metrics.incr(
-                key=f"{METRIC_PREFIX}.repository.created",
-                tags={"platform": platform, "dry_run": dry_run},
-                sample_rate=1.0,
+    in_app_stack_trace_rules: list[str] = []
+    if platform_config.creates_in_app_stack_trace_rules():
+        # XXX: This will be changed on the next PR
+        pass
+
+    # We return this to allow tests running in dry-run mode to assert
+    # what would have been created.
+    return code_mappings, in_app_stack_trace_rules
+
+
+def create_repository(
+    repo_name: str, org_integration: RpcOrganizationIntegration, tags: Mapping[str, str | bool]
+) -> Repository | None:
+    organization_id = org_integration.organization_id
+    created = False
+    repository = (
+        Repository.objects.filter(name=repo_name, organization_id=organization_id)
+        .order_by("-date_added")
+        .first()
+    )
+    if not repository:
+        if not tags["dry_run"]:
+            repository, created = Repository.objects.get_or_create(
+                name=repo_name,
+                organization_id=organization_id,
+                integration_id=org_integration.integration_id,
             )
+        if created or tags["dry_run"]:
+            metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
 
-        extra = {
-            "project_id": project.id,
-            "stack_root": code_mapping.stacktrace_root,
-            "repository_name": code_mapping.repo.name,
-        }
-        # The project and stack_root are unique together
-        existing_code_mappings = RepositoryProjectPathConfig.objects.filter(
-            project=project, stack_root=code_mapping.stacktrace_root
+    return repository
+
+
+def create_code_mapping(
+    code_mapping: CodeMapping,
+    repository: Repository | None,
+    project: Project,
+    org_integration: RpcOrganizationIntegration,
+    tags: Mapping[str, str | bool],
+) -> None:
+    created = False
+    if not tags["dry_run"] and repository is not None:
+        _, created = RepositoryProjectPathConfig.objects.get_or_create(
+            project=project,
+            stack_root=code_mapping.stacktrace_root,
+            defaults={
+                "repository": repository,
+                "organization_integration_id": org_integration.id,
+                "integration_id": org_integration.integration_id,
+                "organization_id": org_integration.organization_id,
+                "source_root": code_mapping.source_path,
+                "default_branch": code_mapping.repo.branch,
+                "automatically_generated": True,
+            },
         )
-        if existing_code_mappings.exists():
-            logger.warning("Investigate.", extra=extra)
-            continue
-
-        if not dry_run:
-            if repository is None:  # This is mostly to appease the type checker
-                logger.warning("Investigate.", extra=extra)
-                continue
-
-            RepositoryProjectPathConfig.objects.create(
-                project=project,
-                stack_root=code_mapping.stacktrace_root,
-                repository=repository,
-                organization_integration_id=organization_integration.id,
-                integration_id=organization_integration.integration_id,
-                organization_id=organization_integration.organization_id,
-                source_root=code_mapping.source_path,
-                default_branch=code_mapping.repo.branch,
-                automatically_generated=True,
-            )
-
-        metrics.incr(
-            key=f"{METRIC_PREFIX}.code_mapping.created",
-            tags={"platform": platform, "dry_run": dry_run},
-            sample_rate=1.0,
-        )
+    if created or tags["dry_run"]:
+        metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)

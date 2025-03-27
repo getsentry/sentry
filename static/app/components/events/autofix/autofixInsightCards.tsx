@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
@@ -184,6 +184,7 @@ function AutofixInsightCard({
                     <EditInput
                       type="text"
                       value={editText}
+                      maxLength={4096}
                       onChange={e => setEditText(e.target.value)}
                       placeholder={t('Share your own insight here...')}
                       autoFocus
@@ -505,6 +506,7 @@ function ChainLink({
                     type="text"
                     value={newInsightText}
                     onChange={e => setNewInsightText(e.target.value)}
+                    maxLength={4096}
                     placeholder={t('Share your own insight here...')}
                     autoFocus
                   />

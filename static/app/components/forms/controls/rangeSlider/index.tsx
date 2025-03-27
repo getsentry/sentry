@@ -211,6 +211,8 @@ function RangeSlider({
               value={sliderValue}
               onChange={handleCustomInputChange}
               onBlur={handleInput}
+              // Do not forward required to avoid default browser behavior
+              required={undefined}
             />
           )}
         </SliderAndInputWrapper>

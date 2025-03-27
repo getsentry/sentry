@@ -164,6 +164,9 @@ class Fixtures:
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
 
+    def create_member_invite(self, *args, **kwargs):
+        return Factories.create_member_invite(*args, **kwargs)
+
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
@@ -741,6 +744,7 @@ class Fixtures:
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
         uptime_status_update_date: datetime | None = None,
+        id: int | None = None,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
@@ -761,6 +765,7 @@ class Fixtures:
             Actor.from_object(owner) if owner else None,
             uptime_status,
             uptime_status_update_date,
+            id,
         )
 
     @pytest.fixture(autouse=True)

@@ -31,7 +31,10 @@ export function TraceDataSection({event}: {event: Event}) {
   }
 
   const noEvents = !isLoading && traceEvents.length === 0;
-  if (hasStreamlinedUI && (!oneOtherIssueEvent || noEvents)) {
+  if (
+    hasStreamlinedUI &&
+    (noEvents || (traceEvents.length === 1 && !oneOtherIssueEvent))
+  ) {
     return null;
   }
 

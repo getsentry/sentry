@@ -207,12 +207,8 @@ function ProjectVelocityScoreCard(props: Props) {
           previousPeriodValue={previousReleases?.length}
           field="count()"
           maximumValue={API_LIMIT}
-          meta={{
-            fields: {
-              'count()': 'number',
-            },
-            units: {},
-          }}
+          type="number"
+          unit={null}
           preferredPolarity="+"
         />
       }

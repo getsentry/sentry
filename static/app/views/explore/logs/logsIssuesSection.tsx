@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageParamsProvider,
@@ -22,14 +23,19 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 export function LogsIssuesSection({
   initialCollapse,
   isOnEmbeddedView,
-  limitToTraceId: traceId,
+  limitToTraceId,
 }: {
   initialCollapse: boolean;
-} & Omit<LogsPageParamsProviderProps, 'children'>) {
+} & Omit<LogsPageParamsProviderProps, 'children' | 'analyticsPageSource'>) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
-  const tableData = useExploreLogsTable({enabled: feature});
+  const tableData = useExploreLogsTable({enabled: feature, limit: 10});
   if (!feature) {
+    return null;
+  }
+  if (!limitToTraceId) {
+    // If there isn't a traceId (eg. profiling issue), we shouldn't show logs since they are trace specific.
+    // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
   if (tableData?.data?.length === 0) {
@@ -45,8 +51,9 @@ export function LogsIssuesSection({
       initialCollapse={initialCollapse}
     >
       <LogsPageParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         isOnEmbeddedView={isOnEmbeddedView}
-        limitToTraceId={traceId}
+        limitToTraceId={limitToTraceId}
       >
         <LogsSectionContent tableData={tableData} />
       </LogsPageParamsProvider>

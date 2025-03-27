@@ -11,12 +11,14 @@ import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import useApi from 'sentry/utils/useApi';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {getANRIssueQueryText, getANRRateText} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -27,6 +29,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  platform?: PlatformKey;
   query?: string;
 };
 
@@ -36,6 +39,7 @@ export function ProjectAnrScoreCard({
   selection,
   location,
   query,
+  platform,
 }: Props) {
   const {environments, projects, datetime} = selection;
   const {start, end, period} = datetime;
@@ -58,15 +62,16 @@ export function ProjectAnrScoreCard({
       includeSeries: false,
     };
 
-    doSessionsRequest(api, {...requestData, ...normalizeDateTimeParams(datetime)}).then(
-      response => {
-        if (unmounted) {
-          return;
-        }
-
-        setSessionsData(response);
+    doSessionsRequest(api, {
+      ...requestData,
+      ...normalizeDateTimeParams(datetime),
+    }).then(([response]) => {
+      if (unmounted) {
+        return;
       }
-    );
+
+      setSessionsData(response);
+    });
     return () => {
       unmounted = true;
     };
@@ -104,7 +109,7 @@ export function ProjectAnrScoreCard({
         ...requestData,
         start: previousStart,
         end: previousEnd,
-      }).then(response => {
+      }).then(([response]) => {
         if (unmounted) {
           return;
         }
@@ -128,7 +133,7 @@ export function ProjectAnrScoreCard({
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
 
-  const issueQuery = ['mechanism:[ANR,AppExitInfo]', query].join(' ').trim();
+  const issueQuery = [getANRIssueQueryText(platform), query].join(' ').trim();
 
   const queryParams = {
     ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
@@ -141,9 +146,8 @@ export function ProjectAnrScoreCard({
     query: queryParams,
   };
 
-  const cardTitle = t('ANR Rate');
-
-  const cardHelp = getSessionTermDescription(SessionTerm.ANR_RATE, null);
+  const cardTitle = getANRRateText(platform);
+  const cardHelp = getSessionTermDescription(SessionTerm.ANR_RATE, platform || null);
 
   const Title = <Widget.WidgetTitle title={cardTitle} />;
 
@@ -181,12 +185,8 @@ export function ProjectAnrScoreCard({
           previousPeriodValue={previousValue ?? undefined}
           field="anr_rate()"
           preferredPolarity="-"
-          meta={{
-            fields: {
-              'anr_rate()': 'percentage',
-            },
-            units: {},
-          }}
+          type="percentage"
+          unit={null}
         />
       }
     />

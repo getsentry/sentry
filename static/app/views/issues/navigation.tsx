@@ -50,54 +50,55 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
         <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/`} end>
+            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
               {t('Feed')}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/feedback/`}
+              analyticsItemName="issues_feedback"
+            >
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
           {groupSearchViews && (
-            <SecondaryNav.Section title={t('Starred Views')}>
-              <IssueViewNavItems
-                loadedViews={groupSearchViews.map(
-                  (
-                    {
-                      id,
-                      name,
-                      query: viewQuery,
-                      querySort: viewQuerySort,
-                      environments: viewEnvironments,
-                      projects: viewProjects,
-                      timeFilters: viewTimeFilters,
-                      isAllProjects,
-                    },
-                    index
-                  ): IssueView => {
-                    const tabId = id ?? `default${index.toString()}`;
+            <IssueViewNavItems
+              loadedViews={groupSearchViews.map(
+                (
+                  {
+                    id,
+                    name,
+                    query: viewQuery,
+                    querySort: viewQuerySort,
+                    environments: viewEnvironments,
+                    projects: viewProjects,
+                    timeFilters: viewTimeFilters,
+                  },
+                  index
+                ): IssueView => {
+                  const tabId = id ?? `default${index.toString()}`;
 
-                    return {
-                      id: tabId,
-                      key: tabId,
-                      label: name,
-                      query: viewQuery,
-                      querySort: viewQuerySort,
-                      environments: viewEnvironments,
-                      projects: isAllProjects ? [-1] : viewProjects,
-                      timeFilters: viewTimeFilters,
-                      isCommitted: true,
-                    };
-                  }
-                )}
-                sectionRef={sectionRef}
-                baseUrl={baseUrl}
-              />
-            </SecondaryNav.Section>
+                  return {
+                    id: tabId,
+                    key: tabId,
+                    label: name,
+                    query: viewQuery,
+                    querySort: viewQuerySort,
+                    environments: viewEnvironments,
+                    projects: viewProjects,
+                    timeFilters: viewTimeFilters,
+                    isCommitted: true,
+                  };
+                }
+              )}
+              sectionRef={sectionRef}
+              baseUrl={baseUrl}
+            />
           )}
           <SecondaryNav.Section title={t('Configure')}>
             <SecondaryNav.Item
               to={`${baseUrl}/alerts/rules/`}
               activeTo={`${baseUrl}/alerts/`}
+              analyticsItemName="issues_alerts"
             >
               {t('Alerts')}
             </SecondaryNav.Item>

@@ -15,7 +15,8 @@ from sentry.grouping.enhancer import (
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.enhancer.matchers import _cached, create_match_frame
+from sentry.grouping.enhancer.matchers import ReturnValueCache, _cached, create_match_frame
+from sentry.grouping.enhancer.parser import parse_enhancements
 from sentry.testutils.cases import TestCase
 
 
@@ -26,7 +27,13 @@ def dump_obj(obj):
     for key, value in obj.__dict__.items():
         if key.startswith("_"):
             continue
-        elif key == "rust_enhancements":
+        elif key in [
+            "rust_enhancements",
+            "is_classifier",
+            "sets_contributes",
+            "has_classifier_actions",
+            "has_contributes_actions",
+        ]:
             continue
         elif isinstance(value, list):
             rv[key] = [dump_obj(x) for x in value]
@@ -61,8 +68,8 @@ error.value:"*something*"                       max-frames=12
 
     insta_snapshot(dump_obj(enhancement))
 
-    dumped = enhancement.dumps()
-    assert Enhancements.loads(dumped).dumps() == dumped
+    dumped = enhancement.base64_string
+    assert Enhancements.loads(dumped).base64_string == dumped
     assert Enhancements.loads(dumped)._to_config_structure() == enhancement._to_config_structure()
     assert isinstance(dumped, str)
 
@@ -496,7 +503,7 @@ def test_cached_with_kwargs():
 
     foo = mock.Mock()
 
-    cache: dict[object, object] = {}
+    cache: ReturnValueCache = {}
     _cached(cache, foo, kw1=1, kw2=2)
     assert foo.call_count == 1
 
@@ -567,6 +574,52 @@ family:javascript,native -group
 )
 def test_keep_profiling_rules(test_input, expected):
     assert keep_profiling_rules(test_input) == expected
+
+
+class EnhancementsTest(TestCase):
+    def test_differentiates_between_classifier_and_contributes_rules(self):
+        rules_text = """
+            function:sit              +app                  # should end up in classifiers
+            function:roll_over        category=trick        # should end up in classifiers
+            function:shake            +group                # should end up in contributes
+            function:lie_down         max-frames=11         # should end up in contributes
+            function:stay             min-frames=12         # should end up in contributes
+            function:kangaroo         -app -group           # should end up in both
+            """
+        rules = parse_enhancements(rules_text)
+
+        expected_results = [
+            # (has_classifier_actions, has_contributes_actions, classifier_actions, contributes_actions)
+            (True, False, ["+app"], None),
+            (True, False, ["category=trick"], None),
+            (False, True, None, ["+group"]),
+            (False, True, None, ["max-frames=11"]),
+            (False, True, None, ["min-frames=12"]),
+            (True, True, ["-app"], ["-group"]),
+        ]
+
+        for i, expected in enumerate(expected_results):
+            (
+                expected_has_classifier_actions_value,
+                expected_has_contributes_actions_value,
+                expected_as_classifier_rule_actions,
+                expected_as_contributes_rule_actions,
+            ) = expected
+            rule = rules[i]
+
+            classifier_rule = rule.as_classifier_rule()
+            classifier_rule_actions = (
+                [str(action) for action in classifier_rule.actions] if classifier_rule else None
+            )
+            contributes_rule = rule.as_contributes_rule()
+            contributes_rule_actions = (
+                [str(action) for action in contributes_rule.actions] if contributes_rule else None
+            )
+
+            assert rule.has_classifier_actions == expected_has_classifier_actions_value
+            assert rule.has_contributes_actions == expected_has_contributes_actions_value
+            assert classifier_rule_actions == expected_as_classifier_rule_actions
+            assert contributes_rule_actions == expected_as_contributes_rule_actions
 
 
 @dataclass

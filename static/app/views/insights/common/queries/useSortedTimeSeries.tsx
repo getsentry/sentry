@@ -6,6 +6,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -33,6 +34,7 @@ type SeriesMap = {
 
 interface Options<Fields> {
   enabled?: boolean;
+  fidelity?: 'low' | 'auto';
   fields?: string[];
   interval?: string;
   orderby?: string | string[];
@@ -61,6 +63,7 @@ export const useSortedTimeSeries = <
     orderby,
     overriddenRoute,
     enabled,
+    fidelity,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -95,6 +98,7 @@ export const useSortedTimeSeries = <
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      fidelity,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
@@ -219,12 +223,8 @@ export function convertEventsStatsToTimeSeriesData(
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      fields: {
-        [label]: seriesData.meta?.fields?.[seriesName]!,
-      },
-      units: {
-        [label]: seriesData.meta?.units?.[seriesName]!,
-      },
+      type: seriesData.meta?.fields?.[seriesName]!,
+      unit: seriesData.meta?.units?.[seriesName] as DataUnit,
     },
     confidence: determineSeriesConfidence(seriesData),
     sampleCount: seriesData.meta?.accuracy?.sampleCount,

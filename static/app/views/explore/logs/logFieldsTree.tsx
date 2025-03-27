@@ -9,6 +9,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
@@ -19,13 +20,17 @@ import {
   useSetLogsFields,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {TraceItemAttributes} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {
   LogAttributesRendererMap,
   RendererExtra,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {OurLogsTableRowDetails} from 'sentry/views/explore/logs/useLogsQuery';
-import {getLogAttributeItem, removeSentryPrefix} from 'sentry/views/explore/logs/utils';
+import {
+  adjustLogTraceID,
+  getLogAttributeItem,
+  removeSentryPrefix,
+} from 'sentry/views/explore/logs/utils';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
@@ -60,12 +65,12 @@ interface LogAttributeFieldRender {
 }
 
 interface LogFieldsTreeProps extends LogAttributeFieldRender {
-  attributes: OurLogsTableRowDetails['attributes'];
+  attributes: TraceItemAttributes;
   hiddenAttributes?: OurLogFieldKey[];
 }
 
 interface LogFieldsTreeColumnsProps extends LogAttributeFieldRender {
-  attributes: OurLogsTableRowDetails['attributes'];
+  attributes: TraceItemAttributes;
   columnCount: number;
   hiddenAttributes?: OurLogFieldKey[];
 }
@@ -371,7 +376,7 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
     }
     const newFields = [...fields];
     if (newFields[newFields.length - 1] === OurLogKnownFieldKey.TIMESTAMP) {
-      newFields.splice(newFields.length - 1, 0, originalAttribute.original_attribute_key);
+      newFields.splice(-1, 0, originalAttribute.original_attribute_key);
     } else {
       newFields.push(originalAttribute.original_attribute_key);
     }
@@ -452,21 +457,28 @@ function LogFieldsTreeValue({
   // Check if we have a custom renderer for this attribute
   const attributeKey = originalAttribute.original_attribute_key;
   const renderer = renderers[attributeKey];
+  const basicRenderer = getFieldRenderer(attributeKey, {}, false);
+  const adjustedValue =
+    attributeKey === OurLogKnownFieldKey.TRACE_ID
+      ? adjustLogTraceID(content.value as string)
+      : content.value;
 
-  const defaultValue = <span>{String(content.value)}</span>;
+  const basicRendered = basicRenderer({[attributeKey]: adjustedValue}, renderExtra);
+  const defaultValue = <span>{String(adjustedValue)}</span>;
 
   if (config?.disableRichValue) {
-    return defaultValue;
+    return String(adjustedValue);
   }
 
   if (renderer) {
     return renderer({
-      item: getLogAttributeItem(attributeKey, content.value),
+      item: getLogAttributeItem(attributeKey, adjustedValue),
       extra: renderExtra,
+      basicRendered,
     });
   }
 
-  return isUrl(String(content.value)) ? (
+  return isUrl(String(adjustedValue)) ? (
     <AttributeLinkText>
       <ExternalLink
         onClick={e => {
@@ -474,7 +486,7 @@ function LogFieldsTreeValue({
           openNavigateToExternalLinkModal({linkText: String(content.value)});
         }}
       >
-        {String(content.value)}
+        {basicRendered}
       </ExternalLink>
     </AttributeLinkText>
   ) : (
@@ -486,7 +498,7 @@ function LogFieldsTreeValue({
  * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
-  attributes: OurLogsTableRowDetails['attributes'],
+  attributes: TraceItemAttributes,
   attributeKey: string,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
@@ -503,7 +515,8 @@ function getAttribute(
   // Replace the key name with the new key name
   const newKeyName = removeSentryPrefix(attributeKey);
 
-  const attributeValue = attribute.value;
+  const attributeValue =
+    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
   if (!defined(attributeValue)) {
     return undefined;
   }

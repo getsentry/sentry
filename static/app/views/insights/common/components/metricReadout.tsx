@@ -1,4 +1,3 @@
-import type {ReactText} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
@@ -33,7 +32,7 @@ type Unit =
 interface Props {
   title: string;
   unit: Unit;
-  value: ReactText | undefined;
+  value: string | number | undefined;
   isLoading?: boolean;
   preferredPolarity?: Polarity;
   tooltip?: React.ReactNode;
@@ -182,7 +181,7 @@ const ReadoutWrapper = styled('div')`
 `;
 
 const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   white-space: nowrap;

@@ -1129,3 +1129,150 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             data=data,
         )
         assert response.status_code == 200, response.data
+
+    def test_has_group_by_and_no_limit_on_creation(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "discover",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "columns": ["transaction"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "orderby": "-transaction",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 400, response.data
+
+    def test_has_group_by_and_limit_on_creation(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "discover",
+            "displayType": "line",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "columns": ["transaction"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "orderby": "-transaction",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 200, response.data
+
+    def test_edit_widget_with_group_by_and_no_limit(self):
+        # First create a valid widget
+        self.widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Test Query",
+            id=1,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            limit=5,
+        )
+        self.widget_query = DashboardWidgetQuery.objects.create(
+            order=0,
+            widget=self.widget,
+            name="",
+            conditions="",
+            columns=["transaction"],
+            fields=[],
+            aggregates=["count()"],
+            orderby="-transaction",
+        )
+
+        # Now try to edit it without a limit
+        data = {
+            "id": self.widget.id,
+            "title": "Updated Query",
+            "widgetType": "discover",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "columns": ["transaction"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "orderby": "-transaction",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 400, response.data
+
+    def test_edit_widget_with_group_by_and_limit(self):
+        # First create a valid widget
+        self.widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=1,
+            title="Test Query",
+            id=1,
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+        )
+        self.widget_query = DashboardWidgetQuery.objects.create(
+            order=0,
+            widget=self.widget,
+            name="",
+            conditions="",
+            columns=[],
+            fields=[],
+            aggregates=["count()"],
+            orderby="-transaction",
+        )
+
+        # Now try to edit it without a limit
+        data = {
+            "id": self.widget.id,
+            "title": "Updated Query",
+            "widgetType": "discover",
+            "displayType": "line",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "columns": ["transaction"],
+                    "fields": [],
+                    "aggregates": ["count()"],
+                    "orderby": "-transaction",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 200, response.data

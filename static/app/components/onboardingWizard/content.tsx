@@ -29,7 +29,7 @@ import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -271,7 +271,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
 
       e.stopPropagation();
 
-      if (isDemoModeEnabled()) {
+      if (isDemoModeActive()) {
         DemoWalkthroughStore.activateGuideAnchor(task.task);
       }
 
@@ -413,7 +413,7 @@ function ExpandedTaskGroup({
   const api = useApi();
   const organization = useOrganization();
 
-  const markCompletionTimeout = useRef<number | undefined>();
+  const markCompletionTimeout = useRef<number | undefined>(undefined);
 
   function completionTimeout(time: number): Promise<void> {
     window.clearTimeout(markCompletionTimeout.current);

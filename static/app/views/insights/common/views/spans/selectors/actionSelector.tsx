@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
@@ -50,7 +50,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
     referrer: 'api.starfish.get-span-actions',
   });
 
-  const options = useHTTPActions
+  const options: Array<SelectOption<string>> = useHTTPActions
     ? HTTP_ACTION_OPTIONS
     : [
         {value: '', label: 'All'},
@@ -69,6 +69,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
               {t('(No Detected %s)', LABEL_FOR_MODULE_NAME[moduleName])}
             </EmptyContainer>
           ),
+          textValue: t('(No Detected %s)', LABEL_FOR_MODULE_NAME[moduleName]),
         },
       ];
 
@@ -102,7 +103,7 @@ export function ActionSelector({value = '', moduleName, spanCategory, filters}: 
   );
 }
 
-const HTTP_ACTION_OPTIONS = [
+const HTTP_ACTION_OPTIONS: Array<SelectOption<string>> = [
   {value: '', label: 'All'},
   ...['GET', 'POST', 'PUT', 'DELETE'].map(action => ({
     value: action,

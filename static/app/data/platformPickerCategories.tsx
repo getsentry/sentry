@@ -33,21 +33,24 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
 ]);
 
 const browser: Set<PlatformKey> = new Set([
-  'dart',
+  'flutter',
   'javascript',
   'javascript-angular',
   'javascript-astro',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
   'javascript-remix',
   'javascript-solid',
   'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
   'javascript-nuxt',
+  'react-native',
   'unity',
 ]);
 

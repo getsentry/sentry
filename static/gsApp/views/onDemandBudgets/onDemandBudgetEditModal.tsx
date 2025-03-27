@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -383,7 +383,7 @@ const OnDemandInput = styled(Input)`
 const DetailTitle = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-top: ${space(0.5)};
 `;
 

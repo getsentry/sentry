@@ -7,11 +7,15 @@ import {IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TableRow} from 'sentry/views/explore/components/table';
-import {useLogsFields} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  useLogsAnalyticsPageSource,
+  useLogsFields,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
   LogAttributesRendererMap,
@@ -23,7 +27,10 @@ import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import {useExploreLogsTableRow} from 'sentry/views/explore/logs/useLogsQuery';
+import {
+  useExploreLogsTableRow,
+  usePrefetchLogTableRowOnHover,
+} from 'sentry/views/explore/logs/useLogsQuery';
 
 import {
   DetailsFooter,
@@ -43,14 +50,28 @@ type LogsRowProps = {
   dataRow: OurLogsResponseItem;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
+  sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 };
 
-export function LogRowContent({dataRow, highlightTerms, meta}: LogsRowProps) {
+export function LogRowContent({
+  dataRow,
+  highlightTerms,
+  meta,
+  sharedHoverTimeoutRef,
+}: LogsRowProps) {
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
+  const analyticsPageSource = useLogsAnalyticsPageSource();
   const [expanded, setExpanded] = useState<boolean>(false);
-  const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+  const onClickExpand = useCallback(() => {
+    setExpanded(e => !e);
+    trackAnalytics('logs.table.row_expanded', {
+      log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+      page_source: analyticsPageSource,
+      organization,
+    });
+  }, [dataRow, organization, analyticsPageSource]);
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -61,10 +82,16 @@ export function LogRowContent({dataRow, highlightTerms, meta}: LogsRowProps) {
     typeof severityText === 'string' ? severityText : null
   );
   const logColors = getLogColors(level, theme);
+  const hoverProps = usePrefetchLogTableRowOnHover({
+    logId: String(dataRow[OurLogKnownFieldKey.ID]),
+    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
+    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
+    sharedHoverTimeoutRef,
+  });
 
   return (
     <Fragment>
-      <LogTableRow onClick={onClickExpand}>
+      <LogTableRow onClick={onClickExpand} {...hoverProps}>
         {fields.map((field, index) => {
           const value = dataRow[field];
           const isFirstColumn = index === 0;
@@ -145,8 +172,9 @@ function LogRowDetails({
   );
   const missingLogId = !dataRow[OurLogKnownFieldKey.ID];
   const {data, isPending} = useExploreLogsTableRow({
-    log_id: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
-    project_id: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
+    logId: String(dataRow[OurLogKnownFieldKey.ID] ?? ''),
+    projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
+    traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
     enabled: !missingLogId,
   });
 

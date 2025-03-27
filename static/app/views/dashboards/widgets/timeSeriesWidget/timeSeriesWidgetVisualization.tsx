@@ -11,7 +11,6 @@ import type {
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
-import uniq from 'lodash/uniq';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -22,18 +21,18 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {type Range, RangeMap} from 'sentry/utils/number/rangeMap';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useReleaseBubbles} from 'sentry/views/dashboards/widgets/timeSeriesWidget/releaseBubbles/useReleaseBubbles';
+import {useReleaseBubbles} from 'sentry/views/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 import {useWidgetSyncContext} from '../../contexts/widgetSyncContext';
 import {NO_PLOTTABLE_VALUES, X_GUTTER, Y_GUTTER} from '../common/settings';
-import type {Aliases, LegendSelection, Release} from '../common/types';
+import type {LegendSelection, Release} from '../common/types';
 
-import {formatSeriesName} from './formatters/formatSeriesName';
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
@@ -42,7 +41,7 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn} = Sentry._experiment_log;
+const {error, warn, info} = Sentry._experiment_log;
 
 export interface TimeSeriesWidgetVisualizationProps {
   /**
@@ -50,9 +49,11 @@ export interface TimeSeriesWidgetVisualizationProps {
    */
   plottables: Plottable[];
   /**
-   * A mapping of time series fields to their user-friendly labels, if needed
+  /**
+   * Disables navigating to release details when clicked
+   * TODO(billy): temporary until we implement route based nav
    */
-  aliases?: Aliases;
+  disableReleaseNavigation?: boolean;
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
@@ -105,16 +106,29 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const latestTimeStamp = allBoundaries.at(-1);
 
   const {
-    createReleaseBubbleHighlighter,
+    connectReleaseBubbleChartRef,
     releaseBubbleEventHandlers,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRef,
+    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+      return (
+        <TimeSeriesWidgetVisualization
+          {...props}
+          disableReleaseNavigation
+          plottables={props.plottables.map(plottable =>
+            plottable.constrain(trimStart, trimEnd)
+          )}
+          showReleaseAs="line"
+        />
+      );
+    },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: props.releases?.map(({timestamp, version}) => ({date: timestamp, version})),
+    releases: hasReleaseBubbles
+      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
+      : [],
   });
 
   const releaseSeries = props.releases
@@ -124,6 +138,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           theme,
           props.releases,
           function onReleaseClick(release: Release) {
+            if (props.disableReleaseNavigation) {
+              return;
+            }
             navigate(
               makeReleasesPathname({
                 organization,
@@ -149,14 +166,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       registerWithWidgetSyncContext(echartsInstance);
 
       if (hasReleaseBubblesSeries) {
-        createReleaseBubbleHighlighter(echartsInstance);
+        connectReleaseBubbleChartRef(e);
       }
     },
-    [
-      hasReleaseBubblesSeries,
-      createReleaseBubbleHighlighter,
-      registerWithWidgetSyncContext,
-    ]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, registerWithWidgetSyncContext]
   );
 
   const chartZoomProps = useChartZoom({
@@ -169,29 +182,62 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const fieldTypeCounts = mapValues(plottablesByType, plottables => plottables.length);
 
   // Sort the field types by how many plottables use each one
-  const axisTypes = (Object.keys(fieldTypeCounts) as AggregationOutputType[])
+  const axisTypes = Object.keys(fieldTypeCounts)
     .toSorted(
       // `dataTypes` is extracted from `dataTypeCounts`, so the counts are guaranteed to exist
       (a, b) => fieldTypeCounts[b]! - fieldTypeCounts[a]!
     )
     .filter(axisType => !!axisType); // `TimeSeries` allows for a `null` data type , though it's not likely
 
-  // Assign most popular field type to left axis
-  const leftYAxisType = axisTypes.at(0) ?? FALLBACK_TYPE;
+  // Partition the types between the two axes
+  let leftYAxisDataTypes: string[] = [];
+  let rightYAxisDataTypes: string[] = [];
 
-  // Assign the rest of the field types to right
-  const rightYAxisTypes = axisTypes.slice(1);
+  if (axisTypes.length === 1) {
+    // The simplest case, there is just one type. Assign it to the left axis
+    leftYAxisDataTypes = axisTypes;
+  } else if (axisTypes.length === 2) {
+    // Also a simple case. If there are only two types, split them evenly
+    leftYAxisDataTypes = axisTypes.slice(0, 1);
+    rightYAxisDataTypes = axisTypes.slice(1, 2);
+  } else if (axisTypes.length > 2 && axisTypes.at(0) === FALLBACK_TYPE) {
+    // There are multiple types, and the most popular one is the fallback. Don't
+    // bother creating a second fallback axis, plot everything on the left
+    leftYAxisDataTypes = axisTypes;
+  } else {
+    // There are multiple types. Assign the most popular type to the left axis,
+    // the rest to the right axis
+    leftYAxisDataTypes = axisTypes.slice(0, 1);
+    rightYAxisDataTypes = axisTypes.slice(1);
+  }
 
-  // Narrow down to just one type for the right Y axis. If there's just one field
-  // type for the right axis, use it. If there are more than one, fall back to a
-  // default. If there are 0, there's no type for the right axis, and we won't
-  // plot one
+  // The left Y axis might be responsible for 1 or more types. If there's just
+  // one, use that type. If it's responsible for more than 1 type, use the
+  // fallback type
+  const leftYAxisType =
+    leftYAxisDataTypes.length === 1 ? leftYAxisDataTypes.at(0)! : FALLBACK_TYPE;
+
+  // The right Y axis might be responsible for 0, 1, or more types. If there are
+  // none, don't set a type at all. If there is 1, use that type. If there are
+  // two or more, use fallback type
   const rightYAxisType =
-    rightYAxisTypes.length === 1
-      ? rightYAxisTypes[0]!
-      : rightYAxisTypes.length > 2
-        ? FALLBACK_TYPE
-        : undefined;
+    rightYAxisDataTypes.length === 0
+      ? undefined
+      : rightYAxisDataTypes.length === 1
+        ? rightYAxisDataTypes.at(0)
+        : FALLBACK_TYPE;
+
+  if (axisTypes.length > 0) {
+    info('`TimeSeriesWidgetVisualization` assigned axes', {
+      labels: props.plottables.map(plottable => plottable.label),
+      types: props.plottables.map(plottable => plottable.dataType),
+      units: props.plottables.map(plottable => plottable.dataUnit),
+      leftYAxisDataTypes,
+      rightYAxisDataTypes,
+      leftYAxisType,
+      rightYAxisType,
+    });
+  }
 
   // Create a map of used units by plottable data type
   const unitsByType = mapValues(plottablesByType, plottables =>
@@ -318,9 +364,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         return formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined);
       },
-      nameFormatter: seriesName => {
-        return props.aliases?.[seriesName] ?? formatSeriesName(seriesName);
-      },
       truncate: true,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);
@@ -357,14 +400,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
     let yAxisPosition: 'left' | 'right' = 'left';
 
-    if (plottable.dataType === leftYAxisType) {
-      // This plottable matches the left axis
+    if (leftYAxisDataTypes.includes(plottable.dataType)) {
+      // This plottable is assigned to the left axis
       yAxisPosition = 'left';
-    } else if (rightYAxisTypes.includes(plottable.dataType ?? FALLBACK_TYPE)) {
-      // This plottable matches the right axis
+    } else if (rightYAxisDataTypes.includes(plottable.dataType)) {
+      // This plottable is assigned to the right axis
       yAxisPosition = 'right';
     } else {
-      // This plottable's type isn't on either axis! Mysterious. If there is a catch-all right axis. Drop it into the first known "fallback" axis.
+      // This plottable's type isn't assignned to either axis! Mysterious.
+      // There's no graceful way to handle this.
       Sentry.withScope(scope => {
         const message =
           '`TimeSeriesWidgetVisualization` Could not assign Plottable to an axis';
@@ -378,8 +422,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           rightAxisType: rightYAxisType,
         });
       });
-
-      yAxisPosition = leftYAxisType === FALLBACK_TYPE ? 'left' : 'right';
     }
 
     // TODO: Type checking would be welcome here, but `plottingOptions` is unknown, since it depends on the implementation of the `Plottable` interface
@@ -427,7 +469,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
               left: 0,
               formatter(seriesName: string) {
                 return truncationFormatter(
-                  props.aliases?.[seriesName] ?? formatSeriesName(seriesName),
+                  seriesName,
                   true,
                   // Escaping the legend string will cause some special
                   // characters to render as their HTML equivalents.

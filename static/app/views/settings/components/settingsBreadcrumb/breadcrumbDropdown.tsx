@@ -56,7 +56,7 @@ function BreadcrumbDropdown({
           })}
         >
           <span>{name || route.name} </span>
-          <Divider isHover={hasMenu && isOpen} isLast={isLast} />
+          {isLast ? null : <Divider isHover={hasMenu && isOpen} />}
         </Crumb>
       )}
     </DropdownAutoCompleteMenu>

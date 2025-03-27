@@ -4,9 +4,9 @@ import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
-import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {Checkbox} from 'sentry/components/core/checkbox';
+import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
+import {getItemsWithKeys} from 'sentry/components/core/compactSelect/utils';
 import {
   ItemType,
   type SearchGroup,
@@ -56,7 +56,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {keepPreviousData, type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -327,17 +327,17 @@ function useFilterSuggestions({
     fieldDefinition
   );
 
-  const queryKey = useMemo<QueryKey>(
-    () => ['search-query-builder-tag-values', keyName, filterValue],
-    [filterValue, keyName]
+  const queryParams = useMemo(
+    () => [key ? key : {key: keyName, name: keyName}, filterValue] as const,
+    [filterValue, key, keyName]
   );
-
-  const debouncedQueryKey = useDebouncedValue(queryKey);
 
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: debouncedQueryKey,
-    queryFn: () => getTagValues(key ? key : {key: keyName, name: keyName}, filterValue),
+    queryKey: useDebouncedValue(
+      useMemo(() => ['search-query-builder-tag-values', queryParams], [queryParams])
+    ),
+    queryFn: () => getTagValues(...queryParams),
     placeholderData: keepPreviousData,
     enabled: shouldFetchValues,
   });

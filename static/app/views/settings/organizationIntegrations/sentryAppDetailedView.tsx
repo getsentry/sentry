@@ -38,18 +38,17 @@ import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
-
-import {SplitInstallationIdModal} from './SplitInstallationIdModal';
+import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegrations/SplitInstallationIdModal';
 
 function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
   return [`/organizations/${orgSlug}/sentry-app-installations/`];
 }
 
 export default function SentryAppDetailedView() {
-  const tabs: Tab[] = ['overview'];
+  const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -429,7 +428,7 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledUninstallButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   background: ${p => p.theme.background};
 
   border: ${p => `1px solid ${p.theme.gray300}`};

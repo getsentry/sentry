@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, WorkflowJob
+from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.workflow_engine.models import Detector
@@ -65,7 +66,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
 
-    def trigger(self, job: WorkflowJob, detector: Detector) -> None:
+    def trigger(self, job: WorkflowEventData, detector: Detector) -> None:
         # get the handler for the action type
         handler = self.get_handler()
         handler.execute(job, self, detector)
@@ -74,7 +75,15 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 @receiver(pre_save, sender=Action)
 def enforce_config_schema(sender, instance: Action, **kwargs):
     handler = instance.get_handler()
-    schema = handler.config_schema
 
-    if schema is not None:
-        instance.validate_config(schema)
+    config_schema = handler.config_schema
+    data_schema = handler.data_schema
+
+    if config_schema is not None:
+        instance.validate_config(config_schema)
+
+    if data_schema is not None:
+        try:
+            validate(instance.data, data_schema)
+        except ValidationError as e:
+            raise ValidationError(f"Invalid config: {e.message}")

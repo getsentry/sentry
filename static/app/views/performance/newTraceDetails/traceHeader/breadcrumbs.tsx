@@ -21,7 +21,7 @@ import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import Tab from '../../transactionSummary/tabs';
 
-export const enum TraceViewSources {
+export enum TraceViewSources {
   TRACES = 'traces',
   METRICS = 'metrics',
   DISCOVER = 'discover',
@@ -60,16 +60,30 @@ const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleNa
   mobile_screens_module: ModuleName.MOBILE_VITALS,
 };
 
-export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+// Remove this when the new navigation is GA'd
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY: Partial<
   Record<TraceViewSources, string>
 > = {
   traces: 'traces',
   metrics: 'metrics',
   discover: 'discover',
   profiling_flamegraph: 'profiling',
-  performance_transaction_summary: 'traces',
+  performance_transaction_summary: 'insights/summary',
   issue_details: 'issues',
   feedback_details: 'feedback',
+  dashboards: 'dashboards',
+};
+
+export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
+  Record<TraceViewSources, string>
+> = {
+  traces: 'explore/traces',
+  metrics: 'metrics',
+  discover: 'explore/discover',
+  profiling_flamegraph: 'explore/profiling',
+  performance_transaction_summary: 'insights/summary',
+  issue_details: 'issues',
+  feedback_details: 'issues/feedback',
   dashboards: 'dashboards',
 };
 
@@ -92,22 +106,18 @@ function getPerformanceBreadCrumbs(
 ) {
   const crumbs: Crumb[] = [];
 
-  const hasPerfLandingRemovalFlag = organization.features.includes(
-    'insights-performance-landing-removal'
-  );
-
   const performanceUrl = getPerformanceBaseUrl(organization.slug, view, true);
   const transactionSummaryUrl = getTransactionSummaryBaseUrl(organization, view, true);
 
-  if (!view && hasPerfLandingRemovalFlag) {
+  if (view) {
     crumbs.push({
-      label: DOMAIN_VIEW_BASE_TITLE,
-      to: undefined,
+      label: DOMAIN_VIEW_TITLES[view],
+      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
     });
   } else {
     crumbs.push({
-      label: (view && DOMAIN_VIEW_TITLES[view]) || t('Performance'),
-      to: getBreadCrumbTarget(performanceUrl, location.query, organization),
+      label: DOMAIN_VIEW_BASE_TITLE,
+      to: undefined,
     });
   }
 
@@ -151,16 +161,6 @@ function getPerformanceBreadCrumbs(
       }
       break;
     }
-    case Tab.AGGREGATE_WATERFALL:
-      crumbs.push({
-        label: t('Transaction Summary'),
-        to: getBreadCrumbTarget(
-          `${transactionSummaryUrl}/aggregateWaterfall`,
-          location.query,
-          organization
-        ),
-      });
-      break;
     default:
       crumbs.push({
         label: t('Transaction Summary'),

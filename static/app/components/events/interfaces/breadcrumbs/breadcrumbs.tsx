@@ -311,7 +311,7 @@ const Time = styled('div')`
 const StyledIconSort = styled(IconSort)`
   transition: 0.15s color;
   :hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 

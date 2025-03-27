@@ -1522,7 +1522,7 @@ const TraceStylingWrapper = styled('div')`
     display: inline-block;
     transform-origin: left center;
     font-size: ${p => p.theme.fontSizeExtraSmall};
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     position: absolute;
@@ -1698,10 +1698,10 @@ const TraceStylingWrapper = styled('div')`
 
   .TraceEmDash {
     margin-left: 4px;
-    margin-right: 4px;
   }
 
   .TraceDescription {
+    margin-left: 4px;
     white-space: nowrap;
   }
 `;

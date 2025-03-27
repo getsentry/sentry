@@ -1,7 +1,7 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
 sentry-devenv>=1.16
-devservices>=1.0.17
+devservices>=1.0.18
 
 covdefaults>=2.3.0
 sentry-covdefaults-disable-branch-coverage>=1.0.2
@@ -24,7 +24,7 @@ selenium>=4.16.0
 sentry-cli>=2.16.0
 
 # pre-commit dependencies
-pre-commit>=4
+pre-commit>=4.2
 black>=24.10.0
 flake8>=7
 flake8-bugbear>=22.10

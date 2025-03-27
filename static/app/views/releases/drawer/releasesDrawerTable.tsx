@@ -22,6 +22,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {getReleaseNewIssuesUrl} from 'sentry/views/releases/utils';
 
 type ReleaseHealthItem = {
@@ -42,8 +43,8 @@ type ReleaseHealthGridItem = Pick<ReleaseHealthItem, 'date' | 'release' | 'error
 type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
-  {key: 'release', name: 'version', width: 400},
-  {key: 'error_count', name: 'new issues'},
+  {key: 'release', name: 'release', width: 400},
+  {key: 'error_count', name: 'new issues', width: 110},
   {key: 'date', name: 'created'},
 ];
 
@@ -82,7 +83,7 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
 
   const releaseData = data?.map(d => ({
     project: d.projects[0]!,
-    release: d.shortVersion ?? d.version,
+    release: d.version,
     date: d.dateCreated,
     error_count: d.projects[0]?.newGroups ?? 0,
     project_id: d.projects[0]?.id ?? 0,
@@ -128,13 +129,14 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
             }}
           >
             <ProjectBadge project={dataRow.project} disableLink hideName />
-            <TextOverflow>{value}</TextOverflow>
+            <TextOverflow>{formatVersion(value)}</TextOverflow>
           </ReleaseLink>
         );
       }
 
       if (column.key === 'error_count') {
-        return (
+        const value = dataRow[column.key];
+        return value > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
@@ -143,9 +145,11 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
                 dataRow.release
               )}
             >
-              <Count value={dataRow[column.key]} />
+              <Count value={value} />
             </GlobalSelectionLink>
           </Tooltip>
+        ) : (
+          <Count value={value} />
         );
       }
       if (!meta?.fields) {

@@ -16,11 +16,13 @@ import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTra
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 
 import {
   TRACE_SOURCE_TO_NON_INSIGHT_ROUTES,
-  type TraceViewSources,
+  TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY,
+  TraceViewSources,
 } from '../newTraceDetails/traceHeader/breadcrumbs';
 
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
@@ -31,18 +33,29 @@ function getBaseTraceUrl(
   source?: TraceViewSources,
   view?: DomainView
 ) {
-  if (view) {
-    return getPerformanceBaseUrl(organization.slug, view);
+  const routesMap = prefersStackedNav()
+    ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
+    : TRACE_SOURCE_TO_NON_INSIGHT_ROUTES_LEGACY;
+
+  if (source === TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY) {
+    return normalizeUrl(
+      `/organizations/${organization.slug}/${
+        view
+          ? getTransactionSummaryBaseUrl(organization, view, true)
+          : routesMap.performance_transaction_summary
+      }`
+    );
   }
 
-  const url =
-    source && source in TRACE_SOURCE_TO_NON_INSIGHT_ROUTES
-      ? TRACE_SOURCE_TO_NON_INSIGHT_ROUTES[source]
-      : 'traces';
-
-  const routeSuffix = url === 'traces' && prefersStackedNav() ? 'explore/traces' : url;
-
-  return normalizeUrl(`/organizations/${organization.slug}/${routeSuffix}`);
+  return normalizeUrl(
+    `/organizations/${organization.slug}/${
+      view
+        ? getPerformanceBaseUrl(organization.slug, view, true)
+        : source && source in routesMap
+          ? routesMap[source]
+          : 'traces'
+    }`
+  );
 }
 
 export function getTraceDetailsUrl({

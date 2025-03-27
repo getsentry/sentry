@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 function createSizingDiv(referenceStyles: CSSStyleDeclaration) {
   const sizingDiv = document.createElement('div');
@@ -78,7 +78,7 @@ export function GrowingInput({
   }, [isControlled]);
 
   return (
-    <StyledInput {...props} ref={mergeRefs([ref, inputRef])} onChange={handleChange} />
+    <StyledInput {...props} ref={mergeRefs(ref, inputRef)} onChange={handleChange} />
   );
 }
 

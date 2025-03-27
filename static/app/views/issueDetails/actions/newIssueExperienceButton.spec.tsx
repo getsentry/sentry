@@ -1,8 +1,7 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
@@ -22,23 +21,13 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
 }));
 
 describe('NewIssueExperienceButton', function () {
-  const organization = OrganizationFixture({features: ['issue-details-streamline']});
+  const organization = OrganizationFixture();
   const user = UserFixture();
   user.options.prefersIssueDetailsStreamlinedUI = true;
-  const location = LocationFixture({query: {streamline: '1'}});
 
   beforeEach(() => {
     ConfigStore.init();
     jest.clearAllMocks();
-  });
-
-  it('does not appear by default', function () {
-    render(
-      <div data-test-id="test-id">
-        <NewIssueExperienceButton />
-      </div>
-    );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
   it('appears correctly when organization has the single interface option', function () {
@@ -71,21 +60,6 @@ describe('NewIssueExperienceButton', function () {
     unmountOptionFalse();
   });
 
-  it('does not appear when an organization has the enforce flag', function () {
-    render(
-      <div data-test-id="test-id">
-        <NewIssueExperienceButton />
-      </div>,
-      {
-        organization: {
-          ...organization,
-          features: [...organization.features, 'issue-details-streamline-enforce'],
-        },
-      }
-    );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
-  });
-
   it('appears when organization has flag', function () {
     render(
       <div data-test-id="test-id">
@@ -94,26 +68,6 @@ describe('NewIssueExperienceButton', function () {
       {organization}
     );
     expect(screen.getByTestId('test-id')).not.toBeEmptyDOMElement();
-  });
-
-  it('does not appear even if user prefers this UI', function () {
-    act(() => ConfigStore.set('user', user));
-    render(
-      <div data-test-id="test-id">
-        <NewIssueExperienceButton />
-      </div>
-    );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
-  });
-
-  it('does not appear when query param is set', function () {
-    render(
-      <div data-test-id="test-id">
-        <NewIssueExperienceButton />
-      </div>,
-      {router: {location}}
-    );
-    expect(screen.getByTestId('test-id')).toBeEmptyDOMElement();
   });
 
   it('triggers changes to the user config and location', async function () {
@@ -129,10 +83,13 @@ describe('NewIssueExperienceButton', function () {
     });
 
     await userEvent.click(button);
-    // Text should change immediately
-    expect(
-      screen.getByRole('button', {name: 'Switch to the old issue experience'})
-    ).toBeInTheDocument();
+
+    const dropdownButton = screen.getByRole('button', {name: 'Manage issue experience'});
+    await userEvent.click(dropdownButton);
+    const oldExperienceButton = screen.getByRole('menuitemradio', {
+      name: 'Switch to the old issue experience',
+    });
+    expect(oldExperienceButton).toBeInTheDocument();
     // User option should be saved
     await waitFor(() => {
       expect(mockChangeUserSettings).toHaveBeenCalledWith(
@@ -149,7 +106,7 @@ describe('NewIssueExperienceButton', function () {
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
 
     // Clicking again toggles it off
-    await userEvent.click(button);
+    await userEvent.click(oldExperienceButton);
     // Old text should be back
     expect(
       screen.getByRole('button', {name: 'Switch to the new issue experience'})
@@ -187,17 +144,17 @@ describe('NewIssueExperienceButton', function () {
 
     expect(
       screen.getByRole('button', {
-        name: 'Switch issue experience',
+        name: 'Manage issue experience',
       })
     ).toBeInTheDocument();
 
     const dropdownButton = screen.getByRole('button', {
-      name: 'Switch issue experience',
+      name: 'Manage issue experience',
     });
     await userEvent.click(dropdownButton);
 
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Give feedback on new UI'})
+      await screen.findByRole('menuitemradio', {name: 'Give feedback on the UI'})
     );
     expect(mockFeedbackForm).toHaveBeenCalled();
 

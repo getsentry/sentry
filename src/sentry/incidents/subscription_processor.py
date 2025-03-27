@@ -215,11 +215,20 @@ class SubscriptionProcessor:
         return threshold
 
     def get_comparison_aggregation_value(
-        self, subscription_update: QuerySubscriptionUpdate
+        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
     ) -> float | None:
         # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
         aggregation_value = get_aggregation_value_helper(subscription_update)
         if self.alert_rule.comparison_delta is None:
+            if rule:
+                logger.info(
+                    "Returning aggregation value",
+                    extra={
+                        "result": subscription_update,
+                        "aggregation_value": aggregation_value,
+                        "rule_id": rule.id,
+                    },
+                )
             return aggregation_value
 
         # For comparison alerts run a query over the comparison period and use it to calculate the
@@ -340,13 +349,15 @@ class SubscriptionProcessor:
             self.reset_trigger_counts()
         return aggregation_value
 
-    def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
+    def get_aggregation_value(
+        self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
+    ) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
         else:
-            aggregation_value = self.get_comparison_aggregation_value(subscription_update)
+            aggregation_value = self.get_comparison_aggregation_value(subscription_update, rule)
 
         return aggregation_value
 
@@ -410,19 +421,7 @@ class SubscriptionProcessor:
                 },
             )
 
-        aggregation_value = self.get_aggregation_value(subscription_update)
-        if features.has(
-            "organizations:failure-rate-metric-alert-logging",
-            self.subscription.project.organization,
-        ):
-            logger.info(
-                "Update value in subscription processor",
-                extra={
-                    "result": subscription_update,
-                    "aggregation_value": aggregation_value,
-                    "rule_id": self.alert_rule.id,
-                },
-            )
+        aggregation_value = self.get_aggregation_value(subscription_update, self.alert_rule)
 
         has_anomaly_detection = features.has(
             "organizations:anomaly-detection-alerts", self.subscription.project.organization
@@ -435,6 +434,14 @@ class SubscriptionProcessor:
             has_anomaly_detection
             and self.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
         ):
+            logger.info(
+                "Raw subscription update",
+                extra={
+                    "result": subscription_update,
+                    "aggregation_value": aggregation_value,
+                    "rule_id": self.alert_rule.id,
+                },
+            )
             with metrics.timer(
                 "incidents.subscription_processor.process_update.get_anomaly_data_from_seer"
             ):
@@ -443,18 +450,6 @@ class SubscriptionProcessor:
                     subscription=self.subscription,
                     last_update=self.last_update.timestamp(),
                     aggregation_value=aggregation_value,
-                )
-            # XXX (mifu67): log problematic rule, to be deleted later
-            if features.has(
-                "feature.organizations:failure-rate-metric-alert-logging",
-                self.subscription.project.organization,
-            ):
-                logger.info(
-                    "Received this response from Seer",
-                    extra={
-                        "potential_anomalies": potential_anomalies,
-                        "alert_rule_id": self.alert_rule.id,
-                    },
                 )
             if potential_anomalies is None:
                 logger.info(

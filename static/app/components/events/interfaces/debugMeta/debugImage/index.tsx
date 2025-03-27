@@ -104,7 +104,7 @@ const CodeFilename = styled('span')`
 
 const ImageColumn = styled(Column)`
   font-family: ${p => p.theme.text.familyMono};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   flex-direction: column;

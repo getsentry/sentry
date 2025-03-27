@@ -5,7 +5,7 @@
  * or used in multiple views.
  */
 import type {getInterval} from 'sentry/components/charts/utils';
-import type {MenuListItemProps} from 'sentry/components/menuListItem';
+import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
 import type {ALLOWED_SCOPES} from 'sentry/constants';
 
 /**
@@ -79,9 +79,11 @@ export enum DataCategory {
   REPLAYS = 'replays',
   MONITOR_SEATS = 'monitorSeats',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   SPANS = 'spans',
   SPANS_INDEXED = 'spansIndexed',
   PROFILE_CHUNKS = 'profileChunks',
+  PROFILE_CHUNKS_UI = 'profileChunksUI',
   UPTIME = 'uptime',
 }
 
@@ -102,6 +104,7 @@ export enum DataCategoryExact {
   MONITOR = 'monitor',
   MONITOR_SEAT = 'monitorSeat',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   UPTIME = 'uptime',

@@ -26,6 +26,7 @@ import {Toolbar} from 'sentry/views/insights/pages/backend/laravel/toolbar';
 import {usePageFilterChartParams} from 'sentry/views/insights/pages/backend/laravel/utils';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 import {ModuleName} from 'sentry/views/insights/types';
+import {TimeSpentInDatabaseWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
 
 interface QueriesDiscoverQueryResponse {
   data: Array<{
@@ -96,7 +97,11 @@ export function QueriesWidget({query}: {query?: string}) {
   );
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
-    if (!timeSeriesRequest.data) {
+    if (
+      !timeSeriesRequest.data ||
+      // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
+      'data' in timeSeriesRequest.data
+    ) {
       return [];
     }
 
@@ -130,22 +135,27 @@ export function QueriesWidget({query}: {query?: string}) {
 
   const colorPalette = getChartColorPalette(timeSeries.length - 2);
 
+  const aliases = Object.fromEntries(
+    queriesRequest.data?.data.map(item => [
+      getSeriesName(item),
+      item['sentry.normalized_description'],
+    ]) ?? []
+  );
+
   const visualization = (
     <WidgetVisualizationStates
       isEmpty={!hasData}
       isLoading={isLoading}
       error={error}
+      emptyMessage={<TimeSpentInDatabaseWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
-        aliases: Object.fromEntries(
-          queriesRequest.data?.data.map(item => [
-            getSeriesName(item),
-            item['sentry.normalized_description'],
-          ]) ?? []
-        ),
         plottables: timeSeries.map(
           (ts, index) =>
-            new Line(convertSeriesToTimeseries(ts), {color: colorPalette[index]})
+            new Line(convertSeriesToTimeseries(ts), {
+              color: colorPalette[index],
+              alias: aliases[ts.seriesName],
+            })
         ),
       }}
     />
@@ -218,7 +228,7 @@ export function QueriesWidget({query}: {query?: string}) {
 
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1;
   min-width: 0px;

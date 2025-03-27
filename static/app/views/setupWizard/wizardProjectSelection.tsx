@@ -2,9 +2,9 @@ import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Input} from 'sentry/components/core/input';
 import IdBadge from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import RequestError from 'sentry/utils/requestError/requestError';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {ProjectLoadingError} from 'sentry/views/setupWizard/projectLoadingError';
@@ -275,7 +276,7 @@ export function WizardProjectSelection({
       </FieldWrapper>
       <FieldWrapper>
         <label>{t('Project')}</label>
-        {orgProjectsRequest.error ? (
+        {orgProjectsRequest.error instanceof RequestError ? (
           <ProjectLoadingError
             error={orgProjectsRequest.error}
             onRetry={orgProjectsRequest.refetch}

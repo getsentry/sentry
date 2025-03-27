@@ -7,14 +7,12 @@ export default function useReleaseSessionCounts() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
@@ -27,7 +25,7 @@ export default function useReleaseSessionCounts() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['sum(session)'],
           groupBy: ['release'],
           per_page: 5,
@@ -40,6 +38,30 @@ export default function useReleaseSessionCounts() {
   if (isPending || !sessionData) {
     return {
       series: [],
+      isPending,
+      error,
+    };
+  }
+
+  // No data to report, just map the intervals to a value of 0
+  if (!sessionData.groups.length) {
+    return {
+      series: [
+        {
+          seriesName: 'total_sessions',
+          data: sessionData.intervals.map(interval => ({
+            name: interval,
+            value: 0,
+          })),
+          meta: {
+            fields: {
+              [`total_sessions`]: 'integer' as const,
+              time: 'date' as const,
+            },
+            units: {},
+          },
+        },
+      ],
       isPending,
       error,
     };
@@ -79,7 +101,7 @@ export default function useReleaseSessionCounts() {
       seriesName: `${release}_total_sessions`,
       meta: {
         fields: {
-          [`${release}_total_sessions`]: 'number' as const,
+          [`${release}_total_sessions`]: 'integer' as const,
           time: 'date' as const,
         },
         units: {},

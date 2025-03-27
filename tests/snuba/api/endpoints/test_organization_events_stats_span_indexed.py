@@ -26,10 +26,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         self.login_as(user=self.user)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.two_days_ago = self.day_ago - timedelta(days=1)
-        self.DEFAULT_METRIC_TIMESTAMP = self.day_ago
 
         self.url = reverse(
-            "sentry-api-0-organization-events-stats",
+            self.endpoint,
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
@@ -339,7 +338,6 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             data = response.data["data"]
             assert len(data) == 2
             assert response.data["meta"]["dataset"] == self.dataset
-
             assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
     def test_throughput_epm_hour_rollup_offset_of_hour(self):
@@ -669,8 +667,9 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         assert response.status_code == 200, response.content
 
 
-class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
+class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetricsEndpointTest):
     is_eap = True
+    is_rpc = True
 
     def test_count_extrapolation(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -709,11 +708,6 @@ class OrganizationEventsEAPSpanEndpointTest(OrganizationEventsStatsSpansMetricsE
         rows = data[0:6]
         for test in zip(event_counts, rows):
             assert test[1][1][0]["count"] == test[0] * 10
-
-
-class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpointTest):
-    is_eap = True
-    is_rpc = True
 
     def test_extrapolation_count(self):
         event_counts = [6, 0, 6, 3, 0, 3]
@@ -1087,17 +1081,109 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             assert test[1][1][0]["count"] == test[0]
             assert test[1][1][0]["comparisonCount"] == 0
 
-    @pytest.mark.xfail(reason="epm not implemented yet")
     def test_throughput_epm_hour_rollup(self):
-        super().test_throughput_epm_hour_rollup()
+        # Each of these denotes how many events to create in each hour
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {"description": "foo", "sentry_tags": {"status": "success"}},
+                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ]
+            )
+        self.store_spans(spans, is_eap=self.is_eap)
 
-    @pytest.mark.xfail(reason="epm not implemented yet")
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=6),
+                "interval": "1h",
+                "yAxis": "epm()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == self.dataset
+
+        rows = data[0:6]
+        for test in zip(event_counts, rows):
+            self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
+
     def test_throughput_epm_day_rollup(self):
-        super().test_throughput_epm_day_rollup()
+        # Each of these denotes how many events to create in each minute
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {"description": "foo", "sentry_tags": {"status": "success"}},
+                        start_ts=self.two_days_ago + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ]
+            )
+        self.store_spans(spans, is_eap=self.is_eap)
 
-    @pytest.mark.xfail(reason="epm not implemented yet")
+        response = self._do_request(
+            data={
+                "start": self.two_days_ago,
+                "end": self.day_ago,
+                "interval": "24h",
+                "yAxis": "epm()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert response.data["meta"]["dataset"] == self.dataset
+        self.assertAlmostEqual(data[0][1][0]["count"], sum(event_counts) / (86400.0 / 60.0))
+
     def test_throughput_epm_hour_rollup_offset_of_hour(self):
-        super().test_throughput_epm_hour_rollup_offset_of_hour()
+        # Each of these denotes how many events to create in each hour
+        event_counts = [6, 0, 6, 3, 0, 3]
+        spans = []
+        for hour, count in enumerate(event_counts):
+            spans.extend(
+                [
+                    self.create_span(
+                        {"description": "foo", "sentry_tags": {"status": "success"}},
+                        start_ts=self.day_ago + timedelta(hours=hour, minutes=minute + 30),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        self.store_spans(spans, is_eap=self.is_eap)
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago + timedelta(minutes=30),
+                "end": self.day_ago + timedelta(hours=6, minutes=30),
+                "interval": "1h",
+                "yAxis": "epm()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "transformAliasToInputFormat": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 6
+        assert response.data["meta"]["dataset"] == self.dataset
+
+        rows = data[0:6]
+        for test in zip(event_counts, rows):
+            self.assertAlmostEqual(test[1][1][0]["count"], test[0] / (3600.0 / 60.0))
 
     @pytest.mark.xfail(reason="epm not implemented yet")
     def test_throughput_eps_minute_rollup(self):
@@ -1135,7 +1221,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         )
         assert response.status_code == 400, response.content
 
-    @pytest.mark.xfail(reason="division by 0 error in snuba")
     def test_handle_nans_from_snuba_top_n(self):
         super().test_handle_nans_from_snuba_top_n()
 
@@ -1286,4 +1371,148 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 73
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_cache_miss_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "data": {"cache.hit": False},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": False},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {
+                        "data": {"cache.hit": True},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "cache_miss_rate()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 1.0
+        assert data[2][1][0]["count"] == 0.25
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_trace_status_rate(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "unauthenticated"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "unknown"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+                self.create_span(
+                    {"sentry_tags": {"trace.status": "ok"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "trace_status_rate(ok)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 0.5
+        assert data[2][1][0]["count"] == 0.75
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_count_op(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.process", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {"op": "queue.publish", "sentry_tags": {"op": "queue.publish"}},
+                    start_ts=self.day_ago + timedelta(minutes=2),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count_op(queue.publish)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 2.0
+        assert data[2][1][0]["count"] == 1.0
         assert response.data["meta"]["dataset"] == self.dataset

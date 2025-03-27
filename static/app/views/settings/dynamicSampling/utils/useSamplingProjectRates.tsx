@@ -61,6 +61,7 @@ export function useGetSamplingProjectRates() {
   const api = useApi();
   const organization = useOrganization();
   return useQuery<SamplingProjectRate[]>({
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: getQueryKey(organization),
     queryFn: () => fetchAllSamplingRates(api, organization),
     staleTime: 0,

@@ -86,6 +86,7 @@ from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
@@ -432,6 +433,13 @@ class ExhaustiveFixtures(Fixtures):
                     inviter_id=inviter.id,
                     invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 )
+                OrganizationMemberInvite.objects.create(
+                    organization_id=org.id,
+                    role="member",
+                    email=email,
+                    inviter_id=inviter.id,
+                    invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                )
         if accepted_invites:
             for inviter, users in accepted_invites.items():
                 for user in users:
@@ -620,7 +628,6 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             query=f"some query for {slug}",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewProject.objects.create(
             group_search_view=group_search_view,
@@ -670,7 +677,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
+        send_notification_action = self.create_action()
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,

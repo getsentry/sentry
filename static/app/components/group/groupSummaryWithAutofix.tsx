@@ -2,14 +2,17 @@ import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {
-  type AutofixChangesStep,
-  type AutofixCodebaseChange,
-  type AutofixData,
-  AutofixStatus,
-} from 'sentry/components/events/autofix/types';
-import {AutofixStepType} from 'sentry/components/events/autofix/types';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
+import {
+  getCodeChangesDescription,
+  getCodeChangesIsLoading,
+  getRootCauseCopyText,
+  getRootCauseDescription,
+  getSolutionCopyText,
+  getSolutionDescription,
+  getSolutionIsLoading,
+} from 'sentry/components/events/autofix/utils';
 import {GroupSummary} from 'sentry/components/group/groupSummary';
 import Placeholder from 'sentry/components/placeholder';
 import {IconCode, IconFix, IconFocus} from 'sentry/icons';
@@ -20,7 +23,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
 import testableTransition from 'sentry/utils/testableTransition';
-import {useOpenSolutionsDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -38,102 +41,13 @@ interface InsightCardObject {
   id: string;
   insight: string | null | undefined;
   title: string;
+  copyText?: string | null;
+  copyTitle?: string | null;
   icon?: React.ReactNode;
   insightElement?: React.ReactNode;
   isLoading?: boolean;
   onClick?: () => void;
 }
-
-const getRootCauseDescription = (autofixData: AutofixData) => {
-  const rootCause = autofixData.steps?.find(
-    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
-  );
-  if (!rootCause) {
-    return null;
-  }
-  return rootCause.causes.at(0)?.description ?? null;
-};
-
-const getSolutionDescription = (autofixData: AutofixData) => {
-  const solution = autofixData.steps?.find(
-    step => step.type === AutofixStepType.SOLUTION
-  );
-  if (!solution) {
-    return null;
-  }
-
-  return solution.description ?? null;
-};
-
-const getSolutionIsLoading = (autofixData: AutofixData) => {
-  const solutionProgressStep = autofixData.steps?.find(
-    step => step.key === 'solution_processing'
-  );
-  return solutionProgressStep?.status === AutofixStatus.PROCESSING;
-};
-
-const getCodeChangesDescription = (autofixData: AutofixData) => {
-  if (!autofixData) {
-    return null;
-  }
-
-  const changesStep = autofixData.steps?.find(
-    step => step.type === AutofixStepType.CHANGES
-  ) as AutofixChangesStep | undefined;
-
-  if (!changesStep) {
-    return null;
-  }
-
-  // If there are changes with PRs, show links to them
-  const changesWithPRs = changesStep.changes?.filter(
-    (change: AutofixCodebaseChange) => change.pull_request
-  );
-  if (changesWithPRs?.length) {
-    return changesWithPRs
-      .map(
-        (change: AutofixCodebaseChange) =>
-          `[View PR in ${change.repo_name}](${change.pull_request?.pr_url})`
-      )
-      .join('\n');
-  }
-
-  // If there are code changes but no PRs yet, show a summary
-  if (changesStep.changes?.length) {
-    // Group changes by repo
-    const changesByRepo: Record<string, number> = {};
-    changesStep.changes.forEach((change: AutofixCodebaseChange) => {
-      changesByRepo[change.repo_name] = (changesByRepo[change.repo_name] || 0) + 1;
-    });
-
-    const changesSummary = Object.entries(changesByRepo)
-      .map(([repo, count]) => `${count} ${count === 1 ? 'change' : 'changes'} in ${repo}`)
-      .join(', ');
-
-    return `Proposed ${changesSummary}.`;
-  }
-
-  return null;
-};
-
-const getCodeChangesIsLoading = (autofixData: AutofixData) => {
-  if (!autofixData) {
-    return false;
-  }
-
-  // Check if there's a specific changes processing step, similar to solution_processing
-  const changesProgressStep = autofixData.steps?.find(step => step.key === 'plan');
-  if (changesProgressStep?.status === AutofixStatus.PROCESSING) {
-    return true;
-  }
-
-  // Also check if the changes step itself is in processing state
-  const changesStep = autofixData.steps?.find(
-    step => step.type === AutofixStepType.CHANGES
-  );
-
-  return changesStep?.status === AutofixStatus.PROCESSING;
-};
 
 export function GroupSummaryWithAutofix({
   group,
@@ -148,15 +62,25 @@ export function GroupSummaryWithAutofix({
 }) {
   const {data: autofixData, isPending} = useAutofixData({groupId: group.id});
 
-  const openSolutionsDrawer = useOpenSolutionsDrawer(group, project, event);
+  const openSeerDrawer = useOpenSeerDrawer(group, project, event);
 
   const rootCauseDescription = useMemo(
     () => (autofixData ? getRootCauseDescription(autofixData) : null),
     [autofixData]
   );
 
+  const rootCauseCopyText = useMemo(
+    () => (autofixData ? getRootCauseCopyText(autofixData) : null),
+    [autofixData]
+  );
+
   const solutionDescription = useMemo(
     () => (autofixData ? getSolutionDescription(autofixData) : null),
+    [autofixData]
+  );
+
+  const solutionCopyText = useMemo(
+    () => (autofixData ? getSolutionCopyText(autofixData) : null),
     [autofixData]
   );
 
@@ -187,7 +111,9 @@ export function GroupSummaryWithAutofix({
         solutionIsLoading={solutionIsLoading}
         codeChangesDescription={codeChangesDescription}
         codeChangesIsLoading={codeChangesIsLoading}
-        openSolutionsDrawer={openSolutionsDrawer}
+        openSeerDrawer={openSeerDrawer}
+        rootCauseCopyText={rootCauseCopyText}
+        solutionCopyText={solutionCopyText}
       />
     );
   }
@@ -201,12 +127,16 @@ function AutofixSummary({
   solutionIsLoading,
   codeChangesDescription,
   codeChangesIsLoading,
-  openSolutionsDrawer,
+  openSeerDrawer,
+  rootCauseCopyText,
+  solutionCopyText,
 }: {
   codeChangesDescription: string | null;
   codeChangesIsLoading: boolean;
-  openSolutionsDrawer: () => void;
+  openSeerDrawer: () => void;
+  rootCauseCopyText: string | null;
   rootCauseDescription: string | null;
+  solutionCopyText: string | null;
   solutionDescription: string | null;
   solutionIsLoading: boolean;
 }) {
@@ -216,7 +146,9 @@ function AutofixSummary({
       title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" color="pink400" />,
-      onClick: openSolutionsDrawer,
+      onClick: openSeerDrawer,
+      copyTitle: t('Copy root cause as Markdown'),
+      copyText: rootCauseCopyText,
     },
 
     ...(solutionDescription || solutionIsLoading
@@ -227,7 +159,9 @@ function AutofixSummary({
             insight: solutionDescription,
             icon: <IconFix size="sm" color="green400" />,
             isLoading: solutionIsLoading,
-            onClick: openSolutionsDrawer,
+            onClick: openSeerDrawer,
+            copyTitle: t('Copy solution as Markdown'),
+            copyText: solutionCopyText,
           },
         ]
       : []),
@@ -240,7 +174,7 @@ function AutofixSummary({
             insight: codeChangesDescription,
             icon: <IconCode size="sm" color="blue400" />,
             isLoading: codeChangesIsLoading,
-            onClick: openSolutionsDrawer,
+            onClick: openSeerDrawer,
           },
         ]
       : []),
@@ -259,14 +193,28 @@ function AutofixSummary({
               <InsightCardButton
                 key={card.id}
                 onClick={card.onClick}
+                role="button"
                 initial="initial"
                 animate={card.isLoading ? 'animate' : 'initial'}
                 variants={pulseAnimation}
               >
                 <InsightCard>
                   <CardTitle preview={card.isLoading}>
-                    <CardTitleIcon>{card.icon}</CardTitleIcon>
-                    <CardTitleText>{card.title}</CardTitleText>
+                    <CardTitleSpacer>
+                      <CardTitleIcon>{card.icon}</CardTitleIcon>
+                      <CardTitleText>{card.title}</CardTitleText>
+                    </CardTitleSpacer>
+                    {card.copyText && card.copyTitle && (
+                      <CopyToClipboardButton
+                        size="xs"
+                        text={card.copyText}
+                        borderless
+                        title={card.copyTitle}
+                        onClick={e => {
+                          e.stopPropagation();
+                        }}
+                      />
+                    )}
                   </CardTitle>
                   <CardContent>
                     {card.isLoading ? (
@@ -317,7 +265,7 @@ const InsightGrid = styled('div')`
   gap: ${space(1.5)};
 `;
 
-const InsightCardButton = styled(motion.button)`
+const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   width: 100%;
@@ -350,8 +298,16 @@ const CardTitle = styled('div')<{preview?: boolean}>`
   align-items: center;
   gap: ${space(1)};
   color: ${p => p.theme.subText};
-  padding: ${space(1)} ${space(1)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  justify-content: space-between;
+`;
+
+const CardTitleSpacer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
 const CardTitleText = styled('p')`

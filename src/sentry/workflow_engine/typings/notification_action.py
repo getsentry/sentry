@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, ClassVar, NotRequired, TypedDict
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -329,10 +328,6 @@ class MSTeamsActionTranslator(BaseActionTranslator):
     def target_type(self) -> ActionTarget:
         return ActionTarget.SPECIFIC
 
-    @property
-    def blob_type(self) -> type[DataBlob]:
-        return OnCallDataBlob
-
 
 @issue_alert_action_translator_registry.register(ACTION_FIELD_MAPPINGS[Action.Type.PAGERDUTY]["id"])
 class PagerDutyActionTranslator(BaseActionTranslator):
@@ -408,7 +403,7 @@ class TicketingActionDataBlobHelper(ABC):
         Returns tuple of (dynamic_form_fields, additional_fields)
         """
         excluded_keys = excluded_keys or []
-        dynamic_form_fields = data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, {})
+        dynamic_form_fields = data.get(TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value, [])
 
         additional_fields = {
             k: v
@@ -444,13 +439,14 @@ class TicketActionTranslator(BaseActionTranslator, TicketingActionDataBlobHelper
         """
         Override to handle custom fields and additional fields that aren't part of the standard fields.
         """
-        data = super().get_sanitized_data()
-        if self.blob_type:
-            # Use helper to separate fields, excluding required fields
-            _, additional_fields = self.separate_fields(
-                self.action, excluded_keys=self.required_fields
-            )
-            data[TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value] = additional_fields
+        # Use helper to separate fields, excluding required fields
+        dynamic_form_fields, additional_fields = self.separate_fields(
+            self.action, excluded_keys=self.required_fields
+        )
+        data = {
+            TicketFieldMappingKeys.DYNAMIC_FORM_FIELDS_KEY.value: dynamic_form_fields,
+            TicketFieldMappingKeys.ADDITIONAL_FIELDS_KEY.value: additional_fields,
+        }
         return data
 
 
@@ -733,33 +729,3 @@ class EmailDataBlob(DataBlob):
     """
 
     fallthroughType: str = ""
-
-
-@dataclass
-class NotificationContext:
-    """
-    NotificationContext is a dataclass that represents the context required send a notification.
-    """
-
-    integration_id: int | None = None
-    target_identifier: str | None = None
-    target_display: str | None = None
-    sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
-
-    @classmethod
-    def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
-        return cls(
-            integration_id=action.integration_id,
-            target_identifier=action.target_identifier,
-            target_display=action.target_display,
-            sentry_app_config=action.sentry_app_config,
-        )
-
-    @classmethod
-    def from_action_model(cls, action: Action) -> NotificationContext:
-        return cls(
-            integration_id=action.integration_id,
-            target_identifier=action.config.get("target_identifier"),
-            target_display=action.config.get("target_display"),
-            sentry_app_config=action.data,
-        )

@@ -10,6 +10,7 @@ import {Tag} from 'sentry/components/core/badge/tag';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconDocs} from 'sentry/icons/iconDocs';
@@ -27,11 +28,11 @@ import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import type {Tab} from 'sentry/views/settings/organizationIntegrations/abstractIntegrationDetailedView';
 import {useIntegrationFeatures} from 'sentry/views/settings/organizationIntegrations/detailedView/useIntegrationFeatures';
 import IntegrationStatus from 'sentry/views/settings/organizationIntegrations/integrationStatus';
 
-interface AlertType extends AlertProps {
+export type IntegrationTab = 'overview' | 'configurations' | 'features';
+export interface AlertType extends AlertProps {
   text: string;
 }
 
@@ -77,33 +78,40 @@ function TopSection({
   );
 }
 
-function Tabs({
+function IntegrationTabs({
   tabs,
   activeTab,
   onTabChange,
   getTabDisplay,
 }: {
-  activeTab: Tab;
-  tabs: Tab[];
-  getTabDisplay?: (tab: Tab) => string;
-  onTabChange?: (tab: Tab) => void;
+  activeTab: IntegrationTab;
+  tabs: IntegrationTab[];
+  getTabDisplay?: (tab: IntegrationTab) => string;
+  onTabChange?: (tab: IntegrationTab) => void;
 }) {
   // If getTabDisplay is not provided, use the tab as the display text
-  const renderTab = useMemo(() => getTabDisplay ?? ((tab: Tab) => tab), [getTabDisplay]);
+  const renderTab = useMemo(
+    () => getTabDisplay ?? ((tab: IntegrationTab) => tab),
+    [getTabDisplay]
+  );
+
   return (
-    <ul className="nav nav-tabs border-bottom" style={{paddingTop: '30px'}}>
-      {tabs.map(tab => (
-        <li
-          key={tab}
-          className={activeTab === tab ? 'active' : ''}
-          onClick={() => onTabChange?.(tab)}
-        >
-          <CapitalizedLink>{renderTab(tab)}</CapitalizedLink>
-        </li>
-      ))}
-    </ul>
+    <TabsContainer>
+      <Tabs value={activeTab} onChange={onTabChange}>
+        <TabList>
+          {tabs.map(tab => (
+            <TabList.Item key={tab}>{renderTab(tab)}</TabList.Item>
+          ))}
+        </TabList>
+      </Tabs>
+    </TabsContainer>
   );
 }
+
+const TabsContainer = styled('div')`
+  margin-top: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
 
 function Body({
   integrationName,
@@ -282,7 +290,7 @@ function ResourceIcon({title}: {title: string}) {
 
 const IntegrationLayout = {
   TopSection,
-  Tabs,
+  Tabs: IntegrationTabs,
   Body,
   EmptyConfigurations,
   DisabledNotice,
@@ -322,10 +330,6 @@ const StyledTag = styled(Tag)`
   &:not(:first-child) {
     margin-left: ${space(0.5)};
   }
-`;
-
-const CapitalizedLink = styled('a')`
-  text-transform: capitalize;
 `;
 
 const IconCloseCircle = styled(IconClose)`
@@ -369,7 +373,7 @@ const AuthorInfo = styled('div')`
 const CreatedContainer = styled('div')`
   text-transform: uppercase;
   padding-bottom: ${space(1)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: 12px;
 `;

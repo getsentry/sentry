@@ -19,7 +19,7 @@ const DrawerContentContext = createContext<DrawerContentContextType>({
   ariaLabel: 'slide out drawer',
 });
 
-function useDrawerContentContext() {
+export function useDrawerContentContext() {
   return useContext(DrawerContentContext);
 }
 
@@ -28,6 +28,7 @@ interface DrawerPanelProps {
   children: React.ReactNode;
   headerContent: React.ReactNode;
   onClose: DrawerContentContextType['onClose'];
+  drawerWidth?: DrawerOptions['drawerWidth'];
   transitionProps?: AnimationProps['transition'];
 }
 
@@ -37,6 +38,7 @@ export function DrawerPanel({
   children,
   transitionProps,
   onClose,
+  drawerWidth,
 }: DrawerPanelProps & {
   ref?: React.Ref<HTMLDivElement>;
 }) {
@@ -48,6 +50,7 @@ export function DrawerPanel({
         collapsed={false}
         ref={ref}
         transitionProps={transitionProps}
+        panelWidth={drawerWidth}
       >
         {/*
           This provider allows data passed to openDrawer to be accessed by drawer components.

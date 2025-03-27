@@ -5,39 +5,22 @@ import omit from 'lodash/omit';
 
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import PlatformPicker from 'sentry/components/platformPicker';
-import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 import {useConfigureSdk} from 'sentry/views/onboarding/useConfigureSdk';
 
-import {CreateProjectsFooter} from './components/createProjectsFooter';
 import type {StepProps} from './types';
-
-export function hasDocsOnPlatformClickEnabled(organization: Organization) {
-  return organization.features.includes(
-    'onboarding-load-docs-on-platform-click-and-silent-delete-on-back'
-  );
-}
 
 export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
   const onboardingContext = useContext(OnboardingContext);
 
-  const selectedPlatform = onboardingContext.data.selectedSDK
-    ? platforms.find(platform => platform.id === onboardingContext.data.selectedSDK?.key)
-      ? onboardingContext.data.selectedSDK
-      : undefined
-    : undefined;
-
   const {configureSdk} = useConfigureSdk({
     onComplete: props.onComplete,
   });
-
-  const docsOnPlatformClickEnabled = hasDocsOnPlatformClickEnabled(organization);
 
   return (
     <Wrapper>
@@ -59,6 +42,7 @@ export function PlatformSelection(props: StepProps) {
         </p>
         <PlatformPicker
           noAutoFilter
+          visibleSelection={false}
           source="targeted-onboarding"
           platform={onboardingContext.data.selectedSDK?.key}
           defaultCategory={onboardingContext.data.selectedSDK?.category}
@@ -67,33 +51,12 @@ export function PlatformSelection(props: StepProps) {
               ? {...omit(platform, 'id'), key: platform.id}
               : undefined;
 
-            if (docsOnPlatformClickEnabled) {
-              configureSdk(selectedSDK);
-            } else {
-              onboardingContext.setData({
-                ...onboardingContext.data,
-                selectedSDK,
-              });
-            }
+            configureSdk(selectedSDK);
           }}
           organization={organization}
         />
       </motion.div>
-      {docsOnPlatformClickEnabled ? (
-        <GenericFooter>{props.genSkipOnboardingLink()}</GenericFooter>
-      ) : (
-        <CreateProjectsFooter
-          {...props}
-          clearPlatform={() => {
-            onboardingContext.setData({
-              ...onboardingContext.data,
-              selectedSDK: undefined,
-            });
-          }}
-          organization={organization}
-          selectedPlatform={selectedPlatform}
-        />
-      )}
+      <GenericFooter>{props.genSkipOnboardingLink()}</GenericFooter>
     </Wrapper>
   );
 }

@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -12,6 +12,7 @@ import {
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
   type AutofixData,
+  type AutofixFeedback,
   type AutofixProgressItem,
   type AutofixRepository,
   AutofixStatus,
@@ -37,6 +38,7 @@ interface StepProps {
   repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
+  feedback?: AutofixFeedback;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   shouldCollapseByDefault?: boolean;
@@ -65,6 +67,7 @@ export function Step({
   shouldCollapseByDefault,
   previousDefaultStepIndex,
   previousInsightCount,
+  feedback,
 }: StepProps) {
   return (
     <StepCard>
@@ -99,6 +102,7 @@ export function Step({
                   repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
+                  feedback={feedback}
                 />
               )}
               {step.type === AutofixStepType.SOLUTION && (
@@ -113,6 +117,7 @@ export function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
+                  feedback={feedback}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
@@ -136,9 +141,6 @@ export function Step({
 export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
-
-  const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   if (!steps?.length) {
     return null;
@@ -166,7 +168,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     '';
 
   return (
-    <StepsContainer ref={containerRef}>
+    <StepsContainer>
       {steps.map((step, index) => {
         const previousDefaultStepIndex = steps
           .slice(0, index)
@@ -195,12 +197,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           nextStep?.insights?.length === 0;
 
         return (
-          <div
-            ref={el => {
-              stepsRef.current[index] = el;
-            }}
-            key={step.id}
-          >
+          <div key={step.id}>
             <Step
               step={step}
               hasStepBelow={
@@ -222,6 +219,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
                 previousDefaultStepIndex >= 0 ? previousDefaultStepIndex : undefined
               }
               previousInsightCount={previousInsightCount}
+              feedback={data.feedback}
             />
           </div>
         );
@@ -233,7 +231,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           groupId={groupId}
           runId={runId}
           responseRequired={lastStep!.status === 'WAITING_FOR_USER_RESPONSE'}
-          isProcessing={lastStep!.status === 'PROCESSING'}
         />
       )}
     </StepsContainer>

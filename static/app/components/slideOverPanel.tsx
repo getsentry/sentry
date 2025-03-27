@@ -30,6 +30,7 @@ type SlideOverPanelProps = {
   className?: string;
   'data-test-id'?: string;
   onOpen?: () => void;
+  panelWidth?: string;
   slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
 };
@@ -46,6 +47,7 @@ function SlideOverPanel(
     onOpen,
     slidePosition,
     transitionProps = {},
+    panelWidth,
   }: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
@@ -79,6 +81,7 @@ function SlideOverPanel(
       aria-label={ariaLabel ?? 'slide out drawer'}
       className={className}
       data-test-id={testId}
+      panelWidth={panelWidth}
     >
       {children}
     </_SlideOverPanel>
@@ -89,9 +92,12 @@ const _SlideOverPanel = styled(motion.div, {
   shouldForwardProp: prop =>
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
-})<{
-  slidePosition?: 'right' | 'bottom' | 'left';
-}>`
+})<
+  {
+    panelWidth?: string;
+    slidePosition?: 'right' | 'bottom' | 'left';
+  } & React.HTMLAttributes<HTMLDivElement>
+>`
   position: fixed;
 
   top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
@@ -128,7 +134,7 @@ const _SlideOverPanel = styled(motion.div, {
           ? css`
               position: fixed;
 
-              width: ${PANEL_WIDTH};
+              width: ${p.panelWidth ?? PANEL_WIDTH};
               height: 100%;
 
               top: 0;
@@ -139,7 +145,7 @@ const _SlideOverPanel = styled(motion.div, {
           : css`
               position: relative;
 
-              width: ${LEFT_SIDE_PANEL_WIDTH};
+              width: ${p.panelWidth ?? LEFT_SIDE_PANEL_WIDTH};
               min-width: 450px;
               height: 100%;
 

@@ -1,10 +1,9 @@
-import type {ReactText} from 'react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import type {GridColumnOrder} from 'sentry/components/gridEditable';
 import type {Sort} from 'sentry/utils/discover/fields';
 
-export default function queryBasedSortLinkGenerator<Key extends ReactText>(
+export default function queryBasedSortLinkGenerator<Key extends string | number>(
   location: Location,
   column: GridColumnOrder<Key>,
   currentSort: Sort

@@ -6,6 +6,39 @@ import styled from '@emotion/styled';
 import {chonkInputStyles} from 'sentry/components/core/input/index.chonk';
 import type {FormSize} from 'sentry/utils/theme';
 
+export interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
+    InputStylesProps {}
+
+/**
+ * Basic input component.
+ *
+ * Use the `size` prop ('md', 'sm', 'xs') to control the input's height &
+ * padding. To use the native size attribute (which controls the number of
+ * characters the input should fit), use the `nativeSize` prop instead.
+ *
+ * To add leading/trailing items (e.g. a search icon on the left side), use
+ * InputControl (components/inputControl) instead.
+ */
+export const Input = styled(
+  ({
+    ref,
+    // Do not forward `size` since it's used for custom styling, not as the
+    // native `size` attribute (for that, use `nativeSize` instead)
+    size: _size,
+
+    // Use `nativeSize` as the native `size` attribute
+    nativeSize,
+
+    ...props
+  }: InputProps & {
+    ref?: React.Ref<HTMLInputElement>;
+  }) => <input {...props} ref={ref} size={nativeSize} />,
+  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
+)`
+  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
+`;
+
 export interface InputStylesProps {
   monospace?: boolean;
   nativeSize?: React.InputHTMLAttributes<HTMLInputElement>['size'];
@@ -66,41 +99,4 @@ const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
     -webkit-appearance: none;
     margin: 0;
   }
-`;
-
-export interface InputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
-    InputStylesProps {}
-
-/**
- * Basic input component.
- *
- * Use the `size` prop ('md', 'sm', 'xs') to control the input's height &
- * padding. To use the native size attribute (which controls the number of
- * characters the input should fit), use the `nativeSize` prop instead.
- *
- * To add leading/trailing items (e.g. a search icon on the left side), use
- * InputControl (components/inputControl) instead.
- */
-export const Input = styled(
-  ({
-    ref,
-
-    // Do not forward `required` to avoid default browser behavior
-    required: _required,
-
-    // Do not forward `size` since it's used for custom styling, not as the
-    // native `size` attribute (for that, use `nativeSize` instead)
-    size: _size,
-
-    // Use `nativeSize` as the native `size` attribute
-    nativeSize,
-
-    ...props
-  }: InputProps & {
-    ref?: React.Ref<HTMLInputElement>;
-  }) => <input {...props} ref={ref} size={nativeSize} />,
-  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
-)`
-  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
 `;

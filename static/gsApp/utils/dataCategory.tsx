@@ -22,6 +22,7 @@ export const GIFT_CATEGORIES: string[] = [
   DataCategory.SPANS,
   DataCategory.SPANS_INDEXED,
   DataCategory.PROFILE_DURATION,
+  DataCategory.PROFILE_DURATION_UI,
   DataCategory.UPTIME,
 ];
 
@@ -40,6 +41,7 @@ const CREDIT_TYPE_TO_DATA_CATEGORY = {
   [CreditType.TRANSACTION]: DataCategory.TRANSACTIONS,
   [CreditType.SPAN]: DataCategory.SPANS,
   [CreditType.PROFILE_DURATION]: DataCategory.PROFILE_DURATION,
+  [CreditType.PROFILE_DURATION_UI]: DataCategory.PROFILE_DURATION_UI,
   [CreditType.ATTACHMENT]: DataCategory.ATTACHMENTS,
   [CreditType.REPLAY]: DataCategory.REPLAYS,
   [CreditType.MONITOR_SEAT]: DataCategory.MONITOR_SEATS,
@@ -72,6 +74,7 @@ type CategoryNameProps = {
   capitalize?: boolean;
   hadCustomDynamicSampling?: boolean;
   plan?: Plan;
+  title?: boolean;
 };
 
 /**
@@ -82,6 +85,7 @@ export function getPlanCategoryName({
   category,
   hadCustomDynamicSampling = false,
   capitalize = true,
+  title = false,
 }: CategoryNameProps) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
@@ -91,7 +95,11 @@ export function getPlanCategoryName({
       : displayNames
         ? displayNames.plural
         : category;
-  return capitalize ? upperFirst(categoryName) : categoryName;
+  return title
+    ? titleCase(categoryName)
+    : capitalize
+      ? upperFirst(categoryName)
+      : categoryName;
 }
 
 /**
@@ -102,6 +110,7 @@ export function getSingularCategoryName({
   category,
   hadCustomDynamicSampling = false,
   capitalize = true,
+  title = false,
 }: CategoryNameProps) {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const displayNames = plan?.categoryDisplayNames?.[category];
@@ -111,7 +120,11 @@ export function getSingularCategoryName({
       : displayNames
         ? displayNames.singular
         : category.substring(0, category.length - 1);
-  return capitalize ? upperFirst(categoryName) : categoryName;
+  return title
+    ? titleCase(categoryName)
+    : capitalize
+      ? upperFirst(categoryName)
+      : categoryName;
 }
 
 /**
@@ -212,4 +225,21 @@ export function hasCategoryFeature(
     return false;
   }
   return feature ? organization.features.includes(feature) : true;
+}
+
+export function isContinuousProfiling(category: DataCategory | string) {
+  return (
+    category === DataCategory.PROFILE_DURATION ||
+    category === DataCategory.PROFILE_DURATION_UI
+  );
+}
+
+export function getChunkCategoryFromDuration(category: DataCategory) {
+  if (category === DataCategory.PROFILE_DURATION) {
+    return DataCategory.PROFILE_CHUNKS;
+  }
+  if (category === DataCategory.PROFILE_DURATION_UI) {
+    return DataCategory.PROFILE_CHUNKS_UI;
+  }
+  return '';
 }

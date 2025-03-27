@@ -46,7 +46,7 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import theme from 'sentry/utils/theme';
@@ -161,7 +161,7 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const sidebarAnchor = isDemoModeEnabled() ? (
+  const sidebarAnchor = isDemoModeActive() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
@@ -209,7 +209,7 @@ function Sidebar() {
   );
 
   const traces = hasOrganization && (
-    <Feature features="performance-trace-explorer">
+    <Feature features={['performance-trace-explorer', 'performance-view']}>
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
@@ -232,8 +232,16 @@ function Sidebar() {
     </Feature>
   );
 
-  const hasPerfLandingRemovalFlag = organization?.features.includes(
-    'insights-performance-landing-removal'
+  const savedQueries = hasOrganization && (
+    <Feature features="performance-saved-queries" organization={organization}>
+      <SidebarItem
+        {...sidebarItemProps}
+        label={<GuideAnchor target="saved-queries">{t('All Queries')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/saved-queries/`}
+        id="performance-saved-queries"
+        icon={<SubitemDot collapsed />}
+      />
+    </Feature>
   );
 
   const releases = hasOrganization && (
@@ -372,11 +380,7 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
-        active={
-          hasPerfLandingRemovalFlag
-            ? location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)
-            : undefined
-        }
+        active={location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)}
         exact={!shouldAccordionFloat}
       >
         <SidebarItem
@@ -426,6 +430,7 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover}
+      {savedQueries}
     </SidebarAccordion>
   );
 
@@ -439,7 +444,9 @@ function Sidebar() {
             <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
-              <Hook name="component:superuser-warning" organization={organization} />
+              <SuperuserBadgeContainer>
+                <Hook name="component:superuser-warning" organization={organization} />
+              </SuperuserBadgeContainer>
             )}
           </DropdownSidebarSection>
           <PrimaryItems>
@@ -753,6 +760,17 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -5px;
+  right: 5px;
+
+  /* Hiding on smaller screens because it looks misplaced */
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

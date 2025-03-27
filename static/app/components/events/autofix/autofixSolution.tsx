@@ -1,18 +1,17 @@
 import {useCallback, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import ButtonBar from 'sentry/components/buttonBar';
-import {Chevron} from 'sentry/components/chevron';
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
+  type AutofixFeedback,
   type AutofixRepository,
   type AutofixSolutionTimelineEvent,
   AutofixStatus,
@@ -26,12 +25,12 @@ import {
 import {Timeline} from 'sentry/components/timeline';
 import {
   IconAdd,
-  IconCheckmark,
   IconChevron,
   IconClose,
   IconCode,
   IconDelete,
   IconFix,
+  IconLab,
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -41,6 +40,7 @@ import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryCl
 import testableTransition from 'sentry/utils/testableTransition';
 import type {Color} from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
+import {Divider} from 'sentry/views/issueDetails/divider';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
 import {useTextSelection} from './useTextSelection';
@@ -117,6 +117,7 @@ type AutofixSolutionProps = {
   changesDisabled?: boolean;
   customSolution?: string;
   description?: string;
+  feedback?: AutofixFeedback;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -221,9 +222,9 @@ function SolutionEventList({
       return [];
     }
 
-    // For 3 or fewer items, find the first highlighted item or default to first item
+    // For 3 or fewer items, find the first highlighted and active item or default to first item
     const firstHighlightedIndex = events.findIndex(
-      event => event.is_most_important_event
+      event => event.is_most_important_event && event.is_active !== false
     );
     return [firstHighlightedIndex === -1 ? 0 : firstHighlightedIndex];
   });
@@ -233,6 +234,20 @@ function SolutionEventList({
       current.includes(index) ? current.filter(i => i !== index) : [...current, index]
     );
   }, []);
+
+  // Wrap onToggleActive to also handle expanded state
+  const handleToggleActive = useCallback(
+    (index: number) => {
+      onToggleActive(index);
+      // If we're disabling an item (toggling from active to inactive),
+      // we need to remove it from expanded items
+      const event = events[index];
+      if (event && event.is_active !== false) {
+        setExpandedItems(current => current.filter(i => i !== index));
+      }
+    },
+    [events, onToggleActive]
+  );
 
   if (!events?.length) {
     return null;
@@ -246,12 +261,23 @@ function SolutionEventList({
         const isExpanded = expandedItems.includes(index);
         const isHumanAction = event.timeline_item_type === 'human_instruction';
 
+        const handleItemClick = () => {
+          if (!isSelected) {
+            // If item is disabled, re-enable it instead of toggling expansion
+            handleToggleActive(index);
+            return;
+          }
+          if (!isHumanAction && event.code_snippet_and_analysis) {
+            toggleItem(index);
+          }
+        };
+
         return (
           <Timeline.Item
             key={index}
             title={
               <StyledTimelineHeader
-                onClick={() => toggleItem(index)}
+                onClick={handleItemClick}
                 isActive={isActive}
                 isSelected={isSelected}
                 data-test-id={`autofix-solution-timeline-item-${index}`}
@@ -262,7 +288,7 @@ function SolutionEventList({
                   }}
                 />
                 <IconWrapper>
-                  {!isHumanAction && (
+                  {!isHumanAction && event.code_snippet_and_analysis && isSelected && (
                     <StyledIconChevron
                       direction={isExpanded ? 'down' : 'right'}
                       size="xs"
@@ -275,7 +301,7 @@ function SolutionEventList({
                         if (isHumanAction) {
                           onDeleteItem(index);
                         } else {
-                          onToggleActive(index);
+                          handleToggleActive(index);
                         }
                       }}
                       aria-label={isSelected ? t('Deselect item') : t('Select item')}
@@ -335,6 +361,8 @@ function getEventIcon(eventType: string) {
       return <IconCode {...iconProps} />;
     case 'human_instruction':
       return <IconUser {...iconProps} />;
+    case 'repro_test':
+      return <IconLab {...iconProps} />;
     default:
       return <IconCode {...iconProps} />;
   }
@@ -354,7 +382,7 @@ function getEventColor(isActive?: boolean, isSelected?: boolean): ColorConfig {
   };
 }
 
-function formatSolutionText(
+export function formatSolutionText(
   solution: AutofixSolutionTimelineEvent[],
   customSolution?: string
 ) {
@@ -374,6 +402,7 @@ function formatSolutionText(
 
   parts.push(
     solution
+      .filter(event => event.is_active)
       .map(event => {
         const eventParts = [`### ${event.title}`];
 
@@ -406,7 +435,14 @@ function CopySolutionButton({
     return null;
   }
   const text = formatSolutionText(solution, customSolution);
-  return <CopyToClipboardButton size="sm" text={text} borderless />;
+  return (
+    <CopyToClipboardButton
+      size="sm"
+      text={text}
+      borderless
+      title="Copy solution as Markdown"
+    />
+  );
 }
 
 function AutofixSolutionDisplay({
@@ -420,6 +456,7 @@ function AutofixSolutionDisplay({
   solutionSelected,
   changesDisabled,
   agentCommentThread,
+  feedback,
 }: Omit<AutofixSolutionProps, 'repos'>) {
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [isEditing, _setIsEditing] = useState(false);
@@ -511,13 +548,22 @@ function AutofixSolutionDisplay({
             {t('Solution')}
           </HeaderText>
           <ButtonBar gap={1}>
+            <AutofixThumbsUpDownButtons
+              thumbsUpDownType="solution"
+              feedback={feedback}
+              groupId={groupId}
+              runId={runId}
+            />
+            <DividerWrapper>
+              <Divider />
+            </DividerWrapper>
             <ButtonBar>
               {!isEditing && (
                 <CopySolutionButton solution={solution} isEditing={isEditing} />
               )}
             </ButtonBar>
             <ButtonBar merged>
-              <CodeButton
+              <Button
                 title={
                   changesDisabled
                     ? t(
@@ -537,72 +583,14 @@ function AutofixSolutionDisplay({
                 }}
               >
                 {t('Code It Up')}
-              </CodeButton>
-              <DropdownMenu
-                isDisabled={changesDisabled}
-                offset={[-12, 8]}
-                items={[
-                  {
-                    key: 'fix',
-                    label: 'Write the fix',
-                    details: 'Autofix will implement this solution.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'fix',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <IconCheckmark size="sm" color="purple300" />,
-                  },
-                  {
-                    key: 'test',
-                    label: 'Write a reproduction test',
-                    details:
-                      'Autofix will write a unit test to reproduce the issue and validate future fixes.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'test',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <div style={{width: 16}} />,
-                  },
-                  {
-                    key: 'all',
-                    label: 'Write both',
-                    details:
-                      'Autofix will implement this solution and a test to validate the issue is fixed.',
-                    onAction: () =>
-                      handleContinue({
-                        mode: 'all',
-                        solution: solutionItems,
-                      }),
-                    leadingItems: <div style={{width: 16}} />,
-                  },
-                ]}
-                position="bottom-end"
-                trigger={(triggerProps, isOpen) => (
-                  <DropdownButton
-                    size="sm"
-                    priority={solutionSelected ? 'default' : 'primary'}
-                    aria-label={t('More coding options')}
-                    icon={
-                      <Chevron
-                        light
-                        color="subText"
-                        weight="medium"
-                        direction={isOpen ? 'up' : 'down'}
-                      />
-                    }
-                    {...triggerProps}
-                  />
-                )}
-              />
+              </Button>
             </ButtonBar>
           </ButtonBar>
         </HeaderWrapper>
         <AnimatePresence>
           {agentCommentThread && iconFixRef.current && (
             <AutofixHighlightPopup
-              selectedText="Solution"
+              selectedText=""
               referenceElement={iconFixRef.current}
               groupId={groupId}
               runId={runId}
@@ -728,28 +716,6 @@ const CustomSolutionPadding = styled('div')`
   padding: ${space(1)} ${space(0.25)} ${space(2)} ${space(0.25)};
 `;
 
-const DropdownButton = styled(Button)`
-  box-shadow: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-  border-left: none;
-`;
-
-const CodeButton = styled(Button)`
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &::after {
-        content: '';
-        position: absolute;
-        top: -1px;
-        bottom: -1px;
-        right: -1px;
-        border-right: solid 1px currentColor;
-        opacity: 0.25;
-      }
-    `}
-`;
-
 const AnimatedContent = styled(motion.div)`
   overflow: hidden;
 `;
@@ -818,7 +784,7 @@ const SelectionButton = styled('button')`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   opacity: 0;
   transition:
     opacity 0.2s ease,
@@ -838,7 +804,7 @@ const SelectionButton = styled('button')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   flex-shrink: 0;
   opacity: 1;
   transition: opacity 0.2s ease;
@@ -861,7 +827,7 @@ const InstructionsInput = styled(Input)`
   flex-grow: 1;
 
   &::placeholder {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -877,4 +843,8 @@ const SubmitButton = styled(Button)`
 
 const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
+`;
+
+const DividerWrapper = styled('div')`
+  margin: 0 ${space(0.5)};
 `;

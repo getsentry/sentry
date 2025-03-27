@@ -1,16 +1,19 @@
 import type {SeriesOption} from 'echarts';
 
-import type {
-  AggregationOutputType,
-  DurationUnit,
-  RateUnit,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 
-import type {TimeSeries} from '../../common/types';
+import {isAPlottableTimeSeriesValueType} from '../../common/typePredicates';
+import type {TimeSeries, TimeSeriesValueUnit} from '../../common/types';
+import {formatSeriesName} from '../formatters/formatSeriesName';
+import {FALLBACK_TYPE} from '../settings';
+
+import type {PlottableTimeSeriesValueType} from './plottable';
 
 export type ContinuousTimeSeriesConfig = {
+  /**
+   * Optional alias. If not provided, the series name from the legend will be computed from the `TimeSeries`.
+   */
+  alias?: string;
   /**
    * Optional color. If not provided, a backfill from a common palette will be provided to `toSeries`
    */
@@ -29,7 +32,7 @@ export type ContinuousTimeSeriesPlottingOptions = {
   /**
    * Final plottable unit. This might be different from the original unit of the data, because we scale all time series to a single common unit.
    */
-  unit: DurationUnit | SizeUnit | RateUnit | null;
+  unit: TimeSeriesValueUnit;
   /**
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
@@ -53,6 +56,10 @@ export abstract class ContinuousTimeSeries<
     this.config = config;
   }
 
+  get label(): string {
+    return this.config?.alias ?? formatSeriesName(this.timeSeries.field);
+  }
+
   get isEmpty(): boolean {
     return this.timeSeries.data.every(datum => datum.value === null);
   }
@@ -61,18 +68,14 @@ export abstract class ContinuousTimeSeries<
     return !this.config?.color;
   }
 
-  get dataType(): AggregationOutputType {
-    // TODO: Simplify this. `TimeSeries` types should already have this type
-    return this.timeSeries.meta.fields[this.timeSeries.field]! as AggregationOutputType;
+  get dataType(): PlottableTimeSeriesValueType {
+    return isAPlottableTimeSeriesValueType(this.timeSeries.meta.type)
+      ? this.timeSeries.meta.type
+      : FALLBACK_TYPE;
   }
 
-  get dataUnit(): DurationUnit | SizeUnit | RateUnit | null {
-    // TODO: Simplify this. `TimeSeries` units should already have this type
-    return this.timeSeries.meta.units[this.timeSeries.field] as
-      | DurationUnit
-      | SizeUnit
-      | RateUnit
-      | null;
+  get dataUnit(): TimeSeriesValueUnit {
+    return this.timeSeries.meta.unit;
   }
 
   get start(): string | null {
@@ -83,7 +86,23 @@ export abstract class ContinuousTimeSeries<
     return this.#timestamps.at(-1) ?? null;
   }
 
-  scaleToUnit(destinationUnit: DurationUnit | SizeUnit | RateUnit | null): TimeSeries {
+  /**
+   * Shallow clones `timeSeries` and constrains `timeSeries` data to be between
+   * boundary datetime (if provided).
+   */
+  constrainTimeSeries(boundaryStart: Date | null, boundaryEnd: Date | null) {
+    return {
+      ...this.timeSeries,
+      data: this.timeSeries.data.filter(dataItem => {
+        const ts = new Date(dataItem.timestamp);
+        return (
+          (!boundaryStart || ts >= boundaryStart) && (!boundaryEnd || ts <= boundaryEnd)
+        );
+      }),
+    };
+  }
+
+  scaleToUnit(destinationUnit: TimeSeriesValueUnit): TimeSeries {
     return scaleTimeSeriesData(this.timeSeries, destinationUnit);
   }
 

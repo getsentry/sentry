@@ -37,10 +37,9 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') === -1
-        ? InstallationMode.AUTO
-        : InstallationMode.MANUAL,
+    defaultValue: navigator.userAgent.includes('Win')
+      ? InstallationMode.MANUAL
+      : InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -88,6 +87,14 @@ const getConfigurationSnippet = (params: Params) => `
   <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
   <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
       : ''
+  }${
+    params.isReplaySelected
+      ? `
+
+  <!-- record session replays for 100% of errors and 10% of sessions -->
+  <meta-data android:name="io.sentry.session-replay.on-error-sample-rate" android:value="1.0" />
+  <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="0.1" />`
+      : ''
   }
 </application>`;
 
@@ -116,8 +123,8 @@ const getReplaySetupSnippetXml = () => `
 <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="1.0" />`;
 
 const getReplayConfigurationSnippet = () => `
-options.sessionReplay.redactAllText = true
-options.sessionReplay.redactAllImages = true`;
+options.sessionReplay.maskAllText = true
+options.sessionReplay.maskAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>

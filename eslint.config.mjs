@@ -11,6 +11,7 @@
  */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+import pluginQuery from '@tanstack/eslint-plugin-query';
 import {globalIgnores} from 'eslint/config';
 import prettier from 'eslint-config-prettier';
 // @ts-expect-error TS(7016): Could not find a declaration file
@@ -35,13 +36,6 @@ import typescript from 'typescript-eslint';
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
 invariant(react.configs.flat['jsx-runtime'], 'For typescript');
-
-const restrictedImportPatterns = [
-  {
-    group: ['sentry/components/devtoolbar/*'],
-    message: 'Do not depend on toolbar internals',
-  },
-];
 
 const restrictedImportPaths = [
   {
@@ -263,7 +257,23 @@ export default typescript.config([
       'no-proto': 'error',
       'no-restricted-imports': [
         'error',
-        {patterns: restrictedImportPatterns, paths: restrictedImportPaths},
+        {
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into sentry',
+            },
+            {
+              group: ['getsentry/*'],
+              message: 'Do not import gsApp into sentry',
+            },
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
       ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
@@ -314,6 +324,16 @@ export default typescript.config([
       'import/no-named-as-default-member': 'off', // Disabled in favor of typescript-eslint
       'import/no-named-as-default': 'off', // TODO(ryan953): Fix violations and enable this rule
       'import/no-unresolved': 'off', // Disabled in favor of typescript-eslint
+    },
+  },
+  {
+    name: 'plugin/tanstack/query',
+    plugins: {
+      '@tanstack/query': pluginQuery,
+    },
+    rules: {
+      ...pluginQuery.configs.recommended.rules,
+      '@tanstack/query/no-rest-destructuring': 'error',
     },
   },
   {
@@ -569,18 +589,18 @@ export default typescript.config([
       'unicorn/no-useless-length-check': 'error',
       'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-array-find': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-find': 'error',
       'unicorn/prefer-array-flat-map': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-date-now': 'error',
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-includes': 'error',
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-negative-index': 'error',
       'unicorn/prefer-node-protocol': 'error',
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
@@ -686,6 +706,16 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into sentry',
+            },
+            {
+              group: ['getsentry/*'],
+              message: 'Do not import gsApp into sentry',
+            },
+          ],
           paths: [
             ...restrictedImportPaths,
             {
@@ -711,7 +741,20 @@ export default typescript.config([
       'no-restricted-imports': [
         'error',
         {
-          patterns: restrictedImportPatterns,
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into sentry',
+            },
+            {
+              group: ['getsentry/*'],
+              message: 'Do not import gsApp into sentry',
+            },
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
           paths: [
             ...restrictedImportPaths,
             {
@@ -738,6 +781,46 @@ export default typescript.config([
     files: ['**/js-sdk-loader.ts'],
     rules: {
       'no-console': 'off',
+    },
+  },
+  {
+    name: 'files/gsApp',
+    files: ['static/gsApp/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['admin/*'],
+              message: 'Do not import gsAdmin into gsApp',
+            },
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
+    },
+  },
+  {
+    name: 'files/gsAdmin',
+    files: ['static/gsAdmin/**/*.{js,mjs,ts,jsx,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['sentry/components/devtoolbar/*'],
+              message: 'Do not depend on toolbar internals',
+            },
+          ],
+          paths: restrictedImportPaths,
+        },
+      ],
     },
   },
 ]);

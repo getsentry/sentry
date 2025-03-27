@@ -47,6 +47,7 @@ import {
   hasContextSource,
   hasContextVars,
   isExpandable,
+  isPotentiallyThirdPartyFrame,
 } from './utils';
 
 const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
@@ -371,6 +372,7 @@ export class DeprecatedLine extends Component<Props, State> {
                   platform={this.props.platform ?? 'other'}
                   isHoverPreviewed={isHoverPreviewed}
                   meta={this.props.frameMeta}
+                  isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
                 />
               </div>
             </LeftLineTitle>
@@ -424,6 +426,8 @@ export class DeprecatedLine extends Component<Props, State> {
                           sourceResolutionResults={
                             this.props.frameSourceResolutionResults!
                           }
+                          orgSlug={this.props.organization?.slug}
+                          projectId={this.props.event.projectID}
                           {...modalProps}
                         />
                       ),

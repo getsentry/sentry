@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {IconEllipsis, IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -89,7 +88,6 @@ export function IssueViewNavEllipsisMenu({
           }}
           size="zero"
         >
-          <InteractionStateLayer />
           <IconEllipsis compact color="gray500" />
         </TriggerWrapper>
       )}

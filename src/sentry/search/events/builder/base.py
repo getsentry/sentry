@@ -206,8 +206,6 @@ class BaseQueryBuilder:
             self.builder_config = QueryBuilderConfig()
         else:
             self.builder_config = config
-        if self.builder_config.parser_config_overrides is None:
-            self.builder_config.parser_config_overrides = {}
 
         self.dataset = dataset
 
@@ -224,7 +222,7 @@ class BaseQueryBuilder:
         self.raw_equations = equations
         self.raw_orderby = orderby
         self.query = query
-        self.selected_columns = selected_columns
+        self.selected_columns = selected_columns or []
         self.groupby_columns = groupby_columns
         self.tips: dict[str, set[str]] = {
             "query": set(),
@@ -986,9 +984,9 @@ class BaseQueryBuilder:
 
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
-        should_use_user_time_range = features.has(
+        should_use_user_time_range = self.params.organization is not None and features.has(
             "organizations:performance-discover-get-custom-measurements-reduced-range",
-            self.organization_id,
+            self.params.organization,
             actor=None,
         )
 
@@ -1168,9 +1166,12 @@ class BaseQueryBuilder:
             parsed_terms = event_search.parse_search_query(
                 query,
                 params=self.filter_params,
+                config=event_search.SearchConfig.create_from(
+                    event_search.default_config,
+                    **self.builder_config.parser_config_overrides,
+                ),
                 get_field_type=self.get_field_type,
                 get_function_result_type=self.get_function_result_type,
-                config_overrides=self.builder_config.parser_config_overrides,
             )
         except ParseError as e:
             if e.expr is not None:

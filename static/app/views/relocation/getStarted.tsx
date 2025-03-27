@@ -80,7 +80,6 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             onChange={evt => {
               onUpdateRelocationState({orgSlugs: evt.target.value});
             }}
-            required
             minLength={3}
             placeholder="org-slug-1, org-slug-2, ..."
             value={orgSlugs}
@@ -154,7 +153,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   max-width: 769px;
   max-height: 525px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   h2 {
     color: ${p => p.theme.gray500};
   }

@@ -1,13 +1,15 @@
 import {Component, Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
+import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -191,14 +193,19 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
         <Header closeButton>
           <h4>{tct('[name] Issue', {name: plugin.name || plugin.title})}</h4>
         </Header>
-        <NavTabs underlined>
-          <li className={actionType === 'create' ? 'active' : ''}>
-            <a onClick={() => this.setState({actionType: 'create'})}>{t('Create')}</a>
-          </li>
-          <li className={actionType === 'link' ? 'active' : ''}>
-            <a onClick={() => this.setState({actionType: 'link'})}>{t('Link')}</a>
-          </li>
-        </NavTabs>
+
+        <TabsContainer>
+          <Tabs
+            value={this.state.actionType ?? 'create'}
+            onChange={key => this.setState({actionType: key})}
+          >
+            <TabList>
+              <TabList.Item key="create">{t('Create')}</TabList.Item>
+              <TabList.Item key="link">{t('Link')}</TabList.Item>
+            </TabList>
+          </Tabs>
+        </TabsContainer>
+
         {actionType && (
           // need the key here so React will re-render
           // with new action prop
@@ -220,6 +227,10 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
     );
   }
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export {PluginActions};
 

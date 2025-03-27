@@ -43,7 +43,7 @@ import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -553,7 +553,7 @@ function StreamGroup({
     <Placeholder height="18px" />
   );
 
-  const issueStreamAnchor = isDemoModeEnabled() ? (
+  const issueStreamAnchor = isDemoModeActive() ? (
     <GuideAnchor target="issue_stream" disabled={!DemoWalkthroughStore.get('issue')} />
   ) : (
     <GuideAnchor target="issue_stream" />
@@ -621,13 +621,7 @@ function StreamGroup({
         />
       )}
       <GroupSummary canSelect={canSelect} hasNewLayout={hasNewLayout}>
-        <EventOrGroupHeader
-          index={index}
-          organization={organization}
-          data={group}
-          query={query}
-          source={referrer}
-        />
+        <EventOrGroupHeader index={index} data={group} query={query} source={referrer} />
         <EventOrGroupExtraDetails data={group} showLifetime={!hasNewLayout} />
       </GroupSummary>
       {hasGuideAnchor && issueStreamAnchor}
@@ -923,7 +917,7 @@ const SecondaryCount = styled(({value, ...p}: any) => <Count {...p} value={value
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -936,7 +930,7 @@ const CountTooltipContent = styled('div')`
   align-items: center;
 
   h4 {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeExtraSmall};
     text-transform: uppercase;
     grid-column: 1 / -1;

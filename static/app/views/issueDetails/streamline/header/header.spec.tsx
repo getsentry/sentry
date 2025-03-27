@@ -93,18 +93,14 @@ describe('StreamlinedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
-
       expect(
-        screen.queryByRole('button', {name: 'Switch to the old issue experience'})
-      ).not.toBeInTheDocument();
+        screen.getByRole('button', {name: 'Manage issue experience'})
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
     });
 
     it('displays new experience button if flag is set', async () => {
-      const flaggedOrganization = OrganizationFixture({
-        features: ['issue-details-streamline'],
-      });
       render(
         <StreamlinedGroupHeader
           {...defaultProps}
@@ -112,13 +108,10 @@ describe('StreamlinedGroupHeader', () => {
           project={project}
           event={null}
         />,
-        {
-          organization: flaggedOrganization,
-          router,
-        }
+        {organization, router}
       );
       expect(
-        await screen.findByRole('button', {name: 'Switch to the old issue experience'})
+        await screen.findByRole('button', {name: 'Manage issue experience'})
       ).toBeInTheDocument();
     });
 

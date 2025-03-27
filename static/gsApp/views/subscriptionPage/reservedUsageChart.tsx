@@ -76,7 +76,7 @@ export function getCategoryOptions({
 }): CategoryOption[] {
   return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
     opt =>
-      plan.categories.includes(opt.value as DataCategory) &&
+      plan.checkoutCategories.includes(opt.value as DataCategory) &&
       (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
   );
 }
@@ -361,6 +361,8 @@ export function mapReservedBudgetStatsToChart({
     return chartData;
   }
 
+  let previousReservedForDate = 0;
+  let previousOnDemandForDate = 0;
   Object.entries(statsByDateAndCategory).forEach(([date, statsByCategory]) => {
     let reservedForDate = 0;
     let onDemandForDate = 0;
@@ -408,13 +410,26 @@ export function mapReservedBudgetStatsToChart({
         }
       });
     });
+    // if cumulative and there was no new spend on this date, use the previous date's spend
+    if (
+      reservedForDate === 0 &&
+      isCumulative &&
+      moment(date).isSameOrBefore(moment().toDate())
+    ) {
+      reservedForDate = previousReservedForDate;
+    }
+    if (onDemandForDate === 0 && isCumulative) {
+      onDemandForDate = previousOnDemandForDate;
+    }
     const dateKey = getDateFromMoment(moment(date));
     chartData.reserved!.push({
       value: [dateKey, reservedForDate],
     });
+    previousReservedForDate = reservedForDate;
     chartData.onDemand!.push({
       value: [dateKey, onDemandForDate],
     });
+    previousOnDemandForDate = onDemandForDate;
   });
 
   return chartData;

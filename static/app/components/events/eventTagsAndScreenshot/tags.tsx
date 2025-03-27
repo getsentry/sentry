@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {
   getSentryDefaultTags,
   TagFilter,
@@ -27,6 +27,7 @@ type Props = {
    * Additional buttons to render in the header of the section
    */
   additionalActions?: React.ReactNode;
+  disableCollapsePersistence?: boolean;
 };
 
 export function EventTagsDataSection({
@@ -34,6 +35,7 @@ export function EventTagsDataSection({
   event,
   projectSlug,
   additionalActions,
+  disableCollapsePersistence,
 }: Props & {
   ref?: React.Ref<HTMLElement>;
 }) {
@@ -79,6 +81,7 @@ export function EventTagsDataSection({
 
   return (
     <StyledEventDataSection
+      disableCollapsePersistence={disableCollapsePersistence}
       title={
         <GuideAnchor target="tags" position="top">
           {t('Tags')}

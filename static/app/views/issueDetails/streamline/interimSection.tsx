@@ -22,9 +22,13 @@ export function InterimSection({
   actions = null,
   initialCollapse,
   preventCollapse,
+  disableCollapsePersistence,
   ...props
 }: EventDataSectionProps &
-  Pick<FoldSectionProps, 'initialCollapse' | 'preventCollapse'> & {
+  Pick<
+    FoldSectionProps,
+    'initialCollapse' | 'preventCollapse' | 'disableCollapsePersistence'
+  > & {
     ref?: React.Ref<HTMLElement>;
   }) {
   const hasStreamlinedUI = useHasStreamlinedUI();
@@ -37,6 +41,7 @@ export function InterimSection({
       ref={ref}
       initialCollapse={initialCollapse}
       preventCollapse={preventCollapse}
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       {children}
     </FoldSection>

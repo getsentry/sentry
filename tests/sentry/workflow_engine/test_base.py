@@ -2,6 +2,8 @@ from datetime import UTC, datetime
 from unittest import mock
 from uuid import uuid4
 
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import Model
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
@@ -32,6 +34,13 @@ try:
 except AlreadyRegisteredError:
     # Ensure "test" is mocked for tests, but don't fail if already registered here.
     pass
+
+
+class MockModel(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    class Meta:
+        app_label = "fixtures"
 
 
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
@@ -166,11 +175,7 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
     ) -> tuple[DataConditionGroup, Action]:
         action_group = self.create_data_condition_group(logic_type="any-short")
 
-        action = self.create_action(
-            type=Action.Type.SLACK,
-            data={"message": "test"},
-            **kwargs,
-        )
+        action = self.create_action()
 
         self.create_data_condition_group_action(
             condition_group=action_group,
@@ -187,16 +192,23 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
         project: Project | None = None,
         event: Event | None = None,
         occurrence: IssueOccurrence | None = None,
+        environment: str | None = None,
         fingerprint="test_fingerprint",
+        group_type_id: int | None = None,
     ) -> tuple[Group, Event, GroupEvent]:
         project = project or self.project
         event = event or self.create_event(
             project.id,
             datetime.now(),
             fingerprint,
+            environment,
         )
 
-        group = self.create_group(project=project)
+        if group_type_id:
+            group = self.create_group(project=project, type=group_type_id)
+        else:
+            group = self.create_group(project=project)
+
         event.for_group(group)
 
         group_event = GroupEvent(
