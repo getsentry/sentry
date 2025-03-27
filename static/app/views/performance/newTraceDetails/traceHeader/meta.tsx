@@ -8,10 +8,7 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {
-  TraceErrorOrIssue,
-  TraceMeta,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
@@ -65,7 +62,7 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TraceIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {
@@ -84,7 +81,7 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TracePerformanceIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.performance_issues) {

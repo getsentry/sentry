@@ -49,6 +49,21 @@ export function isTransactionNode(
   );
 }
 
+export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPError {
+  return !!(
+    value &&
+    'event_type' in value &&
+    value.event_type === 'error' &&
+    !('message' in value) // a bit gross but we will be removing the legacy error type soon which is close to
+  );
+}
+
+export function isEAPErrorNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPError> {
+  return isEAPError(node.value);
+}
+
 export function isParentAutogroupedNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is ParentAutogroupNode {
@@ -178,7 +193,7 @@ export function getPageloadTransactionChildCount(
 }
 
 export function isTracePerformanceIssue(
-  issue: TraceTree.TraceError | TraceTree.TracePerformanceIssue
+  issue: TraceTree.TraceIssue
 ): issue is TraceTree.TracePerformanceIssue {
   return 'suspect_spans' in issue;
 }

@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
+import type {Event, EventTransaction, Level, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {
   TraceError as TraceErrorType,
@@ -125,10 +125,23 @@ export declare namespace TraceTree {
     ['trace timeline change']: (view: [number, number]) => void;
   }
 
+  type EAPError = {
+    event_id: string;
+    event_type: string;
+    issue_id: number;
+    level: Level;
+    project_id: number;
+    project_slug: string;
+    start_timestamp: number;
+    transaction: string;
+    description?: string;
+  };
+
   type EAPSpan = {
     children: EAPSpan[];
     duration: number;
     end_timestamp: number;
+    errors: EAPError[];
     event_id: string;
     is_transaction: boolean;
     op: string;
@@ -139,8 +152,6 @@ export declare namespace TraceTree {
     transaction: string;
     description?: string;
   };
-
-  type EAPTrace = EAPSpan[];
 
   // Raw node values
   interface Span extends RawSpanType {
@@ -153,19 +164,28 @@ export declare namespace TraceTree {
   }
 
   type Trace = TraceSplitResults<Transaction> | EAPTrace;
+
   type TraceError = TraceErrorType;
+  type TraceErrorIssue = TraceError | EAPError;
+
   type TracePerformanceIssue = TracePerformanceIssueType;
+
+  type TraceIssue = TraceErrorIssue | TracePerformanceIssue;
+
   type Profile = {profile_id: string} | {profiler_id: string};
   type Project = {
     slug: string;
   };
   type Root = null;
 
+  type EAPTrace = EAPSpan[];
+
   // All possible node value types
   type NodeValue =
     | Trace
     | Transaction
     | TraceError
+    | EAPError
     | Span
     | EAPSpan
     | MissingInstrumentationSpan
@@ -382,11 +402,26 @@ export class TraceTree extends TraceTreeEventDispatcher {
       traceSpaceBounds[0] = Math.min(traceSpaceBounds[0]!, c.space[0]);
       traceSpaceBounds[1] = Math.max(traceSpaceBounds[1]!, c.space[0] + c.space[1]);
 
-      if (isTransactionNode(c)) {
-        for (const error of c.value.errors) {
-          traceNode.errors.add(error);
+      if (isTransactionNode(c) || isEAPSpanNode(c)) {
+        let closestEAPTransaction: TraceTreeNode<TraceTree.EAPSpan> | null = null;
+
+        const isNonTransactionEAPSpan = isEAPSpanNode(c) && !isEAPTransactionNode(c);
+        if (isNonTransactionEAPSpan) {
+          closestEAPTransaction = TraceTree.ParentEAPTransaction(c);
         }
 
+        for (const error of c.value.errors) {
+          traceNode.errors.add(error);
+
+          // Propagate errors to the closest EAP transaction for visibility in the initially collapsed
+          // eap-transactions only view, on load
+          if (isNonTransactionEAPSpan && closestEAPTransaction) {
+            closestEAPTransaction.errors.add(error);
+          }
+        }
+      }
+
+      if (isTransactionNode(c)) {
         for (const performanceIssue of c.value.performance_issues) {
           traceNode.performance_issues.add(performanceIssue);
         }
@@ -782,7 +817,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let tail = node;
       let groupMatchCount = 0;
 
-      let errors: TraceErrorType[] = [];
+      let errors: TraceTree.TraceErrorIssue[] = [];
       let performance_issues: TraceTree.TracePerformanceIssue[] = [];
 
       let start = head.space[0];
@@ -1300,8 +1335,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
         }
       }
-      if (isSpanNode(n)) {
-        if (n.value.span_id === eventId) {
+      if (isSpanNode(n) || isEAPSpanNode(n)) {
+        const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+        if (spanId === eventId) {
           return true;
         }
 
@@ -1315,11 +1351,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
           if (p.event_id === eventId) {
             return true;
           }
-        }
-      }
-      if (isEAPSpanNode(n)) {
-        if (n.value.event_id === eventId) {
-          return true;
         }
       }
       if (isTraceErrorNode(n)) {

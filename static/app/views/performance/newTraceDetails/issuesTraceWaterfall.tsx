@@ -18,6 +18,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetails/issuesTraceWaterfallOverlay';
 import {
+  isEAPSpanNode,
+  isEAPTransactionNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -197,8 +199,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           }
         }
       }
-      if (isSpanNode(n)) {
-        if (n.value.span_id === props.event.eventID) {
+      if (isSpanNode(n) || isEAPSpanNode(n)) {
+        const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
+        if (spanId === props.event.eventID) {
           return true;
         }
         for (const e of n.errors) {
@@ -220,8 +223,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // the error may have been attributed to, otherwise we look at the transaction.
     const node =
       nodes?.find(n => isTraceErrorNode(n)) ||
-      nodes?.find(n => isSpanNode(n)) ||
-      nodes?.find(n => isTransactionNode(n));
+      nodes?.find(n => isSpanNode(n) || (isEAPSpanNode(n) && !isEAPTransactionNode(n))) ||
+      nodes?.find(n => isTransactionNode(n) || isEAPTransactionNode(n));
 
     const index = node ? props.tree.list.indexOf(node) : -1;
 
