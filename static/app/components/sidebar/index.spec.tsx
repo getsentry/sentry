@@ -22,6 +22,7 @@ import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 jest.mock('sentry/actionCreators/account');
 jest.mock('sentry/utils/useServiceIncidents');
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/actionCreators/onboardingTasks');
 
 const mockUseLocation = jest.mocked(useLocation);
 

@@ -185,7 +185,7 @@ export enum OnDemandBudgetMode {
   PER_CATEGORY = 'per_category',
 }
 
-type SharedOnDemandBudget = {
+export type SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED;
   sharedMaxBudget: number;
 };
@@ -203,6 +203,8 @@ export type PerCategoryOnDemandBudget = {
   replaysBudget: number;
   transactionsBudget: number;
   monitorSeatsBudget?: number;
+  profileDurationBudget?: number;
+  profileDurationUIBudget?: number;
   uptimeBudget?: number;
 };
 

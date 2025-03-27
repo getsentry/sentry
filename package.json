@@ -79,9 +79,9 @@
     "@types/mini-css-extract-plugin": "^2.5.1",
     "@types/papaparse": "^5.3.5",
     "@types/prismjs": "^1.26.0",
-    "@types/react": "18.3.18",
+    "@types/react": "19.0.12",
     "@types/react-date-range": "^1.4.4",
-    "@types/react-dom": "18.3.5",
+    "@types/react-dom": "19.0.4",
     "@types/react-grid-layout": "^1.3.2",
     "@types/react-lazyload": "3.2.3",
     "@types/react-mentions": "4.1.13",
@@ -118,7 +118,6 @@
     "gettext-parser": "1.3.1",
     "gl-matrix": "^3.4.3",
     "invariant": "^2.2.4",
-    "ios-device-list": "1.1.37",
     "jed": "^1.1.0",
     "jest-fetch-mock": "^3.0.3",
     "js-beautify": "^1.15.1",
@@ -143,10 +142,10 @@
     "process": "^0.11.10",
     "qrcode.react": "^3.1.0",
     "query-string": "7.0.1",
-    "react": "18.3.1",
+    "react": "19.0.0",
     "react-date-range": "^1.4.0",
     "react-docgen-typescript": "^2.2.2",
-    "react-dom": "18.3.1",
+    "react-dom": "19.0.0",
     "react-grid-layout": "^1.3.4",
     "react-lazyload": "^3.2.1",
     "react-mentions": "4.4.10",
@@ -224,7 +223,7 @@
   },
   "resolutions": {
     "react-mentions/@babel/runtime": "*",
-    "**/react-is": "18.3.1"
+    "**/react-is": "19.0.0"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
