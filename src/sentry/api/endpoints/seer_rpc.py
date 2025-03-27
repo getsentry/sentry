@@ -53,10 +53,7 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     # We aren't using the version bits currently.
     body = orjson.dumps(orjson.loads(body))
     _, signature_data = signature.split(":", 2)
-    signature_input = b"%s:%s" % (
-        url.encode(),
-        body,
-    )
+    signature_input = body  # Only use the body for verification
 
     for key in settings.SEER_RPC_SHARED_SECRET:
         computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
