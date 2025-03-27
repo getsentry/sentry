@@ -1,4 +1,4 @@
-import {createContext, useCallback, useMemo} from 'react';
+import {createContext, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
@@ -110,17 +110,25 @@ function SplitPanel(props: SplitPanelProps) {
   const min = isLeftRight ? props.left.min : props.top.min;
   const max = isLeftRight ? props.left.max : props.top.max;
 
+  const [containerSize, setContainerSize] = useState(() => {
+    const storedSize = sizeStorageKey
+      ? parseInt(localStorage.getItem(sizeStorageKey) ?? '', 10)
+      : undefined;
+    return storedSize ?? initialSize;
+  });
+
   const {
     isHeld,
     onDoubleClick,
     onMouseDown: onDragStart,
-    size: containerSize,
-    setSize,
   } = useResizableDrawer({
     direction: isLeftRight ? 'left' : 'down',
     initialSize,
     min,
-    onResize: onResize ?? (() => {}),
+    onResize: (size: number) => {
+      setContainerSize(size);
+      onResize?.(size);
+    },
     sizeStorageKey,
   });
 
@@ -141,11 +149,11 @@ function SplitPanel(props: SplitPanelProps) {
     () => ({
       isMaximized,
       isMinimized,
-      maximiseSize: () => setSize(max),
-      minimiseSize: () => setSize(min),
-      resetSize: () => setSize(initialSize),
+      maximiseSize: () => setContainerSize(max),
+      minimiseSize: () => setContainerSize(min),
+      resetSize: () => setContainerSize(initialSize),
     }),
-    [isMaximized, isMinimized, setSize, max, min, initialSize]
+    [isMaximized, isMinimized, setContainerSize, max, min, initialSize]
   );
 
   if (isLeftRight) {
