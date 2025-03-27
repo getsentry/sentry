@@ -33,5 +33,11 @@ class GroupOpenPeriod(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupopenperiod"
+        indexes = (
+            # get all open periods for a group
+            models.Index(fields=["group"]),
+            # get all open periods since a certain date
+            models.Index(fields=("group", "date_started")),
+        )
 
     __repr__ = sane_repr("project_id", "group_id", "date_started", "date_ended", "user_id")
