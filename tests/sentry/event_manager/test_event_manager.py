@@ -65,7 +65,6 @@ from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.options import set
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
@@ -77,13 +76,13 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
-from sentry.usage_accountant import accountant
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.eventuser import EventUser
@@ -3517,21 +3516,21 @@ def test_cogs_event_manager(
     broker.create_topic(topic, 1)
     producer = broker.get_producer()
 
-    set("shared_resources_accounting_enabled", [settings.COGS_EVENT_STORE_LABEL])
+    with (
+        override_options(
+            {"shared_resources_accounting_enabled": [settings.COGS_EVENT_STORE_LABEL]}
+        ),
+        usage_accountant_backend(producer),
+    ):
+        raw_event_params = make_event(**event_data)
 
-    accountant.init_backend(producer)
+        manager = EventManager(raw_event_params)
+        manager.normalize()
+        normalized_data = dict(manager.get_data())
+        _ = manager.save(default_project)
 
-    raw_event_params = make_event(**event_data)
+        expected_len = len(json.dumps(normalized_data))
 
-    manager = EventManager(raw_event_params)
-    manager.normalize()
-    normalized_data = dict(manager.get_data())
-    _ = manager.save(default_project)
-
-    expected_len = len(json.dumps(normalized_data))
-
-    accountant._shutdown()
-    accountant.reset_backend()
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert msg1 is not None
     payload = msg1.payload
