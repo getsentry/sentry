@@ -75,7 +75,7 @@ describe('IssuesTraceTree', () => {
     });
 
     const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
-    expect(tree.build().collapseList(issues).serialize()).toMatchSnapshot();
+    expect(tree.build().collapseList(issues, 3, 0).serialize()).toMatchSnapshot();
   });
 
   it('preserves path to child error', () => {
@@ -93,7 +93,7 @@ describe('IssuesTraceTree', () => {
       node = node.parent;
     }
 
-    expect(tree.build().collapseList(nodes).serialize()).toMatchSnapshot();
+    expect(tree.build().collapseList(nodes, 3, 0).serialize()).toMatchSnapshot();
   });
 
   it('errors only', () => {
@@ -104,7 +104,7 @@ describe('IssuesTraceTree', () => {
     });
 
     const errors = IssuesTraceTree.FindAll(tree.root, hasErrors).slice(0, 10);
-    expect(tree.build().collapseList(errors).serialize()).toMatchSnapshot();
+    expect(tree.build().collapseList(errors, 3, 0).serialize()).toMatchSnapshot();
   });
 
   it('respects numSurroundingNodes parameter', () => {
@@ -202,7 +202,7 @@ describe('IssuesTraceTree', () => {
         tree.root,
         node => isSpanNode(node) && node.value.span_id === 'error-span-id'
       )!;
-      expect(tree.build().collapseList([span]).serialize()).toMatchSnapshot();
+      expect(tree.build().collapseList([span], 3, 0).serialize()).toMatchSnapshot();
     });
   });
 });

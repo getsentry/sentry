@@ -99,8 +99,8 @@ export class IssuesTraceTree extends TraceTree {
    */
   collapseList(
     preserveLeafNodes: TraceTreeNode[],
-    numSurroundingNodes = 3,
-    minShownNodes = 10
+    numSurroundingNodes: number,
+    minShownNodes: number
   ) {
     // Create set of nodes to preserve from input parameters
     const preserveNodes = new Set(preserveLeafNodes);
