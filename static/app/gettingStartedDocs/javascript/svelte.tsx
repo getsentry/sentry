@@ -90,15 +90,14 @@ const getDynamicParts = (params: Params): string[] => {
   return dynamicParts;
 };
 
-const getSdkSetupSnippet = (params: Params) => {
+const getSdkSetupSnippet = (params: Params, isVersion5: boolean) => {
   const config = buildSdkConfig({
     params,
     staticParts: [`dsn: "${params.dsn.public}"`],
     getIntegrations,
     getDynamicParts,
   });
-
-  return `
+  return `${isVersion5 ? 'import { mount } from "svelte";' : ''}
 import "./app.css";
 import App from "./App.svelte";
 
@@ -108,7 +107,7 @@ Sentry.init({
   ${config}
 });
 
-const app = new App({
+${isVersion5 ? 'const app = mount(App, {' : 'const app = new App({'}
   target: document.getElementById("app"),
 });
 
@@ -176,10 +175,16 @@ const onboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'Svelte v5',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              code: getSdkSetupSnippet(params, true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params, false),
             },
           ],
         },
@@ -248,10 +253,16 @@ const replayOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'Svelte v5',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              code: getSdkSetupSnippet(params, true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params, false),
             },
           ],
           additionalInfo: <TracePropagationMessage />,
@@ -289,10 +300,16 @@ const feedbackOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
+              label: 'Svelte v5',
               value: 'javascript',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              code: getSdkSetupSnippet(params, true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'javascript',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params, false),
             },
           ],
         },
