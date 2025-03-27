@@ -221,8 +221,7 @@ const AggregateFlamegraphSidePanelContainer = styled('div')`
 const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightBold};
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
+  padding: ${space(1)};
 `;
 
 const RowContainer = styled('div')`
