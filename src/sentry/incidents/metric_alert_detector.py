@@ -32,7 +32,13 @@ class MetricAlertComparisonConditionValidator(NumericComparisonConditionValidato
 
 
 class MetricAlertConditionGroupValidator(BaseDataConditionGroupValidator):
-    conditions = MetricAlertComparisonConditionValidator(many=True)
+    conditions = serializers.ListField(required=True)
+
+    def validate_conditions(self, value):
+        MetricAlertComparisonConditionValidator(data=value, many=True).is_valid(
+            raise_exception=True
+        )
+        return value
 
 
 class MetricAlertsDetectorValidator(BaseDetectorTypeValidator):

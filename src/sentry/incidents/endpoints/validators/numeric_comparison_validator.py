@@ -24,7 +24,7 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
         try:
             value = float(value)
         except ValueError:
-            raise serializers.ValidationError("Invalid NumericComparisonCondition.comparison")
+            raise serializers.ValidationError("A valid number is required.")
 
         return value
 
