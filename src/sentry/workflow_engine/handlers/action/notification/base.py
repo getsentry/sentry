@@ -1,5 +1,5 @@
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import execute_via_issue_alert_handler
@@ -7,20 +7,6 @@ from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 logger = logging.getLogger(__name__)
-
-
-class LegacyRegistryInvoker(ABC):
-    """
-    Abstract base class that defines the interface for notification handlers.
-    """
-
-    @staticmethod
-    @abstractmethod
-    def handle_workflow_action(job: WorkflowEventData, action: Action, detector: Detector) -> None:
-        """
-        Implement this method to handle the specific notification logic for your handler.
-        """
-        raise NotImplementedError
 
 
 class IntegrationActionHandler(ActionHandler, ABC):

@@ -6,9 +6,11 @@ from sentry.workflow_engine.handlers.action.notification.common import (
     TAGS_SCHEMA,
 )
 from sentry.workflow_engine.models import Action, Detector
+from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 
+@action_handler_registry.register(Action.Type.SLACK)
 class SlackActionHandler(IntegrationActionHandler):
     group = ActionHandler.Group.NOTIFICATION
     provider_slug = "slack"

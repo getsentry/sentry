@@ -4,9 +4,9 @@ from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action import group_type_notification_registry
 from sentry.notifications.notification_action.exceptions import NotificationHandlerException
-from sentry.notifications.notification_action.metric_alert_registry import (
+from sentry.notifications.notification_action.registry import (
+    group_type_notification_registry,
     metric_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @group_type_notification_registry.register(MetricIssuePOC.slug)
-class MetricAlertRegistryInvoker(LegacyRegistryHandler):
+class MetricAlertRegistryHandler(LegacyRegistryHandler):
     @staticmethod
     def handle_workflow_action(job: WorkflowEventData, action: Action, detector: Detector) -> None:
         try:

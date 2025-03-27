@@ -5,12 +5,8 @@ from sentry.incidents.typings.metric_detector import (
 )
 from sentry.integrations.pagerduty.utils import send_incident_alert_notification
 from sentry.models.organization import Organization
-from sentry.notifications.notification_action.metric_alert_registry import (
-    metric_alert_handler_registry,
-)
-from sentry.notifications.notification_action.metric_alert_registry.base import (
-    BaseMetricAlertHandler,
-)
+from sentry.notifications.notification_action.registry import metric_alert_handler_registry
+from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.workflow_engine.models import Action
 
 

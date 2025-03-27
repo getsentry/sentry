@@ -1,10 +1,8 @@
 from dataclasses import asdict
 from typing import Any
 
-from sentry.notifications.notification_action.issue_alert_registry import (
-    issue_alert_handler_registry,
-)
-from sentry.notifications.notification_action.issue_alert_registry.base import BaseIssueAlertHandler
+from sentry.notifications.notification_action.registry import issue_alert_handler_registry
+from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.sentry_apps.services.app import app_service
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.typings.notification_action import (

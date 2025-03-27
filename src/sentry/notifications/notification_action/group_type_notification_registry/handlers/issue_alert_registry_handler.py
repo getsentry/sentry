@@ -1,9 +1,9 @@
 import logging
 
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.notifications.notification_action import group_type_notification_registry
 from sentry.notifications.notification_action.exceptions import NotificationHandlerException
-from sentry.notifications.notification_action.issue_alert_registry import (
+from sentry.notifications.notification_action.registry import (
+    group_type_notification_registry,
     issue_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler

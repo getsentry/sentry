@@ -19,13 +19,15 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.handlers.action.notification.metric_alert import (
-    BaseMetricAlertHandler,
+from sentry.notifications.notification_action.metric_alert_registry.handlers.opsgenie_metric_alert_handler import (
     OpsgenieMetricAlertHandler,
+)
+from sentry.notifications.notification_action.metric_alert_registry.handlers.pagerduty_metric_alert_handler import (
     PagerDutyMetricAlertHandler,
 )
+from sentry.notifications.notification_action.registry import BaseMetricAlertHandler
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -363,7 +365,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.metric_alert.send_pagerduty_incident_alert_notification"
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.pagerduty_metric_alert_handler.send_incident_alert_notification"
     )
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
@@ -391,7 +393,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.metric_alert.PagerDutyMetricAlertHandler.send_alert"
+        "sentry.notifications.notification_action.metric_alert_registry.PagerDutyMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert):
         self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
@@ -467,7 +469,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.metric_alert.send_opsgenie_incident_alert_notification"
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.opsgenie_metric_alert_handler.send_incident_alert_notification"
     )
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
@@ -495,7 +497,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.metric_alert.OpsgenieMetricAlertHandler.send_alert"
+        "sentry.notifications.notification_action.metric_alert_registry.OpsgenieMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert):
         self.handler.invoke_legacy_registry(self.job, self.action, self.detector)

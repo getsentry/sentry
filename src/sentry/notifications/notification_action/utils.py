@@ -1,9 +1,7 @@
 import logging
 
-from sentry.notifications.notification_action import group_type_notification_registry
-from sentry.notifications.notification_action.group_type_notification_registry.issue_alert_registry_handler import (
-    IssueAlertRegistryHandler,
-)
+from sentry.notifications.notification_action.registry import group_type_notification_registry
+from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowEventData
@@ -32,4 +30,4 @@ def execute_via_issue_alert_handler(
     This exists so that all ticketing actions can use the same handler as issue alerts since that's the only way we can
     ensure that the same thread is used for the notification action.
     """
-    IssueAlertRegistryHandler.handle_workflow_action(job, action, detector)
+    BaseIssueAlertHandler.invoke_legacy_registry(job, action, detector)

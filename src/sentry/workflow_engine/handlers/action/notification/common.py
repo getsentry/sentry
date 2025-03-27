@@ -35,12 +35,10 @@ MESSAGING_ACTION_CONFIG_SCHEMA = {
     "additionalProperties": False,
 }
 
-TAGS_SCHEMA = (
-    {
-        "type": "string",
-        "description": "Tags to add to the message",
-    },
-)
+TAGS_SCHEMA = {
+    "type": "string",
+    "description": "Tags to add to the message",
+}
 
 NOTES_SCHEMA = {
     "type": "string",
