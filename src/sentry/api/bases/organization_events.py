@@ -424,11 +424,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 if readable_value:
                     result["readable"] = readable_value
 
-    def set_granularity(
-        self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
-    ):
-        snuba_params.granularity_secs = self.get_rollup(request, snuba_params, top_events, use_rpc)
-
     def get_rollup(
         self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
     ) -> int:
@@ -502,8 +497,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     except NoProjects:
                         return {"data": []}
 
-                self.set_granularity(request, snuba_params, top_events, use_rpc)
                 rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+                snuba_params.granularity_secs = rollup
                 self.validate_comparison_delta(comparison_delta, snuba_params, organization)
 
                 query_columns = get_query_columns(columns, rollup)

@@ -175,8 +175,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 return Response([], status=200)
 
         self.validate_comparison_delta(comparison_delta, snuba_params, organization)
-        self.set_granularity(request, snuba_params, top_events, use_rpc)
         rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
+        snuba_params.granularity_secs = rollup
         axes = request.GET.getlist("yAxis", ["count()"])
 
         with handle_query_errors():
