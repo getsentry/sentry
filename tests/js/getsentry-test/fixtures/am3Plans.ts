@@ -2380,12 +2380,6 @@ const AM3_PLANS: Record<string, Plan> = {
           price: 0,
           onDemandPrice: 78.0,
         },
-        {
-          events: 50,
-          unitPrice: 60.0,
-          price: 0,
-          onDemandPrice: 78.0,
-        },
       ],
       profileDurationUI: [
         {
