@@ -38,7 +38,7 @@ export const ORDERED_STACKED_NAVIGATION_TOUR = [
 export const STACKED_NAVIGATION_TOUR_CONTENT = {
   [StackedNavigationTour.ISSUES]: {
     description: t(
-      'Issues are problems detected by Sentry. Code breaks - we tell you where, when, and why.'
+      'Issues are problems detected by Sentry. Code breaks — we tell you where, when, and why.'
     ),
     title: t('See what broke'),
   },
