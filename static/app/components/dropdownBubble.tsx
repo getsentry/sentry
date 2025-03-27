@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -65,12 +64,16 @@ const getMenuBorderRadius = ({
 };
 
 const DropdownBubble = styled(
-  forwardRef<HTMLDivElement, DropdownBubbleProps>(
-    ({children, ...props}, forwardedRef) => (
-      <div ref={forwardedRef} {...props}>
-        <PanelProvider>{children}</PanelProvider>
-      </div>
-    )
+  ({
+    ref: forwardedRef,
+    children,
+    ...props
+  }: DropdownBubbleProps & {
+    ref?: React.Ref<HTMLDivElement>;
+  }) => (
+    <div ref={forwardedRef} {...props}>
+      <PanelProvider>{children}</PanelProvider>
+    </div>
   ),
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`

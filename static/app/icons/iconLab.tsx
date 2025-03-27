@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useIconDefaults} from 'sentry/icons/useIconDefaults';
@@ -10,7 +10,7 @@ interface IconLabProps extends SVGIconProps {
   isSolid?: boolean;
 }
 
-const IconLab = forwardRef<SVGSVGElement, IconLabProps>(({isSolid, ...props}, ref) => {
+function IconLab({ref, isSolid, ...props}: IconLabProps) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -38,7 +38,7 @@ const IconLab = forwardRef<SVGSVGElement, IconLabProps>(({isSolid, ...props}, re
       )}
     </SvgIcon>
   );
-});
+}
 
 IconLab.displayName = 'IconLab';
 

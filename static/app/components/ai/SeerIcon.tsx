@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -55,7 +54,7 @@ const InteractionWrapper = styled('div')`
   }
 `;
 
-const SeerIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function SeerIcon({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
       <path
@@ -87,11 +86,11 @@ const SeerIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       />
     </SvgIcon>
   );
-});
+}
 
 SeerIcon.displayName = 'SeerIcon';
 
-const SeerLoadingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function SeerLoadingIcon({ref, ...props}: SVGIconProps) {
   return (
     <InteractionWrapper>
       <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
@@ -151,9 +150,9 @@ const SeerLoadingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       </SvgIcon>
     </InteractionWrapper>
   );
-});
+}
 
-const SeerWaitingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function SeerWaitingIcon({ref, ...props}: SVGIconProps) {
   return (
     <InteractionWrapper>
       <SvgIcon {...props} ref={ref} viewBox="0 0 30 30" kind="path">
@@ -214,6 +213,6 @@ const SeerWaitingIcon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       </SvgIcon>
     </InteractionWrapper>
   );
-});
+}
 
 export {SeerIcon, SeerLoadingIcon, SeerWaitingIcon};
