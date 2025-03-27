@@ -183,7 +183,7 @@ def create_configurations(
     if not org_integration:
         raise InstallationNotFoundError
 
-    dry_run = platform_config.is_dry_run_platform()
+    dry_run = platform_config.is_dry_run_platform(project.organization)
     platform = platform_config.platform
     tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
     with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
