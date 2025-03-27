@@ -2370,11 +2370,9 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 export enum FeedbackFieldKey {
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
-  EMAIL = 'contact_email',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
   MESSAGE = 'message',
-  NAME = 'name',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   URL = 'url',
@@ -2389,7 +2387,6 @@ export const FEEDBACK_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
-  FeedbackFieldKey.EMAIL,
   FieldKey.ENVIRONMENT,
   FieldKey.ID,
   FieldKey.IS,
@@ -2397,7 +2394,6 @@ export const FEEDBACK_FIELDS = [
   FeedbackFieldKey.LOCALE_LANG,
   FeedbackFieldKey.LOCALE_TIMEZONE,
   FeedbackFieldKey.MESSAGE,
-  FeedbackFieldKey.NAME,
   FeedbackFieldKey.OS_NAME,
   FeedbackFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
@@ -2405,7 +2401,6 @@ export const FEEDBACK_FIELDS = [
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,
   FieldKey.TRACE,
-  FieldKey.TRANSACTION,
   FeedbackFieldKey.URL,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
@@ -2424,11 +2419,6 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FeedbackFieldKey.EMAIL]: {
-    desc: t('Contact email of the user writing the feedback'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
     kind: FieldKind.FIELD,
@@ -2440,14 +2430,12 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.MESSAGE]: {
-    desc: t('Message written by the user providing feedback'),
+    desc: t(
+      'Message written by the user providing feedback. Wildcards ("*") are supported.'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.NAME]: {
-    desc: t('Name of the user writing feedback'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    allowWildcard: true,
   },
   [FeedbackFieldKey.OS_NAME]: {
     desc: t('Name of the operating system'),
