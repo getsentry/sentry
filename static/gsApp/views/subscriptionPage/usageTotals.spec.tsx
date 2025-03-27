@@ -138,14 +138,18 @@ describe('Subscription > UsageTotals', function () {
       />
     );
 
-    expect(screen.getByText('Profile hours usage this period')).toBeInTheDocument();
+    expect(
+      screen.getByText('Continuous profile hours usage this period')
+    ).toBeInTheDocument();
     expect(screen.getByText('15')).toBeInTheDocument();
 
     // Expand usage table
     await userEvent.click(screen.getByRole('button'));
 
     expect(
-      screen.getByRole('row', {name: 'Profile Hours Quantity % of Profile Hours'})
+      screen.getByRole('row', {
+        name: 'Continuous Profile Hours Quantity % of Continuous Profile Hours',
+      })
     ).toBeInTheDocument();
     expect(screen.getByRole('row', {name: 'Accepted 15 75%'})).toBeInTheDocument();
     expect(
