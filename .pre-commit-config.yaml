@@ -118,7 +118,7 @@ repos:
         name: eslint
         language: system
         files: \.(ts|js|tsx|jsx|mjs)$
-        entry: ./node_modules/.bin/eslint --quiet --fix
+        entry: ./node_modules/.bin/eslint --config ./eslint-pre-commit.config.mjs --quiet --fix
 
       - id: stylelint
         name: stylelint
