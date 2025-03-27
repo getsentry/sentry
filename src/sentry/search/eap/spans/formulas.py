@@ -381,7 +381,7 @@ def time_spent_percentage(
             )
         ],
         meta=RequestMeta(
-            organization_id=snuba_params.organization_id,
+            organization_id=snuba_params.rpc_organization_id,
             referrer="time_spent_percentage.total_time",
             project_ids=snuba_params.project_ids,
             start_timestamp=snuba_params.rpc_start_date,
