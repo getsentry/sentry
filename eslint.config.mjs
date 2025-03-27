@@ -102,6 +102,12 @@ const restrictedImportPaths = [
     name: 'moment',
     message: 'Please import moment-timezone instead of moment',
   },
+  {
+    name: 'react',
+    importNames: ['forwardRef'],
+    message:
+      'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+  },
 ];
 
 // Used by both: `languageOptions` & `parserOptions`
