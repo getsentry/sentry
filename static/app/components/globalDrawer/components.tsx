@@ -1,11 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-} from 'react';
+import {createContext, Fragment, useCallback, useContext, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AnimationProps} from 'framer-motion';
 
@@ -173,7 +166,7 @@ export function DrawerPanel({
   const maxWidthPercent = 90;
   const isAtMinWidth = widthPercent <= minWidthPercent;
   const isAtMaxWidth = Math.abs(widthPercent - maxWidthPercent) < 1;
-    
+
   return (
     <DrawerContainer>
       <DrawerSlidePanel
