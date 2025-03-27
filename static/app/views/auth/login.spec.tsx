@@ -44,7 +44,7 @@ describe('Login', function () {
     render(<Login {...routerProps} />);
 
     expect(await screen.findByText('Lost your password?')).toBeInTheDocument();
-    expect(screen.queryByText('Register')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Register'})).not.toBeInTheDocument();
   });
 
   it('shows register when canRegister is enabled', async function () {
@@ -55,7 +55,7 @@ describe('Login', function () {
 
     render(<Login {...routerProps} />);
 
-    expect(await screen.findByText('Register')).toBeInTheDocument();
+    expect(await screen.findByRole('tab', {name: 'Register'})).toBeInTheDocument();
   });
 
   it('toggles between tabs', async function () {
@@ -72,7 +72,7 @@ describe('Login', function () {
     await userEvent.click(screen.getByText('Single Sign-On'));
     expect(screen.getByRole('textbox', {name: 'Organization ID'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Register'));
+    await userEvent.click(screen.getByRole('tab', {name: 'Register'}));
     expect(screen.getByRole('textbox', {name: 'Name'})).toBeInTheDocument();
   });
 });

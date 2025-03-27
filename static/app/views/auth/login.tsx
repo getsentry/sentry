@@ -104,14 +104,14 @@ class Login extends Component<Props, State> {
               }}
             >
               <TabList>
-                {
-                  tabs.map(([key, label, disabled]) => {
+                {tabs
+                  .map(([key, label, disabled]) => {
                     if (disabled) {
                       return null;
                     }
                     return <TabList.Item key={key}>{label}</TabList.Item>;
-                  }) as any
-                }
+                  })
+                  .filter(n => !!n)}
               </TabList>
             </Tabs>
           </TabsContainer>
