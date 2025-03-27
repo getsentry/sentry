@@ -33,5 +33,5 @@ class MSTeamsMetricAlertHandler(BaseMetricAlertHandler):
             notification_uuid=notification_uuid,
             # TODO(iamrajjoshi): Add responses here once we make a decision on how to handle them
             alert_rule_serialized_response=None,
-            alert_rule_trigger_action_serialized_response=None,
+            incident_serialized_response=None,
         )

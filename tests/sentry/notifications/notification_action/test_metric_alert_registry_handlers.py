@@ -43,6 +43,7 @@ class TestHandler(BaseMetricAlertHandler):
         notification_context: NotificationContext,
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
+        open_period_context: OpenPeriodContext,
         organization: Organization,
         notification_uuid: str,
     ) -> None:
