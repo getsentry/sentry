@@ -1,5 +1,6 @@
 import {setForceHide} from 'sentry/actionCreators/guides';
 import type {Client} from 'sentry/api';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUTMState} from 'sentry/utils/demoMode/utm';
 
 import {demoSignupModal} from '../../actionCreators/modal';
@@ -44,6 +45,7 @@ export async function captureEmail(api: Client) {
     openDemoSignupModal();
 
     localStorage.setItem(DEMO_MODE_EMAIL_KEY, 'submitted');
+    trackAnalytics('growth.demo_email_submitted', {organization: null});
   } catch (error) {
     // do nothing
   } finally {
