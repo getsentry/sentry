@@ -665,5 +665,29 @@ describe('OrganizationMembersList', function () {
 
       (isDemoModeActive as jest.Mock).mockReset();
     });
+
+    it('allows you to leave as a member after searching', async function () {
+      const searchQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'GET',
+        body: [currentUser],
+        match: [MockApiClient.matchQuery({query: currentUser.name})],
+      });
+      const ownerQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'GET',
+        body: [members[2]],
+        match: [MockApiClient.matchQuery({query: 'role:owner'})],
+      });
+      const searchRouter = RouterFixture({location: {query: {query: currentUser.name}}});
+      render(<OrganizationMembersList />, {organization, router: searchRouter});
+      renderGlobalModal({router});
+
+      expect(await screen.findByText('Members')).toBeInTheDocument();
+      expect(searchQuery).toHaveBeenCalled();
+      expect(ownerQuery).toHaveBeenCalled();
+      const leaveButton = screen.getByRole('button', {name: 'Leave'});
+      expect(leaveButton).toBeEnabled();
+    });
   });
 });
