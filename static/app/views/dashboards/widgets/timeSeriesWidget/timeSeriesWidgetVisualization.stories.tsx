@@ -306,6 +306,37 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               ]}
             />
           </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  field: 'custom_agg(duration)',
+                  meta: {
+                    type: 'number',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries2,
+                  field: 'custom_agg2(duration)',
+                  meta: {
+                    type: 'integer',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'custom_agg3(duration)',
+                  meta: {
+                    type: 'duration',
+                    unit: DurationUnit.MILLISECOND,
+                  },
+                }),
+              ]}
+            />
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );

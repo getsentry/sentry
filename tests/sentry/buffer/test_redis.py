@@ -1,3 +1,4 @@
+import copy
 import datetime
 import pickle
 from collections import defaultdict
@@ -38,7 +39,7 @@ def _hgetall_decode_keys(client, key, is_redis_cluster):
 class TestRedisBuffer:
     @pytest.fixture(params=["cluster", "blaster"])
     def buffer(self, set_sentry_option, request):
-        value = options.get("redis.clusters")
+        value = copy.deepcopy(options.get("redis.clusters"))
         value["default"]["is_redis_cluster"] = request.param == "cluster"
         set_sentry_option("redis.clusters", value)
         return RedisBuffer()

@@ -429,6 +429,7 @@ def handle_query_errors() -> Generator[None]:
         if hasattr(error, "pgcode") and error.pgcode == psycopg2.errorcodes.QUERY_CANCELED:
             if options.get("api.postgres-query-timeout-error-handling.enabled"):
                 sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
+                sentry_sdk.capture_exception(error, level="warning")
                 raise Throttled(
                     detail="Query timeout. Please try with a smaller date range or fewer conditions."
                 )
