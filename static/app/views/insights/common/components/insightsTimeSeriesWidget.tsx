@@ -1,8 +1,8 @@
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -156,16 +156,16 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   );
 }
 
-const COMMON_COLORS: Record<string, string> = {
+const COMMON_COLORS = (theme: Theme) => ({
   'spm()': THROUGHPUT_COLOR,
   'count()': COUNT_COLOR,
   'avg(span.self_time)': AVG_COLOR,
   'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
   'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
   'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
-  'avg(messaging.message.receive.latency)': CHART_PALETTE[2][1],
-  'avg(span.duration)': CHART_PALETTE[2][2],
-};
+  'avg(messaging.message.receive.latency)': theme.chart.colors[2][1],
+  'avg(span.duration)': theme.chart.colors[2][2],
+});
 
 const ChartContainer = styled('div')`
   height: 220px;

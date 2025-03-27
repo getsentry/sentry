@@ -3,6 +3,9 @@
  */
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
+/**
+ * @deprecated Use `theme.chart.getColorPalette` instead
+ */
 export const CHART_PALETTE = [
   ['#444674'],
   ['#444674', '#f2b712'],
@@ -222,3 +225,5 @@ export function makeChartColorPalette<Length extends ValidLengthArgument>(
     return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
   };
 }
+
+export const getChartColorPalette = makeChartColorPalette(CHART_PALETTE);

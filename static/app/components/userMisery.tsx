@@ -1,8 +1,9 @@
+import {useTheme} from '@emotion/react';
+
 import ScoreBar from 'sentry/components/scoreBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {useTheme} from '@emotion/react';
 
 type Props = {
   barHeight: number;
@@ -22,7 +23,7 @@ function UserMisery(props: Props) {
   // 0 User Misery while still preserving the actual value for sorting purposes.
   const adjustedMisery = userMisery > 0.05 ? userMisery : 0;
 
-  const palette = new Array(bars).fill(theme.charts.colors[0][0]);
+  const palette = new Array(bars).fill(theme.chart.colors[0][0]);
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;

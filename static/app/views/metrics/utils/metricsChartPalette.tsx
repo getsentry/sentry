@@ -1,16 +1,18 @@
 import {useCallback, useRef} from 'react';
-
-import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
+import {type Theme, useTheme} from '@emotion/react';
 
 const CACHE_SIZE = 20; // number of palettes to cache
 
-export function createChartPalette(seriesNames: string[]): Record<string, string> {
+export function createChartPalette(
+  seriesNames: string[],
+  theme: Theme
+): Record<string, string> {
   const uniqueSeriesNames = Array.from(new Set(seriesNames));
   // We do length - 2 to be aligned with the colors in other parts of the app (copy-pasta)
   // We use Math.max to avoid numbers < -1 as then `getChartColorPalette` returns undefined (not typesafe because of array access and casting)
   const chartColors =
-    getChartColorPalette(Math.max(uniqueSeriesNames.length - 2, -1)) ??
-    CHART_PALETTE[CHART_PALETTE.length - 1];
+    theme.chart.getColorPalette(Math.max(uniqueSeriesNames.length - 2, -1)) ??
+    theme.chart.colors[theme.chart.colors.length - 1];
 
   return uniqueSeriesNames.reduce(
     (palette, seriesName, i) => {
@@ -34,7 +36,8 @@ export function createChartPalette(seriesNames: string[]): Record<string, string
  */
 export function getCachedChartPalette(
   cache: Array<Readonly<Record<string, string>>>,
-  seriesNames: string[]
+  seriesNames: string[],
+  theme: Theme
 ): Readonly<Record<string, string>> {
   // Check if we already have a palette that includes all of the given seriesNames
   // We search in reverse to get the most recent palettes first
@@ -60,7 +63,7 @@ export function getCachedChartPalette(
   }
 
   // If we do not have a palette for the given seriesNames, create one
-  const newPalette = createChartPalette(seriesNames);
+  const newPalette = createChartPalette(seriesNames, theme);
 
   // Single series palettes will always be the same, so we do not need to cache them
   if (seriesNames.length > 1) {
@@ -80,9 +83,13 @@ export function getCachedChartPalette(
  * **NOTE: Not yet optimized for performance, it should only be used for the metrics page with a limited amount of series**
  */
 export const useGetCachedChartPalette = () => {
+  const theme = useTheme();
   const cacheRef = useRef<Array<Readonly<Record<string, string>>>>([]);
-  return useCallback((seriesNames: string[]) => {
-    // copy the cache to avoid mutating it
-    return {...getCachedChartPalette(cacheRef.current, seriesNames)};
-  }, []);
+  return useCallback(
+    (seriesNames: string[]) => {
+      // copy the cache to avoid mutating it
+      return {...getCachedChartPalette(cacheRef.current, seriesNames, theme)};
+    },
+    [theme]
+  );
 };

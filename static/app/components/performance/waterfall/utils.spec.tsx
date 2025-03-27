@@ -16,8 +16,8 @@ describe('pickBarColor()', function () {
   });
 
   it('returns a random color when no predefined option is available', function () {
-    const colorsAsArray = Object.keys(lightTheme.charts.colors).map(
-      key => lightTheme.charts.colors[17][key as keyof typeof lightTheme.charts.colors]
+    const colorsAsArray = Object.keys(lightTheme.chart.colors).map(
+      key => lightTheme.chart.colors[17][key as keyof typeof lightTheme.chart.colors]
     );
 
     let randomColor = pickBarColor('a normal string');

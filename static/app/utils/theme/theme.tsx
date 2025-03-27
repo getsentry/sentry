@@ -1089,7 +1089,7 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
-  charts: {
+  chart: {
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },
@@ -1135,7 +1135,7 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
-  charts: {
+  chart: {
     colors: CHART_PALETTE,
     getColorPalette: makeChartColorPalette(CHART_PALETTE),
   },

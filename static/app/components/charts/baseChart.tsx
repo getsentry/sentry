@@ -29,7 +29,7 @@ import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {type ChartColorPalette} from 'sentry/constants/chartPalette';
+import type {ChartColorPalette} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
@@ -400,8 +400,8 @@ function BaseChartUnwrapped({
   const color =
     resolveColors ||
     (series.length
-      ? theme.charts.getColorPalette(series.length)
-      : theme.charts.colors[theme.charts.colors.length - 1]);
+      ? theme.chart.getColorPalette(series.length)
+      : theme.chart.colors[theme.chart.colors.length - 1]);
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
