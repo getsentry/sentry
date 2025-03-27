@@ -380,14 +380,13 @@ function SetupAndCreatePRsButton({
   onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+  const {data: autofixData} = useAutofixData({groupId});
 
   if (
     !changes.every(
       change =>
-        setupData?.githubWriteIntegration?.repos?.find(
-          repo => `${repo.owner}/${repo.name}` === change.repo_name
-        )?.ok
+        change.repo_external_id &&
+        autofixData?.codebases?.[change.repo_external_id]?.is_writeable
     )
   ) {
     return (
