@@ -1,4 +1,11 @@
-import {createContext, Fragment, useCallback, useContext, useRef, useState} from 'react';
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useRef,
+} from 'react';
 import styled from '@emotion/styled';
 import type {AnimationProps} from 'framer-motion';
 
@@ -50,6 +57,10 @@ export function DrawerPanel({
   ref?: React.Ref<HTMLDivElement>;
 }) {
   const resizeHandleRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const rafIdRef = useRef<number | null>(null);
+  const initialMousePositionRef = useRef<number | null>(null);
+  const isResizingRef = useRef<boolean>(false);
 
   // Calculate initial width from props or default to 50%
   const calculateInitialWidth = (savedWidth?: number) => {
@@ -81,12 +92,7 @@ export function DrawerPanel({
     return 50; // Default to 50%
   };
 
-  // Use normal state for the initial width and persisted width
-  const [localWidthPercent, setLocalWidthPercent] = useState<number>(() =>
-    calculateInitialWidth()
-  );
-
-  // Use localStorage state when drawerKey is provided
+  // Store persisted width in localStorage, but don't use it for rendering state
   const [persistedWidthPercent, setPersistedWidthPercent] =
     useSyncedLocalStorageState<number>(
       drawerKey ? getDrawerWidthKey(drawerKey) : 'drawer-width:default',
@@ -96,23 +102,27 @@ export function DrawerPanel({
       }
     );
 
-  const widthPercent = drawerKey ? persistedWidthPercent : localWidthPercent;
-  const setWidthPercent = drawerKey ? setPersistedWidthPercent : setLocalWidthPercent;
+  useLayoutEffect(() => {
+    if (panelRef.current) {
+      panelRef.current.style.width = `${persistedWidthPercent}%`;
+    }
+  }, [persistedWidthPercent, drawerKey, drawerWidth]);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
 
       const handle = resizeHandleRef.current;
-      if (!handle) {
+      const panel = panelRef.current;
+      if (!handle || !panel) {
         return;
       }
-      const panel = handle.closest('.drawer-panel') as HTMLElement;
-      if (!panel) {
-        return;
-      }
+
+      // Mark as resizing
+      isResizingRef.current = true;
       handle.setAttribute('data-resizing', 'true');
       panel.classList.add('resizing');
+      initialMousePositionRef.current = e.clientX;
 
       const viewportWidth = window.innerWidth;
       const minWidthPercent = 30;
@@ -120,16 +130,25 @@ export function DrawerPanel({
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         moveEvent.preventDefault();
-        const newWidthPercent =
-          ((viewportWidth - moveEvent.clientX) / viewportWidth) * 100;
-        const clampedWidthPercent = Math.min(
-          Math.max(newWidthPercent, minWidthPercent),
-          maxWidthPercent
-        );
 
-        panel.style.width = `${clampedWidthPercent}%`;
+        if (rafIdRef.current !== null) {
+          window.cancelAnimationFrame(rafIdRef.current);
+        }
 
-        if (handle) {
+        rafIdRef.current = window.requestAnimationFrame(() => {
+          if (!panel || !handle || initialMousePositionRef.current === null) {
+            return;
+          }
+
+          const newWidthPercent =
+            ((viewportWidth - moveEvent.clientX) / viewportWidth) * 100;
+          const clampedWidthPercent = Math.min(
+            Math.max(newWidthPercent, minWidthPercent),
+            maxWidthPercent
+          );
+
+          panel.style.width = `${clampedWidthPercent}%`;
+
           handle.setAttribute(
             'data-at-min-width',
             (clampedWidthPercent <= minWidthPercent).toString()
@@ -138,18 +157,26 @@ export function DrawerPanel({
             'data-at-max-width',
             (Math.abs(clampedWidthPercent - maxWidthPercent) < 1).toString()
           );
-        }
+        });
       };
 
       const handleMouseUp = () => {
+        isResizingRef.current = false;
+
+        if (rafIdRef.current !== null) {
+          window.cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+
         if (handle) {
           handle.removeAttribute('data-resizing');
         }
 
         if (panel) {
           panel.classList.remove('resizing');
-          const currentWidth = parseFloat(panel.style.width) || widthPercent;
-          setWidthPercent(currentWidth);
+          // Get the final width and save to localStorage
+          const currentWidth = parseFloat(panel.style.width) || persistedWidthPercent;
+          setPersistedWidthPercent(currentWidth);
         }
 
         document.removeEventListener('mousemove', handleMouseMove);
@@ -159,13 +186,16 @@ export function DrawerPanel({
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [setWidthPercent, widthPercent]
+    [persistedWidthPercent, setPersistedWidthPercent]
   );
 
-  const minWidthPercent = 30;
-  const maxWidthPercent = 90;
-  const isAtMinWidth = widthPercent <= minWidthPercent;
-  const isAtMaxWidth = Math.abs(widthPercent - maxWidthPercent) < 1;
+  useLayoutEffect(() => {
+    return () => {
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
 
   return (
     <DrawerContainer>
@@ -173,17 +203,24 @@ export function DrawerPanel({
         ariaLabel={ariaLabel}
         slidePosition="right"
         collapsed={false}
-        ref={ref}
+        ref={node => {
+          panelRef.current = node;
+          if (typeof ref === 'function') {
+            ref(node);
+          } else if (ref) {
+            (ref as React.RefObject<HTMLDivElement | null>).current = node;
+          }
+        }}
         transitionProps={transitionProps}
-        panelWidth={`${widthPercent}%`}
+        panelWidth={`${persistedWidthPercent}%`} // Initial width only
         className="drawer-panel"
       >
         {drawerKey && (
           <ResizeHandle
             ref={resizeHandleRef}
             onMouseDown={handleResizeStart}
-            data-at-min-width={isAtMinWidth.toString()}
-            data-at-max-width={isAtMaxWidth.toString()}
+            data-at-min-width={(persistedWidthPercent <= 30).toString()}
+            data-at-max-width={(Math.abs(persistedWidthPercent - 90) < 1).toString()}
           />
         )}
         <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
