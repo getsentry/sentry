@@ -1,3 +1,5 @@
+import type {StacktraceType} from 'sentry/types/stacktrace';
+
 import {
   REGISTERS_ARM,
   REGISTERS_ARM64,
@@ -40,7 +42,7 @@ function getRegisterIndex(register: string, registerMap: Record<string, number>)
 }
 
 export function getSortedRegisters(
-  registers: Record<string, string | null>,
+  registers: NonNullable<StacktraceType['registers']>,
   deviceArch?: string
 ) {
   const entries = Object.entries(registers);

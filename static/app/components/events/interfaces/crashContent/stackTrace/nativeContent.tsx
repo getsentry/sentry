@@ -1,4 +1,4 @@
-import {cloneElement, Fragment, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import StacktracePlatformIcon from 'sentry/components/events/interfaces/crashContent/stackTrace/platformIcon';
@@ -185,6 +185,7 @@ export function NativeContent({
       const prevFrame = frames[frameIndex - 1];
       const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+      const isLastFrame = frameIndex === frames.length - 1;
 
       if (repeatedFrame) {
         nRepeats++;
@@ -217,7 +218,7 @@ export function NativeContent({
             address: frame.instructionAddr,
           }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
-          registers: {},
+          registers: isLastFrame ? registers : {},
           includeSystemFrames,
           onFunctionNameToggle: handleToggleFunctionName,
           showCompleteFunctionName,
@@ -255,18 +256,11 @@ export function NativeContent({
 
       return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
     })
-    .filter(frame => !!frame) as React.ReactElement[];
+    .filter((frame): frame is React.ReactElement => !!frame);
 
   const wrapperClassName = `traceback ${
     includeSystemFrames ? 'full-traceback' : 'in-app-traceback'
   } ${className}`;
-
-  if (convertedFrames.length > 0 && registers) {
-    const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame] as any, {
-      registers,
-    });
-  }
 
   if (defined(maxDepth)) {
     convertedFrames = convertedFrames.slice(-maxDepth);
