@@ -105,11 +105,12 @@ class BaseDeriveCodeMappings(TestCase):
             )
 
             code_mappings = RepositoryProjectPathConfig.objects.all()
+            repositories = Repository.objects.all()
 
             if dry_run:
                 # If dry run, no configurations should have been created
                 assert starting_code_mappings_count == code_mappings.count()
-                assert starting_repositories_count == Repository.objects.all().count()
+                assert starting_repositories_count == repositories.count()
 
                 if expected_new_code_mappings:
                     assert len(dry_run_code_mappings) == len(expected_new_code_mappings)
@@ -118,12 +119,6 @@ class BaseDeriveCodeMappings(TestCase):
                         assert cm.source_path == expected_cm["source_root"]
                         assert cm.repo.name == expected_cm["repo_name"]
 
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                )
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
-                )
             else:
                 if expected_new_code_mappings:
                     assert code_mappings.count() == starting_code_mappings_count + len(
@@ -137,21 +132,21 @@ class BaseDeriveCodeMappings(TestCase):
                         assert code_mapping is not None
                         assert code_mapping.repository.name == expected_cm["repo_name"]
 
-                if Repository.objects.all().count() > starting_repositories_count:
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                    )
+                if expected_in_app_stack_trace_rules is not None:
+                    # XXX: Grab it from the option
+                    assert expected_in_app_stack_trace_rules == in_app_stack_trace_rules
 
-                if code_mappings.count() > starting_code_mappings_count:
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
-                    )
+            if (repositories.count() > starting_repositories_count) or dry_run:
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                )
 
-            if expected_in_app_stack_trace_rules is not None:
-                # XXX: Grab it from the option
-                assert expected_in_app_stack_trace_rules == in_app_stack_trace_rules
+            if (code_mappings.count() > starting_code_mappings_count) or dry_run:
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                )
 
-            # Returning these to inspect the results
+            # Returning this to inspect in tests
             return event
 
     def frame(
