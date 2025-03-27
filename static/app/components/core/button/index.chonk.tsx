@@ -126,6 +126,8 @@ export function getChonkButtonStyles(
     },
 
     '&:hover': {
+      color: getChonkButtonTheme(type, p.theme).color,
+
       '&::after': {
         transform: `translateY(-${translate}px)`,
       },
