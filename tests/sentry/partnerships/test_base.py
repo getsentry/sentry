@@ -8,4 +8,4 @@ class PartnershipTest(TestCase):
 
     def test_get_inbound_filters(self):
         org = self.create_organization()
-        assert self.backend.get_inbound_filters(org) == []
+        assert self.backend.get_inbound_filters(organization=org) == []
