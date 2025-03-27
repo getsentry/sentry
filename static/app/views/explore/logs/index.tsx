@@ -57,7 +57,15 @@ export default function LogsPage() {
             <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('Logs')}
-                <FeatureBadge type="experimental" />
+                <FeatureBadge
+                  type="beta"
+                  tooltipProps={{
+                    title: t(
+                      "This feature is currently in beta and we're actively working on it"
+                    ),
+                    isHoverable: true,
+                  }}
+                />
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>

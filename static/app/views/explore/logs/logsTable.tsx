@@ -6,7 +6,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
-import {LOGS_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconArrow, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -33,6 +32,8 @@ import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQ
 import {EmptyStateText} from 'sentry/views/traces/styles';
 
 import {getLogBodySearchTerms, getTableHeaderLabel, logsFieldAlignment} from './utils';
+
+const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/86804';
 
 export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
   const fields = useLogsFields();
@@ -129,13 +130,16 @@ export function LogsTable({tableData}: {tableData: UseExploreLogsTableResult}) {
                     {t('No logs found')}
                   </EmptyStateText>
                   <EmptyStateText size="fontSizeMedium">
-                    {tct('Try adjusting your filters or refer to [docSearchProps].', {
-                      docSearchProps: (
-                        <ExternalLink href={LOGS_PROPS_DOCS_URL}>
-                          {t('docs for search properties')}
-                        </ExternalLink>
-                      ),
-                    })}
+                    {tct(
+                      'Try adjusting your filters or get started with sending logs by checking these [instructions]',
+                      {
+                        instructions: (
+                          <ExternalLink href={LOGS_INSTRUCTIONS_URL}>
+                            {t('instructions')}
+                          </ExternalLink>
+                        ),
+                      }
+                    )}
                   </EmptyStateText>
                 </EmptyStateWarning>
               </TableStatus>
