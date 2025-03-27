@@ -1,10 +1,12 @@
 import {Fragment, useEffect, useRef} from 'react';
 
+import {Badge} from 'sentry/components/core/badge';
 import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
+import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -94,18 +96,44 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
               baseUrl={baseUrl}
             />
           )}
-          <SecondaryNav.Section title={t('Configure')}>
-            <SecondaryNav.Item
-              to={`${baseUrl}/alerts/rules/`}
-              activeTo={`${baseUrl}/alerts/`}
-              analyticsItemName="issues_alerts"
-            >
-              {t('Alerts')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
+          <ConfigureSection baseUrl={baseUrl} />
         </SecondaryNav.Body>
       </SecondaryNav>
       {children}
     </Fragment>
+  );
+}
+
+function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const hasWorkflowEngine = useWorkflowEngineFeatureGate();
+  return (
+    <SecondaryNav.Section title={t('Configure')}>
+      {hasWorkflowEngine ? (
+        <Fragment>
+          <SecondaryNav.Item
+            trailingItems={<Badge type="alpha">A</Badge>}
+            to={`${baseUrl}/monitors/`}
+            activeTo={`${baseUrl}/monitors/`}
+          >
+            {t('Monitors')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            trailingItems={<Badge type="alpha">A</Badge>}
+            to={`${baseUrl}/automations/`}
+            activeTo={`${baseUrl}/automations/`}
+          >
+            {t('Automations')}
+          </SecondaryNav.Item>
+        </Fragment>
+      ) : (
+        <SecondaryNav.Item
+          to={`${baseUrl}/alerts/rules/`}
+          activeTo={`${baseUrl}/alerts/`}
+          analyticsItemName="issues_alerts"
+        >
+          {t('Alerts')}
+        </SecondaryNav.Item>
+      )}
+    </SecondaryNav.Section>
   );
 }
