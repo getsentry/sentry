@@ -155,8 +155,12 @@ function UsageTotalsTable({category, isEventBreakdown, totals, subscription}: Pr
           })
         );
 
+    const testId = isEventBreakdown
+      ? `event-table-${category}`
+      : `category-table-${category}`;
+
     return (
-      <StyledTable>
+      <StyledTable data-test-id={testId}>
         <thead>
           <tr>
             <th>
