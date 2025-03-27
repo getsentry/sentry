@@ -349,7 +349,7 @@ def manage_issue_states(
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ESCALATING
             if not options.get("groups.enable-post-update-signal"):
-                post_save.send(
+                post_save.send_robust(
                     sender=Group,
                     instance=group,
                     created=False,
@@ -390,7 +390,7 @@ def manage_issue_states(
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
             if not options.get("groups.enable-post-update-signal"):
-                post_save.send(
+                post_save.send_robust(
                     sender=Group,
                     instance=group,
                     created=False,
@@ -411,7 +411,7 @@ def manage_issue_states(
             group.status = GroupStatus.UNRESOLVED
             group.substatus = GroupSubStatus.ONGOING
             if not options.get("groups.enable-post-update-signal"):
-                post_save.send(
+                post_save.send_robust(
                     sender=Group,
                     instance=group,
                     created=False,

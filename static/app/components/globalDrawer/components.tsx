@@ -1,6 +1,5 @@
 import {
   createContext,
-  forwardRef,
   Fragment,
   useCallback,
   useContext,
@@ -46,18 +45,17 @@ function getDrawerWidthKey(drawerKey: string) {
   return `drawer-width:${drawerKey}`;
 }
 
-export const DrawerPanel = forwardRef(function DrawerPanel(
-  {
-    ariaLabel,
-    children,
-    transitionProps,
-    onClose,
-    drawerWidth,
-    drawerKey,
-    headerContent: _headerContent,
-  }: DrawerPanelProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+export function DrawerPanel({
+  ref,
+  ariaLabel,
+  children,
+  transitionProps,
+  onClose,
+  drawerWidth,
+  drawerKey,
+}: DrawerPanelProps & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
   const resizeHandleRef = useRef<HTMLDivElement>(null);
 
   // Calculate initial width from props or default to 50%
@@ -175,7 +173,7 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
   const maxWidthPercent = 90;
   const isAtMinWidth = widthPercent <= minWidthPercent;
   const isAtMaxWidth = Math.abs(widthPercent - maxWidthPercent) < 1;
-
+    
   return (
     <DrawerContainer>
       <DrawerSlidePanel
@@ -201,7 +199,7 @@ export const DrawerPanel = forwardRef(function DrawerPanel(
       </DrawerSlidePanel>
     </DrawerContainer>
   );
-});
+}
 
 interface DrawerHeaderProps {
   children?: React.ReactNode;
@@ -216,15 +214,15 @@ interface DrawerHeaderProps {
   hideCloseButton?: boolean;
 }
 
-export const DrawerHeader = forwardRef(function DrawerHeaderInner(
-  {
-    className,
-    children = null,
-    hideBar = false,
-    hideCloseButton = false,
-  }: DrawerHeaderProps,
-  ref: React.ForwardedRef<HTMLHeadingElement>
-) {
+export function DrawerHeader({
+  ref,
+  className,
+  children = null,
+  hideBar = false,
+  hideCloseButton = false,
+}: DrawerHeaderProps & {
+  ref?: React.Ref<HTMLHeadingElement>;
+}) {
   const {onClose} = useDrawerContentContext();
 
   return (
@@ -247,7 +245,7 @@ export const DrawerHeader = forwardRef(function DrawerHeaderInner(
       {children}
     </Header>
   );
-});
+}
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};

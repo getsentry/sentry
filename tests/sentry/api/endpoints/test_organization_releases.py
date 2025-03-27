@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
+from sentry.api.release_search import FINALIZED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
@@ -1066,6 +1067,42 @@ class OrganizationReleasesStatsTest(APITestCase):
             self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
         )
         assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+    def test_finalized_filter(self):
+        self.login_as(user=self.user)
+
+        release_1 = self.create_release(
+            version="test@1.2.3", date_released=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC)
+        )
+        release_2 = self.create_release(version="test@1.2.4", date_released=None)
+        release_3 = self.create_release(version="test2@1.2.5", date_released=None)
+        release_4 = self.create_release(version="test2@1.2.6")
+
+        url = reverse(
+            "sentry-api-0-organization-releases",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        response = self.client.get(url + f"?query={FINALIZED_KEY}:true", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert [r["version"] for r in response.data] == [release_1.version]
+
+        response = self.client.get(url + f"?query={FINALIZED_KEY}:false", format="json")
+        assert [r["version"] for r in response.data] == [
+            release_4.version,
+            release_3.version,
+            release_2.version,
+        ]
+
+        # if anything besides "true" or "false" is parsed, return all releases
+        response = self.client.get(url + f"?query={FINALIZED_KEY}:wrong_value", format="json")
+        assert [r["version"] for r in response.data] == [
+            release_4.version,
+            release_3.version,
+            release_2.version,
+            release_1.version,
+        ]
 
     def test_release_stage_filter(self):
         self.login_as(user=self.user)

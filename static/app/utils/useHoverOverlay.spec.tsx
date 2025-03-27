@@ -33,4 +33,23 @@ describe('useHoverOverlay', () => {
     await userEvent.tab();
     expect(componentProps.onBlur).toHaveBeenCalled();
   });
+
+  it('skipWrapper=true does not swallow refs', () => {
+    function InnerComponent(
+      props: Partial<React.HTMLAttributes<HTMLDivElement>> &
+        React.RefAttributes<HTMLDivElement>
+    ) {
+      return <div {...props} />;
+    }
+
+    const ref = jest.fn();
+
+    const WrappedComponent = () => {
+      const {wrapTrigger} = useHoverOverlay({skipWrapper: true});
+      return wrapTrigger(<InnerComponent ref={ref} />);
+    };
+
+    render(<WrappedComponent />);
+    expect(ref).toHaveBeenCalled();
+  });
 });

@@ -26,11 +26,11 @@ const LOGS_HINT_KEYS = [
   OurLogKnownFieldKey.SEVERITY_TEXT,
   OurLogKnownFieldKey.ORGANIZATION_ID,
   OurLogKnownFieldKey.PROJECT_ID,
-  OurLogKnownFieldKey.SPAN_ID,
+  OurLogKnownFieldKey.PARENT_SPAN_ID,
   OurLogKnownFieldKey.TIMESTAMP,
 ];
 
-export const SCHEMA_HINTS_LIST_ORDER_KEYS = [
+const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [
   ...new Set([
     ...FRONTEND_HINT_KEYS,
     ...MOBILE_HINT_KEYS,
@@ -38,3 +38,20 @@ export const SCHEMA_HINTS_LIST_ORDER_KEYS = [
     ...COMMON_HINT_KEYS,
   ]),
 ];
+
+const SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE = [
+  ...new Set([...FRONTEND_HINT_KEYS, ...MOBILE_HINT_KEYS, ...COMMON_HINT_KEYS]),
+];
+
+export enum SchemaHintsSources {
+  EXPLORE = 'explore',
+  LOGS = 'logs',
+}
+
+export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
+  if (source === SchemaHintsSources.LOGS) {
+    return SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS;
+  }
+
+  return SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE;
+};

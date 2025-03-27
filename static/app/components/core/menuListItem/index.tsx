@@ -1,9 +1,10 @@
-import {forwardRef as reactForwardRef, memo, useId, useRef, useState} from 'react';
+import {memo, useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {
   ChonkContentWrap,
@@ -19,7 +20,6 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 
@@ -94,7 +94,7 @@ interface OtherProps {
 }
 
 interface Props extends MenuListItemProps, OtherProps {
-  forwardRef: React.ForwardedRef<HTMLLIElement>;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
 function BaseMenuListItem({
@@ -116,7 +116,7 @@ function BaseMenuListItem({
   showDetailsInOverlay = false,
   tooltip,
   tooltipOptions = {delay: 500},
-  forwardRef,
+  ref,
   ...props
 }: Props) {
   const itemRef = useRef<HTMLLIElement>(null);
@@ -130,7 +130,7 @@ function BaseMenuListItem({
       aria-labelledby={labelId}
       aria-describedby={detailId}
       as={as}
-      ref={mergeRefs([forwardRef, itemRef])}
+      ref={mergeRefs(ref, itemRef)}
       {...props}
     >
       <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
@@ -188,11 +188,7 @@ function BaseMenuListItem({
   );
 }
 
-export const MenuListItem = memo(
-  reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>((props, ref) => (
-    <BaseMenuListItem {...props} forwardRef={ref} />
-  ))
-);
+export const MenuListItem = memo(BaseMenuListItem);
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
