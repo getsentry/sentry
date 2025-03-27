@@ -175,6 +175,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 return Response([], status=200)
 
         self.validate_comparison_delta(comparison_delta, snuba_params, organization)
+        self.set_granularity(request, snuba_params, top_events, use_rpc)
         rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
         axes = request.GET.getlist("yAxis", ["count()"])
 
@@ -241,7 +242,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                     orderby=self.get_orderby(request),
                     limit=top_events,
                     referrer=referrer,
-                    granularity_secs=rollup,
                     config=SearchResolverConfig(
                         auto_fields=False,
                         use_aggregate_conditions=True,
@@ -275,7 +275,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsV2EndpointBase):
                 params=snuba_params,
                 query_string=query,
                 y_axes=query_columns,
-                granularity_secs=rollup,
                 referrer=referrer,
                 config=SearchResolverConfig(
                     auto_fields=False,
