@@ -42,6 +42,7 @@ from sentry.incidents.tasks import handle_trigger_action
 from sentry.incidents.utils.metric_issue_poc import create_or_update_metric_issue
 from sentry.incidents.utils.process_update_helpers import (
     get_aggregation_value_helper,
+    get_aggregation_value_helper_group_by,
     get_crash_rate_alert_metrics_aggregation_value_helper,
 )
 from sentry.incidents.utils.types import (
@@ -218,8 +219,14 @@ class SubscriptionProcessor:
     def get_comparison_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate, rule: AlertRule | None = None
     ) -> float | None:
+        snuba_query = self.subscription.snuba_query
+
+        is_group_by_alert = snuba_query.group_by is not None
         # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
-        aggregation_value = get_aggregation_value_helper(subscription_update)
+        if is_group_by_alert:
+            aggregation_value = get_aggregation_value_helper_group_by(subscription_update)
+        else:
+            aggregation_value = get_aggregation_value_helper(subscription_update)
         if self.alert_rule.comparison_delta is None:
             if rule:
                 logger.info(
@@ -236,7 +243,6 @@ class SubscriptionProcessor:
         # % change.
         delta = timedelta(seconds=self.alert_rule.comparison_delta)
         end = subscription_update["timestamp"] - delta
-        snuba_query = self.subscription.snuba_query
         start = end - timedelta(seconds=snuba_query.time_window)
 
         entity_subscription = get_entity_subscription_from_snuba_query(
@@ -543,6 +549,7 @@ class SubscriptionProcessor:
                     alert_operator, resolve_operator = self.THRESHOLD_TYPE_OPERATORS[
                         AlertRuleThresholdType(self.alert_rule.threshold_type)
                     ]
+                    print("ALERT OPERATOR AGGREGATION VALUE", aggregation_value)
                     if alert_operator(
                         aggregation_value, trigger.alert_threshold
                     ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):

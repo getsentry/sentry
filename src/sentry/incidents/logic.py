@@ -606,6 +606,7 @@ def create_alert_rule(
             dataset=dataset,
             query=query,
             aggregate=aggregate,
+            group_by=group_by,
             time_window=timedelta(minutes=time_window),
             resolution=timedelta(minutes=resolution),
             environment=environment,
