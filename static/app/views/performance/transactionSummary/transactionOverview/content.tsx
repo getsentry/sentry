@@ -39,7 +39,9 @@ import {updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
@@ -97,10 +99,10 @@ function OTelSummaryContentInner({
   error,
   projectId,
   transactionName,
-  onChangeFilter,
 }: Props) {
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
+  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
     (query: string) => {
@@ -220,6 +222,13 @@ function OTelSummaryContentInner({
     transactionsListEventView = eventView.clone();
   }
 
+  if (spanCategory) {
+    eventView = eventView.clone();
+    eventView.query =
+      `${eventView.query} ${SpanIndexedField.SPAN_CATEGORY}:${spanCategory}`.trim();
+    transactionsListEventView = eventView.clone();
+  }
+
   transactionsListEventView.fields = fields;
 
   const hasNewSpansUIFlag =
@@ -245,11 +254,7 @@ function OTelSummaryContentInner({
     <Fragment>
       <Layout.Main>
         <FilterActions>
-          <Filter
-            organization={organization}
-            currentFilter={spanOperationBreakdownFilter}
-            onChangeFilter={onChangeFilter}
-          />
+          <SpanCategoryFilter serviceEntrySpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />

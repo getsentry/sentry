@@ -58,6 +58,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
+  traceId: string;
   traceType: TraceShape;
 };
 
@@ -466,6 +467,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     organization={organization}
                     onParentClick={onParentClick}
                     node={traceState.tabs.current_tab.node}
+                    traceId={props.traceId}
                     onTabScrollToNode={props.onTabScrollToNode}
                   />
                 )

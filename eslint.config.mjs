@@ -589,7 +589,7 @@ export default typescript.config([
       'unicorn/no-useless-length-check': 'error',
       'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-array-find': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-find': 'error',
       'unicorn/prefer-array-flat-map': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
