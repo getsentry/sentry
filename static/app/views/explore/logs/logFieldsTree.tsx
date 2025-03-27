@@ -207,7 +207,9 @@ function LogFieldsTreeColumns({
     }
 
     // Convert attributes record to the format expected by addToAttributeTree
-    const visibleAttributes = Object.keys(attributes)
+    const visibleAttributes = (
+      Array.isArray(attributes) ? attributes : Object.keys(attributes)
+    )
       .map(key => getAttribute(attributes, key, hiddenAttributes))
       .filter(defined);
 
@@ -499,9 +501,13 @@ function LogFieldsTreeValue({
  */
 function getAttribute(
   attributes: TraceItemAttributes,
-  attributeKey: string,
+  attributeKey: string | Record<string, any>,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
+  if (typeof attributeKey === 'object') {
+    return getAttributeFromObject(attributes, attributeKey, hiddenAttributes);
+  }
+
   // Filter out hidden attributes
   if (hiddenAttributes.includes(attributeKey)) {
     return undefined;
@@ -509,6 +515,33 @@ function getAttribute(
 
   const attribute = attributes[attributeKey];
   if (!attribute) {
+    return undefined;
+  }
+
+  // Replace the key name with the new key name
+  const newKeyName = removeSentryPrefix(attributeKey);
+
+  const attributeValue =
+    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+  if (!defined(attributeValue)) {
+    return undefined;
+  }
+
+  return {
+    attribute_key: newKeyName,
+    attribute_value: attributeValue,
+    original_attribute_key: attributeKey,
+  };
+}
+
+function getAttributeFromObject(
+  _: TraceItemAttributes,
+  attribute: Record<string, any>,
+  hiddenAttributes: OurLogFieldKey[]
+): Attribute | undefined {
+  const attributeKey = attribute.name;
+  // Filter out hidden attributes
+  if (hiddenAttributes.includes(attributeKey)) {
     return undefined;
   }
 
