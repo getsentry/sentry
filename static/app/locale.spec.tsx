@@ -1,3 +1,6 @@
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'jed'... Remove this comment to see the full error message
+import Jed from 'jed';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -93,5 +96,9 @@ describe('locale.gettextComponentTemplate', () => {
     expect(container.innerHTML).toBe(
       '<div><b>text with <a href="/link">another</a> group</b></div>'
     );
+  });
+
+  it('should use Jed.sprintf', () => {
+    expect(Jed.sprintf('%s %s', 'hello', 'world')).toBe('hello world');
   });
 });

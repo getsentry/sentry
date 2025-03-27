@@ -1,7 +1,5 @@
 import {Fragment, useRef, useState} from 'react';
 import moment from 'moment-timezone';
-// @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
-import {sprintf} from 'sprintf-js';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
@@ -16,6 +14,11 @@ type Props = ModalRenderProps & {
 };
 
 export default function CustomIgnoreDurationModal(props: Props) {
+  const [defaultDate] = useState(() => {
+    // Give the user a sane starting point to select a date
+    // (prettier than the empty date/time inputs):
+    return moment().add(14, 'days').startOf('minute').toDate();
+  });
   const [dateWarning, setDateWarning] = useState<boolean>(false);
   const {Header, Body, Footer, onSelected, closeModal} = props;
   const label = t('Ignore this issue until \u2026');
@@ -49,21 +52,8 @@ export default function CustomIgnoreDurationModal(props: Props) {
     closeModal();
   };
 
-  // Give the user a sane starting point to select a date
-  // (prettier than the empty date/time inputs):
-  const defaultDate = new Date();
-  defaultDate.setDate(defaultDate.getDate() + 14);
-  defaultDate.setSeconds(0);
-  defaultDate.setMilliseconds(0);
-
-  const defaultDateVal = sprintf(
-    '%d-%02d-%02d',
-    defaultDate.getUTCFullYear(),
-    defaultDate.getUTCMonth() + 1,
-    defaultDate.getUTCDate()
-  );
-
-  const defaultTimeVal = sprintf('%02d:00', defaultDate.getUTCHours());
+  const defaultDateVal = moment(defaultDate).format('YYYY-MM-DD');
+  const defaultTimeVal = moment(defaultDate).format('HH:00');
 
   return (
     <Fragment>

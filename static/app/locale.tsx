@@ -1,8 +1,6 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'jed'... Remove this comment to see the full error message
 import Jed from 'jed';
-// @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
-import {sprintf} from 'sprintf-js';
 
 import toArray from 'sentry/utils/array/toArray';
 import localStorage from 'sentry/utils/localStorage';
@@ -96,7 +94,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
   let cursor = 0;
 
   // always re-parse, do not cache, because we change the match
-  sprintf.parse(formatString).forEach((match: any, idx: number) => {
+  Jed.sprintf.parse(formatString).forEach((match: any, idx: number) => {
     if (typeof match === 'string') {
       nodes.push(match);
       return;
@@ -122,7 +120,9 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
       // array with two items in.
       match[2] = null;
       match[1] = 1;
-      nodes.push(<Fragment key={idx++}>{sprintf.format([match], [null, arg])}</Fragment>);
+      nodes.push(
+        <Fragment key={idx++}>{Jed.sprintf.format([match], [null, arg])}</Fragment>
+      );
     }
   });
 
@@ -322,7 +322,7 @@ export function format(formatString: string, args: FormatArg[]): React.ReactNode
     return formatForReact(formatString, args);
   }
 
-  return sprintf(formatString, ...args) as string;
+  return Jed.sprintf(formatString, ...args) as string;
 }
 
 /**
