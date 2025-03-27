@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -32,24 +32,13 @@ export function Sidebar() {
   const showSuperuserWarning =
     isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
 
-  const {currentStepId: currentStepId, endTour} = useStackedNavigationTour();
+  const {currentStepId: currentStepId} = useStackedNavigationTour();
 
   const tourIsActive = currentStepId !== null;
   const forceExpanded = tourIsActive;
   const isCollapsed = forceExpanded ? false : isCollapsedState;
 
   useTourModal();
-
-  // On unmount, end the tour if it is active
-  // This should only happen if you change to the mobile layout in the middle of the tour
-  useEffect(() => {
-    return () => {
-      if (tourIsActive) {
-        endTour();
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <Fragment>

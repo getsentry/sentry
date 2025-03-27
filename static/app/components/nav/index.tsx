@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,8 +13,16 @@ import {NavLayout} from 'sentry/components/nav/types';
 
 function NavContent() {
   const {layout, navParentRef} = useNavContext();
-  const {currentStepId} = useStackedNavigationTour();
+  const {currentStepId, endTour} = useStackedNavigationTour();
   const tourIsActive = currentStepId !== null;
+
+  // The tour only works with the sidebar layout, so if we change to the mobile
+  // layout in the middle of the tour, it needs to end.
+  useEffect(() => {
+    if (tourIsActive && layout === NavLayout.MOBILE) {
+      endTour();
+    }
+  }, [endTour, layout, tourIsActive]);
 
   return (
     <NavContainer

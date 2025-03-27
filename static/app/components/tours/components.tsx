@@ -86,6 +86,15 @@ export function TourContextProvider<T extends TourEnumType>({
 }: TourContextProviderProps<T>) {
   const organization = useOrganization();
   const {mutate} = useMutateAssistant();
+  const options = useMemo(
+    () => ({
+      onStartTour,
+      onEndTour,
+      onStepChange,
+      requireAllStepsRegistered,
+    }),
+    [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
+  );
   const tourContextValue = useTourReducer<T>(
     {
       isCompleted,
@@ -94,12 +103,7 @@ export function TourContextProvider<T extends TourEnumType>({
       currentStepId: null,
       tourKey,
     },
-    {
-      onStartTour,
-      onEndTour,
-      onStepChange,
-      requireAllStepsRegistered,
-    }
+    options
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
