@@ -89,7 +89,13 @@ class MockDataConditionValidator(NumericComparisonConditionValidator):
 
 
 class MockConditionGroupValidator(BaseDataConditionGroupValidator):
-    conditions = MockDataConditionValidator(many=True)
+    conditions = serializers.ListField(required=True)
+
+    def validate_conditions(self, value) -> list:
+        for condition in value:
+            MockDataConditionValidator(data=condition).is_valid(raise_exception=True)
+
+        return value
 
 
 class MockDetectorValidator(BaseDetectorTypeValidator):
