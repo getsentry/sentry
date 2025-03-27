@@ -104,19 +104,26 @@ function LogsSectionContent({
   openDrawer: () => void;
   tableData: UseExploreLogsTableResult;
 }) {
+  const abbreviatedTableData = {...tableData, data: (tableData.data ?? []).slice(0, 5)};
   return (
     <LogContentWrapper>
-      <LogsTable showHeader={false} allowPagination={false} tableData={tableData} />
-      <div>
-        <Button
-          icon={<IconChevron direction="right" />}
-          aria-label={t('View more')}
-          size="md"
-          onClick={() => openDrawer()}
-        >
-          {t('View more')}
-        </Button>
-      </div>
+      <LogsTable
+        showHeader={false}
+        allowPagination={false}
+        tableData={abbreviatedTableData}
+      />
+      {tableData.data?.length > 5 ? (
+        <div>
+          <Button
+            icon={<IconChevron direction="right" />}
+            aria-label={t('View more')}
+            size="md"
+            onClick={() => openDrawer()}
+          >
+            {t('View more')}
+          </Button>
+        </div>
+      ) : null}
     </LogContentWrapper>
   );
 }
