@@ -176,13 +176,13 @@ const onboarding: OnboardingConfig = {
           code: [
             {
               label: 'Svelte v5',
-              value: 'javascript',
+              value: 'svelte v5',
               language: 'javascript',
               code: getSdkSetupSnippet(params, true),
             },
             {
               label: 'Svelte v3/v4',
-              value: 'javascript',
+              value: 'svelte v3/v4',
               language: 'javascript',
               code: getSdkSetupSnippet(params, false),
             },
@@ -254,13 +254,13 @@ const replayOnboarding: OnboardingConfig = {
           code: [
             {
               label: 'Svelte v5',
-              value: 'javascript',
+              value: 'svelte v5',
               language: 'javascript',
               code: getSdkSetupSnippet(params, true),
             },
             {
               label: 'Svelte v3/v4',
-              value: 'javascript',
+              value: 'svelte v3/v4',
               language: 'javascript',
               code: getSdkSetupSnippet(params, false),
             },
@@ -301,13 +301,13 @@ const feedbackOnboarding: OnboardingConfig = {
           code: [
             {
               label: 'Svelte v5',
-              value: 'javascript',
+              value: 'svelte v5',
               language: 'javascript',
               code: getSdkSetupSnippet(params, true),
             },
             {
               label: 'Svelte v3/v4',
-              value: 'javascript',
+              value: 'svelte v3/v4',
               language: 'javascript',
               code: getSdkSetupSnippet(params, false),
             },
