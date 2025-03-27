@@ -376,26 +376,6 @@ class OrganizationMemberInviteListPostTest(APITestCase):
         assert omi.inviter_id == self.user.id
 
     @patch.object(OrganizationMemberInvite, "send_invite_email")
-    def test_no_send_invite(self, mock_send_invite_email):
-        data = {
-            "email": "mifu@email.com",
-            "orgRole": "member",
-            "teams": [self.team.slug],
-            "sendInvite": False,
-        }
-        response = self.get_success_response(self.organization.slug, **data)
-
-        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
-        assert omi.email == "mifu@email.com"
-        assert omi.role == "member"
-        assert omi.organization_member_team_data == [
-            {"id": self.team.id, "role": None, "slug": self.team.slug}
-        ]
-        assert omi.inviter_id == self.user.id
-
-        assert not mock_send_invite_email.mock_calls
-
-    @patch.object(OrganizationMemberInvite, "send_invite_email")
     def test_referrer_param(self, mock_send_invite_email):
         data = {"email": "mifu@email.com", "orgRole": "member", "teams": [self.team.slug]}
         response = self.get_success_response(
@@ -431,7 +411,7 @@ class OrganizationMemberInviteListPostTest(APITestCase):
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
             status_code=400,
         )
-        assert response.data[0] == err_message
+        assert response.data["orgRole"][0] == err_message
 
         data = {"email": "dog@woof.com", "orgRole": "manager", "teams": [self.team.slug]}
         response = self.get_error_response(
@@ -440,7 +420,7 @@ class OrganizationMemberInviteListPostTest(APITestCase):
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
             status_code=400,
         )
-        assert response.data[0] == err_message
+        assert response.data["orgRole"][0] == err_message
 
         data = {"email": "mifu@email.com", "orgRole": "member", "teams": [self.team.slug]}
         response = self.get_success_response(

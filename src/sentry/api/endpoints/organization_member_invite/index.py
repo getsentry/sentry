@@ -63,12 +63,6 @@ class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(required=False, allow_null=False, default=[])
-    sendInvite = serializers.BooleanField(
-        required=False,
-        default=True,
-        write_only=True,
-        help_text="Whether or not to send an invite notification through email. Defaults to True.",
-    )
 
     def validate_email(self, email):
         users = user_service.get_many_by_email(
@@ -108,6 +102,12 @@ class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
             "organizations:invite-billing", self.context["organization"]
         ):
             return role
+        # Error if the assigned role is not a member and the request is made via integration token
+        if self.context.get("is_integration_token", False) and role != "member":
+            raise serializers.ValidationError(
+                "Integration tokens are restricted to inviting new members with the member role only."
+            )
+
         role_obj = next((r for r in self.context["allowed_roles"] if r.id == role), None)
         if role_obj is None:
             raise serializers.ValidationError(
@@ -132,6 +132,22 @@ class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
         return valid_teams
 
 
+def _can_invite_member(
+    request: Request,
+    organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+) -> bool:
+    scopes = request.access.scopes
+    is_role_above_member = "member:admin" in scopes or "member:write" in scopes
+    if isinstance(organization, RpcUserOrganizationContext):
+        organization = organization.organization
+
+    if is_role_above_member:
+        return True
+    if "member:invite" not in scopes:
+        return False
+    return not organization.flags.disable_member_invite
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
@@ -143,21 +159,41 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberInviteAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
-    def _can_invite_member(
-        self,
-        request: Request,
-        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
-    ) -> bool:
-        scopes = request.access.scopes
-        is_role_above_member = "member:admin" in scopes or "member:write" in scopes
-        if isinstance(organization, RpcUserOrganizationContext):
-            organization = organization.organization
+    def _create_invite_object(
+        self, request, organization, result, is_request: bool
+    ) -> OrganizationMemberInvite:
+        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+            teams = []
+            for team in result.get("teams", []):
+                teams.append({"id": team.id, "slug": team.slug, "role": None})
 
-        if is_role_above_member:
-            return True
-        if "member:invite" not in scopes:
-            return False
-        return not organization.flags.disable_member_invite
+            omi = OrganizationMemberInvite(
+                organization=organization,
+                email=result["email"],
+                role=result["orgRole"],
+                inviter_id=request.user.id,
+                organization_member_team_data=teams,
+                invite_status=(
+                    InviteStatus.REQUESTED_TO_BE_INVITED.value
+                    if is_request
+                    else InviteStatus.APPROVED.value
+                ),
+            )
+
+            omi.save()
+
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=omi.id,
+            data=omi.get_audit_log_data(),
+            event=(
+                (audit_log.get_event_id("INVITE_REQUEST_ADD"))
+                if is_request
+                else (audit_log.get_event_id("MEMBER_INVITE"))
+            ),
+        )
+        return omi
 
     def _invite_member(self, request, organization) -> Response:
         assigned_org_role = request.data.get("orgRole") or organization_roles.get_default().id
@@ -165,11 +201,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
-            # Error if the assigned role is not a member
-            if assigned_org_role != "member":
-                raise serializers.ValidationError(
-                    "Integration tokens are restricted to inviting new members with the member role only."
-                )
             allowed_roles = [organization_roles.get("member")]
 
         serializer = OrganizationMemberInviteRequestSerializer(
@@ -178,6 +209,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
                 "organization": organization,
                 "allowed_roles": allowed_roles,
                 "allow_retired_roles": not features.has("organizations:team-roles", organization),
+                "is_integration_token": request.access.is_integration_token,
             },
         )
 
@@ -233,34 +265,12 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
-        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-            teams = []
-            for team in result.get("teams", []):
-                teams.append({"id": team.id, "slug": team.slug, "role": None})
+        omi = self._create_invite_object(request, organization, result, is_request=False)
 
-            omi = OrganizationMemberInvite(
-                organization=organization,
-                email=result["email"],
-                role=result["orgRole"],
-                inviter_id=request.user.id,
-                organization_member_team_data=teams,
-            )
-
-            omi.save()
-
-        if result.get("sendInvite"):
-            referrer = request.query_params.get("referrer")
-            omi.send_invite_email(referrer)
-            member_invited.send_robust(
-                member=omi, user=request.user, sender=self, referrer=request.data.get("referrer")
-            )
-
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=omi.id,
-            data=omi.get_audit_log_data(),
-            event=(audit_log.get_event_id("MEMBER_INVITE")),
+        referrer = request.query_params.get("referrer")
+        omi.send_invite_email(referrer)
+        member_invited.send_robust(
+            member=omi, user=request.user, sender=self, referrer=request.data.get("referrer")
         )
 
         return Response(serialize(omi), status=201)
@@ -274,29 +284,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
         result = serializer.validated_data
 
-        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-            teams = []
-            for team in result.get("teams", []):
-                teams.append({"id": team.id, "slug": team.slug, "role": None})
-
-            omi = OrganizationMemberInvite(
-                organization=organization,
-                email=result["email"],
-                role=result["orgRole"],
-                inviter_id=request.user.id,
-                organization_member_team_data=teams,
-                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-            )
-
-            omi.save()
-
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=omi.id,
-            data=omi.get_audit_log_data(),
-            event=(audit_log.get_event_id("INVITE_REQUEST_ADD")),
-        )
+        omi = self._create_invite_object(request, organization, result, is_request=True)
 
         async_send_notification(InviteRequestNotification, omi, request.user)
         return Response(serialize(omi), status=201)
@@ -332,6 +320,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
 
         # Check to see if the requesting user can invite members. If not, create an invite
         # request.
-        if not self._can_invite_member(request, organization):
+        if not _can_invite_member(request, organization):
             return self._request_to_invite_member(request, organization)
         return self._invite_member(request, organization)
