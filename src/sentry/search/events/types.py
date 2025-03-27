@@ -150,7 +150,7 @@ class SnubaParams:
 
     @property
     def is_timeseries_request(self) -> bool:
-        return self.granularity_secs > 0
+        return self.granularity_secs is not None
 
     @property
     def date_range(self) -> timedelta:
