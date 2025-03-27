@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from enum import Enum
 
 from django.db import models
+from packaging.version import InvalidVersion
 from packaging.version import parse as parse_version
 
 from sentry.backup.scopes import RelocationScope
@@ -74,17 +75,9 @@ class ProjectSDK(DefaultFieldsModel):
 
             assert project_sdk is not None
 
-            if created:
-                # newly created, make sure to set the version
-                should_update_version = True
-            elif project_sdk.sdk_version == sdk_version:
-                # same version as before, no need to update
-                should_update_version = False
-            else:
-                # version is different, only update if it's newer
-                old_version = parse_version(project_sdk.sdk_version)
-                new_version = parse_version(sdk_version)
-                should_update_version = new_version > old_version
+            should_update_version = created or is_newer_version(
+                sdk_version, project_sdk.sdk_version
+            )
 
             if should_update_version:
                 project_sdk.sdk_version = sdk_version
@@ -92,3 +85,26 @@ class ProjectSDK(DefaultFieldsModel):
                 cache.set(cache_key, project_sdk, 3600)
 
             return project_sdk
+
+
+def is_newer_version(version_to_check: str, existing_version: str) -> bool:
+    # quick check, if they're the same string, we don't need to do any
+    # further validation as they are the same version
+    if version_to_check == existing_version:
+        return False
+
+    try:
+        new_version = parse_version(version_to_check)
+    except InvalidVersion:
+        # version to check is not valid semver version so it can't
+        # be a newer version
+        return False
+
+    try:
+        old_version = parse_version(existing_version)
+    except InvalidVersion:
+        # existing version is not valid semver version so the valid
+        # version to check is always newer
+        return True
+
+    return new_version > old_version

@@ -106,3 +106,46 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         assert cached.event_type == project_sdk.event_type
         assert cached.sdk_name == project_sdk.sdk_name
         assert cached.sdk_version == project_sdk.sdk_version
+
+    def test_no_existing_version(self):
+        existing = ProjectSDK.objects.create(
+            project=self.project,
+            event_type=self.event_type.value,
+            sdk_name="sentry.python",
+        )
+
+        project_sdk = ProjectSDK.update_with_newest_version_or_create(
+            project=self.project,
+            event_type=self.event_type,
+            sdk_name="sentry.python",
+            sdk_version="2.23.0",
+        )
+
+        assert existing.id == project_sdk.id
+
+        assert project_sdk.project == self.project
+        assert project_sdk.event_type == self.event_type.value
+        assert project_sdk.sdk_name == "sentry.python"
+        assert project_sdk.sdk_version == "2.23.0"
+
+    def test_no_new_version(self):
+        existing = ProjectSDK.objects.create(
+            project=self.project,
+            event_type=self.event_type.value,
+            sdk_name="sentry.python",
+            sdk_version="2.23.0",
+        )
+
+        project_sdk = ProjectSDK.update_with_newest_version_or_create(
+            project=self.project,
+            event_type=self.event_type,
+            sdk_name="sentry.python",
+            sdk_version="",
+        )
+
+        assert existing.id == project_sdk.id
+
+        assert project_sdk.project == self.project
+        assert project_sdk.event_type == self.event_type.value
+        assert project_sdk.sdk_name == "sentry.python"
+        assert project_sdk.sdk_version == "2.23.0"
