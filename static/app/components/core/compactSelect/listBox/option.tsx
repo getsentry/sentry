@@ -1,12 +1,14 @@
 import {Fragment, useMemo, useRef} from 'react';
+import styled from '@emotion/styled';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {Checkbox} from 'sentry/components/core/checkbox';
-import {MenuListItem} from 'sentry/components/core/menuListItem';
+import {InnerWrap, MenuListItem} from 'sentry/components/core/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {CheckWrap} from '../styles';
@@ -90,7 +92,7 @@ export function ListBoxOption({
   }, [multiple, isSelected, isDisabled, size, leadingItems, hideCheck]);
 
   return (
-    <MenuListItem
+    <StyledMenuListItem
       {...optionPropsMemo}
       ref={ref}
       size={size}
@@ -111,3 +113,9 @@ export function ListBoxOption({
     />
   );
 }
+
+const StyledMenuListItem = styled(MenuListItem)`
+  > ${InnerWrap} {
+    padding-left: ${space(1)};
+  }
+`;
