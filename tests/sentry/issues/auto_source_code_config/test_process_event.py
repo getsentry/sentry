@@ -89,7 +89,7 @@ class BaseDeriveCodeMappings(TestCase):
         expected_new_in_app_stack_trace_rules: list[str] | None = None,
     ) -> GroupEvent:
         platform_config = PlatformConfig(platform)
-        dry_run = platform_config.is_dry_run_platform()
+        dry_run = platform_config.is_dry_run_platform(self.organization)
         tags = {"dry_run": dry_run, "platform": platform}
         with (
             patch(f"{CLIENT}.get_tree", side_effect=create_mock_get_tree(repo_trees)),
