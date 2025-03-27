@@ -1,11 +1,14 @@
-import {Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {forwardRef, Fragment} from 'react';
+import {css, type Theme, useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
+  /**
+   * @deprecated Circled variant will be removed.
+   */
   isCircled?: boolean;
   isDouble?: boolean;
 }
@@ -14,7 +17,25 @@ const CHEVRON_PATH = (
   <path d="M14,11.75a.74.74,0,0,1-.53-.22L8,6.06,2.53,11.53a.75.75,0,0,1-1.06-1.06l6-6a.75.75,0,0,1,1.06,0l6,6a.75.75,0,0,1,0,1.06A.74.74,0,0,1,14,11.75Z" />
 );
 
-function getChevronPath({isCircled, isDouble}: Pick<Props, 'isCircled' | 'isDouble'>) {
+function getChevronPath({
+  isCircled,
+  isDouble,
+  theme,
+}: Pick<Props, 'isCircled' | 'isDouble'> & {theme: Theme}) {
+  if (theme.isChonk) {
+    if (isDouble) {
+      return (
+        <g>
+          <path d="M3.25 7.84001L7.29 3.80001C7.68 3.41001 8.31 3.41001 8.7 3.80001L12.75 7.84001" />
+          <path d="M3.25 12.25L7.29 8.21001C7.68 7.82001 8.31 7.82001 8.7 8.21001L12.74 12.25" />
+        </g>
+      );
+    }
+    return (
+      <path d="M3.25 10L7.29 5.96001C7.68 5.57001 8.31 5.57001 8.7 5.96001L12.74 10" />
+    );
+  }
+
   if (isCircled) {
     return (
       <Fragment>
@@ -36,26 +57,29 @@ function getChevronPath({isCircled, isDouble}: Pick<Props, 'isCircled' | 'isDoub
   return CHEVRON_PATH;
 }
 
-function IconChevron({ref, isDouble, isCircled, direction = 'up', ...props}: Props) {
-  const theme = useTheme();
+const IconChevron = forwardRef<SVGSVGElement, Props>(
+  ({isDouble, isCircled, direction = 'up', ...props}, ref) => {
+    const theme = useTheme();
 
-  return (
-    <SvgIcon
-      {...props}
-      ref={ref}
-      css={
-        direction
-          ? css`
-              transition: transform 120ms ease-in-out;
-              transform: rotate(${theme.iconDirections[direction]}deg);
-            `
-          : undefined
-      }
-    >
-      {getChevronPath({isDouble, isCircled})}
-    </SvgIcon>
-  );
-}
+    return (
+      <SvgIcon
+        {...props}
+        ref={ref}
+        kind={theme.isChonk ? 'stroke' : 'path'}
+        css={
+          direction
+            ? css`
+                transition: transform 120ms ease-in-out;
+                transform: rotate(${theme.iconDirections[direction]}deg);
+              `
+            : undefined
+        }
+      >
+        {getChevronPath({isDouble, isCircled, theme})}
+      </SvgIcon>
+    );
+  }
+);
 
 IconChevron.displayName = 'IconChevron';
 
