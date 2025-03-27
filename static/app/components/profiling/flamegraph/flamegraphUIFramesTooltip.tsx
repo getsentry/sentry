@@ -55,7 +55,7 @@ export function FlamegraphUIFramesTooltip({
       {uiFramesInConfigSpace.map((frame, i) => {
         const rect = frame.rect.transformRect(uiFramesView.configSpaceTransform);
         const color = uiFramesRenderer.getColorForFrame(frame.type);
-        const cssColor = toRGBAString(color[0]!, color[1]!, color[2]!, color[3] ?? 1);
+        const cssColor = toRGBAString(color[0], color[1], color[2], color[3] ?? 1);
 
         return (
           <React.Fragment key={i}>

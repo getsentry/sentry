@@ -505,7 +505,7 @@ class ResultGrid extends Component<ResultGridProps, State> {
               <Filter
                 key={filterKey}
                 queryKey={filterKey}
-                value={extractQuery(this.state.filters[filterKey]!)}
+                value={extractQuery(this.state.filters[filterKey])}
                 path={path}
                 location={location}
                 {...ensuredFilters[filterKey]!}
@@ -583,7 +583,5 @@ const ErrorAlert = styled(Alert)`
 
 export default withApi(
   // TODO(TS): Type cast added as part of react 18 upgrade, can remove after?
-  withSentryRouter(ResultGrid) as React.ComponentType<
-    Omit<ResultGridProps, keyof WithRouterProps>
-  >
+  withSentryRouter(ResultGrid)
 );
