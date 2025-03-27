@@ -219,9 +219,7 @@ export function GroupTagsDrawer({
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>
-          {getHeaderTitle(tagKey, tab as DrawerTab, includeFeatureFlagsTab)}
-        </Header>
+        <Header>{getHeaderTitle(tagKey, tab, includeFeatureFlagsTab)}</Header>
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>

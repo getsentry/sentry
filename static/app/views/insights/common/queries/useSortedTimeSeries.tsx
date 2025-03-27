@@ -34,6 +34,7 @@ type SeriesMap = {
 
 interface Options<Fields> {
   enabled?: boolean;
+  fidelity?: 'low' | 'auto';
   fields?: string[];
   interval?: string;
   orderby?: string | string[];
@@ -62,6 +63,7 @@ export const useSortedTimeSeries = <
     orderby,
     overriddenRoute,
     enabled,
+    fidelity,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -96,6 +98,7 @@ export const useSortedTimeSeries = <
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      fidelity,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,

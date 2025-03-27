@@ -675,7 +675,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         data: Any,
         column: str,
         null_zero: bool = False,
-        convert_to_milliseconds: bool = False,
     ):
         serialized_values = []
         for timestamp, group in itertools.groupby(data, key=lambda r: r["time"]):
@@ -685,7 +684,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     row_value = None
                 serialized_values.append(
                     {
-                        "timestamp": timestamp * (1000 if convert_to_milliseconds else 1),
+                        "timestamp": timestamp,
                         "value": row_value,
                     }
                 )

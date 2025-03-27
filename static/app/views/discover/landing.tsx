@@ -237,7 +237,7 @@ function DiscoverLanding() {
                 </PrebuiltSwitch>
                 <CompactSelect
                   triggerProps={{prefix: t('Sort By')}}
-                  value={activeSort!.value}
+                  value={activeSort.value}
                   options={SORT_OPTIONS}
                   onChange={opt => handleSortChange(opt.value)}
                   position="bottom-end"

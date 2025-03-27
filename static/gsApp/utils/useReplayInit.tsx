@@ -75,8 +75,8 @@ export default function useReplayInit({organization}: Props) {
           ],
         });
 
-        client.addIntegration!(replayCanvasIntegration());
-        client.addIntegration!(replayRef);
+        client.addIntegration(replayCanvasIntegration());
+        client.addIntegration(replayRef);
       }
     }
 
