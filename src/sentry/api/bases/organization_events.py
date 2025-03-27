@@ -432,6 +432,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def get_rollup(
         self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
     ) -> int:
+        """TODO: we should eventually rely on `SnubaParams.granularity_secs` instead"""
         try:
             rollup = get_rollup_from_request(
                 request,
