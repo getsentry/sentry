@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
@@ -22,7 +23,6 @@ import {GroupActivityType} from 'sentry/types/group';
 import type {Team} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -139,7 +139,7 @@ export default function StreamlinedActivitySection({
   const {teams} = useTeamsById();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  const [inputId, setInputId] = useState(() => uniqueId());
+  const [inputId, setInputId] = useState(() => uuid4());
 
   const activeUser = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -301,7 +301,7 @@ export default function StreamlinedActivitySection({
           itemKey={group.id}
           onCreate={n => {
             handleCreate(n, activeUser);
-            setInputId(uniqueId());
+            setInputId(uuid4());
           }}
           source="issue-details"
           {...noteProps}

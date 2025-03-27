@@ -1,3 +1,4 @@
+import {uuid4} from '@sentry/core';
 import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
@@ -5,7 +6,6 @@ import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
-import {uniqueId} from 'sentry/utils/guid';
 import localStorage from 'sentry/utils/localStorage';
 import sessionStorage from 'sentry/utils/sessionStorage';
 
@@ -57,7 +57,7 @@ const MARKETING_EVENT_NAMES = new Set([
 const ANALYTICS_SESSION = 'ANALYTICS_SESSION';
 
 const startAnalyticsSession = () => {
-  const sessionId = uniqueId();
+  const sessionId = uuid4();
   sessionStorage.setItem(ANALYTICS_SESSION, sessionId);
   return sessionId;
 };

@@ -1,9 +1,9 @@
+import {uuid4} from '@sentry/core';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {uniqueId} from 'sentry/utils/guid';
 import sessionStorage from 'sentry/utils/sessionStorage';
 
 import rawTrackAnalyticsEvent from 'getsentry/utils/rawTrackAnalyticsEvent';
@@ -11,7 +11,7 @@ import trackAmplitudeEvent from 'getsentry/utils/trackAmplitudeEvent';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import trackReloadEvent from 'getsentry/utils/trackReloadEvent';
 
-jest.mock('sentry/utils/guid');
+jest.mock('@sentry/core');
 jest.mock('getsentry/utils/trackAmplitudeEvent');
 jest.mock('getsentry/utils/trackReloadEvent');
 jest.mock('getsentry/utils/trackMarketingEvent');
@@ -23,14 +23,14 @@ describe('rawTrackAnalyticsEvent', function () {
   const org_id = Number(organization.id);
 
   beforeEach(function () {
-    (uniqueId as jest.MockedFunction<typeof uniqueId>).mockReturnValue('345');
+    (uuid4 as jest.MockedFunction<typeof uuid4>).mockReturnValue('345');
   });
 
   afterEach(function () {
     (trackReloadEvent as jest.Mock).mockClear();
     (trackAmplitudeEvent as jest.Mock).mockClear();
     (trackMarketingEvent as jest.Mock).mockClear();
-    (uniqueId as jest.Mock).mockClear();
+    (uuid4 as jest.Mock).mockClear();
   });
 
   it('tracks in reload but not amplitude with undefined organization', function () {
@@ -87,7 +87,7 @@ describe('rawTrackAnalyticsEvent', function () {
       }),
       {time: undefined}
     );
-    expect(uniqueId).not.toHaveBeenCalled();
+    expect(uuid4).not.toHaveBeenCalled();
     sessionStorage.removeItem('ANALYTICS_SESSION');
     expect(trackMarketingEvent).not.toHaveBeenCalled();
   });
@@ -116,7 +116,7 @@ describe('rawTrackAnalyticsEvent', function () {
       expect.objectContaining({someProp: 'value', analytics_session_id: '345'}),
       {time: undefined}
     );
-    expect(uniqueId).toHaveBeenCalledWith();
+    expect(uuid4).toHaveBeenCalledWith();
   });
 
   it('allows string for organization', function () {
@@ -204,7 +204,7 @@ describe('rawTrackAnalyticsEvent', function () {
       expect.objectContaining({analytics_session_id: '345'}),
       {time: undefined}
     );
-    expect(uniqueId).toHaveBeenCalledWith();
+    expect(uuid4).toHaveBeenCalledWith();
   });
   it('accepts subscription and sets plan', function () {
     rawTrackAnalyticsEvent({

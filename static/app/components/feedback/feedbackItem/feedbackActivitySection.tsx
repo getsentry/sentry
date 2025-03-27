@@ -1,4 +1,5 @@
 import {useCallback, useMemo} from 'react';
+import {uuid4} from '@sentry/core';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
@@ -12,7 +13,6 @@ import {
   GroupActivityType,
 } from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
-import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
 
@@ -84,7 +84,7 @@ function FeedbackActivitySection(props: Props) {
   const handleCreate = useCallback(
     (n: NoteType, me: User) => {
       const newActivity: GroupActivityNote = {
-        id: uniqueId(), // temporary unique id, for cache use only
+        id: uuid4(), // temporary unique id, for cache use only
         data: n,
         type: GroupActivityType.NOTE,
         dateCreated: new Date().toISOString(),

@@ -1,3 +1,5 @@
+import {uuid4} from '@sentry/core';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openPluginActionModal} from 'sentry/components/group/pluginActions';
 import {t} from 'sentry/locale';
@@ -5,7 +7,6 @@ import plugins from 'sentry/plugins';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {uniqueId} from 'sentry/utils/guid';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,7 +61,7 @@ export function usePluginExternalIssues({
               plugins.load(newPlugin, () => {
                 addSuccessMessage(t('Successfully unlinked issue.'));
               });
-              GroupStore.onUpdateSuccess(uniqueId(), [group.id], {
+              GroupStore.onUpdateSuccess(uuid4(), [group.id], {
                 pluginIssues: newPluginIssues,
               });
             },
@@ -105,7 +106,7 @@ export function usePluginExternalIssues({
                       addSuccessMessage(t('Successfully linked issue.'));
                     });
                     // Add linked issue to group
-                    GroupStore.onUpdateSuccess(uniqueId(), [group.id], {
+                    GroupStore.onUpdateSuccess(uuid4(), [group.id], {
                       pluginIssues: [...group.pluginIssues, updatedPlugin],
                     });
                   },

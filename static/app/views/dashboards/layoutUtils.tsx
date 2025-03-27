@@ -1,12 +1,12 @@
 import type {Layout} from 'react-grid-layout';
 // @ts-expect-error TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import {compact} from 'react-grid-layout/build/utils';
+import {uuid4} from '@sentry/core';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
 import zip from 'lodash/zip';
 
 import {defined} from 'sentry/utils';
-import {uniqueId} from 'sentry/utils/guid';
 
 import {NUM_DESKTOP_COLS} from './dashboard';
 import type {Widget, WidgetLayout} from './types';
@@ -37,7 +37,7 @@ export function assignTempId(widget: Widget) {
     return widget;
   }
 
-  return {...widget, tempId: uniqueId()};
+  return {...widget, tempId: uuid4()};
 }
 
 /**

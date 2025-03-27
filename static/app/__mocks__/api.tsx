@@ -179,7 +179,7 @@ class Client implements ApiNamespace.Client {
     });
   }
 
-  uniqueId() {
+  uuid4() {
     return '123';
   }
 

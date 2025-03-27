@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -19,7 +20,6 @@ import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
-import {uniqueId} from 'sentry/utils/guid';
 import {useDeploys} from 'sentry/utils/useDeploys';
 import {useRelease} from 'sentry/utils/useRelease';
 import {useRepositories} from 'sentry/utils/useRepositories';
@@ -87,7 +87,7 @@ function VersionHoverCard({
         ({
           ...author,
           type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
+          id: 'id' in author ? author.id : uuid4(),
         })
       ),
     [release?.authors]

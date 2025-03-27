@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
@@ -13,7 +14,6 @@ import type {Actor} from 'sentry/types/core';
 import type {ReleaseWithHealth} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -50,7 +50,7 @@ function ReleaseContext(props: BaseContextProps) {
         ({
           ...author,
           type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
+          id: 'id' in author ? author.id : uuid4(),
         })
       ),
     [data?.authors]

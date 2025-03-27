@@ -1,5 +1,6 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -18,7 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
-import {uniqueId} from 'sentry/utils/guid';
 import withOrganization from 'sentry/utils/withOrganization';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
@@ -60,7 +60,7 @@ type Props = {
  */
 const getCleanAction = (actionConfig: any, dateCreated?: string): Action => {
   return {
-    unsavedId: uniqueId(),
+    unsavedId: uuid4(),
     unsavedDateCreated: dateCreated ?? new Date().toISOString(),
     type: actionConfig.type,
     targetType:
@@ -221,7 +221,7 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers, onChange} = this.props;
     // Convert saved action to unsaved by removing id
     const {id: _, ...action} = triggers[triggerIndex]!.actions[index]!;
-    action.unsavedId = uniqueId();
+    action.unsavedId = uuid4();
     triggers[value.value]!.actions.push(action);
     onChange(value.value, triggers, triggers[value.value]!.actions);
     this.handleDeleteAction(triggerIndex, index);

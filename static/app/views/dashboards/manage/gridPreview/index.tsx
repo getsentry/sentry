@@ -3,9 +3,9 @@ import 'react-resizable/css/styles.css';
 
 import GridLayout, {WidthProvider} from 'react-grid-layout';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import {defined} from 'sentry/utils';
-import {uniqueId} from 'sentry/utils/guid';
 import {
   assignDefaultLayout,
   calculateColumnDepths,
@@ -60,7 +60,7 @@ function GridPreview({widgetPreview}: Props) {
       {renderPreview.map(({displayType, layout}) => {
         const Preview = miniWidget(displayType);
         return (
-          <Chart key={uniqueId()} data-grid={{...layout}}>
+          <Chart key={uuid4()} data-grid={{...layout}}>
             <PreviewWrapper>
               <Preview />
             </PreviewWrapper>

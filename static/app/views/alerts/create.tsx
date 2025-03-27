@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef} from 'react';
+import {uuid4} from '@sentry/core';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -8,7 +9,6 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
-import {uniqueId} from 'sentry/utils/guid';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -60,7 +60,7 @@ function Create(props: Props) {
   } = location?.query ?? {};
   const alertType = params.alertType || AlertRuleType.METRIC;
 
-  const sessionId = useRef(uniqueId());
+  const sessionId = useRef(uuid4());
   const navigate = useNavigate();
 
   const isDuplicateRule = createFromDuplicate === 'true' && duplicateRuleId;

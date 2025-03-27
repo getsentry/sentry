@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
@@ -11,7 +12,6 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {uniqueId} from 'sentry/utils/guid';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import FooterWithButtons from './components/footerWithButtons';
@@ -23,7 +23,7 @@ const ID_NAME = 'AWS_EXTERNAL_ID';
 const getAwsExternalId = () => {
   let awsExternalId = window.localStorage.getItem(ID_NAME);
   if (!awsExternalId) {
-    awsExternalId = uniqueId();
+    awsExternalId = uuid4();
     window.localStorage.setItem(ID_NAME, awsExternalId);
   }
   return awsExternalId;

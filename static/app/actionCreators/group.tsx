@@ -1,3 +1,4 @@
+import {uuid4} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
@@ -6,7 +7,6 @@ import GroupStore from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
 import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
 import {buildTeamId, buildUserId} from 'sentry/utils';
-import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -21,7 +21,7 @@ export function clearAssignment(
 
   const endpoint = `/organizations/${orgSlug}/issues/${groupId}/`;
 
-  const id = uniqueId();
+  const id = uuid4();
 
   GroupStore.onAssignTo(id, groupId, {
     email: '',
@@ -69,7 +69,7 @@ export function assignToActor({
 
   const endpoint = `/organizations/${orgSlug}/issues/${id}/`;
 
-  const guid = uniqueId();
+  const guid = uuid4();
   let actorId = '';
 
   GroupStore.onAssignTo(guid, id, {email: ''});
@@ -211,7 +211,7 @@ export function bulkDelete(
   const path = getUpdateUrl(params);
 
   const query: QueryArgs = paramsToQueryArgs(params);
-  const id = uniqueId();
+  const id = uuid4();
 
   GroupStore.onDelete(id, itemIds);
 
@@ -246,7 +246,7 @@ export function bulkUpdate(
   const path = getUpdateUrl(params);
 
   const query: QueryArgs = paramsToQueryArgs(params);
-  const id = uniqueId();
+  const id = uuid4();
 
   GroupStore.onUpdate(id, itemIds, data);
 
@@ -279,7 +279,7 @@ export function mergeGroups(
   const path = getUpdateUrl(params);
 
   const query: QueryArgs = paramsToQueryArgs(params);
-  const id = uniqueId();
+  const id = uuid4();
 
   GroupStore.onMerge(id, itemIds);
 

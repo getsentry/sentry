@@ -1,6 +1,7 @@
 import type {MouseEvent} from 'react';
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
@@ -39,7 +40,6 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
-import {uniqueId} from 'sentry/utils/guid';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import useApi from 'sentry/utils/useApi';
@@ -246,7 +246,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   };
 
   const onDiscard = () => {
-    const id = uniqueId();
+    const id = uuid4();
     addLoadingMessage(t('Discarding event\u2026'));
 
     GroupStore.onDiscard(id, group.id);

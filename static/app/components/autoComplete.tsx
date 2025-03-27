@@ -9,10 +9,10 @@
  * it is rendered should be left to the child.
  */
 import {Component} from 'react';
+import {uuid4} from '@sentry/core';
 
 import type {GetActorArgs, GetMenuArgs} from 'sentry/components/deprecatedDropdownMenu';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
-import {uniqueId} from 'sentry/utils/guid';
 
 interface DefaultProps {
   closeOnSelect: boolean;
@@ -178,7 +178,7 @@ class AutoComplete<T extends Item> extends Component<AutoCompleteProps<T>, State
   }
 
   private _mounted = false;
-  private _id = `autocomplete-${uniqueId()}`;
+  private _id = `autocomplete-${uuid4()}`;
 
   /**
    * Used to track keyboard navigation of items.

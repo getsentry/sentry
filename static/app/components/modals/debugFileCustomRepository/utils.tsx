@@ -1,3 +1,4 @@
+import {uuid4} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import type {Field} from 'sentry/components/forms/types';
@@ -9,7 +10,6 @@ import {
 } from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
 import {CustomRepoType} from 'sentry/types/debugFiles';
-import {uniqueId} from 'sentry/utils/guid';
 
 function objectToChoices(
   obj: Record<string, string>
@@ -24,7 +24,7 @@ const commonFields: FieldMap = {
     name: 'id',
     type: 'hidden',
     required: true,
-    defaultValue: uniqueId,
+    defaultValue: uuid4,
   },
   name: {
     name: 'name',

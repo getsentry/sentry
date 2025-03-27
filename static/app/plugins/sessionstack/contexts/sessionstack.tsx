@@ -1,6 +1,5 @@
 import {Component} from 'react';
-
-import {uniqueId} from 'sentry/utils/guid';
+import {uuid4} from '@sentry/core';
 
 const ASPECT_RATIO = 16 / 9;
 
@@ -29,7 +28,7 @@ class SessionStackContextType extends Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('resize', this.setIframeSize, false);
   }
-  iframeContainerId = uniqueId();
+  iframeContainerId = uuid4();
 
   getTitle = () => 'SessionStack';
 

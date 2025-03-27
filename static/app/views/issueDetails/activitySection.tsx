@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {uuid4} from '@sentry/core';
 
 import {ActivityAuthor} from 'sentry/components/activity/author';
 import {ActivityItem} from 'sentry/components/activity/item';
@@ -10,7 +11,6 @@ import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
@@ -27,7 +27,7 @@ function ActivitySection(props: Props) {
   const {group, placeholderText, onCreate, onDelete, onUpdate} = props;
   const organization = useOrganization();
 
-  const [inputId, setInputId] = useState(uniqueId());
+  const [inputId, setInputId] = useState(uuid4());
 
   const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
@@ -52,7 +52,7 @@ function ActivitySection(props: Props) {
               org_streamline_only: organization.streamlineOnly ?? undefined,
               streamline: false,
             });
-            setInputId(uniqueId());
+            setInputId(uuid4());
           }}
           source="activity"
           {...noteProps}

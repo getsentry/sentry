@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
+import {uuid4} from '@sentry/core';
 import type {EChartsType} from 'echarts';
 import * as echarts from 'echarts';
 
-import {uniqueId} from 'sentry/utils/guid';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
 type RegistrationFunction = (chart: EChartsType) => void;
@@ -24,7 +24,7 @@ interface WidgetSyncContextProviderProps {
 
 export function WidgetSyncContextProvider({
   children,
-  groupName = uniqueId(),
+  groupName = uuid4(),
 }: WidgetSyncContextProviderProps) {
   const register: RegistrationFunction = chart => {
     chart.group = groupName;

@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {t, tn} from 'sentry/locale';
@@ -7,7 +8,6 @@ import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
 import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
-import {uniqueId} from 'sentry/utils/guid';
 
 type Props = {
   release: Release;
@@ -25,7 +25,7 @@ function ReleaseCardCommits({release, withHeading = true}: Props) {
         ({
           ...author,
           type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
+          id: 'id' in author ? author.id : uuid4(),
         })
       ),
     [release.authors]

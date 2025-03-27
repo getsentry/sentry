@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
@@ -14,7 +15,6 @@ import {
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
 
@@ -55,7 +55,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
 
 function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
   const initialData: Data = {
-    id: props.initialData?.id ?? uniqueId(),
+    id: props.initialData?.id ?? uuid4(),
     name: props.initialData?.name,
     url: props.initialData?.url,
     username: props.initialData?.username,

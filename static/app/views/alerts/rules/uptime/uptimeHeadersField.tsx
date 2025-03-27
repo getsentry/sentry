@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {uuid4} from '@sentry/core';
 
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
@@ -9,7 +10,6 @@ import FormFieldControlState from 'sentry/components/forms/formField/controlStat
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {uniqueId} from 'sentry/utils/guid';
 
 /**
  * Matches characters that are not valid in a header name.
@@ -28,8 +28,8 @@ function UptimHeadersControl(props: any) {
   // those into the form model.
   const [items, setItems] = useState<HeaderEntry[]>(
     Object.keys(value).length > 0
-      ? value.map((v: any) => [uniqueId(), ...v] as HeaderEntry)
-      : [[uniqueId(), '', '']]
+      ? value.map((v: any) => [uuid4(), ...v] as HeaderEntry)
+      : [[uuid4(), '', '']]
   );
 
   // Persist the field value back to the form model on changes to the items
@@ -42,7 +42,7 @@ function UptimHeadersControl(props: any) {
   }, [items, onChange, onBlur]);
 
   function addItem() {
-    setItems(currentItems => [...currentItems, [uniqueId(), '', '']]);
+    setItems(currentItems => [...currentItems, [uuid4(), '', '']]);
   }
 
   function removeItem(index: number) {

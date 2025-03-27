@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {uuid4} from '@sentry/core';
 
 import type {
   InviteRow,
@@ -8,7 +9,6 @@ import type {
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -59,7 +59,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   /**
    * Used for analytics tracking of the modals usage.
    */
-  const sessionId = useRef(uniqueId());
+  const sessionId = useRef(uuid4());
   useLogInviteModalOpened({organization, sessionId: sessionId.current, source});
 
   const memberResult = useApiQuery<Member>(

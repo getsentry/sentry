@@ -1,3 +1,4 @@
+import {uuid4} from '@sentry/core';
 import pick from 'lodash/pick';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -6,7 +7,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import type EventView from 'sentry/utils/discover/eventView';
-import {uniqueId} from 'sentry/utils/guid';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
@@ -94,7 +94,7 @@ function MetricRuleDuplicate({
                 integrationId: action.integrationId ?? undefined,
                 options: null,
                 sentryAppId: undefined,
-                unsavedId: uniqueId(),
+                unsavedId: uuid4(),
                 unsavedDateCreated: new Date().toISOString(),
                 ...pick(action, DuplicateActionFields),
               })),

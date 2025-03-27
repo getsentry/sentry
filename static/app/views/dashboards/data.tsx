@@ -1,7 +1,8 @@
+import {uuid4} from '@sentry/core';
+
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {uniqueId} from 'sentry/utils/guid';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 
 import type {DashboardDetails} from './types';
@@ -39,7 +40,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -67,7 +68,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -95,7 +96,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -123,7 +124,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -161,7 +162,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -195,7 +196,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -223,7 +224,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -251,7 +252,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -279,7 +280,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -305,7 +306,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -332,7 +333,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -358,7 +359,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           displayType: DisplayType.TABLE,
           interval: '5m',
           widgetType: WidgetType.ISSUE,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -384,7 +385,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -411,7 +412,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -451,7 +452,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -477,7 +478,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -509,7 +510,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           displayType: DisplayType.TABLE,
           interval: '5m',
           widgetType: WidgetType.ISSUE,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -535,7 +536,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 3,
             minH: 2,
@@ -561,7 +562,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 5,
             minH: 2,
@@ -587,7 +588,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -613,7 +614,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -639,7 +640,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -665,7 +666,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -716,7 +717,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -742,7 +743,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -768,7 +769,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -794,7 +795,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -820,7 +821,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -857,7 +858,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           limit: TOP_N,
           layout: {
             h: 4,
@@ -884,7 +885,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           limit: TOP_N,
           layout: {
             h: 2,
@@ -911,7 +912,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 5,
             minH: 2,
@@ -946,7 +947,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 5,
             minH: 2,
@@ -972,7 +973,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 5,
             minH: 2,
@@ -996,7 +997,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           displayType: DisplayType.TABLE,
           interval: '5m',
           widgetType: WidgetType.ISSUE,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 7,
             minH: 2,
@@ -1022,7 +1023,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -1048,7 +1049,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -1074,7 +1075,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -1100,7 +1101,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -1127,7 +1128,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1153,7 +1154,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1179,7 +1180,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1205,7 +1206,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1242,7 +1243,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1270,7 +1271,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1298,7 +1299,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1326,7 +1327,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1352,7 +1353,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -1378,7 +1379,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 3,
             minH: 2,
@@ -1404,7 +1405,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.ERRORS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 2,
             minH: 2,
@@ -1430,7 +1431,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1456,7 +1457,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1482,7 +1483,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -1508,7 +1509,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
@@ -1534,7 +1535,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1560,7 +1561,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1586,7 +1587,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 1,
             minH: 1,
@@ -1612,7 +1613,7 @@ export const getDashboardTemplates = (organization: Organization) => {
           widgetType: hasDatasetSelector(organization)
             ? WidgetType.TRANSACTIONS
             : WidgetType.DISCOVER,
-          tempId: uniqueId(),
+          tempId: uuid4(),
           layout: {
             h: 4,
             minH: 2,
