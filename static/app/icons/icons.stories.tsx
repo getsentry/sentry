@@ -89,7 +89,20 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['experiment', 'test'],
         name: 'Lab',
-        defaultProps: {},
+        additionalProps: ['isSolid'],
+        defaultProps: {
+          isSolid: false,
+        },
+      },
+      {
+        id: 'lab-isSolid',
+        groups: ['product'],
+        keywords: ['experiment', 'test'],
+        name: 'Lab',
+        additionalProps: ['isSolid'],
+        defaultProps: {
+          isSolid: true,
+        },
       },
       {
         id: 'broadcast',

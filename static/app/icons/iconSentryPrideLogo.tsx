@@ -6,7 +6,7 @@ import {SvgIcon} from 'sentry/icons/svgIcon';
 const IconSentryPrideLogo = forwardRef<SVGSVGElement, Omit<SVGIconProps, 'fill'>>(
   (props, ref) => {
     return (
-      <SvgIcon {...props} ref={ref}>
+      <SvgIcon {...props} ref={ref} kind="path">
         <defs>
           <linearGradient id="pride" x1="0%" y1="75%" x2="100%" y2="130%">
             <stop offset="0" style={{stopColor: '#DA6B9D', stopOpacity: 1}} />

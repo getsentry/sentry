@@ -13,7 +13,7 @@ const IconCellSignal = forwardRef<SVGSVGElement, Props>(({bars = 3, ...props}, r
   const thirdBarColor = bars > 2 ? theme.gray300 : theme.gray200;
 
   return (
-    <SvgIcon {...props} ref={ref}>
+    <SvgIcon {...props} ref={ref} kind={'path'}>
       <rect x="0" y="10" width="4" height="5" fill={firstBarColor} rx="1" />
       <rect x="6.2" y="5" width="4" height="10" fill={secondBarColor} rx="1" />
       <rect x="12.4" y="0" width="4" height="15" fill={thirdBarColor} rx="1" />
