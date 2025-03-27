@@ -3,6 +3,7 @@ import upperFirst from 'lodash/upperFirst';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import type {
   BillingMetricHistory,
@@ -96,7 +97,7 @@ export function getPlanCategoryName({
         ? displayNames.plural
         : category;
   return title
-    ? titleCase(categoryName)
+    ? toTitleCase(categoryName, {allowInnerUpperCase: true})
     : capitalize
       ? upperFirst(categoryName)
       : categoryName;
@@ -148,9 +149,11 @@ export function getReservedBudgetDisplayName({
           hadCustomDynamicSampling,
           capitalize: false,
         });
-        return shouldTitleCase ? titleCase(name) : name;
+        return shouldTitleCase ? toTitleCase(name, {allowInnerUpperCase: true}) : name;
       })
-      .sort()
+      .sort((a, b) => {
+        return a.localeCompare(b);
+      })
   );
 }
 /**
