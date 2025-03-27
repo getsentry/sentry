@@ -129,7 +129,7 @@ class GroupAiPermission(ProjectPermission):
         "DELETE": ["event:admin"],
     }
 
-    # We want to allow POST requests
+    # We want to allow POST requests in order to showcase AI features in demo mode
     ALLOWED_METHODS = SAFE_METHODS + ("POST",)
 
     def has_permission(self, request: Request, view) -> bool:
@@ -146,7 +146,7 @@ class GroupAiPermission(ProjectPermission):
                 return False
 
             return True
-        return super().has_object_permission(request, view, group)
+        return super().has_object_permission(request, view, group.project)
 
 
 class GroupAiEndpoint(GroupEndpoint):
