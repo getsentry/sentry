@@ -1,5 +1,4 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -20,6 +19,7 @@ type Props<SortableRecord extends BaseRecord> = {
   sortConfig: SortConfig<SortableRecord>;
   style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
 };
 
 const StyledIconInfo = styled(IconInfo)`
@@ -30,10 +30,15 @@ function CatchClicks({children}: {children: ReactNode}) {
   return <div onClick={e => e.stopPropagation()}>{children}</div>;
 }
 
-function HeaderCell(
-  {field, handleSort, label, sortConfig, style, tooltipTitle}: Props<BaseRecord>,
-  ref: any
-) {
+function HeaderCell({
+  field,
+  handleSort,
+  label,
+  sortConfig,
+  style,
+  tooltipTitle,
+  ref,
+}: Props<BaseRecord>) {
   return (
     <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>
       {label}
@@ -76,8 +81,4 @@ const HeaderButton = styled('button')`
   }
 `;
 
-export default forwardRef<HTMLButtonElement, Props<BaseRecord>>(HeaderCell) as <
-  T extends BaseRecord,
->(
-  props: Props<T> & {ref?: React.ForwardedRef<HTMLButtonElement>}
-) => ReturnType<typeof HeaderCell>;
+export default HeaderCell;
