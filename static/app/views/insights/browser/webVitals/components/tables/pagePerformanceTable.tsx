@@ -121,7 +121,7 @@ export function PagePerformanceTable() {
 
       return {
         ...location,
-        query: {...location.query, sort: newSort},
+        query: {...location.query, sort: newSort, cursor: undefined},
       };
     }
     const sortableFields = SORTABLE_FIELDS;
@@ -394,5 +394,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

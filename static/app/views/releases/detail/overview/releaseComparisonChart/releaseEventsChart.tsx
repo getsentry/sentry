@@ -64,11 +64,11 @@ function ReleaseEventsChart({
     const colors = getChartColorPalette(14);
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
-        return [colors[12]!];
+        return [colors[12]];
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
-        return [colors[0]!];
+        return [colors[0]];
       case ReleaseComparisonChartType.FAILURE_RATE:
-        return [colors[9]!];
+        return [colors[9]];
       default:
         return undefined;
     }

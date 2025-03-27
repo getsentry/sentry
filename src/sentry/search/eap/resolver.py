@@ -36,6 +36,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
     AggregateDefinition,
+    AttributeArgumentDefinition,
     ColumnDefinitions,
     ConditionalAggregateDefinition,
     FormulaDefinition,
@@ -62,6 +63,7 @@ class SearchResolver:
     params: SnubaParams
     config: SearchResolverConfig
     definitions: ColumnDefinitions
+    granularity_secs: int | None = None
     _resolved_attribute_cache: dict[
         str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
@@ -743,7 +745,7 @@ class SearchResolver:
                         raise InvalidSearchQuery(
                             f"{argument} is not a valid argument for {function}"
                         )
-                if argument_definition.is_attribute:
+                if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
                 else:
                     if argument_definition.argument_types is None:
@@ -765,11 +767,12 @@ class SearchResolver:
                 )
 
             if (
-                argument_definition.argument_types is not None
-                and parsed_argument.search_type not in argument_definition.argument_types
+                isinstance(argument_definition, AttributeArgumentDefinition)
+                and argument_definition.attribute_types is not None
+                and parsed_argument.search_type not in argument_definition.attribute_types
             ):
                 raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.argument_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                 )
             parsed_args.append(parsed_argument)
 
@@ -792,7 +795,12 @@ class SearchResolver:
                 else function_definition.default_search_type
             )
 
-        resolved_function = function_definition.resolve(alias, search_type, resolved_arguments)
+        resolved_function = function_definition.resolve(
+            alias=alias,
+            search_type=search_type,
+            resolved_arguments=resolved_arguments,
+            snuba_params=self.params,
+        )
 
         resolved_context = None
         self._resolved_function_cache[column] = (resolved_function, resolved_context)

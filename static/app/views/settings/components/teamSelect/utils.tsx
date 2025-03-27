@@ -68,7 +68,7 @@ export function DropdownAddTeam({
   project?: Project;
 }) {
   const dropdownItems: ItemsBeforeFilter = teams
-    .filter(team => !selectedTeams.some(slug => slug === team.slug))
+    .filter(team => !selectedTeams.includes(team.slug))
     .map((team, index) =>
       getDropdownOption({
         isAddingTeamToMember,
@@ -208,7 +208,7 @@ const StyledCreateTeamLink = styled(Link)`
     p.disabled &&
     css`
       cursor: not-allowed;
-      color: ${p.theme.gray300};
+      color: ${p.theme.disabled};
       opacity: 0.6;
     `};
 `;

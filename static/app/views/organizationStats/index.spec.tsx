@@ -432,7 +432,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Continuous Profile Hours'})
+    ).toBeInTheDocument();
     // Should not show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
   });
@@ -451,7 +453,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Continuous Profile Hours'})
+    ).toBeInTheDocument();
     // Should show Profiles (transaction) option
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
@@ -475,7 +479,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Continuous Profile Hours'})
+    ).toBeInTheDocument();
     // Should not show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
   });
@@ -494,7 +500,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.queryByRole('option', {name: 'Profile Hours'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'Continuous Profile Hours'})
+    ).not.toBeInTheDocument();
     // Should show Profiles (transaction) option
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });

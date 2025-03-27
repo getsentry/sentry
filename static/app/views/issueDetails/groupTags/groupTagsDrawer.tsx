@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -7,7 +7,6 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {ExportQueryType, useDataExport} from 'sentry/components/dataExport';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {
   CrumbContainer,
   EventDrawerBody,
@@ -18,15 +17,11 @@ import {
   SearchInput,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {IconDownload, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -34,13 +29,8 @@ import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
 import GroupFeatureFlagsDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/groupFeatureFlagsDrawerContent';
+import GroupTagsDrawerContent from 'sentry/views/issueDetails/groupTags/groupTagsDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
-import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
-import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
-import {
-  type GroupTag,
-  useGroupTags,
-} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -83,83 +73,6 @@ function getHeaderTitle(
   return includeFeatureFlagsTab ? t('Tags & Feature Flags') : t('All Tags');
 }
 
-function DrawerContent({
-  displayTags,
-  group,
-  environments,
-  search,
-  isLoading,
-  isError,
-  refetch,
-  tab,
-  tagKey,
-  data,
-}: {
-  data: GroupTag[];
-  displayTags: GroupTag[];
-  environments: string[];
-  group: Group;
-  isError: boolean;
-  isLoading: boolean;
-  refetch: () => void;
-  search: string;
-  tab: DrawerTab;
-  tagKey: string | undefined;
-}) {
-  if (tagKey) {
-    return tab === DrawerTab.TAGS ? (
-      <TagDetailsDrawerContent group={group} />
-    ) : (
-      <FlagDetailsDrawerContent />
-    );
-  }
-
-  if (tab === DrawerTab.FEATURE_FLAGS) {
-    return (
-      <GroupFeatureFlagsDrawerContent
-        group={group}
-        environments={environments}
-        search={search}
-      />
-    );
-  }
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return (
-      <LoadingError
-        message={t('There was an error loading issue tags.')}
-        onRetry={refetch}
-      />
-    );
-  }
-
-  if (displayTags.length === 0) {
-    return (
-      <StyledEmptyStateWarning withIcon>
-        {data.length === 0
-          ? t('No tags were found for this issue')
-          : t('No tags were found for this search')}
-      </StyledEmptyStateWarning>
-    );
-  }
-
-  return (
-    <Container>
-      {displayTags.map(tag => (
-        <div key={tag.name}>
-          <TagDetailsLink tag={tag} groupId={group.id}>
-            <TagDistribution tag={tag} />
-          </TagDetailsLink>
-        </div>
-      ))}
-    </Container>
-  );
-}
-
 export function GroupTagsDrawer({
   group,
   includeFeatureFlagsTab,
@@ -175,6 +88,7 @@ export function GroupTagsDrawer({
   const drawerRef = useRef<HTMLDivElement>(null);
   const {projects} = useProjects();
   const project = projects.find(p => p.slug === group.project.slug)!;
+
   const [isExportDisabled, setIsExportDisabled] = useState(false);
   const {baseUrl} = useGroupDetailsRoute();
   const handleDataExport = useDataExport({
@@ -189,51 +103,6 @@ export function GroupTagsDrawer({
   });
   const [search, setSearch] = useState('');
   const {tab, setTab} = useDrawerTab({enabled: includeFeatureFlagsTab});
-
-  const {
-    data = [],
-    isPending,
-    isError,
-    refetch,
-  } = useGroupTags({
-    groupId: group.id,
-    environment: environments,
-  });
-
-  const {data: detailedProject, isPending: isHighlightsPending} = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
-
-  const highlightTagKeys = useMemo(() => {
-    return detailedProject?.highlightTags ?? project?.highlightTags ?? [];
-  }, [detailedProject, project]);
-
-  const tagValues = useMemo(
-    () =>
-      data.reduce<Record<string, string>>((valueMap, tag) => {
-        valueMap[tag.key] = tag.topValues.map(tv => tv.value).join(' ');
-        return valueMap;
-      }, {}),
-    [data]
-  );
-
-  const displayTags = useMemo(() => {
-    const highlightTags = data.filter(tag => highlightTagKeys.includes(tag.key));
-    const orderedHighlightTags = highlightTags.sort(
-      (a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key)
-    );
-    const remainingTags = data.filter(tag => !highlightTagKeys.includes(tag.key));
-    const sortedTags = remainingTags.sort((a, b) => a.key.localeCompare(b.key));
-    const orderedTags = [...orderedHighlightTags, ...sortedTags];
-    const searchedTags = orderedTags.filter(
-      tag =>
-        tag.key.includes(search) ||
-        tag.name.includes(search) ||
-        tagValues[tag.key]?.includes(search)
-    );
-    return searchedTags;
-  }, [data, search, tagValues, highlightTagKeys]);
 
   const headerActions = tagKey ? (
     <DropdownMenu
@@ -350,48 +219,37 @@ export function GroupTagsDrawer({
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>
-          {getHeaderTitle(tagKey, tab as DrawerTab, includeFeatureFlagsTab)}
-        </Header>
+        <Header>{getHeaderTitle(tagKey, tab, includeFeatureFlagsTab)}</Header>
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>
-        <DrawerContent
-          displayTags={displayTags}
-          group={group}
-          environments={environments}
-          search={search}
-          isLoading={isPending || isHighlightsPending}
-          isError={isError}
-          refetch={refetch}
-          tab={tab as DrawerTab}
-          tagKey={tagKey}
-          data={data}
-        />
+        {tagKey && tab === DrawerTab.TAGS ? (
+          <TagDetailsDrawerContent group={group} />
+        ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? (
+          <FlagDetailsDrawerContent />
+        ) : tab === DrawerTab.FEATURE_FLAGS ? (
+          <GroupFeatureFlagsDrawerContent
+            group={group}
+            environments={environments}
+            search={search}
+          />
+        ) : (
+          <GroupTagsDrawerContent
+            group={group}
+            environments={environments}
+            organization={organization}
+            project={project}
+            search={search}
+          />
+        )}
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-export const Container = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
 
 const Header = styled('h3')`
   ${p => p.theme.overflowEllipsis};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
-`;
-
-export const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.border} solid 1px;
-  border-radius: ${p => p.theme.borderRadius};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: ${p => p.theme.fontSizeLarge};
 `;

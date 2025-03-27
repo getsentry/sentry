@@ -156,7 +156,7 @@ export function PathsTable({query}: {query?: string}) {
           ],
           query: `(transaction.op:http.server) event.type:transaction ${query}`,
           referrer: 'api.performance.landing-table',
-          orderby: getOrderBy(sortField, sortOrder as 'asc' | 'desc'),
+          orderby: getOrderBy(sortField, sortOrder),
           per_page: PER_PAGE,
         },
       },
@@ -421,7 +421,7 @@ const CellExpander = styled('div')`
 
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   min-width: 0px;
 `;

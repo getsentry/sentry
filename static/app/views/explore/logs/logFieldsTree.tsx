@@ -376,7 +376,7 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
     }
     const newFields = [...fields];
     if (newFields[newFields.length - 1] === OurLogKnownFieldKey.TIMESTAMP) {
-      newFields.splice(newFields.length - 1, 0, originalAttribute.original_attribute_key);
+      newFields.splice(-1, 0, originalAttribute.original_attribute_key);
     } else {
       newFields.push(originalAttribute.original_attribute_key);
     }
@@ -503,7 +503,7 @@ function getAttribute(
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
   // Filter out hidden attributes
-  if (hiddenAttributes.includes(attributeKey as OurLogFieldKey)) {
+  if (hiddenAttributes.includes(attributeKey)) {
     return undefined;
   }
 

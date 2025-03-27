@@ -202,6 +202,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...requestProps}
+              includeAllArgs={false}
               limit={1}
               currentSeriesNames={[sortField!]}
               includePrevious={false}

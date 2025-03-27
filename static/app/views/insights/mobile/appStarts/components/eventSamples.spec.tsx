@@ -124,7 +124,7 @@ describe('ScreenLoadEventSamples', function () {
     // Transaction is a link
     expect(await screen.findByRole('link', {name: '76af98a3'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/sentry-cocoa:76af98a3ac9d4448b894e44b1819970e/'
+      '/organizations/org-slug/insights/backend/sentry-cocoa:76af98a3ac9d4448b894e44b1819970e/'
     );
 
     // Profile is a button

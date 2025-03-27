@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -14,20 +14,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
+import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
-import {
-  hasPartnerMigrationFeature,
-  isBizPlanFamily,
-  isDeveloperPlan,
-} from 'getsentry/utils/billing';
+import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
 import {getTotalBudget} from 'getsentry/views/onDemandBudgets/utils';
 
-const PAYG_BUSINESS_DEFAULT = 300_00;
-const PAYG_TEAM_DEFAULT = 100_00;
 const INCREMENT_STEP = 25_00;
 
 function SetPayAsYouGo({
@@ -46,6 +41,17 @@ function SetPayAsYouGo({
     formData.onDemandBudget ? getTotalBudget(formData.onDemandBudget) : 0
   );
 
+  useEffect(() => {
+    if (isActive) {
+      // When step becomes active, set the current budget to the value in formData
+      // to ensure we've got the latest value (e.g. if the user changed plan type
+      // so the default is different from when this was first rendered)
+      setCurrentBudget(
+        formData.onDemandBudget ? getTotalBudget(formData.onDemandBudget) : 0
+      );
+    }
+  }, [isActive, formData.onDemandBudget]);
+
   const checkoutCategories = useMemo(() => {
     return activePlan.checkoutCategories;
   }, [activePlan]);
@@ -60,36 +66,30 @@ function SetPayAsYouGo({
     return isBizPlanFamily(activePlan) ? PAYG_BUSINESS_DEFAULT : PAYG_TEAM_DEFAULT;
   }, [activePlan]);
 
-  const isNewPayingCustomer =
-    isDeveloperPlan(subscription.planDetails) || hasPartnerMigrationFeature(organization);
-
-  useEffect(() => {
-    if (isNewPayingCustomer) {
-      setCurrentBudget(suggestedBudgetForPlan);
-    }
-  }, [isNewPayingCustomer, suggestedBudgetForPlan]);
-
-  const handleBudgetChange = (value: OnDemandBudgets, fromButton = false) => {
-    // NOTE: `value` is always a SharedOnDemandBudget here because we don't support per-category budgets
-    // on AM3 but we use getTotalBudget anyway to be type safe
-    const totalBudget = getTotalBudget(value);
-    onUpdate({
-      ...formData,
-      onDemandBudget: value,
-      onDemandMaxSpend: totalBudget,
-    });
-
-    if (organization) {
-      trackGetsentryAnalytics('checkout.payg_changed', {
-        organization,
-        subscription,
-        plan: formData.plan,
-        cents: totalBudget || 0,
-        method: fromButton ? 'button' : 'textbox',
+  const handleBudgetChange = useCallback(
+    (value: OnDemandBudgets, fromButton = false) => {
+      // NOTE: `value` is always a SharedOnDemandBudget here because we don't support per-category budgets
+      // on AM3 but we use getTotalBudget anyway to be type safe
+      const totalBudget = getTotalBudget(value);
+      onUpdate({
+        ...formData,
+        onDemandBudget: value,
+        onDemandMaxSpend: totalBudget,
       });
-    }
-    setCurrentBudget(totalBudget);
-  };
+
+      if (organization) {
+        trackGetsentryAnalytics('checkout.payg_changed', {
+          organization,
+          subscription,
+          plan: formData.plan,
+          cents: totalBudget || 0,
+          method: fromButton ? 'button' : 'textbox',
+        });
+      }
+      setCurrentBudget(totalBudget);
+    },
+    [onUpdate, organization, subscription, formData]
+  );
 
   const coerceValue = (value: number): string => {
     return (value / 100).toString();
@@ -381,7 +381,7 @@ const Title = styled('label')`
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0;
 `;
 
@@ -400,7 +400,7 @@ const CategoryInfoDescription = styled(Description)`
 const CategoryInfoList = styled('ul')`
   margin: ${space(1)} 0;
   padding: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 
   li {

@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-disabled-tests */
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
@@ -10,8 +9,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
 
-// NOTE(isabella): This a temporary skip while we haven't added the step to the checkout flow
-describe.skip('SetPayAsYouGo', function () {
+describe('SetPayAsYouGo', function () {
   const api = new MockApiClient();
   const organization = OrganizationFixture({
     features: ['ondemand-budgets', 'am3-billing'],
@@ -116,6 +114,7 @@ describe.skip('SetPayAsYouGo', function () {
         enabled: true,
         onDemandSpendUsed: 0,
       },
+      isFree: false,
     });
     act(() => SubscriptionStore.set(organization.slug, sub));
     render(
@@ -283,5 +282,43 @@ describe.skip('SetPayAsYouGo', function () {
     expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('0');
     await userEvent.click(screen.getByRole('button', {name: 'Decrease'}));
     expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('0');
+  });
+
+  it('updates when default budget changes', async function () {
+    const sub = SubscriptionFixture({
+      organization,
+      plan: 'am3_f',
+      planTier: PlanTier.AM3,
+    });
+    act(() => SubscriptionStore.set(organization.slug, sub));
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        organization={organization}
+        checkoutTier={PlanTier.AM3}
+        onToggleLegacy={jest.fn()}
+      />
+    );
+    await openPanel();
+
+    // renders with default business budget
+    expect(screen.getByText(stepBody)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue(
+      '300'
+    );
+
+    // go back to plan select
+    await userEvent.click(screen.getByText('Choose Your Plan'));
+    expect(await screen.findByTestId('header-choose-your-plan')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', {name: 'Team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    // renders with default team budget
+    expect(screen.getByText(stepBody)).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue(
+      '100'
+    );
   });
 });

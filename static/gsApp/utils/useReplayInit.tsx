@@ -26,7 +26,7 @@ export default function useReplayInit({organization}: Props) {
 
   useEffect(() => {
     async function init(sessionSampleRate: number, errorSampleRate: number) {
-      const {replayIntegration} = await import('@sentry/react');
+      const {replayIntegration, replayCanvasIntegration} = await import('@sentry/react');
 
       if (!replayRef) {
         const client = getClient();
@@ -75,12 +75,8 @@ export default function useReplayInit({organization}: Props) {
           ],
         });
 
-        if (organization?.features.includes('session-replay-enable-canvas')) {
-          const {replayCanvasIntegration} = await import('@sentry/react');
-          client.addIntegration!(replayCanvasIntegration());
-        }
-
-        client.addIntegration!(replayRef);
+        client.addIntegration(replayCanvasIntegration());
+        client.addIntegration(replayRef);
       }
     }
 

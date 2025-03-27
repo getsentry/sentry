@@ -3,13 +3,15 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
-import type {ExternalIssueAction} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import type FormModel from 'sentry/components/forms/model';
 import type {FieldValue} from 'sentry/components/forms/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
+
+export type ExternalIssueAction = 'create' | 'link';
+export type ExternalIssueFormErrors = {[key: string]: React.ReactNode};
 
 // This exists because /extensions/type/search API is not prefixed with
 // /api/0/, but the default API client on the abstract issue form is...
@@ -46,7 +48,7 @@ async function getOptionLoad({
   }
 }
 
-export const debouncedOptionLoad = debounce(
+const debouncedOptionLoad = debounce(
   ({
     field,
     input,
@@ -62,65 +64,7 @@ export const debouncedOptionLoad = debounce(
   {trailing: true}
 );
 
-export function getConfigName(
-  action: ExternalIssueAction
-): 'createIssueConfig' | 'linkIssueConfig' {
-  switch (action) {
-    case 'create':
-      return 'createIssueConfig';
-    case 'link':
-      return 'linkIssueConfig';
-    default:
-      throw new Error('illegal action');
-  }
-}
-
-/**
- * Get the list of options for a field via debounced API call. For example,
- * the list of users that match the input string. The Promise rejects if there
- * are any errors.
- */
-export function getOptions({
-  field,
-  input,
-  model,
-  dynamicFieldValues,
-  successCallback,
-}: {
-  dynamicFieldValues: Record<string, FieldValue | null>;
-  field: IssueConfigField;
-  input: string;
-  model: FormModel;
-  successCallback: ({
-    field,
-    result,
-  }: {
-    field: IssueConfigField;
-    result: Array<SelectValue<string | number>>;
-  }) => void;
-}) {
-  return new Promise<Array<SelectValue<string | number>>>((resolve, reject) => {
-    if (!input) {
-      return resolve(getDefaultOptions({field}));
-    }
-    return debouncedOptionLoad({
-      field,
-      input,
-      callback: (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          result = ensureCurrentOption({field, result, model});
-          successCallback({field, result});
-          resolve(result);
-        }
-      },
-      dynamicFieldValues: dynamicFieldValues || {},
-    });
-  });
-}
-
-export function getDefaultOptions({
+function getDefaultOptions({
   field,
 }: {
   field: IssueConfigField;
@@ -132,58 +76,6 @@ export function getDefaultOptions({
 }
 
 /**
- * Convert IntegrationIssueConfig to an object that maps field names to the
- * values of fields where `updatesFrom` is true. The paramConfig will be
- * preferred over stateConfig.
- * @returns Object of field names to values.
- */
-export function getDynamicFields({
-  action,
-  paramConfig,
-  stateConfig,
-}: {
-  action: ExternalIssueAction;
-  paramConfig?: IntegrationIssueConfig;
-  stateConfig?: IntegrationIssueConfig | null;
-}): {
-  [key: string]: FieldValue | null;
-} {
-  const integrationDetails = paramConfig || stateConfig;
-  const config = integrationDetails?.[getConfigName(action)];
-  return Object.fromEntries(
-    (config || [])
-      .filter((field: IssueConfigField) => field.updatesForm)
-      .map((field: IssueConfigField) => [field.name, field.default || null])
-  );
-}
-
-/**
- * If this field is an async select (field.url is not null), add async props.
- * XXX: We pass through loadOptions since it's highly opinionated in the abstract class.
- */
-export function getFieldProps({
-  field,
-  loadOptions,
-}: {
-  field: IssueConfigField;
-  loadOptions: (input: string) => Promise<Array<SelectValue<string | number>>>;
-}) {
-  if (!field.url) {
-    return {};
-  }
-  return {
-    async: true,
-    autoload: true,
-    cache: false,
-    loadOptions,
-    defaultOptions: getDefaultOptions({field}),
-    onBlurResetsInput: false,
-    onCloseResetsInput: false,
-    onSelectResetsInput: false,
-  };
-}
-
-/**
  * Ensures current result from Async select fields is never discarded. Without this method,
  * searching in an async select field without selecting one of the returned choices will
  * result in a value saved to the form, and no associated label; appearing empty.
@@ -192,7 +84,7 @@ export function getFieldProps({
  * @param model The form model
  * @returns The result with a tooltip attached to the current option
  */
-export function ensureCurrentOption({
+function ensureCurrentOption({
   field,
   result,
   model,
@@ -231,6 +123,112 @@ export function ensureCurrentOption({
   }
   // Has a selected option, and it is not in API results
   return [...result, currentOption];
+}
+
+export function getConfigName(
+  action: ExternalIssueAction
+): 'createIssueConfig' | 'linkIssueConfig' {
+  switch (action) {
+    case 'create':
+      return 'createIssueConfig';
+    case 'link':
+      return 'linkIssueConfig';
+    default:
+      throw new Error('illegal action');
+  }
+}
+
+/**
+ * Get the list of options for a field via debounced API call. For example,
+ * the list of users that match the input string. The Promise rejects if there
+ * are any errors.
+ */
+export function getOptions({
+  field,
+  input,
+  model,
+  successCallback,
+  dynamicFieldValues = {},
+}: {
+  field: IssueConfigField;
+  input: string;
+  model: FormModel;
+  dynamicFieldValues?: Record<string, FieldValue | null>;
+  successCallback?: ({
+    field,
+    result,
+  }: {
+    field: IssueConfigField;
+    result: Array<SelectValue<string | number>>;
+  }) => void;
+}) {
+  return new Promise<Array<SelectValue<string | number>>>((resolve, reject) => {
+    if (!input) {
+      return resolve(getDefaultOptions({field}));
+    }
+    return debouncedOptionLoad({
+      field,
+      input,
+      callback: (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          result = ensureCurrentOption({field, result, model});
+          successCallback?.({field, result});
+          resolve(result);
+        }
+      },
+      dynamicFieldValues,
+    });
+  });
+}
+
+/**
+ * Convert IntegrationIssueConfig to an object that maps field names to the
+ * values of fields where `updatesForm` is true.
+ * @returns Object of field names to values.
+ */
+export function getDynamicFields({
+  action,
+  integrationDetails,
+}: {
+  action: ExternalIssueAction;
+  integrationDetails?: IntegrationIssueConfig | null;
+}): {
+  [key: string]: FieldValue | null;
+} {
+  const config = integrationDetails?.[getConfigName(action)];
+  return Object.fromEntries(
+    (config || [])
+      .filter((field: IssueConfigField) => field.updatesForm)
+      .map((field: IssueConfigField) => [field.name, field.default || null])
+  );
+}
+
+/**
+ * If this field is an async select (field.url is not null), add async props.
+ * XXX: We pass through loadOptions since it's highly opinionated in the abstract class.
+ */
+export function getFieldProps({
+  field,
+  loadOptions,
+}: {
+  field: IssueConfigField;
+  loadOptions: (input: string) => Promise<Array<SelectValue<string | number>>>;
+}) {
+  if (!field.url) {
+    return {};
+  }
+  return {
+    async: true,
+    autoload: true,
+    cache: false,
+    loadOptions,
+    defaultOptions: getDefaultOptions({field}),
+    onBlurResetsInput: false,
+    onCloseResetsInput: false,
+    onSelectResetsInput: false,
+  };
 }
 
 /**

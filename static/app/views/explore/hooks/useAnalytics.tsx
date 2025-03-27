@@ -3,11 +3,16 @@ import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {
+  useLogsFields,
+  useLogsSearch,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   useExploreDataset,
   useExploreFields,
@@ -19,12 +24,28 @@ import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/vi
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import type {UseExploreLogsTableResult} from 'sentry/views/explore/logs/useLogsQuery';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
 const {info, fmt} = Sentry._experiment_log;
+
+interface UseTrackAnalyticsProps {
+  aggregatesTableResult: AggregatesTableResult;
+  dataset: DiscoverDatasets;
+  fields: string[];
+  interval: string;
+  page_source: 'explore' | 'compare';
+  query: string;
+  queryType: 'aggregate' | 'samples' | 'traces';
+  spansTableResult: SpansTableResult;
+  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  visualizes: Visualize[];
+  title?: string;
+  tracesTableResult?: TracesTableResult;
+}
 
 export function useTrackAnalytics({
   queryType,
@@ -39,20 +60,7 @@ export function useTrackAnalytics({
   visualizes,
   page_source,
   interval,
-}: {
-  aggregatesTableResult: AggregatesTableResult;
-  dataset: DiscoverDatasets;
-  fields: string[];
-  interval: string;
-  page_source: 'explore' | 'compare';
-  query: string;
-  queryType: 'aggregate' | 'samples' | 'traces';
-  spansTableResult: SpansTableResult;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  visualizes: Visualize[];
-  title?: string;
-  tracesTableResult?: TracesTableResult;
-}) {
+}: UseTrackAnalyticsProps) {
   const organization = useOrganization();
 
   const {
@@ -284,14 +292,15 @@ export function useAnalytics({
   tracesTableResult,
   timeseriesResult,
   interval,
-}: {
-  aggregatesTableResult: AggregatesTableResult;
-  interval: string;
-  queryType: 'aggregate' | 'samples' | 'traces';
-  spansTableResult: SpansTableResult;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
-  tracesTableResult: TracesTableResult;
-}) {
+}: Pick<
+  UseTrackAnalyticsProps,
+  | 'queryType'
+  | 'aggregatesTableResult'
+  | 'spansTableResult'
+  | 'tracesTableResult'
+  | 'timeseriesResult'
+  | 'interval'
+>) {
   const dataset = useExploreDataset();
   const title = useExploreTitle();
   const query = useExploreQuery();
@@ -322,14 +331,16 @@ export function useCompareAnalytics({
   spansTableResult,
   timeseriesResult,
   interval,
-}: {
-  aggregatesTableResult: AggregatesTableResult;
+}: Pick<
+  UseTrackAnalyticsProps,
+  | 'queryType'
+  | 'aggregatesTableResult'
+  | 'spansTableResult'
+  | 'timeseriesResult'
+  | 'interval'
+> & {
   index: number;
-  interval: string;
   query: ReadableExploreQueryParts;
-  queryType: 'aggregate' | 'samples' | 'traces';
-  spansTableResult: SpansTableResult;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
 }) {
   const dataset = DiscoverDatasets.SPANS_EAP_RPC;
   const query = queryParts.query;
@@ -354,6 +365,79 @@ export function useCompareAnalytics({
     interval,
     page_source: 'compare',
   });
+}
+
+export function useLogAnalytics({
+  logsTableResult,
+  source,
+}: {
+  logsTableResult: UseExploreLogsTableResult;
+  source: LogsAnalyticsPageSource;
+}) {
+  const organization = useOrganization();
+
+  const {
+    data: {hasExceededPerformanceUsageLimit},
+    isLoading: isLoadingSubscriptionDetails,
+  } = usePerformanceSubscriptionDetails();
+
+  const dataset = DiscoverDatasets.OURLOGS;
+  const search = useLogsSearch();
+  const query = search.formatString();
+  const fields = useLogsFields();
+  const page_source = source;
+
+  const tableError = logsTableResult.error?.message ?? '';
+  const query_status = tableError ? 'error' : 'success';
+
+  useEffect(() => {
+    if (logsTableResult.isPending || isLoadingSubscriptionDetails) {
+      return;
+    }
+
+    const columns = fields as unknown as string[];
+    trackAnalytics('logs.explorer.metadata', {
+      organization,
+      dataset,
+      columns,
+      columns_count: columns.length,
+      query_status,
+      table_result_length: logsTableResult.data?.length || 0,
+      table_result_missing_root: 0,
+      user_queries: search.formatString(),
+      user_queries_count: search.tokens.length,
+      has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
+      page_source,
+    });
+
+    info(
+      fmt`log.explorer.metadata:
+      organization: ${organization.slug}
+      dataset: ${dataset}
+      query: ${query}
+      fields: ${fields}
+      query_status: ${query_status}
+      result_length: ${String(logsTableResult.data?.length || 0)}
+      user_queries: ${search.formatString()}
+      user_queries_count: ${String(search.tokens.length)}
+      has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
+      page_source: ${page_source}
+    `,
+      {isAnalytics: true}
+    );
+  }, [
+    organization,
+    dataset,
+    fields,
+    query,
+    hasExceededPerformanceUsageLimit,
+    isLoadingSubscriptionDetails,
+    query_status,
+    page_source,
+    logsTableResult.isPending,
+    logsTableResult.data?.length,
+    search,
+  ]);
 }
 
 function computeConfidence(

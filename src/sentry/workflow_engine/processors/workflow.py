@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict, replace
 from enum import StrEnum
 
 import sentry_sdk
@@ -21,7 +22,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def enqueue_workflow(
     )
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> set[Workflow]:
+def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowEventData) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
 
     for workflow in workflows:
@@ -67,7 +68,7 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> se
             enqueue_workflow(
                 workflow,
                 remaining_conditions,
-                job["event"],
+                job.event,
                 WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
             )
         else:
@@ -79,41 +80,54 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowJob) -> se
 
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
-    job: WorkflowJob,
+    job: WorkflowEventData,
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids = {workflow.id for workflow in workflows}
+    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
+    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
 
-    action_conditions = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow_id__in=workflow_ids
-    ).distinct()
+    action_conditions = (
+        DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
+        )
+        .prefetch_related("workflowdataconditiongroup_set")
+        .distinct()
+    )
 
     for action_condition in action_conditions:
+        workflow_job = job
+
+        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
+
+        # Populate the workflow_env in the job for the action_condition evaluation
+        if workflow_data_condition_group:
+            workflow_job = replace(
+                job, workflow_env=workflow_data_condition_group.workflow.environment
+            )
+
         (evaluation, result), remaining_conditions = process_data_condition_group(
-            action_condition.id, job
+            action_condition.id, workflow_job
         )
 
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            condition_group = action_condition.workflowdataconditiongroup_set.first()
-            if condition_group:
+            if workflow_data_condition_group:
                 enqueue_workflow(
-                    condition_group.workflow,
+                    workflow_data_condition_group.workflow,
                     remaining_conditions,
-                    job["event"],
+                    job.event,
                     WorkflowDataConditionGroupType.ACTION_FILTER,
                 )
         else:
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
-    return filter_recently_fired_workflow_actions(filtered_action_groups, job["event"].group)
+    return filter_recently_fired_workflow_actions(filtered_action_groups, job.event.group)
 
 
-def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowJob) -> None:
+def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowEventData) -> None:
     # go from actions to workflows
     action_ids = {action.id for action in actions}
     action_conditions = DataConditionGroup.objects.filter(
@@ -134,14 +148,14 @@ def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowJob) 
             extra={
                 "workflow_id": workflow.id,
                 "rule_id": workflow_to_rule.get(workflow.id),
-                "payload": job,
-                "group_id": job["event"].group_id,
-                "event_id": job["event"].event_id,
+                "payload": asdict(job),
+                "group_id": job.event.group_id,
+                "event_id": job.event.event_id,
             },
         )
 
 
-def process_workflows(job: WorkflowJob) -> set[Workflow]:
+def process_workflows(job: WorkflowEventData) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
     Next, it will evaluate the "when" (or trigger) conditions for each workflow, if the conditions are met,
@@ -154,21 +168,20 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
         detector = get_detector_by_event(job)
     except Detector.DoesNotExist:
         metrics.incr("workflow_engine.process_workflows.error")
-        logger.exception("Detector not found for event", extra={"event_id": job["event"].event_id})
+        logger.exception("Detector not found for event", extra={"event_id": job.event.event_id})
         return set()
 
     try:
-        environment = job["event"].get_environment()
+        environment = job.event.get_environment()
     except Environment.DoesNotExist:
         metrics.incr("workflow_engine.process_workflows.error")
-        logger.exception("Missing environment for event", extra={"event_id": job["event"].event_id})
+        logger.exception("Missing environment for event", extra={"event_id": job.event.event_id})
         return set()
 
     # TODO: remove fetching org, only used for FF check
     organization = detector.project.organization
 
     # Get the workflows, evaluate the when_condition_group, finally evaluate the actions for workflows that are triggered
-    environment = job["event"].get_environment()
     workflows = set(
         Workflow.objects.filter(
             (Q(environment_id=None) | Q(environment_id=environment.id)),
@@ -185,8 +198,8 @@ def process_workflows(job: WorkflowJob) -> set[Workflow]:
             "workflow_engine.process_workflows.process_event",
             extra={
                 "payload": job,
-                "group_id": job["event"].group_id,
-                "event_id": job["event"].event_id,
+                "group_id": job.event.group_id,
+                "event_id": job.event.event_id,
                 "event_environment_id": environment.id,
                 "workflows": [workflow.id for workflow in workflows],
             },

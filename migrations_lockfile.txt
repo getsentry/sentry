@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0844_remove_project_cascade_in_create_first_project
+sentry: 0851_new_group_nullable
 
 social_auth: 0002_default_auto_field
 

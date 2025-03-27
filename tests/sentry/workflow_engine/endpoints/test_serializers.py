@@ -295,10 +295,10 @@ class TestActionSerializer(TestCase):
 
         action2 = self.create_action(
             type=Action.Type.SLACK,
-            data={"foo": "bar"},
+            data={"tags": "bar"},
             integration_id=self.integration.id,
             config={
-                "target_type": ActionTarget.USER,
+                "target_type": ActionTarget.SPECIFIC,
                 "target_display": "freddy frog",
                 "target_identifier": "123-id",
             },
@@ -309,9 +309,9 @@ class TestActionSerializer(TestCase):
         assert result2 == {
             "id": str(action2.id),
             "type": "slack",
-            "data": '{"foo":"bar"}',
+            "data": '{"tags":"bar"}',
             "integration_id": self.integration.id,
-            "config": '{"target_type":1,"target_display":"freddy frog","target_identifier":"123-id"}',
+            "config": '{"target_type":0,"target_display":"freddy frog","target_identifier":"123-id"}',
         }
 
 

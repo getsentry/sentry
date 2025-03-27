@@ -76,6 +76,7 @@ export type GrowthEventParameters = {
   'growth.demo_click_docs': Record<string, unknown>;
   'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_request_demo': Record<string, unknown>;
+  'growth.demo_email_submitted': Record<string, unknown>;
   'growth.demo_modal_clicked_close': Record<string, unknown>;
   'growth.demo_modal_clicked_continue': Record<string, unknown>;
   'growth.demo_modal_clicked_demo': Record<string, unknown>;
@@ -169,6 +170,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.demo_click_get_started': 'Growth: Demo Click Get Started',
   'growth.demo_click_docs': 'Growth: Demo Click Docs',
   'growth.demo_click_request_demo': 'Growth: Demo Click Request Demo',
+  'growth.demo_email_submitted': 'Sandbox: Demo Email Submitted',
   'growth.clicked_sidebar': 'Growth: Clicked Sidebar',
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',

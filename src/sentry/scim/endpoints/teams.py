@@ -31,7 +31,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
-from sentry.apidocs.parameters import GlobalParams, SCIMParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -64,7 +64,7 @@ from .utils import (
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-@extend_schema_serializer(dict)
+@extend_schema_serializer(many=True)
 class SCIMTeamPatchOperationSerializer(serializers.Serializer):
     op = serializers.CharField(required=True)
     value = serializers.JSONField(required=False)
@@ -305,18 +305,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     _allow_idp_changes = True
 
     def convert_args(
-        self, request: Request, organization_id_or_slug: int | str, team_id, *args, **kwargs
+        self, request: Request, organization_id_or_slug: int | str, team_id_or_slug, *args, **kwargs
     ):
         args, kwargs = super().convert_args(request, organization_id_or_slug)
         try:
-            kwargs["team"] = self._get_team(kwargs["organization"], team_id)
+            kwargs["team"] = self._get_team(kwargs["organization"], team_id_or_slug)
         except Team.DoesNotExist:
             raise ResourceDoesNotExist(detail=SCIM_404_GROUP_RES)
         return (args, kwargs)
 
-    def _get_team(self, organization, team_id):
+    def _get_team(self, organization, team_id_or_slug):
         team = (
-            Team.objects.filter(organization=organization, id=team_id)
+            Team.objects.filter(organization=organization, slug__id_or_slug=team_id_or_slug)
             .select_related("organization")
             .get()
         )
@@ -326,7 +326,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Query an Individual Team",
-        parameters=[SCIMParams.TEAM_ID, GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.TEAM_ID_OR_SLUG, GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
             200: TeamSCIMSerializer,
@@ -336,7 +336,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         },
         examples=SCIMExamples.QUERY_INDIVIDUAL_TEAM,
     )
-    def get(self, request: Request, organization, team) -> Response:
+    def get(self, request: Request, organization, team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
         """
         Query an individual team with a SCIM Group GET Request.
         - Note that the members field will only contain up to 10000 members.
@@ -407,7 +407,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Update a Team's Attributes",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMParams.TEAM_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=SCIMTeamPatchRequestSerializer,
         responses={
             204: RESPONSE_SUCCESS,
@@ -478,7 +478,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     @extend_schema(
         operation_id="Delete an Individual Team",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMParams.TEAM_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         responses={
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,
@@ -493,7 +493,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)
 
-    def put(self, request: Request, organization, team) -> Response:
+    def put(self, request: Request, organization, team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)
