@@ -3,7 +3,6 @@ import isEqual from 'lodash/isEqual';
 
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
   useExploreDataset,
@@ -15,6 +14,11 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {
+  QUERY_MODE,
+  type SamplingMode,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
@@ -22,92 +26,27 @@ interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
   queryExtras?: {
-    fidelity?: 'low' | 'auto';
+    samplingMode?: SamplingMode;
   };
 }
 
 interface UseExploreTimeseriesResults {
   canUsePreviousResults: boolean;
-  timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  result: ReturnType<typeof useSortedTimeSeries>;
 }
 
-const LOW_FIDELITY_QUERY_EXTRAS = {
-  fidelity: 'low',
-} as const;
-
-const HIGH_FIDELITY_QUERY_EXTRAS = {
-  fidelity: 'auto',
-} as const;
-
-/**
- * This hook is used to fetch timeseries data from the EAP dataset.
- * It will trigger two queries, one that should resolve data quickly and
- * one that will resolve more data but takes longer to execute.
- *
- * The hook will bias towards the high fidelity results if they are available.
- * isLoading will be true if the high fidelity results are not available.
- */
 export const useExploreTimeseries = ({
   query,
   enabled,
-  queryMode,
 }: {
   enabled: boolean;
   query: string;
-  queryMode: 'serial' | 'parallel';
 }) => {
-  const organization = useOrganization();
-  const canUseProgressiveLoading = organization.features.includes(
-    'visibility-explore-progressive-loading'
-  );
-
-  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseriesImpl({
-    query,
-    enabled: enabled && !canUseProgressiveLoading,
+  return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
+    queryHookImplementation: useExploreTimeseriesImpl,
+    queryHookArgs: {query, enabled},
+    queryMode: QUERY_MODE.SERIAL,
   });
-
-  // Start two queries with different fidelities, we will bias towards the high
-  // fidelity results if they are available
-  const {
-    timeseriesResult: lowFidelityTimeseriesResult,
-    canUsePreviousResults: canUsePreviousLowFidelityResults,
-  } = useExploreTimeseriesImpl({
-    query,
-    enabled: enabled && canUseProgressiveLoading,
-    queryExtras: LOW_FIDELITY_QUERY_EXTRAS,
-  });
-  const {
-    timeseriesResult: highFidelityTimeseriesResult,
-    canUsePreviousResults: canUsePreviousHighFidelityResults,
-  } = useExploreTimeseriesImpl({
-    query,
-    enabled:
-      enabled &&
-      canUseProgressiveLoading &&
-      (queryMode === 'parallel' || lowFidelityTimeseriesResult.isFetched),
-    queryExtras: HIGH_FIDELITY_QUERY_EXTRAS,
-  });
-
-  if (!canUseProgressiveLoading) {
-    return {
-      timeseriesResult,
-      canUsePreviousResults,
-    };
-  }
-
-  if (highFidelityTimeseriesResult.isFetched) {
-    return {
-      timeseriesResult: highFidelityTimeseriesResult,
-      canUsePreviousResults: canUsePreviousHighFidelityResults,
-      fidelity: 'high',
-    };
-  }
-
-  return {
-    timeseriesResult: lowFidelityTimeseriesResult,
-    canUsePreviousResults: canUsePreviousLowFidelityResults,
-    fidelity: 'low',
-  };
 };
 
 function useExploreTimeseriesImpl({
@@ -197,5 +136,8 @@ function useExploreTimeseriesImpl({
 
   const timeseriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
 
-  return {timeseriesResult, canUsePreviousResults};
+  return {
+    result: timeseriesResult,
+    canUsePreviousResults,
+  };
 }

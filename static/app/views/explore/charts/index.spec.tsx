@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
@@ -26,7 +28,12 @@ describe('ExploreCharts', () => {
         query={''}
         timeseriesResult={mockTimeseriesResult}
         isProgressivelyLoading
-      />
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['visibility-explore-progressive-loading'],
+        }),
+      }
     );
 
     expect(
