@@ -36,6 +36,7 @@ import type {
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -55,7 +56,7 @@ type Props = {
   isFirstInAppFrame: boolean;
   isUsedForGrouping: boolean;
   platform: PlatformKey;
-  registers: Record<string, string>;
+  registers: StacktraceType['registers'];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
   hiddenFrameCount?: number;

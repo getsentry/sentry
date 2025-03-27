@@ -138,7 +138,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}${tag.key}/`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
         }}
         onMouseEnter={() => {
@@ -181,7 +181,7 @@ function IssueTagButton({
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
           query: location.query,
         }}
         replace
@@ -195,7 +195,7 @@ function IssueTagButton({
   return (
     <IssueTagsLink
       to={{
-        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
       }}
       onClick={() => {
