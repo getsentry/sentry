@@ -43,7 +43,7 @@ export const SvgIcon = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
     return (
       <svg
         role="img"
-        viewBox={'1.25 1.25 14 14'}
+        viewBox={'1.25 1.25 13.5 13.5'}
         height={size}
         width={size}
         ref={ref}
@@ -51,7 +51,7 @@ export const SvgIcon = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
         stroke={color}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={'1.5px'}
+        strokeWidth="1.25px"
         {...rest}
       />
     );
