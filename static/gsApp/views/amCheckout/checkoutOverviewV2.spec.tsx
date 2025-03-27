@@ -118,7 +118,7 @@ describe('CheckoutOverviewV2', function () {
       '1 Cron MonitorIncluded'
     );
     expect(screen.getByTestId('profileDuration-reserved')).toHaveTextContent(
-      'Profile HoursAvailable'
+      'Continuous Profile HoursAvailable'
     );
     expect(screen.getByTestId('profileDurationUI-reserved')).toHaveTextContent(
       'Profile HoursAvailable'
