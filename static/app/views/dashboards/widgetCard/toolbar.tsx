@@ -96,5 +96,5 @@ export const WidgetTitleRow = styled('span')`
 
 export const WidgetDescription = styled('small')`
   ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

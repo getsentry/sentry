@@ -2,6 +2,8 @@ from datetime import UTC, datetime
 from unittest import mock
 from uuid import uuid4
 
+from sentry.backup.scopes import RelocationScope
+from sentry.db.models import Model
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricAlertFire
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
@@ -32,6 +34,13 @@ try:
 except AlreadyRegisteredError:
     # Ensure "test" is mocked for tests, but don't fail if already registered here.
     pass
+
+
+class MockModel(Model):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    class Meta:
+        app_label = "fixtures"
 
 
 class BaseWorkflowTest(TestCase, OccurrenceTestMixin):

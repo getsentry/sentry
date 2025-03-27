@@ -378,13 +378,10 @@ function RuleNode({
             openModal(deps => (
               <TicketRuleModal
                 {...deps}
-                formFields={node.formFields || {}}
                 link={node.link}
                 ticketType={node.ticketType}
                 instance={data}
-                index={index}
                 onSubmitAction={updateParentFromTicketRule}
-                organization={organization}
               />
             ))
           }
