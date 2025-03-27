@@ -1619,7 +1619,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             sender="handle_regression",
         )
         if not options.get("groups.enable-post-update-signal"):
-            post_save.send(
+            post_save.send_robust(
                 sender=Group,
                 instance=group,
                 created=False,

@@ -98,7 +98,7 @@ def update(instance: BaseModel, using: str | None = None, **kwargs: Any) -> int:
     for k, v in kwargs.items():
         setattr(instance, k, _handle_value(instance, v))
     if affected == 1:
-        post_save.send(
+        post_save.send_robust(
             sender=instance.__class__,
             instance=instance,
             created=False,
