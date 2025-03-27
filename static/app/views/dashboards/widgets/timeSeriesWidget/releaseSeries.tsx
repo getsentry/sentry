@@ -17,6 +17,7 @@ export function ReleaseSeries(
 ): CustomSeriesOption {
   return {
     type: 'custom',
+    id: 'release-lines',
     name: t('Releases'),
     renderItem: () => null,
     color: theme.purple200,

@@ -77,6 +77,7 @@ export function useReleaseMarkLineSeries({
   });
 
   return {
+    id: 'release-lines',
     seriesName: t('Releases'),
     data: [],
     markLine,

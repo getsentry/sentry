@@ -266,7 +266,7 @@ export function EventGraph({
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({chartRef}) => {
+    chartRenderer: ({ref: chartRef}) => {
       return (
         <EventGraph
           ref={chartRef}

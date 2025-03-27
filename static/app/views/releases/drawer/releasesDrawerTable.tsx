@@ -36,6 +36,8 @@ type ReleaseHealthItem = {
 interface Props {
   end: string;
   environments: readonly string[];
+  onMouseOutRelease: (release: string) => void;
+  onMouseOverRelease: (release: string) => void;
   onSelectRelease: (release: string, projectId: string) => void;
   projects: readonly number[];
   start: string;
@@ -61,6 +63,8 @@ export function ReleaseDrawerTable({
   environments,
   projects,
   start,
+  onMouseOverRelease,
+  onMouseOutRelease,
   onSelectRelease,
 }: Props) {
   const location = useLocation();
@@ -133,6 +137,12 @@ export function ReleaseDrawerTable({
         return (
           <ReleaseLink
             to="#"
+            onMouseOver={() => {
+              onMouseOverRelease(dataRow.release);
+            }}
+            onMouseOut={() => {
+              onMouseOutRelease(dataRow.release);
+            }}
             onClick={e => {
               e.preventDefault();
               onSelectRelease(String(value), String(dataRow.project_id));
@@ -178,7 +188,7 @@ export function ReleaseDrawerTable({
         </CellWrapper>
       );
     },
-    [organization, location, onSelectRelease]
+    [organization, location, onSelectRelease, onMouseOutRelease, onMouseOverRelease]
   );
 
   const tableEmptyMessage = (
