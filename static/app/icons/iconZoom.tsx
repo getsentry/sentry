@@ -18,13 +18,13 @@ const IconZoom = forwardRef<SVGSVGElement, Props>(({isZoomIn = false, ...props},
             <line x1="8.5" y1="7" x2="5.5" y2="7" />
             <circle cx="7" cy="7" r="4.25" />
             <line x1="13.25" y1="13.25" x2="10" y2="10" />
+            <line x1="7" y1="8.5" x2="7" y2="5.5" />
           </Fragment>
         ) : (
           <Fragment>
             <line x1="8.5" y1="7" x2="5.5" y2="7" />
             <circle cx="7" cy="7" r="4.25" />
             <line x1="13.25" y1="13.25" x2="10" y2="10" />
-            <line x1="7" y1="8.5" x2="7" y2="5.5" />
           </Fragment>
         )
       ) : isZoomIn ? (
