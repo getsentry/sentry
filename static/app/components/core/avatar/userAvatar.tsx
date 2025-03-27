@@ -1,4 +1,4 @@
-import {forwardRef} from 'react';
+import type React from 'react';
 
 import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Actor} from 'sentry/types/core';
@@ -12,48 +12,48 @@ export interface UserAvatarProps extends BaseAvatarProps {
   user?: Actor | AvatarUser;
 }
 
-export const UserAvatar = forwardRef<HTMLSpanElement, UserAvatarProps>(
-  (
-    {
-      // Default gravatar to false in order to support transparent avatars
-      // Avatar falls through to letter avatars if a remote image fails to load,
-      // however gravatar sends back a transparent image when it does not find a gravatar,
-      // so there's little we have to control whether we need to fallback to letter avatar
-      gravatar = false,
-      renderTooltip,
-      user,
-      ...props
-    },
-    ref
-  ) => {
-    if (!user) {
-      // @TODO(jonasbadalic): Do we need a placeholder here?
-      return null;
-    }
+export function UserAvatar({
+  ref,
 
-    const type = inferAvatarType(user, gravatar);
-    let tooltip: React.ReactNode = null;
+  // Default gravatar to false in order to support transparent avatars
+  // Avatar falls through to letter avatars if a remote image fails to load,
+  // however gravatar sends back a transparent image when it does not find a gravatar,
+  // so there's little we have to control whether we need to fallback to letter avatar
+  gravatar = false,
 
-    if (isRenderFunc(renderTooltip)) {
-      tooltip = renderTooltip(user);
-    } else if (props.tooltip) {
-      tooltip = props.tooltip;
-    } else {
-      tooltip = userDisplayName(user);
-    }
-
-    return (
-      <BaseAvatar
-        round
-        ref={ref}
-        type={type}
-        tooltip={tooltip}
-        {...props}
-        {...getAvatarProps(user)}
-      />
-    );
+  renderTooltip,
+  user,
+  ...props
+}: UserAvatarProps & {
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
+}) {
+  if (!user) {
+    // @TODO(jonasbadalic): Do we need a placeholder here?
+    return null;
   }
-);
+
+  const type = inferAvatarType(user, gravatar);
+  let tooltip: React.ReactNode = null;
+
+  if (isRenderFunc(renderTooltip)) {
+    tooltip = renderTooltip(user);
+  } else if (props.tooltip) {
+    tooltip = props.tooltip;
+  } else {
+    tooltip = userDisplayName(user);
+  }
+
+  return (
+    <BaseAvatar
+      round
+      ref={ref}
+      type={type}
+      tooltip={tooltip}
+      {...props}
+      {...getAvatarProps(user)}
+    />
+  );
+}
 
 function getAvatarProps(user: AvatarUser | Actor) {
   return isActor(user)

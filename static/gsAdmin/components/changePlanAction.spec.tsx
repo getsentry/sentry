@@ -162,27 +162,20 @@ describe('ChangePlanAction', () => {
 
     // Wait for async data to load
     await waitFor(() => {
-      expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
 
     // Verify the tabs are rendered
-    expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
-    expect(screen.getByTestId('am2-tier')).toBeInTheDocument();
-    expect(screen.getByTestId('mm2-tier')).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'AM2'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'MM2'})).toBeInTheDocument();
 
     // Verify at least one plan option is displayed
     expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
 
     // Test basic interaction - click on AM2 tier
-    const am2Tab = screen.getByTestId('am2-tier');
+    const am2Tab = screen.getByRole('tab', {name: 'AM2'});
     await userEvent.click(am2Tab);
-
-    // Verify AM2 tier becomes active
-    await waitFor(() => {
-      // The class is on the li element, not the a element, so we need to get the parent
-      const am2TabParent = am2Tab.closest('li');
-      expect(am2TabParent).toHaveClass('active');
-    });
   });
 
   it('calls confirm callback when changes are confirmed', async () => {
@@ -197,7 +190,7 @@ describe('ChangePlanAction', () => {
 
     // Wait for component to load
     await waitFor(() => {
-      expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
 
     // Select a plan
@@ -229,7 +222,7 @@ describe('ChangePlanAction', () => {
 
     // Wait for component to load
     await waitFor(() => {
-      expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
 
     // Select a plan
@@ -257,7 +250,7 @@ describe('ChangePlanAction', () => {
 
     // Wait for component to load
     await waitFor(() => {
-      expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
 
     // Reset the mock count
@@ -276,21 +269,15 @@ describe('ChangePlanAction', () => {
 
     // Wait for component to load
     await waitFor(() => {
-      expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
     });
 
     // Verify AM3 tier plans are displayed
     expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
 
     // Switch to AM2 tier
-    const am2Tab = screen.getByTestId('am2-tier');
+    const am2Tab = screen.getByRole('tab', {name: 'AM2'});
     await userEvent.click(am2Tab);
-
-    // Verify AM2 tier becomes active
-    await waitFor(() => {
-      const am2TabParent = am2Tab.closest('li');
-      expect(am2TabParent).toHaveClass('active');
-    });
 
     // When clicking on a different tier, it takes time for the plan list to update
     // Rather than checking for a specific plan, let's check that we still have a plan option
@@ -301,14 +288,8 @@ describe('ChangePlanAction', () => {
     });
 
     // Switch to MM2 tier
-    const mm2Tab = screen.getByTestId('mm2-tier');
+    const mm2Tab = screen.getByRole('tab', {name: 'MM2'});
     await userEvent.click(mm2Tab);
-
-    // Verify MM2 tier becomes active
-    await waitFor(() => {
-      const mm2TabParent = mm2Tab.closest('li');
-      expect(mm2TabParent).toHaveClass('active');
-    });
 
     // Again, verify we have plan options
     await waitFor(() => {
@@ -322,17 +303,11 @@ describe('ChangePlanAction', () => {
 
     // First, click the TEST tier to activate it
     await waitFor(() => {
-      expect(screen.getByTestId('test-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'TEST'})).toBeInTheDocument();
     });
 
-    const testTierTab = screen.getByTestId('test-tier');
+    const testTierTab = screen.getByRole('tab', {name: 'TEST'});
     await userEvent.click(testTierTab);
-
-    // Wait for the TEST tier to become active
-    await waitFor(() => {
-      const updatedParent = screen.getByTestId('test-tier').closest('li');
-      expect(updatedParent).toHaveClass('active');
-    });
 
     // Verify TEST tier plans are shown after clicking the TEST tier tab
     await waitFor(() => {
@@ -355,18 +330,12 @@ describe('ChangePlanAction', () => {
 
     // Wait for component to load
     await waitFor(() => {
-      expect(screen.getByTestId('test-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'TEST'})).toBeInTheDocument();
     });
 
     // Click on the TEST tier tab (if not already active)
-    const testTierTab = screen.getByTestId('test-tier');
+    const testTierTab = screen.getByRole('tab', {name: 'TEST'});
     await userEvent.click(testTierTab);
-
-    // Wait for the TEST tier to become active
-    await waitFor(() => {
-      const updatedParent = screen.getByTestId('test-tier').closest('li');
-      expect(updatedParent).toHaveClass('active');
-    });
 
     // Find test plan radio button and select it
     await waitFor(

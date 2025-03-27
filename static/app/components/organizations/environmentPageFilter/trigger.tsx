@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -15,12 +14,17 @@ interface EnvironmentPageFilterTriggerProps extends Omit<DropdownButtonProps, 'v
   environments: string[];
   ready: boolean;
   value: string[];
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-function BaseEnvironmentPageFilterTrigger(
-  {value, environments, ready, desynced, ...props}: EnvironmentPageFilterTriggerProps,
-  forwardedRef: React.ForwardedRef<HTMLButtonElement>
-) {
+export function EnvironmentPageFilterTrigger({
+  value,
+  environments,
+  ready,
+  desynced,
+  ref: forwardedRef,
+  ...props
+}: EnvironmentPageFilterTriggerProps) {
   const isAllEnvironmentsSelected =
     value.length === 0 || environments.every(env => value.includes(env));
 
@@ -53,8 +57,6 @@ function BaseEnvironmentPageFilterTrigger(
     </DropdownButton>
   );
 }
-
-export const EnvironmentPageFilterTrigger = forwardRef(BaseEnvironmentPageFilterTrigger);
 
 const TriggerLabelWrap = styled('span')`
   position: relative;

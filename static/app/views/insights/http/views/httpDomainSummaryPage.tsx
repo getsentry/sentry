@@ -73,7 +73,7 @@ export function HTTPDomainSummaryPage() {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
 
   const {
     domain,
@@ -112,7 +112,7 @@ export function HTTPDomainSummaryPage() {
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
@@ -131,7 +131,7 @@ export function HTTPDomainSummaryPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
     Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
@@ -176,7 +176,7 @@ export function HTTPDomainSummaryPage() {
         'project.id',
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
@@ -245,7 +245,7 @@ export function HTTPDomainSummaryPage() {
                   <ReadoutRibbon>
                     <MetricReadout
                       title={getThroughputTitle('http')}
-                      value={domainMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                      value={domainMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areDomainMetricsLoading}
                     />
@@ -297,7 +297,7 @@ export function HTTPDomainSummaryPage() {
               <ModuleLayout.Third>
                 <InsightsLineChartWidget
                   title={getThroughputChartTitle('http')}
-                  series={[throughputData['spm()']]}
+                  series={[throughputData['epm()']]}
                   isLoading={isThroughputDataLoading}
                   error={throughputError}
                 />
