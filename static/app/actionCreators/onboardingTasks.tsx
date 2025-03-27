@@ -12,15 +12,16 @@ export function useUpdateOnboardingTasks() {
   const organization = useOrganization();
 
   return useMutation({
-    mutationFn: (tasksToUpdate: UpdatedTask[]) => {
-      return Promise.all(
+    mutationFn: async (tasksToUpdate: UpdatedTask[]) => {
+      await Promise.all(
         tasksToUpdate.map(task =>
           api.requestPromise(`/organizations/${organization.slug}/onboarding-tasks/`, {
             method: 'POST',
             data: task,
           })
         )
-      ).then(() => tasksToUpdate);
+      );
+      return tasksToUpdate;
     },
     onSuccess: (tasksToUpdate: UpdatedTask[]) => {
       const updatedOnboardingTasks = organization.onboardingTasks.map(task => {

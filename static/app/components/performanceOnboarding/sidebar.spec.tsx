@@ -20,7 +20,6 @@ import type {StatuspageIncident} from 'sentry/types/system';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 jest.mock('sentry/utils/useServiceIncidents');
-jest.mock('sentry/actionCreators/onboardingTasks');
 
 describe('Sidebar > Performance Onboarding Checklist', function () {
   const {organization, router} = initializeOrg({
