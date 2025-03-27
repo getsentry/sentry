@@ -28,9 +28,9 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsDrawerContent';
-import GroupFeatureFlagsDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/groupFeatureFlagsDrawerContent';
-import GroupTagsDrawerContent from 'sentry/views/issueDetails/groupTags/groupTagsDrawerContent';
+import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 import {TagDetailsDrawerContent} from 'sentry/views/issueDetails/groupTags/tagDetailsDrawerContent';
+import TagDrawerContent from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
@@ -231,13 +231,9 @@ export function GroupDistributionsDrawer({
         ) : tagKey && tab === DrawerTab.FEATURE_FLAGS ? (
           <FlagDetailsDrawerContent />
         ) : tab === DrawerTab.FEATURE_FLAGS ? (
-          <GroupFeatureFlagsDrawerContent
-            group={group}
-            environments={environments}
-            search={search}
-          />
+          <FlagDrawerContent group={group} environments={environments} search={search} />
         ) : (
-          <GroupTagsDrawerContent
+          <TagDrawerContent
             group={group}
             environments={environments}
             organization={organization}
