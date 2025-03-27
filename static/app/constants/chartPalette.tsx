@@ -212,11 +212,13 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  * return a single color, not two colors. It smells like either a bug or off by one error.
  * @param length - The number of series to return a color palette for?
  */
-export function getChartColorPalette<Length extends ValidLengthArgument>(
-  length: Length | number
-): Exclude<ChartColorPalette[Next<Length>], undefined> {
+export function makeChartColorPalette<Length extends ValidLengthArgument>(
+  palette: ChartColorPalette
+): (length: Length | number) => Exclude<ChartColorPalette[Next<Length>], undefined> {
   // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
   // the palette is not sparse, but we should probably add a runtime check here as well.
-  const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
-  return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+  return (length: Length | number) => {
+    const index = Math.max(0, Math.min(palette.length - 1, length + 1));
+    return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
+  };
 }

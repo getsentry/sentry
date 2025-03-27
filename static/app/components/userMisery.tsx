@@ -1,8 +1,8 @@
 import ScoreBar from 'sentry/components/scoreBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
+import {useTheme} from '@emotion/react';
 
 type Props = {
   barHeight: number;
@@ -14,6 +14,7 @@ type Props = {
 };
 
 function UserMisery(props: Props) {
+  const theme = useTheme();
   const {bars, barHeight, userMisery, miseryLimit, totalUsers, miserableUsers} = props;
   // User Misery will always be > 0 because of the maximum a posteriori estimate
   // and below 5% will always be an overestimation of the actual proportion
@@ -21,7 +22,7 @@ function UserMisery(props: Props) {
   // 0 User Misery while still preserving the actual value for sorting purposes.
   const adjustedMisery = userMisery > 0.05 ? userMisery : 0;
 
-  const palette = new Array(bars).fill([CHART_PALETTE[0][0]]);
+  const palette = new Array(bars).fill(theme.charts.colors[0][0]);
   const score = Math.round(adjustedMisery * palette.length);
 
   let title: React.ReactNode;

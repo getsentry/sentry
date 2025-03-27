@@ -1,5 +1,5 @@
 import {barColors, pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {lightTheme} from 'sentry/utils/theme';
 
 describe('pickBarColor()', function () {
   it('returns blue when undefined', function () {
@@ -16,8 +16,8 @@ describe('pickBarColor()', function () {
   });
 
   it('returns a random color when no predefined option is available', function () {
-    const colorsAsArray = Object.keys(CHART_PALETTE).map(
-      key => CHART_PALETTE[17][key as keyof typeof CHART_PALETTE]
+    const colorsAsArray = Object.keys(lightTheme.charts.colors).map(
+      key => lightTheme.charts.colors[17][key as keyof typeof lightTheme.charts.colors]
     );
 
     let randomColor = pickBarColor('a normal string');
