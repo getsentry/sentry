@@ -344,6 +344,7 @@ export default function MetricChart({
         showWaitingForData:
           shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
         handleIncidentClick,
+        theme,
       });
 
       const comparisonSeriesName = capitalize(

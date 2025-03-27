@@ -1,4 +1,5 @@
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
@@ -45,6 +46,7 @@ export interface InsightsTimeSeriesWidgetProps {
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
@@ -65,7 +67,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             : Bars;
 
       return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS[timeSeries.field],
+        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.field],
         delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
         alias: props.aliases?.[timeSeries.field],
@@ -156,7 +158,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   );
 }
 
-const COMMON_COLORS = (theme: Theme) => ({
+const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
   'spm()': THROUGHPUT_COLOR,
   'count()': COUNT_COLOR,
   'avg(span.self_time)': AVG_COLOR,

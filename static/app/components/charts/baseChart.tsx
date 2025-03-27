@@ -29,7 +29,6 @@ import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import type {ChartColorPalette} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
@@ -157,7 +156,7 @@ export interface BaseChartProps {
   colors?:
     | string[]
     | readonly string[]
-    | ((theme: Theme) => string[] | ChartColorPalette[number]);
+    | ((theme: Theme) => string[] | ReturnType<typeof theme.chart.getColorPalette>);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)

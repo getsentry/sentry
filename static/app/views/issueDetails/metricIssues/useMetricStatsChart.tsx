@@ -101,6 +101,7 @@ export function useMetricStatsChart(
       anomalies,
       incidents,
       seriesName: rule.aggregate,
+      theme,
     });
     chartProps = {...chartOption};
   }
