@@ -6,7 +6,7 @@ __all__ = [
     "GithubEnterpriseActionHandler",
     "JiraActionHandler",
     "JiraServerActionHandler",
-    "MsteamsActionHandler",
+    "MSTeamsActionHandler",
     "OpsgenieActionHandler",
     "PagerdutyActionHandler",
     "PluginActionHandler",
@@ -15,7 +15,7 @@ __all__ = [
     "WebhookActionHandler",
 ]
 
-from .notification.handler import (
+from .notification import (
     AzureDevopsActionHandler,
     DiscordActionHandler,
     EmailActionHandler,
@@ -23,7 +23,7 @@ from .notification.handler import (
     GithubEnterpriseActionHandler,
     JiraActionHandler,
     JiraServerActionHandler,
-    MsteamsActionHandler,
+    MSTeamsActionHandler,
     OpsgenieActionHandler,
     PagerdutyActionHandler,
     PluginActionHandler,
