@@ -278,7 +278,11 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
     def _request_to_invite_member(self, request: Request, organization) -> Response:
         serializer = OrganizationMemberInviteRequestSerializer(
             data=request.data,
-            context={"organization": organization, "allowed_roles": roles.get_all()},
+            context={
+                "organization": organization,
+                "allow_retired_roles": not features.has("organizations:team-roles", organization),
+                "allowed_roles": roles.get_all(),
+            },
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
