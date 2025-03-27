@@ -62,7 +62,7 @@ describe('SuspectCommits', function () {
     ];
 
     beforeEach(function () {
-      (useHasStreamlinedUI as jest.Mock).mockReturnValue(false);
+      jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
       MockApiClient.addMockResponse({
         method: 'GET',
         url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,

@@ -100,7 +100,7 @@ describe('groupDetails', () => {
 
   beforeEach(() => {
     mockNavigate = jest.fn();
-    (useHasStreamlinedUI as jest.Mock).mockReturnValue(false);
+    jest.mocked(useHasStreamlinedUI).mockReturnValue(false);
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
     act(() => ProjectsStore.loadInitialData(defaultInit.projects));
