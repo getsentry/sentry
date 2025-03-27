@@ -48,10 +48,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
    */
   onMouseDown: React.MouseEventHandler<HTMLElement>;
   /**
-   * Call this function to manually set the size of the drawer.
-   */
-  setSize: (newSize: number, userEvent?: boolean) => void;
-  /**
    * The resulting size of the container axis. Updated while dragging.
    *
    * NOTE: Be careful using this as this as react state updates are not
@@ -169,5 +165,5 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     };
   });
 
-  return {size, isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
+  return {size, isHeld, onMouseDown, onDoubleClick};
 }
