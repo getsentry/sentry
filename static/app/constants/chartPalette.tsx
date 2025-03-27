@@ -225,5 +225,3 @@ export function makeChartColorPalette<Length extends ValidLengthArgument>(
     return palette[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
   };
 }
-
-export const getChartColorPalette = makeChartColorPalette(CHART_PALETTE);

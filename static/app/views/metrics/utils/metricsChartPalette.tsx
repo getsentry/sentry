@@ -9,7 +9,7 @@ export function createChartPalette(
 ): Record<string, string> {
   const uniqueSeriesNames = Array.from(new Set(seriesNames));
   // We do length - 2 to be aligned with the colors in other parts of the app (copy-pasta)
-  // We use Math.max to avoid numbers < -1 as then `theme.chart.getChartColorPalette` returns undefined (not typesafe because of array access and casting)
+  // We use Math.max to avoid numbers < -1 as then `theme.chart.getColorPalette` returns undefined (not typesafe because of array access and casting)
   const chartColors =
     theme.chart.getColorPalette(Math.max(uniqueSeriesNames.length - 2, -1)) ??
     theme.chart.colors[theme.chart.colors.length - 1];

@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {COUNTRY_CODE_TO_NAME_MAP} from 'sentry/data/countryCodesMap';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -165,7 +164,8 @@ export function WebVitalTagsDetailHeader({
   tag,
   isProjectScoreCalculated,
 }: WebVitalDetailHeaderProps) {
-  const ringSegmentColors = getChartColorPalette(3);
+  const theme = useTheme();
+  const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
   const title =
     tag.key === 'geo.country_code' ? COUNTRY_CODE_TO_NAME_MAP[tag.name] : tag.name;

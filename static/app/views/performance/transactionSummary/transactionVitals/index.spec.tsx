@@ -17,10 +17,7 @@ import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
-import {
-  VITAL_GROUPS,
-  ZOOM_KEYS,
-} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
+import {makeZoomKeys} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 jest.mock('sentry/utils/useLocation');
 
@@ -320,7 +317,7 @@ describe('Performance > Web Vitals', function () {
 
       expect(mockNavigate).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
-          ZOOM_KEYS.reduce(
+          makeZoomKeys().reduce(
             (obj, key) => {
               obj[key] = expect.anything();
               return obj;
