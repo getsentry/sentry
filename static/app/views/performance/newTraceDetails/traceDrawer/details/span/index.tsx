@@ -194,7 +194,7 @@ function LogDetails() {
   if (!logsData.data?.length) {
     return null;
   }
-  return <LogsTable tableData={logsData} />;
+  return <LogsTable tableData={logsData} showHeader={false} />;
 }
 
 function LegacySpanSections({
