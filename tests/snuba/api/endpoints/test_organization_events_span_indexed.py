@@ -2104,9 +2104,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
     def test_span_module(self):
         super().test_span_module()
 
-    @pytest.mark.skip(
-        reason="There is a bug in snuba https://github.com/getsentry/eap-planning/issues/226 that causes this test to fail"
-    )
     def test_virtual_context_missing_data(self):
         self.store_spans(
             [
