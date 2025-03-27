@@ -108,21 +108,23 @@ function SubscriptionHeader(props: Props) {
           <TabsContainer>
             <Tabs value={activeTab.key}>
               <TabList>
-                {tabConfig.reduce<any>((acc, {key, name, show}) => {
-                  if (show(organization, isDisabled, subscription)) {
-                    acc.push(
-                      <TabList.Item
-                        key={key}
-                        to={normalizeUrl(
-                          `/settings/${organization.slug}/billing/${key}/`
-                        )}
-                      >
-                        {name}
-                      </TabList.Item>
-                    );
-                  }
-                  return acc;
-                }, [])}
+                {tabConfig
+                  .map(({key, name, show}) => {
+                    if (show(organization, isDisabled, subscription)) {
+                      return (
+                        <TabList.Item
+                          key={key}
+                          to={normalizeUrl(
+                            `/settings/${organization.slug}/billing/${key}/`
+                          )}
+                        >
+                          {name}
+                        </TabList.Item>
+                      );
+                    }
+                    return null;
+                  })
+                  .filter(n => !!n)}
               </TabList>
             </Tabs>
           </TabsContainer>
