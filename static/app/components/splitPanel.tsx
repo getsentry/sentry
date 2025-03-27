@@ -106,22 +106,19 @@ function SplitPanel(props: SplitPanelProps) {
     sizeStorageKey,
   } = props;
   const isLeftRight = 'left' in props;
-  const initialSize = isLeftRight ? props.left.default : props.top.default;
   const min = isLeftRight ? props.left.min : props.top.min;
   const max = isLeftRight ? props.left.max : props.top.max;
 
-  const [containerSize, setContainerSize] = useState(() => {
+  const initialSize = useMemo(() => {
     const storedSize = sizeStorageKey
       ? parseInt(localStorage.getItem(sizeStorageKey) ?? '', 10)
       : undefined;
-    return storedSize ?? initialSize;
-  });
+    return storedSize ?? (isLeftRight ? props.left.default : props.top.default);
+  }, [sizeStorageKey, props, isLeftRight]);
 
-  const {
-    isHeld,
-    onDoubleClick,
-    onMouseDown: onDragStart,
-  } = useResizableDrawer({
+  const [containerSize, setContainerSize] = useState(initialSize);
+
+  const {isHeld, onMouseDown: onDragStart} = useResizableDrawer({
     direction: isLeftRight ? 'left' : 'down',
     initialSize,
     min,
@@ -155,6 +152,10 @@ function SplitPanel(props: SplitPanelProps) {
     }),
     [isMaximized, isMinimized, setContainerSize, max, min, initialSize]
   );
+
+  const onDoubleClick = useCallback(() => {
+    setContainerSize(initialSize);
+  }, [initialSize]);
 
   if (isLeftRight) {
     const {left: a, right: b} = props;

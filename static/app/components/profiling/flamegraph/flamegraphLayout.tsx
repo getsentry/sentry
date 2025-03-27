@@ -73,7 +73,11 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     };
   }, [layout]);
 
-  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
+  const {onMouseDown} = useResizableDrawer(resizableOptions);
+
+  const onDoubleClick = useCallback(() => {
+    resizableOptions.onResize?.(resizableOptions.initialSize, true);
+  }, [resizableOptions]);
 
   const onOpenMinimap = useCallback(
     () =>
