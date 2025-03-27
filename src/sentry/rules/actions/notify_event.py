@@ -38,5 +38,10 @@ class NotifyEventAction(EventAction):
             if not safe_execute(plugin.should_notify, group=group, event=event):
                 continue
 
-            metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
+            metrics.incr(
+                "notifications.sent",
+                instance=plugin.slug,
+                tags={"group_category": event.group.issue_category},
+                skip_internal=False,
+            )
             yield self.future(plugin.rule_notify)
