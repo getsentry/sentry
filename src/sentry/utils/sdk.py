@@ -637,6 +637,9 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
                 )
 
 
+_AMBIGUOUS_ORG_CUTOFF = 50
+
+
 def bind_ambiguous_org_context(
     orgs: Sequence[Organization] | Sequence[RpcOrganization] | list[str], source: str | None = None
 ) -> None:
@@ -658,8 +661,10 @@ def bind_ambiguous_org_context(
     # Right now there is exactly one Integration instance shared by more than 30 orgs (the generic
     # GitLab integration, at the moment shared by ~500 orgs), so 50 should be plenty for all but
     # that one instance
-    if len(orgs) > 50:
-        org_slugs = org_slugs[:49] + [f"... ({len(orgs) - 49} more)"]
+    if len(orgs) > _AMBIGUOUS_ORG_CUTOFF:
+        org_slugs = org_slugs[: _AMBIGUOUS_ORG_CUTOFF - 1] + [
+            f"... ({len(orgs) - (_AMBIGUOUS_ORG_CUTOFF - 1)} more)"
+        ]
 
     scope = Scope.get_isolation_scope()
 
