@@ -78,9 +78,11 @@ class GroupSearchViewValidator(serializers.Serializer):
 class GroupSearchViewPostValidator(ViewValidator):
     starred = serializers.BooleanField(required=False)
 
+    def validate(self, data):
+        return super().validate(data)
+
 
 class GroupSearchViewDetailsPutValidator(ViewValidator):
-    starred = serializers.BooleanField(required=False)
     visibility = serializers.ChoiceField(
         required=False, choices=GroupSearchViewVisibility.as_choices()
     )

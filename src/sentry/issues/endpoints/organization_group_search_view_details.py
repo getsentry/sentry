@@ -81,20 +81,6 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
         view.time_filters = validated_data["timeFilters"]
         view.projects.set(validated_data["projects"])
 
-        if "starred" in validated_data:
-            if validated_data["starred"]:
-                GroupSearchViewStarred.objects.insert_starred_view(
-                    organization=organization,
-                    user_id=request.user.id,
-                    view=view,
-                )
-            else:
-                GroupSearchViewStarred.objects.filter(
-                    organization=organization,
-                    user_id=request.user.id,
-                    group_search_view=view,
-                ).delete()
-
         view.visibility = validated_data.get("visibility", view.visibility)
 
         view.save()

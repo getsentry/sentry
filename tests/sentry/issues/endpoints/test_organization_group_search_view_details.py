@@ -270,51 +270,6 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert member_view.visibility == "owner"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_put_with_starred(self) -> None:
-        data = {
-            "name": "Starred View",
-            "query": "is:unresolved",
-            "querySort": "date",
-            "projects": [self.project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-            "starred": True,
-        }
-
-        response = self.client.put(self.url, data=data)
-        assert response.status_code == 200
-
-        starred_view = GroupSearchViewStarred.objects.filter(
-            organization=self.organization, user_id=self.user.id, group_search_view_id=self.view_id
-        ).first()
-
-        assert starred_view is not None
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_put_update_unstar(self) -> None:
-        # First make sure the view is starred
-        data = {
-            "name": "Starred View",
-            "query": "is:unresolved",
-            "projects": [self.project.id],
-            "environments": [],
-            "timeFilters": {"period": "14d"},
-            "starred": True,
-        }
-
-        self.client.put(self.url, data=data)
-
-        data["starred"] = False
-        response = self.client.put(self.url, data=data)
-        assert response.status_code == 200
-
-        starred_view = GroupSearchViewStarred.objects.filter(
-            organization=self.organization, user_id=self.user.id, group_search_view_id=self.view_id
-        ).first()
-
-        assert starred_view is None
-
-    @with_feature({"organizations:issue-stream-custom-views": True})
     def test_put_nonexistent_view(self) -> None:
         nonexistent_id = "99999"
         url = reverse(
