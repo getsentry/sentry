@@ -18,17 +18,20 @@ import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
 import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
-import {useSchemaHintsQueryHooks} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsContext';
 
-type SchemaHintsDrawerProps = {
+type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
 };
 
-function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
+function SchemaHintsDrawer({
+  hints,
+  exploreQuery,
+  setExploreQuery,
+}: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
-  const {exploreQuery, setExploreQuery} = useSchemaHintsQueryHooks();
 
   const selectedFilterKeys = useMemo(() => {
     const filterQuery = new MutableSearch(exploreQuery);

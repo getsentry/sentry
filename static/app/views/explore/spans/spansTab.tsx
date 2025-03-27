@@ -34,7 +34,6 @@ import SchemaHintsList, {
   SCHEMA_HINTS_DRAWER_WIDTH,
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
-import {SchemaHintsProvider} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsContext';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -234,17 +233,16 @@ export function SpansTabContentImpl({
       </TopSection>
       <Feature features="organizations:traces-schema-hints">
         <SchemaHintsSection withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}>
-          <SchemaHintsProvider source="explore">
-            <SchemaHintsList
-              supportedAggregates={
-                mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
-              }
-              numberTags={numberTags}
-              stringTags={stringTags}
-              isLoading={numberTagsLoading || stringTagsLoading}
-              source="explore"
-            />
-          </SchemaHintsProvider>
+          <SchemaHintsList
+            supportedAggregates={
+              mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES
+            }
+            numberTags={numberTags}
+            stringTags={stringTags}
+            isLoading={numberTagsLoading || stringTagsLoading}
+            exploreQuery={query}
+            setExploreQuery={setQuery}
+          />
         </SchemaHintsSection>
       </Feature>
       <SideSection withToolbar={expanded}>
