@@ -111,7 +111,8 @@ class OrganizationGroupSearchViewDetailsEndpoint(OrganizationEndpoint):
                 serializer=GroupSearchViewSerializer(
                     has_global_views=has_global_views, default_project=default_project
                 ),
-            )
+            ),
+            status=status.HTTP_200_OK,
         )
 
     def delete(self, request: Request, organization: Organization, view_id: str) -> Response:
