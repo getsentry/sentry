@@ -69,6 +69,7 @@ from typing import Any, NamedTuple
 
 import rapidjson
 from django.conf import settings
+from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import metrics, redis
@@ -124,11 +125,14 @@ class SpansBuffer:
         span_buffer_root_timeout_secs: int = 10,
         redis_ttl: int = 3600,
     ):
-        self.client: RedisCluster[bytes] | StrictRedis[bytes] = get_redis_client()
         self.assigned_shards = list(assigned_shards)
         self.span_buffer_timeout_secs = span_buffer_timeout_secs
         self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
         self.redis_ttl = redis_ttl
+
+    @cached_property
+    def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
+        return get_redis_client()
 
     # make it pickleable
     def __reduce__(self):
