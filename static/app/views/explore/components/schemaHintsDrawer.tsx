@@ -33,15 +33,25 @@ function SchemaHintsDrawer({
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [currentQuery, setCurrentQuery] = useState(exploreQuery);
+
+  const handleQueryChange = useCallback(
+    (newQuery: string) => {
+      setCurrentQuery(newQuery);
+      setExploreQuery(newQuery);
+    },
+    [setExploreQuery]
+  );
+
   const selectedFilterKeys = useMemo(() => {
-    const filterQuery = new MutableSearch(exploreQuery);
+    const filterQuery = new MutableSearch(currentQuery);
     const allKeys = filterQuery.getFilterKeys();
     // When there is a filter with a negation, it stores the negation in the key.
     // To ensure all the keys are represented correctly in the drawer, we must
     // take these into account.
     const keysWithoutNegation = allKeys.map(key => key.replace('!', ''));
     return [...new Set(keysWithoutNegation)];
-  }, [exploreQuery]);
+  }, [currentQuery]);
 
   const sortedSelectedHints = useMemo(() => {
     const sortedKeys = selectedFilterKeys.toSorted((a, b) => {
@@ -79,7 +89,7 @@ function SchemaHintsDrawer({
 
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
-      const filterQuery = new MutableSearch(exploreQuery);
+      const filterQuery = new MutableSearch(currentQuery);
       if (
         filterQuery.getFilterKeys().includes(hint.key) ||
         filterQuery.getFilterKeys().includes(`!${hint.key}`)
@@ -95,14 +105,14 @@ function SchemaHintsDrawer({
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
         );
       }
-      setExploreQuery(filterQuery.formatString());
+      handleQueryChange(filterQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'drawer',
         organization,
       });
     },
-    [exploreQuery, organization, setExploreQuery]
+    [currentQuery, handleQueryChange, organization]
   );
 
   const noAttributesMessage = (
