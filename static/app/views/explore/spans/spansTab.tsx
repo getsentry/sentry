@@ -34,6 +34,7 @@ import SchemaHintsList, {
   SCHEMA_HINTS_DRAWER_WIDTH,
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -249,6 +250,7 @@ export function SpansTabContentImpl({
             isLoading={numberTagsLoading || stringTagsLoading}
             exploreQuery={query}
             setExploreQuery={setQuery}
+            source={SchemaHintsSources.EXPLORE}
           />
         </SchemaHintsSection>
       </Feature>
