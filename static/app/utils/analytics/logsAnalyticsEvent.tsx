@@ -1,3 +1,5 @@
+import type {Organization} from 'sentry/types/organization';
+
 export enum LogsAnalyticsPageSource {
   EXPLORE_LOGS = 'explore',
   ISSUE_DETAILS = 'issue details',
@@ -16,6 +18,9 @@ export type LogsAnalyticsEventParameters = {
     table_result_missing_root: number;
     user_queries: string;
     user_queries_count: number;
+  };
+  'logs.issue_details.drawer_opened': {
+    organization: Organization;
   };
   'logs.table.row_expanded': {
     log_id: string;
