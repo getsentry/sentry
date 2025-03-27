@@ -5,12 +5,11 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, ratelimits
+from sentry import audit_log, features, ratelimits, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.bases.organizationmember import MemberAndStaffPermission
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.organization_member import get_allowed_org_roles
 from sentry.api.endpoints.organization_member.utils import (
     ERR_RATE_LIMITED,
@@ -18,18 +17,39 @@ from sentry.api.endpoints.organization_member.utils import (
     MemberConflictValidationError,
 )
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organizationmemberinvite import (
     OrganizationMemberInviteSerializer,
 )
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
+from sentry.notifications.notifications.organization_request import InviteRequestNotification
+from sentry.notifications.utils.tasks import async_send_notification
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+
+
+class MemberInvitePermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["member:read", "member:write", "member:admin"],
+        # We will do an additional check to see if a user can invite members. If
+        # not, then create an invite request, not an invite.
+        "POST": ["member:read", "member:write", "member:admin", "member:invite"],
+    }
+
+
+class MemberInviteAndStaffPermission(StaffPermissionMixin, MemberInvitePermission):
+    pass
 
 
 class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
@@ -120,42 +140,27 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (MemberAndStaffPermission,)
+    permission_classes = (MemberInviteAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
-    def get(self, request: Request, organization) -> Response:
-        """
-        List all organization member invites.
-        """
-        queryset = OrganizationMemberInvite.objects.filter(organization=organization).order_by(
-            "invite_status", "email"
-        )
-        if not request.access.has_scope("member:write"):
-            queryset = queryset.filter(invite_status=InviteStatus.APPROVED.value)
+    def _can_invite_member(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        scopes = request.access.scopes
+        is_role_above_member = "member:admin" in scopes or "member:write" in scopes
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
 
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            on_results=lambda x: serialize(x, request.user, OrganizationMemberInviteSerializer()),
-            paginator_cls=OffsetPaginator,
-        )
+        if is_role_above_member:
+            return True
+        if "member:invite" not in scopes:
+            return False
+        return not organization.flags.disable_member_invite
 
-    def post(self, request: Request, organization) -> Response:
-        assigned_org_role = (
-            request.data.get("orgRole")
-            or request.data.get("role")
-            or organization_roles.get_default().id
-        )
-        billing_bypass = assigned_org_role == "billing" and features.has(
-            "organizations:invite-billing", organization
-        )
-        if not billing_bypass and not features.has(
-            "organizations:invite-members", organization, actor=request.user
-        ):
-            return Response(
-                {"organization": "Your organization is not allowed to invite members"}, status=403
-            )
-
+    def _invite_member(self, request, organization) -> Response:
+        assigned_org_role = request.data.get("orgRole") or organization_roles.get_default().id
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
 
         # We allow requests from integration tokens to invite new members as the member role only
@@ -259,3 +264,74 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         )
 
         return Response(serialize(omi), status=201)
+
+    def _request_to_invite_member(self, request: Request, organization) -> Response:
+        serializer = OrganizationMemberInviteRequestSerializer(
+            data=request.data,
+            context={"organization": organization, "allowed_roles": roles.get_all()},
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        result = serializer.validated_data
+
+        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+            teams = []
+            for team in result.get("teams", []):
+                teams.append({"id": team.id, "slug": team.slug, "role": None})
+
+            omi = OrganizationMemberInvite(
+                organization=organization,
+                email=result["email"],
+                role=result["orgRole"],
+                inviter_id=request.user.id,
+                organization_member_team_data=teams,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
+
+            omi.save()
+
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=omi.id,
+            data=omi.get_audit_log_data(),
+            event=(audit_log.get_event_id("INVITE_REQUEST_ADD")),
+        )
+
+        async_send_notification(InviteRequestNotification, omi, request.user)
+        return Response(serialize(omi), status=201)
+
+    def get(self, request: Request, organization) -> Response:
+        """
+        List all organization member invites.
+        """
+        queryset = OrganizationMemberInvite.objects.filter(organization=organization).order_by(
+            "invite_status", "email"
+        )
+        if not request.access.has_scope("member:write"):
+            queryset = queryset.filter(invite_status=InviteStatus.APPROVED.value)
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda x: serialize(x, request.user, OrganizationMemberInviteSerializer()),
+            paginator_cls=OffsetPaginator,
+        )
+
+    def post(self, request: Request, organization) -> Response:
+        assigned_org_role = request.data.get("orgRole") or organization_roles.get_default().id
+        billing_bypass = assigned_org_role == "billing" and features.has(
+            "organizations:invite-billing", organization
+        )
+        if not billing_bypass and not features.has(
+            "organizations:invite-members", organization, actor=request.user
+        ):
+            return Response(
+                {"organization": "Your organization is not allowed to invite members"}, status=403
+            )
+
+        # Check to see if the requesting user can invite members. If not, create an invite
+        # request.
+        if not self._can_invite_member(request, organization):
+            return self._request_to_invite_member(request, organization)
+        return self._invite_member(request, organization)

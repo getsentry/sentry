@@ -217,7 +217,11 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
                 "teams": [self.team.slug],
             }
             if role == "member" or role == "admin":
-                self.get_error_response(self.organization.slug, **data, status_code=403)
+                response = self.get_success_response(
+                    self.organization.slug, **data, status_code=201
+                )
+                omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+                assert omi.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
             elif any(invite_role == allowed_role.id for allowed_role in allowed_roles):
                 self.get_success_response(self.organization.slug, **data, status_code=201)
             else:
@@ -254,21 +258,24 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
             return data
 
         # members can never invite members if disable_member_invite = True
+        # an invite request will be created instead of an invite
         self.organization.flags.allow_joinleave = True
         self.organization.flags.disable_member_invite = True
         self.organization.save()
-        response = self.get_error_response(
-            self.organization.slug, **get_data("foo1"), status_code=403
+        response = self.get_success_response(
+            self.organization.slug, **get_data("foo1"), status_code=201
         )
-        assert response.data.get("detail") == "You do not have permission to perform this action."
+        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+        assert omi.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
         self.organization.flags.allow_joinleave = False
         self.organization.flags.disable_member_invite = True
         self.organization.save()
-        response = self.get_error_response(
-            self.organization.slug, **get_data("foo2"), status_code=403
+        response = self.get_success_response(
+            self.organization.slug, **get_data("foo2"), status_code=201
         )
-        assert response.data.get("detail") == "You do not have permission to perform this action."
+        omi = OrganizationMemberInvite.objects.get(id=response.data["id"])
+        assert omi.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
         # members can only invite members to teams they are in if allow_joinleave = False
         self.organization.flags.allow_joinleave = False
@@ -282,11 +289,9 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
             response.data.get("detail")
             == "You cannot assign members to teams you are not a member of."
         )
-        # also test with teams instead of teamRoles
-        self.get_success_response(self.organization.slug, **get_data("foo5"), status_code=201)
         response = self.get_error_response(
             self.organization.slug,
-            **get_data("foo6", other_team_invite=True),
+            **get_data("foo5", other_team_invite=True),
             status_code=400,
         )
         assert (
@@ -298,13 +303,11 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
         self.organization.flags.allow_joinleave = True
         self.organization.flags.disable_member_invite = False
         self.organization.save()
-        self.get_success_response(self.organization.slug, **get_data("foo7"), status_code=201)
-        self.get_success_response(self.organization.slug, **get_data("foo8", True), status_code=201)
-        # also test with teams instead of teamRoles
-        self.get_success_response(self.organization.slug, **get_data("foo9"), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo6"), status_code=201)
+        self.get_success_response(self.organization.slug, **get_data("foo7", True), status_code=201)
         self.get_success_response(
             self.organization.slug,
-            **get_data("foo10", other_team_invite=True),
+            **get_data("foo8", other_team_invite=True),
             status_code=201,
         )
 
