@@ -86,7 +86,6 @@ class BaseDeriveCodeMappings(TestCase):
         frames: Sequence[Mapping[str, str | bool]],
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
-        expected_num_code_mappings: int = 1,
         expected_new_in_app_stack_trace_rules: list[str] | None = None,
     ) -> GroupEvent:
         platform_config = PlatformConfig(platform)
@@ -110,12 +109,13 @@ class BaseDeriveCodeMappings(TestCase):
             )
 
             code_mappings = RepositoryProjectPathConfig.objects.all()
+            repositories = Repository.objects.all()
             current_enhancements = self.project.get_option(DERIVED_ENHANCEMENTS_OPTION_KEY)
 
             if dry_run:
                 # If dry run, no configurations should have been created
                 assert starting_code_mappings_count == code_mappings.count()
-                assert starting_repositories_count == Repository.objects.all().count()
+                assert starting_repositories_count == repositories.count()
                 assert current_enhancements == starting_enhancements
 
                 if expected_new_code_mappings:
@@ -124,13 +124,6 @@ class BaseDeriveCodeMappings(TestCase):
                         assert cm.stacktrace_root == expected_cm["stack_root"]
                         assert cm.source_path == expected_cm["source_root"]
                         assert cm.repo.name == expected_cm["repo_name"]
-
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                )
-                mock_incr.assert_any_call(
-                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
-                )
 
                 if expected_new_in_app_stack_trace_rules:
                     assert sorted(in_app_stack_trace_rules) == sorted(
@@ -158,16 +151,6 @@ class BaseDeriveCodeMappings(TestCase):
                         assert code_mapping is not None
                         assert code_mapping.repository.name == expected_cm["repo_name"]
 
-                if Repository.objects.all().count() > starting_repositories_count:
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                    )
-
-                if code_mappings.count() > starting_code_mappings_count:
-                    mock_incr.assert_any_call(
-                        key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
-                    )
-
                 if expected_new_in_app_stack_trace_rules:
                     expected_enhancements = "\n".join(expected_new_in_app_stack_trace_rules)
                     assert current_enhancements == (
@@ -182,7 +165,17 @@ class BaseDeriveCodeMappings(TestCase):
                         sample_rate=1.0,
                     )
 
-            # Returning these to inspect the results
+            if (repositories.count() > starting_repositories_count) or dry_run:
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
+                )
+
+            if (code_mappings.count() > starting_code_mappings_count) or dry_run:
+                mock_incr.assert_any_call(
+                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
+                )
+
+            # Returning this to inspect in tests
             return event
 
     def frame(
@@ -254,7 +247,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     def test_skips_not_supported_platforms(self) -> None:
         with patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}):
             self._process_and_assert_configuration_changes(
-                repo_trees={}, frames=[{}], platform="other", expected_num_code_mappings=0
+                repo_trees={}, frames=[{}], platform="other"
             )
 
     def test_handle_existing_code_mapping(self) -> None:
@@ -300,7 +293,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 frames=[self.frame(frame_filename, True)],
                 platform=platform,
                 expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/")],
-                expected_num_code_mappings=0,
             )
 
     def test_extension_is_not_included(self) -> None:
@@ -318,7 +310,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 repo_trees={REPO1: [file_in_repo]},
                 frames=[self.frame(frame_filename, True)],
                 platform=platform,
-                expected_num_code_mappings=0,
             )
 
             with patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=["tbd"]):
@@ -357,7 +348,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 frames=[self.frame("app/main.py", True)],
                 platform=platform,
                 expected_new_code_mappings=[self.code_mapping("app/", "src/app/")],
-                expected_num_code_mappings=2,  # New code mapping
             )
             # New code mapping in a different repository
             self._process_and_assert_configuration_changes(
@@ -365,7 +355,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 frames=[self.frame("baz/qux.py", True)],
                 platform=platform,
                 expected_new_code_mappings=[self.code_mapping("baz/", "app/baz/", REPO2)],
-                expected_num_code_mappings=3,
             )
 
 
@@ -530,7 +519,6 @@ class TestGoDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["not-sentry/main.go"]},
             frames=[self.frame("Users/JohnDoe/src/sentry/main.go", True)],
             platform=self.platform,
-            expected_num_code_mappings=0,
         )
 
 
@@ -583,7 +571,6 @@ class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/src/functions.cs"]},
             frames=[self.frame("/sentry/p/vendor/sentry/src/functions.cs", False)],
             platform=self.platform,
-            expected_num_code_mappings=0,
         )
 
 
@@ -636,7 +623,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 "stack.module:a.** +app",
                 "stack.module:x.y.** +app",
             ],
-            expected_num_code_mappings=0,
         )
 
     def test_handles_dollar_sign_in_module(self) -> None:
@@ -649,7 +635,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             platform=self.platform,
             expected_new_code_mappings=[self.code_mapping("com/example/", "src/com/example/")],
             expected_new_in_app_stack_trace_rules=["stack.module:com.example.** +app"],
-            expected_num_code_mappings=0,
         )
 
     def test_multiple_configuration_changes(self) -> None:
@@ -676,7 +661,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 "stack.module:com.example.** +app",
                 "stack.module:org.other.** +app",
             ],
-            expected_num_code_mappings=3,
         )
 
     def test_multiple_tlds(self) -> None:
@@ -764,7 +748,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 expected_new_code_mappings=[
                     self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
                 ],
-                expected_num_code_mappings=1,
                 expected_new_in_app_stack_trace_rules=[expected_in_app_rule],
             )
             # The effects of the configuration changes will be noticed on the second event processing
