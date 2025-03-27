@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
-import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
@@ -89,7 +88,6 @@ function SchemaHintsList({
   // sort tags by the order they show up in the query builder
   const filterTagsSorted = useMemo(() => {
     const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
-    filterTags.has = getHasTag({...stringTags});
 
     const schemaHintsPresetTags = getTagsFromKeys(
       SCHEMA_HINTS_LIST_ORDER_KEYS,
@@ -282,20 +280,20 @@ function SchemaHintsList({
     );
   };
 
+  if (isLoading) {
+    return (
+      <SchemaHintsLoadingContainer>
+        <LoadingIndicator mini />
+      </SchemaHintsLoadingContainer>
+    );
+  }
+
   if (filterTagsSorted.length === 0) {
     return (
       <SchemaHintsEmptyAlert>
         <IconWarning size="sm" />
         <div>{t('No schema hints available for these projects')}</div>
       </SchemaHintsEmptyAlert>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <SchemaHintsLoadingContainer>
-        <LoadingIndicator mini />
-      </SchemaHintsLoadingContainer>
     );
   }
 

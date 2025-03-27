@@ -100,13 +100,11 @@ describe('SchemaHintsList', () => {
     const withinContainer = within(container);
     expect(withinContainer.getByText('stringTag1')).toBeInTheDocument();
     expect(withinContainer.getByText('stringTag2')).toBeInTheDocument();
-    // counting the has tag
-    expect(withinContainer.getAllByText('is')).toHaveLength(3);
+    expect(withinContainer.getAllByText('is')).toHaveLength(2);
     expect(withinContainer.getByText('numberTag1')).toBeInTheDocument();
     expect(withinContainer.getByText('numberTag2')).toBeInTheDocument();
     expect(withinContainer.getAllByText('>')).toHaveLength(2);
-    // counting the has tag
-    expect(withinContainer.getAllByText('...')).toHaveLength(5);
+    expect(withinContainer.getAllByText('...')).toHaveLength(4);
     expect(withinContainer.getByText('See full list')).toBeInTheDocument();
   });
 
@@ -264,5 +262,16 @@ describe('SchemaHintsList', () => {
     expect(withinDrawer.getByText('stringTag2')).toBeInTheDocument();
     expect(withinDrawer.queryByText('numberTag1')).not.toBeInTheDocument();
     expect(withinDrawer.queryByText('numberTag2')).not.toBeInTheDocument();
+  });
+
+  it('should show empty state when no hints are available', () => {
+    render(<Subject stringTags={{}} numberTags={{}} supportedAggregates={[]} />, {
+      organization,
+      router,
+    });
+
+    expect(
+      screen.getByText('No schema hints available for these projects')
+    ).toBeInTheDocument();
   });
 });
