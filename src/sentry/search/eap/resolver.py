@@ -63,6 +63,7 @@ class SearchResolver:
     params: SnubaParams
     config: SearchResolverConfig
     definitions: ColumnDefinitions
+    granularity_secs: int | None = None
     _resolved_attribute_cache: dict[
         str, tuple[ResolvedAttribute, VirtualColumnDefinition | None]
     ] = field(default_factory=dict)
@@ -794,7 +795,12 @@ class SearchResolver:
                 else function_definition.default_search_type
             )
 
-        resolved_function = function_definition.resolve(alias, search_type, resolved_arguments)
+        resolved_function = function_definition.resolve(
+            alias=alias,
+            search_type=search_type,
+            resolved_arguments=resolved_arguments,
+            snuba_params=self.params,
+        )
 
         resolved_context = None
         self._resolved_function_cache[column] = (resolved_function, resolved_context)

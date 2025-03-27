@@ -438,10 +438,14 @@ def _convert_profile_to_execution_tree(profile_data: dict) -> list[dict]:
         return []
 
     # Find the MainThread ID
-    thread_metadata = profile.get("thread_metadata", {})
+    thread_metadata = profile.get("thread_metadata", {}) or {}
     main_thread_id = next(
-        (key for key, value in thread_metadata.items() if value["name"] == "MainThread"), None
+        (key for key, value in thread_metadata.items() if value.get("name") == "MainThread"), None
     )
+    if (
+        not main_thread_id and len(thread_metadata) == 1
+    ):  # if there is only one thread, use that as the main thread
+        main_thread_id = list(thread_metadata.keys())[0]
 
     # Sort samples chronologically
     sorted_samples = sorted(samples, key=lambda x: x["elapsed_since_start_ns"])

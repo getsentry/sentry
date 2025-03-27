@@ -60,6 +60,10 @@ const ExternalPullLink = styled(ExternalLink)`
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 export default PullRequestLink;

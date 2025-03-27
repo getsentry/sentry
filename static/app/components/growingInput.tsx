@@ -1,9 +1,9 @@
-import {forwardRef, useCallback, useEffect, useLayoutEffect, useRef} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
-import mergeRefs from 'sentry/utils/mergeRefs';
 
 function createSizingDiv(referenceStyles: CSSStyleDeclaration) {
   const sizingDiv = document.createElement('div');
@@ -42,41 +42,45 @@ function resize(input: HTMLInputElement) {
   input.style.width = `${newTotalInputSize}px`;
 }
 
-export const GrowingInput = forwardRef<HTMLInputElement, InputProps>(
-  function GrowingInput({onChange, ...props}: InputProps, ref) {
-    const inputRef = useRef<HTMLInputElement>(null);
-    const isControlled = props.value !== undefined;
+export function GrowingInput({
+  ref,
+  onChange,
+  ...props
+}: InputProps & {
+  ref?: React.Ref<HTMLInputElement>;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const isControlled = props.value !== undefined;
 
-    // If the input is controlled we resize it when the value prop changes
-    useLayoutEffect(() => {
-      if (isControlled && inputRef.current) {
-        resize(inputRef.current);
+  // If the input is controlled we resize it when the value prop changes
+  useLayoutEffect(() => {
+    if (isControlled && inputRef.current) {
+      resize(inputRef.current);
+    }
+  }, [props.value, props.placeholder, isControlled, props.className, props.style]);
+
+  // If the input is uncontrolled we resize it when the user types
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!isControlled) {
+        resize(event.target);
       }
-    }, [props.value, props.placeholder, isControlled, props.className, props.style]);
+      onChange?.(event);
+    },
+    [onChange, isControlled]
+  );
 
-    // If the input is uncontrolled we resize it when the user types
-    const handleChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (!isControlled) {
-          resize(event.target);
-        }
-        onChange?.(event);
-      },
-      [onChange, isControlled]
-    );
+  // If the input is uncontrolled we resize it when it is mounted (default value)
+  useEffect(() => {
+    if (!isControlled && inputRef.current) {
+      resize(inputRef.current);
+    }
+  }, [isControlled]);
 
-    // If the input is uncontrolled we resize it when it is mounted (default value)
-    useEffect(() => {
-      if (!isControlled && inputRef.current) {
-        resize(inputRef.current);
-      }
-    }, [isControlled]);
-
-    return (
-      <StyledInput {...props} ref={mergeRefs([ref, inputRef])} onChange={handleChange} />
-    );
-  }
-);
+  return (
+    <StyledInput {...props} ref={mergeRefs(ref, inputRef)} onChange={handleChange} />
+  );
+}
 
 const StyledInput = styled(Input)`
   width: 0;

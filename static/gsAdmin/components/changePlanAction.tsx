@@ -1,16 +1,18 @@
 import React, {Fragment} from 'react';
+import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import NavTabs from 'sentry/components/navTabs';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 
 import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
 import PlanList, {type LimitName} from 'admin/components/planList';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
-import type {BillingConfig} from 'getsentry/types';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {CheckoutType, PlanTier} from 'getsentry/types';
 import {getAmPlanTier} from 'getsentry/utils/billing';
 
@@ -32,10 +34,13 @@ type State = DeprecatedAsyncComponent['state'] & {
   reservedAttachments: null | number;
   reservedErrors: null | number;
   reservedMonitorSeats: null | number;
+  reservedProfileDuration: null | number;
+  reservedProfileDurationUI: null | number;
   reservedReplays: null | number;
   reservedSpans: null | number;
   reservedTransactions: null | number;
   reservedUptime: null | number;
+  subscription: Subscription | null;
 };
 
 /**
@@ -58,6 +63,8 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       reservedMonitorSeats: null,
       reservedUptime: null,
       reservedSpans: null,
+      reservedProfileDuration: null,
+      reservedProfileDurationUI: null,
       activeTier: this.props.partnerPlanId
         ? getAmPlanTier(this.props.partnerPlanId)
         : PlanTier.AM3,
@@ -65,6 +72,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       contractInterval: MONTHLY,
       am1BillingConfig: null,
       mm2BillingConfig: null,
+      subscription: null,
     };
   }
 
@@ -74,6 +82,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       ['am1BillingConfig', `/customers/${this.props.orgId}/billing-config/?tier=am1`],
       ['am2BillingConfig', `/customers/${this.props.orgId}/billing-config/?tier=am2`],
       ['am3BillingConfig', `/customers/${this.props.orgId}/billing-config/?tier=am3`],
+      ['subscription', `/subscriptions/${this.props.orgId}/`],
     ];
   }
 
@@ -81,144 +90,9 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
     return ConfigStore.get('user')?.permissions?.has?.('billing.provision');
   }
 
-  handleConfirm = async () => {
-    const {onConfirm, orgId} = this.props;
+  getPlanList(): BillingConfig['planList'] {
     const {
       activeTier,
-      plan,
-      reservedErrors,
-      reservedTransactions,
-      reservedReplays,
-      reservedAttachments,
-      reservedMonitorSeats,
-      reservedUptime,
-      reservedSpans,
-      reservedProfileDuration,
-    } = this.state;
-    const api = new Client();
-
-    addLoadingMessage('Updating plan\u2026');
-
-    if (activeTier === PlanTier.MM2) {
-      const data = {plan};
-      try {
-        await api.requestPromise(`/customers/${orgId}/`, {
-          method: 'PUT',
-          data,
-        });
-        addSuccessMessage(
-          `Customer account has been updated with ${JSON.stringify(data)}.`
-        );
-        onConfirm?.(data);
-      } catch (error) {
-        onConfirm?.({error});
-      }
-      return;
-    }
-
-    // AM plans use a different endpoint to update plans.
-    const data: {
-      plan: string | null;
-      reservedAttachments: number | null;
-      reservedErrors: number | null;
-      reservedMonitorSeats: number | null;
-      reservedReplays: number | null;
-      reservedUptime: number | null;
-      reservedProfileDuration?: number | null;
-      reservedSpans?: number | null;
-      reservedTransactions?: number | null;
-    } = {
-      plan,
-      reservedErrors,
-      reservedReplays,
-      reservedAttachments,
-      reservedMonitorSeats,
-      reservedUptime,
-      reservedProfileDuration,
-    };
-    if (reservedSpans) {
-      data.reservedSpans = reservedSpans;
-    }
-    if (reservedTransactions) {
-      data.reservedTransactions = reservedTransactions;
-    }
-
-    try {
-      await api.requestPromise(`/customers/${orgId}/subscription/`, {
-        method: 'PUT',
-        data,
-      });
-      addSuccessMessage(
-        `Customer account has been updated with ${JSON.stringify(data)}.`
-      );
-      onConfirm?.(data);
-    } catch (error) {
-      onConfirm?.({error});
-    }
-  };
-
-  canSubmit() {
-    const {
-      activeTier,
-      plan,
-      reservedErrors,
-      reservedTransactions,
-      reservedAttachments,
-      reservedReplays,
-      reservedMonitorSeats,
-      reservedUptime,
-      reservedSpans,
-      reservedProfileDuration,
-      am2BillingConfig,
-      am3BillingConfig,
-    } = this.state;
-    if (activeTier === PlanTier.MM2 && plan) {
-      return true;
-    }
-
-    // TODO(brendan): remove checking profileDuration !== undefined once we launch profile duration
-    const profileDurationTier =
-      (activeTier === PlanTier.AM2 &&
-        am2BillingConfig?.defaultReserved.profileDuration !== undefined) ||
-      (activeTier === PlanTier.AM3 &&
-        am3BillingConfig?.defaultReserved.profileDuration !== undefined);
-    return (
-      plan &&
-      reservedErrors &&
-      reservedReplays &&
-      reservedAttachments &&
-      reservedMonitorSeats &&
-      reservedUptime &&
-      (profileDurationTier ? reservedProfileDuration >= 0 : true) &&
-      (reservedTransactions || reservedSpans)
-    );
-  }
-
-  handlePlanChange = (planId: string) => {
-    this.setState({plan: planId}, () => {
-      this.props.disableConfirmButton(!this.canSubmit());
-    });
-  };
-
-  handleLimitChange = (limit: LimitName, value: number) => {
-    this.setState({[limit]: value}, () => {
-      this.props.disableConfirmButton(!this.canSubmit());
-    });
-  };
-
-  renderBody() {
-    const {
-      plan,
-      reservedErrors,
-      reservedAttachments,
-      reservedReplays,
-      reservedTransactions,
-      reservedMonitorSeats,
-      reservedUptime,
-      reservedSpans,
-      reservedProfileDuration,
-      activeTier,
-      loading,
       billingInterval,
       am1BillingConfig,
       am2BillingConfig,
@@ -226,12 +100,7 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
       mm2BillingConfig,
       contractInterval,
     } = this.state;
-
     const {partnerPlanId} = this.props;
-
-    if (loading) {
-      return null;
-    }
 
     let planList: BillingConfig['planList'] = [];
     if (activeTier === PlanTier.MM2 && mm2BillingConfig) {
@@ -267,91 +136,284 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
         );
     }
 
+    return planList;
+  }
+
+  // Find the closest volume tier in the plan for a given category and current volume
+  findClosestTier(
+    plan: Plan | null,
+    category: string,
+    currentValue: number
+  ): number | null {
+    if (!plan?.planCategories || !(category in plan.planCategories)) {
+      return null;
+    }
+
+    const categoryBuckets = (plan.planCategories as Record<string, any>)[category];
+    if (!categoryBuckets?.length) {
+      return null;
+    }
+
+    const availableTiers = categoryBuckets.map((tier: {events: number}) => tier.events);
+
+    // If the exact value exists, use it
+    if (availableTiers.includes(currentValue)) {
+      return currentValue;
+    }
+
+    // Find the closest tier, preferring the next higher tier if not exact
+    const sortedTiers = [...availableTiers].sort((a, b) => a - b);
+
+    // Find the first tier that's greater than the current value
+    const nextHigherTier = sortedTiers.find(tier => tier > currentValue);
+    if (nextHigherTier) {
+      return nextHigherTier;
+    }
+
+    // If no higher tier, take the highest available
+    return sortedTiers[sortedTiers.length - 1];
+  }
+
+  // Set initial values for reserved volumes based on the current subscription
+  // and available tiers in the selected plan
+  setInitialReservedVolumes(planId: string): void {
+    const {subscription} = this.state;
+    if (!subscription) {
+      return;
+    }
+
+    const selectedPlan = this.getPlanList().find(p => p.id === planId) || null;
+    if (!selectedPlan) {
+      return;
+    }
+
+    const updates: Record<string, number | null> = {};
+
+    // Helper function to find and set the default value for a category
+    const setDefaultForCategory = (category: string, subscriptionField: string) => {
+      // Get the reserved value from subscription.categories if available
+      if (subscription.categories) {
+        // Using type assertion to allow string indexing
+        const categories = subscription.categories as Record<string, {reserved?: number}>;
+
+        if (categories[category] && categories[category].reserved !== undefined) {
+          const reservedValue = categories[category].reserved;
+
+          // Try to find the closest tier in the selected plan
+          updates[subscriptionField] = this.findClosestTier(
+            selectedPlan,
+            category,
+            reservedValue
+          );
+        }
+      }
+    };
+
+    // Set defaults for all supported categories
+    setDefaultForCategory('errors', 'reservedErrors');
+    setDefaultForCategory('transactions', 'reservedTransactions');
+    setDefaultForCategory('replays', 'reservedReplays');
+    setDefaultForCategory('attachments', 'reservedAttachments');
+    setDefaultForCategory('monitorSeats', 'reservedMonitorSeats');
+    setDefaultForCategory('uptime', 'reservedUptime');
+    setDefaultForCategory('spans', 'reservedSpans');
+    setDefaultForCategory('profileDuration', 'reservedProfileDuration');
+    setDefaultForCategory('profileDurationUI', 'reservedProfileDurationUI');
+
+    this.setState(updates as Partial<State>, () => {
+      this.props.disableConfirmButton(!this.canSubmit());
+    });
+  }
+
+  handleConfirm = async () => {
+    const {onConfirm, orgId} = this.props;
+    const {
+      activeTier,
+      plan,
+      reservedErrors,
+      reservedTransactions,
+      reservedReplays,
+      reservedAttachments,
+      reservedMonitorSeats,
+      reservedUptime,
+      reservedSpans,
+      reservedProfileDuration,
+      reservedProfileDurationUI,
+    } = this.state;
+    const api = new Client();
+
+    addLoadingMessage('Updating plan\u2026');
+
+    if (activeTier === PlanTier.MM2) {
+      const data = {plan};
+      try {
+        await api.requestPromise(`/customers/${orgId}/`, {
+          method: 'PUT',
+          data,
+        });
+        addSuccessMessage(
+          `Customer account has been updated with ${JSON.stringify(data)}.`
+        );
+        onConfirm?.(data);
+      } catch (error) {
+        onConfirm?.({error});
+      }
+      return;
+    }
+
+    // AM plans use a different endpoint to update plans.
+    const data: {
+      plan: string | null;
+      reservedAttachments: number | null;
+      reservedErrors: number | null;
+      reservedMonitorSeats: number | null;
+      reservedReplays: number | null;
+      reservedUptime: number | null;
+      reservedProfileDuration?: number | null;
+      reservedProfileDurationUI?: number | null;
+      reservedSpans?: number | null;
+      reservedTransactions?: number | null;
+    } = {
+      plan,
+      reservedErrors,
+      reservedReplays,
+      reservedAttachments,
+      reservedMonitorSeats,
+      reservedUptime,
+      reservedProfileDuration: reservedProfileDuration || 0,
+      reservedProfileDurationUI: reservedProfileDurationUI || 0,
+    };
+    if (reservedSpans) {
+      data.reservedSpans = reservedSpans;
+    }
+    if (reservedTransactions) {
+      data.reservedTransactions = reservedTransactions;
+    }
+
+    try {
+      await api.requestPromise(`/customers/${orgId}/subscription/`, {
+        method: 'PUT',
+        data,
+      });
+      addSuccessMessage(
+        `Customer account has been updated with ${JSON.stringify(data)}.`
+      );
+      onConfirm?.(data);
+    } catch (error) {
+      onConfirm?.({error});
+    }
+  };
+
+  canSubmit() {
+    const {
+      activeTier,
+      plan,
+      reservedErrors,
+      reservedTransactions,
+      reservedAttachments,
+      reservedReplays,
+      reservedMonitorSeats,
+      reservedUptime,
+      reservedSpans,
+    } = this.state;
+    if (activeTier === PlanTier.MM2 && plan) {
+      return true;
+    }
+
+    return (
+      plan &&
+      reservedErrors &&
+      reservedReplays &&
+      reservedAttachments &&
+      reservedMonitorSeats &&
+      reservedUptime &&
+      (reservedTransactions || reservedSpans)
+    );
+  }
+
+  handlePlanChange = (planId: string) => {
+    this.setState({plan: planId}, () => {
+      // Set initial reserved volumes based on current subscription
+      this.setInitialReservedVolumes(planId);
+      this.props.disableConfirmButton(!this.canSubmit());
+    });
+  };
+
+  handleLimitChange = (limit: LimitName, value: number) => {
+    this.setState({[limit]: value}, () => {
+      this.props.disableConfirmButton(!this.canSubmit());
+    });
+  };
+
+  renderBody() {
+    const {
+      plan,
+      reservedErrors,
+      reservedAttachments,
+      reservedReplays,
+      reservedTransactions,
+      reservedMonitorSeats,
+      reservedUptime,
+      reservedSpans,
+      activeTier,
+      loading,
+      billingInterval,
+      contractInterval,
+      subscription,
+    } = this.state;
+
+    const {partnerPlanId} = this.props;
+
+    if (loading) {
+      return null;
+    }
+
     // Plan for partner sponsored subscriptions is not modifiable so skipping
     // the navigation that will allow modifying billing cycle and plan tier
+    const PLAN_TABS = [
+      {
+        label: 'AM3',
+        tier: PlanTier.AM3,
+      },
+      {
+        label: 'AM2',
+        tier: PlanTier.AM2,
+      },
+      {
+        label: 'AM1',
+        tier: PlanTier.AM1,
+      },
+      {
+        label: 'MM2',
+        tier: PlanTier.MM2,
+      },
+      {
+        label: 'TEST',
+        tier: PlanTier.TEST,
+      },
+    ];
+
     const header = partnerPlanId ? null : (
       <React.Fragment>
-        <NavTabs>
-          <li className={activeTier === PlanTier.AM3 ? 'active' : ''}>
-            <a
-              data-test-id="am3-tier"
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.AM3,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              AM3
-            </a>
-          </li>
-          <li className={activeTier === PlanTier.AM2 ? 'active' : ''}>
-            <a
-              data-test-id="am2-tier"
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.AM2,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              AM2
-            </a>
-          </li>
-          <li className={activeTier === PlanTier.AM1 ? 'active' : ''}>
-            <a
-              data-test-id="am1-tier"
-              role="link"
-              aria-disabled
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.AM1,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              AM1
-            </a>
-          </li>
-          <li className={activeTier === PlanTier.MM2 ? 'active' : ''}>
-            <a
-              data-test-id="mm2-tier"
-              onClick={() =>
-                this.setState({
-                  activeTier: PlanTier.MM2,
-                  billingInterval: MONTHLY,
-                  contractInterval: MONTHLY,
-                  plan: null,
-                })
-              }
-            >
-              MM2
-            </a>
-          </li>
-          {this.hasProvisionPermission() && (
-            <li className={activeTier === PlanTier.TEST ? 'active' : ''}>
-              <a
-                data-test-id="test-tier"
-                onClick={() =>
-                  this.setState({
-                    activeTier: PlanTier.TEST,
-                    billingInterval: MONTHLY,
-                    contractInterval: MONTHLY,
-                    plan: null,
-                  })
-                }
-              >
-                TEST
-              </a>
-            </li>
-          )}
-        </NavTabs>
+        <TabsContainer>
+          <Tabs
+            value={activeTier}
+            onChange={tab => {
+              this.setState({
+                activeTier: tab,
+                billingInterval: MONTHLY,
+                contractInterval: MONTHLY,
+                plan: null,
+              });
+            }}
+          >
+            <TabList>
+              {PLAN_TABS.map(tab => (
+                <TabList.Item key={tab.tier}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
         <ul className="nav nav-pills">
           <li
             className={classNames({
@@ -422,14 +484,18 @@ class ChangePlanAction extends DeprecatedAsyncComponent<Props, State> {
           reservedAttachments={reservedAttachments}
           reservedMonitorSeats={reservedMonitorSeats}
           reservedUptime={reservedUptime}
-          reservedProfileDuration={reservedProfileDuration}
-          plans={planList}
+          plans={this.getPlanList()}
           onPlanChange={this.handlePlanChange}
           onLimitChange={this.handleLimitChange}
+          currentSubscription={subscription}
         />
       </Fragment>
     );
   }
 }
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default ChangePlanAction;

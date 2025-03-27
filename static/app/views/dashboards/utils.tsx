@@ -468,8 +468,7 @@ export function isWidgetUsingTransactionName(widget: Widget) {
 
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    dashboard.projects &&
-    dashboard.projects.length === 0 &&
+    (dashboard.projects === undefined || dashboard.projects.length === 0) &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&

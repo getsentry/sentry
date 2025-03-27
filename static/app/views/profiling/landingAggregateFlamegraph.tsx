@@ -2,10 +2,10 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOption} from 'sentry/components/compactSelect/types';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
