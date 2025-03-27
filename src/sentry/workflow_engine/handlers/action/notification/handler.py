@@ -2,6 +2,8 @@ import logging
 from abc import ABC, abstractmethod
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
+from sentry.integrations.pagerduty.client import PagerdutySeverity
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
@@ -24,6 +26,25 @@ class NotificationHandlerException(Exception):
     pass
 
 
+# TODO(iamrajjoshi): This should be removed once I define the config schemas for each action type
+GENERIC_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for Notification Actions",
+    "type": "object",
+    "properties": {
+        "target_identifier": {
+            "type": ["string", "null"],
+        },
+        "target_display": {
+            "type": ["string", "null"],
+        },
+        "target_type": {
+            "type": ["integer", "null"],
+            "enum": [*ActionTarget] + [None],
+        },
+    },
+}
+
 MESSAGING_ACTION_CONFIG_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "description": "The configuration schema for a Messaging Action",
@@ -33,7 +54,7 @@ MESSAGING_ACTION_CONFIG_SCHEMA = {
         "target_display": {"type": ["string"]},
         "target_type": {
             "type": ["integer"],
-            "enum": [*ActionTarget],
+            "enum": [ActionTarget.SPECIFIC.value],
         },
     },
     "required": ["target_identifier", "target_display", "target_type"],
@@ -53,7 +74,7 @@ DISCORD_ACTION_CONFIG_SCHEMA = {
         },
         "target_type": {
             "type": ["integer"],
-            "enum": [*ActionTarget],
+            "enum": [ActionTarget.SPECIFIC.value],
         },
     },
     "required": ["target_identifier", "target_type"],
@@ -68,6 +89,48 @@ TAGS_SCHEMA = {
 NOTES_SCHEMA = {
     "type": "string",
     "description": "Notes to add to the message",
+}
+
+ONCALL_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for a on-call Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": ["string"]},
+        "target_display": {"type": ["string", "null"]},
+        "target_type": {
+            "type": ["integer"],
+            "enum": [ActionTarget.SPECIFIC.value],
+        },
+    },
+    "required": ["target_identifier", "target_type"],
+    "additionalProperties": False,
+}
+
+PAGERDUTY_ACTION_DATA_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "priority": {
+            "type": "string",
+            "description": "The priority of the pagerduty action",
+            "enum": [severity for severity in PagerdutySeverity],
+        },
+        "additionalProperties": False,
+    },
+}
+
+OPSGENIE_ACTION_DATA_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "priority": {
+            "type": "string",
+            "description": "The priority of the opsgenie action",
+            "enum": [*OPSGENIE_CUSTOM_PRIORITIES],
+        },
+        "additionalProperties": False,
+    },
 }
 
 
@@ -112,37 +175,12 @@ def execute_via_issue_alert_handler(
     IssueAlertRegistryInvoker.handle_workflow_action(job, action, detector)
 
 
-class NotificationActionHandler(ActionHandler, ABC):
-    config_schema = {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "description": "The configuration schema for Notification Actions",
-        "type": "object",
-        "properties": {
-            "target_identifier": {
-                "type": ["string", "null"],
-            },
-            "target_display": {
-                "type": ["string", "null"],
-            },
-            "target_type": {
-                "type": ["integer", "null"],
-                "enum": [*ActionTarget] + [None],
-            },
-        },
-    }
-
-    data_schema = {}
-
-    @staticmethod
-    def execute(
-        job: WorkflowEventData,
-        action: Action,
-        detector: Detector,
-    ) -> None:
-        execute_via_group_type_registry(job, action, detector)
+class IntegrationActionHandler(ActionHandler, ABC):
+    # TODO(iamrajjoshi): Switch this to an enum after we decide on what this enum will be
+    provider_slug: str
 
 
-class TicketingActionHandler(ActionHandler, ABC):
+class TicketingActionHandler(IntegrationActionHandler, ABC):
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "description": "The configuration schema for a Ticketing Action",
@@ -156,7 +194,7 @@ class TicketingActionHandler(ActionHandler, ABC):
             },
             "target_type": {
                 "type": ["integer"],
-                "enum": [*ActionTarget],
+                "enum": [ActionTarget.SPECIFIC.value],
             },
         },
     }
@@ -192,8 +230,9 @@ class TicketingActionHandler(ActionHandler, ABC):
 
 
 @action_handler_registry.register(Action.Type.DISCORD)
-class DiscordActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.Group.NOTIFICATION
+class DiscordActionHandler(IntegrationActionHandler):
+    group = ActionHandler.Group.NOTIFICATION
+    provider_slug = "discord"
 
     config_schema = DISCORD_ACTION_CONFIG_SCHEMA
 
@@ -207,9 +246,20 @@ class DiscordActionHandler(NotificationActionHandler):
         "additionalProperties": False,
     }
 
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_group_type_registry(job, action, detector)
+
 
 @action_handler_registry.register(Action.Type.SLACK)
-class SlackActionHandler(NotificationActionHandler):
+class SlackActionHandler(IntegrationActionHandler):
+    group = ActionHandler.Group.NOTIFICATION
+    provider_slug = "slack"
+
     config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
 
     data_schema = {
@@ -223,11 +273,20 @@ class SlackActionHandler(NotificationActionHandler):
         "additionalProperties": False,
     }
 
-    group = ActionHandler.Group.NOTIFICATION
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_group_type_registry(job, action, detector)
 
 
 @action_handler_registry.register(Action.Type.MSTEAMS)
-class MsteamsActionHandler(NotificationActionHandler):
+class MsteamsActionHandler(IntegrationActionHandler):
+    group = ActionHandler.Group.NOTIFICATION
+    provider_slug = "msteams"
+
     config_schema = MESSAGING_ACTION_CONFIG_SCHEMA
 
     data_schema = {
@@ -238,62 +297,125 @@ class MsteamsActionHandler(NotificationActionHandler):
         "additionalProperties": False,
     }
 
-    group = ActionHandler.Group.NOTIFICATION
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_group_type_registry(job, action, detector)
 
 
 @action_handler_registry.register(Action.Type.PAGERDUTY)
-class PagerdutyActionHandler(NotificationActionHandler):
-    group = NotificationActionHandler.Group.NOTIFICATION
+class PagerdutyActionHandler(IntegrationActionHandler):
+    group = ActionHandler.Group.NOTIFICATION
+    provider_slug = "pagerduty"
+
+    config_schema = ONCALL_ACTION_CONFIG_SCHEMA
+    data_schema = PAGERDUTY_ACTION_DATA_SCHEMA
 
 
 @action_handler_registry.register(Action.Type.OPSGENIE)
-class OpsgenieActionHandler(NotificationActionHandler):
+class OpsgenieActionHandler(IntegrationActionHandler):
     group = ActionHandler.Group.NOTIFICATION
+    provider_slug = "opsgenie"
+
+    config_schema = ONCALL_ACTION_CONFIG_SCHEMA
+    data_schema = OPSGENIE_ACTION_DATA_SCHEMA
 
 
 @action_handler_registry.register(Action.Type.EMAIL)
-class EmailActionHandler(NotificationActionHandler):
+class EmailActionHandler(ActionHandler):
     group = ActionHandler.Group.NOTIFICATION
+
+    config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+    data_schema = {}
+
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_group_type_registry(job, action, detector)
 
 
 @action_handler_registry.register(Action.Type.SENTRY_APP)
-class SentryAppActionHandler(NotificationActionHandler):
+class SentryAppActionHandler(ActionHandler):
     group = ActionHandler.Group.NOTIFICATION
+
+    config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+    data_schema = {}
+
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_group_type_registry(job, action, detector)
 
 
 @action_handler_registry.register(Action.Type.PLUGIN)
-class PluginActionHandler(NotificationActionHandler):
+class PluginActionHandler(ActionHandler):
     group = ActionHandler.Group.NOTIFICATION
+
+    config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+    data_schema = {}
+
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_group_type_registry(job, action, detector)
 
 
 @action_handler_registry.register(Action.Type.GITHUB)
 class GithubActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
+    provider_slug = "github"
 
 
 @action_handler_registry.register(Action.Type.GITHUB_ENTERPRISE)
 class GithubEnterpriseActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
+    provider_slug = "github_enterprise"
 
 
 @action_handler_registry.register(Action.Type.JIRA)
 class JiraActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
+    provider_slug = "jira"
 
 
 @action_handler_registry.register(Action.Type.JIRA_SERVER)
 class JiraServerActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
+    provider_slug = "jira_server"
 
 
 @action_handler_registry.register(Action.Type.AZURE_DEVOPS)
 class AzureDevopsActionHandler(TicketingActionHandler):
     group = ActionHandler.Group.TICKET_CREATION
+    provider_slug = "azure_devops"
 
 
 @action_handler_registry.register(Action.Type.WEBHOOK)
-class WebhookActionHandler(NotificationActionHandler):
+class WebhookActionHandler(ActionHandler):
     group = ActionHandler.Group.OTHER
+
+    config_schema = GENERIC_ACTION_CONFIG_SCHEMA
+    data_schema = {}
+
+    @staticmethod
+    def execute(
+        job: WorkflowEventData,
+        action: Action,
+        detector: Detector,
+    ) -> None:
+        execute_via_group_type_registry(job, action, detector)
 
 
 @group_type_notification_registry.register(ErrorGroupType.slug)

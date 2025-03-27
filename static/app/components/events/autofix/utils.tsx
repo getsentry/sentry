@@ -1,7 +1,6 @@
 import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootCause';
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
-  type AutofixChangesStep,
   type AutofixCodebaseChange,
   type AutofixData,
   AutofixStatus,
@@ -73,7 +72,7 @@ export function getCodeChangesDescription(autofixData: AutofixData) {
 
   const changesStep = autofixData.steps?.find(
     step => step.type === AutofixStepType.CHANGES
-  ) as AutofixChangesStep | undefined;
+  );
 
   if (!changesStep) {
     return null;
@@ -127,4 +126,8 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
   );
 
   return changesStep?.status === AutofixStatus.PROCESSING;
+};
+
+export const isSupportedAutofixProvider = (provider: string) => {
+  return provider.toLowerCase().includes('github');
 };

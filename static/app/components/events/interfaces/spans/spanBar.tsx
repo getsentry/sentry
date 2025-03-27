@@ -861,7 +861,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     return (
       <DividerLine
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
         ref={addDividerLineRef()}
         style={{
           position: 'absolute',
@@ -1083,7 +1082,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             }}
           >
             <DividerLine
-              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={addGhostDividerLineRef()}
               style={{
                 right: 0,

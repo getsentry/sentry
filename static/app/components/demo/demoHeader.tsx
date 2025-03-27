@@ -15,7 +15,7 @@ import {
   isDemoModeActive,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
-import {openDemoEmailModal} from 'sentry/utils/demoMode/utils';
+import {captureEmail} from 'sentry/utils/demoMode/utils';
 import useApi from 'sentry/utils/useApi';
 
 export const DEMO_HEADER_HEIGHT_PX = 70;
@@ -24,8 +24,8 @@ export default function DemoHeader() {
   const api = useApi();
 
   useEffect(() => {
-    openDemoEmailModal();
-  }, []);
+    captureEmail(api);
+  }, [api]);
 
   if (!isDemoModeActive()) {
     return null;

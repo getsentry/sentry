@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
+import {mergeRefs} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
 import type {Key} from '@react-types/shared';
@@ -23,7 +24,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import useOverlay from 'sentry/utils/useOverlay';
 
@@ -177,7 +177,7 @@ function ComboBox<Value extends string>({
         placeholder={placeholder}
         onMouseUp={handleInputMouseUp}
         onFocus={handleInputFocus}
-        ref={mergeRefs([inputRef, triggerProps.ref])}
+        ref={mergeRefs(inputRef, triggerProps.ref)}
         size={size}
       />
       <StyledPositionWrapper

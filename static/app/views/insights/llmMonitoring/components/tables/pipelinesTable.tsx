@@ -103,7 +103,7 @@ export function EAPPipelinesTable() {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
     sort = {field: 'spm()', kind: 'desc'};
   }
@@ -252,7 +252,7 @@ export function PipelinesTable() {
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
     sort = {field: 'spm()', kind: 'desc'};
   }

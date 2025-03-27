@@ -14,6 +14,7 @@ import styled from '@emotion/styled';
 import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
+import {mergeRefs} from '@react-aria/utils';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
@@ -37,7 +38,6 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -277,13 +277,9 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <ListBoxOverlay
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={popoverRef}
-      >
+      <ListBoxOverlay ref={popoverRef}>
         <ListBox
           {...listBoxProps}
-          // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
           ref={listBoxRef}
           listState={state}
           hasSearch={!!filterValue}
@@ -521,7 +517,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs([ref, inputRef, triggerProps.ref])}
+        ref={mergeRefs(ref, inputRef, triggerProps.ref)}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}
