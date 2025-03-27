@@ -109,7 +109,7 @@ async function createCopyDSNAction(api: Client, orgId: string, projectId: string
     description: t('Copies the Project DSN to the clipboard.'),
     requiresSuperuser: false,
     action: () => {
-      if (data[0]?.dsn?.public) {
+      if (data.length > 0 && data[0]?.dsn?.public) {
         navigator.clipboard.writeText(data[0]?.dsn?.public);
         addSuccessMessage(t('Copied DSN to clipboard'));
       } else {
