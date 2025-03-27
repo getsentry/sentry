@@ -9,6 +9,7 @@ import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -281,6 +282,15 @@ function SchemaHintsList({
     );
   };
 
+  if (filterTagsSorted.length === 0) {
+    return (
+      <SchemaHintsEmptyAlert>
+        <IconWarning size="sm" />
+        <div>{t('No schema hints available for these projects')}</div>
+      </SchemaHintsEmptyAlert>
+    );
+  }
+
   if (isLoading) {
     return (
       <SchemaHintsLoadingContainer>
@@ -328,6 +338,18 @@ const SchemaHintsLoadingContainer = styled('div')`
   height: 24px;
 `;
 
+const SchemaHintsEmptyAlert = styled('div')`
+  width: 100%;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: ${space(1)};
+  border-radius: ${p => p.theme.borderRadius};
+  background-color: ${p => p.theme.backgroundSecondary};
+  border: 1px solid ${p => p.theme.border};
+`;
+
 const SchemaHintOption = styled(Button)`
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: 4px;
@@ -355,6 +377,8 @@ export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}
   margin-bottom: ${space(2)};
   margin-top: -4px;
   height: fit-content;
+  /* This is to ensure the hints section doesn't overflow to the third column */
+  width: calc(100% - ${space(2)});
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: 1fr ${p =>
