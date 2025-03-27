@@ -499,7 +499,7 @@ function UsageTotals({
     : totals;
 
   return (
-    <SubscriptionCard>
+    <SubscriptionCard data-test-id={`usage-card-${category}`}>
       <CardBody>
         <UsageProgress>
           <BaseRow>
@@ -554,7 +554,7 @@ function UsageTotals({
               )}
               {!disableTable && (
                 <Button
-                  data-test-id="expand-usage-totals"
+                  data-test-id={`expand-usage-totals-${category}`}
                   size="sm"
                   onClick={() => setState({...state, expanded: !state.expanded})}
                   icon={<IconChevron direction={state.expanded ? 'up' : 'down'} />}
@@ -837,6 +837,7 @@ function UsageTotals({
                   category={key}
                   totals={eventTotal}
                   subscription={subscription}
+                  data-test-id={`event-breakdown-${key}`}
                 />
               );
             })}

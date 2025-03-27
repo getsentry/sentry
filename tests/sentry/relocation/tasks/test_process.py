@@ -4,7 +4,7 @@ from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -88,7 +88,7 @@ from sentry.relocation.utils import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
+from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -100,15 +100,6 @@ IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
 REQUESTING_TEST_REGION = "requesting"
 EXPORTING_TEST_REGION = "exporting"
 SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
-
-
-class FakeCloudBuildClient:
-    """
-    Fake version of `CloudBuildClient` that removes the two network calls we rely on.
-    """
-
-    create_build = MagicMock()
-    get_build = MagicMock()
 
 
 class RelocationTaskTestCase(TestCase):
@@ -196,9 +187,7 @@ class RelocationTaskTestCase(TestCase):
                 ).getvalue()
                 file.putfile(BytesIO(self.tarball), blob_size=blob_size)
 
-    def mock_kms_client(self, fake_kms_client: FakeKeyManagementServiceClient):
-        fake_kms_client.asymmetric_decrypt.call_count = 0
-        fake_kms_client.get_public_key.call_count = 0
+    def mock_kms_client(self, fake_kms_client: Mock):
         if not hasattr(self, "tarball"):
             _ = self.file
 
@@ -207,39 +196,27 @@ class RelocationTaskTestCase(TestCase):
             self.priv_key_pem
         ).decrypt_data_encryption_key(unwrapped)
 
-        fake_kms_client.asymmetric_decrypt.return_value = SimpleNamespace(
+        fake_kms_client.return_value.asymmetric_decrypt.return_value = SimpleNamespace(
             plaintext=plaintext_dek,
             plaintext_crc32c=crc32c(plaintext_dek),
         )
-        fake_kms_client.asymmetric_decrypt.side_effect = None
 
-        fake_kms_client.get_public_key.return_value = SimpleNamespace(
-            pem=self.pub_key_pem.decode("utf-8")
+        fake_kms_client.return_value.get_public_key.return_value = SimpleNamespace(
+            pem=self.pub_key_pem.decode()
         )
-        fake_kms_client.get_public_key.side_effect = None
 
-    def mock_cloudbuild_client(
-        self, fake_cloudbuild_client: FakeCloudBuildClient, status: Build.Status
-    ):
-        fake_cloudbuild_client.create_build.call_count = 0
-        fake_cloudbuild_client.get_build.call_count = 0
-
-        fake_cloudbuild_client.create_build.return_value = SimpleNamespace(
+    def mock_cloudbuild_client(self, fake_cloudbuild_client: Mock, status: Build.Status):
+        fake_cloudbuild_client.return_value.create_build.return_value = SimpleNamespace(
             metadata=SimpleNamespace(build=SimpleNamespace(id=uuid4().hex))
         )
-        fake_cloudbuild_client.create_build.side_effect = None
 
-        fake_cloudbuild_client.get_build.return_value = SimpleNamespace(status=status)
-        fake_cloudbuild_client.get_build.side_effect = None
+        fake_cloudbuild_client.return_value.get_build.return_value = SimpleNamespace(status=status)
 
     def mock_message_builder(self, fake_message_builder: Mock):
         fake_message_builder.return_value.send_async.return_value = Mock()
 
 
-@patch(
-    "sentry.backup.crypto.KeyManagementServiceClient",
-    new_callable=lambda: FakeKeyManagementServiceClient,
-)
+@patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
@@ -285,7 +262,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         cross_region_export_timeout_check_mock: Mock,
         uploading_complete_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -302,8 +279,8 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert uploading_complete_mock.call_count == 1
         assert cross_region_export_timeout_check_mock.call_count == 1
         assert fake_message_builder.call_count == 0
-        assert fake_kms_client.get_public_key.call_count > 0
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count > 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
 
         assert RelocationFile.objects.filter(
             relocation=self.relocation,
@@ -316,7 +293,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         cross_region_export_timeout_check_mock: Mock,
         uploading_complete_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -334,8 +311,8 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert uploading_complete_mock.call_count == 1
         assert cross_region_export_timeout_check_mock.call_count == 0
         assert fake_message_builder.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
 
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
 
@@ -345,14 +322,14 @@ class UploadingStartTest(RelocationTaskTestCase):
         cross_region_export_timeout_check_mock: Mock,
         uploading_complete_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
-            fake_kms_client.get_public_key.side_effect = Exception("Test")
+            fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
                 self.tasks(),
                 assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
@@ -362,8 +339,8 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert uploading_complete_mock.call_count == 0
         assert cross_region_export_timeout_check_mock.call_count == 0
         assert fake_message_builder.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
@@ -375,7 +352,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         cross_region_export_timeout_check_mock: Mock,
         uploading_complete_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -384,7 +361,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         self.relocation.save()
 
         with pytest.raises(Exception):
-            fake_kms_client.get_public_key.side_effect = Exception("Test")
+            fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
             with (
                 self.tasks(),
                 assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
@@ -399,8 +376,8 @@ class UploadingStartTest(RelocationTaskTestCase):
 
         assert uploading_complete_mock.call_count == 0
         assert cross_region_export_timeout_check_mock.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -412,7 +389,7 @@ class UploadingStartTest(RelocationTaskTestCase):
         cross_region_export_timeout_check_mock: Mock,
         uploading_complete_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -429,8 +406,8 @@ class UploadingStartTest(RelocationTaskTestCase):
         assert uploading_complete_mock.call_count == 0
         assert cross_region_export_timeout_check_mock.call_count == 0
         assert fake_message_builder.call_count == 1
-        assert fake_kms_client.get_public_key.call_count == 0
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -441,10 +418,7 @@ class UploadingStartTest(RelocationTaskTestCase):
     # -1 minutes guarantees a timeout, even during synchronous execution.
     @patch("sentry.relocation.tasks.process.CROSS_REGION_EXPORT_TIMEOUT", timedelta(minutes=-1))
     def test_fail_due_to_timeout(
-        self,
-        uploading_complete_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, uploading_complete_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -475,8 +449,8 @@ class UploadingStartTest(RelocationTaskTestCase):
                 to=[self.owner.email, self.superuser.email]
             )
 
-        assert fake_kms_client.get_public_key.call_count == 1
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
 
         assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
 
@@ -548,10 +522,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_UPLOADING_FAILED
 
 
-@patch(
-    "sentry.backup.crypto.KeyManagementServiceClient",
-    new_callable=lambda: FakeKeyManagementServiceClient,
-)
+@patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_transfer.apply_async")
 class PreprocessingScanTest(RelocationTaskTestCase):
@@ -562,18 +533,15 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         self.relocation.save()
 
     def test_success_admin_assisted_relocation(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
         preprocessing_scan(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 1
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.started"
@@ -591,10 +559,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
     def test_success_self_service_relocation(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.mock_kms_client(fake_kms_client)
         self.relocation.creator_id = self.relocation.owner_id
@@ -602,8 +567,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         preprocessing_scan(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 1
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.started"
@@ -619,10 +584,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.STARTED.value
 
     def test_pause(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -631,8 +593,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
         preprocessing_scan(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
         assert fake_message_builder.call_count == 0
         assert preprocessing_transfer_mock.call_count == 0
 
@@ -643,10 +605,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.latest_task == OrderedTask.PREPROCESSING_SCAN.name
 
     def test_retry_if_attempts_left(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_message_builder(fake_message_builder)
@@ -656,8 +615,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         with pytest.raises(Exception):
             preprocessing_scan(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
         assert fake_message_builder.call_count == 0
         assert preprocessing_transfer_mock.call_count == 0
 
@@ -667,10 +626,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.relocation.latest_task = OrderedTask.PREPROCESSING_SCAN.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
@@ -682,8 +638,8 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         with pytest.raises(Exception):
             preprocessing_scan(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -699,10 +655,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
     def test_fail_invalid_tarball(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         file = RelocationFile.objects.get(relocation=self.relocation).file
         corrupted_tarball_bytes = bytearray(file.getfile().read())[9:]
@@ -726,15 +679,12 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INVALID_TARBALL
 
     def test_fail_decryption_failure(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         # Add invalid 2-octet UTF-8 sequence to the returned plaintext.
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
-        fake_kms_client.asymmetric_decrypt.return_value.plaintext += b"\xc3\x28"
+        fake_kms_client.return_value.asymmetric_decrypt.return_value.plaintext += b"\xc3\x28"
 
         # We retry on decryption failures, just to account for flakiness on the KMS server's side.
         # Try this as the last attempt to see the actual error.
@@ -751,7 +701,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
             to=[self.owner.email, self.superuser.email]
         )
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
         assert preprocessing_transfer_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
@@ -760,10 +710,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_DECRYPTION
 
     def test_fail_invalid_json(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         file = RelocationFile.objects.get(relocation=self.relocation).file
         self.swap_relocation_file_with_data_from_fixture(file, "invalid-user.json")
@@ -786,10 +733,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INVALID_JSON
 
     def test_fail_no_users(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         file = RelocationFile.objects.get(relocation=self.relocation).file
         self.swap_relocation_file_with_data_from_fixture(file, "single-option.json")
@@ -813,10 +757,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     @patch("sentry.relocation.tasks.process.MAX_USERS_PER_RELOCATION", 1)
     def test_fail_too_many_users(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -837,10 +778,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=2)
 
     def test_fail_no_orgs(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         file = RelocationFile.objects.get(relocation=self.relocation).file
         self.swap_relocation_file_with_data_from_fixture(file, "user-with-minimum-privileges.json")
@@ -866,10 +804,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
 
     @patch("sentry.relocation.tasks.process.MAX_ORGS_PER_RELOCATION", 0)
     def test_fail_too_many_orgs(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -890,10 +825,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(count=1)
 
     def test_fail_missing_orgs(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         orgs = ["does-not-exist"]
         relocation = Relocation.objects.get(uuid=self.uuid)
@@ -920,10 +852,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         )
 
     def test_fail_invalid_org_slug(
-        self,
-        preprocessing_transfer_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_transfer_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         orgs = ["$$##"]
         relocation = Relocation.objects.get(uuid=self.uuid)
@@ -1010,10 +939,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@patch(
-    "sentry.backup.crypto.KeyManagementServiceClient",
-    new_callable=lambda: FakeKeyManagementServiceClient,
-)
+@patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.apply_async")
 class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
@@ -1028,15 +954,15 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         self,
         preprocessing_colliding_users_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
         preprocessing_baseline_config(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
         assert fake_message_builder.call_count == 0
         assert preprocessing_colliding_users_mock.call_count == 1
 
@@ -1059,7 +985,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         self,
         preprocessing_colliding_users_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
@@ -1067,12 +993,12 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
-            fake_kms_client.get_public_key.side_effect = Exception("Test")
+            fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
             preprocessing_baseline_config(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
         assert fake_message_builder.call_count == 0
         assert preprocessing_colliding_users_mock.call_count == 0
 
@@ -1085,7 +1011,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         self,
         preprocessing_colliding_users_mock: Mock,
         fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_kms_client: Mock,
     ):
         self.relocation.latest_task = OrderedTask.PREPROCESSING_BASELINE_CONFIG.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
@@ -1094,13 +1020,13 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
 
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
-        fake_kms_client.get_public_key.side_effect = Exception("Test")
+        fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
         with pytest.raises(Exception):
             preprocessing_baseline_config(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -1116,10 +1042,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@patch(
-    "sentry.backup.crypto.KeyManagementServiceClient",
-    new_callable=lambda: FakeKeyManagementServiceClient,
-)
+@patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_complete.apply_async")
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
@@ -1137,18 +1060,15 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         self.relocation_storage = get_relocation_storage()
 
     def test_success(
-        self,
-        preprocessing_complete_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_complete_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
 
         preprocessing_colliding_users(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
         assert fake_message_builder.call_count == 0
         assert preprocessing_complete_mock.call_count == 1
 
@@ -1168,10 +1088,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
                 assert json_model["fields"]["username"] == "c"
 
     def test_retry_if_attempts_left(
-        self,
-        preprocessing_complete_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_complete_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         RelocationFile.objects.filter(relocation=self.relocation).delete()
         self.mock_message_builder(fake_message_builder)
@@ -1179,12 +1096,12 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
-            fake_kms_client.get_public_key.side_effect = Exception("Test")
+            fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
             preprocessing_colliding_users(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
         assert fake_message_builder.call_count == 0
         assert preprocessing_complete_mock.call_count == 0
 
@@ -1194,10 +1111,7 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
     def test_fail_if_no_attempts_left(
-        self,
-        preprocessing_complete_mock: Mock,
-        fake_message_builder: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        self, preprocessing_complete_mock: Mock, fake_message_builder: Mock, fake_kms_client: Mock
     ):
         self.relocation.latest_task = OrderedTask.PREPROCESSING_COLLIDING_USERS.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
@@ -1206,13 +1120,13 @@ class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
 
         self.mock_message_builder(fake_message_builder)
         self.mock_kms_client(fake_kms_client)
-        fake_kms_client.get_public_key.side_effect = Exception("Test")
+        fake_kms_client.return_value.get_public_key.side_effect = Exception("Test")
 
         with pytest.raises(Exception):
             preprocessing_colliding_users(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 1
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -1372,10 +1286,7 @@ class PreprocessingCompleteTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
 
-@patch(
-    "sentry.relocation.tasks.process.CloudBuildClient",
-    new_callable=lambda: FakeCloudBuildClient,
-)
+@patch("sentry.relocation.tasks.process.CloudBuildClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.validating_poll.apply_async")
 class ValidatingStartTest(RelocationTaskTestCase):
@@ -1395,7 +1306,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         self.mock_message_builder(fake_message_builder)
@@ -1403,7 +1314,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         validating_start(self.uuid)
 
         assert validating_poll_mock.call_count == 1
-        assert fake_cloudbuild_client.create_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.create_build.call_count == 1
 
         self.relocation.refresh_from_db()
         self.relocation_validation.refresh_from_db()
@@ -1419,7 +1330,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         self.mock_message_builder(fake_message_builder)
@@ -1428,8 +1339,8 @@ class ValidatingStartTest(RelocationTaskTestCase):
 
         validating_start(self.uuid)
 
-        assert fake_cloudbuild_client.create_build.call_count == 0
-        assert fake_cloudbuild_client.get_build.call_count == 0
+        assert fake_cloudbuild_client.return_value.create_build.call_count == 0
+        assert fake_cloudbuild_client.return_value.get_build.call_count == 0
         assert fake_message_builder.call_count == 0
         assert validating_poll_mock.call_count == 0
 
@@ -1443,18 +1354,18 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         self.mock_message_builder(fake_message_builder)
 
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
-            fake_cloudbuild_client.create_build.side_effect = Exception("Test")
+            fake_cloudbuild_client.return_value.create_build.side_effect = Exception("Test")
 
             validating_start(self.uuid)
 
-        assert fake_cloudbuild_client.create_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.create_build.call_count == 1
         assert fake_message_builder.call_count == 0
         assert validating_poll_mock.call_count == 0
 
@@ -1467,20 +1378,20 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         self.relocation.latest_task = OrderedTask.VALIDATING_START.name
         self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
         self.relocation.save()
 
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
-        fake_cloudbuild_client.create_build.side_effect = Exception("Test")
+        fake_cloudbuild_client.return_value.create_build.side_effect = Exception("Test")
         self.mock_message_builder(fake_message_builder)
 
         with pytest.raises(Exception):
             validating_start(self.uuid)
 
-        assert fake_cloudbuild_client.create_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.create_build.call_count == 1
         assert fake_message_builder.call_count == 1
         assert validating_poll_mock.call_count == 0
 
@@ -1493,7 +1404,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         for _ in range(3):
             RelocationValidationAttempt.objects.create(
@@ -1513,7 +1424,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
 
         validating_start(self.uuid)
 
-        assert fake_cloudbuild_client.create_build.call_count == 0
+        assert fake_cloudbuild_client.return_value.create_build.call_count == 0
         assert fake_message_builder.call_count == 1
         assert validating_poll_mock.call_count == 0
 
@@ -1523,10 +1434,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_VALIDATING_MAX_RUNS
 
 
-@patch(
-    "sentry.relocation.tasks.process.CloudBuildClient",
-    new_callable=lambda: FakeCloudBuildClient,
-)
+@patch("sentry.relocation.tasks.process.CloudBuildClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 class ValidatingPollTest(RelocationTaskTestCase):
     def setUp(self):
@@ -1555,14 +1463,14 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self,
         validating_complete_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
         self.mock_message_builder(fake_message_builder)
 
         validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
 
-        assert fake_cloudbuild_client.get_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.get_build.call_count == 1
         assert fake_message_builder.call_count == 0
         assert validating_complete_mock.call_count == 1
 
@@ -1578,16 +1486,18 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self,
         validating_start_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
-        for stat in {Build.Status.TIMEOUT, Build.Status.EXPIRED}:
+        for stat in (Build.Status.TIMEOUT, Build.Status.EXPIRED):
+            validating_start_mock.reset_mock()
+            fake_cloudbuild_client.reset_mock()
+
             self.mock_message_builder(fake_message_builder)
             self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(stat))
-            validating_start_mock.call_count = 0
 
             validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
 
-            assert fake_cloudbuild_client.get_build.call_count == 1
+            assert fake_cloudbuild_client.return_value.get_build.call_count == 1
             assert fake_message_builder.call_count == 0
             assert validating_start_mock.call_count == 1
 
@@ -1605,20 +1515,22 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self,
         validating_start_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
-        for stat in {
+        for stat in (
             Build.Status.FAILURE,
             Build.Status.INTERNAL_ERROR,
             Build.Status.CANCELLED,
-        }:
+        ):
+            validating_start_mock.reset_mock()
+            fake_cloudbuild_client.reset_mock()
+
             self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(stat))
             self.mock_message_builder(fake_message_builder)
-            validating_start_mock.call_count = 0
 
             validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
 
-            assert fake_cloudbuild_client.get_build.call_count == 1
+            assert fake_cloudbuild_client.return_value.get_build.call_count == 1
             assert fake_message_builder.call_count == 0
             assert validating_start_mock.call_count == 1
 
@@ -1635,20 +1547,22 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
-        for stat in {
+        for stat in (
             Build.Status.QUEUED,
             Build.Status.PENDING,
             Build.Status.WORKING,
-        }:
+        ):
+            validating_poll_mock.reset_mock()
+            fake_cloudbuild_client.reset_mock()
+
             self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(stat))
             self.mock_message_builder(fake_message_builder)
-            validating_poll_mock.call_count = 0
 
             validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
 
-            assert fake_cloudbuild_client.get_build.call_count == 1
+            assert fake_cloudbuild_client.return_value.get_build.call_count == 1
             assert fake_message_builder.call_count == 0
             assert validating_poll_mock.call_count == 1
 
@@ -1671,17 +1585,17 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
         self.mock_message_builder(fake_message_builder)
-        fake_cloudbuild_client.get_build.side_effect = Exception("Test")
+        fake_cloudbuild_client.return_value.get_build.side_effect = Exception("Test")
 
         # An exception being raised will trigger a retry in celery.
         with pytest.raises(Exception):
             validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
 
-        assert fake_cloudbuild_client.get_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.get_build.call_count == 1
         assert fake_message_builder.call_count == 0
         assert validating_poll_mock.call_count == 0
 
@@ -1695,20 +1609,20 @@ class ValidatingPollTest(RelocationTaskTestCase):
         self,
         validating_poll_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
+        fake_cloudbuild_client: Mock,
     ):
         self.relocation.latest_task = OrderedTask.VALIDATING_POLL.name
         self.relocation.latest_task_attempts = MAX_VALIDATION_POLLS
         self.relocation.save()
 
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.QUEUED))
-        fake_cloudbuild_client.get_build.side_effect = Exception("Test")
+        fake_cloudbuild_client.return_value.get_build.side_effect = Exception("Test")
         self.mock_message_builder(fake_message_builder)
 
         with pytest.raises(Exception):
             validating_poll(self.uuid, self.relocation_validation_attempt.build_id)
 
-        assert fake_cloudbuild_client.get_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.get_build.call_count == 1
 
         assert fake_message_builder.call_count == 1
         assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
@@ -1888,10 +1802,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
 
-@patch(
-    "sentry.backup.crypto.KeyManagementServiceClient",
-    new_callable=lambda: FakeKeyManagementServiceClient,
-)
+@patch("sentry.backup.crypto.KeyManagementServiceClient")
 @patch("sentry.relocation.tasks.process.postprocessing.apply_async")
 class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self):
@@ -1902,9 +1813,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
         self.relocation.save()
         self.storage = get_relocation_storage()
 
-    def test_success_self_hosted(
-        self, postprocessing_mock: Mock, fake_kms_client: FakeKeyManagementServiceClient
-    ):
+    def test_success_self_hosted(self, postprocessing_mock: Mock, fake_kms_client: Mock):
         self.mock_kms_client(fake_kms_client)
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
@@ -1939,9 +1848,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 "sentry.useremail",
             ]
 
-    def test_success_saas_to_saas(
-        self, postprocessing_mock: Mock, fake_kms_client: FakeKeyManagementServiceClient
-    ):
+    def test_success_saas_to_saas(self, postprocessing_mock: Mock, fake_kms_client: Mock):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
         with assume_test_silo_mode(SiloMode.CONTROL):
             user_count = User.objects.all().count()
@@ -2037,19 +1944,15 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
                 # We don't overwrite `sentry.useremail`, retaining the existing value instead.
             ]
 
-    def test_pause(
-        self,
-        postprocessing_mock: Mock,
-        fake_kms_client: FakeKeyManagementServiceClient,
-    ):
+    def test_pause(self, postprocessing_mock: Mock, fake_kms_client: Mock):
         self.mock_kms_client(fake_kms_client)
         self.relocation.scheduled_pause_at_step = Relocation.Step.IMPORTING.value
         self.relocation.save()
 
         importing(self.uuid)
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 0
-        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 0
+        assert fake_kms_client.return_value.get_public_key.call_count == 0
         assert postprocessing_mock.call_count == 0
 
         relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
@@ -2616,14 +2519,8 @@ class CompletedTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
 
-@patch(
-    "sentry.backup.crypto.KeyManagementServiceClient",
-    new_callable=lambda: FakeKeyManagementServiceClient,
-)
-@patch(
-    "sentry.relocation.tasks.process.CloudBuildClient",
-    new_callable=lambda: FakeCloudBuildClient,
-)
+@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.relocation.tasks.process.CloudBuildClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")
 @patch("sentry.signals.relocation_redeem_promo_code.send_robust")
@@ -2648,34 +2545,30 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         for file in files:
             self.storage.save(f"runs/{self.relocation.uuid}/findings/{file}", BytesIO(b"[]"))
 
-    def mock_max_retries(
-        self,
-        fake_cloudbuild_client: FakeCloudBuildClient,
-        fake_kms_client: FakeKeyManagementServiceClient,
-    ):
-        fake_cloudbuild_client.create_build.side_effect = (
+    def mock_max_retries(self, fake_cloudbuild_client: Mock, fake_kms_client: Mock):
+        fake_cloudbuild_client.return_value.create_build.side_effect = (
             [BurstTaskRunnerRetryError("Retry")] * MAX_FAST_TASK_RETRIES
-        ) + [fake_cloudbuild_client.create_build.return_value]
+        ) + [fake_cloudbuild_client.return_value.create_build.return_value]
 
-        fake_cloudbuild_client.get_build.side_effect = (
+        fake_cloudbuild_client.return_value.get_build.side_effect = (
             [BurstTaskRunnerRetryError("Retry")] * MAX_VALIDATION_POLLS
-        ) + [fake_cloudbuild_client.get_build.return_value]
+        ) + [fake_cloudbuild_client.return_value.get_build.return_value]
 
-        fake_kms_client.asymmetric_decrypt.side_effect = (
+        fake_kms_client.return_value.asymmetric_decrypt.side_effect = (
             [BurstTaskRunnerRetryError("Retry")] * MAX_FAST_TASK_RETRIES
         ) + [
-            fake_kms_client.asymmetric_decrypt.return_value,
+            fake_kms_client.return_value.asymmetric_decrypt.return_value,
             # The second call to `asymmetric_decrypt` occurs from inside the `importing` task, which
             # is not retried.
-            fake_kms_client.asymmetric_decrypt.return_value,
+            fake_kms_client.return_value.asymmetric_decrypt.return_value,
         ]
 
-        fake_kms_client.get_public_key.side_effect = (
+        fake_kms_client.return_value.get_public_key.side_effect = (
             [BurstTaskRunnerRetryError("Retry")] * MAX_FAST_TASK_RETRIES
-        ) + [fake_kms_client.get_public_key.return_value]
+        ) + [fake_kms_client.return_value.get_public_key.return_value]
         # Used by two tasks, so repeat the pattern (fail, fail, fail, succeed) twice.
-        fake_kms_client.get_public_key.side_effect = (
-            list(fake_kms_client.get_public_key.side_effect) * 2
+        fake_kms_client.return_value.get_public_key.side_effect = (
+            list(fake_kms_client.return_value.get_public_key.side_effect) * 2
         )
 
     def assert_success_database_state(self, org_count: int):
@@ -2732,8 +2625,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_cloudbuild_client: Mock,
+        fake_kms_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
         self.mock_kms_client(fake_kms_client)
@@ -2750,11 +2643,11 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
             assert mock_relocation_email.call_count == 2
 
-        assert fake_cloudbuild_client.create_build.call_count == 1
-        assert fake_cloudbuild_client.get_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.create_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.get_build.call_count == 1
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 2
-        assert fake_kms_client.get_public_key.call_count == 2
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 2
+        assert fake_kms_client.return_value.get_public_key.call_count == 2
 
         assert fake_message_builder.call_count == 2
         email_types = [args.kwargs["type"] for args in fake_message_builder.call_args_list]
@@ -2779,8 +2672,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_cloudbuild_client: Mock,
+        fake_kms_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
         self.mock_kms_client(fake_kms_client)
@@ -2799,11 +2692,15 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
             assert mock_relocation_email.call_count == 2
 
-        assert fake_cloudbuild_client.create_build.call_count == MAX_FAST_TASK_ATTEMPTS
-        assert fake_cloudbuild_client.get_build.call_count == MAX_VALIDATION_POLL_ATTEMPTS
+        assert fake_cloudbuild_client.return_value.create_build.call_count == MAX_FAST_TASK_ATTEMPTS
+        assert (
+            fake_cloudbuild_client.return_value.get_build.call_count == MAX_VALIDATION_POLL_ATTEMPTS
+        )
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == MAX_FAST_TASK_ATTEMPTS + 1
-        assert fake_kms_client.get_public_key.call_count == 2 * MAX_FAST_TASK_ATTEMPTS
+        assert (
+            fake_kms_client.return_value.asymmetric_decrypt.call_count == MAX_FAST_TASK_ATTEMPTS + 1
+        )
+        assert fake_kms_client.return_value.get_public_key.call_count == 2 * MAX_FAST_TASK_ATTEMPTS
 
         assert fake_message_builder.call_count == 2
         email_types = [args.kwargs["type"] for args in fake_message_builder.call_args_list]
@@ -2828,8 +2725,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_cloudbuild_client: Mock,
+        fake_kms_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
         self.mock_kms_client(fake_kms_client)
@@ -2847,11 +2744,11 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
             assert mock_relocation_email.call_count == 0
 
-        assert fake_cloudbuild_client.create_build.call_count == 1
-        assert fake_cloudbuild_client.get_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.create_build.call_count == 1
+        assert fake_cloudbuild_client.return_value.get_build.call_count == 1
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == 1
-        assert fake_kms_client.get_public_key.call_count == 2
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == 1
+        assert fake_kms_client.return_value.get_public_key.call_count == 2
 
         assert fake_message_builder.call_count == 2
         email_types = [args.kwargs["type"] for args in fake_message_builder.call_args_list]
@@ -2876,8 +2773,8 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
-        fake_cloudbuild_client: FakeCloudBuildClient,
-        fake_kms_client: FakeKeyManagementServiceClient,
+        fake_cloudbuild_client: Mock,
+        fake_kms_client: Mock,
     ):
         self.mock_cloudbuild_client(fake_cloudbuild_client, Build.Status(Build.Status.SUCCESS))
         self.mock_kms_client(fake_kms_client)
@@ -2897,11 +2794,13 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
 
             assert mock_relocation_email.call_count == 0
 
-        assert fake_cloudbuild_client.create_build.call_count == MAX_FAST_TASK_ATTEMPTS
-        assert fake_cloudbuild_client.get_build.call_count == MAX_VALIDATION_POLL_ATTEMPTS
+        assert fake_cloudbuild_client.return_value.create_build.call_count == MAX_FAST_TASK_ATTEMPTS
+        assert (
+            fake_cloudbuild_client.return_value.get_build.call_count == MAX_VALIDATION_POLL_ATTEMPTS
+        )
 
-        assert fake_kms_client.asymmetric_decrypt.call_count == MAX_FAST_TASK_ATTEMPTS
-        assert fake_kms_client.get_public_key.call_count == 2 * MAX_FAST_TASK_ATTEMPTS
+        assert fake_kms_client.return_value.asymmetric_decrypt.call_count == MAX_FAST_TASK_ATTEMPTS
+        assert fake_kms_client.return_value.get_public_key.call_count == 2 * MAX_FAST_TASK_ATTEMPTS
 
         assert fake_message_builder.call_count == 2
         email_types = [args.kwargs["type"] for args in fake_message_builder.call_args_list]

@@ -36,7 +36,7 @@ export function useIssueDetailsHeader({
         Tab.EVENTS,
         Tab.MERGED,
         Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
+        Tab.DISTRIBUTIONS,
       ];
     }
 
@@ -47,7 +47,7 @@ export function useIssueDetailsHeader({
         Tab.EVENTS,
         Tab.MERGED,
         Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
+        Tab.DISTRIBUTIONS,
         Tab.USER_FEEDBACK,
       ];
     }

@@ -1,4 +1,4 @@
-import {cloneElement, Fragment, useState} from 'react';
+import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -201,6 +201,7 @@ function Content({
       const prevFrame = frames[frameIndex - 1];
       const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
+      const isLastFrame = frameIndex === frames.length - 1;
 
       if (repeatedFrame) {
         nRepeats++;
@@ -228,7 +229,7 @@ function Content({
             address: frame.instructionAddr,
           }),
           maxLengthOfRelativeAddress: maxLengthOfAllRelativeAddresses,
-          registers: {}, // TODO: Fix registers
+          registers: isLastFrame ? registers : {},
           isFrameAfterLastNonApp: isFrameAfterLastNonApp(),
           includeSystemFrames,
           onFunctionNameToggle: handleToggleFunctionName,
@@ -274,14 +275,7 @@ function Content({
 
       return renderOmittedFrames(firstFrameOmitted, lastFrameOmitted);
     })
-    .filter(frame => !!frame) as React.ReactElement[];
-
-  if (convertedFrames.length > 0 && registers) {
-    const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame] as any, {
-      registers,
-    });
-  }
+    .filter((frame): frame is React.ReactElement => !!frame);
 
   if (defined(maxDepth)) {
     convertedFrames = convertedFrames.slice(-maxDepth);
