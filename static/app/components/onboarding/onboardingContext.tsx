@@ -1,61 +1,62 @@
-import {createContext, useCallback} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
-import type {
-  OnboardingProjectStatus,
-  OnboardingSelectedSDK,
-} from 'sentry/types/onboarding';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
-type Project = {
-  slug: string;
-  status: OnboardingProjectStatus;
-  firstIssueId?: string;
-};
-
-type Data = {
-  projects: Record<string, Project>;
-  selectedSDK?: OnboardingSelectedSDK;
-};
-
 export type OnboardingContextProps = {
-  data: Data;
-  setData: (data: Data) => void;
+  setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
+  selectedPlatform?: OnboardingSelectedSDK;
 };
 
+/**
+ * Prefer using `useOnboardingContext` hook instead of directly using this context.
+ */
 export const OnboardingContext = createContext<OnboardingContextProps>({
-  data: {
-    projects: {},
-    selectedSDK: undefined,
-  },
-  setData: () => {},
+  selectedPlatform: undefined,
+  setSelectedPlatform: () => {},
 });
 
 type ProviderProps = {
   children: React.ReactNode;
-  value?: Data;
+  /**
+   * This is only used in our frontend tests to set the initial value of the context.
+   */
+  value?: Pick<OnboardingContextProps, 'selectedPlatform'>;
 };
 
 export function OnboardingContextProvider({children, value}: ProviderProps) {
-  const [sessionStorage, setSessionStorage] = useSessionStorage<Data>('onboarding', {
-    projects: value?.projects ?? {},
-    selectedSDK: value?.selectedSDK,
-  });
+  const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
+    NonNullable<Pick<OnboardingContextProps, 'selectedPlatform'>> | undefined
+  >(
+    'onboarding',
+    value?.selectedPlatform ? {selectedPlatform: value.selectedPlatform} : undefined
+  );
 
-  const setData = useCallback(
-    (data: Data) => {
-      setSessionStorage(data);
-    },
-    [setSessionStorage]
+  const contextValue = useMemo(
+    () => ({
+      selectedPlatform: onboarding?.selectedPlatform,
+      setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
+        // If platform is undefined, remove the item from session storage
+        if (selectedPlatform === undefined) {
+          removeOnboarding();
+        } else {
+          setOnboarding({selectedPlatform});
+        }
+      },
+    }),
+    [onboarding, setOnboarding, removeOnboarding]
   );
 
   return (
-    <OnboardingContext.Provider
-      value={{
-        data: sessionStorage,
-        setData,
-      }}
-    >
+    <OnboardingContext.Provider value={contextValue}>
       {children}
     </OnboardingContext.Provider>
   );
+}
+
+/**
+ * Custom hook to access and update the selected SDK in the onboarding process.
+ */
+export function useOnboardingContext() {
+  return useContext(OnboardingContext);
 }

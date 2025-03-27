@@ -128,12 +128,6 @@ export interface UpdatedTask extends Partial<Pick<OnboardingTask, 'status' | 'da
   completionSeen?: boolean;
 }
 
-export enum OnboardingProjectStatus {
-  WAITING = 'waiting',
-  PROCESSING = 'processing',
-  PROCESSED = 'processed',
-}
-
 export interface OnboardingSelectedSDK
   extends Pick<PlatformIntegration, 'language' | 'link' | 'name' | 'type'> {
   category: Category;

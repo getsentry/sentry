@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
@@ -39,8 +38,6 @@ type Options = {
    * The organization to show onboarding tasks for
    */
   organization: Organization;
-  onboardingContext?: OnboardingContextProps;
-
   /**
    * A list of the organizations projects. This is used for some onboarding
    * tasks to show additional task details (such as for suggesting sourcemaps)
@@ -97,7 +94,6 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
 export function getOnboardingTasks({
   organization,
   projects,
-  onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
   const performanceUrl = `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`;
 
@@ -358,15 +354,15 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'app',
-      location: getIssueAlertUrl({projects, organization, onboardingContext}),
+      location: getIssueAlertUrl({projects, organization}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
   ];
 }
 
-export function getMergedTasks({organization, projects, onboardingContext}: Options) {
-  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
+export function getMergedTasks({organization, projects}: Options) {
+  const taskDescriptors = getOnboardingTasks({organization, projects});
   const serverTasks = isDemoModeActive()
     ? getDemoWalkthroughTasks()
     : organization.onboardingTasks;
