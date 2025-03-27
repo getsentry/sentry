@@ -75,7 +75,7 @@ describe('IssuesTraceTree', () => {
     });
 
     const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
-    expect(tree.build().collapseList(issues).serialize()).toMatchSnapshot();
+    expect(tree.build().collapseList(issues, 3, 0).serialize()).toMatchSnapshot();
   });
 
   it('preserves path to child error', () => {
@@ -93,7 +93,7 @@ describe('IssuesTraceTree', () => {
       node = node.parent;
     }
 
-    expect(tree.build().collapseList(nodes).serialize()).toMatchSnapshot();
+    expect(tree.build().collapseList(nodes, 3, 0).serialize()).toMatchSnapshot();
   });
 
   it('errors only', () => {
@@ -104,7 +104,7 @@ describe('IssuesTraceTree', () => {
     });
 
     const errors = IssuesTraceTree.FindAll(tree.root, hasErrors).slice(0, 10);
-    expect(tree.build().collapseList(errors).serialize()).toMatchSnapshot();
+    expect(tree.build().collapseList(errors, 3, 0).serialize()).toMatchSnapshot();
   });
 
   it('respects numSurroundingNodes parameter', () => {
@@ -116,15 +116,33 @@ describe('IssuesTraceTree', () => {
     const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
 
     // Test with default value (3)
-    const defaultCollapsed = tree.build().collapseList(issues).serialize();
+    const defaultCollapsed = tree.build().collapseList(issues, 3, 0).serialize();
 
     // Test with custom value (2)
-    const customCollapsed = tree.build().collapseList(issues, 2).serialize();
+    const customCollapsed = tree.build().collapseList(issues, 2, 0).serialize();
 
     expect(defaultCollapsed).toMatchSnapshot('default surrounding nodes (3)');
     expect(customCollapsed).toMatchSnapshot('custom surrounding nodes (2)');
 
     expect(defaultCollapsed).not.toEqual(customCollapsed);
+  });
+
+  it('respects minShownNodes parameter', () => {
+    const tree = IssuesTraceTree.FromTrace(traceWithErrorInMiddle, {
+      meta: null,
+      replay: null,
+    });
+
+    const issues = IssuesTraceTree.FindAll(tree.root, hasErrors);
+
+    // Test with default minShownNodes value
+    const defaultMinShown = tree.build().collapseList(issues, 0, 3).serialize();
+
+    // Test with a smaller minShownNodes value
+    const smallerMinShown = tree.build().collapseList(issues, 0, 0).serialize();
+
+    expect(defaultMinShown).toMatchSnapshot('default minShownNodes (3)');
+    expect(smallerMinShown).toMatchSnapshot('smaller minShownNodes (0)');
   });
 
   describe('FromSpans', () => {
@@ -184,7 +202,7 @@ describe('IssuesTraceTree', () => {
         tree.root,
         node => isSpanNode(node) && node.value.span_id === 'error-span-id'
       )!;
-      expect(tree.build().collapseList([span]).serialize()).toMatchSnapshot();
+      expect(tree.build().collapseList([span], 3, 0).serialize()).toMatchSnapshot();
     });
   });
 });
