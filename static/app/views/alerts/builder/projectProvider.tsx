@@ -87,7 +87,7 @@ function AlertBuilderProjectProvider(props: Props) {
             projectId: useFirstProject ? project.slug : projectId,
             organization,
             members,
-          } as any)
+          })
         : children}
     </Fragment>
   );

@@ -320,7 +320,7 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
         router={router}
         nextPath={{
           pathname: makeReleasesPathname({
-            path: `/${encodeURIComponent(release!)}/`,
+            path: `/${encodeURIComponent(release)}/`,
             organization,
           }),
         }}

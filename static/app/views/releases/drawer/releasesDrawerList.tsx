@@ -1,10 +1,4 @@
-import {
-  Fragment,
-  type MutableRefObject,
-  type ReactElement,
-  useCallback,
-  useRef,
-} from 'react';
+import {Fragment, type ReactElement, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
@@ -17,7 +11,10 @@ import type {ReactEchartsRef, SeriesDataUnit} from 'sentry/types/echarts';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
+import type {
+  Bucket,
+  ChartRendererProps,
+} from 'sentry/views/releases/releaseBubbles/types';
 
 import {ReleaseDrawerTable} from './releasesDrawerTable';
 
@@ -29,10 +26,12 @@ interface ReleasesDrawerListProps {
    */
   buckets: Bucket[];
   endTs: number;
+  environments: readonly string[];
   /**
    * Callback when a release is selected
    */
   onSelectRelease: (release: string, projectId: string) => void;
+  projects: readonly number[];
   /**
    * A list of releases in the current release bucket
    */
@@ -45,14 +44,7 @@ interface ReleasesDrawerListProps {
    * it to make the props more generic, e.g. pass start/end timestamps and do
    * the series manipulation when we call the bubble hook.
    */
-  chartRenderer?: (rendererProps: {
-    end: Date;
-    releases: ReleaseMetaBasic[];
-    start: Date;
-    ref?:
-      | MutableRefObject<ReactEchartsRef | null>
-      | ((e: ReactEchartsRef | null) => void);
-  }) => ReactElement;
+  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
 
 type MarkLineDataCallbackFn = (item: SeriesDataUnit) => boolean;
@@ -114,6 +106,8 @@ export function ReleasesDrawerList({
   chartRenderer,
   releases,
   onSelectRelease,
+  projects,
+  environments,
 }: ReleasesDrawerListProps) {
   const start = new Date(startTs);
   const end = new Date(endTs);
@@ -155,7 +149,25 @@ export function ReleasesDrawerList({
               </Fragment>
             }
             Visualization={chartRenderer?.({
-              ref: chartRef,
+              ref: (e: ReactEchartsRef | null) => {
+                chartRef.current = e;
+
+                if (e) {
+                  // When chart is mounted, zoom the chart into the relevant
+                  // bucket
+                  e.getEchartsInstance().dispatchAction({
+                    type: 'dataZoom',
+                    batch: [
+                      {
+                        // data value at starting location
+                        startValue: startTs,
+                        // data value at ending location
+                        endValue: endTs,
+                      },
+                    ],
+                  });
+                }
+              },
               releases,
               start,
               end,
@@ -164,6 +176,8 @@ export function ReleasesDrawerList({
         </ChartContainer>
       ) : null}
       <ReleaseDrawerTable
+        projects={projects}
+        environments={environments}
         start={start.toISOString()}
         end={end.toISOString()}
         onSelectRelease={onSelectRelease}
@@ -175,6 +189,5 @@ export function ReleasesDrawerList({
 }
 
 const ChartContainer = styled('div')`
-  height: 220px;
   margin-bottom: ${space(2)};
 `;
