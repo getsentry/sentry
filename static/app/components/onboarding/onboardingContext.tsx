@@ -34,7 +34,7 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
 
   const contextValue = useMemo(
     () => ({
-      selectePlatform: onboarding?.selectedPlatform,
+      selectedPlatform: onboarding?.selectedPlatform,
       setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
         // If platform is undefined, remove the item from session storage
         if (selectedPlatform === undefined) {

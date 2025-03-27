@@ -46,11 +46,11 @@ export function PlatformSelection(props: StepProps) {
           platform={onboardingContext.selectedPlatform?.key}
           defaultCategory={onboardingContext.selectedPlatform?.category}
           setPlatform={platform => {
-            const selectedSDK = platform
+            const selectedPlatform = platform
               ? {...omit(platform, 'id'), key: platform.id}
               : undefined;
 
-            configureSdk(selectedSDK);
+            configureSdk(selectedPlatform);
           }}
           organization={organization}
         />
