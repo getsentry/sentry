@@ -14,7 +14,7 @@ export default function DetectorEdit() {
 
   return (
     <SentryDocumentTitle title={t('Edit Monitor')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/monitors'}}>
+      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
         <ActionsProvider actions={<Actions />}>
           <EditLayout>
             <h2>Edit Monitor</h2>

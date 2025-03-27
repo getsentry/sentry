@@ -17,7 +17,7 @@ export default function AutomationNewSettings() {
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <LinkButton priority="default" to="/automations/new/">
+          <LinkButton priority="default" to="/issues/automations/new/">
             {t('Back')}
           </LinkButton>
           <Button priority="primary">{t('Create Automation')}</Button>

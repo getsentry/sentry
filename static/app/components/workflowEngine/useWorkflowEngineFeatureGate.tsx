@@ -12,7 +12,7 @@ interface WorkflowEngineFeatureGateOptions {
 }
 export function useWorkflowEngineFeatureGate({
   redirect = false,
-}: WorkflowEngineFeatureGateOptions) {
+}: WorkflowEngineFeatureGateOptions = {}): boolean {
   const organization = useOrganization();
   const navigate = useNavigate();
   const hasFeature = organization.features.includes('workflow-engine-ui');
