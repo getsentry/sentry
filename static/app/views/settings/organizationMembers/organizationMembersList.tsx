@@ -101,6 +101,18 @@ function OrganizationMembersList() {
     }),
     {staleTime: 0}
   );
+  const {data: ownerMembers = [], isLoading: isLoadingOwnerMembers} = useApiQuery<
+    Member[]
+  >(
+    getMembersQueryKey({
+      orgSlug: organization.slug,
+      // Ignore search queries since this isn't displayed, it's okay not to paginate.
+      // This is only used to determine if the current user is the only owner.
+      query: {query: 'role:owner'},
+    }),
+    {staleTime: 0}
+  );
+
   const [invited, setInvited] = useState<{
     [memberId: string]: 'loading' | 'success' | null;
   }>({});
@@ -266,9 +278,8 @@ function OrganizationMembersList() {
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
-  const isOnlyOwner = !members.find(
-    ({role, email, pending}) =>
-      role === 'owner' && email !== currentUser.email && !pending
+  const isOnlyOwner = !ownerMembers.some(
+    ({email, pending}) => email !== currentUser.email && !pending
   );
 
   // Only admins/owners can remove members
@@ -359,7 +370,7 @@ function OrganizationMembersList() {
       <Panel data-test-id="org-member-list">
         <MemberListHeader members={membersToShow} organization={organization} />
         <PanelBody>
-          {isLoadingMembers ? (
+          {isLoadingMembers || isLoadingOwnerMembers ? (
             <LoadingIndicator />
           ) : (
             <Fragment>
