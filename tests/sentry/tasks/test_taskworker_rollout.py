@@ -1,6 +1,7 @@
 from unittest import mock
 
 from sentry import options
+from sentry.celery import app
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.registry import TaskRegistry
@@ -73,6 +74,22 @@ class TestTaskworkerRollout(TestCase):
         test_task.delay("world")
         test_task.apply_async("world")
         assert mock_send_task.call_count == 2
+
+    @mock.patch("sentry.taskworker.registry.TaskNamespace.send_task")
+    @override_options(
+        {"taskworker.test_namespace.rollout": {"test.test_with_taskworker_rollout": 1.0}}
+    )
+    def test_with_taskworker_rollout_with_args_trim_producer(self, mock_send_task):
+        @instrumented_task(
+            name="test.test_with_taskworker_rollout",
+            taskworker_config=self.config,
+        )
+        def test_task(msg):
+            return f"hello {msg}"
+
+        with app.default_producer() as producer:
+            test_task.delay("world", producer=producer)
+        assert mock_send_task.call_count == 1
 
     @mock.patch("sentry.tasks.base.random.random")
     @mock.patch("sentry.celery.Task.apply_async")

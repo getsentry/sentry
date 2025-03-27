@@ -53,6 +53,7 @@ import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAg
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -131,10 +132,16 @@ export function SpansTabContentImpl({
     limit,
     enabled: isAllowedSelection && queryType === 'traces',
   });
-  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({
+
+  const {
+    result: timeseriesResult,
+    canUsePreviousResults,
+    samplingMode: timeseriesSamplingMode,
+  } = useExploreTimeseries({
     query,
     enabled: isAllowedSelection,
   });
+
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
@@ -256,6 +263,11 @@ export function SpansTabContentImpl({
             confidences={confidences}
             query={query}
             timeseriesResult={timeseriesResult}
+            isProgressivelyLoading={
+              organization.features.includes('visibility-explore-progressive-loading') &&
+              defined(timeseriesSamplingMode) &&
+              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
+            }
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}

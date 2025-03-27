@@ -4,10 +4,10 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {TriggerLabel} from 'sentry/components/compactSelect/control';
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {TriggerLabel} from 'sentry/components/core/compactSelect/control';
 import {Input} from 'sentry/components/core/input';
 import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
@@ -92,7 +92,7 @@ function formatColumnOptions(
           option.value.meta.name,
           option.value.kind !== FieldValueKind.FUNCTION &&
             option.value.kind !== FieldValueKind.EQUATION
-            ? option.value.meta.dataType!
+            ? option.value.meta.dataType
             : undefined
         ),
         disabled: !supported,
@@ -491,7 +491,7 @@ function Visualize({error, setError}: VisualizeProps) {
                             option.value.meta.name,
                             option.value.kind !== FieldValueKind.FUNCTION &&
                               option.value.kind !== FieldValueKind.EQUATION
-                              ? option.value.meta.dataType!
+                              ? option.value.meta.dataType
                               : undefined
                           ),
                         }))

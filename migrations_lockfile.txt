@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0846_hard_drop_groupsearchview_position
+sentry: 0851_new_group_nullable
 
 social_auth: 0002_default_auto_field
 

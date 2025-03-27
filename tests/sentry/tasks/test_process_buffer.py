@@ -19,10 +19,10 @@ class ProcessIncrTest(TestCase):
     def test_constraints_model_name(self, process):
         with pytest.raises(AssertionError) as err:
             process_incr(model_name="group", columns={"times_seen": 1}, filters={"pk": 1})
-        assert "model_name" in str(err)
+        assert "model_name must be in form" in str(err)
 
     @mock.patch("sentry.buffer.backend.process")
-    def test_calls_process(self, process):
+    def test_calls_process_with_model(self, process):
         columns = {"times_seen": 1}
         filters = {"pk": 1}
         process_incr(model=Group, columns=columns, filters=filters)

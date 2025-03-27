@@ -29,13 +29,12 @@ class ViewValidator(serializers.Serializer):
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, allow_blank=True)
     querySort = serializers.ChoiceField(
-        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+        required=False, choices=SortOptions.as_choices(), default=SortOptions.DATE
     )
 
     projects = serializers.ListField(required=True, allow_empty=True)
     environments = serializers.ListField(required=True, allow_empty=True)
     timeFilters = serializers.DictField(required=True, allow_empty=False)
-    isAllProjects = serializers.BooleanField(required=False)
 
     def validate_projects(self, value):
         if not features.has("organizations:global-views", self.context["organization"]) and (
@@ -57,7 +56,7 @@ class ViewValidator(serializers.Serializer):
 
         return value
 
-    def validate(self, data):
+    def validate(self, data) -> GroupSearchViewValidatorResponse:
         if data["projects"] == [-1]:
             data["projects"] = []
             data["isAllProjects"] = True
@@ -73,3 +72,10 @@ class GroupSearchViewValidator(serializers.Serializer):
 
     def validate(self, data):
         return data
+
+
+class GroupSearchViewPostValidator(ViewValidator):
+    starred = serializers.BooleanField(required=False)
+
+    def validate(self, data):
+        return super().validate(data)

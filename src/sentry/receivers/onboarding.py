@@ -108,17 +108,6 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     )
     # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
     if not created:
-        # Check if the "first project" task already exists and log an error if needed
-        first_project_task_exists = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
-        ).exists()
-
-        if not first_project_task_exists:
-            sentry_sdk.capture_message(
-                f"An error occurred while trying to record the first project for organization ({project.organization_id})",
-                level="warning",
-            )
-
         OrganizationOnboardingTask.objects.update_or_create(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
@@ -136,7 +125,7 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
         )
 
 
-@first_event_received.connect(weak=False)
+@first_event_received.connect(weak=False, dispatch_uid="onboarding.record_first_event")
 def record_first_event(project, event, **kwargs):
     """
     Requires up to 2 database calls, but should only run with the first event in
@@ -229,7 +218,7 @@ def record_first_event(project, event, **kwargs):
             )
 
 
-@first_transaction_received.connect(weak=False)
+@first_transaction_received.connect(weak=False, dispatch_uid="onboarding.record_first_transaction")
 def _record_first_transaction(project, event, **kwargs):
     return record_first_transaction(project, event.datetime, **kwargs)
 
@@ -261,7 +250,7 @@ def record_first_transaction(project, datetime, **kwargs):
     )
 
 
-@first_profile_received.connect(weak=False)
+@first_profile_received.connect(weak=False, dispatch_uid="onboarding.record_first_profile")
 def record_first_profile(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_profiles))
 
@@ -274,7 +263,7 @@ def record_first_profile(project, **kwargs):
     )
 
 
-@first_replay_received.connect(weak=False)
+@first_replay_received.connect(weak=False, dispatch_uid="onboarding.record_first_replay")
 def record_first_replay(project, **kwargs):
     logger.info("record_first_replay_start")
     project.update(flags=F("flags").bitor(Project.flags.has_replays))
@@ -299,7 +288,7 @@ def record_first_replay(project, **kwargs):
         logger.info("record_first_replay_analytics_end")
 
 
-@first_flag_received.connect(weak=False)
+@first_flag_received.connect(weak=False, dispatch_uid="onboarding.record_first_flag")
 def record_first_flag(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_flags))
 
@@ -311,7 +300,7 @@ def record_first_flag(project, **kwargs):
     )
 
 
-@first_feedback_received.connect(weak=False)
+@first_feedback_received.connect(weak=False, dispatch_uid="onboarding.record_first_feedback")
 def record_first_feedback(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
 
@@ -324,7 +313,9 @@ def record_first_feedback(project, **kwargs):
     )
 
 
-@first_new_feedback_received.connect(weak=False)
+@first_new_feedback_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_new_feedback"
+)
 def record_first_new_feedback(project, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_new_feedbacks))
 
@@ -337,7 +328,7 @@ def record_first_new_feedback(project, **kwargs):
     )
 
 
-@first_cron_monitor_created.connect(weak=False)
+@first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
 def record_first_cron_monitor(project, user, from_upsert, **kwargs):
     updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
 
@@ -351,7 +342,7 @@ def record_first_cron_monitor(project, user, from_upsert, **kwargs):
         )
 
 
-@cron_monitor_created.connect(weak=False)
+@cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_cron_monitor_created")
 def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     analytics.record(
         "cron_monitor.created",
@@ -362,7 +353,9 @@ def record_cron_monitor_created(project, user, from_upsert, **kwargs):
     )
 
 
-@first_cron_checkin_received.connect(weak=False)
+@first_cron_checkin_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_cron_checkin"
+)
 def record_first_cron_checkin(project, monitor_id, **kwargs):
     project.update(flags=F("flags").bitor(Project.flags.has_cron_checkins))
 
@@ -412,7 +405,7 @@ def record_first_insight_span(project, module, **kwargs):
 first_insight_span_received.connect(record_first_insight_span, weak=False)
 
 
-@member_invited.connect(weak=False)
+@member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.record(
         organization_id=member.organization_id,
@@ -431,7 +424,7 @@ def record_member_invited(member, user, **kwargs):
     )
 
 
-@member_joined.connect(weak=False)
+@member_joined.connect(weak=False, dispatch_uid="onboarding.record_member_joined")
 def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
     obj, created = OrganizationOnboardingTask.objects.get_or_create(
         organization_id=organization_id,
@@ -491,7 +484,9 @@ event_processed.connect(_record_release_received, weak=False)
 transaction_processed.connect(_record_release_received, weak=False)
 
 
-@first_event_with_minified_stack_trace_received.connect(weak=False)
+@first_event_with_minified_stack_trace_received.connect(
+    weak=False, dispatch_uid="onboarding.record_event_with_first_minified_stack_trace_for_project"
+)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
     organization = Organization.objects.get_from_cache(id=project.organization_id)
     owner_id = organization.default_owner_id
@@ -526,7 +521,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
             )
 
 
-@event_processed.connect(weak=False)
+@event_processed.connect(weak=False, dispatch_uid="onboarding.record_sourcemaps_received")
 def record_sourcemaps_received(project, event, **kwargs):
     if not has_sourcemap(event):
         return
@@ -558,7 +553,9 @@ def record_sourcemaps_received(project, event, **kwargs):
         )
 
 
-@event_processed.connect(weak=False)
+@event_processed.connect(
+    weak=False, dispatch_uid="onboarding.record_sourcemaps_received_for_project"
+)
 def record_sourcemaps_received_for_project(project, event, **kwargs):
     if not has_sourcemap(event):
         return
@@ -593,7 +590,7 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
             )
 
 
-@alert_rule_created.connect(weak=False)
+@alert_rule_created.connect(weak=False, dispatch_uid="onboarding.record_alert_rule_created")
 def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     # The quick start now only has a task for issue alert rules.
     # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
@@ -611,7 +608,7 @@ def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
     )
 
 
-@integration_added.connect(weak=False)
+@integration_added.connect(weak=False, dispatch_uid="onboarding.record_integration_added")
 def record_integration_added(
     integration_id: int, organization_id: int, user_id: int | None, **kwargs
 ):

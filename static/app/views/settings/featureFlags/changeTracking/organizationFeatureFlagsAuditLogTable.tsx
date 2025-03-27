@@ -88,7 +88,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
         return getFlagActionLabel(dataRow.action);
       }
       default:
-        return dataRow[column.key!];
+        return dataRow[column.key];
     }
   };
 

@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 
 export interface KeyItem extends SelectOptionWithKey<string> {
   description: string;
