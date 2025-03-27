@@ -89,7 +89,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "itemId": resp["itemId"],
             "timestamp": resp["timestamp"],
             "attributes": {
-                attr["name"]: convert_rpc_attribute_to_json(attr["value"])
+                attr["name"].removeprefix("sentry."): convert_rpc_attribute_to_json(attr["value"])
                 for attr in resp["attributes"]
             },
         }
