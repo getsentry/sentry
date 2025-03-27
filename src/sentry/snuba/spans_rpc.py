@@ -193,7 +193,7 @@ def run_timeseries_query(
             [],
             params.start_date,
             params.end_date,
-            params.granularity_secs,
+            params.timeseries_granularity_secs,
             ["time"],
         )
 
