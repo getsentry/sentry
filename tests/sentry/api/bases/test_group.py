@@ -76,4 +76,5 @@ class GroupAiEndpointTest(TestCase):
         self.group = self.create_group(project=self.project)
 
     def test_permission_classes(self):
-        assert GroupAiPermission in self.endpoint.permission_classes
+        assert hasattr(self.endpoint, "permission_classes")
+        assert self.endpoint.permission_classes == (GroupAiPermission,)

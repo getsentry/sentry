@@ -121,7 +121,7 @@ class GroupEndpoint(Endpoint):
             )
 
 
-class GroupAiPermission(ProjectPermission):
+class GroupAiPermission(GroupPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
         "POST": ["event:write", "event:admin"],
@@ -130,7 +130,7 @@ class GroupAiPermission(ProjectPermission):
     }
 
     # We want to allow POST requests in order to showcase AI features in demo mode
-    ALLOWED_METHODS = SAFE_METHODS + ("POST",)
+    ALLOWED_METHODS = tuple(list(SAFE_METHODS) + ["POST"])
 
     def has_permission(self, request: Request, view) -> bool:
         if is_demo_user(request.user):
@@ -146,7 +146,7 @@ class GroupAiPermission(ProjectPermission):
                 return False
 
             return True
-        return super().has_object_permission(request, view, group.project)
+        return super().has_object_permission(request, view, group)
 
 
 class GroupAiEndpoint(GroupEndpoint):
