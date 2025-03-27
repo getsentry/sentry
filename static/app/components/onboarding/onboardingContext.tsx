@@ -1,4 +1,4 @@
-import {createContext, useMemo} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -9,7 +9,7 @@ export type OnboardingContextProps = {
 };
 
 /**
- * Prefer using `useOnboardingData` hook instead of directly using this context.
+ * Prefer using `useOnboardingContext` hook instead of directly using this context.
  */
 export const OnboardingContext = createContext<OnboardingContextProps>({
   selectedSDK: undefined,
@@ -49,4 +49,11 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
       {children}
     </OnboardingContext.Provider>
   );
+}
+
+/**
+ * Custom hook to access and update the selected SDK in the onboarding process.
+ */
+export function useOnboardingContext() {
+  return useContext(OnboardingContext);
 }

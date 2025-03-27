@@ -7,7 +7,7 @@ import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
 
 import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
-import {useOnboardingData} from 'sentry/components/onboarding/useOnboardingData';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,7 +50,7 @@ function InnerAction({title, subText, cta, src}: TextWrapperProps) {
 
 function TargetedOnboardingWelcome(props: StepProps) {
   const organization = useOrganization();
-  const onboardingData = useOnboardingData();
+  const onboardingContext = useOnboardingContext();
   const {activateSidebar} = useOnboardingSidebar();
 
   const source = 'targeted_onboarding';
@@ -61,11 +61,11 @@ function TargetedOnboardingWelcome(props: StepProps) {
       source,
     });
 
-    if (onboardingData.selectedSDK) {
+    if (onboardingContext.selectedSDK) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingData.setSelectedSDK(undefined);
+      onboardingContext.setSelectedSDK(undefined);
     }
-  }, [organization, onboardingData]);
+  }, [organization, onboardingContext]);
 
   const handleComplete = useCallback(() => {
     trackAnalytics('growth.onboarding_clicked_instrument_app', {

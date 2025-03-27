@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
-import {useOnboardingData} from 'sentry/components/onboarding/useOnboardingData';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -63,8 +63,8 @@ export const onboardingSteps: StepDescriptor[] = [
 
 function Onboarding(props: Props) {
   const organization = useOrganization();
-  const onboardingData = useOnboardingData();
-  const selectedProjectSlug = onboardingData.selectedSDK?.key;
+  const onboardingContext = useOnboardingContext();
+  const selectedProjectSlug = onboardingContext.selectedSDK?.key;
 
   const {
     params: {step: stepId},
@@ -97,7 +97,7 @@ function Onboarding(props: Props) {
     if (
       props.location.pathname === `/onboarding/${onboardingSteps[2]!.id}/` &&
       props.location.query?.platform &&
-      onboardingData.selectedSDK === undefined
+      onboardingContext.selectedSDK === undefined
     ) {
       const platformKey = Object.keys(platforms).find(
         // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
@@ -120,7 +120,7 @@ function Onboarding(props: Props) {
           return category.platforms?.has(platform.id);
         })?.id ?? 'all';
 
-      onboardingData.setSelectedSDK({
+      onboardingContext.setSelectedSDK({
         key: props.location.query.platform,
         category: frameworkCategory,
         language: platform.language,
@@ -132,7 +132,7 @@ function Onboarding(props: Props) {
   }, [
     props.location.query,
     props.router,
-    onboardingData,
+    onboardingContext,
     organization.slug,
     props.location.pathname,
   ]);
@@ -211,7 +211,7 @@ function Onboarding(props: Props) {
             organization,
             source,
           });
-          onboardingData.setSelectedSDK(undefined);
+          onboardingContext.setSelectedSDK(undefined);
           activateSidebar({
             userClicked: false,
             source: `targeted_onboarding_select_platform_skip`,
