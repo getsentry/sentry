@@ -35,7 +35,9 @@ type ReleaseHealthItem = {
 
 interface Props {
   end: string;
+  environments: readonly string[];
   onSelectRelease: (release: string, projectId: string) => void;
+  projects: readonly number[];
   start: string;
 }
 
@@ -54,7 +56,13 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * can't re-use because this will eventually be a bit different,
  * especially with the in-drawer navigation.
  */
-export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
+export function ReleaseDrawerTable({
+  end,
+  environments,
+  projects,
+  start,
+  onSelectRelease,
+}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -63,6 +71,8 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
+          project: projects,
+          environment: environments,
           ...Object.fromEntries(
             Object.entries(location.query).filter(([key]) =>
               ['project', 'environment'].includes(key)

@@ -1,4 +1,4 @@
-import {type ReactElement, useCallback, useMemo, useRef} from 'react';
+import {type ReactElement, useMemo, useRef} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import type {
   CustomSeriesOption,
@@ -13,6 +13,7 @@ import moment from 'moment-timezone';
 import {closeModal} from 'sentry/actionCreators/modal';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer';
+import type {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tn} from 'sentry/locale';
 import type {
   EChartClickHandler,
@@ -32,21 +33,22 @@ import {
   BUBBLE_SERIES_ID,
 } from 'sentry/views/releases/releaseBubbles/constants';
 import {createReleaseBubbleHighlighter} from 'sentry/views/releases/releaseBubbles/createReleaseBubbleHighlighter';
-import type {Bucket} from 'sentry/views/releases/releaseBubbles/types';
+import type {
+  Bucket,
+  ChartRendererProps,
+} from 'sentry/views/releases/releaseBubbles/types';
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface CreateReleaseBubbleMouseListenersParams {
   buckets: Bucket[];
   color: string;
+  environments: readonly string[];
   openDrawer: (
     renderer: DrawerConfig['renderer'],
     options: DrawerConfig['options']
   ) => void;
-  chartRenderer?: (rendererProps: {
-    end: Date;
-    releases: ReleaseMetaBasic[];
-    start: Date;
-  }) => ReactElement;
+  projects: readonly number[];
+  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
 }
 
 /**
@@ -58,6 +60,8 @@ function createReleaseBubbleMouseListeners({
   color,
   openDrawer,
   buckets,
+  projects,
+  environments,
 }: CreateReleaseBubbleMouseListenersParams) {
   return {
     onClick: (params: Parameters<EChartClickHandler>[0]) => {
@@ -80,6 +84,8 @@ function createReleaseBubbleMouseListeners({
             endTs={data.final ?? data.end}
             releases={data.releases}
             buckets={buckets}
+            projects={projects}
+            environments={environments}
             chartRenderer={chartRenderer}
           />
         ),
@@ -330,24 +336,54 @@ ${t('Click to expand')}
 }
 
 interface UseReleaseBubblesParams {
+  /**
+   * The whitespace around the bubbles.
+   */
   bubblePadding?: number;
+  /**
+   * The size (height) of the bubble
+   */
   bubbleSize?: number;
-  chartRenderer?: (rendererProps: {
-    end: Date;
-    releases: ReleaseMetaBasic[];
-    start: Date;
-  }) => ReactElement;
+  /**
+   * This is a callback function that is used in ReleasesDrawer when rendering
+   * the chart inside of the drawer.
+   */
+  chartRenderer?: (rendererProps: ChartRendererProps) => ReactElement;
+  datetime?: Parameters<typeof normalizeDateTimeParams>[0];
+  /**
+   * Number of desired bubbles/buckets to create
+   */
+  desiredBuckets?: number;
+  environments?: readonly string[];
+  legendSelected?: boolean;
+
+  /**
+   * The maximum/latest timestamp of the chart's timeseries
+   */
   maxTime?: number;
+  /**
+   * The minimum/earliest timestamp of the chart's timeseries
+   */
   minTime?: number;
+  projects?: readonly number[];
+  /**
+   * List of releases that will be grouped
+   */
   releases?: ReleaseMetaBasic[];
 }
+
 export function useReleaseBubbles({
   chartRenderer,
   releases,
   minTime,
   maxTime,
+  datetime,
+  environments,
+  projects,
+  legendSelected,
   bubbleSize = 4,
   bubblePadding = 2,
+  desiredBuckets = 10,
 }: UseReleaseBubblesParams) {
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
@@ -358,12 +394,27 @@ export function useReleaseBubbles({
   // There may be the need to include releases that are > maxTime (e.g. in the
   // case of relative date selection). This is used for the tooltip to show the
   // proper timestamp for releases.
-  const releasesMaxTime = defined(selection.datetime.end)
-    ? new Date(selection.datetime.end).getTime()
-    : Date.now();
+  const endTimeToUse = (datetime || selection.datetime).end;
+  const releasesMaxTime =
+    defined(endTimeToUse) && !Array.isArray(endTimeToUse)
+      ? new Date(endTimeToUse).getTime()
+      : Date.now();
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const hasReleaseBubbles = organization.features.includes('release-bubbles-ui');
   const totalBubblePaddingY = bubblePadding * 2;
+  const defaultBubbleXAxis = useMemo(
+    () => ({
+      axisLine: {onZero: true},
+      offset: 0,
+    }),
+    []
+  );
+  const defaultBubbleGrid = useMemo(
+    () => ({
+      bottom: 0,
+    }),
+    []
+  );
   const releaseBubbleXAxis = useMemo(
     () => ({
       // configure `axisLine` and `offset` to move axis line below 0 so that
@@ -382,36 +433,31 @@ export function useReleaseBubbles({
     [bubbleSize, totalBubblePaddingY]
   );
 
-  const handleChartRef = useCallback(
-    (e: ReactEchartsRef | null) => {
-      chartRef.current = e;
+  const handleChartRef = (e: ReactEchartsRef | null) => {
+    chartRef.current = e;
 
-      if (e?.getEchartsInstance) {
-        const echartsInstance = e.getEchartsInstance();
-        createReleaseBubbleHighlighter(echartsInstance, {
-          onLegendChange: (selected: boolean) => {
-            // Callback for when Releases legend status changes -- we want to
-            // adjust the xAxis/grid accordingly when Releases are visible or
-            // not
-            echartsInstance.setOption({
-              xAxis: selected
-                ? releaseBubbleXAxis
-                : {
-                    axisLine: {onZero: true},
-                    offset: 0,
-                  },
-              grid: selected
-                ? releaseBubbleGrid
-                : {
-                    bottom: 0,
-                  },
-            });
-          },
-        });
-      }
-    },
-    [releaseBubbleXAxis, releaseBubbleGrid]
-  );
+    if (e?.getEchartsInstance) {
+      const echartsInstance = e.getEchartsInstance();
+      createReleaseBubbleHighlighter(echartsInstance, {
+        onLegendChange: (selected: boolean) => {
+          // If `legendSelected` is defined, this hook will assume that the
+          // selected state is "controlled" by the calling component (e.g. it
+          // implements its own event handler and keeps its own legend-selected
+          // state). The hook will return the updated chart options accordingly.
+          if (legendSelected !== undefined) {
+            return;
+          }
+          // Callback for when Releases legend status changes -- we want to
+          // adjust the xAxis/grid accordingly when Releases are visible or
+          // not
+          echartsInstance.setOption({
+            xAxis: selected ? releaseBubbleXAxis : defaultBubbleXAxis,
+            grid: selected ? releaseBubbleGrid : defaultBubbleGrid,
+          });
+        },
+      });
+    }
+  };
 
   const buckets =
     (hasReleaseBubbles &&
@@ -423,6 +469,7 @@ export function useReleaseBubbles({
         maxTime,
         finalTime: releasesMaxTime,
         releases,
+        desiredBuckets,
       })) ||
     [];
 
@@ -447,6 +494,8 @@ export function useReleaseBubbles({
       chartRenderer,
       color: theme.blue400,
       openDrawer,
+      projects: projects ?? selection.projects,
+      environments: environments ?? selection.environments,
     }),
 
     /**
@@ -465,13 +514,26 @@ export function useReleaseBubbles({
     }),
 
     /**
-     * ECharts xAxis configuration. Spread/override charts `xAxis` prop
+     * ECharts xAxis configuration. Spread/override charts `xAxis` prop.
+     *
+     * Only show the default value if `legendSelected` is explicitly false
+     * because that means the user explicitly turned off the legend and the
+     * axis should "hide" the space for the bubble. `legendSelected` should be
+     * undefined if the calling component does not keep its own "legend
+     * selected" state.
      */
-    releaseBubbleXAxis,
+    releaseBubbleXAxis:
+      legendSelected === false ? defaultBubbleXAxis : releaseBubbleXAxis,
 
     /**
-     * ECharts grid configuration. Spread/override charts `grid` prop
+     * ECharts grid configuration. Spread/override charts `grid` prop.
+     *
+     * Only show the default value if `legendSelected` is explicitly false
+     * because that means the user explicitly turned off the legend and the
+     * axis should "hide" the space for the bubble. `legendSelected` should be
+     * undefined if the calling component does not keep its own "legend
+     * selected" state.
      */
-    releaseBubbleGrid,
+    releaseBubbleGrid: legendSelected === false ? defaultBubbleGrid : releaseBubbleGrid,
   };
 }
