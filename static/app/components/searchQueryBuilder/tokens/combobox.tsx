@@ -357,6 +357,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     items,
     autoFocus,
     inputValue: filterValue,
+    selectedKey: null,
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
