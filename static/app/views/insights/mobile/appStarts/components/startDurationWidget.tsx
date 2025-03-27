@@ -27,8 +27,14 @@ import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
-const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
-const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];
+const COLD_START_CONDITIONS = [
+  'span.op:app.start.cold',
+  'span.description:["Cold Start","Cold App Start"]',
+];
+const WARM_START_CONDITIONS = [
+  'span.op:app.start.warm',
+  'span.description:["Warm Start","Warm App Start"]',
+];
 
 export function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[releaseName: string]: Series} = {};
