@@ -14,7 +14,7 @@ import projectSettingsNavigation from 'sentry/views/settings/project/navigationC
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ChildProps, ResultItem} from './types';
-import {strGetFn} from './utils';
+import {makeResolvedTs, strGetFn} from './utils';
 
 type ConfigParams = {
   debugFilesNeedsReview?: boolean;
@@ -75,6 +75,7 @@ type State = {
    * A Fuse instance configured to search NavigationItem's
    */
   fuzzy: undefined | null | Fuse<NavigationItem>;
+  resolvedTs: number;
 };
 
 class RouteSource extends Component<Props, State> {
@@ -84,6 +85,7 @@ class RouteSource extends Component<Props, State> {
 
   state: State = {
     fuzzy: undefined,
+    resolvedTs: 0,
   };
 
   componentDidMount() {
@@ -135,12 +137,14 @@ class RouteSource extends Component<Props, State> {
     };
 
     const fuzzy = await createFuzzySearch(searchMap ?? [], options);
-    this.setState({fuzzy});
+    const resolvedTs = makeResolvedTs();
+
+    this.setState({fuzzy, resolvedTs});
   }
 
   render() {
     const {query, params, children} = this.props;
-    const {fuzzy} = this.state;
+    const {fuzzy, resolvedTs} = this.state;
 
     const results =
       fuzzy?.search(query).map(({item, ...rest}) => ({
@@ -149,6 +153,7 @@ class RouteSource extends Component<Props, State> {
           sourceType: 'route',
           resultType: 'route',
           to: replaceRouterParams(item.path, params),
+          resolvedTs,
         } as ResultItem,
         ...rest,
       })) ?? [];

@@ -28,7 +28,7 @@ import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import type {ChildProps, Result, ResultItem} from './types';
-import {strGetFn} from './utils';
+import {makeResolvedTs, strGetFn} from './utils';
 
 // event ids must have string length of 32
 const shouldSearchEventIds = (query?: string) =>
@@ -42,6 +42,8 @@ async function createOrganizationResults(
   organizationsPromise: Promise<Organization[]>
 ): Promise<ResultItem[]> {
   const organizations = (await organizationsPromise) || [];
+  const resolvedTs = makeResolvedTs();
+
   return organizations.flatMap(org => [
     {
       title: t('%s Dashboard', org.slug),
@@ -50,6 +52,7 @@ async function createOrganizationResults(
       sourceType: 'organization',
       resultType: 'route',
       to: `/${org.slug}/`,
+      resolvedTs,
     },
     {
       title: t('%s Settings', org.slug),
@@ -58,6 +61,7 @@ async function createOrganizationResults(
       sourceType: 'organization',
       resultType: 'settings',
       to: `/settings/${org.slug}/`,
+      resolvedTs,
     },
   ]);
 }
@@ -66,6 +70,7 @@ async function createProjectResults(
   organization?: Organization
 ): Promise<ResultItem[]> {
   const projects = (await projectsPromise) || [];
+  const resolvedTs = makeResolvedTs();
 
   if (!organization) {
     return [];
@@ -80,6 +85,7 @@ async function createProjectResults(
         sourceType: 'project',
         resultType: 'settings',
         to: `/settings/${organization.slug}/projects/${project.slug}/`,
+        resolvedTs,
       },
       {
         title: t('%s Alerts', project.slug),
@@ -92,6 +98,7 @@ async function createProjectResults(
             path: '/rules/',
             organization,
           }) + `?project=${project.id}`,
+        resolvedTs,
       },
     ];
 
@@ -106,6 +113,7 @@ async function createProjectResults(
           orgSlug: organization.slug,
           path: `/${project.slug}/`,
         }) + `?project=${project.id}`,
+      resolvedTs,
     });
 
     return projectResults;
@@ -116,6 +124,8 @@ async function createTeamResults(
   orgId?: string
 ): Promise<ResultItem[]> {
   const teams = (await teamsPromise) || [];
+  const resolvedTs = makeResolvedTs();
+
   return teams.map(team => ({
     title: `#${team.slug}`,
     description: 'Team Settings',
@@ -123,6 +133,7 @@ async function createTeamResults(
     sourceType: 'team',
     resultType: 'settings',
     to: `/settings/${orgId}/teams/${team.slug}/`,
+    resolvedTs,
   }));
 }
 
@@ -131,6 +142,8 @@ async function createMemberResults(
   orgId?: string
 ): Promise<ResultItem[]> {
   const members = (await membersPromise) || [];
+  const resolvedTs = makeResolvedTs();
+
   return members.map(member => ({
     title: member.name,
     description: member.email,
@@ -138,6 +151,7 @@ async function createMemberResults(
     sourceType: 'member',
     resultType: 'settings',
     to: `/settings/${orgId}/members/${member.id}/`,
+    resolvedTs,
   }));
 }
 
@@ -146,6 +160,8 @@ async function createPluginResults(
   orgId?: string
 ): Promise<ResultItem[]> {
   const plugins = (await pluginsPromise) || [];
+  const resolvedTs = makeResolvedTs();
+
   return plugins
     .filter(plugin => {
       // show a plugin if it is not hidden (aka legacy) or if we have projects with it configured
@@ -164,6 +180,7 @@ async function createPluginResults(
       sourceType: 'plugin',
       resultType: 'integration',
       to: `/settings/${orgId}/plugins/${plugin.id}/`,
+      resolvedTs,
     }));
 }
 
@@ -172,6 +189,8 @@ async function createIntegrationResults(
   orgId?: string
 ): Promise<ResultItem[]> {
   const {providers} = (await integrationsPromise) || {};
+  const resolvedTs = makeResolvedTs();
+
   return (
     providers?.map(provider => ({
       title: provider.name,
@@ -187,6 +206,7 @@ async function createIntegrationResults(
       resultType: 'integration',
       to: `/settings/${orgId}/integrations/${provider.slug}/`,
       configUrl: `/api/0/organizations/${orgId}/integrations/?provider_key=${provider.slug}&includeConfig=0`,
+      resolvedTs,
     })) || []
   );
 }
@@ -196,6 +216,8 @@ async function createSentryAppResults(
   orgId?: string
 ): Promise<ResultItem[]> {
   const sentryApps = (await sentryAppPromise) || [];
+  const resolvedTs = makeResolvedTs();
+
   return sentryApps.map(sentryApp => ({
     title: sentryApp.name,
     description: (
@@ -209,6 +231,7 @@ async function createSentryAppResults(
     sourceType: 'sentryApp',
     resultType: 'sentryApp',
     to: `/settings/${orgId}/sentry-apps/${sentryApp.slug}/`,
+    resolvedTs,
   }));
 }
 
@@ -217,6 +240,8 @@ async function createDocIntegrationResults(
   orgId?: string
 ): Promise<ResultItem[]> {
   const docIntegrations = (await docIntegrationPromise) || [];
+  const resolvedTs = makeResolvedTs();
+
   return docIntegrations.map(docIntegration => ({
     title: docIntegration.name,
     description: (
@@ -230,6 +255,7 @@ async function createDocIntegrationResults(
     sourceType: 'docIntegration',
     resultType: 'docIntegration',
     to: `/settings/${orgId}/document-integrations/${docIntegration.slug}/`,
+    resolvedTs,
   }));
 }
 
@@ -237,6 +263,8 @@ async function createShortIdLookupResult(
   shortIdLookupPromise: Promise<ShortIdResponse>
 ): Promise<Result | null> {
   const shortIdLookup = await shortIdLookupPromise;
+  const resolvedTs = makeResolvedTs();
+
   if (!shortIdLookup) {
     return null;
   }
@@ -250,6 +278,7 @@ async function createShortIdLookupResult(
       sourceType: 'issue',
       resultType: 'issue',
       to: `/${shortIdLookup.organizationSlug}/${shortIdLookup.projectSlug}/issues/${shortIdLookup.groupId}/`,
+      resolvedTs,
     },
     score: 1,
     refIndex: 0,
@@ -260,6 +289,8 @@ async function createEventIdLookupResult(
   eventIdLookupPromise: Promise<EventIdResponse>
 ): Promise<Result | null> {
   const eventIdLookup = await eventIdLookupPromise;
+  const resolvedTs = makeResolvedTs();
+
   if (!eventIdLookup) {
     return null;
   }
@@ -272,6 +303,7 @@ async function createEventIdLookupResult(
       sourceType: 'event',
       resultType: 'event',
       to: `/${eventIdLookup.organizationSlug}/${eventIdLookup.projectSlug}/issues/${eventIdLookup.groupId}/events/${eventIdLookup.eventId}/`,
+      resolvedTs,
     },
     score: 1,
     refIndex: 0,

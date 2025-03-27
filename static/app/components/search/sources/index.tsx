@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
+import sortBy from 'lodash/sortBy';
 
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {Result} from './types';
 
 type ChildProps = {
-  hasAnyResults: boolean;
-  isLoading: boolean;
+  allLoaded: boolean;
   results: Result[];
 };
 
@@ -29,21 +29,13 @@ function SearchSources(props: Props) {
   // `allSources` will be an array of all result objects from each source
   const renderResults = useCallback(
     (allSources: SourceResult[]) => {
-      // loading means if any result has `isLoading` OR any result is null
-      const isLoading = !!allSources.find(arg => arg.isLoading || arg.results === null);
+      const allLoaded = allSources.every(source => !source.isLoading);
+      const results = sortBy(
+        allSources.flatMap(item => item.results ?? []),
+        ['item.resolvedTs', 'score']
+      );
 
-      const foundResults = isLoading
-        ? []
-        : allSources
-            .flatMap(({results}) => results ?? [])
-            .sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
-      const hasAnyResults = !!foundResults.length;
-
-      return children({
-        isLoading,
-        results: foundResults,
-        hasAnyResults,
-      });
+      return children({allLoaded, results});
     },
     [children]
   );

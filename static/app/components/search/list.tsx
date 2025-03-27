@@ -23,10 +23,9 @@ interface RenderItemProps {
 type RenderItem = (props: RenderItemProps) => React.ReactNode;
 
 type Props = {
+  allLoaded: boolean;
   getItemProps: AutoCompleteOpts['getItemProps'];
-  hasAnyResults: boolean;
   highlightedIndex: number;
-  isLoading: boolean;
   registerItemCount: AutoCompleteOpts['registerItemCount'];
   registerVisibleItem: AutoCompleteOpts['registerVisibleItem'];
   resultFooter: React.ReactNode;
@@ -46,8 +45,7 @@ function defaultItemRenderer({item, highlighted, itemProps, matches}: RenderItem
 
 function List({
   dropdownClassName,
-  isLoading,
-  hasAnyResults,
+  allLoaded,
   results,
   maxResults,
   getItemProps,
@@ -64,13 +62,17 @@ function List({
     [registerItemCount, resultList.length]
   );
 
+  // Show loading indicator if we're still loading and don't have any results yet
+  const hasResults = results.length > 0;
+  const isLoading = !allLoaded && !hasResults;
+
   return (
     <DropdownBox className={dropdownClassName}>
       {isLoading ? (
         <LoadingWrapper>
           <LoadingIndicator mini hideMessage relative />
         </LoadingWrapper>
-      ) : hasAnyResults ? (
+      ) : hasResults ? (
         resultList.map((result, index) => {
           const {item, matches, refIndex} = result;
           const highlighted = index === highlightedIndex;

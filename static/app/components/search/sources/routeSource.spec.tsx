@@ -24,6 +24,7 @@ describe('RouteSource', function () {
         sourceType: 'route',
         title: 'Security',
         to: '/settings/account/security/',
+        resolvedTs: expect.anything(),
       });
     });
   });
@@ -57,6 +58,7 @@ describe('RouteSource', function () {
         sourceType: 'route',
         title: 'Spike Protection',
         to: '/settings/spike-protection',
+        resolvedTs: expect.anything(),
       });
     });
   });

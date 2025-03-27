@@ -187,12 +187,11 @@ function Search({
                 params={params}
                 sources={sources ?? [ApiSource, FormSource, RouteSource, CommandSource]}
               >
-                {({isLoading, results, hasAnyResults}) => (
+                {({allLoaded, results}) => (
                   <List
                     {...{
-                      isLoading,
+                      allLoaded,
                       results,
-                      hasAnyResults,
                       maxResults,
                       resultFooter,
                       dropdownClassName,
