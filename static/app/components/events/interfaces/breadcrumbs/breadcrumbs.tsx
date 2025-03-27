@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import type {ListProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
+import type {ListRowRenderer} from 'react-virtualized/dist/es/List';
 import styled from '@emotion/styled';
 
 import type {
@@ -39,25 +40,14 @@ interface SharedListProps extends ListProps {
   breadcrumbs: BreadcrumbWithMeta[];
   displayRelativeTime: boolean;
   event: BreadcrumbProps['event'];
-  index: number;
   organization: Organization;
   relativeTime: string;
   searchTerm: string;
   transactionEvents: BreadcrumbTransactionEvent[] | undefined;
+  index?: number;
 }
 
-interface BreadCrumbListClass extends Omit<List, 'props'> {
-  props: SharedListProps;
-}
-
-interface RenderBreadCrumbRowProps {
-  index: number;
-  key: string;
-  parent: BreadCrumbListClass;
-  style: React.CSSProperties;
-}
-
-function renderBreadCrumbRow({index, key, parent, style}: RenderBreadCrumbRowProps) {
+const renderBreadCrumbRow: ListRowRenderer = ({index, key, parent, style}) => {
   return (
     <CellMeasurer
       columnIndex={0}
@@ -88,7 +78,7 @@ function renderBreadCrumbRow({index, key, parent, style}: RenderBreadCrumbRowPro
       </BreadcrumbRow>
     </CellMeasurer>
   );
-}
+};
 
 interface Props
   extends Pick<
