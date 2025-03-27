@@ -213,7 +213,7 @@ export function SourceMapsList({location, router, project}: Props) {
               onTabClick={value => setSelectedTab(value)}
             >
               {selectedTab === 'expo'
-                ? 'npx expo run:android --variant release\nnpx expo run:ios --configuration Release'
+                ? '# First run this to create a build and upload source maps\n./gradlew assembleRelease\n# Then run this to test your build locally\nnpx expo run:android --variant release\n\n# iOS version (pending confirmation)\nnpx expo run:ios --configuration Release'
                 : 'npx react-native run-android --mode release\nnpx react-native run-ios --mode Release'}
             </CodeSnippet>
           </InstructionBlock>
@@ -264,7 +264,7 @@ export function SourceMapsList({location, router, project}: Props) {
               onTabClick={value => setSelectedTab(value)}
             >
               {selectedTab === 'expo'
-                ? 'npx expo run:android --variant release\nnpx expo run:ios --configuration Release'
+                ? '# First run this to create a build and upload source maps\n./gradlew assembleRelease\n# Then run this to test your build locally\nnpx expo run:android --variant release\n\n# iOS version (pending confirmation)\nnpx expo run:ios --configuration Release'
                 : 'npx react-native run-android --mode release\nnpx react-native run-ios --mode Release'}
             </CodeSnippet>
           </InstructionBlock>
