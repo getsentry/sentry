@@ -2067,11 +2067,11 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
       />
       <Route
-        path={TabPaths[Tab.TAGS]}
+        path={TabPaths[Tab.DISTRIBUTIONS]}
         component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
       />
       <Route
-        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
+        path={`${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
         component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
       />
       <Route
@@ -2103,6 +2103,22 @@ function buildRoutes() {
       <IndexRoute component={errorHandler(OverviewWrapper)} />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+
+      {/* Redirects for legacy tags route. */}
+      <Redirect from=":groupId/tags/" to={`/issues/:groupId/distributions/`} />
+      <Redirect
+        from=":groupId/tags/:tagKey/"
+        to={`/issues/:groupId/distributions/:tagKey/`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/distributions/`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/distributions/:tagKey/`}
+      />
+
       <Route
         path=":groupId/"
         component={make(() => import('sentry/views/issueDetails/groupDetails'))}

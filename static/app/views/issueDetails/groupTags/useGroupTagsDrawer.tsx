@@ -43,7 +43,7 @@ export function useGroupTagsDrawer({
           );
         },
         shouldCloseOnLocationChange: newLocation => {
-          return !newLocation.pathname.includes(`/${TabPaths[Tab.TAGS]}`);
+          return !newLocation.pathname.includes(`/${TabPaths[Tab.DISTRIBUTIONS]}`);
         },
       }
     );

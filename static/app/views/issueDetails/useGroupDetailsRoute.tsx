@@ -13,7 +13,7 @@ function getCurrentTab({router}: {router: RouteProps['router']}) {
 
   // If we're in the tag details page ("/tags/:tagKey/")
   if (router.params.tagKey) {
-    return Tab.TAGS;
+    return Tab.DISTRIBUTIONS;
   }
   return (
     Object.values(Tab).find(tab => currentRoute?.path === TabPaths[tab]) ?? Tab.DETAILS

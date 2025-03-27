@@ -3,7 +3,7 @@ export enum Tab {
   ACTIVITY = 'activity',
   USER_FEEDBACK = 'user-feedback',
   ATTACHMENTS = 'attachments',
-  TAGS = 'tags',
+  DISTRIBUTIONS = 'distributions', // Renamed from 'tags' to include feature flags.
   EVENTS = 'events',
   MERGED = 'merged',
   SIMILAR_ISSUES = 'similar-issues',
@@ -18,7 +18,7 @@ export const TabPaths: Record<Tab, string> = {
   [Tab.ACTIVITY]: 'activity/',
   [Tab.USER_FEEDBACK]: 'feedback/',
   [Tab.ATTACHMENTS]: 'attachments/',
-  [Tab.TAGS]: 'distributions/',
+  [Tab.DISTRIBUTIONS]: 'distributions/',
   [Tab.EVENTS]: 'events/',
   [Tab.MERGED]: 'merged/',
   [Tab.SIMILAR_ISSUES]: 'similar/',
