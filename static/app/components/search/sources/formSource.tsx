@@ -10,7 +10,7 @@ import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import type {ChildProps, Result, ResultItem} from './types';
-import {strGetFn} from './utils';
+import {makeResolvedTs, strGetFn} from './utils';
 
 interface Props extends WithRouterProps {
   children: (props: ChildProps) => React.ReactElement;
@@ -30,6 +30,7 @@ interface Props extends WithRouterProps {
 
 type State = {
   fuzzy: null | Fuse<FormSearchField>;
+  resolvedTs: number;
 };
 
 class FormSource extends Component<Props, State> {
@@ -38,6 +39,7 @@ class FormSource extends Component<Props, State> {
   };
   state: State = {
     fuzzy: null,
+    resolvedTs: 0,
   };
 
   componentDidMount() {
@@ -51,18 +53,19 @@ class FormSource extends Component<Props, State> {
   }
 
   async createSearch(searchMap: Props['searchMap']) {
-    this.setState({
-      fuzzy: await createFuzzySearch(searchMap || [], {
-        ...this.props.searchOptions,
-        keys: ['title', 'description'],
-        getFn: strGetFn,
-      }),
+    const fuzzy = await createFuzzySearch(searchMap || [], {
+      ...this.props.searchOptions,
+      keys: ['title', 'description'],
+      getFn: strGetFn,
     });
+    const resolvedTs = makeResolvedTs();
+
+    this.setState({fuzzy, resolvedTs});
   }
 
   render() {
     const {searchMap, query, children} = this.props;
-    const {fuzzy} = this.state;
+    const {fuzzy, resolvedTs} = this.state;
 
     const results =
       fuzzy?.search(query).map<Result>(value => {
@@ -73,6 +76,7 @@ class FormSource extends Component<Props, State> {
             sourceType: 'field',
             resultType: 'field',
             to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
+            resolvedTs,
           } as ResultItem,
           ...rest,
         };

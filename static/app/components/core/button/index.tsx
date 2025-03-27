@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -318,9 +318,12 @@ function BaseButton({
   );
 }
 
-export const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
-  <BaseButton forwardRef={ref} {...props} />
-));
+export function Button({
+  ref,
+  ...props
+}: ButtonProps & {ref?: React.Ref<HTMLButtonElement>}) {
+  return <BaseButton forwardRef={ref} {...props} />;
+}
 
 Button.displayName = 'Button';
 
@@ -336,62 +339,58 @@ type StyledButtonProps =
   | StyledButtonPropsWithoutAriaLabel;
 
 export const StyledButton = styled(
-  reactForwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
-    (
-      {
-        forwardRef,
-        size: _size,
-        title: _title,
-        type,
-        external,
-        to,
-        replace,
-        href,
-        disabled,
-        ...props
-      }: ButtonProps,
-      forwardRefAlt
-    ) => {
-      // XXX: There may be two forwarded refs here, one potentially passed from a
-      // wrapped Tooltip, another from callers of Button.
-      const ref = mergeRefs(forwardRef, forwardRefAlt);
+  ({
+    forwardRef,
+    size: _size,
+    title: _title,
+    type,
+    external,
+    to,
+    replace,
+    href,
+    disabled,
+    ref: forwardRefAlt,
+    ...props
+  }: ButtonProps & {ref?: React.Ref<HTMLButtonElement | HTMLAnchorElement>}) => {
+    // XXX: There may be two forwarded refs here, one potentially passed from a
+    // wrapped Tooltip, another from callers of Button.
+    const ref = mergeRefs(forwardRef, forwardRefAlt);
 
-      // Get component to use based on existence of `to` or `href` properties
-      // Can be react-router `Link`, `a`, or `button`
-      if (to) {
-        return (
-          <Link
-            {...props}
-            ref={ref as React.Ref<HTMLAnchorElement>}
-            to={to}
-            replace={replace}
-            disabled={disabled}
-          />
-        );
-      }
-
-      if (href) {
-        return (
-          <a
-            {...props}
-            ref={ref as React.Ref<HTMLAnchorElement>}
-            href={href}
-            aria-disabled={disabled}
-            {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
-          />
-        );
-      }
-
+    // Get component to use based on existence of `to` or `href` properties
+    // Can be react-router `Link`, `a`, or `button`
+    if (to) {
       return (
-        <button
+        <Link
           {...props}
-          type={type}
-          ref={ref as React.Ref<HTMLButtonElement>}
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          to={to}
+          replace={replace}
           disabled={disabled}
         />
       );
     }
-  ),
+
+    if (href) {
+      return (
+        <a
+          {...props}
+          ref={ref as React.Ref<HTMLAnchorElement>}
+          href={href}
+          aria-disabled={disabled}
+          {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
+        />
+      );
+    }
+
+    return (
+      <button
+        {...props}
+        type={type}
+        ref={ref as React.Ref<HTMLButtonElement>}
+        disabled={disabled}
+      />
+    );
+  },
   {
     shouldForwardProp: prop =>
       prop === 'forwardRef' ||

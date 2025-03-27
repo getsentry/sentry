@@ -88,7 +88,7 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
     sort = {field: SpanIndexedField.TIMESTAMP, kind: 'desc'};
   }
