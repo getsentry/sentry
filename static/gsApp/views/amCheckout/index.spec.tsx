@@ -1230,6 +1230,7 @@ describe('AM3 Checkout', function () {
         data: {tier: PlanTier.AM3},
       })
     );
+    organization.features.pop(); // clean up
   });
 
   it('renders for self-serve partners', async function () {
@@ -1443,6 +1444,7 @@ describe('AM3 Checkout', function () {
       },
       onDemandMaxSpend: 2000,
       supportsOnDemand: true,
+      isFree: false,
     });
 
     SubscriptionStore.set(organization.slug, sub);
@@ -1461,9 +1463,10 @@ describe('AM3 Checkout', function () {
     expect(
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
-    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
     expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
 
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    expect(screen.getByTestId('errors-volume-item')).toBeInTheDocument(); // skips over first step when subscription is already on Business plan
     // TODO: Can better write this once we have
     // https://github.com/testing-library/jest-dom/issues/478
     expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
@@ -1570,6 +1573,7 @@ describe('AM3 Checkout', function () {
         enabled: true,
       },
       supportsOnDemand: true,
+      isFree: false,
     });
 
     SubscriptionStore.set(organization.slug, sub);
@@ -1589,11 +1593,16 @@ describe('AM3 Checkout', function () {
       await screen.findByRole('heading', {name: 'Change Subscription'})
     ).toBeInTheDocument();
 
-    // Verify that the component renders without errors
-    expect(screen.getByTestId('replays-volume-item')).toBeInTheDocument();
-
     // For AM3, we should see "Set Your Pay-as-you-go Budget" first
     expect(screen.getByText('Set Your Pay-as-you-go Budget')).toBeInTheDocument();
+
+    // Verify that the 'Pay-as-you-go budget' is correctly set
+    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+    // Verify that the component renders without errors
+    expect(screen.getByTestId('replays-volume-item')).toBeInTheDocument();
 
     // Check that missing 'Errors' category defaults to 50,000 errors
     expect(screen.getByRole('slider', {name: 'Errors'})).toHaveAttribute(
@@ -1610,9 +1619,6 @@ describe('AM3 Checkout', function () {
       'aria-valuetext',
       '1'
     );
-
-    // Verify that the 'Pay-as-you-go budget' is correctly set
-    expect(screen.getByRole('textbox', {name: 'Pay-as-you-go budget'})).toHaveValue('20');
   });
 
   it('handles zero platform reserve', function () {

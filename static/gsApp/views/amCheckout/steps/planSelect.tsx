@@ -17,6 +17,7 @@ import {type Plan, PlanTier} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
   isBizPlanFamily,
+  isNewPayingCustomer,
   isTeamPlan,
   isTeamPlanFamily,
 } from 'getsentry/utils/billing';
@@ -172,6 +173,9 @@ function PlanSelect({
   };
 
   const renderBody = () => {
+    const shouldShowDefaultPayAsYouGo =
+      isNewPayingCustomer(subscription, organization) && checkoutTier === PlanTier.AM3; // TODO(isabella): Test if this behavior works as expected on older tiers
+
     const planOptions = getPlanOptions({billingConfig, activePlan});
     return (
       <PanelBody data-test-id="body-choose-your-plan">
@@ -225,6 +229,7 @@ function PlanSelect({
                   ? discountInfo
                   : undefined
               }
+              shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
             />
           );
         })}

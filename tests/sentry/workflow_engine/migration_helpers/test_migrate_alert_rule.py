@@ -959,7 +959,7 @@ class DualWriteAlertRuleTriggerActionTest(BaseMetricAlertMigrationTest):
             integration=self.integration,
             alert_rule_trigger=self.critical_trigger,
             sentry_app_config={
-                "priority": "p2",
+                "priority": "P2",
             },
         )
 

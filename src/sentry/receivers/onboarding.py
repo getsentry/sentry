@@ -108,17 +108,6 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
     )
     # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
     if not created:
-        # Check if the "first project" task already exists and log an error if needed
-        first_project_task_exists = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id, task=OnboardingTask.FIRST_PROJECT
-        ).exists()
-
-        if not first_project_task_exists:
-            sentry_sdk.capture_message(
-                f"An error occurred while trying to record the first project for organization ({project.organization_id})",
-                level="warning",
-            )
-
         OrganizationOnboardingTask.objects.update_or_create(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
