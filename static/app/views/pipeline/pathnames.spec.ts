@@ -1,4 +1,4 @@
-import {Organization} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import {makePipelinePathname} from 'sentry/views/pipeline/pathnames';
 
 const testOrg = {
