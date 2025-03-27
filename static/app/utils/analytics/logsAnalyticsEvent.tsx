@@ -33,4 +33,5 @@ export type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.table.row_expanded': 'Expanded Log Row Details',
+  'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
 };
