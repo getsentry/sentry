@@ -64,7 +64,7 @@ export function DomainViewHeader({
   const useEap = location.query?.useEap === '1';
   const hasEapFlag = organization.features.includes('insights-modules-use-eap');
 
-  const setUseEap = () => {
+  const toggleUseEap = () => {
     const newState = !useEap;
 
     navigate({
@@ -138,7 +138,7 @@ export function DomainViewHeader({
             {hasEapFlag && (
               <Fragment>
                 Use Eap
-                <Switch checked={useEap} onChange={() => setUseEap(!useEap)} />
+                <Switch checked={useEap} onChange={() => toggleUseEap()} />
               </Fragment>
             )}
           </ButtonBar>
