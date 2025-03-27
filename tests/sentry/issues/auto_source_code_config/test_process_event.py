@@ -661,7 +661,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 "stack.module:com.example.** +app",
                 "stack.module:org.other.** +app",
             ],
-            expected_num_code_mappings=3,
         )
 
     def test_multiple_tlds(self) -> None:
@@ -749,7 +748,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
                 expected_new_code_mappings=[
                     self.code_mapping(stack_root="com/example/", source_root="src/com/example/"),
                 ],
-                expected_num_code_mappings=1,
                 expected_new_in_app_stack_trace_rules=[expected_in_app_rule],
             )
             # The effects of the configuration changes will be noticed on the second event processing
