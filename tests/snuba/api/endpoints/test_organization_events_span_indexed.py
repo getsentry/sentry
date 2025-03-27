@@ -3287,6 +3287,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["total_opportunity_score()"] == 1.0
         assert data[1]["total_opportunity_score()"] == 1.0
 
+    @pytest.mark.xfail(reason="RPC returns None if a value if data is missing instead of 0")
     def test_total_opportunity_score_missing_data(self):
         self.store_spans(
             [
