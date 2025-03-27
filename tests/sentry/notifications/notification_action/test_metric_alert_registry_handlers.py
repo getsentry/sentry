@@ -25,7 +25,7 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.ops
 from sentry.notifications.notification_action.metric_alert_registry.handlers.pagerduty_metric_alert_handler import (
     PagerDutyMetricAlertHandler,
 )
-from sentry.notifications.notification_action.registry import BaseMetricAlertHandler
+from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
