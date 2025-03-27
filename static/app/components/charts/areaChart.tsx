@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import type {LineSeriesOption} from 'echarts';
 
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
@@ -47,16 +46,22 @@ export function transformToAreaSeries({
   );
 }
 
-export const AreaChart = forwardRef<ReactEchartsRef, AreaChartProps>(
-  ({series, stacked, colors, ...props}, ref) => {
-    return (
-      <BaseChart
-        {...props}
-        ref={ref}
-        data-test-id="area-chart"
-        colors={colors}
-        series={transformToAreaSeries({series, stacked, colors})}
-      />
-    );
-  }
-);
+export function AreaChart({
+  ref,
+  series,
+  stacked,
+  colors,
+  ...props
+}: AreaChartProps & {
+  ref?: React.Ref<ReactEchartsRef>;
+}) {
+  return (
+    <BaseChart
+      {...props}
+      ref={ref}
+      data-test-id="area-chart"
+      colors={colors}
+      series={transformToAreaSeries({series, stacked, colors})}
+    />
+  );
+}

@@ -1,12 +1,10 @@
-import {forwardRef} from 'react';
-
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 /**
  * @deprecated This icon will be removed in new UI.
  */
-const IconExclamation = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconExclamation({ref, ...props}: SVGIconProps) {
   return (
     <SvgIcon {...props} ref={ref} kind="path">
       <g>
@@ -15,7 +13,7 @@ const IconExclamation = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       </g>
     </SvgIcon>
   );
-});
+}
 
 IconExclamation.displayName = 'IconExclamation';
 

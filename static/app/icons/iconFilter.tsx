@@ -1,10 +1,10 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconFilter = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconFilter({ref, ...props}: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -23,7 +23,7 @@ const IconFilter = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconFilter.displayName = 'IconFilter';
 

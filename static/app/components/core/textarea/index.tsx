@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import TextareaAutosize, {type TextareaAutosizeProps} from 'react-textarea-autosize';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -28,16 +27,22 @@ export interface TextAreaProps
   style?: TextareaAutosizeProps['style'];
 }
 
-const TextAreaControl = forwardRef(function TextAreaControl(
-  {autosize, rows = 3, maxRows, size: _size, ...p}: TextAreaProps,
-  ref: React.Ref<HTMLTextAreaElement>
-) {
+function TextAreaControl({
+  ref,
+  autosize,
+  rows = 3,
+  maxRows,
+  size: _size,
+  ...p
+}: TextAreaProps & {
+  ref?: React.Ref<HTMLTextAreaElement>;
+}) {
   return autosize ? (
     <TextareaAutosize {...p} ref={ref} rows={rows} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} rows={rows} />
   );
-});
+}
 
 TextAreaControl.displayName = 'TextAreaControl';
 

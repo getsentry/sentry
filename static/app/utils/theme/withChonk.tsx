@@ -1,11 +1,10 @@
-import {forwardRef, type PropsWithoutRef} from 'react';
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 export type ChonkPropMapping<LegacyProps, ChonkProps> = (
-  props: Omit<PropsWithoutRef<LegacyProps>, 'theme'>
-) => Omit<PropsWithoutRef<ChonkProps>, 'theme'>;
+  props: Omit<LegacyProps, 'theme' | 'ref'>
+) => Omit<ChonkProps, 'theme' | 'ref'>;
 
 /**
  * Higher order utility function that manages the migration layer between chonk and legacy components.
@@ -28,15 +27,15 @@ export function withChonk<
   chonkComponent: React.ComponentType<ChonkProps>,
   propMapping: ChonkPropMapping<LegacyProps, ChonkProps> = identity
 ) {
-  function ChonkSwitch(props: PropsWithoutRef<LegacyProps>, ref: React.Ref<any>) {
+  function ChonkSwitch(props: LegacyProps) {
     const theme = useTheme();
 
     if (theme.isChonk) {
       const ChonkComponent: any = chonkComponent;
       return (
         <ChonkComponent
-          ref={ref}
           {...propMapping(props)}
+          ref={props.ref}
           theme={theme as unknown as DO_NOT_USE_ChonkTheme}
         >
           {props.children}
@@ -45,15 +44,10 @@ export function withChonk<
     }
 
     const LegacyComponent: any = legacyComponent;
-    return (
-      <LegacyComponent ref={ref} {...props}>
-        {props.children}
-      </LegacyComponent>
-    );
+    return <LegacyComponent {...props}>{props.children}</LegacyComponent>;
   }
 
-  const ForwardRefComponent = forwardRef(ChonkSwitch);
-  return styled(ForwardRefComponent)``;
+  return styled(ChonkSwitch)``;
 }
 
 function identity<T, U>(props: T): U {

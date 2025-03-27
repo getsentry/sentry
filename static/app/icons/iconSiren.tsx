@@ -1,10 +1,10 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconSiren = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconSiren({ref, ...props}: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -34,7 +34,7 @@ const IconSiren = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconSiren.displayName = 'IconSiren';
 

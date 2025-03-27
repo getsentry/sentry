@@ -1,5 +1,3 @@
-import {forwardRef} from 'react';
-
 import {
   EventDataSection,
   type EventDataSectionProps,
@@ -16,26 +14,23 @@ import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
  * for issue details is being developed. Once GA'd, all occurances should be replaced
  * with just <FoldSection />
  */
-export const InterimSection = forwardRef<
-  HTMLElement,
-  EventDataSectionProps &
-    Pick<
-      FoldSectionProps,
-      'initialCollapse' | 'preventCollapse' | 'disableCollapsePersistence'
-    >
->(function InterimSection(
-  {
-    children,
-    title,
-    type,
-    actions = null,
-    initialCollapse,
-    preventCollapse,
-    disableCollapsePersistence,
-    ...props
-  },
-  ref
-) {
+export function InterimSection({
+  ref,
+  children,
+  title,
+  type,
+  actions = null,
+  initialCollapse,
+  preventCollapse,
+  disableCollapsePersistence,
+  ...props
+}: EventDataSectionProps &
+  Pick<
+    FoldSectionProps,
+    'initialCollapse' | 'preventCollapse' | 'disableCollapsePersistence'
+  > & {
+    ref?: React.Ref<HTMLElement>;
+  }) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   return hasStreamlinedUI ? (
@@ -55,4 +50,4 @@ export const InterimSection = forwardRef<
       {children}
     </EventDataSection>
   );
-});
+}

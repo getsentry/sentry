@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {IconUnsubscribed} from 'sentry/icons/iconUnsubscribed';
@@ -9,7 +8,7 @@ import {SvgIcon} from './svgIcon';
 /**
  * @deprecated use IconUnsubscribed instead
  */
-const IconMute = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconMute({ref, ...props}: SVGIconProps) {
   const theme = useTheme();
   if (theme.isChonk) {
     return <IconUnsubscribed {...props} ref={ref} />;
@@ -23,7 +22,7 @@ const IconMute = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       <path d="M11.76,10.35a.64.64,0,0,1-.33-.08.75.75,0,0,1-.34-1,.78.78,0,0,1,.14-.2,1.56,1.56,0,0,0,0-2.21A.75.75,0,0,1,12.29,5.8a3.07,3.07,0,0,1,0,4.32A.78.78,0,0,1,11.76,10.35Z" />
     </SvgIcon>
   );
-});
+}
 
 IconMute.displayName = 'IconMute';
 

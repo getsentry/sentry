@@ -1,10 +1,9 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconMoon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconMoon({ref, ...props}: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -15,7 +14,7 @@ const IconMoon = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconMoon.displayName = 'IconMoon';
 

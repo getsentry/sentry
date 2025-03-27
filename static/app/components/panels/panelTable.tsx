@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -75,24 +74,24 @@ type PanelTableProps = {
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
 
-const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTable(
-  {
-    headers,
-    children,
-    isLoading,
-    isEmpty,
-    disablePadding,
-    className,
-    emptyMessage = t('There are no items to display'),
-    emptyAction,
-    loader,
-    stickyHeaders = false,
-    disableHeaderBorderBottom = false,
-    disableHeaders,
-    ...props
-  }: PanelTableProps,
-  ref: React.Ref<HTMLDivElement>
-) {
+function PanelTable({
+  ref,
+  headers,
+  children,
+  isLoading,
+  isEmpty,
+  disablePadding,
+  className,
+  emptyMessage = t('There are no items to display'),
+  emptyAction,
+  loader,
+  stickyHeaders = false,
+  disableHeaderBorderBottom = false,
+  disableHeaders,
+  ...props
+}: PanelTableProps & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
@@ -128,7 +127,7 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
       {shouldShowContent && getContent(children)}
     </Wrapper>
   );
-});
+}
 
 function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {

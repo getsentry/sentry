@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import type {PopperProps} from 'react-popper';
 import type {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -97,40 +96,38 @@ function computeOriginFromArrow(
  * `<AnimatePresence />`.
  */
 const Overlay = styled(
-  forwardRef<HTMLDivElement, OverlayProps>(
-    (
-      {
-        children,
-        arrowProps,
-        animated,
-        placement,
-        originPoint,
-        style,
-        overlayStyle: _overlayStyle,
-        ...props
-      },
-      ref
-    ) => {
-      const isTestEnv = NODE_ENV === 'test';
-      const animationProps =
-        !isTestEnv && animated
-          ? {
-              ...overlayAnimation,
-              style: {
-                ...style,
-                ...computeOriginFromArrow(placement, originPoint),
-              },
-            }
-          : {style};
+  ({
+    ref,
+    children,
+    arrowProps,
+    animated,
+    placement,
+    originPoint,
+    style,
+    overlayStyle: _overlayStyle,
+    ...props
+  }: OverlayProps & {
+    ref?: React.Ref<HTMLDivElement>;
+  }) => {
+    const isTestEnv = NODE_ENV === 'test';
+    const animationProps =
+      !isTestEnv && animated
+        ? {
+            ...overlayAnimation,
+            style: {
+              ...style,
+              ...computeOriginFromArrow(placement, originPoint),
+            },
+          }
+        : {style};
 
-      return (
-        <motion.div {...props} {...animationProps} data-overlay ref={ref}>
-          {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
-          <PanelProvider>{children}</PanelProvider>
-        </motion.div>
-      );
-    }
-  )
+    return (
+      <motion.div {...props} {...animationProps} data-overlay ref={ref}>
+        {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+        <PanelProvider>{children}</PanelProvider>
+      </motion.div>
+    );
+  }
 )`
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
@@ -168,34 +165,31 @@ interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
  * `overlayProps` includes a onMouseEnter to allow the overlay to be hovered,
  * which we would not want while its fading away.
  */
-const PositionWrapper = forwardRef<HTMLDivElement, PositionWrapperProps>(
-  // XXX(epurkhiser): This is a motion.div NOT because it is animating, but
-  // because we need the context of the animation starting for applying the
-  // `pointerEvents: none`.
-  (
-    {
-      // XXX: Some of framer motions props are incompatible with
-      // HTMLAttributes<HTMLDivElement>. Due to the way useOverlay uses this
-      // component it must be compatible with that type.
-      onAnimationStart: _onAnimationStart,
-      onDragStart: _onDragStart,
-      onDragEnd: _onDragEnd,
-      onDrag: _onDrag,
-      zIndex,
-      style,
-      ...props
-    },
-    ref
-  ) => {
-    const isPresent = useIsPresent();
-    return (
-      <motion.div
-        {...props}
-        ref={ref}
-        style={{...style, zIndex, pointerEvents: isPresent ? 'auto' : 'none'}}
-      />
-    );
-  }
-);
+function PositionWrapper({
+  ref,
+
+  // XXX: Some of framer motions props are incompatible with
+  // HTMLAttributes<HTMLDivElement>. Due to the way useOverlay uses this
+  // component it must be compatible with that type.
+  onAnimationStart: _onAnimationStart,
+
+  onDragStart: _onDragStart,
+  onDragEnd: _onDragEnd,
+  onDrag: _onDrag,
+  zIndex,
+  style,
+  ...props
+}: PositionWrapperProps & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  const isPresent = useIsPresent();
+  return (
+    <motion.div
+      {...props}
+      ref={ref}
+      style={{...style, zIndex, pointerEvents: isPresent ? 'auto' : 'none'}}
+    />
+  );
+}
 
 export {Overlay, PositionWrapper};

@@ -1,10 +1,10 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconGrid = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconGrid({ref, ...props}: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -25,7 +25,7 @@ const IconGrid = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconGrid.displayName = 'IconGrid';
 

@@ -1,6 +1,5 @@
 import {
   createContext,
-  forwardRef,
   useContext,
   useLayoutEffect,
   useMemo,
@@ -81,47 +80,57 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 }
 
-const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function Input({
+  ref,
+  size,
+  disabled,
+  ...props
+}: InputProps & {
+  ref?: React.Ref<HTMLInputElement>;
+}) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledInput
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledInput
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
-const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
-  ({size, disabled, ...props}, ref) => {
-    const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
+function TextArea({
+  ref,
+  size,
+  disabled,
+  ...props
+}: TextAreaProps & {
+  ref?: React.Ref<HTMLTextAreaElement>;
+}) {
+  const {leadingWidth, trailingWidth, setInputProps} = useContext(InputGroupContext);
 
-    useLayoutEffect(() => {
-      setInputProps?.({size, disabled});
-    }, [size, disabled, setInputProps]);
+  useLayoutEffect(() => {
+    setInputProps?.({size, disabled});
+  }, [size, disabled, setInputProps]);
 
-    return (
-      <StyledTextArea
-        ref={ref}
-        leadingWidth={leadingWidth}
-        trailingWidth={trailingWidth}
-        size={size}
-        disabled={disabled}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <StyledTextArea
+      ref={ref}
+      leadingWidth={leadingWidth}
+      trailingWidth={trailingWidth}
+      size={size}
+      disabled={disabled}
+      {...props}
+    />
+  );
+}
 
 interface InputItemsProps extends React.HTMLAttributes<HTMLDivElement> {
   /**

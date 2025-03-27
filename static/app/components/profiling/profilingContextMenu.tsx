@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -11,9 +10,14 @@ interface MenuProps
 }
 
 const Menu = styled(
-  forwardRef((props: MenuProps, ref: React.Ref<HTMLDivElement> | undefined) => {
+  ({
+    ref,
+    ...props
+  }: MenuProps & {
+    ref?: React.Ref<unknown>;
+  }) => {
     return <div ref={ref} role="menu" {...props} />;
-  })
+  }
 )`
   position: absolute;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -61,25 +65,28 @@ interface MenuItemCheckboxProps
   checked?: boolean;
 }
 
-const MenuItemCheckbox = forwardRef(
-  (props: MenuItemCheckboxProps, ref: React.Ref<HTMLDivElement> | undefined) => {
-    const {children, checked, ...rest} = props;
+function MenuItemCheckbox({
+  ref,
+  ...props
+}: MenuItemCheckboxProps & {
+  ref?: React.Ref<unknown>;
+}) {
+  const {children, checked, ...rest} = props;
 
-    return (
-      <MenuContentOuterContainer>
-        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
-          <MenuItemCheckboxLabel>
-            <MenuLeadingItem>
-              <Input type="checkbox" checked={checked} onChange={() => void 0} />
-              <IconCheckmark />
-            </MenuLeadingItem>
-            <MenuContent>{children}</MenuContent>
-          </MenuItemCheckboxLabel>
-        </MenuContentContainer>
-      </MenuContentOuterContainer>
-    );
-  }
-);
+  return (
+    <MenuContentOuterContainer>
+      <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+        <MenuItemCheckboxLabel>
+          <MenuLeadingItem>
+            <Input type="checkbox" checked={checked} onChange={() => void 0} />
+            <IconCheckmark />
+          </MenuLeadingItem>
+          <MenuContent>{children}</MenuContent>
+        </MenuItemCheckboxLabel>
+      </MenuContentContainer>
+    </MenuContentOuterContainer>
+  );
+}
 
 export {MenuItemCheckbox as ProfilingContextMenuItemCheckbox};
 
@@ -93,21 +100,24 @@ interface MenuItemButtonProps
   tooltip?: string;
 }
 
-const MenuItemButton = forwardRef(
-  (props: MenuItemButtonProps, ref: React.Ref<HTMLButtonElement> | undefined) => {
-    const {children, tooltip, ...rest} = props;
-    return (
-      <MenuContentOuterContainer>
-        <Tooltip title={tooltip}>
-          <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
-            {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
-            {children}
-          </MenuButton>
-        </Tooltip>
-      </MenuContentOuterContainer>
-    );
-  }
-);
+function MenuItemButton({
+  ref,
+  ...props
+}: MenuItemButtonProps & {
+  ref?: React.Ref<unknown>;
+}) {
+  const {children, tooltip, ...rest} = props;
+  return (
+    <MenuContentOuterContainer>
+      <Tooltip title={tooltip}>
+        <MenuButton disabled={props.disabled} ref={ref} role="menuitem" {...rest}>
+          {props.icon ? <MenuLeadingItem>{props.icon}</MenuLeadingItem> : null}
+          {children}
+        </MenuButton>
+      </Tooltip>
+    </MenuContentOuterContainer>
+  );
+}
 
 export {MenuItemButton as ProfilingContextMenuItemButton};
 
@@ -189,7 +199,12 @@ interface MenuItemProps
 }
 
 const MenuItem = styled(
-  forwardRef((props: MenuItemProps, ref: React.Ref<HTMLDivElement> | undefined) => {
+  ({
+    ref,
+    ...props
+  }: MenuItemProps & {
+    ref?: React.Ref<unknown>;
+  }) => {
     const {children, ...rest} = props;
     return (
       <MenuContentOuterContainer>
@@ -198,7 +213,7 @@ const MenuItem = styled(
         </MenuContentContainer>
       </MenuContentOuterContainer>
     );
-  })
+  }
 )`
   cursor: pointer;
   color: ${p => p.theme.textColor};

@@ -1,5 +1,4 @@
-import type {ForwardedRef} from 'react';
-import {forwardRef, useEffect} from 'react';
+import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -31,26 +30,25 @@ type SlideOverPanelProps = {
   'data-test-id'?: string;
   onOpen?: () => void;
   panelWidth?: string;
+  ref?: React.Ref<HTMLDivElement>;
   slidePosition?: 'right' | 'bottom' | 'left';
   transitionProps?: AnimationProps['transition'];
 };
 
-export default forwardRef(SlideOverPanel);
+export default SlideOverPanel;
 
-function SlideOverPanel(
-  {
-    'data-test-id': testId,
-    ariaLabel,
-    collapsed,
-    children,
-    className,
-    onOpen,
-    slidePosition,
-    transitionProps = {},
-    panelWidth,
-  }: SlideOverPanelProps,
-  ref: ForwardedRef<HTMLDivElement>
-) {
+function SlideOverPanel({
+  'data-test-id': testId,
+  ariaLabel,
+  collapsed,
+  children,
+  className,
+  onOpen,
+  slidePosition,
+  transitionProps = {},
+  panelWidth,
+  ref,
+}: SlideOverPanelProps) {
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();

@@ -1,10 +1,10 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconTable = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconTable({ref, ...props}: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
@@ -26,7 +26,7 @@ const IconTable = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconTable.displayName = 'IconTable';
 

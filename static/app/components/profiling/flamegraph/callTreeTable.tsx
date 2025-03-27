@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {IconSettings} from 'sentry/icons/iconSettings';
@@ -385,24 +385,27 @@ interface CallTreeTableRowProps {
   tabIndex: number;
   top: string;
 }
-export const CallTreeTableRow = forwardRef<HTMLDivElement, CallTreeTableRowProps>(
-  (props, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={CallTreeTableClassNames.ROW}
-        style={{top: props.top}}
-        tabIndex={props.tabIndex}
-        onClick={props.onClick}
-        onKeyDown={props.onKeyDown}
-        onMouseEnter={props.onMouseEnter}
-        onContextMenu={props.onContextMenu}
-      >
-        {props.children}
-      </div>
-    );
-  }
-);
+export function CallTreeTableRow({
+  ref,
+  ...props
+}: CallTreeTableRowProps & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <div
+      ref={ref}
+      className={CallTreeTableClassNames.ROW}
+      style={{top: props.top}}
+      tabIndex={props.tabIndex}
+      onClick={props.onClick}
+      onKeyDown={props.onKeyDown}
+      onMouseEnter={props.onMouseEnter}
+      onContextMenu={props.onContextMenu}
+    >
+      {props.children}
+    </div>
+  );
+}
 
 interface CallTreeTableColumns {
   formatDuration: (value: number) => string;

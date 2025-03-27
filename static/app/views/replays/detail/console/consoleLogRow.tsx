@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import {forwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -26,24 +26,23 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   startTimestampMs: number;
   style: CSSProperties;
   expandPaths?: string[];
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const ConsoleLogRow = forwardRef<HTMLDivElement, Props>(function ConsoleLogRow(
-  {
-    currentHoverTime,
-    currentTime,
-    expandPaths,
-    frame,
-    onMouseEnter,
-    onMouseLeave,
-    index,
-    onClickTimestamp,
-    onDimensionChange,
-    startTimestampMs,
-    style,
-  },
-  ref
-) {
+function ConsoleLogRow({
+  currentHoverTime,
+  currentTime,
+  expandPaths,
+  frame,
+  onMouseEnter,
+  onMouseLeave,
+  index,
+  onClickTimestamp,
+  onDimensionChange,
+  startTimestampMs,
+  style,
+  ref,
+}: Props) {
   const handleDimensionChange = useCallback(
     (path: any, expandedState: any) => onDimensionChange?.(index, path, expandedState),
     [onDimensionChange, index]
@@ -88,7 +87,7 @@ const ConsoleLogRow = forwardRef<HTMLDivElement, Props>(function ConsoleLogRow(
       />
     </ConsoleLog>
   );
-});
+}
 
 export default ConsoleLogRow;
 
