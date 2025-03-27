@@ -55,6 +55,11 @@ export function useServiceEntrySpansQuery({
   // - Then make a second query to fetch the table data for these spans
   // - If no span category is selected, only one query is made to fetch the table data.
 
+  const categorizedSpanQueryFields: EAPSpanProperty[] = ['transaction.span_id'];
+  if (selected.value !== TransactionFilterOptions.RECENT) {
+    categorizedSpanQueryFields.push('sum(span.self_time)');
+  }
+
   const categorizedSpansQuery = new MutableSearch(
     `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
   );
@@ -69,8 +74,13 @@ export function useServiceEntrySpansQuery({
   } = useEAPSpans(
     {
       search: categorizedSpansQuery,
-      fields: ['transaction.span_id', 'sum(span.self_time)'],
-      sorts: [{field: 'sum(span.self_time)', kind: sort.kind}],
+      fields: categorizedSpanQueryFields,
+      sorts: [
+        {
+          field: `${selected.value === TransactionFilterOptions.RECENT ? 'timestamp' : 'sum(span.self_time)'}`,
+          kind: sort.kind,
+        },
+      ],
       limit: LIMIT,
       cursor,
       pageFilters: selection,
