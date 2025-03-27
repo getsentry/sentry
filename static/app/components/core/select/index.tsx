@@ -360,7 +360,7 @@ const getStylesConfig = ({
   } satisfies StylesConfig;
 };
 
-export function Select<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
   props: ControlProps<OptionType>
 ) {
   const theme = useTheme();
@@ -533,3 +533,11 @@ function SelectPicker<OptionType extends OptionTypeBase>({
 
   return <Component ref={ref as any} {...props} />;
 }
+
+// XXX (tkdodo): this type assertion is a leftover from when we had forwardRef
+// Omit on the ControlProps messes up the union type
+// the fix is to remove this type assertion, export Select directly and fix the type issues
+export const Select = SelectControl as (
+  props: Omit<ControlProps, 'ref'> &
+    React.RefAttributes<typeof ReactSelect<GeneralSelectValue>>
+) => React.JSX.Element;
