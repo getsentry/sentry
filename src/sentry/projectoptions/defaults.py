@@ -30,6 +30,7 @@ register(
 )
 
 register(key="sentry:grouping_enhancements", default="")
+register(key="sentry:derived_grouping_enhancements", default="")
 
 # server side fingerprinting defaults.
 register(key="sentry:fingerprinting_rules", default="")

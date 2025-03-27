@@ -25,6 +25,7 @@ from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
 from .constants import METRIC_PREFIX
+from .in_app_stack_trace_rules import save_in_app_stack_trace_rules
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
@@ -192,8 +193,9 @@ def create_configurations(
 
     in_app_stack_trace_rules: list[str] = []
     if platform_config.creates_in_app_stack_trace_rules():
-        # XXX: This will be changed on the next PR
-        pass
+        in_app_stack_trace_rules = save_in_app_stack_trace_rules(
+            project, code_mappings, platform_config
+        )
 
     # We return this to allow tests running in dry-run mode to assert
     # what would have been created.
