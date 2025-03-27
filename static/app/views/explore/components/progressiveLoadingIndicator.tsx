@@ -3,8 +3,17 @@ import styled from '@emotion/styled';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 
 function ProgressiveLoadingIndicator() {
+  const organization = useOrganization();
+  const canUseProgressiveLoading = organization.features.includes(
+    'visibility-explore-progressive-loading'
+  );
+  if (!canUseProgressiveLoading) {
+    return null;
+  }
+
   return (
     <Tooltip title={t('This widget is currently loading higher fidelity data.')}>
       <_ProgressiveLoadingIndicator
