@@ -647,7 +647,7 @@ function GroupDetailsContent({
   const hasFlagsDistributions = organization.features.includes(
     'feature-flag-distribution-flyout'
   );
-  const {openDistributionsDrawer: openTagsDrawer} = useGroupDistributionsDrawer({
+  const {openDistributionsDrawer} = useGroupDistributionsDrawer({
     group,
     includeFeatureFlagsTab: hasFlagsDistributions,
   });
@@ -666,7 +666,8 @@ function GroupDetailsContent({
     }
 
     if (currentTab === Tab.TAGS) {
-      openTagsDrawer();
+      // Tag and feature flag distributions.
+      openDistributionsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
@@ -678,7 +679,7 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
-    openTagsDrawer,
+    openDistributionsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
     openIssueActivityDrawer,
