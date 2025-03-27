@@ -259,7 +259,7 @@ export function EventGraph({
     releases: hasReleaseBubblesSeries && showReleasesAs !== 'line' ? [] : releases,
   });
 
-  //
+  // Do some manipulation to make sure the release buckets match up to `eventSeries`
   const lastEventSeries = eventSeries.at(-1);
   const penultEventSeries = eventSeries.at(-2);
   const lastEventSeriesTimestamp = lastEventSeries && (lastEventSeries.name as number);
