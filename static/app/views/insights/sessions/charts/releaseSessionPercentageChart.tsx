@@ -13,7 +13,7 @@ export default function ReleaseSessionPercentageChart() {
 
   return (
     <InsightsAreaChartWidget
-      title={t('Release Adoption')}
+      title={t('Percent Sessions by Release')}
       description={t(
         'The percentage of total sessions that each release accounted for. The 5 most recent releases are shown.'
       )}
