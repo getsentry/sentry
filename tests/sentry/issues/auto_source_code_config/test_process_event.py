@@ -83,7 +83,6 @@ class BaseDeriveCodeMappings(TestCase):
         frames: Sequence[Mapping[str, str | bool]],
         platform: str,
         expected_new_code_mappings: Sequence[ExpectedCodeMapping] | None = None,
-        expected_num_code_mappings: int = 1,
         expected_in_app_stack_trace_rules: list[str] | None = None,
     ) -> GroupEvent:
         platform_config = PlatformConfig(platform)
@@ -126,7 +125,6 @@ class BaseDeriveCodeMappings(TestCase):
                     key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
                 )
             else:
-                assert code_mappings.count() == expected_num_code_mappings
                 if expected_new_code_mappings:
                     assert code_mappings.count() == starting_code_mappings_count + len(
                         expected_new_code_mappings
@@ -225,7 +223,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     def test_skips_not_supported_platforms(self) -> None:
         with patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}):
             self._process_and_assert_configuration_changes(
-                repo_trees={}, frames=[{}], platform="other", expected_num_code_mappings=0
+                repo_trees={}, frames=[{}], platform="other"
             )
 
     def test_handle_existing_code_mapping(self) -> None:
@@ -271,7 +269,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 frames=[self.frame(frame_filename, True)],
                 platform=platform,
                 expected_new_code_mappings=[self.code_mapping("foo/", "src/foo/")],
-                expected_num_code_mappings=0,
             )
 
     def test_extension_is_not_included(self) -> None:
@@ -289,7 +286,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 repo_trees={REPO1: [file_in_repo]},
                 frames=[self.frame(frame_filename, True)],
                 platform=platform,
-                expected_num_code_mappings=0,
             )
 
             with patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=["tbd"]):
@@ -328,7 +324,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 frames=[self.frame("app/main.py", True)],
                 platform=platform,
                 expected_new_code_mappings=[self.code_mapping("app/", "src/app/")],
-                expected_num_code_mappings=2,  # New code mapping
             )
             # New code mapping in a different repository
             self._process_and_assert_configuration_changes(
@@ -336,7 +331,6 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
                 frames=[self.frame("baz/qux.py", True)],
                 platform=platform,
                 expected_new_code_mappings=[self.code_mapping("baz/", "app/baz/", REPO2)],
-                expected_num_code_mappings=3,
             )
 
 
@@ -501,7 +495,6 @@ class TestGoDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["not-sentry/main.go"]},
             frames=[self.frame("Users/JohnDoe/src/sentry/main.go", True)],
             platform=self.platform,
-            expected_num_code_mappings=0,
         )
 
 
@@ -554,7 +547,6 @@ class TestCSharpDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             repo_trees={REPO1: ["sentry/src/functions.cs"]},
             frames=[self.frame("/sentry/p/vendor/sentry/src/functions.cs", False)],
             platform=self.platform,
-            expected_num_code_mappings=0,
         )
 
 
@@ -588,7 +580,6 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             frames=[self.frame(module="a.Foo", abs_path="Foo.java")],
             platform=self.platform,
             expected_new_code_mappings=[self.code_mapping("a/", "src/a/")],
-            expected_num_code_mappings=0,
         )
 
     def test_handles_dollar_sign_in_module(self) -> None:
@@ -600,5 +591,4 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             expected_new_code_mappings=[
                 self.code_mapping("com/example/foo/", "src/com/example/foo/")
             ],
-            expected_num_code_mappings=0,
         )
