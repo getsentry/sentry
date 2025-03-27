@@ -8,7 +8,7 @@ import Access from 'sentry/components/acl/access';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {PlainRoute, WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -119,7 +119,7 @@ async function createCopyDSNAction(api: Client, orgId: string, projectId: string
   };
 }
 
-type Props = WithRouterProps & {
+type Props = {
   children: (props: ChildProps) => React.ReactElement;
   isSuperuser: boolean;
   organization: Organization;
