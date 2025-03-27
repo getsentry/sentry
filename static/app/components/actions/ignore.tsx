@@ -83,7 +83,7 @@ export function getIgnoreActions({
       <CustomIgnoreCountModal
         {...deps}
         onSelected={details => onCustomIgnore(details)}
-        label={t('Ignore this issue until it occurs again\u2026')}
+        label={t('Archive this issue until it occurs again\u2026')}
         countLabel={t('Number of times')}
         countName="ignoreCount"
         windowName="ignoreWindow"
@@ -96,7 +96,7 @@ export function getIgnoreActions({
       <CustomIgnoreCountModal
         {...deps}
         onSelected={details => onCustomIgnore(details)}
-        label={t('Ignore this issue until it affects an additional\u2026')}
+        label={t('Archive this issue until it affects an additional\u2026')}
         countLabel={t('Number of users')}
         countName="ignoreUserCount"
         windowName="ignoreUserWindow"
