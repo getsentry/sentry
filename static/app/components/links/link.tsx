@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import {
   Link as RouterLink,
   type LinkProps as ReactRouterLinkProps,
@@ -62,9 +61,12 @@ function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.Reac
 
 // Re-assign to Link to make auto-importing smarter
 const Link = styled(
-  forwardRef<HTMLAnchorElement, Omit<LinkProps, 'forwardedRef'>>((props, ref) => (
-    <BaseLink forwardedRef={ref} {...props} />
-  ))
+  ({
+    ref,
+    ...props
+  }: Omit<LinkProps, 'forwardedRef'> & {
+    ref?: React.Ref<HTMLAnchorElement>;
+  }) => <BaseLink forwardedRef={ref} {...props} />
 )`
   ${linkStyles}
 `;

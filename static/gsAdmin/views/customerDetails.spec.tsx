@@ -598,7 +598,7 @@ function renderMocks(
 ) {
   // We mock the useOrganization hook here instead on the top level because we call renderMocks explicitly with different orgs
   // TODO(ogi): find a better way to do this
-  jest.spyOn(useOrganization, 'default').mockReturnValue(organization as Organization);
+  jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/`,
@@ -2592,7 +2592,7 @@ describe('Customer Details', function () {
         expect(radios.length).toBeGreaterThan(0);
       });
 
-      await userEvent.click(screen.getByTestId('mm2-tier'));
+      await userEvent.click(screen.getByRole('tab', {name: 'MM2'}));
 
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-mm2_b_500k'));
 
@@ -2730,7 +2730,7 @@ describe('Customer Details', function () {
         expect(radios.length).toBeGreaterThan(0);
       });
 
-      expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
       expect(
         screen.getByTestId('change-plan-radio-btn-am3_business')
       ).toBeInTheDocument();
@@ -2826,7 +2826,8 @@ describe('Customer Details', function () {
         expect(radios.length).toBeGreaterThan(0);
       });
 
-      await userEvent.click(screen.getByTestId('am1-tier'));
+      await userEvent.click(screen.getByRole('tab', {name: 'AM1'}));
+
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
 
       // reservedErrors
@@ -2858,7 +2859,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
 
       // reservedUptime
@@ -2868,7 +2869,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -2932,7 +2933,7 @@ describe('Customer Details', function () {
         expect(radios.length).toBeGreaterThan(0);
       });
 
-      await userEvent.click(screen.getByRole('link', {name: 'AM1'}));
+      await userEvent.click(screen.getByRole('tab', {name: 'AM1'}));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
 
       // Cannot submit yet.
@@ -2978,7 +2979,7 @@ describe('Customer Details', function () {
 
       renderGlobalModal();
 
-      await userEvent.click(screen.getByTestId('am2-tier'));
+      await userEvent.click(screen.getByRole('tab', {name: 'AM2'}));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am2_team'));
 
       // all plan options show up
@@ -3020,7 +3021,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
       await selectEvent.openMenu(
         await screen.findByRole('textbox', {name: 'Cron monitors'})
@@ -3031,7 +3032,7 @@ describe('Customer Details', function () {
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
       await selectEvent.openMenu(
         await screen.findByRole('textbox', {name: 'Uptime monitors'})
@@ -3102,7 +3103,7 @@ describe('Customer Details', function () {
 
       await userEvent.click(screen.getByText('Change Plan'));
 
-      await userEvent.click(screen.getByTestId('am3-tier'));
+      await userEvent.click(screen.getByRole('tab', {name: 'AM3'}));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am3_team'));
 
       // all plan options show up
@@ -3226,7 +3227,7 @@ describe('Customer Details', function () {
         expect(radios.length).toBeGreaterThan(0);
       });
 
-      await userEvent.click(screen.getByTestId('am3-tier'));
+      await userEvent.click(screen.getByRole('tab', {name: 'AM3'}));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am3_team'));
 
       // all plan options show up

@@ -13,6 +13,7 @@ import withLatestContext from 'sentry/utils/withLatestContext';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import type {ChildProps, Result, ResultItem} from './types';
+import {makeResolvedTs} from './utils';
 
 type Props = WithRouterProps & {
   /**
@@ -91,6 +92,7 @@ class HelpSource extends Component<Props, State> {
 }
 
 function mapSearchResults(results: SearchResult[]) {
+  const resolvedTs = makeResolvedTs();
   const items: Result[] = [];
 
   results.forEach(section => {
@@ -114,6 +116,7 @@ function mapSearchResults(results: SearchResult[]) {
         extra: hit.context.context1,
         description: hit.text ? dompurify.sanitize(hit.text) : undefined,
         to: hit.url,
+        resolvedTs,
       };
 
       return {item, matches: [title, description], score: 1, refIndex: 0};
@@ -135,6 +138,7 @@ function mapSearchResults(results: SearchResult[]) {
       title: `No results in ${section.name}`,
       sectionHeading: section.name,
       empty: true,
+      resolvedTs,
     };
 
     items.push({item: emptyHeaderItem, score: 1, refIndex: 0});

@@ -1,16 +1,31 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-interface Props extends SVGIconProps {
+interface IconAddProps extends SVGIconProps {
+  /**
+   * @deprecated circled variant will be removed.
+   */
   isCircled?: boolean;
 }
 
-const IconAdd = forwardRef<SVGSVGElement, Props>(({isCircled = false, ...props}, ref) => {
+export function IconAdd({ref, isCircled = false, ...props}: IconAddProps) {
+  const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} data-test-id="icon-add">
-      {isCircled ? (
+    <SvgIcon
+      {...props}
+      ref={ref}
+      data-test-id="icon-add"
+      kind={theme.isChonk ? 'stroke' : 'path'}
+    >
+      {theme.isChonk ? (
+        <Fragment>
+          <line x1="13.25" y1="8.01" x2="2.74" y2="8.01" />
+          <line x1="7.99" y1="13.26" x2="7.99" y2="2.75" />
+        </Fragment>
+      ) : isCircled ? (
         <Fragment>
           <path d="M11.28,8.75H4.72a.75.75,0,1,1,0-1.5h6.56a.75.75,0,1,1,0,1.5Z" />
           <path d="M8,12a.76.76,0,0,1-.75-.75V4.72a.75.75,0,0,1,1.5,0v6.56A.76.76,0,0,1,8,12Z" />
@@ -23,8 +38,6 @@ const IconAdd = forwardRef<SVGSVGElement, Props>(({isCircled = false, ...props},
       )}
     </SvgIcon>
   );
-});
+}
 
 IconAdd.displayName = 'IconAdd';
-
-export {IconAdd};

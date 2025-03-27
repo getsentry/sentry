@@ -1,9 +1,9 @@
 import contextlib
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Literal, TypedDict
+from typing import Any, ClassVar, Literal, Protocol, TypedDict
 
 from django.core.cache import cache
 from django.db.models import QuerySet
@@ -25,14 +25,30 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
 )
 from sentry.rules.match import MatchType
-from sentry.tsdb.base import TSDBModel
+from sentry.tsdb.base import SnubaCondition, TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
 
 QueryFilter = dict[str, Any]
-SnubaCondition = tuple[str, str, str | None]
+
+
+class TSDBFunction(Protocol):
+    def __call__(
+        self,
+        model: TSDBModel,
+        keys: list[int],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        conditions: list[SnubaCondition] | None = None,
+    ) -> dict[int, int]: ...
 
 
 class InvalidFilter(Exception):
@@ -52,7 +68,6 @@ class _QSTypedDict(TypedDict):
 
 class BaseEventFrequencyQueryHandler(ABC):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = STANDARD_INTERVALS
-    tsdb_function: ClassVar[Callable[..., Any]]
 
     def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
@@ -75,7 +90,7 @@ class BaseEventFrequencyQueryHandler(ABC):
 
     def get_snuba_query_result(
         self,
-        tsdb_function: Callable[..., Any],
+        tsdb_function: TSDBFunction,
         keys: list[int],
         group_id: int,
         organization_id: int,
@@ -102,6 +117,7 @@ class BaseEventFrequencyQueryHandler(ABC):
 
     def get_chunked_result(
         self,
+        tsdb_function: TSDBFunction,
         model: TSDBModel,
         group_ids: list[int],
         organization_id: int,
@@ -116,7 +132,7 @@ class BaseEventFrequencyQueryHandler(ABC):
         conditions = self.get_extra_snuba_conditions(model, filters) if filters else []
         for group_chunk in chunked(group_ids, SNUBA_LIMIT):
             result = self.get_snuba_query_result(
-                tsdb_function=self.tsdb_function,
+                tsdb_function=tsdb_function,
                 model=model,
                 keys=[group_id for group_id in group_chunk],
                 group_id=group_id,
@@ -301,8 +317,6 @@ slow_condition_query_handler_registry = Registry[type[BaseEventFrequencyQueryHan
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @slow_condition_query_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
-    tsdb_function = tsdb.backend.get_sums
-
     def batch_query(
         self,
         group_ids: set[int],
@@ -325,6 +339,7 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
             model = get_issue_tsdb_group_model(category)
             try:
                 results = self.get_chunked_result(
+                    tsdb_function=tsdb.backend.get_sums,
                     model=model,
                     group_ids=issue_ids,
                     organization_id=organization_id,
@@ -347,8 +362,6 @@ class EventFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
 @slow_condition_query_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
 class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
-    tsdb_function = tsdb.backend.get_distinct_counts_totals
-
     def batch_query(
         self,
         group_ids: set[int],
@@ -371,6 +384,7 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
             model = get_issue_tsdb_user_group_model(category)
             try:
                 results = self.get_chunked_result(
+                    tsdb_function=tsdb.backend.get_distinct_counts_totals,
                     model=model,
                     group_ids=issue_ids,
                     organization_id=organization_id,
@@ -393,7 +407,6 @@ class EventUniqueUserFrequencyQueryHandler(BaseEventFrequencyQueryHandler):
 @slow_condition_query_handler_registry.register(Condition.PERCENT_SESSIONS_PERCENT)
 class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
     intervals: ClassVar[dict[str, tuple[str, timedelta]]] = PERCENT_INTERVALS
-    tsdb_function = tsdb.backend.get_sums
 
     def get_session_count(
         self, project_id: int, environment_id: int | None, start: datetime, end: datetime
@@ -460,6 +473,7 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
             model = get_issue_tsdb_group_model(category)
             # InvalidFilter should not be raised for errors
             results = self.get_chunked_result(
+                tsdb_function=tsdb.backend.get_sums,
                 model=model,
                 group_ids=issue_ids,
                 organization_id=organization_id,
