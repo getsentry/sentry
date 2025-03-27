@@ -529,6 +529,12 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
 
+    if features.has("projects:num-events-issue-debugging", project):
+        logger.info(
+            "delayed_processing.condition_group_results",
+            extra={"project_id": project.id, "results": condition_group_results},
+        )
+
     rules_to_slow_conditions = defaultdict(list)
     for rule in alert_rules:
         rules_to_slow_conditions[rule].extend(get_slow_conditions(rule))
