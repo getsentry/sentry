@@ -84,11 +84,11 @@ function OrganizationMembersList() {
   );
   const {data: currentMember} = useApiQuery<Member>(
     [`/organizations/${organization.slug}/members/me/`],
-    {staleTime: 0}
+    {staleTime: 30000}
   );
   const {
     data: members = [],
-    isLoading: isLoadingMembers,
+    isPending: isPendingMembers,
     refetch: refetchMembers,
     getResponseHeader,
   } = useApiQuery<Member[]>(
@@ -101,7 +101,7 @@ function OrganizationMembersList() {
     }),
     {staleTime: 0}
   );
-  const {data: activeOwnerMembers = [], isLoading: isLoadingOwners} = useApiQuery<
+  const {data: activeOwnerMembers = [], isPending: isPendingOwners} = useApiQuery<
     Member[]
   >(
     getMembersQueryKey({
@@ -111,7 +111,7 @@ function OrganizationMembersList() {
       // We also filter out active invites, so only active users are included.
       query: {query: 'role:owner isInvited:false'},
     }),
-    {staleTime: 0}
+    {staleTime: 30000}
   );
 
   const [invited, setInvited] = useState<{
@@ -369,7 +369,7 @@ function OrganizationMembersList() {
       <Panel data-test-id="org-member-list">
         <MemberListHeader members={membersToShow} organization={organization} />
         <PanelBody>
-          {isLoadingMembers || isLoadingOwners ? (
+          {isPendingMembers || isPendingOwners ? (
             <LoadingIndicator />
           ) : (
             <Fragment>

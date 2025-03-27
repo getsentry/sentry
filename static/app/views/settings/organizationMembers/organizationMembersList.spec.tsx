@@ -677,7 +677,7 @@ describe('OrganizationMembersList', function () {
         url: '/organizations/org-slug/members/',
         method: 'GET',
         body: [members[2]],
-        match: [MockApiClient.matchQuery({query: 'role:owner'})],
+        match: [MockApiClient.matchQuery({query: 'role:owner isInvited:false'})],
       });
       const searchRouter = RouterFixture({location: {query: {query: currentUser.name}}});
       render(<OrganizationMembersList />, {organization, router: searchRouter});
