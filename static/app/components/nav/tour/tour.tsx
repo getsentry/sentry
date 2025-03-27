@@ -2,7 +2,7 @@ import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {useNavContext} from 'sentry/components/nav/context';
-import {NavTourModal} from 'sentry/components/nav/tour/tourModal';
+import {NavTourModal, navTourModalCss} from 'sentry/components/nav/tour/tourModal';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
   TourAction,
@@ -235,13 +235,18 @@ export function useTourModal() {
   useEffect(() => {
     if (shouldShowTourModal && !hasOpenedTourModal.current) {
       hasOpenedTourModal.current = true;
-      openModal(props => (
-        <NavTourModal
-          closeModal={props.closeModal}
-          handleDismissTour={endTour}
-          handleStartTour={startTour}
-        />
-      ));
+      openModal(
+        props => (
+          <NavTourModal
+            closeModal={props.closeModal}
+            handleDismissTour={endTour}
+            handleStartTour={startTour}
+          />
+        ),
+        {
+          modalCss: navTourModalCss,
+        }
+      );
     }
   }, [shouldShowTourModal, endTour, startTour]);
 }

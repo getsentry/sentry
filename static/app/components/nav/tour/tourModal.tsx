@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import stackedNavTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
@@ -64,7 +65,6 @@ export function NavTourModal({
 const ModalImage = styled('img')`
   width: calc(100% - ${space(1.5)} - ${space(1.5)});
   margin: ${space(1.5)} 0 0 ${space(1.5)};
-  height: 272px;
   background-size: cover;
   background-position: center;
   border-radius: ${p => p.theme.borderRadius};
@@ -103,4 +103,8 @@ const Footer = styled('div')`
   justify-content: flex-end;
   margin-top: ${space(2)};
   gap: ${space(1)};
+`;
+
+export const navTourModalCss = css`
+  width: 545px;
 `;
