@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -98,25 +98,25 @@ const EMPTY_SET = new Set<never>();
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
-  {
-    listState,
-    size = 'md',
-    shouldFocusWrap = true,
-    shouldFocusOnHover = true,
-    onSectionToggle,
-    sizeLimitMessage,
-    keyDownHandler,
-    label,
-    hiddenOptions = EMPTY_SET,
-    hasSearch,
-    overlayIsOpen,
-    showSectionHeaders = true,
-    showDetails = true,
-    ...props
-  }: ListBoxProps,
-  forwarderdRef
-) {
+export function ListBox({
+  ref: forwardedRef,
+  listState,
+  size = 'md',
+  shouldFocusWrap = true,
+  shouldFocusOnHover = true,
+  onSectionToggle,
+  sizeLimitMessage,
+  keyDownHandler,
+  label,
+  hiddenOptions = EMPTY_SET,
+  hasSearch,
+  overlayIsOpen,
+  showSectionHeaders = true,
+  showDetails = true,
+  ...props
+}: ListBoxProps & {
+  ref?: React.Ref<HTMLUListElement>;
+}) {
   const ref = useRef<HTMLUListElement>(null);
   const {listBoxProps, labelProps} = useListBox(
     {
@@ -157,7 +157,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
       <ListWrap
         {...mergeProps(listBoxProps, props)}
         onKeyDown={onKeyDown}
-        ref={mergeRefs(ref, forwarderdRef)}
+        ref={mergeRefs(ref, forwardedRef)}
       >
         {overlayIsOpen &&
           listItems.map(item => {
@@ -195,6 +195,4 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
       </ListWrap>
     </Fragment>
   );
-});
-
-export {ListBox};
+}

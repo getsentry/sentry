@@ -1,10 +1,5 @@
-import type {
-  ChangeEventHandler,
-  FocusEventHandler,
-  ForwardedRef,
-  MouseEventHandler,
-} from 'react';
-import {forwardRef, useCallback, useEffect, useLayoutEffect, useRef} from 'react';
+import type {ChangeEventHandler, FocusEventHandler, MouseEventHandler} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
 import {useComboBox} from '@react-aria/combobox';
@@ -48,36 +43,35 @@ interface ComboBoxProps {
   onOptionSelected?: (option: SelectOptionWithKey<string>) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
+  ref?: React.Ref<HTMLInputElement>;
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
   tabIndex?: number;
 }
 
-function ComboBoxInner(
-  {
-    children,
-    inputLabel,
-    inputValue,
-    items,
-    shouldCloseOnInteractOutside,
-    onClick,
-    onInputBlur,
-    onInputCommit,
-    onInputEscape,
-    onInputFocus,
-    onOpenChange,
-    onOptionSelected,
-    ['data-test-id']: dataTestId,
-    filterValue,
-    onInputChange,
-    onKeyDown,
-    onKeyDownCapture,
-    onKeyUp,
-    onPaste,
-    placeholder,
-    tabIndex,
-  }: ComboBoxProps,
-  ref: ForwardedRef<HTMLInputElement>
-) {
+export function ComboBox({
+  children,
+  inputLabel,
+  inputValue,
+  items,
+  shouldCloseOnInteractOutside,
+  onClick,
+  onInputBlur,
+  onInputCommit,
+  onInputEscape,
+  onInputFocus,
+  onOpenChange,
+  onOptionSelected,
+  ['data-test-id']: dataTestId,
+  filterValue,
+  onInputChange,
+  onKeyDown,
+  onKeyDownCapture,
+  onKeyUp,
+  onPaste,
+  placeholder,
+  tabIndex,
+  ref,
+}: ComboBoxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -297,8 +291,6 @@ function ComboBoxInner(
     </Wrapper>
   );
 }
-
-export const ComboBox = forwardRef(ComboBoxInner);
 
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay

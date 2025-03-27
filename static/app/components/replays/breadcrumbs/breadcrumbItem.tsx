@@ -1,5 +1,5 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {forwardRef, isValidElement, useCallback} from 'react';
+import {isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -54,24 +54,23 @@ interface Props {
   className?: string;
   expandPaths?: string[];
   extraction?: Extraction;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 }
 
-const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem(
-  {
-    className,
-    extraction,
-    frame,
-    expandPaths,
-    onClick,
-    onInspectorExpanded,
-    onMouseEnter,
-    onMouseLeave,
-    startTimestampMs,
-    style,
-  },
-  ref
-) {
+function BreadcrumbItem({
+  className,
+  extraction,
+  frame,
+  expandPaths,
+  onClick,
+  onInspectorExpanded,
+  onMouseEnter,
+  onMouseLeave,
+  startTimestampMs,
+  style,
+  ref,
+}: Props) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
 
@@ -176,7 +175,7 @@ const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem
       </ErrorBoundary>
     </StyledTimelineItem>
   );
-});
+}
 
 function WebVitalData({
   selectors,

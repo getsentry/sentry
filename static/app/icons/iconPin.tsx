@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useIconDefaults} from 'sentry/icons/useIconDefaults';
@@ -10,7 +10,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-const IconPin = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, ref) => {
+function IconPin({ref, isSolid = false, ...props}: Props) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -41,7 +41,7 @@ const IconPin = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, r
       )}
     </SvgIcon>
   );
-});
+}
 
 IconPin.displayName = 'IconPin';
 
