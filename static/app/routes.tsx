@@ -2112,18 +2112,21 @@ function buildRoutes() {
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
 
       {/* Redirects for legacy tags route. */}
-      <Redirect from=":groupId/tags/" to={`/issues/:groupId/distributions/`} />
+      <Redirect
+        from=":groupId/tags/"
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}`}
+      />
       <Redirect
         from=":groupId/tags/:tagKey/"
-        to={`/issues/:groupId/distributions/:tagKey/`}
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
       />
       <Redirect
         from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`}
-        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/distributions/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`}
       />
       <Redirect
         from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`}
-        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/distributions/:tagKey/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
       />
 
       <Route
