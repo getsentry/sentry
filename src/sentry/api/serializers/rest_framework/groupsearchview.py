@@ -1,15 +1,11 @@
 from typing import Any, NotRequired, TypedDict
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 
 from sentry import features
 from sentry.api.serializers.rest_framework import ValidationError
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
-from sentry.models.team import Team
-from sentry.users.models.user import User
 
 MAX_VIEWS = 50
 
@@ -61,7 +57,7 @@ class ViewValidator(serializers.Serializer):
         return value
 
     def validate(self, data) -> GroupSearchViewValidatorResponse:
-        if data.get("projects") == [-1]:
+        if data["projects"] == [-1]:
             data["projects"] = []
             data["isAllProjects"] = True
         else:
@@ -83,15 +79,3 @@ class GroupSearchViewPostValidator(ViewValidator):
 
     def validate(self, data):
         return super().validate(data)
-
-
-def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
-    user_teams = Team.objects.get_for_user(organization=org, user=user)
-    user_team_ids = [team.id for team in user_teams]
-    default_user_project = (
-        Project.objects.get_for_team_ids(user_team_ids)
-        .order_by("slug")
-        .values_list("id", flat=True)
-        .first()
-    )
-    return default_user_project

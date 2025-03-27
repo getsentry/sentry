@@ -1,6 +1,7 @@
 from functools import reduce
 from operator import or_
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -21,7 +22,6 @@ from sentry.api.serializers.rest_framework.groupsearchview import (
     GroupSearchViewPostValidator,
     GroupSearchViewValidator,
     GroupSearchViewValidatorResponse,
-    pick_default_project,
 )
 from sentry.models.groupsearchview import (
     DEFAULT_TIME_FILTER,
@@ -31,7 +31,10 @@ from sentry.models.groupsearchview import (
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.savedsearch import SortOptions
+from sentry.models.team import Team
+from sentry.users.models.user import User
 
 DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
     {
@@ -385,3 +388,15 @@ def _create_view(
         position=position,
     )
     return gsv
+
+
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
+    user_teams = Team.objects.get_for_user(organization=org, user=user)
+    user_team_ids = [team.id for team in user_teams]
+    default_user_project = (
+        Project.objects.get_for_team_ids(user_team_ids)
+        .order_by("slug")
+        .values_list("id", flat=True)
+        .first()
+    )
+    return default_user_project
