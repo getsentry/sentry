@@ -11,7 +11,7 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
@@ -292,6 +292,7 @@ function useHoverOverlay({
           return cloneElement<any>(
             triggerChildren,
             Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+              ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
               style: triggerStyle,
             })
           );
@@ -301,6 +302,7 @@ function useHoverOverlay({
         return cloneElement<any>(
           triggerChildren,
           Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+            ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
             style: (triggerChildren.props as any).style,
           })
         );
