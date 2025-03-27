@@ -76,7 +76,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
 
   const numberOfRowsNeedingColor = Math.min(result.data?.length ?? 0, TOP_EVENTS_LIMIT);
 
-  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2)!; // -2 because getColorPalette artificially adds 1, I'm not sure why
+  const palette = getChartColorPalette(numberOfRowsNeedingColor - 2); // -2 because getColorPalette artificially adds 1, I'm not sure why
 
   return (
     <Fragment>
