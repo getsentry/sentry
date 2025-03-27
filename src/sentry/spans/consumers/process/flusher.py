@@ -1,5 +1,4 @@
 import multiprocessing
-import multiprocessing.connection
 import threading
 import time
 from collections.abc import Callable
@@ -36,7 +35,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self,
         buffer: SpansBuffer,
         max_flush_segments: int,
-        produce_to_pipe: Callable[[Any], None] | None,
+        produce_to_pipe: Callable[[KafkaPayload], None] | None,
         next_step: ProcessingStrategy[FilteredPayload | int],
     ):
         self.buffer = buffer
@@ -48,14 +47,15 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
         from sentry.utils.arroyo import _get_arroyo_subprocess_initializer
 
+        make_process: Callable[..., multiprocessing.Process | threading.Thread]
         if produce_to_pipe is None:
             initializer = _get_arroyo_subprocess_initializer(None)
-            Process = multiprocessing.Process
+            make_process = multiprocessing.Process
         else:
             initializer = None
-            Process = threading.Thread
+            make_process = threading.Thread
 
-        self.process = Process(
+        self.process = make_process(
             target=SpanFlusher.main,
             args=(
                 initializer,
@@ -77,7 +77,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         current_drift,
         buffer: SpansBuffer,
         max_flush_segments: int,
-        produce_to_pipe: Callable[[Any], None] | None,
+        produce_to_pipe: Callable[[KafkaPayload], None] | None,
     ) -> None:
         try:
             if initializer:
@@ -100,7 +100,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                     get_topic_definition(Topic.BUFFERED_SEGMENTS)["real_topic_name"]
                 )
 
-                def produce(payload):
+                def produce(payload: KafkaPayload) -> None:
                     producer_futures.append(producer.produce(topic, payload))
 
                 wait = futures.wait

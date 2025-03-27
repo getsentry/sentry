@@ -2,7 +2,6 @@ import logging
 import time
 from collections.abc import Callable, Mapping
 from functools import partial
-from typing import Any
 
 import rapidjson
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -38,7 +37,7 @@ class ProcessSpansStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_flush_segments: int,
         input_block_size: int | None,
         output_block_size: int | None,
-        produce_to_pipe: Callable[[Any], None] | None = None,
+        produce_to_pipe: Callable[[KafkaPayload], None] | None = None,
     ):
         super().__init__()
 

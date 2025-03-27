@@ -22,7 +22,7 @@ def test_basic(monkeypatch, request):
     monkeypatch.setattr("time.sleep", lambda _: None)
 
     topic = Topic("test")
-    messages = []
+    messages: list[KafkaPayload] = []
 
     fac = ProcessSpansStrategyFactory(
         max_batch_size=10,
