@@ -32,12 +32,12 @@ from sentry.integrations.slack.message_builder.types import (
     SLACK_URL_FORMAT,
     SlackBlock,
 )
+from sentry.integrations.slack.message_builder.util import build_slack_footer
 from sentry.integrations.slack.utils.escape import (
     escape_slack_markdown_asterisks,
     escape_slack_markdown_text,
     escape_slack_text,
 )
-from sentry.integrations.slack.message_builder.util import build_slack_footer
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
