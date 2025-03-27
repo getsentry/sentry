@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-disabled-tests */
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -31,11 +30,24 @@ describe('provisionSubscriptionAction', function () {
     return screen.getByRole('spinbutton', {name});
   }
 
+  function getAllSpinbuttons(startsWith: string) {
+    return screen.getAllByRole('spinbutton', {name: new RegExp(startsWith)});
+  }
+
   async function clickCheckbox(name: string | RegExp) {
     await userEvent.click(screen.getByRole('checkbox', {name}), {
       delay: null,
       skipHover: true,
     });
+  }
+
+  async function typeNumForMatchingFields(startsWith: string, value: string) {
+    const matchingFields = getAllSpinbuttons(startsWith);
+    for (const field of matchingFields) {
+      await userEvent.clear(field);
+      await userEvent.click(field, {delay: null, skipHover: true});
+      await userEvent.paste(value);
+    }
   }
 
   async function typeNum(name: string, value: string) {
@@ -645,7 +657,7 @@ describe('provisionSubscriptionAction', function () {
     );
   });
 
-  it.skip('retains on-demand budget when toggled', async () => {
+  it('retains on-demand budget when toggled', async () => {
     const am2Sub = SubscriptionFixture({
       organization: mockOrg,
       plan: 'am2_f',
@@ -687,32 +699,9 @@ describe('provisionSubscriptionAction', function () {
     await clickCheckbox('Retain On-Demand Budget');
     await clickCheckbox('Apply Changes To Current Subscription');
     await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
-    await typeNum('Reserved Errors', '2000000');
-    await typeNum('Reserved Performance Units', '1000000');
-    await typeNum('Reserved Replays', '75000');
-    await typeNum('Reserved Cron Monitors', '250');
-    await typeNum('Reserved Uptime Monitors', '250');
-    await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Continuous Profile Hours', '0');
-    await typeNum('Reserved Ui Profile Hours', '0');
-    await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Continuous Profile Hours', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.1');
-    await typeNum('Price for Errors', '3000');
-    await typeNum('Price for Performance Units', '1000');
-    await typeNum('Price for Replays', '1500');
-    await typeNum('Price for Cron Monitors', '400');
-    await typeNum('Price for Uptime Monitors', '0');
-    await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Continuous Profile Hours', '0');
-    await typeNum('Price for Ui Profile Hours', '0');
-    await typeNum('Price for PCSS', '500');
-    await typeNum('Annual Contract Value', '6450');
+    await typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
+    await typeNumForMatchingFields('Price for', '0');
+    await typeNum('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -729,14 +718,14 @@ describe('provisionSubscriptionAction', function () {
         data: {
           billingInterval: 'annual',
           coterm: true,
-          customPrice: 645000,
-          customPriceAttachments: 5000,
-          customPriceErrors: 300000,
-          customPriceMonitorSeats: 40000,
+          customPrice: 0,
+          customPriceAttachments: 0,
+          customPriceErrors: 0,
+          customPriceMonitorSeats: 0,
           customPriceUptime: 0,
-          customPricePcss: 50000,
-          customPriceReplays: 150000,
-          customPriceTransactions: 100000,
+          customPricePcss: 0,
+          customPriceReplays: 0,
+          customPriceTransactions: 0,
           customPriceProfileDuration: 0,
           customPriceProfileDurationUI: 0,
           managed: true,
@@ -750,12 +739,12 @@ describe('provisionSubscriptionAction', function () {
           paygCpeProfileDuration: 10000000,
           paygCpeProfileDurationUI: 10000000,
           paygCpeAttachments: 10000000,
-          reservedAttachments: 50,
-          reservedErrors: 2000000,
-          reservedMonitorSeats: 250,
-          reservedUptime: 250,
-          reservedReplays: 75000,
-          reservedTransactions: 1000000,
+          reservedAttachments: 1,
+          reservedErrors: 5000,
+          reservedMonitorSeats: 1,
+          reservedUptime: 1,
+          reservedReplays: 50,
+          reservedTransactions: 10000,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
           retainOnDemandBudget: true,
@@ -781,9 +770,9 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  });
 
-  it.skip('removes retain on-demand budget toggle when plan changes', async () => {
+  it('removes retain on-demand budget toggle when plan changes', async () => {
     const am2Sub = SubscriptionFixture({
       organization: mockOrg,
       plan: 'am2_f',
@@ -847,32 +836,9 @@ describe('provisionSubscriptionAction', function () {
     await clickCheckbox('Managed Subscription');
     await clickCheckbox('Apply Changes To Current Subscription');
     await userEvent.type(screen.getByLabelText('Start Date'), '2020-10-25');
-    await typeNum('Reserved Errors', '2000000');
-    await typeNum('Reserved Performance Units', '1000000');
-    await typeNum('Reserved Replays', '75000');
-    await typeNum('Reserved Cron Monitors', '250');
-    await typeNum('Reserved Uptime Monitors', '250');
-    await typeNum('Reserved Attachments (in GB)', '50');
-    await typeNum('Reserved Continuous Profile Hours', '0');
-    await typeNum('Reserved Ui Profile Hours', '0');
-    await typeNum('On-Demand Cost-Per-Event Errors', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Performance Units', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Replays', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Cron Monitors', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Attachments', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Continuous Profile Hours', '0.1');
-    await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.1');
-    await typeNum('Price for Errors', '3000');
-    await typeNum('Price for Performance Units', '1000');
-    await typeNum('Price for Replays', '1500');
-    await typeNum('Price for Cron Monitors', '400');
-    await typeNum('Price for Uptime Monitors', '0');
-    await typeNum('Price for Attachments', '50');
-    await typeNum('Price for Continuous Profile Hours', '0');
-    await typeNum('Price for Ui Profile Hours', '0');
-    await typeNum('Price for PCSS', '500');
-    await typeNum('Annual Contract Value', '6450');
+    await typeNumForMatchingFields('On-Demand Cost-Per-Event', '0.1');
+    await typeNumForMatchingFields('Price for', '0');
+    await typeNum('Annual Contract Value', '0');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
@@ -889,14 +855,14 @@ describe('provisionSubscriptionAction', function () {
         data: {
           billingInterval: 'annual',
           coterm: true,
-          customPrice: 645000,
-          customPriceAttachments: 5000,
-          customPriceErrors: 300000,
-          customPriceMonitorSeats: 40000,
+          customPrice: 0,
+          customPriceAttachments: 0,
+          customPriceErrors: 0,
+          customPriceMonitorSeats: 0,
           customPriceUptime: 0,
-          customPricePcss: 50000,
-          customPriceReplays: 150000,
-          customPriceTransactions: 100000,
+          customPricePcss: 0,
+          customPriceReplays: 0,
+          customPriceTransactions: 0,
           customPriceProfileDuration: 0,
           customPriceProfileDurationUI: 0,
           managed: true,
@@ -910,12 +876,12 @@ describe('provisionSubscriptionAction', function () {
           paygCpeProfileDuration: 10000000,
           paygCpeProfileDurationUI: 10000000,
           paygCpeAttachments: 10000000,
-          reservedAttachments: 50,
-          reservedErrors: 2000000,
-          reservedMonitorSeats: 250,
-          reservedUptime: 250,
-          reservedReplays: 75000,
-          reservedTransactions: 1000000,
+          reservedAttachments: 1,
+          reservedErrors: 5000,
+          reservedMonitorSeats: 1,
+          reservedUptime: 1,
+          reservedReplays: 50,
+          reservedTransactions: 10000,
           reservedProfileDuration: 0,
           reservedProfileDurationUI: 0,
           retainOnDemandBudget: false,
@@ -941,9 +907,9 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10000);
+  });
 
-  it.skip('calls api with correct am2 args', async () => {
+  it('calls api with correct am2 args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
     triggerProvisionSubscription({
       subscription: am2Sub,
@@ -1004,7 +970,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
     await typeNum('Reserved Continuous Profile Hours', '0');
-    await typeNum('Reserved Ui Profile Hours', '0');
+    await typeNum('Reserved UI Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
@@ -1012,7 +978,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Continuous Profile Hours', '0');
-    await typeNum('Price for Ui Profile Hours', '0');
+    await typeNum('Price for UI Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -1075,9 +1041,9 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  });
 
-  it.skip('calls api with correct am3 args', async () => {
+  it('calls api with correct am3 args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
     triggerProvisionSubscription({
       subscription: am3Sub,
@@ -1138,7 +1104,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
     await typeNum('Reserved Continuous Profile Hours', '0');
-    await typeNum('Reserved Ui Profile Hours', '0');
+    await typeNum('Reserved UI Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Spans', '1000');
     await typeNum('Price for Replays', '1500');
@@ -1146,7 +1112,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Continuous Profile Hours', '0');
-    await typeNum('Price for Ui Profile Hours', '0');
+    await typeNum('Price for UI Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
 
@@ -1209,9 +1175,9 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  });
 
-  it.skip('calls api with correct am3 dynamic sampling args', async () => {
+  it('calls api with correct am3 dynamic sampling args', async () => {
     const am3Sub = SubscriptionFixture({organization: mockOrg, plan: 'am3_f'});
     triggerProvisionSubscription({
       subscription: am3Sub,
@@ -1257,7 +1223,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
     await typeNum('Reserved Continuous Profile Hours', '0');
-    await typeNum('Reserved Ui Profile Hours', '0');
+    await typeNum('Reserved UI Profile Hours', '0');
     await typeNum('Reserved Cost-Per-Event Accepted Spans', '1');
     await typeNum('Reserved Cost-Per-Event Stored Spans', '2');
     await typeNum('Price for Errors', '3000');
@@ -1267,7 +1233,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Continuous Profile Hours', '0');
-    await typeNum('Price for Ui Profile Hours', '0');
+    await typeNum('Price for UI Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '17450');
 
@@ -1342,9 +1308,9 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  });
 
-  it.skip('calls api with correct manually invoiced on-demand args', async () => {
+  it('calls api with correct manually invoiced on-demand args', async () => {
     const am2Sub = SubscriptionFixture({organization: mockOrg, plan: 'am2_f'});
     triggerProvisionSubscription({
       subscription: am2Sub,
@@ -1386,7 +1352,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Reserved Uptime Monitors', '250');
     await typeNum('Reserved Attachments (in GB)', '50');
     await typeNum('Reserved Continuous Profile Hours', '0');
-    await typeNum('Reserved Ui Profile Hours', '0');
+    await typeNum('Reserved UI Profile Hours', '0');
     await typeNum('Price for Errors', '3000');
     await typeNum('Price for Performance Units', '1000');
     await typeNum('Price for Replays', '1500');
@@ -1394,7 +1360,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('Price for Uptime Monitors', '0');
     await typeNum('Price for Attachments', '50');
     await typeNum('Price for Continuous Profile Hours', '0');
-    await typeNum('Price for Ui Profile Hours', '0');
+    await typeNum('Price for UI Profile Hours', '0');
     await typeNum('Price for PCSS', '500');
     await typeNum('Annual Contract Value', '6450');
     await typeNum('On-Demand Cost-Per-Event Errors', '0.5');
@@ -1404,7 +1370,7 @@ describe('provisionSubscriptionAction', function () {
     await typeNum('On-Demand Cost-Per-Event Uptime Monitors', '0.0001');
     await typeNum('On-Demand Cost-Per-Event Attachments', '0.0002');
     await typeNum('On-Demand Cost-Per-Event Continuous Profile Hours', '0.0001');
-    await typeNum('On-Demand Cost-Per-Event Ui Profile Hours', '0.0001');
+    await typeNum('On-Demand Cost-Per-Event UI Profile Hours', '0.0001');
     const updateMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/provision-subscription/`,
       method: 'POST',
@@ -1472,7 +1438,7 @@ describe('provisionSubscriptionAction', function () {
         },
       })
     );
-  }, 10_000);
+  });
 
   it('calls api with correct mm2 args', async () => {
     triggerProvisionSubscription({
