@@ -48,7 +48,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def update(self, instance, validated_data):
         raise NotImplementedError
 
-    def create(self, validated_data):
+    def create(self, validated_data) -> Detector:
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,
