@@ -2365,6 +2365,7 @@ export enum FeedbackFieldKey {
   BROWSER_VERSION = 'browser.version',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
+  MESSAGE = 'message',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   URL = 'url',
@@ -2385,6 +2386,7 @@ export const FEEDBACK_FIELDS = [
   FieldKey.LEVEL,
   FeedbackFieldKey.LOCALE_LANG,
   FeedbackFieldKey.LOCALE_TIMEZONE,
+  FeedbackFieldKey.MESSAGE,
   FeedbackFieldKey.OS_NAME,
   FeedbackFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
@@ -2419,6 +2421,14 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     desc: t('Timezone the feedback was submitted from'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FeedbackFieldKey.MESSAGE]: {
+    desc: t(
+      'Message written by the user providing feedback. Wildcards ("*") are supported.'
+    ),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: true,
   },
   [FeedbackFieldKey.OS_NAME]: {
     desc: t('Name of the operating system'),
