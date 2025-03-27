@@ -24,7 +24,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconFileBroken} from 'sentry/icons/iconFileBroken';
+import {IconFile} from 'sentry/icons/iconFile';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
@@ -292,7 +292,7 @@ function NativeFrame({
                   'This frame has missing debug files and could not be symbolicated'
                 )}
               >
-                <IconFileBroken
+                <IconFile
                   size="sm"
                   color="errorText"
                   data-test-id="symbolication-error-icon"

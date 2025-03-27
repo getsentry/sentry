@@ -1277,13 +1277,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'fileBroken',
-        groups: ['device'],
-        keywords: ['file', 'missing', 'error'],
-        name: 'FileBroken',
-        defaultProps: {},
-      },
-      {
         id: 'image',
         groups: ['device'],
         keywords: ['image', 'photo', 'screenshot'],

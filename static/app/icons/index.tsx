@@ -34,7 +34,6 @@ export {IconExclamation} from './iconExclamation';
 export {IconExpand} from './iconExpand';
 export {IconFatal} from './iconFatal';
 export {IconFile} from './iconFile';
-export {IconFileBroken} from './iconFileBroken';
 export {IconFilter} from './iconFilter';
 export {IconFire} from './iconFire';
 export {IconFix} from './iconFix';
