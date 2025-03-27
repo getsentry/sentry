@@ -1,12 +1,12 @@
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_trace_item_attributes import TraceItemType
+from sentry.api.endpoints.organization_trace_item_attributes import SupportedTraceItemType
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
 class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attributes"
-    item_type = TraceItemType.LOGS.value  # Can subclass this to test other item types
+    item_type = SupportedTraceItemType.LOGS.value  # Can subclass this to test other item types
 
     def setUp(self):
         super().setUp()
@@ -39,7 +39,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert '"invalid" is not a valid choice.' in str(response.data["item_type"][0])
 
     def test_no_projects(self):
-        response = self.do_request(query={"item_type": TraceItemType.LOGS.value})
+        response = self.do_request(query={"item_type": SupportedTraceItemType.LOGS.value})
         assert response.status_code == 200, response.content
         assert response.data == []
 
@@ -116,7 +116,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-trace-item-attribute-values"
-    item_type = TraceItemType.LOGS.value
+    item_type = SupportedTraceItemType.LOGS.value
 
     def setUp(self):
         super().setUp()

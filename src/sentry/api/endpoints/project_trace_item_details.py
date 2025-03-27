@@ -1,4 +1,6 @@
 import uuid
+from collections.abc import Generator
+from typing import Literal
 
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtoTimestamp
@@ -15,15 +17,35 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.models.project import Project
+from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 
 
-def convert_rpc_attribute_to_json(source: dict) -> dict:
-    for k, v in source.items():
-        if k.startswith("val"):
-            return {"type": k[3:].lower(), "value": v}
-    raise BadRequest(f"unknown field in protobuf: {source}")
+def convert_rpc_attribute_to_json(
+    attributes: list[dict],
+) -> Generator[dict]:
+    for attribute in attributes:
+        source = attribute["value"]
+        for k, v in source.items():
+            if k.startswith("val"):
+                val_type = k[3:].lower()
+                column_type: Literal["string", "number"] = "string"
+                if val_type == "str" or val_type == "bool":
+                    column_type = "string"
+                elif val_type == "int" or val_type == "float" or val_type == "double":
+                    column_type = "number"
+                else:
+                    raise BadRequest(f"unknown column type in protobuf: {val_type}")
+
+                name = (
+                    translate_internal_to_public_alias(
+                        attribute["name"], column_type, SupportedTraceItemType.LOGS
+                    )
+                    or attribute["name"]
+                )
+                yield {"name": name, "type": val_type, "value": v}
 
 
 @region_silo_endpoint
@@ -88,10 +110,10 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         resp_dict = {
             "itemId": resp["itemId"],
             "timestamp": resp["timestamp"],
-            "attributes": {
-                attr["name"]: convert_rpc_attribute_to_json(attr["value"])
-                for attr in resp["attributes"]
-            },
+            "attributes": sorted(
+                list(convert_rpc_attribute_to_json(resp["attributes"])),
+                key=lambda x: (x["type"], x["name"]),
+            ),
         }
 
         return Response(resp_dict)

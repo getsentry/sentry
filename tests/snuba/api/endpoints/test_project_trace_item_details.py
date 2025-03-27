@@ -76,25 +76,26 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
 
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data == {
-            "attributes": {
-                "bool_attr": {
-                    "value": True,
-                    "type": "bool",
-                },
-                "float_attr": {"value": 3.0, "type": "float"},
-                "int_attr": {"value": "2", "type": "int"},
-                "sentry.body": {"value": "foo", "type": "str"},
-                "sentry.item_type": {"value": "3", "type": "int"},
-                "sentry.organization_id": {
-                    "value": str(self.project.organization.id),
+            "attributes": [
+                {"name": "bool_attr", "type": "bool", "value": True},
+                {"name": "bool_attr", "type": "float", "value": 1.0},
+                {"name": "float_attr", "type": "float", "value": 3.0},
+                {"name": "int_attr", "type": "float", "value": 2.0},
+                {"name": "log.severity_number", "type": "float", "value": 0.0},
+                {"name": "int_attr", "type": "int", "value": "2"},
+                {"name": "log.severity_number", "type": "int", "value": "0"},
+                {"name": "sentry.item_type", "type": "int", "value": "3"},
+                {
+                    "name": "sentry.organization_id",
                     "type": "int",
+                    "value": str(self.project.organization.id),
                 },
-                "sentry.project_id": {"value": str(self.project.id), "type": "int"},
-                "sentry.severity_number": {"value": "0", "type": "int"},
-                "sentry.severity_text": {"value": "INFO", "type": "str"},
-                "sentry.trace_id": {"value": trace_uuid, "type": "str"},
-                "str_attr": {"value": "1", "type": "str"},
-            },
+                {"name": "sentry.project_id", "type": "int", "value": str(self.project.id)},
+                {"name": "log.body", "type": "str", "value": "foo"},
+                {"name": "log.severity_text", "type": "str", "value": "INFO"},
+                {"name": "str_attr", "type": "str", "value": "1"},
+                {"name": "trace", "type": "str", "value": trace_uuid},
+            ],
             "itemId": item_id,
             "timestamp": one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z",
         }, trace_details_response.data
