@@ -1,4 +1,4 @@
-import {forwardRef, useRef} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaSliderThumbOptions} from '@react-aria/slider';
 import {useSliderThumb} from '@react-aria/slider';
@@ -12,21 +12,20 @@ export interface SliderThumbProps extends Omit<AriaSliderThumbOptions, 'inputRef
   getFormattedValue: (value: number) => React.ReactNode;
   state: SliderState;
   error?: boolean;
+  ref?: React.Ref<HTMLInputElement>;
   showLabel?: boolean;
 }
 
-function BaseSliderThumb(
-  {
-    index,
-    state,
-    trackRef,
-    error = false,
-    getFormattedValue,
-    showLabel,
-    ...props
-  }: SliderThumbProps,
-  forwardedRef: React.ForwardedRef<HTMLInputElement>
-) {
+export function SliderThumb({
+  index,
+  state,
+  trackRef,
+  error = false,
+  getFormattedValue,
+  showLabel,
+  ref,
+  ...props
+}: SliderThumbProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const {thumbProps, inputProps, isDisabled, isFocused} = useSliderThumb(
     {...props, index, trackRef, inputRef, validationState: error ? 'invalid' : 'valid'},
@@ -55,15 +54,11 @@ function BaseSliderThumb(
         </SliderThumbLabel>
       )}
       <VisuallyHidden>
-        <input ref={mergeRefs(inputRef, forwardedRef)} {...inputProps} />
+        <input ref={mergeRefs(inputRef, ref)} {...inputProps} />
       </VisuallyHidden>
     </SliderThumbWrap>
   );
 }
-
-const SliderThumb = forwardRef(BaseSliderThumb);
-
-export {SliderThumb};
 
 const SliderThumbWrap = styled('div')<{
   error: boolean;

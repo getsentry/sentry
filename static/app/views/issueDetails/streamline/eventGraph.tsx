@@ -571,8 +571,12 @@ const SummaryContainer = styled('div')`
   display: flex;
   gap: ${space(0.5)};
   flex-direction: column;
-  margin: ${space(1)} ${space(1)} ${space(1)} 0;
+  margin: ${space(1)} ${space(0.25)} ${space(1)} 0;
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    margin: ${space(1)} ${space(1)} ${space(1)} 0;
+  }
 `;
 
 const Callout = styled(Button)<{isActive: boolean}>`
@@ -607,12 +611,18 @@ const Count = styled('div')<{isActive: boolean}>`
 
 const ChartContainer = styled('div')`
   position: relative;
-  padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  padding: ${space(0.75)} 0 ${space(0.75)} 0;
+  margin-right: -2px;
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    padding: ${space(0.75)} ${space(1)} ${space(0.75)} 0;
+  }
 `;
 
 const LoadingChartContainer = styled('div')`
   position: relative;
-  padding: ${space(1)} ${space(1)};
+  padding: ${space(0.75)} 0 ${space(0.75)} 0;
+  margin: 0 ${space(1)};
 `;
 
 const GraphAlert = styled(Alert)`
