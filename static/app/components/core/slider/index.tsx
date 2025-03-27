@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,9 +5,14 @@ import styled from '@emotion/styled';
 export interface SliderProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {}
 
-export const Slider = forwardRef<HTMLInputElement, SliderProps>((props, ref) => {
+export function Slider({
+  ref,
+  ...props
+}: SliderProps & {
+  ref?: React.Ref<HTMLInputElement>;
+}) {
   return <StyledSlider ref={ref} type="range" {...props} />;
-});
+}
 
 const StyledSlider = styled('input')<React.InputHTMLAttributes<HTMLInputElement>>`
   ${p => (p.theme.isChonk ? ChonkSliderStyles(p as any) : SliderStyles(p))}

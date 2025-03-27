@@ -29,11 +29,11 @@ from sentry.ingest.types import ConsumerType
 from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
-from sentry.options import set
 from sentry.testutils.helpers.features import Feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba, requires_symbolicator
-from sentry.usage_accountant import accountant
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 
@@ -169,42 +169,43 @@ def test_accountant_transaction(default_project):
     broker.create_topic(topic, 1)
     producer = broker.get_producer()
 
-    set("shared_resources_accounting_enabled", [settings.EVENT_PROCESSING_STORE])
+    with (
+        override_options(
+            {"shared_resources_accounting_enabled": [settings.EVENT_PROCESSING_STORE]}
+        ),
+        usage_accountant_backend(producer),
+    ):
+        now = datetime.datetime.now()
+        event = {
+            "type": "transaction",
+            "timestamp": now.isoformat(),
+            "start_timestamp": now.isoformat(),
+            "spans": [],
+            "contexts": {
+                "trace": {
+                    "parent_span_id": "8988cec7cc0779c1",
+                    "type": "trace",
+                    "op": "foobar",
+                    "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    "span_id": "babaae0d4b7512d9",
+                    "status": "ok",
+                }
+            },
+        }
+        payload = get_normalized_event(event, default_project)
+        serialized = orjson.dumps(payload).decode()
+        process_event(
+            ConsumerType.Events,
+            {
+                "payload": serialized,
+                "start_time": time.time() - 3600,
+                "event_id": payload["event_id"],
+                "project_id": default_project.id,
+                "remote_addr": "127.0.0.1",
+            },
+            project=default_project,
+        )
 
-    accountant.init_backend(producer)
-
-    now = datetime.datetime.now()
-    event = {
-        "type": "transaction",
-        "timestamp": now.isoformat(),
-        "start_timestamp": now.isoformat(),
-        "spans": [],
-        "contexts": {
-            "trace": {
-                "parent_span_id": "8988cec7cc0779c1",
-                "type": "trace",
-                "op": "foobar",
-                "trace_id": "a7d67cf796774551a95be6543cacd459",
-                "span_id": "babaae0d4b7512d9",
-                "status": "ok",
-            }
-        },
-    }
-    payload = get_normalized_event(event, default_project)
-    serialized = orjson.dumps(payload).decode()
-    process_event(
-        ConsumerType.Events,
-        {
-            "payload": serialized,
-            "start_time": time.time() - 3600,
-            "event_id": payload["event_id"],
-            "project_id": default_project.id,
-            "remote_addr": "127.0.0.1",
-        },
-        project=default_project,
-    )
-
-    accountant._shutdown()
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert msg1 is not None
     payload = msg1.payload

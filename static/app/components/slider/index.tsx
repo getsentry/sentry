@@ -1,4 +1,4 @@
-import {forwardRef, useCallback, useImperativeHandle, useMemo, useRef} from 'react';
+import {useCallback, useImperativeHandle, useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
@@ -35,6 +35,7 @@ export interface SliderProps
   formatOptions?: Intl.NumberFormatOptions;
   max?: AriaSliderProps['maxValue'];
   min?: AriaSliderProps['minValue'];
+  ref?: React.Ref<HTMLInputElement | HTMLInputElement[]>;
   required?: boolean;
   /**
    * Whether to show value labels above the slider's thumbs. Note: if `label` is defined,
@@ -69,36 +70,33 @@ export interface SliderProps
   ticksInterval?: number;
 }
 
-function BaseSlider(
-  {
-    // Slider/track props
-    min = 0,
-    max = 100,
-    step = 1,
-    disabled = false,
-    disabledReason,
-    error = false,
-    required = false,
-    ticks,
-    ticksInterval,
-    tickValues,
-    showTickLabels = false,
-    showThumbLabels = false,
-    formatLabel,
-    formatOptions,
-    allowedValues,
-    className,
+export function Slider({
+  // Slider/track props
+  min = 0,
+  max = 100,
+  step = 1,
+  disabled = false,
+  disabledReason,
+  error = false,
+  required = false,
+  ticks,
+  ticksInterval,
+  tickValues,
+  showTickLabels = false,
+  showThumbLabels = false,
+  formatLabel,
+  formatOptions,
+  allowedValues,
+  className,
 
-    // Thumb props
-    autoFocus,
-    onFocus,
-    onBlur,
-    onFocusChange,
-
-    ...props
-  }: SliderProps,
-  forwardedRef: React.ForwardedRef<HTMLInputElement | HTMLInputElement[]>
-) {
+  // Thumb props
+  autoFocus,
+  onFocus,
+  onBlur,
+  onFocusChange,
+  ref,
+  ...props
+}: SliderProps) {
   const {label, value, defaultValue, onChange, onChangeEnd} = props;
   const ariaProps: AriaSliderProps = {
     ...props,
@@ -172,7 +170,7 @@ function BaseSlider(
 
   const nThumbs = state.values.length;
   const refs = useRef<HTMLInputElement[]>([]);
-  useImperativeHandle(forwardedRef, () => {
+  useImperativeHandle(ref, () => {
     if (nThumbs > 1) {
       return refs.current;
     }
@@ -296,10 +294,6 @@ function BaseSlider(
     </Tooltip>
   );
 }
-
-const Slider = forwardRef(BaseSlider);
-
-export {Slider};
 
 const SliderGroup = styled('div')`
   width: 100%;
