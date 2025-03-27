@@ -5,6 +5,7 @@ from typing import Any
 
 import sentry_sdk
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -30,6 +31,13 @@ from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_stats_period
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -45,7 +53,7 @@ from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
-ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
 
@@ -144,7 +152,7 @@ def inbox_search(
 class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
     owner = ApiOwner.ISSUES
@@ -206,53 +214,38 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
+    @extend_schema(
+        operation_id="List an Organization's Issues",
+        description="""
+        Return a list of issues (groups) bound to an organization.  All parameters are supplied as query string parameters.
+A default query of ``is:unresolved issue.priority:[high,medium]`` is applied. To return results with other statuses send a new query value (i.e. ``?query=`` for all results).
+""",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            IssueParams.GROUP_STATS_PERIOD,
+            IssueParams.SHORT_ID_LOOKUP,
+            IssueParams.DEFAULT_QUERY,
+            IssueParams.VIEW_ID,
+            IssueParams.VIEW_SORT,
+            IssueParams.LIMIT,
+            IssueParams.EXPAND,
+            IssueParams.COLLAPSE,
+            CursorQueryParam,
+        ],
+        responses={
+            # TODO(Leander): Include 200
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        # TODO(Leander): Include examples
+    )
     @track_slo_response("workflow")
     def get(self, request: Request, organization: Organization) -> Response:
-        """
-        List an Organization's Issues
-        `````````````````````````````
-
-        Return a list of issues (groups) bound to an organization.  All parameters are
-        supplied as query string parameters.
-
-        A default query of ``is:unresolved issue.priority:[high,medium]`` is applied.
-        To return results with other statuses send a new query value
-        (i.e. ``?query=`` for all results).
-
-        The ``groupStatsPeriod`` parameter can be used to select the timeline
-        stats which should be present. Possible values are: '' (disable),
-        '24h', '14d'
-
-        The ``statsPeriod`` parameter can be used to select a date window starting
-        from now. Ex. ``14d``.
-
-        The ``start`` and ``end`` parameters can be used to select an absolute
-        date period to fetch issues from.
-
-        :qparam string statsPeriod: an optional stat period (can be one of
-                                    ``"24h"``, ``"14d"``, and ``""``).
-        :qparam string groupStatsPeriod: an optional stat period (can be one of
-                                    ``"24h"``, ``"14d"``, and ``""``).
-        :qparam string start:       Beginning date. You must also provide ``end``.
-        :qparam string end:         End date. You must also provide ``start``.
-        :qparam bool shortIdLookup: if this is set to true then short IDs are
-                                    looked up by this function as well.  This
-                                    can cause the return value of the function
-                                    to return an event issue of a different
-                                    project which is why this is an opt-in.
-                                    Set to `1` to enable.
-        :qparam querystring query: an optional Sentry structured search
-                                   query.  If not provided an implied
-                                   ``"is:unresolved issue.priority:[high,medium]"`` is assumed.)
-        :qparam bool savedSearch:  if this is set to False, then we are making the request without
-                                   a saved search and will look for the default search from this endpoint.
-        :qparam string searchId:   if passed in, this is the selected search
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :auth: required
-        :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `base`, `unhandled`
-        """
         stats_period = request.GET.get("groupStatsPeriod")
         try:
             start, end = get_date_range_from_stats_period(request.GET)
