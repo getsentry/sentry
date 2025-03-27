@@ -49,7 +49,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
                 name="exclude_open_period_overlap",
                 expressions=[
                     (
-                        TsTzRange("start", "end", RangeBoundary()),
+                        TsTzRange("date_started", "date_ended", RangeBoundary()),
                         RangeOperators.OVERLAPS,
                     )
                 ],

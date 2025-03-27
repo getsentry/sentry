@@ -88,8 +88,8 @@ class Migration(CheckedMigration):
                         expressions=[
                             (
                                 sentry.models.groupopenperiod.TsTzRange(
-                                    "start",
-                                    "end",
+                                    "date_started",
+                                    "date_ended",
                                     django.contrib.postgres.fields.ranges.RangeBoundary(),
                                 ),
                                 "&&",
