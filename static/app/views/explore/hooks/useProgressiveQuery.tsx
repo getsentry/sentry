@@ -20,7 +20,7 @@ const HIGH_SAMPLING_MODE_QUERY_EXTRAS = {
 
 export type QueryMode = (typeof QUERY_MODE)[keyof typeof QUERY_MODE];
 export type SamplingMode = (typeof SAMPLING_MODE)[keyof typeof SAMPLING_MODE];
-export type SpanRPCQueryExtras = {
+export type SpansRPCQueryExtras = {
   samplingMode?: SamplingMode;
 };
 

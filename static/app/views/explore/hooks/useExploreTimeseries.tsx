@@ -16,7 +16,7 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   QUERY_MODE,
-  type SpanRPCQueryExtras,
+  type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
@@ -25,7 +25,7 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
-  queryExtras?: SpanRPCQueryExtras;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 interface UseExploreTimeseriesResults {

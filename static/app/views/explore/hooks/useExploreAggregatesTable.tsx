@@ -13,7 +13,7 @@ import {
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {
   QUERY_MODE,
-  type SpanRPCQueryExtras,
+  type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useProgressiveQuery} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -22,7 +22,7 @@ interface UseExploreAggregatesTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: SpanRPCQueryExtras;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 export interface AggregatesTableResult {

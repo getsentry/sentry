@@ -9,7 +9,7 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
   QUERY_MODE,
-  type SpanRPCQueryExtras,
+  type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -21,7 +21,7 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 interface UseMultiQueryTimeseriesOptions {
   enabled: boolean;
   index: number;
-  queryExtras?: SpanRPCQueryExtras;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 export interface UseMultiQueryTimeseriesResults {

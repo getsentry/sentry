@@ -11,7 +11,7 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {
   QUERY_MODE,
-  type SpanRPCQueryExtras,
+  type SpansRPCQueryExtras,
   useProgressiveQuery,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -20,7 +20,7 @@ interface UseExploreSpansTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
-  queryExtras?: SpanRPCQueryExtras;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 export interface SpansTableResult {

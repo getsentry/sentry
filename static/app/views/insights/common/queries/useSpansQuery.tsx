@@ -13,7 +13,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   SamplingMode,
-  SpanRPCQueryExtras,
+  SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   getRetryDelay,
@@ -40,7 +40,7 @@ export function useSpansQuery<T = any[]>({
   eventView?: EventView;
   initialData?: T;
   limit?: number;
-  queryExtras?: SpanRPCQueryExtras;
+  queryExtras?: SpansRPCQueryExtras;
   referrer?: string;
   trackResponseAnalytics?: boolean;
 }) {
