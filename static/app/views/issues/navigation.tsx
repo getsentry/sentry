@@ -113,14 +113,14 @@ function ConfigureSection({baseUrl}: {baseUrl: string}) {
           <SecondaryNav.Item
             trailingItems={<FeatureBadge type="alpha" variant="short" />}
             to={`${baseUrl}/monitors/`}
-            activeTo={`${baseUrl}/monitors/`}
+            activeTo={`${baseUrl}/monitors`}
           >
             {t('Monitors')}
           </SecondaryNav.Item>
           <SecondaryNav.Item
             trailingItems={<FeatureBadge type="alpha" variant="short" />}
             to={`${baseUrl}/automations/`}
-            activeTo={`${baseUrl}/automations/`}
+            activeTo={`${baseUrl}/automations`}
           >
             {t('Automations')}
           </SecondaryNav.Item>
