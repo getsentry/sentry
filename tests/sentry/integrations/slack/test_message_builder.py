@@ -884,12 +884,13 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             # Verify that the original title is not present
             assert "IntegrationError" not in blocks["blocks"][0]["text"]["text"]
 
-            # Verify that the AI content is used in the text block
-            content_block = blocks["blocks"][1]["text"]["text"]
+            # Verify that the AI content is used in the context block
+            content_block = blocks["blocks"][1]["elements"][0]["text"]
+            assert ":skull:" in content_block
             assert "This is what's wrong with the issue" in content_block
-            assert "Trace" in content_block
+            assert ":link:" in content_block
             assert "This is trace information" in content_block
-            assert "Possible Cause" in content_block
+            assert ":dart:" in content_block
             assert "This is a possible cause" in content_block
             # Check that the original text is not present
             assert "Identity not found" not in content_block

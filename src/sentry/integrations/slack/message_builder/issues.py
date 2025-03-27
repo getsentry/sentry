@@ -28,11 +28,16 @@ from sentry.integrations.slack.message_builder.types import (
     ACTION_EMOJI,
     ACTIONED_CATEGORY_TO_EMOJI,
     CATEGORY_TO_EMOJI,
+    ISSUE_SUMMARY_TO_EMOJI,
     LEVEL_TO_EMOJI,
     SLACK_URL_FORMAT,
     SlackBlock,
 )
-from sentry.integrations.slack.utils.escape import escape_slack_markdown_text, escape_slack_text
+from sentry.integrations.slack.utils.escape import (
+    escape_slack_markdown_asterisks,
+    escape_slack_markdown_text,
+    escape_slack_text,
+)
 from sentry.integrations.time_utils import get_approx_start_time, time_since
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
@@ -500,30 +505,43 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         parts = []
 
         if whats_wrong := self.issue_summary.get("whatsWrong"):
-            parts.append("### What's Wrong\n" + escape_slack_markdown_text(whats_wrong))
+            parts.append(
+                ISSUE_SUMMARY_TO_EMOJI.get("whatsWrong")
+                + " "
+                + escape_slack_markdown_asterisks(whats_wrong)
+            )
 
         if trace := self.issue_summary.get("trace"):
-            parts.append("### In The Trace\n" + escape_slack_markdown_text(trace))
+            parts.append(
+                ISSUE_SUMMARY_TO_EMOJI.get("trace") + " " + escape_slack_markdown_asterisks(trace)
+            )
 
         if possible_cause := self.issue_summary.get("possibleCause"):
-            parts.append("### Possible Cause\n" + escape_slack_markdown_text(possible_cause))
+            parts.append(
+                ISSUE_SUMMARY_TO_EMOJI.get("possibleCause")
+                + " "
+                + escape_slack_markdown_asterisks(possible_cause)
+            )
 
         if not parts:
             return None
-        return "\n".join(parts)
+        return escape_slack_markdown_text("\n\n".join(parts))
 
     def get_culprit_block(self, event_or_group: Event | GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         return None
 
-    def get_text_block(self, text) -> SlackBlock:
+    def get_text_block(self, text, small: bool = False) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
         else:
             max_block_text_length = MAX_BLOCK_TEXT_LENGTH
 
-        return self.get_markdown_quote_block(text, max_block_text_length)
+        if not small:
+            return self.get_markdown_quote_block(text, max_block_text_length)
+        else:
+            return self.get_context_block(text)
 
     def get_suggested_assignees_block(self, suggested_assignees: list[str]) -> SlackBlock:
         suggested_assignee_text = "Suggested Assignees: "
@@ -562,6 +580,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 footer_text += replay_link
             else:
                 footer_text = footer_text[:-4]  # chop off the empty space
+
+            if self.issue_summary:
+                footer_text += f"    {ISSUE_SUMMARY_TO_EMOJI.get('seer')} Revealed by Seer"
+
             return self.get_context_block(text=footer_text)
         else:
             return self.get_context_block(text=footer, timestamp=timestamp)
@@ -611,7 +633,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # Use issue summary if available, otherwise use the default text
         if summary_text := self.get_issue_summary_text():
-            blocks.append(self.get_text_block(summary_text))
+            blocks.append(self.get_text_block(summary_text, small=True))
         else:
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
