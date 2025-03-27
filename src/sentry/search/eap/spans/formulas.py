@@ -3,8 +3,9 @@ from typing import Literal, cast
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -30,6 +31,7 @@ from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.utils import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
+from sentry.utils import snuba_rpc
 
 
 def get_total_span_count(settings: ResolverSettings) -> Column:
@@ -367,9 +369,30 @@ def time_spent_percentage(
     args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
+    snuba_params = settings["snuba_params"]
 
     attribute = cast(AttributeKey, args[0])
-    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the total time"""
+
+    rpc_request = TraceItemTableRequest(
+        columns=[
+            Column(
+                aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=attribute),
+                label="total_time",
+            )
+        ],
+        meta=RequestMeta(
+            organization_id=snuba_params.organization_id,
+            referrer="time_spent_percentage.total_time",
+            project_ids=snuba_params.project_ids,
+            start_timestamp=snuba_params.rpc_start_date,
+            end_timestamp=snuba_params.rpc_end_date,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+        ),
+        limit=1,
+    )
+    rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+
+    total_time = rpc_response.column_values[0].results[0].val_double
 
     return Column.BinaryFormula(
         left=Column(
@@ -381,11 +404,7 @@ def time_spent_percentage(
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_SUM,
-                key=attribute,
-                extrapolation_mode=extrapolation_mode,
-            )
+            literal=LiteralValue(val_double=total_time),
         ),
     )
 

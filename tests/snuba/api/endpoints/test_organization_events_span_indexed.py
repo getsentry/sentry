@@ -3071,9 +3071,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count_scores(measurements.score.total)"] == 3
         assert meta["dataset"] == self.dataset
 
-    @pytest.mark.xfail(
-        reason="RPC does not support static number operations (https://github.com/getsentry/eap-planning/issues/202) which is required by this function"
-    )
     def test_time_spent_percentage(self):
         spans = []
         for _ in range(4):
