@@ -138,7 +138,9 @@ def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
         trace_id = event.trace_id
         if not trace_id:
             return []
-    except AttributeError: # sometimes the trace doesn't exist and this errors, so we just ignore it
+    except (
+        AttributeError
+    ):  # sometimes the trace doesn't exist and this errors, so we just ignore it
         return []
     organization = event.group.organization
     conditions = [["trace", "=", trace_id]]
