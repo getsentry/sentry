@@ -9,6 +9,7 @@ export const NAV_GROUP_LABELS: Record<PrimaryNavGroup, string> = {
   [PrimaryNavGroup.DASHBOARDS]: t('Dashboards'),
   [PrimaryNavGroup.INSIGHTS]: t('Insights'),
   [PrimaryNavGroup.SETTINGS]: t('Settings'),
+  [PrimaryNavGroup.PIPELINE]: t('Pipeline'),
 };
 
 export const PRIMARY_SIDEBAR_WIDTH = 66;
