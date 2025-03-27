@@ -1,11 +1,9 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
@@ -19,7 +17,7 @@ describe('useHasStreamlinedUI', () => {
     user.options.prefersIssueDetailsStreamlinedUI = true;
     act(() => ConfigStore.set('user', user));
 
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
+    jest.mocked(useOrganization).mockReturnValue(OrganizationFixture());
     const {result: userPrefersStreamline} = renderHook(useHasStreamlinedUI);
     expect(userPrefersStreamline.current).toBe(true);
 
@@ -40,7 +38,6 @@ describe('useHasStreamlinedUI', () => {
     user.options.prefersIssueDetailsStreamlinedUI = null;
     act(() => ConfigStore.set('user', user));
 
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
     const {result} = renderHook(useHasStreamlinedUI);
     expect(result.current).toBe(true);
   });
@@ -56,14 +53,11 @@ describe('useHasStreamlinedUI', () => {
     user.options.prefersIssueDetailsStreamlinedUI = false;
     act(() => ConfigStore.set('user', user));
 
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
     const {result} = renderHook(useHasStreamlinedUI);
     expect(result.current).toBe(false);
   });
 
   it('ignores preferences if organization option is set to true', () => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
-
     const streamlineOrg = OrganizationFixture({streamlineOnly: true});
     jest.mocked(useOrganization).mockReturnValue(streamlineOrg);
 
@@ -86,7 +80,6 @@ describe('useHasStreamlinedUI', () => {
   });
 
   it('ignores the option if unset', () => {
-    jest.mocked(useLocation).mockReturnValue(LocationFixture());
     jest
       .mocked(useOrganization)
       .mockReturnValue(OrganizationFixture({streamlineOnly: null}));

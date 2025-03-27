@@ -8,6 +8,11 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {EventPackageData} from 'sentry/components/events/packageData';
 
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: () => true,
+}));
+
 describe('EventPackageData', function () {
   const router = RouterFixture({});
   const event = EventFixture({
