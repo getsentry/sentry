@@ -123,7 +123,7 @@ export function GroupTagsDrawer({
           // TODO(issues): Dropdown menu doesn't support hrefs yet
           onAction: () => {
             window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+              `/${organization.slug}/${project.slug}/issues/${group.id}/${TabPaths[Tab.DISTRIBUTIONS]}${tagKey}/export/`,
               '_blank'
             );
           },

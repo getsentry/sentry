@@ -274,7 +274,7 @@ function GroupHeader({baseUrl, group, organization, event, project}: Props) {
                   ) : (
                     <Link
                       disabled={disableActions}
-                      to={`${baseUrl}tags/user/${location.search}`}
+                      to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                     >
                       <Count className="count" value={userCount} />
                     </Link>

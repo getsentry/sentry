@@ -11,7 +11,7 @@ type RouteProps = RouteComponentProps<{groupId: string; eventId?: string}>;
 function getCurrentTab({router}: {router: RouteProps['router']}) {
   const currentRoute = router.routes[router.routes.length - 1];
 
-  // If we're in the tag details page ("/tags/:tagKey/")
+  // If we're in the tag details page ("/distributions/:tagKey/")
   if (router.params.tagKey) {
     return Tab.DISTRIBUTIONS;
   }
