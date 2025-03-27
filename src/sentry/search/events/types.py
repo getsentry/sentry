@@ -143,6 +143,13 @@ class SnubaParams:
         return timestamp
 
     @property
+    def timeseries_granularity(self) -> int:
+        """This gets around typing issues, we should use this when we expect their to be a granularity"""
+        if self.granularity_secs is None:
+            raise InvalidSearchQuery("granularity is required")
+        return self.granularity_secs
+
+    @property
     def date_range(self) -> timedelta:
         return self.end_date - self.start_date
 

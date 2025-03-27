@@ -133,7 +133,7 @@ def get_timeseries_query(
                 for groupby in groupbys
                 if isinstance(groupby.proto_definition, AttributeKey)
             ],
-            granularity_secs=params.granularity_secs,
+            granularity_secs=params.timeseries_granularity,
         ),
         functions,
         groupbys,
@@ -145,11 +145,11 @@ def validate_granularity(
 ) -> None:
     """The granularity has already been somewhat validated by src/sentry/utils/dates.py:validate_granularity
     but the RPC adds additional rules on validation so those are checked here"""
-    if params.date_range.total_seconds() / params.granularity_secs > MAX_ROLLUP_POINTS:
+    if params.date_range.total_seconds() / params.timeseries_granularity > MAX_ROLLUP_POINTS:
         raise InvalidSearchQuery(
             "Selected interval would create too many buckets for the timeseries"
         )
-    if params.granularity_secs not in VALID_GRANULARITIES:
+    if params.timeseries_granularity not in VALID_GRANULARITIES:
         raise InvalidSearchQuery(
             f"Selected interval is not allowed, allowed intervals are: {sorted(VALID_GRANULARITIES)}"
         )
@@ -193,7 +193,7 @@ def run_timeseries_query(
             [],
             params.start_date,
             params.end_date,
-            params.granularity_secs,
+            params.timeseries_granularity,
             ["time"],
         )
 

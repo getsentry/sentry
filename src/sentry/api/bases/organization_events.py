@@ -426,7 +426,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
     def set_granularity(
         self, request: Request, snuba_params: SnubaParams, top_events: int, use_rpc: bool
-    ) -> int:
+    ):
         snuba_params.granularity_secs = self.get_rollup(request, snuba_params, top_events, use_rpc)
 
     def get_rollup(
