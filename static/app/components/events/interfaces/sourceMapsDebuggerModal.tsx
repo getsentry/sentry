@@ -208,9 +208,9 @@ function getSourceMapsDocLinks(platform: string) {
     // Therefore, we have a static link here.
     sentryBundleSupport: `https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support`,
     // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
-    artifactBundles: ['cordova', 'capacitor'].includes(platform)
+    debugIds: ['cordova', 'capacitor'].includes(platform)
       ? undefined
-      : `${basePlatformUrl}/sourcemaps/troubleshooting_js/artifact-bundles/`,
+      : `${basePlatformUrl}/sourcemaps/troubleshooting_js/debug-ids/`,
     // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
     legacyUploadingMethods: ['cordova', 'capacitor'].includes(platform)
       ? undefined
@@ -571,8 +571,8 @@ export function SourceMapsDebuggerModal({
                 {tct(
                   '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
                   {
-                    link: defined(sourceMapsDocLinks.artifactBundles) ? (
-                      <ExternalLinkWithIcon href={sourceMapsDocLinks.artifactBundles} />
+                    link: defined(sourceMapsDocLinks.debugIds) ? (
+                      <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
                     ) : (
                       <Fragment />
                     ),
