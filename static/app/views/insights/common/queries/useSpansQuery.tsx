@@ -7,9 +7,14 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {
+  SamplingMode,
+  SpanRPCQueryExtras,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   getRetryDelay,
   shouldRetryHandler,
@@ -27,6 +32,7 @@ export function useSpansQuery<T = any[]>({
   allowAggregateConditions,
   cursor,
   trackResponseAnalytics = true,
+  queryExtras,
 }: {
   allowAggregateConditions?: boolean;
   cursor?: string;
@@ -34,6 +40,7 @@ export function useSpansQuery<T = any[]>({
   eventView?: EventView;
   initialData?: T;
   limit?: number;
+  queryExtras?: SpanRPCQueryExtras;
   referrer?: string;
   trackResponseAnalytics?: boolean;
 }) {
@@ -55,6 +62,7 @@ export function useSpansQuery<T = any[]>({
       referrer,
       cursor,
       allowAggregateConditions,
+      samplingMode: queryExtras?.samplingMode,
     });
 
     if (trackResponseAnalytics) {
@@ -74,6 +82,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   referrer,
   cursor,
   overriddenRoute,
+  samplingMode,
 }: {
   eventView: EventView;
   cursor?: string;
@@ -81,6 +90,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   initialData?: any;
   overriddenRoute?: string;
   referrer?: string;
+  samplingMode?: SamplingMode;
 }) {
   const location = useLocation();
   const organization = useOrganization();
@@ -105,6 +115,10 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
       cursor,
+      sampling:
+        eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode
+          ? samplingMode
+          : undefined,
     }),
     options: {
       enabled: enabled && pageFiltersReady,
@@ -142,6 +156,7 @@ export function useWrappedDiscoverQuery<T>({
   cursor,
   noPagination,
   allowAggregateConditions,
+  samplingMode,
 }: {
   eventView: EventView;
   allowAggregateConditions?: boolean;
@@ -151,12 +166,16 @@ export function useWrappedDiscoverQuery<T>({
   limit?: number;
   noPagination?: boolean;
   referrer?: string;
+  samplingMode?: SamplingMode;
 }) {
   const location = useLocation();
   const organization = useOrganization();
   const {isReady: pageFiltersReady} = usePageFilters();
 
   const queryExtras: Record<string, string> = {};
+  if (eventView.dataset === DiscoverDatasets.SPANS_EAP_RPC && samplingMode) {
+    queryExtras.sampling = samplingMode;
+  }
 
   if (allowAggregateConditions !== undefined) {
     queryExtras.allowAggregateConditions = allowAggregateConditions ? '1' : '0';
