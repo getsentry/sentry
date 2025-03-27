@@ -603,6 +603,30 @@ default_manager.add(
         template="removed workflow {name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=216,
+        name="DATA_CONDITION_GROUP_ADD",
+        api_name="data_condition_group.add",
+        template="created data_condition_group {id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=217,
+        name="DATA_CONDITION_GROUP_UPDATE",
+        api_name="data_condition_group.update",
+        template="updated data_condition_group {id}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=218,
+        name="DATA_CONDITION_GROUP_REMOVED",
+        api_name="data_condition_group.removed",
+        template="removed data_condition_group {id}",
+    )
+)
 
 default_manager.add(
     AuditLogEvent(
