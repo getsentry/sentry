@@ -8,7 +8,6 @@ from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.handlers.action.notification.handler import (
     IssueAlertRegistryInvoker,
     MetricAlertRegistryInvoker,
-    NotificationActionHandler,
     NotificationHandlerException,
 )
 from sentry.workflow_engine.models import Action
@@ -28,7 +27,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
     def test_execute_without_group_type(self):
         """Test that execute does nothing when detector has no group_type"""
         self.detector.type = ""
-        NotificationActionHandler.execute(self.job, self.action, self.detector)
+        self.action.trigger(self.job, self.detector)
         # Test passes if no exception is raised
 
     @mock.patch(
@@ -42,7 +41,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         mock_handler = mock.Mock()
         mock_registry_get.return_value = mock_handler
 
-        NotificationActionHandler.execute(self.job, self.action, self.detector)
+        self.action.trigger(self.job, self.detector)
 
         mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
         mock_handler.handle_workflow_action.assert_called_once_with(
@@ -60,7 +59,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         mock_handler = mock.Mock()
         mock_registry_get.return_value = mock_handler
 
-        NotificationActionHandler.execute(self.job, self.action, self.detector)
+        self.action.trigger(self.job, self.detector)
 
         mock_registry_get.assert_called_once_with(MetricIssuePOC.slug)
         mock_handler.handle_workflow_action.assert_called_once_with(
@@ -74,7 +73,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
     @mock.patch("sentry.workflow_engine.handlers.action.notification.handler.logger")
     def test_execute_unknown_group_type(self, mock_logger, mock_registry_get):
         """Test that execute does nothing when detector has no group_type"""
-        NotificationActionHandler.execute(self.job, self.action, self.detector)
+        self.action.trigger(self.job, self.detector)
 
         mock_logger.exception.assert_called_once_with(
             "No notification handler found for detector type: %s",

@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,6 +26,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   useExploreDataset,
   useExploreVisualizes,
@@ -199,22 +199,7 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
-                TitleBadges={[
-                  isProgressivelyLoading ? (
-                    <Tooltip
-                      title={t('This widget is currently loading higher fidelity data.')}
-                      key="progressive-loading-indicator"
-                    >
-                      <ProgressiveLoadingIndicator
-                        relative
-                        hideMessage
-                        mini
-                        size={16}
-                        data-test-id="progressive-loading-indicator"
-                      />
-                    </Tooltip>
-                  ) : null,
-                ]}
+                TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               />
             );
           }
@@ -258,22 +243,7 @@ export function ExploreCharts({
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
-              TitleBadges={[
-                isProgressivelyLoading ? (
-                  <Tooltip
-                    title={t('This widget is currently loading higher fidelity data.')}
-                    key="progressive-loading-indicator"
-                  >
-                    <ProgressiveLoadingIndicator
-                      relative
-                      hideMessage
-                      mini
-                      size={16}
-                      data-test-id="progressive-loading-indicator"
-                    />
-                  </Tooltip>
-                ) : null,
-              ]}
+              TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               Actions={[
                 <Tooltip
                   key="visualization"
@@ -411,14 +381,4 @@ const ChartLabel = styled('div')`
 const ChartTitle = styled('div')`
   display: flex;
   margin-left: ${space(2)};
-`;
-
-const ProgressiveLoadingIndicator = styled(LoadingIndicator)`
-  .loading-indicator {
-    border-width: 2px;
-  }
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
