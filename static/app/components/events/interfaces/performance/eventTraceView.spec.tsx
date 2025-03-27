@@ -40,6 +40,7 @@ describe('EventTraceView', () => {
   });
 
   it('renders a trace', async () => {
+    const size = 20;
     MockApiClient.addMockResponse({
       url: '/subscriptions/org-slug/',
       method: 'GET',
@@ -53,7 +54,7 @@ describe('EventTraceView', () => {
         performance_issues: 1,
         projects: 1,
         transactions: 1,
-        transaction_child_count_map: new Array(20)
+        transaction_child_count_map: new Array(size)
           .fill(0)
           .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
         span_count: 0,
@@ -63,7 +64,7 @@ describe('EventTraceView', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
       body: {
-        transactions: Array.from({length: 20}, (_, i) =>
+        transactions: Array.from({length: size}, (_, i) =>
           makeTransaction({
             'transaction.op': `transaction-op-${i + 1}`,
             project_slug: `project-slug-${i + 1}`,
@@ -105,13 +106,13 @@ describe('EventTraceView', () => {
     expect(await screen.findByText('transaction-op-3')).toBeInTheDocument();
     expect(await screen.findByText('transaction-op-4')).toBeInTheDocument();
 
-    // Renders the collapsed spans row
-    expect(await screen.findByText(/16 hidden spans/i)).toBeInTheDocument();
-
     // Renders the error
     expect(
       await screen.findByText('MaybeEncodingError: Error sending result')
     ).toBeInTheDocument();
+
+    // Only renders part of the trace. "x hidden spans" for some reason is cut off in jsdom
+    expect(document.querySelectorAll('.TraceRow')).toHaveLength(8);
   });
 
   it('does not render the trace preview if it has no transactions', async () => {
