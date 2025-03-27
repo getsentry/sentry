@@ -1,6 +1,4 @@
 import {
-  type ForwardedRef,
-  forwardRef,
   type MouseEventHandler,
   type ReactNode,
   useCallback,
@@ -22,7 +20,6 @@ import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
-  SelectOptionWithKey,
 } from 'sentry/components/core/compactSelect/types';
 import {
   getDisabledOptions,
@@ -96,6 +93,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
+  ref?: React.Ref<HTMLInputElement>;
   /**
    * Function to determine whether the menu should close when interacting with
    * other elements.
@@ -293,39 +291,42 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   );
 }
 
-function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<string>>(
-  {
-    children,
-    description,
-    items,
-    inputValue,
-    filterValue = inputValue,
-    placeholder,
-    onCustomValueBlurred,
-    onCustomValueCommitted,
-    onOptionSelected,
-    inputLabel,
-    onExit,
-    onKeyDown,
-    onKeyDownCapture,
-    onKeyUp,
-    onInputChange,
-    onOpenChange,
-    autoFocus,
-    openOnFocus,
-    onFocus,
-    tabIndex = -1,
-    maxOptions,
-    shouldFilterResults = true,
-    shouldCloseOnInteractOutside,
-    onPaste,
-    onClick,
-    customMenu,
-    isOpen: incomingIsOpen,
-    ['data-test-id']: dataTestId,
-  }: SearchQueryBuilderComboboxProps<T>,
-  ref: ForwardedRef<HTMLInputElement>
-) {
+/**
+ * A combobox component which is used in freeText tokens and filter values.
+ */
+export function SearchQueryBuilderCombobox<
+  T extends SelectOptionOrSectionWithKey<string>,
+>({
+  children,
+  description,
+  items,
+  inputValue,
+  filterValue = inputValue,
+  placeholder,
+  onCustomValueBlurred,
+  onCustomValueCommitted,
+  onOptionSelected,
+  inputLabel,
+  onExit,
+  onKeyDown,
+  onKeyDownCapture,
+  onKeyUp,
+  onInputChange,
+  onOpenChange,
+  autoFocus,
+  openOnFocus,
+  onFocus,
+  tabIndex = -1,
+  maxOptions,
+  shouldFilterResults = true,
+  shouldCloseOnInteractOutside,
+  onPaste,
+  onClick,
+  customMenu,
+  isOpen: incomingIsOpen,
+  ['data-test-id']: dataTestId,
+  ref,
+}: SearchQueryBuilderComboboxProps<T>) {
   const {disabled, portalTarget} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -555,15 +556,6 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     </Wrapper>
   );
 }
-
-/**
- * A combobox component which is used in freeText tokens and filter values.
- */
-export const SearchQueryBuilderCombobox = forwardRef(SearchQueryBuilderComboboxInner) as <
-  T extends SelectOptionWithKey<string>,
->(
-  props: SearchQueryBuilderComboboxProps<T> & {ref?: ForwardedRef<HTMLInputElement>}
-) => ReturnType<typeof SearchQueryBuilderComboboxInner>;
 
 const Wrapper = styled('div')`
   position: relative;

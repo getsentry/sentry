@@ -284,6 +284,21 @@ export default typescript.config([
           paths: restrictedImportPaths,
         },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+      ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
       'no-self-compare': 'error',

@@ -1,11 +1,4 @@
-import {
-  type CSSProperties,
-  forwardRef,
-  Fragment,
-  useCallback,
-  useRef,
-  useState,
-} from 'react';
+import {type CSSProperties, Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -47,19 +40,19 @@ export interface FoldSectionProps {
  * steamlined issues view, without localStorage syncing and
  * analytics.
  */
-export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
-  {
-    children,
-    title,
-    sectionKey,
-    actions,
-    className,
-    navScrollMargin = 0,
-    initialCollapse = false,
-    preventCollapse = false,
-  },
-  forwardedRef
-) {
+export function FoldSection({
+  ref: forwardedRef,
+  children,
+  title,
+  sectionKey,
+  actions,
+  className,
+  navScrollMargin = 0,
+  initialCollapse = false,
+  preventCollapse = false,
+}: FoldSectionProps & {
+  ref?: React.Ref<HTMLElement>;
+}) {
   const hasAttemptedScroll = useRef(false);
   const [isCollapsed, setIsCollapsed] = useState(initialCollapse);
 
@@ -148,7 +141,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       <SectionDivider />
     </Fragment>
   );
-});
+}
 
 export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};
