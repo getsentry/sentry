@@ -357,18 +357,20 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
   const [isVisible, setIsVisible] = useState(false);
   const originalAttribute = content.originalAttribute;
-
-  const addFilter = useCallback(() => {
-    if (!originalAttribute) {
-      return;
-    }
-    const newSearch = search.copy();
-    newSearch.addFilterValue(
-      originalAttribute.original_attribute_key,
-      String(content.value)
-    );
-    setLogsSearch(newSearch);
-  }, [originalAttribute, content.value, setLogsSearch, search]);
+  const addSearchFilter = useCallback(
+    ({negated}: {negated?: boolean} = {}) => {
+      if (!originalAttribute) {
+        return;
+      }
+      const newSearch = search.copy();
+      newSearch.addFilterValue(
+        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
+        String(content.value)
+      );
+      setLogsSearch(newSearch);
+    },
+    [originalAttribute, content.value, setLogsSearch, search]
+  );
 
   const addColumn = useCallback(() => {
     if (!originalAttribute) {
@@ -392,7 +394,14 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
       key: 'search-for-value',
       label: t('Search for this value'),
       onAction: () => {
-        addFilter();
+        addSearchFilter();
+      },
+    },
+    {
+      key: 'search-for-negated-value',
+      label: t('Exclude this value'),
+      onAction: () => {
+        addSearchFilter({negated: true});
       },
     },
     {
