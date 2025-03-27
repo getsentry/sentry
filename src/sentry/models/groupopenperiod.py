@@ -1,14 +1,21 @@
 from django.conf import settings
+from django.contrib.postgres.constraints import ExclusionConstraint
+from django.contrib.postgres.fields import DateTimeRangeField, RangeBoundary, RangeOperators
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
+class TsTzRange(models.Func):
+    function = "TSTZRANGE"
+    output_field = DateTimeRangeField()
+
+
 @region_silo_model
-class GroupOpenPeriod(Model):
+class GroupOpenPeriod(DefaultFieldsModel):
     """
     A GroupOpenPeriod is a period of time where a group is considered "open",
     i.e. having a status that is not resolved. This is primarily used for
@@ -34,10 +41,19 @@ class GroupOpenPeriod(Model):
         app_label = "sentry"
         db_table = "sentry_groupopenperiod"
         indexes = (
-            # get all open periods for a group
-            models.Index(fields=["group"]),
             # get all open periods since a certain date
             models.Index(fields=("group", "date_started")),
+        )
+        constraints = (
+            ExclusionConstraint(
+                name="exclude_open_period_overlap",
+                expressions=[
+                    (
+                        TsTzRange("start", "end", RangeBoundary()),
+                        RangeOperators.OVERLAPS,
+                    )
+                ],
+            ),
         )
 
     __repr__ = sane_repr("project_id", "group_id", "date_started", "date_ended", "user_id")
