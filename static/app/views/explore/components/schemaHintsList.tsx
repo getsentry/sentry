@@ -292,7 +292,7 @@ function SchemaHintsList({
     return (
       <SchemaHintsEmptyAlert>
         <IconWarning size="sm" />
-        <div>{t('No schema hints available for these projects')}</div>
+        <span>{t('No schema hints available for these projects')}</span>
       </SchemaHintsEmptyAlert>
     );
   }
