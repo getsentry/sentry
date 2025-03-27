@@ -134,6 +134,7 @@ function VitalsContent(props: Props) {
                     </Button>
                   </FilterActions>
                   <VitalsPanel
+                    theme={theme}
                     organization={organization}
                     location={location}
                     eventView={eventView}

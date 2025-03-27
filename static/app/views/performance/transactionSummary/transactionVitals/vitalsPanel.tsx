@@ -1,4 +1,5 @@
 import {Component, Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import Panel from 'sentry/components/panels/panel';
@@ -12,7 +13,7 @@ import type {VitalGroup} from 'sentry/utils/performance/vitals/types';
 import type {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import {NUM_BUCKETS, VITAL_GROUPS} from './constants';
+import {makeVitalGroups, NUM_BUCKETS} from './constants';
 import VitalCard from './vitalCard';
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   location: Location;
   organization: Organization;
   results: Record<PropertyKey, unknown>;
+  theme: Theme;
   dataFilter?: DataFilter;
 };
 
@@ -154,7 +156,7 @@ class VitalsPanel extends Component<Props> {
     return (
       <Panel>
         <Fragment>
-          {VITAL_GROUPS.map(vitalGroup => (
+          {makeVitalGroups(theme).map(vitalGroup => (
             <Fragment key={vitalGroup.vitals.join('')}>
               {this.renderVitalGroup(vitalGroup, results)}
             </Fragment>
