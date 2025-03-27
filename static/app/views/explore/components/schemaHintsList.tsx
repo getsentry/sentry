@@ -24,7 +24,10 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
-import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+import {
+  getSchemaHintsListOrder,
+  SchemaHintsSources,
+} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
@@ -34,6 +37,7 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   isLoading?: boolean;
+  source?: SchemaHintsSources;
 }
 
 export interface SchemaHintsPageParams {
@@ -75,6 +79,7 @@ function SchemaHintsList({
   isLoading,
   exploreQuery,
   setExploreQuery,
+  source = SchemaHintsSources.EXPLORE,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -89,6 +94,8 @@ function SchemaHintsList({
   const filterTagsSorted = useMemo(() => {
     const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
     filterTags.has = getHasTag({...stringTags});
+
+    const SCHEMA_HINTS_LIST_ORDER_KEYS = getSchemaHintsListOrder(source);
 
     const schemaHintsPresetTags = getTagsFromKeys(
       SCHEMA_HINTS_LIST_ORDER_KEYS,
@@ -106,7 +113,7 @@ function SchemaHintsList({
     const otherTags = getTagsFromKeys(otherKeys, filterTags);
 
     return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
-  }, [numberTags, stringTags, functionTags]);
+  }, [functionTags, numberTags, stringTags, source]);
 
   const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
 
