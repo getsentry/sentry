@@ -67,7 +67,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   useLayoutEffect(() => {
     sizeRef.current = options.initialSize;
     options.onResize(options.initialSize ?? 0, false);
-    // setSize(options.initialSize ?? 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 
@@ -116,6 +115,11 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   );
 
   const onMouseUp = useCallback(() => {
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
     document.body.style.pointerEvents = '';
     document.body.style.userSelect = '';
     document.documentElement.style.cursor = '';
@@ -138,14 +142,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const onDoubleClick = useCallback(() => {
     updateSize(options.initialSize, true);
   }, [updateSize, options.initialSize]);
-
-  useLayoutEffect(() => {
-    return () => {
-      if (rafIdRef.current !== null) {
-        window.cancelAnimationFrame(rafIdRef.current);
-      }
-    };
-  });
 
   return {isHeld, onMouseDown, onDoubleClick, setSize: updateSize};
 }
