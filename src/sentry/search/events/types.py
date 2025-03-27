@@ -200,13 +200,6 @@ class SnubaParams:
         return None
 
     @property
-    def rpc_organization_id(self) -> int:
-        """Helper function so callers don't have to check if either are defined for typing"""
-        if self.organization_id is None:
-            raise InvalidSearchQuery("start is required")
-        return self.organization_id
-
-    @property
     def filter_params(self) -> ParamsType:
         # Compatibility function so we can switch over to this dataclass more easily
         filter_params: ParamsType = {

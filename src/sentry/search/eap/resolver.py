@@ -83,7 +83,7 @@ class SearchResolver:
         if span:
             span.set_tag("SearchResolver.params", self.params)
         return RequestMeta(
-            organization_id=self.params.rpc_organization_id,
+            organization_id=self.params.organization_id,
             referrer=referrer,
             project_ids=self.params.project_ids,
             start_timestamp=self.params.rpc_start_date,
