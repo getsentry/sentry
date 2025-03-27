@@ -17,10 +17,14 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
   size?: IconSize;
 }
 
-export const SvgIcon = forwardRef<
-  SVGSVGElement,
-  SVGIconProps & {kind: 'stroke' | 'path'}
->((props, ref) => {
+interface IconProps extends SVGIconProps {
+  /**
+   * Determines if the icon coloring is done using stroke or fill
+   */
+  kind?: 'stroke' | 'path';
+}
+
+export const SvgIcon = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -39,7 +43,7 @@ export const SvgIcon = forwardRef<
     return (
       <svg
         role="img"
-        viewBox={viewBox}
+        viewBox={'1.25 1.25 14 14'}
         height={size}
         width={size}
         ref={ref}

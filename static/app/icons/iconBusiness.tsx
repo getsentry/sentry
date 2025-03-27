@@ -23,7 +23,7 @@ interface BusinessIconProps extends SVGIconProps {
 }
 
 /**
- * @deprecated Use IconLightning instead
+ * @deprecated Use IconLightning instead, this icon will be removed in new UI.
  */
 const IconBusiness = forwardRef<SVGSVGElement, BusinessIconProps>(
   ({gradient = false, withShine = false, ...props}, ref) => {

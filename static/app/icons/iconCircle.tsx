@@ -4,7 +4,7 @@ import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
 /**
- * @deprecated this icon will be removed in new UI.
+ * @deprecated This icon will be removed in new UI.
  */
 const IconCircle = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
