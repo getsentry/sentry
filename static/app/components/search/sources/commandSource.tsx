@@ -1,15 +1,20 @@
 import {Component} from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
+import type {PlainRoute, WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import withLatestContext from 'sentry/utils/withLatestContext';
 
 import type {ChildProps, ResultItem} from './types';
 
@@ -94,9 +99,37 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
-type Props = {
+async function createCopyDSNAction(api: Client, orgId: string, projectId: string) {
+  const data: ProjectKey[] = await api.requestPromise(
+    `/projects/${orgId}/${projectId}/keys/`
+  );
+
+  return {
+    title: t('Copy Project DSN to Clipboard'),
+    description: t('Copies the Project DSN to the clipboard.'),
+    requiresSuperuser: false,
+    action: () => {
+      if (data[0]?.dsn?.public) {
+        navigator.clipboard.writeText(data[0]?.dsn?.public);
+        addSuccessMessage(t('Copied DSN to clipboard'));
+      } else {
+        addErrorMessage(t('No DSN found for project'));
+      }
+    },
+  };
+}
+
+type Props = WithRouterProps & {
   children: (props: ChildProps) => React.ReactElement;
   isSuperuser: boolean;
+  organization: Organization;
+  /**
+   * params obtained from the current route
+   */
+  params: {
+    orgId: string;
+    projectId?: string;
+  };
   /**
    * search term
    */
@@ -105,6 +138,7 @@ type Props = {
    * Array of routes to search
    */
   searchMap?: PlainRoute[];
+
   /**
    * fuse.js options
    */
@@ -132,13 +166,23 @@ class CommandSource extends Component<Props, State> {
     this.createSearch(ACTIONS);
   }
 
+  api = new Client();
+
   async createSearch(searchMap: Action[]) {
+    const searchActions = [...searchMap];
+    const {orgId, projectId} = this.props.params;
+    if (orgId && projectId) {
+      // only show copy DSN action if we have an org and project in the url
+      const copyDSNAction = await createCopyDSNAction(this.api, orgId, projectId);
+      searchActions.push(copyDSNAction);
+    }
+
     const options = {
       ...this.props.searchOptions,
       keys: ['title', 'description'],
     };
     this.setState({
-      fuzzy: await createFuzzySearch<Action>(searchMap || [], options),
+      fuzzy: await createFuzzySearch<Action>(searchActions, options),
     });
   }
 
@@ -176,5 +220,5 @@ function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
     </Access>
   );
 }
-export default CommandSourceWithFeature;
+export default withLatestContext(CommandSourceWithFeature);
 export {CommandSource};
