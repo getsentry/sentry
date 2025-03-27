@@ -410,6 +410,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -501,6 +502,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
