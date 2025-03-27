@@ -20,7 +20,7 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
   profileDuration: {plural: 'continuous profile hours', singular: 'continuous profile hour'},
-  profileDurationUI: {plural: 'ui profile hours', singular: 'ui profile hour'},
+  profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
 };
 
