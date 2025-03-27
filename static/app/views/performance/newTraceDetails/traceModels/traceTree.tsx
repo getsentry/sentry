@@ -32,6 +32,7 @@ import {
   isEAPTransactionNode,
   isJavascriptSDKEvent,
   isMissingInstrumentationNode,
+  isNonTransactionEAPSpanNode,
   isPageloadTransactionNode,
   isParentAutogroupedNode,
   isRootNode,
@@ -405,8 +406,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       if (isTransactionNode(c) || isEAPSpanNode(c)) {
         let closestEAPTransaction: TraceTreeNode<TraceTree.EAPSpan> | null = null;
 
-        const isNonTransactionEAPSpan = isEAPSpanNode(c) && !isEAPTransactionNode(c);
-        if (isNonTransactionEAPSpan) {
+        if (isNonTransactionEAPSpanNode(c)) {
           closestEAPTransaction = TraceTree.ParentEAPTransaction(c);
         }
 
@@ -415,7 +415,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
           // Propagate errors to the closest EAP transaction for visibility in the initially collapsed
           // eap-transactions only view, on load
-          if (isNonTransactionEAPSpan && closestEAPTransaction) {
+          if (closestEAPTransaction) {
             closestEAPTransaction.errors.add(error);
           }
         }

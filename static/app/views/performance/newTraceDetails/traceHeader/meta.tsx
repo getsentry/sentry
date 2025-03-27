@@ -62,7 +62,7 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceTree.TraceIssue[] = [];
+    const unique: TraceTree.TraceErrorIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {

@@ -20,6 +20,7 @@ import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/newTraceDetai
 import {
   isEAPSpanNode,
   isEAPTransactionNode,
+  isNonTransactionEAPSpanNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
@@ -223,7 +224,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     // the error may have been attributed to, otherwise we look at the transaction.
     const node =
       nodes?.find(n => isTraceErrorNode(n)) ||
-      nodes?.find(n => isSpanNode(n) || (isEAPSpanNode(n) && !isEAPTransactionNode(n))) ||
+      nodes?.find(n => isSpanNode(n) || isNonTransactionEAPSpanNode(n)) ||
       nodes?.find(n => isTransactionNode(n) || isEAPTransactionNode(n));
 
     const index = node ? props.tree.list.indexOf(node) : -1;

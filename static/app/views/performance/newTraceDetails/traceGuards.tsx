@@ -39,6 +39,12 @@ export function isEAPSpanNode(
   return !!(node.value && 'is_transaction' in node.value);
 }
 
+export function isNonTransactionEAPSpanNode(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): node is TraceTreeNode<TraceTree.EAPSpan> {
+  return isEAPSpanNode(node) && !isEAPTransactionNode(node);
+}
+
 export function isTransactionNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.Transaction> {
@@ -54,7 +60,7 @@ export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPEr
     value &&
     'event_type' in value &&
     value.event_type === 'error' &&
-    !('message' in value) // a bit gross but we will be removing the legacy error type soon which is close to
+    !('message' in value) // a bit gross, but we won't need this soon as we remove the legacy error type
   );
 }
 
