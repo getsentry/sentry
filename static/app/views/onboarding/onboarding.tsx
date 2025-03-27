@@ -64,7 +64,7 @@ export const onboardingSteps: StepDescriptor[] = [
 function Onboarding(props: Props) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const selectedProjectSlug = onboardingContext.selectedSDK?.key;
+  const selectedProjectSlug = onboardingContext.selectedPlatform?.key;
 
   const {
     params: {step: stepId},
@@ -97,7 +97,7 @@ function Onboarding(props: Props) {
     if (
       props.location.pathname === `/onboarding/${onboardingSteps[2]!.id}/` &&
       props.location.query?.platform &&
-      onboardingContext.selectedSDK === undefined
+      onboardingContext.selectedPlatform === undefined
     ) {
       const platformKey = Object.keys(platforms).find(
         // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
@@ -120,7 +120,7 @@ function Onboarding(props: Props) {
           return category.platforms?.has(platform.id);
         })?.id ?? 'all';
 
-      onboardingContext.setSelectedSDK({
+      onboardingContext.setSelectedPlatform({
         key: props.location.query.platform,
         category: frameworkCategory,
         language: platform.language,
@@ -211,7 +211,7 @@ function Onboarding(props: Props) {
             organization,
             source,
           });
-          onboardingContext.setSelectedSDK(undefined);
+          onboardingContext.setSelectedPlatform(undefined);
           activateSidebar({
             userClicked: false,
             source: `targeted_onboarding_select_platform_skip`,

@@ -43,8 +43,8 @@ export function PlatformSelection(props: StepProps) {
           noAutoFilter
           visibleSelection={false}
           source="targeted-onboarding"
-          platform={onboardingContext.selectedSDK?.key}
-          defaultCategory={onboardingContext.selectedSDK?.category}
+          platform={onboardingContext.selectedPlatform?.key}
+          defaultCategory={onboardingContext.selectedPlatform?.category}
           setPlatform={platform => {
             const selectedSDK = platform
               ? {...omit(platform, 'id'), key: platform.id}

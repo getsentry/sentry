@@ -48,7 +48,7 @@ export function useConfigureSdk({
         : selectedPlatform;
 
       if (!createProjectForPlatform) {
-        onboardingContext.setSelectedSDK(selectedPlatform);
+        onboardingContext.setSelectedPlatform(selectedPlatform);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -75,7 +75,7 @@ export function useConfigureSdk({
 
         ProjectsStore.onCreateSuccess(response, organization.slug);
 
-        onboardingContext.setSelectedSDK(createProjectForPlatform);
+        onboardingContext.setSelectedPlatform(createProjectForPlatform);
 
         trackAnalytics('growth.onboarding_set_up_your_project', {
           platform: selectedPlatform.key,
@@ -132,7 +132,7 @@ export function useConfigureSdk({
               platform: selectedPlatform.key,
               organization,
             });
-            onboardingContext.setSelectedSDK(undefined);
+            onboardingContext.setSelectedPlatform(undefined);
           },
         }
       );

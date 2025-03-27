@@ -40,7 +40,7 @@ export function useBackActions({
       return;
     }
 
-    onboardingContext.setSelectedSDK(undefined);
+    onboardingContext.setSelectedPlatform(undefined);
 
     try {
       await removeProject({
@@ -90,7 +90,7 @@ export function useBackActions({
 
       // from selected platform to welcome
       if (currentStep.id === 'select-platform') {
-        onboardingContext.setSelectedSDK(undefined);
+        onboardingContext.setSelectedPlatform(undefined);
 
         if (!browserBackButton) {
           goToStep(prevStep);

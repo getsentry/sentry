@@ -61,9 +61,9 @@ function TargetedOnboardingWelcome(props: StepProps) {
       source,
     });
 
-    if (onboardingContext.selectedSDK) {
+    if (onboardingContext.selectedPlatform) {
       // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
-      onboardingContext.setSelectedSDK(undefined);
+      onboardingContext.setSelectedPlatform(undefined);
     }
   }, [organization, onboardingContext]);
 

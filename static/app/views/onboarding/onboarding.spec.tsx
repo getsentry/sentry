@@ -125,7 +125,7 @@ describe('Onboarding', function () {
     render(
       <OnboardingContextProvider
         value={{
-          selectedSDK: {
+          selectedPlatform: {
             key: nextJsProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
@@ -196,7 +196,7 @@ describe('Onboarding', function () {
     render(
       <OnboardingContextProvider
         value={{
-          selectedSDK: {
+          selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
@@ -308,7 +308,7 @@ describe('Onboarding', function () {
     render(
       <OnboardingContextProvider
         value={{
-          selectedSDK: {
+          selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',

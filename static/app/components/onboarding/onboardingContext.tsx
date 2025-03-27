@@ -4,16 +4,16 @@ import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 export type OnboardingContextProps = {
-  setSelectedSDK: (selectedSDK?: OnboardingSelectedSDK) => void;
-  selectedSDK?: OnboardingSelectedSDK;
+  setSelectedPlatform: (selectedSDK?: OnboardingSelectedSDK) => void;
+  selectedPlatform?: OnboardingSelectedSDK;
 };
 
 /**
  * Prefer using `useOnboardingContext` hook instead of directly using this context.
  */
 export const OnboardingContext = createContext<OnboardingContextProps>({
-  selectedSDK: undefined,
-  setSelectedSDK: () => {},
+  selectedPlatform: undefined,
+  setSelectedPlatform: () => {},
 });
 
 type ProviderProps = {
@@ -21,23 +21,26 @@ type ProviderProps = {
   /**
    * This is only used in our frontend tests to set the initial value of the context.
    */
-  value?: Pick<OnboardingContextProps, 'selectedSDK'>;
+  value?: Pick<OnboardingContextProps, 'selectedPlatform'>;
 };
 
 export function OnboardingContextProvider({children, value}: ProviderProps) {
   const [onboarding, setOnboarding, removeOnboarding] = useSessionStorage<
-    NonNullable<Pick<OnboardingContextProps, 'selectedSDK'>> | undefined
-  >('onboarding', value?.selectedSDK ? {selectedSDK: value.selectedSDK} : undefined);
+    NonNullable<Pick<OnboardingContextProps, 'selectedPlatform'>> | undefined
+  >(
+    'onboarding',
+    value?.selectedPlatform ? {selectedPlatform: value.selectedPlatform} : undefined
+  );
 
   const contextValue = useMemo(
     () => ({
-      selectedSDK: onboarding?.selectedSDK,
-      setSelectedSDK: (selectedSDK?: OnboardingSelectedSDK) => {
-        // If SDK is undefined, remove the item from session storage
-        if (selectedSDK === undefined) {
+      selectePlatform: onboarding?.selectedPlatform,
+      setSelectedPlatform: (selectedPlatform?: OnboardingSelectedSDK) => {
+        // If platform is undefined, remove the item from session storage
+        if (selectedPlatform === undefined) {
           removeOnboarding();
         } else {
-          setOnboarding({selectedSDK});
+          setOnboarding({selectedPlatform});
         }
       },
     }),
