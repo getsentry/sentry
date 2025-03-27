@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 
 from django.db import models
 
@@ -38,6 +38,9 @@ class DataConditionGroup(DefaultFieldsModel):
         max_length=200, choices=[(t.value, t.value) for t in Type], default=Type.ANY
     )
     organization = models.ForeignKey("sentry.Organization", on_delete=models.CASCADE)
+
+    def get_audit_log_data(self) -> dict[str, Any]:
+        return {"id": self.id}
 
 
 def get_slow_conditions(dcg: DataConditionGroup) -> list[DataCondition]:
