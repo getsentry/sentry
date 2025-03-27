@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0849_add_group_open_periods
+sentry: 0852_delete_new_groups_column
 
 social_auth: 0002_default_auto_field
 

@@ -47,6 +47,7 @@ import {
   hasContextSource,
   hasContextVars,
   isExpandable,
+  isPotentiallyThirdPartyFrame,
 } from './utils';
 
 const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
@@ -371,6 +372,7 @@ export class DeprecatedLine extends Component<Props, State> {
                   platform={this.props.platform ?? 'other'}
                   isHoverPreviewed={isHoverPreviewed}
                   meta={this.props.frameMeta}
+                  isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
                 />
               </div>
             </LeftLineTitle>

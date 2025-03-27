@@ -84,11 +84,11 @@ function OrganizationMembersList() {
   );
   const {data: currentMember} = useApiQuery<Member>(
     [`/organizations/${organization.slug}/members/me/`],
-    {staleTime: 0}
+    {staleTime: 30000}
   );
   const {
     data: members = [],
-    isLoading: isLoadingMembers,
+    isPending: isPendingMembers,
     refetch: refetchMembers,
     getResponseHeader,
   } = useApiQuery<Member[]>(
@@ -101,6 +101,19 @@ function OrganizationMembersList() {
     }),
     {staleTime: 0}
   );
+  const {data: activeOwnerMembers = [], isPending: isPendingOwners} = useApiQuery<
+    Member[]
+  >(
+    getMembersQueryKey({
+      orgSlug: organization.slug,
+      // Ignore search queries since this isn't displayed, it's okay not to paginate.
+      // This is only used to determine if the current user is the only owner.
+      // We also filter out active invites, so only active users are included.
+      query: {query: 'role:owner isInvited:false'},
+    }),
+    {staleTime: 30000}
+  );
+
   const [invited, setInvited] = useState<{
     [memberId: string]: 'loading' | 'success' | null;
   }>({});
@@ -266,10 +279,7 @@ function OrganizationMembersList() {
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
-  const isOnlyOwner = !members.find(
-    ({role, email, pending}) =>
-      role === 'owner' && email !== currentUser.email && !pending
-  );
+  const isOnlyOwner = !activeOwnerMembers.some(({email}) => email !== currentUser.email);
 
   // Only admins/owners can remove members
   const requireLink = !!authProvider && authProvider.require_link;
@@ -359,7 +369,7 @@ function OrganizationMembersList() {
       <Panel data-test-id="org-member-list">
         <MemberListHeader members={membersToShow} organization={organization} />
         <PanelBody>
-          {isLoadingMembers ? (
+          {isPendingMembers || isPendingOwners ? (
             <LoadingIndicator />
           ) : (
             <Fragment>

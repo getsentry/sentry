@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOption} from 'sentry/components/compactSelect/types';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
@@ -42,6 +42,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   FlamegraphProvider,
   useFlamegraph,
@@ -363,6 +364,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const {view} = useDomainViewFilters();
 
   const sortValue = useMemo(() => {
     const rawSort = decodeScalar(location.query[PROFILES_SORT]);
@@ -478,6 +480,7 @@ function ProfileList({query: userQuery, transaction}: TransactionProfilesContent
               organization,
               transactionName: transaction,
               source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+              view,
             });
 
             const profileTarget = generateProfileLink()(

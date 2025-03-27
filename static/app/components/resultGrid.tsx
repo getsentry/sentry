@@ -2,7 +2,7 @@ import {Component} from 'react';
 import type {Location} from 'history';
 
 import type {Client, RequestOptions} from 'sentry/api';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Pagination from 'sentry/components/pagination';
 import {IconSearch} from 'sentry/icons';
 import {browserHistory} from 'sentry/utils/browserHistory';

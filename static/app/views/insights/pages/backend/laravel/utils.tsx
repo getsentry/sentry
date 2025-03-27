@@ -20,5 +20,6 @@ export function usePageFilterChartParams({
     ...normalizedDateTime,
     interval: getInterval(selection.datetime, granularity),
     project: selection.projects,
+    environment: selection.environments,
   };
 }

@@ -43,7 +43,7 @@ function TrialAlert({organization, subscription}: Props) {
 
   const oxfordCategories = listDisplayNames({
     plan: subscription.planDetails,
-    categories: subscription.planDetails.checkoutCategories,
+    categories: subscription.planDetails.categories,
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 

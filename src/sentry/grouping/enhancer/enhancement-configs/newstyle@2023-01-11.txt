@@ -34,17 +34,20 @@ family:native path:/usr/local/lib/**                                 -app
 family:native path:/usr/local/Cellar/**                              -app
 family:native package:linux-gate.so*                                 -app
 
-# rust common modules
+# rust common modules/functions
 family:native function:std::*                                     -app
 family:native function:core::*                                    -app
 family:native function:alloc::*                                   -app
 family:native function:__rust_*                                   -app
+family:native function:rust_begin_unwind                          -app
 
 # rust borders
 family:native function:std::panicking::begin_panic                ^-group -group ^-app -app
 family:native function:core::panicking::begin_panic               ^-group -group ^-app -app
 family:native function:failure::backtrace::Backtrace::new         ^-group -group ^-app -app
 family:native function:error_chain::make_backtrace                ^-group -group ^-app -app
+family:native function:std::panicking::panic_fmt                  ^-app -app
+family:native function:core::panicking::panic_fmt                 ^-app -app
 
 # C++ borders
 family:native function:_CxxThrowException                         ^-group -group ^-app -app

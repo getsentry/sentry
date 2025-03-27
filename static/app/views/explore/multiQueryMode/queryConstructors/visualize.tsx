@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -25,7 +25,7 @@ type Props = {
 };
 
 export function VisualizeSection({query, index}: Props) {
-  const parsedFunction = query.yAxes.map(parseFunction).filter(defined)[0];
+  const parsedFunction = query.yAxes.map(parseFunction).find(defined);
 
   const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     yAxes: query.yAxes,

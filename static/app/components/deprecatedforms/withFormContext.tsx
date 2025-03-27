@@ -23,7 +23,7 @@ export default function withFormContext<P extends InjectedFormContextProps>(
 
     const allProps = {formContext, ...props} as P;
 
-    return <WrappedComponent {...(allProps as P as any)} />;
+    return <WrappedComponent {...(allProps as any)} />;
   }
 
   Wrapper.displayName = `withFormContext(${getDisplayName(WrappedComponent)})`;
