@@ -13,10 +13,8 @@ class AlertRuleWorkflow(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
-    rule = FlexibleForeignKey("sentry.Rule", null=True)
-    secretly_not_the_alert_rule_id = models.IntegerField(null=True)
-    secretly_not_the_rule_id = models.IntegerField(null=True)
+    alert_rule = models.IntegerField(null=True)
+    rule = models.IntegerField(null=True)
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
 
     class Meta:

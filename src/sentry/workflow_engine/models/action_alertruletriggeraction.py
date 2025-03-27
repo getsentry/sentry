@@ -13,5 +13,4 @@ class ActionAlertRuleTriggerAction(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     action = FlexibleForeignKey("workflow_engine.Action")
-    alert_rule_trigger_action = FlexibleForeignKey("sentry.AlertRuleTriggerAction")
-    secretly_not_the_alert_rule_trigger_action_id = models.IntegerField(null=True)
+    alert_rule_trigger_action = models.IntegerField(null=True)
