@@ -598,7 +598,7 @@ function renderMocks(
 ) {
   // We mock the useOrganization hook here instead on the top level because we call renderMocks explicitly with different orgs
   // TODO(ogi): find a better way to do this
-  jest.spyOn(useOrganization, 'default').mockReturnValue(organization as Organization);
+  jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/`,
@@ -2108,7 +2108,7 @@ describe('Customer Details', function () {
       );
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
         method: 'POST',
         body: {},
       });
@@ -2117,12 +2117,11 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/test-vercel-api/`,
+          `/_admin/${organization.slug}/test-vercel-api/`,
           expect.objectContaining({
             method: 'POST',
             data: {
               extra: null,
-              organization_id: Number(subscription.id),
               vercel_endpoint: 'submit_billing_data',
             },
           })
@@ -2188,7 +2187,7 @@ describe('Customer Details', function () {
       );
 
       const apiMock = MockApiClient.addMockResponse({
-        url: `/_admin/test-vercel-api/`,
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
         method: 'POST',
         body: {},
       });
@@ -2197,13 +2196,88 @@ describe('Customer Details', function () {
 
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
-          `/_admin/test-vercel-api/`,
+          `/_admin/${organization.slug}/test-vercel-api/`,
           expect.objectContaining({
             method: 'POST',
             data: {
               extra: 'paid',
-              organization_id: Number(subscription.id),
               vercel_endpoint: 'submit_invoice',
+            },
+          })
+        )
+      );
+    });
+
+    it('calls api with extra data for refund', async function () {
+      organization.features.push('vc-marketplace-active-customer');
+      const subscription = SubscriptionFixture({
+        organization,
+        isSelfServePartner: true,
+        partner: {
+          externalId: '123',
+          name: 'test',
+          partnership: {
+            id: 'XX',
+            displayName: 'XX',
+            supportNote: '',
+          },
+          isActive: true,
+        },
+      });
+      renderMocks(organization, subscription);
+
+      render(
+        <CustomerDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={router.params}
+          route={{}}
+          params={{orgId: organization.slug}}
+        />
+      );
+
+      await screen.findByRole('heading', {name: 'Customers'});
+
+      await userEvent.click(
+        screen.getAllByRole('button', {
+          name: 'Customers Actions',
+        })[1]!
+      );
+
+      renderGlobalModal();
+
+      await userEvent.click(screen.getByText('Test Vercel API'));
+
+      expect(
+        screen.getByText(
+          'Test Vercel API endpoints for development and debugging purposes.'
+        )
+      ).toBeInTheDocument();
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Vercel Endpoint'}),
+        'refund'
+      );
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Invoice ID'}), '123');
+
+      const apiMock = MockApiClient.addMockResponse({
+        url: `/_admin/${organization.slug}/test-vercel-api/`,
+        method: 'POST',
+        body: {},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
+
+      await waitFor(() =>
+        expect(apiMock).toHaveBeenCalledWith(
+          `/_admin/${organization.slug}/test-vercel-api/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: {
+              extra: '123',
+              vercel_endpoint: 'refund',
             },
           })
         )
@@ -2485,6 +2559,11 @@ describe('Customer Details', function () {
         body: sub,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${sub.slug}/`,
+        body: sub,
+      });
+
       render(
         <CustomerDetails
           router={router}
@@ -2495,6 +2574,7 @@ describe('Customer Details', function () {
           params={{orgId: organization.slug}}
         />
       );
+      renderGlobalModal();
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2504,9 +2584,13 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      renderGlobalModal();
-
       await userEvent.click(screen.getByText('Change Plan'));
+
+      // When clicking on a different tier, it takes time for the plan list to update
+      await waitFor(() => {
+        const radios = document.querySelectorAll('input[type="radio"]');
+        expect(radios.length).toBeGreaterThan(0);
+      });
 
       await userEvent.click(screen.getByTestId('mm2-tier'));
 
@@ -2550,6 +2634,10 @@ describe('Customer Details', function () {
         method: 'PUT',
         body: Subscription,
       });
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${sub.slug}/`,
+        body: sub,
+      });
 
       render(
         <CustomerDetails
@@ -2562,6 +2650,8 @@ describe('Customer Details', function () {
         />
       );
 
+      renderGlobalModal();
+
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
         screen.getAllByRole('button', {
@@ -2569,8 +2659,14 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      await userEvent.click(screen.getAllByText('Change Plan')[0]!);
-      renderGlobalModal();
+      await userEvent.click(screen.getByText('Change Plan'));
+
+      // When clicking on a different tier, it takes time for the plan list to update
+      await waitFor(() => {
+        const radios = document.querySelectorAll('input[type="radio"]');
+        expect(radios.length).toBeGreaterThan(0);
+      });
+
       expect(screen.queryByTestId('am2-tier')).not.toBeInTheDocument();
       expect(
         screen.getByTestId('change-plan-radio-btn-am2_business')
@@ -2601,6 +2697,11 @@ describe('Customer Details', function () {
         body: partnerSubscription,
       });
 
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${sub.slug}/`,
+        body: sub,
+      });
+
       render(
         <CustomerDetails
           router={router}
@@ -2612,6 +2713,8 @@ describe('Customer Details', function () {
         />
       );
 
+      renderGlobalModal();
+
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
         screen.getAllByRole('button', {
@@ -2619,8 +2722,14 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      await userEvent.click(screen.getAllByText('Change Plan')[0]!);
-      renderGlobalModal();
+      await userEvent.click(screen.getByText('Change Plan'));
+
+      // When clicking on a different tier, it takes time for the plan list to update
+      await waitFor(() => {
+        const radios = document.querySelectorAll('input[type="radio"]');
+        expect(radios.length).toBeGreaterThan(0);
+      });
+
       expect(screen.getByTestId('am3-tier')).toBeInTheDocument();
       expect(
         screen.getByTestId('change-plan-radio-btn-am3_business')
@@ -2684,6 +2793,11 @@ describe('Customer Details', function () {
         method: 'PUT',
       });
 
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${organization.slug}/`,
+        body: am1Sub,
+      });
+
       render(
         <CustomerDetails
           router={router}
@@ -2695,6 +2809,8 @@ describe('Customer Details', function () {
         />
       );
 
+      renderGlobalModal();
+
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
         screen.getAllByRole('button', {
@@ -2702,45 +2818,57 @@ describe('Customer Details', function () {
         })[1]!
       );
 
-      await userEvent.click(screen.getAllByText('Change Plan')[0]!);
-      renderGlobalModal();
+      await userEvent.click(screen.getByText('Change Plan'));
+
+      // When clicking on a different tier, it takes time for the plan list to update
+      await waitFor(() => {
+        const radios = document.querySelectorAll('input[type="radio"]');
+        expect(radios.length).toBeGreaterThan(0);
+      });
 
       await userEvent.click(screen.getByTestId('am1-tier'));
-
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
 
-      const inputs = within(screen.getByRole('dialog')).getAllByRole('textbox');
-
       // reservedErrors
-      await userEvent.click(inputs[0]!);
-      await userEvent.click(screen.getByText('100,000'));
+      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
+      await userEvent.click(
+        screen.getByText('100,000', {selector: '[data-test-id="menu-list-item-label"]'})
+      );
 
       // reservedTransactions
-      await userEvent.click(inputs[1]!);
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Transactions'})
+      );
       await userEvent.click(screen.getByText('250,000'));
 
       // reservedReplays
-      await userEvent.click(inputs[2]!);
+      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
       await userEvent.click(screen.getByText('25,000'));
 
       // reservedAttachments
-      await userEvent.click(inputs[3]!);
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
+      );
       await userEvent.click(screen.getByText('25'));
 
       // reservedMonitorSeats
-      await userEvent.click(inputs[4]!);
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Cron monitors'})
+      );
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
 
       // reservedUptime
-      await userEvent.click(inputs[5]!);
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Uptime monitors'})
+      );
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -2758,6 +2886,8 @@ describe('Customer Details', function () {
               reservedAttachments: 25,
               reservedMonitorSeats: 1,
               reservedUptime: 1,
+              reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
             },
           })
         );
@@ -2769,6 +2899,11 @@ describe('Customer Details', function () {
     it('requires am1 reserved volumes to be set', async function () {
       renderMocks(organization, sub);
 
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${organization.slug}/`,
+        body: sub,
+      });
+
       render(
         <CustomerDetails
           router={router}
@@ -2779,6 +2914,7 @@ describe('Customer Details', function () {
           params={{orgId: organization.slug}}
         />
       );
+      renderGlobalModal();
 
       await screen.findByRole('heading', {name: 'Customers'});
 
@@ -2790,7 +2926,11 @@ describe('Customer Details', function () {
 
       await userEvent.click(screen.getByText('Change Plan'));
 
-      renderGlobalModal();
+      // When clicking on a different tier, it takes time for the plan list to update
+      await waitFor(() => {
+        const radios = document.querySelectorAll('input[type="radio"]');
+        expect(radios.length).toBeGreaterThan(0);
+      });
 
       await userEvent.click(screen.getByRole('link', {name: 'AM1'}));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am1_team'));
@@ -2809,6 +2949,10 @@ describe('Customer Details', function () {
       const subscriptionMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/subscription/`,
         method: 'PUT',
+      });
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${organization.slug}/`,
+        body: sub,
       });
 
       render(
@@ -2837,8 +2981,6 @@ describe('Customer Details', function () {
       await userEvent.click(screen.getByTestId('am2-tier'));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am2_team'));
 
-      const inputs = within(screen.getByRole('dialog')).getAllByRole('textbox');
-
       // all plan options show up
       expect(screen.getByTestId('change-plan-radio-btn-am2_team')).toBeInTheDocument();
       expect(
@@ -2855,36 +2997,46 @@ describe('Customer Details', function () {
       ).toBeInTheDocument();
 
       // reservedErrors
-      await userEvent.click(inputs[0]!);
+      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Errors'}));
       await userEvent.click(screen.getByText('100,000'));
 
       // reservedTransactions
-      await userEvent.click(inputs[1]!);
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Performance units'})
+      );
       await userEvent.click(screen.getByText('250,000'));
 
       // reservedReplays
-      await userEvent.click(inputs[2]!);
+      await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Replays'}));
       await userEvent.click(screen.getByText('75,000'));
 
       // reservedAttachments
-      await userEvent.click(inputs[3]!);
-      await userEvent.click(screen.getByText('25'));
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Attachments (GB)'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '25'}));
 
       // reservedMonitorSeats
-      await userEvent.click(inputs[4]!);
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Cron monitors'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
 
       // reservedUptime
-      await userEvent.click(inputs[6]!);
       await userEvent.click(
         screen
           .getAllByText('1')
-          .filter(e => e.getAttribute('data-test-id') === 'menu-list-item-label')[0]!
+          .find(e => e.getAttribute('data-test-id') === 'menu-list-item-label')!
       );
+      await selectEvent.openMenu(
+        await screen.findByRole('textbox', {name: 'Uptime monitors'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: '1'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
 
@@ -2901,6 +3053,8 @@ describe('Customer Details', function () {
               reservedAttachments: 25,
               reservedMonitorSeats: 1,
               reservedUptime: 1,
+              reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
             },
           })
         )
@@ -2919,6 +3073,11 @@ describe('Customer Details', function () {
       const subscriptionMock = MockApiClient.addMockResponse({
         url: `/customers/${organization.slug}/subscription/`,
         method: 'PUT',
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${organization.slug}/`,
+        body: sub,
       });
 
       render(
@@ -2964,12 +3123,6 @@ describe('Customer Details', function () {
       await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
 
-      // reservedProfileDuration
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Profile hours'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '50'}));
-
       // reservedMonitorSeats
       await selectEvent.openMenu(
         await screen.findByRole('textbox', {name: 'Cron monitors'})
@@ -3002,7 +3155,8 @@ describe('Customer Details', function () {
               reservedSpans: 20_000_000,
               reservedMonitorSeats: 1,
               reservedAttachments: 25,
-              reservedProfileDuration: 50,
+              reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
               reservedUptime: 1,
             },
           })
@@ -3039,6 +3193,11 @@ describe('Customer Details', function () {
         method: 'PUT',
       });
 
+      MockApiClient.addMockResponse({
+        url: `/subscriptions/${organization.slug}/`,
+        body: sub,
+      });
+
       render(
         <CustomerDetails
           router={router}
@@ -3061,6 +3220,12 @@ describe('Customer Details', function () {
 
       await userEvent.click(screen.getByText('Change Plan'));
 
+      // When clicking on a different tier, it takes time for the plan list to update
+      await waitFor(() => {
+        const radios = document.querySelectorAll('input[type="radio"]');
+        expect(radios.length).toBeGreaterThan(0);
+      });
+
       await userEvent.click(screen.getByTestId('am3-tier'));
       await userEvent.click(screen.getByTestId('change-plan-radio-btn-am3_team'));
 
@@ -3081,12 +3246,6 @@ describe('Customer Details', function () {
       // reservedSpans
       await selectEvent.openMenu(await screen.findByRole('textbox', {name: 'Spans'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: '20,000,000'}));
-
-      // reservedProfileDuration
-      await selectEvent.openMenu(
-        await screen.findByRole('textbox', {name: 'Profile hours'})
-      );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '0'}));
 
       // reservedMonitorSeats
       await selectEvent.openMenu(
@@ -3121,6 +3280,7 @@ describe('Customer Details', function () {
               reservedMonitorSeats: 1,
               reservedAttachments: 25,
               reservedProfileDuration: 0,
+              reservedProfileDurationUI: 0,
               reservedUptime: 1,
             },
           })

@@ -1,11 +1,13 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {Grid} from 'sentry/components/stories/sideBySide';
 import countryNameToCode from 'sentry/data/countryCodesMap';
 import {t} from 'sentry/locale';
 import storyBook from 'sentry/stories/storyBook';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
+
+import {CompactSelect} from './';
 
 export default storyBook('CompactSelect', story => {
   story('Basics', () => {
@@ -87,17 +89,44 @@ export default storyBook('CompactSelect', story => {
           the props for the trigger.
         </p>
 
-        <CompactSelect
-          triggerProps={{
-            prefix: t('Character'),
-          }}
-          value={values}
-          onChange={handleValueChange}
-          options={options}
-          multiple
-          searchable
-          clearable
-        />
+        <Grid>
+          <CompactSelect
+            size="md"
+            triggerProps={{
+              prefix: t('Character'),
+            }}
+            value={values}
+            onChange={handleValueChange}
+            options={options}
+            multiple
+            searchable
+            clearable
+          />
+          <CompactSelect
+            size="sm"
+            triggerProps={{
+              prefix: t('Character'),
+            }}
+            value={values}
+            onChange={handleValueChange}
+            options={options}
+            multiple
+            searchable
+            clearable
+          />
+          <CompactSelect
+            size="xs"
+            triggerProps={{
+              prefix: t('Character'),
+            }}
+            value={values}
+            onChange={handleValueChange}
+            options={options}
+            multiple
+            searchable
+            clearable
+          />
+        </Grid>
       </Fragment>
     );
   });

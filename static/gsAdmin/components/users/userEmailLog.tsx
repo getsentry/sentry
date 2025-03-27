@@ -1,8 +1,8 @@
 import {Component} from 'react';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ConfigStore from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';

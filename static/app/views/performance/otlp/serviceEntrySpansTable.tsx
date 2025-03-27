@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {DropdownOption} from 'sentry/components/discover/transactionsList';
 import {InvestigationRuleCreation} from 'sentry/components/dynamicSampling/investigationRule';
 import GridEditable, {
@@ -371,22 +371,22 @@ function getOTelFilterOptions(): DropdownOption[] {
     {
       sort: {kind: 'asc', field: 'span.duration'},
       value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest Transactions'),
+      label: t('Fastest Service Entry Spans'),
     },
     {
       sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.SLOW,
-      label: t('Slow Transactions (p95)'),
+      label: t('Slow Service Entry Spans (p95)'),
     },
     {
       sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier Transactions (p100)'),
+      label: t('Outlier Service Entry Spans (p100)'),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
       value: TransactionFilterOptions.RECENT,
-      label: t('Recent Transactions'),
+      label: t('Recent Service Entry Spans'),
     },
   ];
 }
