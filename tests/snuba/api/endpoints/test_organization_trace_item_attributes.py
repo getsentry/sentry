@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_trace_item_attributes import SupportedTraceItemType
+from sentry.search.eap.types import SupportedTraceItemType
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -78,7 +78,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert "test.attribute3" in keys
         assert "another.attribute" in keys
         assert "different.attr" in keys
-        assert "sentry.severity_text" in keys
+        assert "log.severity_text" in keys
 
         # With a prefix only match the attributes that start with "tes"
         response = self.do_request(query={"substring_match": "tes"})
@@ -111,7 +111,7 @@ class OrganizationTraceItemAttributesEndpointTest(OrganizationEventsEndpointTest
         assert len(keys) >= 3
         assert "test.attribute1" in keys
         assert "test.attribute2" in keys
-        assert "sentry.severity_text" in keys
+        assert "log.severity_text" in keys
 
 
 class OrganizationTraceItemAttributeValuesEndpointTest(OrganizationEventsEndpointTestBase):
