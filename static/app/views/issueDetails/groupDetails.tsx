@@ -665,7 +665,7 @@ function GroupDetailsContent({
       return;
     }
 
-    if (currentTab === Tab.TAGS) {
+    if (currentTab === Tab.DISTRIBUTIONS) {
       openTagsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
@@ -688,7 +688,7 @@ function GroupDetailsContent({
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
-    Tab.TAGS,
+    Tab.DISTRIBUTIONS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
     Tab.ACTIVITY,

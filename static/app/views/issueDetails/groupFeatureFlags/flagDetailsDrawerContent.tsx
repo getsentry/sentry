@@ -76,7 +76,7 @@ export function FlagDetailsDrawerContent() {
         <LinkButton
           size="sm"
           to={{
-            pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+            pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
             query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
           }}
         >

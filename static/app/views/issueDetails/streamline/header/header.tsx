@@ -40,6 +40,7 @@ import {AttachmentsBadge} from 'sentry/views/issueDetails/streamline/header/atta
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/streamline/header/issueIdBreadcrumb';
 import {ReplayBadge} from 'sentry/views/issueDetails/streamline/header/replayBadge';
 import {UserFeedbackBadge} from 'sentry/views/issueDetails/streamline/header/userFeedbackBadge';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
@@ -139,7 +140,7 @@ export default function StreamlinedGroupHeader({
                 t('Users')
               ) : (
                 <StatLink
-                  to={`${baseUrl}tags/user/${location.search}`}
+                  to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
                   aria-label={t('View affected users')}
                 >
                   {t('Users')}

@@ -87,7 +87,7 @@ describe('GroupHeader', () => {
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 
@@ -206,7 +206,7 @@ describe('GroupHeader', () => {
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 
