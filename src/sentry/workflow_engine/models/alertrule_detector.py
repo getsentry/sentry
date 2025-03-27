@@ -13,21 +13,23 @@ class AlertRuleDetector(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule_id = models.IntegerField(null=True)
-    rule_id = models.IntegerField(null=True)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
+    rule = FlexibleForeignKey("sentry.Rule", null=True)
+    secretly_not_the_alert_rule_id = models.IntegerField(null=True)
+    secretly_not_the_rule_id = models.IntegerField(null=True)
     detector = FlexibleForeignKey("workflow_engine.Detector")
 
     class Meta:
         db_table = "workflow_engine_alertruledetector"
         app_label = "workflow_engine"
         unique_together = (
-            ("detector", "rule_id"),
-            ("detector", "alert_rule_id"),
+            ("detector", "rule"),
+            ("detector", "alert_rule"),
         )
         constraints = [
             CheckConstraint(
-                condition=Q(rule_id__isnull=False, alert_rule_id__isnull=True)
-                | Q(rule_id__isnull=True, alert_rule_id__isnull=False),
+                condition=Q(rule__isnull=False, alert_rule__isnull=True)
+                | Q(rule__isnull=True, alert_rule__isnull=False),
                 name="rule_or_alert_rule_detector",
             ),
         ]
