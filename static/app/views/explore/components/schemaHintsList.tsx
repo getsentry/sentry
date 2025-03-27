@@ -95,20 +95,17 @@ function SchemaHintsList({
     const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
     filterTags.has = getHasTag({...stringTags});
 
-    const SCHEMA_HINTS_LIST_ORDER_KEYS = getSchemaHintsListOrder(source);
+    const schemaHintsListOrder = getSchemaHintsListOrder(source);
 
-    const schemaHintsPresetTags = getTagsFromKeys(
-      SCHEMA_HINTS_LIST_ORDER_KEYS,
-      filterTags
-    );
+    const schemaHintsPresetTags = getTagsFromKeys(schemaHintsListOrder, filterTags);
 
     const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(
       section => section.children
-    ).filter(key => !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key));
+    ).filter(key => !schemaHintsListOrder.includes(key));
     const sectionSortedTags = getTagsFromKeys(sectionKeys, filterTags);
 
     const otherKeys = Object.keys(filterTags).filter(
-      key => !sectionKeys.includes(key) && !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key)
+      key => !sectionKeys.includes(key) && !schemaHintsListOrder.includes(key)
     );
     const otherTags = getTagsFromKeys(otherKeys, filterTags);
 
