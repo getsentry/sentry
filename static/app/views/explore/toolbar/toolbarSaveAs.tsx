@@ -125,9 +125,13 @@ export function ToolbarSaveAs() {
       onAction: () => {
         openSaveQueryModal({
           organization,
-          query,
-          groupBys: mode === Mode.AGGREGATE ? groupBys : [],
-          visualizes,
+          queries: [
+            {
+              query,
+              groupBys: mode === Mode.AGGREGATE ? groupBys : [],
+              visualizes,
+            },
+          ],
           saveQuery,
         });
       },

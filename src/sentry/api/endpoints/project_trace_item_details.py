@@ -6,6 +6,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_LOG, RequestMeta
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -51,6 +53,10 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         end_timestamp_proto = ProtoTimestamp()
         end_timestamp_proto.GetCurrentTime()
 
+        trace_id = request.GET.get("trace_id")
+        if not trace_id:
+            raise BadRequest(detail="Missing required query parameter 'trace_id'")
+
         req = TraceItemDetailsRequest(
             item_id=item_id,
             meta=RequestMeta(
@@ -62,6 +68,18 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 end_timestamp=end_timestamp_proto,
                 trace_item_type=trace_item_type,
                 request_id=str(uuid.uuid4()),
+            ),
+            filter=TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(
+                        type=AttributeKey.TYPE_STRING,
+                        name="sentry.trace_id",
+                    ),
+                    op=ComparisonFilter.OP_EQUALS,
+                    value=AttributeValue(
+                        val_str=trace_id,
+                    ),
+                )
             ),
         )
 

@@ -141,7 +141,7 @@ function GlobalModal({onClose}: Props) {
   );
 
   const portal = getModalPortal();
-  const focusTrap = useRef<FocusTrap>();
+  const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
     window.SentryApp.modalFocusTrap = focusTrap;
@@ -284,7 +284,7 @@ const Container = styled('div')`
   overflow-y: auto;
 `;
 
-const Modal = styled(motion.div)`
+const Modal = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   max-width: 100%;
   width: 640px;
   pointer-events: auto;

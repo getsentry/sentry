@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -396,7 +396,7 @@ export function HTTPSamplesPanel() {
                   onHighlight={highlights => {
                     const firstHighlight = highlights[0];
 
-                    if (!firstHighlight) {
+                    if (!firstHighlight || !firstHighlight.dataPoint) {
                       setHighlightedSpanId(undefined);
                       return;
                     }

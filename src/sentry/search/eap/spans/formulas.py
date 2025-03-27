@@ -4,6 +4,7 @@ from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -28,6 +29,7 @@ from sentry.search.eap.columns import (
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
 from sentry.search.eap.utils import literal_validator
+from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 
 
 def get_total_span_count(settings: ResolverSettings) -> Column:
@@ -149,8 +151,7 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
     score_attribute = cast(AttributeKey, args[0])
     ratio_attribute = transform_vital_score_to_ratio([score_attribute])
 
-    # TODO: We should be multiplying by the weight in the formula, but we can't until https://github.com/getsentry/eap-planning/issues/202
-    return Column.BinaryFormula(
+    score_ratio = Column.BinaryFormula(
         left=Column(
             conditional_aggregation=AttributeConditionalAggregation(
                 aggregate=Function.FUNCTION_COUNT,
@@ -172,6 +173,18 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
                 extrapolation_mode=extrapolation_mode,
             )
         ),
+    )
+    web_vital = score_attribute.name.split(".")[-1]
+
+    if web_vital == "total":
+        return score_ratio
+
+    weight = WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[web_vital]
+
+    return Column.BinaryFormula(
+        left=Column(formula=score_ratio),
+        op=Column.BinaryFormula.OP_MULTIPLY,
+        right=Column(literal=LiteralValue(val_double=weight)),
     )
 
 
@@ -377,9 +390,13 @@ def time_spent_percentage(
     )
 
 
-def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the period time"""
+def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
+    interval = settings["query_settings"]["snuba_params"].interval
+    granularity_secs = settings["query_settings"]["granularity_secs"]
+
+    # having a granularity_secs implies that the request is for a time series, and each datapoint should be divided by it
+    divisor = granularity_secs if granularity_secs else interval
 
     return Column.BinaryFormula(
         left=Column(
@@ -391,11 +408,7 @@ def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                extrapolation_mode=extrapolation_mode,
-            )
+            literal=LiteralValue(val_double=divisor / 60),
         ),
     )
 
@@ -522,7 +535,7 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
     ),
-    "spm": FormulaDefinition(
-        default_search_type="percentage", arguments=[], formula_resolver=spm, is_aggregate=True
+    "epm": FormulaDefinition(
+        default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
     ),
 }
