@@ -22,11 +22,17 @@ class BufferTest(TestCase):
 
     @mock.patch("sentry.buffer.base.process_incr")
     def test_incr_delays_task(self, process_incr):
-        model = mock.Mock()
+        model = Group
         columns = {"times_seen": 1}
         filters: dict[str, BufferField] = {"id": 1}
         self.buf.incr(model, columns, filters)
-        kwargs = dict(model=model, columns=columns, filters=filters, extra=None, signal_only=None)
+        kwargs = dict(
+            model_name="sentry.group",
+            columns=columns,
+            filters=filters,
+            extra=None,
+            signal_only=None,
+        )
         process_incr.apply_async.assert_called_once_with(kwargs=kwargs, headers=mock.ANY)
 
     def test_process_saves_data(self):

@@ -70,7 +70,21 @@ def process_incr(
     """
     from sentry import buffer
 
-    if not model and model_name:
+    if model:
+        # Using model parameter in the celery task is deprecated
+        # as we're trying to eliminate parameters that require pickle
+        logger.info(
+            "process_incr.model_kwarg",
+            extra={
+                "model": model,
+                "columns": columns,
+                "filters": filters,
+                "extra": extra,
+                "signal_only": signal_only,
+            },
+        )
+
+    if model_name:
         assert "." in model_name, "model_name must be in form `sentry.Group`"
         model = apps.get_model(model_name)
 

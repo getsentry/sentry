@@ -123,7 +123,7 @@ class Buffer(Service):
         """
         process_incr.apply_async(
             kwargs={
-                "model": model,
+                "model_name": f"{model._meta.app_label}.{model._meta.model_name}",
                 "columns": columns,
                 "filters": filters,
                 "extra": extra,
