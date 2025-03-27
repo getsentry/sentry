@@ -15,6 +15,7 @@ ONE_DAY = ONE_HOUR * 24
 
 TSDBKey = TypeVar("TSDBKey", str, int)
 TSDBItem = TypeVar("TSDBItem", str, int)
+SnubaCondition = tuple[str, str, Any]
 
 
 class IncrMultiOptions(TypedDict):
@@ -446,7 +447,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[tuple[str, str, Any]] | None = None,
+        conditions: list[SnubaCondition] | None = None,
     ) -> dict[int, int]:
         range_set = self.get_range(
             model,
@@ -546,7 +547,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[tuple[str, str, Any]] | None = None,
+        conditions: list[SnubaCondition] | None = None,
     ) -> dict[int, Any]:
         """
         Count distinct items during a time range with optional conditions

@@ -25,14 +25,13 @@ from sentry.rules.conditions.event_frequency import (
     STANDARD_INTERVALS,
 )
 from sentry.rules.match import MatchType
-from sentry.tsdb.base import TSDBModel
+from sentry.tsdb.base import SnubaCondition, TSDBModel
 from sentry.utils.iterators import chunked
 from sentry.utils.registry import Registry
 from sentry.utils.snuba import options_override
 from sentry.workflow_engine.models.data_condition import Condition
 
 QueryFilter = dict[str, Any]
-SnubaCondition = tuple[str, str, Any]
 
 
 class TSDBFunction(Protocol):
