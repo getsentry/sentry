@@ -771,7 +771,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             assert event.data["metadata"]["in_app_frame_mix"] == "system-only"
             assert len(event.data["hashes"]) == 1  # Only system hash
             system_only_hash = event.data["hashes"][0]
-            first_enhancements_hash = event.data["grouping_config"]["enhancements"]
+            first_enhancements_base64_string = event.data["grouping_config"]["enhancements"]
             group_id = event.group_id
 
             # Running a second time will not create any new configurations, however,
@@ -783,7 +783,7 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             assert event.data["metadata"]["in_app_frame_mix"] == "mixed"
             second_enhancements_hash = event.data["grouping_config"]["enhancements"]
             # The enhancements now contain the automatic rule (+app)
-            assert second_enhancements_hash != first_enhancements_hash
+            assert second_enhancements_hash != first_enhancements_base64_string
             assert len(event.data["hashes"]) == 2
             event.data["hashes"].remove(system_only_hash)
             in_app_hash = event.data["hashes"][0]
@@ -799,5 +799,5 @@ class TestJavaDeriveCodeMappings(LanguageSpecificDeriveCodeMappings):
             assert event.group_id == group_id  # It still belongs to the same group
             assert event.data["hashes"] == [system_only_hash]
             # The enhancements now contain the automatic rule (+app) and the developer's rule (-app)
-            assert event.data["grouping_config"]["enhancements"] != first_enhancements_hash
+            assert event.data["grouping_config"]["enhancements"] != first_enhancements_base64_string
             assert event.data["grouping_config"]["enhancements"] != second_enhancements_hash
