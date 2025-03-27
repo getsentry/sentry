@@ -170,6 +170,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.demo_click_get_started': 'Growth: Demo Click Get Started',
   'growth.demo_click_docs': 'Growth: Demo Click Docs',
   'growth.demo_click_request_demo': 'Growth: Demo Click Request Demo',
+  'growth.demo_email_submitted': 'Sandbox: Demo Email Submitted',
   'growth.clicked_sidebar': 'Growth: Clicked Sidebar',
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
