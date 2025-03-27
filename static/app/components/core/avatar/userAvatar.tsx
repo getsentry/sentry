@@ -1,3 +1,5 @@
+import type React from 'react';
+
 import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Actor} from 'sentry/types/core';
 import type {AvatarUser} from 'sentry/types/user';
@@ -23,7 +25,7 @@ export function UserAvatar({
   user,
   ...props
 }: UserAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }) {
   if (!user) {
     // @TODO(jonasbadalic): Do we need a placeholder here?

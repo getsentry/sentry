@@ -1,3 +1,5 @@
+import type React from 'react';
+
 import {BaseAvatar, type BaseAvatarProps} from 'sentry/components/core/avatar/baseAvatar';
 import type {Team} from 'sentry/types/organization';
 import {explodeSlug} from 'sentry/utils';
@@ -12,7 +14,7 @@ export function TeamAvatar({
   tooltip: tooltipProp,
   ...props
 }: TeamAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }) {
   if (!team) {
     // @TODO(jonasbadalic): Do we need a placeholder here?

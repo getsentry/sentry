@@ -1,3 +1,4 @@
+import type React from 'react';
 import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
@@ -20,7 +21,7 @@ export function ActorAvatar({
   actor,
   ...props
 }: ActorAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }) {
   const otherProps = {
     size,
@@ -57,7 +58,7 @@ function AsyncTeamAvatar({
   teamId,
   ...props
 }: AsyncTeamAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }) {
   const {teams, isLoading} = useTeamsById({ids: [teamId]});
   const team = teams.find(t => t.id === teamId);
@@ -82,7 +83,7 @@ function AsyncMemberAvatar({
   userActor,
   ...props
 }: AsyncMemberAvatarProps & {
-  ref?: React.Ref<HTMLSpanElement>;
+  ref?: React.Ref<HTMLSpanElement | SVGSVGElement | HTMLImageElement>;
 }) {
   const ids = useMemo(() => [userActor.id], [userActor.id]);
   const {members, fetching} = useMembers({ids});
