@@ -63,6 +63,10 @@ export default function useDetailsSplit({
     },
   });
 
+  const onDoubleClick = useCallback(() => {
+    setContainerSize(initialSize);
+  }, [initialSize]);
+
   const maxContainerHeight =
     (containerRef.current?.clientHeight || window.innerHeight) - handleHeight;
   const splitSize =
@@ -71,7 +75,11 @@ export default function useDetailsSplit({
   return {
     onClickCell,
     onCloseDetailsSplit,
-    resizableDrawerProps,
+    onDoubleClick,
+    resizableDrawerProps: {
+      ...resizableDrawerProps,
+      onDoubleClick,
+    },
     selectedIndex: getDetailIndex(),
     splitSize,
   };
