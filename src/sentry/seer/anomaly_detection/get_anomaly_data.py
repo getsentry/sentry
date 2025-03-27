@@ -59,7 +59,7 @@ def get_anomaly_data_from_seer(
         logger.info("Missing anomaly detection rule data", extra=extra_data)
         return None
 
-    if aggregation_value is None:
+    if not aggregation_value:
         metrics.incr("anomaly_detection.aggregation_value.none")
         logger.warning("Aggregation value is none", extra=extra_data)
         aggregation_value = 0
@@ -80,11 +80,11 @@ def get_anomaly_data_from_seer(
         config=anomaly_detection_config,
         context=context,
     )
+    data = json.dumps(detect_anomalies_request).encode("utf-8")
+    update_log_data = extra_data.copy()
+    update_log_data["data"] = data
+    logger.info("Sending subscription update data to Seer", extra=update_log_data)
     try:
-        data = json.dumps(detect_anomalies_request).encode("utf-8")
-        update_log_data = extra_data.copy()
-        update_log_data["data"] = data
-        logger.info("Sending subscription update data to Seer", extra=update_log_data)
         response = make_signed_seer_api_request(
             SEER_ANOMALY_DETECTION_CONNECTION_POOL,
             SEER_ANOMALY_DETECTION_ENDPOINT_URL,

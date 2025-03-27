@@ -22,6 +22,7 @@ from sentry.integrations.messaging.message_builder import (
     build_attachment_text,
     build_attachment_title,
 )
+from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
@@ -32,7 +33,6 @@ from sentry.integrations.slack.message_builder.issues import (
     get_tags,
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.integrations.slack.message_builder.types import LEVEL_TO_COLOR
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
     FeedbackGroup,

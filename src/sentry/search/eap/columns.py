@@ -28,6 +28,7 @@ ResolvedArguments: TypeAlias = list[ResolvedArgument]
 
 class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
+    snuba_params: SnubaParams
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -244,6 +245,7 @@ class FunctionDefinition:
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -262,6 +264,7 @@ class AggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -307,6 +310,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedConditionalAggregate:
         key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -331,26 +335,26 @@ class FormulaDefinition(FunctionDefinition):
     def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
-    @property
-    def resolver_settings(self) -> ResolverSettings:
-        return ResolverSettings(
-            extrapolation_mode=(
-                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
-                if self.extrapolation
-                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
-            )
-        )
-
     def resolve(
         self,
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula:
+        resolver_settings = ResolverSettings(
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+            snuba_params=snuba_params,
+        )
+
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_arguments, self.resolver_settings),
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,

@@ -64,9 +64,9 @@ const EMPTY_STAT_TOTAL = {
 };
 
 const COLORS = {
-  reserved: CHART_PALETTE[5]![0]!,
-  ondemand: CHART_PALETTE[5]![1]!,
-  secondary_reserved: CHART_PALETTE[5]![2]!,
+  reserved: CHART_PALETTE[5][0],
+  ondemand: CHART_PALETTE[5][1],
+  secondary_reserved: CHART_PALETTE[5][2],
 } as const;
 
 function getPercentage(quantity: number, total: number | null) {
@@ -498,7 +498,7 @@ function UsageTotals({
     : totals;
 
   return (
-    <SubscriptionCard>
+    <SubscriptionCard data-test-id={`usage-card-${category}`}>
       <CardBody>
         <UsageProgress>
           <BaseRow>
@@ -553,7 +553,7 @@ function UsageTotals({
               )}
               {!disableTable && (
                 <Button
-                  data-test-id="expand-usage-totals"
+                  data-test-id={`expand-usage-totals-${category}`}
                   size="sm"
                   onClick={() => setState({...state, expanded: !state.expanded})}
                   icon={<IconChevron direction={state.expanded ? 'up' : 'down'} />}
@@ -836,6 +836,7 @@ function UsageTotals({
                   category={key}
                   totals={eventTotal}
                   subscription={subscription}
+                  data-test-id={`event-breakdown-${key}`}
                 />
               );
             })}
