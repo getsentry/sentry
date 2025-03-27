@@ -373,9 +373,6 @@ def time_spent_percentage(
 
     attribute = cast(AttributeKey, args[0])
 
-    if snuba_params.organization_id is None:
-        raise Exception("An organization is required to resolve queries")
-
     rpc_request = TraceItemTableRequest(
         columns=[
             Column(
