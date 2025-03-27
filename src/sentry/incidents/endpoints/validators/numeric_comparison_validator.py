@@ -8,6 +8,10 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class NumericComparisonConditionValidator(BaseDataConditionValidator):
+    type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
+    comparison = serializers.JSONField(required=True)
+    condition_result = serializers.JSONField(required=True)
+
     @property
     def supported_conditions(self) -> frozenset[Condition]:
         raise NotImplementedError
@@ -16,7 +20,7 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
     def supported_condition_results(self) -> frozenset[DetectorPriorityLevel]:
         raise NotImplementedError
 
-    def validate_comparison(self, value) -> float:
+    def validate_comparison(self, value: float | int | str) -> float:
         try:
             value = float(value)
         except ValueError:
@@ -32,6 +36,7 @@ class NumericComparisonConditionValidator(BaseDataConditionValidator):
 
         if type not in self.supported_conditions:
             raise serializers.ValidationError(f"Unsupported type {value}")
+
         return type
 
     def validate_condition_result(self, value: str) -> DetectorPriorityLevel:
