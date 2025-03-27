@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFilter} from 'sentry/icons';
