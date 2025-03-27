@@ -156,7 +156,9 @@ export interface BaseChartProps {
   colors?:
     | string[]
     | readonly string[]
-    | ((theme: Theme) => string[] | ReturnType<Theme['chart']['getColorPalette']>);
+    | ((
+        theme: Theme
+      ) => string[] | ReturnType<Theme['chart']['getColorPalette']> | undefined);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)

@@ -156,7 +156,7 @@ class VitalsPanel extends Component<Props> {
     return (
       <Panel>
         <Fragment>
-          {makeVitalGroups(theme).map(vitalGroup => (
+          {makeVitalGroups(this.props.theme).map(vitalGroup => (
             <Fragment key={vitalGroup.vitals.join('')}>
               {this.renderVitalGroup(vitalGroup, results)}
             </Fragment>

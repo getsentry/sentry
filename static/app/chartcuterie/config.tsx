@@ -8,7 +8,9 @@
  * into the configuration file loaded by the service.
  */
 
-import {discoverCharts} from './discover';
+import {lightTheme} from 'sentry/utils/theme';
+
+import {makeDiscoverCharts} from './discover';
 import {metricAlertCharts} from './metricAlert';
 import {performanceCharts} from './performance';
 import type {
@@ -37,7 +39,7 @@ const config: ChartcuterieConfig = {
 const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
   renderConfig.set(renderDescriptor.key, renderDescriptor);
 
-discoverCharts.forEach(register);
+makeDiscoverCharts(lightTheme).forEach(register);
 metricAlertCharts.forEach(register);
 performanceCharts.forEach(register);
 

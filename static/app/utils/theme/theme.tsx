@@ -11,7 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {CHART_PALETTE, makeChartColorPalette} from 'sentry/constants/chartPalette';
+import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
 import {DataCategory, Outcome} from 'sentry/types/core';
 
 export const generateThemeAliases = (colors: Colors) => ({
@@ -1091,7 +1091,7 @@ export const lightTheme = {
   stacktraceActiveText: lightColors.white,
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+    getColorPalette: getChartColorPalette,
   },
   prismVariables: generateThemePrismVariables(
     prismLight,
@@ -1137,7 +1137,7 @@ export const darkTheme: typeof lightTheme = {
   stacktraceActiveText: darkColors.white,
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+    getColorPalette: getChartColorPalette,
   },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?

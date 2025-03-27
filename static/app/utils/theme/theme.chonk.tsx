@@ -7,7 +7,7 @@ import styled, {
 import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
-import {CHART_PALETTE, makeChartColorPalette} from 'sentry/constants/chartPalette';
+import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
 import commonTheme, {
   type ColorMapping,
   darkTheme,
@@ -830,7 +830,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+    getColorPalette: getChartColorPalette,
   },
 
   prismVariables: generateThemePrismVariables(
@@ -889,7 +889,7 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
 
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: makeChartColorPalette(CHART_PALETTE),
+    getColorPalette: getChartColorPalette,
   },
 
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
