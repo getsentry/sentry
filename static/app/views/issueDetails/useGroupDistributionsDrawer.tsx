@@ -8,6 +8,9 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributionsDrawer';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+/**
+ * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
+ */
 export function useGroupDistributionsDrawer({
   group,
   includeFeatureFlagsTab,
@@ -29,7 +32,7 @@ export function useGroupDistributionsDrawer({
         />
       ),
       {
-        ariaLabel: t('Tags Drawer'),
+        ariaLabel: t('Distributions Drawer'),
         onClose: () => {
           navigate(
             {
