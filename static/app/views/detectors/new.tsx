@@ -18,7 +18,7 @@ export default function DetectorNew() {
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
           <Button priority="default">{t('Cancel')}</Button>
-          <LinkButton priority="primary" to="/monitors/new/settings">
+          <LinkButton priority="primary" to="/issues/monitors/new/settings">
             {t('Next')}
           </LinkButton>
         </Flex>
