@@ -1,6 +1,5 @@
 import gc
 from datetime import datetime
-from enum import Enum
 from itertools import chain
 from typing import Any
 
@@ -42,8 +41,7 @@ def holds_bad_pickle_object(value, memo=None):
             "Instead pass primary key values to the task and load records from the database within your task.",
         )
     app_module = type(value).__module__
-    ok_class = isinstance(value, Enum)
-    if app_module.startswith(("sentry.", "getsentry.")) and not ok_class:
+    if app_module.startswith(("sentry.", "getsentry.")):
         return value, "do not pickle custom classes"
 
     return None
