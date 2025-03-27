@@ -11,6 +11,7 @@ import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {ChildProps, ResultItem} from './types';
+import {makeResolvedTs} from './utils';
 
 type Action = {
   action: () => void;
@@ -124,8 +125,9 @@ function CommandSource({searchOptions, query, children}: Props) {
 
   useEffect(() => void createSearch(), [createSearch]);
 
-  const results = useMemo(
-    () =>
+  const results = useMemo(() => {
+    const resolvedTs = makeResolvedTs();
+    return (
       fuzzy
         ?.search(query)
         .filter(({item}) => !item.requiresSuperuser || isSuperuser)
@@ -134,11 +136,12 @@ function CommandSource({searchOptions, query, children}: Props) {
             ...item,
             sourceType: 'command',
             resultType: 'command',
+            resolvedTs,
           } as ResultItem,
           ...rest,
-        })) ?? [],
-    [fuzzy, query, isSuperuser]
-  );
+        })) ?? []
+    );
+  }, [fuzzy, query, isSuperuser]);
 
   return children({isLoading: fuzzy === null, results});
 }
