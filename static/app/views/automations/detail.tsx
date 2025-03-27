@@ -110,7 +110,7 @@ function Actions() {
         {t('Disable')}
       </Button>
       <LinkButton
-        to="/issues/automations//edit"
+        to="/issues/automations/edit"
         priority="primary"
         icon={<IconEdit />}
         size="sm"
