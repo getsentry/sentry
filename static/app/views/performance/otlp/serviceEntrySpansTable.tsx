@@ -375,9 +375,8 @@ function getOTelFilterOptions(spanCategory?: string): DropdownOption[] {
     {
       sort: {kind: 'desc', field: 'timestamp'},
       value: TransactionFilterOptions.RECENT,
-      label: spanCategory
-        ? t('Recent %s Service Entry Spans', spanCategory)
-        : t('Recent Service Entry Spans'),
+      // The category does not apply to this option
+      label: t('Recent Service Entry Spans'),
     },
   ];
 }

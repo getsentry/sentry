@@ -55,14 +55,11 @@ export function useServiceEntrySpansQuery({
   // - Then make a second query to fetch the table data for these spans
   // - If no span category is selected, only one query is made to fetch the table data.
 
-  const categorizedSpanQueryFields: EAPSpanProperty[] = ['transaction.span_id'];
-  if (selected.value !== TransactionFilterOptions.RECENT) {
-    categorizedSpanQueryFields.push('sum(span.self_time)');
-  }
-
   const categorizedSpansQuery = new MutableSearch(
     `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
   );
+
+  // The slow (p95) option is the only one that requires an explicit duration filter
   if (selected.value === TransactionFilterOptions.SLOW && p95) {
     categorizedSpansQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
@@ -74,24 +71,26 @@ export function useServiceEntrySpansQuery({
   } = useEAPSpans(
     {
       search: categorizedSpansQuery,
-      fields: categorizedSpanQueryFields,
+      fields: ['transaction.span_id', 'sum(span.self_time)'],
       sorts: [
         {
-          field: `${selected.value === TransactionFilterOptions.RECENT ? 'timestamp' : 'sum(span.self_time)'}`,
+          field: 'sum(span.self_time)',
           kind: sort.kind,
         },
       ],
       limit: LIMIT,
       cursor,
       pageFilters: selection,
-      enabled: Boolean(spanCategoryUrlParam),
+      // This query does not apply when the Recent option is selected
+      enabled: Boolean(
+        spanCategoryUrlParam && selected.value !== TransactionFilterOptions.RECENT
+      ),
     },
     'api.performance.service-entry-spans-table',
     true
   );
 
   const specificSpansQuery = new MutableSearch('');
-
   if (categorizedSpanIds && !isCategorizedSpanIdsLoading) {
     let spanIdsString = categorizedSpanIds
       .map(datum => datum['transaction.span_id'])
@@ -119,21 +118,29 @@ export function useServiceEntrySpansQuery({
     true
   );
 
+  // The recent option disregards span category
+  const finalQuery = new MutableSearch(query);
+  if (selected.value === TransactionFilterOptions.RECENT) {
+    finalQuery.removeFilter('span.category');
+  }
+
   // Default query to fetch table data for spans when no category is selected
   const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
     {
-      search: query,
+      search: finalQuery,
       fields,
       sorts: [sort],
       limit: LIMIT,
       cursor,
       pageFilters: selection,
+      enabled:
+        selected.value === TransactionFilterOptions.RECENT || !spanCategoryUrlParam,
     },
     'api.performance.service-entry-spans-table',
     true
   );
 
-  if (spanCategoryUrlParam) {
+  if (spanCategoryUrlParam && selected.value !== TransactionFilterOptions.RECENT) {
     return {
       data: categorizedSpansData,
       isLoading: isCategorizedSpanIdsLoading || isCategorizedSpansLoading,
