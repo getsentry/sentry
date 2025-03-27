@@ -5,10 +5,10 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
+import {GroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributionsDrawer';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export function useGroupTagsDrawer({
+export function useGroupDistributionsDrawer({
   group,
   includeFeatureFlagsTab,
 }: {
@@ -20,10 +20,13 @@ export function useGroupTagsDrawer({
   const {openDrawer} = useDrawer();
   const {baseUrl} = useGroupDetailsRoute();
 
-  const openTagsDrawer = useCallback(() => {
+  const openDistributionsDrawer = useCallback(() => {
     openDrawer(
       () => (
-        <GroupTagsDrawer group={group} includeFeatureFlagsTab={includeFeatureFlagsTab} />
+        <GroupDistributionsDrawer
+          group={group}
+          includeFeatureFlagsTab={includeFeatureFlagsTab}
+        />
       ),
       {
         ariaLabel: t('Tags Drawer'),
@@ -48,5 +51,5 @@ export function useGroupTagsDrawer({
     );
   }, [location, navigate, openDrawer, group, baseUrl, includeFeatureFlagsTab]);
 
-  return {openTagsDrawer};
+  return {openDistributionsDrawer};
 }

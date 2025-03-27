@@ -52,7 +52,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
@@ -68,6 +67,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/useGroupDistributionsDrawer';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -647,7 +647,7 @@ function GroupDetailsContent({
   const hasFlagsDistributions = organization.features.includes(
     'feature-flag-distribution-flyout'
   );
-  const {openTagsDrawer} = useGroupTagsDrawer({
+  const {openDistributionsDrawer: openTagsDrawer} = useGroupDistributionsDrawer({
     group,
     includeFeatureFlagsTab: hasFlagsDistributions,
   });

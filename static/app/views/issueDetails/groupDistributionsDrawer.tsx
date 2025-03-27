@@ -73,7 +73,10 @@ function getHeaderTitle(
   return includeFeatureFlagsTab ? t('Tags & Feature Flags') : t('All Tags');
 }
 
-export function GroupTagsDrawer({
+/**
+ * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
+ */
+export function GroupDistributionsDrawer({
   group,
   includeFeatureFlagsTab,
 }: {
