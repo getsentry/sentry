@@ -22,11 +22,6 @@ class GroupOpenPeriod(Model):
     resolution_activity = FlexibleForeignKey(
         "sentry.Activity", null=True, on_delete=models.SET_NULL
     )
-    # TODO(snigdha): remove this column once Incident-related enpoints are removed.
-    # This is only to be used in the interrim while we transition to detectors.
-    data_condition = FlexibleForeignKey(
-        "workflow_engine.DataCondition", null=True, on_delete=models.SET_NULL
-    )
 
     # if the user is not set, it's assumed to be the system
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
