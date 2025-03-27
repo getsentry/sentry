@@ -6,7 +6,7 @@ from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.notifications.models.notificationaction import ActionService
-from sentry.workflow_engine.handlers.action.notification.handler import MetricAlertRegistryInvoker
+from sentry.workflow_engine.handlers.action.notification.base import MetricAlertRegistryInvoker
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 
 

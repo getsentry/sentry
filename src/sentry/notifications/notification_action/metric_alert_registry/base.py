@@ -9,15 +9,8 @@ from sentry.incidents.typings.metric_detector import (
     MetricIssueContext,
     NotificationContext,
 )
-from sentry.integrations.opsgenie.utils import (
-    send_incident_alert_notification as send_opsgenie_incident_alert_notification,
-)
-from sentry.integrations.pagerduty.utils import (
-    send_incident_alert_notification as send_pagerduty_incident_alert_notification,
-)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
-from sentry.utils.registry import Registry
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import WorkflowEventData
 
@@ -73,47 +66,3 @@ class BaseMetricAlertHandler(ABC):
                 organization=detector.project.organization,
                 notification_uuid=notification_uuid,
             )
-
-
-metric_alert_handler_registry = Registry[BaseMetricAlertHandler](enable_reverse_lookup=False)
-
-
-@metric_alert_handler_registry.register(Action.Type.PAGERDUTY)
-class PagerDutyMetricAlertHandler(BaseMetricAlertHandler):
-    @classmethod
-    def send_alert(
-        cls,
-        notification_context: NotificationContext,
-        alert_context: AlertContext,
-        metric_issue_context: MetricIssueContext,
-        organization: Organization,
-        notification_uuid: str,
-    ) -> None:
-        send_pagerduty_incident_alert_notification(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            organization=organization,
-            notification_uuid=notification_uuid,
-        )
-
-
-@metric_alert_handler_registry.register(Action.Type.OPSGENIE)
-class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
-    @classmethod
-    def send_alert(
-        cls,
-        notification_context: NotificationContext,
-        alert_context: AlertContext,
-        metric_issue_context: MetricIssueContext,
-        organization: Organization,
-        notification_uuid: str,
-    ) -> None:
-
-        send_opsgenie_incident_alert_notification(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            organization=organization,
-            notification_uuid=notification_uuid,
-        )
