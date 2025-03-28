@@ -12,7 +12,6 @@ from django.http.response import HttpResponseBase
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams import parsing
 from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
@@ -95,12 +94,15 @@ class MsTeamsRequestParser(BaseRequestParser):
                 return self.get_default_missing_integration_response()
 
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist) as err:
+        except Integration.DoesNotExist as err:
             logger.info(
                 "Error in handling",
                 exc_info=err,
                 extra={"request_data": self.request_data},
             )
+            return self.get_default_missing_integration_response()
+
+        if len(regions) == 0:
             return self.get_default_missing_integration_response()
 
         if len(regions) == 0:
