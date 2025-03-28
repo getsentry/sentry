@@ -372,6 +372,15 @@ describe('SearchQueryBuilder', function () {
       );
     });
 
+    it('can add a new filter key by clicking an option in the menu', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(screen.getByRole('option', {name: 'age'}));
+
+      expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+    });
+
     describe('recent filter keys', function () {
       beforeEach(() => {
         MockApiClient.addMockResponse({

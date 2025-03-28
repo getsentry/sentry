@@ -40,7 +40,6 @@ from sentry.search.eap.columns import (
     ColumnDefinitions,
     ConditionalAggregateDefinition,
     FormulaDefinition,
-    QuerySettings,
     ResolvedAggregate,
     ResolvedAttribute,
     ResolvedConditionalAggregate,
@@ -797,13 +796,10 @@ class SearchResolver:
             )
 
         resolved_function = function_definition.resolve(
-            alias,
-            search_type,
-            resolved_arguments,
-            QuerySettings(
-                snuba_params=self.params,
-                granularity_secs=self.granularity_secs,
-            ),
+            alias=alias,
+            search_type=search_type,
+            resolved_arguments=resolved_arguments,
+            snuba_params=self.params,
         )
 
         resolved_context = None

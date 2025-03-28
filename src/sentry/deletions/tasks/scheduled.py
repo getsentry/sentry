@@ -13,10 +13,13 @@ from sentry.deletions.models.scheduleddeletion import (
     RegionScheduledDeletion,
     ScheduledDeletion,
 )
+from sentry.deletions.tasks import deletioncontroltasks, deletiontasks
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.retry import LastAction, Retry
 from sentry.utils.env import in_test_environment
 
 logger = logging.getLogger("sentry.deletions.api")
@@ -30,6 +33,7 @@ MAX_RETRIES = 5
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=deletioncontroltasks),
 )
 def reattempt_deletions_control() -> None:
     _reattempt_deletions(ScheduledDeletion)
@@ -60,6 +64,7 @@ def _reattempt_deletions(model_class: type[BaseScheduledDeletion]) -> None:
     name="sentry.deletions.tasks.run_scheduled_deletions_control",
     queue="cleanup.control",
     acks_late=True,
+    taskworker_config=TaskworkerConfig(namespace=deletioncontroltasks),
 )
 def run_scheduled_deletions_control() -> None:
     _run_scheduled_deletions(
@@ -69,7 +74,10 @@ def run_scheduled_deletions_control() -> None:
 
 
 @instrumented_task(
-    name="sentry.deletions.tasks.run_scheduled_deletions", queue="cleanup", acks_late=True
+    name="sentry.deletions.tasks.run_scheduled_deletions",
+    queue="cleanup",
+    acks_late=True,
+    taskworker_config=TaskworkerConfig(namespace=deletiontasks),
 )
 def run_scheduled_deletions() -> None:
     _run_scheduled_deletions(
@@ -99,6 +107,10 @@ def _run_scheduled_deletions(model_class: type[BaseScheduledDeletion], process_t
     max_retries=MAX_RETRIES,
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletioncontroltasks,
+        retry=Retry(times=MAX_RETRIES, times_exceeded=LastAction.Discard),
+    ),
 )
 @retry(exclude=(DeleteAborted,))
 def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
@@ -117,6 +129,10 @@ def run_deletion_control(deletion_id: int, first_pass: bool = True, **kwargs: An
     max_retries=MAX_RETRIES,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=deletiontasks,
+        retry=Retry(times=MAX_RETRIES, times_exceeded=LastAction.Discard),
+    ),
 )
 @retry(exclude=(DeleteAborted,))
 def run_deletion(deletion_id: int, first_pass: bool = True, **kwargs: Any) -> None:
@@ -191,13 +207,7 @@ def _run_deletion(
     try:
         has_more = task.chunk()
         if has_more:
-            process_task.apply_async(
-                kwargs={
-                    "deletion_id": deletion_id,
-                    "first_pass": False,
-                },
-                countdown=15,
-            )
+            process_task.delay(deletion_id=deletion_id, first_pass=False)
         else:
             deletion.delete()
     except Exception as err:
