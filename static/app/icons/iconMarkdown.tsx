@@ -1,13 +1,13 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconMarkdown = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconMarkdown(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <polyline points="4.25 12 4.25 2.75 4.5 2.75 8 9 11.5 2.75 11.75 2.75 11.75 13" />
@@ -18,7 +18,7 @@ const IconMarkdown = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconMarkdown.displayName = 'IconMarkdown';
 

@@ -1,13 +1,13 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconUnsubscribed = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconUnsubscribed(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m6,2.5c.71-.38,1.54-.56,2.42-.48,2.21.21,3.83,2.19,3.83,4.41v2.07" />
@@ -24,7 +24,7 @@ const IconUnsubscribed = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) =>
       )}
     </SvgIcon>
   );
-});
+}
 
 IconUnsubscribed.displayName = 'IconUnsubscribed';
 

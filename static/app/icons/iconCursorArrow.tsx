@@ -1,13 +1,12 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconCursorArrow = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconCursorArrow(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <polygon points="13.31 11.54 10.47 8.71 13.12 6.06 2.69 2.7 6.05 13.13 8.7 10.48 11.54 13.31 13.31 11.54" />
       ) : (
@@ -21,7 +20,7 @@ const IconCursorArrow = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       )}
     </SvgIcon>
   );
-});
+}
 
 IconCursorArrow.displayName = 'IconCursorArrow';
 

@@ -1,13 +1,12 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconChat = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconChat(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <path d="m5.25,13v-2.75h-.5c-1.1,0-2-.9-2-2v-3.25c0-1.1.9-2,2-2h6.5c1.1,0,2,.9,2,2v3.25c0,1.1-.9,2-2,2h-2l-4,2.75Z" />
       ) : (
@@ -15,7 +14,7 @@ const IconChat = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconChat.displayName = 'IconChat';
 

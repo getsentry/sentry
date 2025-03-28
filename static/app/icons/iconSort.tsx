@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
@@ -8,12 +8,11 @@ interface Props extends SVGIconProps {
   rotated?: boolean;
 }
 
-const IconSort = forwardRef<SVGSVGElement, Props>(({rotated, ...props}, ref) => {
+function IconSort({rotated, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       kind={theme.isChonk ? 'stroke' : 'path'}
       css={
         rotated &&
@@ -39,7 +38,7 @@ const IconSort = forwardRef<SVGSVGElement, Props>(({rotated, ...props}, ref) => 
       )}
     </SvgIcon>
   );
-});
+}
 
 IconSort.displayName = 'IconSort';
 

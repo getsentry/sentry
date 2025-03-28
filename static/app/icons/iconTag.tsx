@@ -1,13 +1,13 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconTag = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconTag(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m13.21,9.67l-3.43,3.43c-.39.39-1.02.39-1.41,0l-4.98-4.98c-.2-.2-.3-.47-.29-.75l.14-3.13c.02-.5.41-.91.92-.95l3.31-.28c.29-.02.58.08.79.29l4.97,4.97c.39.39.39,1.02,0,1.41Z" />
@@ -21,7 +21,7 @@ const IconTag = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconTag.displayName = 'IconTag';
 

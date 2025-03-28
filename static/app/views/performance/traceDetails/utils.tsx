@@ -53,7 +53,7 @@ function getBaseTraceUrl(
         ? getPerformanceBaseUrl(organization.slug, view, true)
         : source && source in routesMap
           ? routesMap[source]
-          : 'traces'
+          : routesMap.traces
     }`
   );
 }

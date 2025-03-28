@@ -1,13 +1,13 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconLaptop = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconLaptop(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m4.5,2.75h7c.55,0,1,.45,1,1v5.5H3.5V3.75c0-.55.45-1,1-1Z" />
@@ -25,7 +25,7 @@ const IconLaptop = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconLaptop.displayName = 'IconLaptop';
 

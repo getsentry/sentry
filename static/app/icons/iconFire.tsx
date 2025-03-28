@@ -1,13 +1,12 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconFire = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconFire(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <path d="m8.5,13.75c1.75,0,4.75-1,4.75-3.75,0-2.25-1-2.25-.75-5.75-1.5,0-2.75,1.25-2.75,2.75-.5-.5-1.5-2.25-.75-4.75-1.5,0-4.5,2.25-2.75,6.25-1,0-2-1-2.5-2.5-2,1.5-1.25,7.75,4.75,7.75Z" />
       ) : (
@@ -15,7 +14,7 @@ const IconFire = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconFire.displayName = 'IconFire';
 

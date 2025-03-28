@@ -1,13 +1,12 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconAttachment = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconAttachment(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <path d="m14.19,7.12l-5.13,5.13c-1.46,1.46-3.84,1.46-5.3,0h0c-1.46-1.46-1.46-3.84,0-5.3L7.82,2.87c.98-.98,2.56-.98,3.54,0h0c.98.98.98,2.56,0,3.54l-4.07,4.07c-.49.49-1.28.49-1.77,0h0c-.49-.49-.49-1.28,0-1.77l4.07-4.07" />
       ) : (
@@ -15,7 +14,7 @@ const IconAttachment = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconAttachment.displayName = 'IconAttachment';
 

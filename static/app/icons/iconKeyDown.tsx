@@ -1,13 +1,13 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconKeyDown = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconKeyDown(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m11.08,5.42l-2.41,2.21c-.38.35-.97.35-1.35,0l-2.49-2.29" />
@@ -22,7 +22,7 @@ const IconKeyDown = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconKeyDown.displayName = 'IconKeyDown';
 

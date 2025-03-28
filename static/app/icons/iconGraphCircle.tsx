@@ -1,13 +1,13 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconGraphCircle = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconGraphCircle(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path d="m8.02,2.26v5.72l4.41,3.98c.83-1.02,1.32-2.33,1.32-3.74,0-3.22-2.55-5.83-5.73-5.96Z" />
@@ -21,7 +21,7 @@ const IconGraphCircle = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => 
       )}
     </SvgIcon>
   );
-});
+}
 
 IconGraphCircle.displayName = 'IconGraphCircle';
 

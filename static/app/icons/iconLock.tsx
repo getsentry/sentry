@@ -1,4 +1,4 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
@@ -8,10 +8,10 @@ interface Props extends SVGIconProps {
   locked?: boolean;
 }
 
-const IconLock = forwardRef<SVGSVGElement, Props>(({locked = false, ...props}, ref) => {
+function IconLock({locked = false, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         locked ? (
           <Fragment>
@@ -41,7 +41,7 @@ const IconLock = forwardRef<SVGSVGElement, Props>(({locked = false, ...props}, r
       )}
     </SvgIcon>
   );
-});
+}
 
 IconLock.displayName = 'IconLock';
 

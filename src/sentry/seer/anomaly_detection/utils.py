@@ -269,6 +269,7 @@ def fetch_historical_data(
         end=end,
         stats_period=None,
         environments=environments,
+        granularity_secs=granularity,
     )
 
     if dataset == metrics_performance:
@@ -278,7 +279,6 @@ def fetch_historical_data(
             params=snuba_params,
             query_string=snuba_query.query,
             y_axes=query_columns,
-            granularity_secs=granularity,
             referrer=(
                 Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value
                 if is_store_data_request

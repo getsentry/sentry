@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {Aliases, Color, IconSize} from 'sentry/utils/theme';
@@ -14,6 +13,7 @@ export interface SVGIconProps extends React.SVGAttributes<SVGSVGElement> {
    * @deprecated
    */
   legacySize?: string;
+  ref?: React.Ref<SVGSVGElement>;
   size?: IconSize;
 }
 
@@ -24,7 +24,7 @@ interface IconProps extends SVGIconProps {
   kind?: 'stroke' | 'path';
 }
 
-export const SvgIcon = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
+export function SvgIcon(props: IconProps) {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -46,7 +46,6 @@ export const SvgIcon = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
         viewBox={'1.25 1.25 13.5 13.5'}
         height={size}
         width={size}
-        ref={ref}
         fill="none"
         stroke={color}
         strokeLinecap="round"
@@ -66,7 +65,6 @@ export const SvgIcon = forwardRef<SVGSVGElement, IconProps>((props, ref) => {
       fill={color}
       height={size}
       width={size}
-      ref={ref}
     />
   );
-});
+}

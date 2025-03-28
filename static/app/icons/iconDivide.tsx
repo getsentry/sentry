@@ -1,15 +1,14 @@
-import {forwardRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-const IconDivide = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+function IconDivide(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       data-test-id="icon-divide"
       kind={theme.isChonk ? 'stroke' : 'path'}
     >
@@ -28,7 +27,7 @@ const IconDivide = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
       )}
     </SvgIcon>
   );
-});
+}
 
 IconDivide.displayName = 'IconDivide';
 

@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useIconDefaults} from 'sentry/icons/useIconDefaults';
@@ -10,7 +9,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-const IconStar = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, ref) => {
+function IconStar({isSolid = false, ...props}: Props) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -18,7 +17,7 @@ const IconStar = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, 
   const color = theme[providedColor] ?? providedColor;
 
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <path
           fill={isSolid ? color : 'none'}
@@ -31,7 +30,7 @@ const IconStar = forwardRef<SVGSVGElement, Props>(({isSolid = false, ...props}, 
       )}
     </SvgIcon>
   );
-});
+}
 
 IconStar.displayName = 'IconStar';
 

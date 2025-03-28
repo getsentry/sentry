@@ -32,7 +32,7 @@ from sentry.api.helpers.group_index.validators.group import GroupValidator
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
-from sentry.api.utils import get_date_range_from_stats_period
+from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -59,7 +59,6 @@ from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import FIRST_RELEASE_FILTERS, get_search_filter
-from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
@@ -374,14 +373,15 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             return Response(serialize(groups, request.user, serializer(), request=request))
 
         try:
-            cursor_result, query_kwargs = self._search(
-                request,
-                organization,
-                projects,
-                environments,
-                {"count_hits": True, "date_to": end, "date_from": start},
-            )
-        except (ValidationError, discover.InvalidSearchQuery) as exc:
+            with handle_query_errors():
+                cursor_result, query_kwargs = self._search(
+                    request,
+                    organization,
+                    projects,
+                    environments,
+                    {"count_hits": True, "date_to": end, "date_from": start},
+                )
+        except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
 
         results = list(cursor_result)

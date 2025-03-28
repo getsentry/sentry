@@ -359,6 +359,7 @@ const AdditionalMonthlyCharge = styled('div')`
   text-align: right;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  text-wrap: pretty;
 `;
 
 const EmphasisText = styled('span')`
