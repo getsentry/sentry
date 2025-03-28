@@ -234,7 +234,7 @@ class SlackService:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
                 if features.has(
-                    "organizations:workflow-engine-notification-action",
+                    "organizations:workflow-engine-trigger-actions",
                     group.organization,
                 ):
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
@@ -249,7 +249,7 @@ class SlackService:
                     )
             else:
                 if features.has(
-                    "organizations:workflow-engine-notification-action",
+                    "organizations:workflow-engine-trigger-actions",
                     group.organization,
                 ):
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
