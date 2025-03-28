@@ -16,6 +16,7 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
+import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
@@ -31,7 +32,6 @@ from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
-from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -49,13 +49,13 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
+def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: Type | None = None,
+    type: env_types.Type | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -87,7 +87,7 @@ def env(
             rv = default
 
     if type is None:
-        type = type_from_value(default)
+        type = env_types.type_from_value(default)
 
     return type(rv)
 
@@ -1380,10 +1380,18 @@ BGTASKS = {
     },
 }
 
+#######################
 # Taskworker settings #
+#######################
+
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
-TASKWORKER_SHARED_SECRET: list[str] | None = None
+TASKWORKER_SHARED_SECRET: list[str] | None = env(
+    "TASKWORKER_SHARED_SECRET", default=None, type=env_types.List
+)
+
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+TASKWORKER_ROUTES: dict[str, str] = env("TASKWORKER_ROUTES", default={}, type=env_types.Dict)
 
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
@@ -1392,8 +1400,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
-TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
-TASKWORKER_ROUTES: dict[str, str] = {}
 
 # Schedules for taskworker tasks to be spawned on.
 TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
