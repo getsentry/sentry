@@ -1,4 +1,3 @@
-from functools import cached_property
 from typing import Protocol
 
 from django.conf import settings
@@ -17,18 +16,17 @@ class DefaultRouter:
 
     _route_map: dict[str, str]
 
-    @cached_property
-    def _routes(self) -> dict[str, str]:
+    def __init__(self) -> None:
         try:
             routes = json.loads(settings.TASKWORKER_ROUTES)
         except Exception:
             routes = {}
-        return routes
+        self._route_map = routes
 
     def route_namespace(self, name: str) -> Topic:
         overrides = options.get("taskworker.route.overrides")
         if name in overrides:
             return Topic(overrides[name])
-        if name in self._routes:
-            return Topic(self._routes[name])
+        if name in self._route_map:
+            return Topic(self._route_map[name])
         return Topic.TASKWORKER
