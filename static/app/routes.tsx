@@ -1109,7 +1109,12 @@ function buildRoutes() {
   );
 
   const dashboardRoutes = (
-    <Route component={make(() => import('sentry/views/dashboards/navigation'))}>
+    <Route
+      component={make(
+        () =>
+          import('sentry/views/nav/secondary/sections/dashboards/dashboardsSecondaryNav')
+      )}
+    >
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
           <Route
@@ -1982,7 +1987,9 @@ function buildRoutes() {
   const exploreRoutes = (
     <Route
       path="/explore/"
-      component={make(() => import('sentry/views/explore/navigation'))}
+      component={make(
+        () => import('sentry/views/nav/secondary/sections/explore/exploreSecondaryNav')
+      )}
       withOrgPath
     >
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
