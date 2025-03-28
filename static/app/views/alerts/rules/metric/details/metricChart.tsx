@@ -335,17 +335,19 @@ export default function MetricChart({
         totalDuration,
         waitingForDataDuration,
         chartOption,
-      } = getMetricAlertChartOption({
-        timeseriesData,
-        rule,
-        seriesName: formattedAggregate,
-        incidents,
-        anomalies,
-        showWaitingForData:
-          shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
-        handleIncidentClick,
-        theme,
-      });
+      } = getMetricAlertChartOption(
+        {
+          timeseriesData,
+          rule,
+          seriesName: formattedAggregate,
+          incidents,
+          anomalies,
+          showWaitingForData:
+            shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
+          handleIncidentClick,
+        },
+        theme
+      );
 
       const comparisonSeriesName = capitalize(
         COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)
