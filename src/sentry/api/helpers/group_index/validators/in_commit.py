@@ -1,5 +1,6 @@
 from typing import Any, TypedDict
 
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.models.commit import Commit
@@ -11,6 +12,7 @@ class InCommitResult(TypedDict):
     repository: str
 
 
+@extend_schema_serializer()
 class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True, help_text="The SHA of the resolving commit.")
     repository = serializers.CharField(

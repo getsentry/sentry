@@ -1,12 +1,11 @@
 from typing import NotRequired, TypedDict
 
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features
-from sentry.api.helpers.group_index.validators.in_commit import InCommitResult
+from sentry.api.helpers.group_index.validators.in_commit import InCommitResult, InCommitValidator
 from sentry.models.release import Release
-
-from . import InCommitValidator
 
 
 class StatusDetailsResult(TypedDict):
@@ -21,6 +20,7 @@ class StatusDetailsResult(TypedDict):
     ignoreUserWindow: NotRequired[int]
 
 
+@extend_schema_serializer()
 class StatusDetailsValidator(serializers.Serializer):
     inNextRelease = serializers.BooleanField(
         help_text="If true, marks the issue as resolved in the next release."

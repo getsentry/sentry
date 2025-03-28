@@ -5,11 +5,11 @@ from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.fields import ActorField
+from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
+from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
 from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
-
-from . import InboxDetailsValidator, StatusDetailsValidator
 
 
 @extend_schema_serializer(
