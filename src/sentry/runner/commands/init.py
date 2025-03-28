@@ -45,10 +45,7 @@ def init(dev: bool, no_clobber: bool, directory: str) -> None:
     "Initialize new configuration directory."
     from sentry.runner.settings import discover_configs
 
-    if directory is not None:
-        os.environ["SENTRY_CONF"] = directory
-
-    directory, py, yaml = discover_configs()
+    directory, py, yaml = discover_configs(directory=directory)
 
     # In this case, the config is pointing directly to a file, so we
     # must maintain old behavior, and just abort
