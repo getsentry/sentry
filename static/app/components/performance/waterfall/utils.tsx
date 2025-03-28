@@ -247,6 +247,7 @@ export const makeBarColors = (theme: Theme) => ({
 export const pickBarColor = (input: string | undefined, theme: Theme): string => {
   // We pick the color for span bars using the first three letters of the op name.
   // That way colors stay consistent between transactions.
+  const barColors = makeBarColors(theme);
 
   if (!input || input.length < 3) {
     return theme.chart.colors[17][4];
