@@ -97,9 +97,16 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            project = Project.objects.get(id=request.data["projectId"])
-            if not request.access.has_project_access(project):
-                return self.respond(status=status.HTTP_403_FORBIDDEN)
+            project = Project.objects.get(id=request.data.get("projectId"))
+        except Project.DoesNotExist:
+            return self.respond(
+                {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
+            )
+
+        if not request.access.has_project_access(project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
+        try:
             installation = get_installation(organization)
             # It helps with typing since org_integration can be None
             if not installation.org_integration:
@@ -110,10 +117,6 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         except KeyError:
             return self.respond(
                 {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST
-            )
-        except Project.DoesNotExist:
-            return self.respond(
-                {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
             )
         except InstallationNotFoundError:
             return self.respond(
