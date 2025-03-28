@@ -25,7 +25,7 @@ class GroupValidator(serializers.Serializer):
     substatus = serializers.ChoiceField(
         choices=list(zip(SUBSTATUS_UPDATE_CHOICES.keys(), SUBSTATUS_UPDATE_CHOICES.keys())),
         allow_null=True,
-        help_text="The new substatuses of the issues.",
+        help_text="The new substatus of the issue.",
     )
     hasSeen = serializers.BooleanField(
         help_text="If true, marks the issue as seen by the requestor."
@@ -57,6 +57,7 @@ class GroupValidator(serializers.Serializer):
     ####################################################
     # These fields are not documented in the API docs. #
     ####################################################
+    # These are already covered by the `statusDetails` serializer field.
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
     ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
