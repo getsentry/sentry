@@ -8,10 +8,10 @@ interface Props extends SVGIconProps {
   isZoomIn?: boolean;
 }
 
-function IconZoom({ref, isZoomIn = false, ...props}: Props) {
+function IconZoom({isZoomIn = false, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         isZoomIn ? (
           <Fragment>

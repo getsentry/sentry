@@ -24,7 +24,7 @@ interface IconProps extends SVGIconProps {
   kind?: 'stroke' | 'path';
 }
 
-export function SvgIcon({ref, ...props}: IconProps) {
+export function SvgIcon(props: IconProps) {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -46,7 +46,6 @@ export function SvgIcon({ref, ...props}: IconProps) {
         viewBox={'1.25 1.25 13.5 13.5'}
         height={size}
         width={size}
-        ref={ref}
         fill="none"
         stroke={color}
         strokeLinecap="round"
@@ -66,7 +65,6 @@ export function SvgIcon({ref, ...props}: IconProps) {
       fill={color}
       height={size}
       width={size}
-      ref={ref}
     />
   );
 }

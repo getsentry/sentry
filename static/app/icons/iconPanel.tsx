@@ -8,14 +8,13 @@ interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconPanel({ref, direction = 'up', ...props}: Props) {
+function IconPanel({direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
     <SvgIcon
       {...props}
       kind={theme.isChonk ? 'stroke' : 'path'}
-      ref={ref}
       style={{
         transform: direction
           ? `rotate(${theme.iconDirections[direction]}deg)`

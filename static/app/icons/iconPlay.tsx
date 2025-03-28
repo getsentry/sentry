@@ -3,10 +3,10 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconPlay({ref, ...props}: SVGIconProps) {
+function IconPlay(props: SVGIconProps) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <path d="m13.18,7.68L4,2.38c-.33-.19-.75.05-.75.43v10.6c0,.38.42.63.75.43l9.18-5.3c.33-.19.33-.67,0-.87Z" />
       ) : (

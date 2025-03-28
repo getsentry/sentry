@@ -8,12 +8,11 @@ interface Props extends SVGIconProps {
   rotated?: boolean;
 }
 
-function IconSort({ref, rotated, ...props}: Props) {
+function IconSort({rotated, ...props}: Props) {
   const theme = useTheme();
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       kind={theme.isChonk ? 'stroke' : 'path'}
       css={
         rotated &&

@@ -8,13 +8,12 @@ export interface ArrowProps extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconArrow({ref, direction = 'up', ...props}: ArrowProps) {
+function IconArrow({direction = 'up', ...props}: ArrowProps) {
   const theme = useTheme();
 
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       kind={theme.isChonk ? 'stroke' : 'path'}
       css={
         direction

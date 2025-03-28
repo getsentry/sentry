@@ -8,14 +8,13 @@ interface Props extends SVGIconProps {
   direction?: 'up' | 'right' | 'down' | 'left';
 }
 
-function IconSliders({ref, direction = 'up', ...props}: Props) {
+function IconSliders({direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
     <SvgIcon
       {...props}
       kind={theme.isChonk ? 'stroke' : 'path'}
-      ref={ref}
       css={
         direction
           ? css`

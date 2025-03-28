@@ -9,18 +9,18 @@ interface Props extends SVGIconProps {
   type?: 'line' | 'circle' | 'bar' | 'area' | 'scatter';
 }
 
-function IconGraph({ref, type = 'line', ...props}: Props) {
+function IconGraph({type = 'line', ...props}: Props) {
   switch (type) {
     case 'circle':
-      return <IconGraphCircle {...props} ref={ref} />;
+      return <IconGraphCircle {...props} />;
     case 'bar':
-      return <IconGraphBar {...props} ref={ref} />;
+      return <IconGraphBar {...props} />;
     case 'area':
-      return <IconGraphArea {...props} ref={ref} />;
+      return <IconGraphArea {...props} />;
     case 'scatter':
-      return <IconGraphScatter {...props} ref={ref} />;
+      return <IconGraphScatter {...props} />;
     default:
-      return <IconGraphLine {...props} ref={ref} />;
+      return <IconGraphLine {...props} />;
   }
 }
 

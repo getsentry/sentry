@@ -10,7 +10,7 @@ interface IconLabProps extends SVGIconProps {
   isSolid?: boolean;
 }
 
-function IconLab({ref, isSolid, ...props}: IconLabProps) {
+function IconLab({isSolid, ...props}: IconLabProps) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -18,7 +18,7 @@ function IconLab({ref, isSolid, ...props}: IconLabProps) {
   const color = theme[providedColor] ?? providedColor;
 
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <path

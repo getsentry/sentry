@@ -8,10 +8,10 @@ interface Props extends SVGIconProps {
   locked?: boolean;
 }
 
-function IconLock({ref, locked = false, ...props}: Props) {
+function IconLock({locked = false, ...props}: Props) {
   const theme = useTheme();
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         locked ? (
           <Fragment>

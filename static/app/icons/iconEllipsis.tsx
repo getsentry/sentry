@@ -8,12 +8,12 @@ interface IconEllipsisProps extends SVGIconProps {
   compact?: boolean;
 }
 
-function IconEllipsis({ref, compact = false, ...props}: IconEllipsisProps) {
+function IconEllipsis({compact = false, ...props}: IconEllipsisProps) {
   const theme = useTheme();
   const circleRadius = compact ? 1.11 : 1.31;
   const circleSpacing = compact ? 5.5 : 6.69;
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <circle cx="3.25" cy="8" r=".5" />
