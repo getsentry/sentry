@@ -486,7 +486,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       },
     };
 
-    const forwardedRef = this.props.chartGroup ? this.handleRef : undefined;
+    const ref = this.props.chartGroup ? this.handleRef : undefined;
 
     // Excluding Other uses a slightly altered regex to match the Other series name
     // because the series names are formatted with widget IDs to avoid conflicts
@@ -541,7 +541,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                             legend,
                             series: [...series, ...(modifiedReleaseSeriesResults ?? [])],
                             onLegendSelectChanged,
-                            forwardedRef,
+                            ref,
                           }),
                           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
                         })}

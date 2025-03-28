@@ -18,10 +18,10 @@ export interface QueryFieldProps {
   canDelete?: boolean;
   canDrag?: boolean;
   fieldValidationError?: ReactNode;
-  forwardRef?: React.Ref<HTMLDivElement>;
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
   onDelete?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
   style?: React.CSSProperties;
 }
 
@@ -30,7 +30,7 @@ export function QueryField({
   onChange,
   fieldOptions,
   value,
-  forwardRef,
+  ref,
   listeners,
   attributes,
   canDelete,
@@ -40,7 +40,7 @@ export function QueryField({
   isDragging,
 }: QueryFieldProps) {
   return (
-    <QueryFieldWrapper ref={forwardRef} style={style}>
+    <QueryFieldWrapper ref={ref} style={style}>
       {isDragging ? null : (
         <Fragment>
           {canDrag && (
