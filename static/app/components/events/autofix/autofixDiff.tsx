@@ -510,7 +510,7 @@ function DiffHunkContent({
               </ButtonGroup>
             )}
             {editingGroup === index && (
-              <EditOverlay ref={overlayRef}>
+              <EditOverlay ref={overlayRef} data-ignore-autofix-highlight="true">
                 <OverlayHeader>
                   <OverlayTitle
                     dangerouslySetInnerHTML={{

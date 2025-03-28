@@ -11,12 +11,20 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
   const isClickInPopup = (target: HTMLElement) =>
     target.closest('[data-popup="autofix-highlight"]');
 
+  const shouldIgnoreElement = (target: HTMLElement) =>
+    target.closest('[data-ignore-autofix-highlight="true"]');
+
   const handleClick = useCallback(
     (event: MouseEvent) => {
       const target = event.target as HTMLElement;
 
       // If clicking in popup, do nothing
       if (isClickInPopup(target)) {
+        return;
+      }
+
+      // If clicking in an ignored element, do nothing
+      if (shouldIgnoreElement(target)) {
         return;
       }
 
