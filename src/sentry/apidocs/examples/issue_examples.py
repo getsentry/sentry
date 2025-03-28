@@ -95,11 +95,8 @@ MUTATE_ISSUE_RESULT: MutateIssueResponse = {
     "status": "ignored",
     "statusDetails": {
         "ignoreCount": 10,
-        "ignoreDuration": None,
         "ignoreWindow": 60,
-        "inCommit": None,
         "inNextRelease": False,
-        "inRelease": None,
         "inUpcomingRelease": False,
     },
     "subscriptionDetails": {

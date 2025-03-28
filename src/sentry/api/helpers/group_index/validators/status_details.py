@@ -1,9 +1,24 @@
+from typing import NotRequired, TypedDict
+
 from rest_framework import serializers
 
 from sentry import features
+from sentry.api.helpers.group_index.validators.in_commit import InCommitResult
 from sentry.models.release import Release
 
 from . import InCommitValidator
+
+
+class StatusDetailsResult(TypedDict):
+    inNextRelease: NotRequired[bool]
+    inUpcomingRelease: NotRequired[bool]
+    inRelease: NotRequired[str]
+    inCommit: NotRequired[InCommitResult]
+    ignoreDuration: NotRequired[int]
+    ignoreCount: NotRequired[int]
+    ignoreWindow: NotRequired[int]
+    ignoreUserCount: NotRequired[int]
+    ignoreUserWindow: NotRequired[int]
 
 
 class StatusDetailsValidator(serializers.Serializer):

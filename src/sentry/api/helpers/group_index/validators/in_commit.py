@@ -1,10 +1,15 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
 from rest_framework import serializers
 
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
+
+
+class InCommitResult(TypedDict):
+    commit: str
+    repository: str
 
 
 class InCommitValidator(serializers.Serializer):
