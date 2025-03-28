@@ -9,12 +9,10 @@ import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/project';
 import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
 import DeprecatedLine from '../../frame/deprecatedLine';
 import {
-  findImageForAddress,
   getHiddenFrameIndices,
   getLastFrameIndex,
   isRepeatedFrame,
@@ -62,8 +60,6 @@ function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger = false,
 }: Props) {
-  const organization = useOrganization();
-  const [showCompleteFunctionName, setShowCompleteFunctionName] = useState(false);
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
   const {frames = [], framesOmitted, registers} = data;
@@ -108,11 +104,6 @@ function Content({
     return countMap;
   }
 
-  function handleToggleFunctionName(mouseEvent: React.MouseEvent<SVGElement>) {
-    mouseEvent.stopPropagation(); // to prevent collapsing if collapsible
-    setShowCompleteFunctionName(oldShowCompleteName => !oldShowCompleteName);
-  }
-
   const handleToggleFrames = (
     mouseEvent: React.MouseEvent<HTMLElement>,
     frameIndex: number
@@ -155,7 +146,6 @@ function Content({
 
   let convertedFrames = frames
     .map((frame, frameIndex) => {
-      const prevFrame = frames[frameIndex - 1];
       const nextFrame = frames[frameIndex + 1]!;
       const repeatedFrame = isRepeatedFrame(frame, nextFrame);
       const isLastFrame = frameIndex === frames.length - 1;
@@ -173,25 +163,15 @@ function Content({
           data: frame,
           isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
           emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
-          isOnlyFrame: (data.frames ?? []).length === 1,
           nextFrame,
-          prevFrame,
           platform,
           timesRepeated: nRepeats,
-          image: findImageForAddress({
-            event,
-            addrMode: frame.addrMode,
-            address: frame.instructionAddr,
-          }),
           registers: isLastFrame ? registers : {},
-          includeSystemFrames,
-          onFunctionNameToggle: handleToggleFunctionName,
           onShowFramesToggle: (e: React.MouseEvent<HTMLElement>) => {
             handleToggleFrames(e, frameIndex);
           },
           isSubFrame: hiddenFrameIndices.includes(frameIndex),
           isShowFramesToggleExpanded: toggleFrameMap[frameIndex],
-          showCompleteFunctionName,
           isHoverPreviewed,
           frameMeta: meta?.frames?.[frameIndex],
           registersMeta: meta?.registers,
@@ -199,7 +179,6 @@ function Content({
           threadId,
           lockAddress,
           hiddenFrameCount: frameCountMap[frameIndex],
-          organization,
           frameSourceResolutionResults: frameSourceMapDebuggerData?.[frameIndex],
           hideSourceMapDebugger,
         };
