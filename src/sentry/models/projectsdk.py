@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from enum import Enum
 
@@ -12,9 +13,12 @@ from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_sil
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.locks import locks
 from sentry.models.project import Project
+from sentry.sdk_updates import get_sdk_index
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+
+logger = logging.getLogger(__name__)
 
 
 class EventType(Enum):
@@ -67,7 +71,12 @@ class ProjectSDK(DefaultFieldsModel):
             # non-semver sdk version, ignore and move on
             return
 
-        lock_key = cls.get_lock_key(project, event_type, sdk_name)
+        normalized_sdk_name = normalize_sdk_name(sdk_name)
+        if normalized_sdk_name is None:
+            logger.info("Unknown sdk name: %s", sdk_name)
+            return
+
+        lock_key = cls.get_lock_key(project, event_type, normalized_sdk_name)
         lock = locks.get(lock_key, duration=10, name="projectsdk")
 
         # This can raise `sentry.utils.locking.UnableToAcquireLock`
@@ -77,7 +86,7 @@ class ProjectSDK(DefaultFieldsModel):
             cls.__update_with_newest_version_or_create(
                 project,
                 event_type,
-                sdk_name,
+                normalized_sdk_name,
                 sdk_version,
                 new_version,
             )
@@ -127,3 +136,27 @@ class ProjectSDK(DefaultFieldsModel):
 
             if should_update_cache:
                 cache.set(cache_key, project_sdk, 3600)
+
+
+def normalize_sdk_name(sdk_name: str) -> str | None:
+    sdk_index = get_sdk_index()
+
+    # usually, the sdk names reported will match
+    # exactly what's in the registry
+    if sdk_name in sdk_index:
+        return sdk_name
+
+    # some sdks suffix the name depending on the integrations
+    # that are in use, so try to normalize it to the registry name
+    parts = sdk_name.split(".", 2)
+    if len(parts) < 2:
+        # already in its normalized form
+        return None
+
+    # The name in the registry is just the first 2 parts of the
+    # reported name joined by a `.`
+    sdk_name = ".".join(parts[:2])
+    if sdk_name in sdk_index:
+        return sdk_name
+
+    return None
