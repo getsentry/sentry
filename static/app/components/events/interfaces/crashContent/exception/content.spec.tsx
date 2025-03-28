@@ -304,4 +304,82 @@ describe('Exception Content', function () {
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
     });
   });
+
+  describe('failed to fetch exceptions', function () {
+    it('displays FailedToFetchHint when a failed to fetch exception is detected', function () {
+      const event = EventFixture({
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'Failed to fetch',
+                  stacktrace: {
+                    frames: [EventStacktraceFrameFixture({platform: null})],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        projectID: project.id,
+      });
+
+      render(
+        <Content
+          type={StackType.ORIGINAL}
+          stackView={StackView.APP}
+          event={event}
+          values={event.entries[0]!.data.values}
+          projectSlug={project.slug}
+        />
+      );
+
+      expect(
+        screen.getByText(
+          /This error might be caused by network connectivity issues, browser extensions, or CORS restrictions/i
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not display FailedToFetchHint for regular exceptions', function () {
+      const event = EventFixture({
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'Some other error',
+                  stacktrace: {
+                    frames: [EventStacktraceFrameFixture({platform: null})],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        projectID: project.id,
+      });
+
+      render(
+        <Content
+          type={StackType.ORIGINAL}
+          stackView={StackView.APP}
+          event={event}
+          values={event.entries[0]!.data.values}
+          projectSlug={project.slug}
+        />
+      );
+
+      expect(
+        screen.queryByText(
+          /This error might be caused by network connectivity issues, browser extensions, or CORS restrictions/i
+        )
+      ).not.toBeInTheDocument();
+    });
+  });
 });
