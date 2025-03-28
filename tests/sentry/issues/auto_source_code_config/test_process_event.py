@@ -11,7 +11,7 @@ from sentry.issues.auto_source_code_config.constants import (
 )
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
-from sentry.issues.auto_source_code_config.utils import PlatformConfig
+from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric

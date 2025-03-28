@@ -51,7 +51,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             }
         ]
         with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
             return_value=expected_matches,
         ):
             response = self.client.get(self.url, data=config_data, format="json")
@@ -73,7 +73,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             }
         ]
         with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
             return_value=expected_matches,
         ):
             response = self.client.get(self.url, data=config_data, format="json")
@@ -103,7 +103,7 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
             },
         ]
         with patch(
-            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.list_file_matches",
+            "sentry.issues.auto_source_code_config.code_mapping.CodeMappingTreesHelper.get_file_and_repo_matches",
             return_value=expected_matches,
         ):
             response = self.client.get(self.url, data=config_data, format="json")
