@@ -17,7 +17,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
 from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
-from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
+from sentry.api.release_search import FINALIZED_KEY, RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
@@ -78,6 +78,12 @@ def add_date_filter_to_queryset(queryset, filter_params):
 def _filter_releases_by_query(queryset, organization, query, filter_params):
     search_filters = parse_search_query(query)
     for search_filter in search_filters:
+        if search_filter.key.name == FINALIZED_KEY:
+            if search_filter.value.value == "true":
+                queryset = queryset.filter(date_released__isnull=False)
+            elif search_filter.value.value == "false":
+                queryset = queryset.filter(date_released__isnull=True)
+
         if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
             query_q = Q(version__icontains=query)
             suffix_match = _release_suffix.match(query)
@@ -267,6 +273,7 @@ class OrganizationReleasesEndpoint(
         health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
         if health_stats_period and health_stats_period not in STATS_PERIODS:

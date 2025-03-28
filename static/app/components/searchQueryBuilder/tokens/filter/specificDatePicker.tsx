@@ -1,12 +1,4 @@
-import {
-  type ForwardedRef,
-  forwardRef,
-  Fragment,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
@@ -217,52 +209,57 @@ function SpecificDatePicker({
  * back to the search bar. We make sure to keep focus within the input
  * until the user is done making changes.
  */
-const TimeInput = forwardRef(
-  ({disabled, time, setTime}: TimeInputProps, ref: ForwardedRef<HTMLInputElement>) => {
-    const [localTime, setLocalTime] = useState(time);
-    const [isFocused, setIsFocused] = useState(false);
-    const timeInputRef = useRef<HTMLInputElement | null>(null);
+function TimeInput({
+  ref,
+  disabled,
+  time,
+  setTime,
+}: TimeInputProps & {
+  ref?: React.Ref<HTMLInputElement>;
+}) {
+  const [localTime, setLocalTime] = useState(time);
+  const [isFocused, setIsFocused] = useState(false);
+  const timeInputRef = useRef<HTMLInputElement | null>(null);
 
-    useEffect(() => {
-      setLocalTime(time);
-    }, [time]);
+  useEffect(() => {
+    setLocalTime(time);
+  }, [time]);
 
-    return (
-      <StyledInput
-        ref={mergeRefs(ref, timeInputRef)}
-        aria-label={t('Time')}
-        disabled={disabled}
-        type="time"
-        data-test-id="search-bar-date-picker-time-input"
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-          const newStartTime = e.target.value || DEFAULT_DAY_START_TIME;
-          setLocalTime(newStartTime);
+  return (
+    <StyledInput
+      ref={mergeRefs(ref, timeInputRef)}
+      aria-label={t('Time')}
+      disabled={disabled}
+      type="time"
+      data-test-id="search-bar-date-picker-time-input"
+      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        const newStartTime = e.target.value || DEFAULT_DAY_START_TIME;
+        setLocalTime(newStartTime);
 
-          if (!isFocused) {
-            setTime(newStartTime);
-          }
-        }}
-        onBlur={() => {
+        if (!isFocused) {
+          setTime(newStartTime);
+        }
+      }}
+      onBlur={() => {
+        setTime(localTime);
+        setIsFocused(false);
+      }}
+      onFocus={() => setIsFocused(true)}
+      onKeyDown={e => {
+        if (e.key === 'Enter') {
           setTime(localTime);
-          setIsFocused(false);
-        }}
-        onFocus={() => setIsFocused(true)}
-        onKeyDown={e => {
-          if (e.key === 'Enter') {
-            setTime(localTime);
-            timeInputRef.current?.blur();
-          }
-          e.stopPropagation();
-        }}
-        onClick={e => {
-          e.stopPropagation();
-        }}
-        value={localTime}
-        step={1}
-      />
-    );
-  }
-);
+          timeInputRef.current?.blur();
+        }
+        e.stopPropagation();
+      }}
+      onClick={e => {
+        e.stopPropagation();
+      }}
+      value={localTime}
+      step={1}
+    />
+  );
+}
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
