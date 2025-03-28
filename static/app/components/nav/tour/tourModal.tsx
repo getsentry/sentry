@@ -32,7 +32,9 @@ export function NavTourModal({
           {t('Welcome to a simpler Sentry')}
         </Header>
         <Description>
-          {t('We redesigned our navigation to streamline how you triage.')}
+          {t(
+            'Find what you need, faster. Our new navigation puts your top workflows front and center.'
+          )}
         </Description>
         <Footer>
           <TextTourAction
