@@ -164,6 +164,17 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_installation_component_contexts(
+        self,
+        *,
+        filter: SentryAppInstallationFilterArgs,
+        component_type: str,
+        include_contexts_with_component: bool = True,
+    ) -> list[RpcSentryAppComponentContext]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
     ) -> RpcAlertRuleActionResult:
