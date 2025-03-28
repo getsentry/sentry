@@ -275,7 +275,7 @@ def get_groups_to_fire(
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
 
         for group_id in dcg_to_groups[dcg.id]:
-            conditions_to_evaluate = []
+            conditions_to_evaluate: tuple[DataCondition, list[int]] = []
             for condition in slow_conditions:
                 unique_queries = generate_unique_queries(condition, workflow_env)
                 query_values = [
@@ -517,9 +517,12 @@ def process_delayed_workflows(
     )
     condition_group_results = get_condition_group_results(condition_groups)
 
+    serialized_results = {
+        str(query): count_dict for query, count_dict in condition_group_results.items()
+    }
     logger.info(
         "delayed_workflow.condition_group_results",
-        extra={"results": condition_group_results},
+        extra={"condition_group_results": serialized_results},
     )
 
     # Evaluate DCGs
