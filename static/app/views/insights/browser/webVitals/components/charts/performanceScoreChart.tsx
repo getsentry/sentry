@@ -47,7 +47,7 @@ export function PerformanceScoreChart({
       : projectScore.totalScore
     : undefined;
 
-  let ringSegmentColors = theme.chart.getColorPalette(3) as unknown as string[];
+  let ringSegmentColors = theme.chart.getColorPalette(3).slice() as unknown as string[];
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {

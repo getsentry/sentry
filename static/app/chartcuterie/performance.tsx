@@ -20,7 +20,7 @@ export type FunctionRegressionPercentileData = {
 
 type FunctionRegressionChartData = {
   evidenceData: NormalizedTrendsTransaction;
-  rawResponse: any;
+  rawResponse: unknown;
 };
 
 export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<ChartType>> {
