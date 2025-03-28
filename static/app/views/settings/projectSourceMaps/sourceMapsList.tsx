@@ -246,9 +246,8 @@ export function SourceMapsList({location, router, project}: Props) {
             )}
           </p>
           <p>
-            {tct(
-              'Be sure during your build you are running these scripts to upload source maps for both iOS and Android:',
-              {}
+            {t(
+              'Be sure during your build you are running these scripts to upload source maps for both iOS and Android:'
             )}
           </p>
           <InstructionBlock>
