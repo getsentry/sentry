@@ -160,9 +160,9 @@ def inbox_search(
 @region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
