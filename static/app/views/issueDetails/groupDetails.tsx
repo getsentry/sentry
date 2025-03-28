@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -660,7 +667,7 @@ function GroupDetailsContent({
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!hasStreamlinedUI || isDrawerOpen) {
       return;
     }
