@@ -358,6 +358,7 @@ export function SearchQueryBuilderCombobox<
     items,
     autoFocus,
     inputValue: filterValue,
+    selectedKey: null,
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
