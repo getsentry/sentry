@@ -435,7 +435,7 @@ def fire_rules(
         )
         if features.has("organizations:workflow-engine-process-workflows", project.organization):
             serialized_groups = {
-                group.id: group_event.id for group, group_event in group_to_groupevent.items()
+                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
             }
             logger.info(
                 "delayed_processing.group_to_groupevent",
