@@ -484,6 +484,16 @@ describe('OrganizationStats', function () {
     ).toBeInTheDocument();
     // Should not show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('option', {name: 'Continuous Profile Hours'}));
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {dataCategory: DATA_CATEGORY_INFO.profileDuration.plural},
+        })
+      )
+    );
+    expect(screen.getByTestId('estimation-text')).toBeInTheDocument();
   });
 
   it('shows only Profiles category without profiling features', async () => {
