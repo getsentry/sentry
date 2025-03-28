@@ -2268,6 +2268,9 @@ class Factories:
         if rule is not None and alert_rule is not None:
             raise ValueError("Only one of rule or alert_rule can be provided")
 
+        if workflow is None:
+            workflow = Factories.create_workflow()
+
         return AlertRuleWorkflow.objects.create(
             alert_rule=alert_rule, rule=rule, workflow=workflow, **kwargs
         )
