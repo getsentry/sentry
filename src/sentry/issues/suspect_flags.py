@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import datetime
 
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
@@ -6,9 +7,8 @@ from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from sentry.seer.workflows.compare import kl_compare_sets
 from sentry.utils.snuba import raw_snql_query
 
-AttributeBuckets = dict[str, dict[str, int]]
-Attributes = dict[str, AttributeBuckets]
-AttributesRow = tuple[str, str, int]
+Attributes = Mapping[str, dict[str, float]]
+AttributesRow = tuple[str, str, float]
 Score = tuple[str, float]
 
 
@@ -95,7 +95,7 @@ def query_flag_rows(
     )
 
     return [
-        (result["variants"][0], result["variants"][1], result["count"])
+        (result["variants"][0], result["variants"][1], float(result["count"]))
         for result in response["data"]
     ]
 
@@ -104,7 +104,7 @@ def as_attribute_dict(rows: list[AttributesRow]) -> Attributes:
     """
     Coerce a database result into a standardized type.
     """
-    attributes: defaultdict[str, AttributeBuckets] = defaultdict(dict[str, int])
+    attributes: Mapping[str, dict[str, float]] = defaultdict(dict[str, float])
     for key, value, count in rows:
         attributes[key][value] = count
     return attributes
