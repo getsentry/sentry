@@ -18,7 +18,7 @@ import {
 import Nav from 'sentry/views/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 const ALL_AVAILABLE_FEATURES = [

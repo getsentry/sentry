@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import {space} from 'sentry/styles/space';
 import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
