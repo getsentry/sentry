@@ -151,7 +151,7 @@ def failure_rate(_: ResolvedArguments, settings: ResolverSettings) -> Column.Bin
     )
 
 
-def get_count_of_vital(vital: str, settings: ResolverSettings) -> Column.BinaryFormula:
+def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
 
     snuba_params = settings["snuba_params"]
     query_string = snuba_params.query_string
