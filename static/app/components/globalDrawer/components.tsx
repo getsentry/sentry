@@ -17,6 +17,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
+const MIN_WIDTH_PERCENT = 30;
+const MAX_WIDTH_PERCENT = 85;
+const DEFAULT_WIDTH_PERCENT = 50;
+
 interface DrawerContentContextType {
   ariaLabel: string;
   onClose: DrawerOptions['onClose'];
@@ -60,36 +64,28 @@ export function DrawerPanel({
   const panelRef = useRef<HTMLDivElement>(null);
   const rafIdRef = useRef<number | null>(null);
   const initialMousePositionRef = useRef<number | null>(null);
-  const isResizingRef = useRef<boolean>(false);
 
-  // Calculate initial width from props or default to 50%
+  // Calculate initial width from props or use default
   const calculateInitialWidth = (savedWidth?: number) => {
     // If we have a saved width, use it but ensure it's within bounds
     if (savedWidth !== undefined) {
-      const minWidthPercent = 30;
-      const maxWidthPercent = 90;
-      return Math.min(Math.max(savedWidth, minWidthPercent), maxWidthPercent);
+      return Math.min(Math.max(savedWidth, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
     }
 
     if (drawerWidth) {
       // If width is already in percentage, parse and clamp it
       if (drawerWidth.endsWith('%')) {
         const parsedPercent = parseFloat(drawerWidth);
-        const minWidthPercent = 30;
-        const maxWidthPercent = 90;
-        return Math.min(Math.max(parsedPercent, minWidthPercent), maxWidthPercent);
+        return Math.min(Math.max(parsedPercent, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
       }
       // If width is in pixels, convert to percentage and clamp
-
-      const viewportWidth = typeof window === 'undefined' ? 1000 : window.innerWidth;
+      const viewportWidth = window.innerWidth;
       const parsedPixels = parseFloat(drawerWidth);
       const percentValue = (parsedPixels / viewportWidth) * 100;
-      const minWidthPercent = 30;
-      const maxWidthPercent = 90;
-      return Math.min(Math.max(percentValue, minWidthPercent), maxWidthPercent);
+      return Math.min(Math.max(percentValue, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
     }
 
-    return 50; // Default to 50%
+    return DEFAULT_WIDTH_PERCENT;
   };
 
   // Store persisted width in localStorage, but don't use it for rendering state
@@ -104,9 +100,11 @@ export function DrawerPanel({
 
   useLayoutEffect(() => {
     if (panelRef.current) {
-      panelRef.current.style.width = `${persistedWidthPercent}%`;
+      panelRef.current.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
+      panelRef.current.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
+      panelRef.current.style.setProperty('--drawer-max-width', `${MAX_WIDTH_PERCENT}%`);
     }
-  }, [persistedWidthPercent, drawerKey, drawerWidth]);
+  }, [persistedWidthPercent, drawerKey]);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
@@ -119,14 +117,11 @@ export function DrawerPanel({
       }
 
       // Mark as resizing
-      isResizingRef.current = true;
       handle.setAttribute('data-resizing', 'true');
-      panel.classList.add('resizing');
+      panel.setAttribute('data-resizing', '');
       initialMousePositionRef.current = e.clientX;
 
-      const viewportWidth = window.innerWidth;
-      const minWidthPercent = 30;
-      const maxWidthPercent = 85;
+      const viewportWidth = typeof window === 'undefined' ? 1000 : window.innerWidth;
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         moveEvent.preventDefault();
@@ -142,27 +137,22 @@ export function DrawerPanel({
 
           const newWidthPercent =
             ((viewportWidth - moveEvent.clientX) / viewportWidth) * 100;
-          const clampedWidthPercent = Math.min(
-            Math.max(newWidthPercent, minWidthPercent),
-            maxWidthPercent
-          );
 
-          panel.style.width = `${clampedWidthPercent}%`;
+          panel.style.setProperty('--drawer-width', `${newWidthPercent}%`);
 
+          // Update handle attributes for cursor styles
           handle.setAttribute(
             'data-at-min-width',
-            (clampedWidthPercent <= minWidthPercent).toString()
+            (newWidthPercent <= MIN_WIDTH_PERCENT).toString()
           );
           handle.setAttribute(
             'data-at-max-width',
-            (Math.abs(clampedWidthPercent - maxWidthPercent) < 1).toString()
+            (Math.abs(newWidthPercent - MAX_WIDTH_PERCENT) < 1).toString()
           );
         });
       };
 
       const handleMouseUp = () => {
-        isResizingRef.current = false;
-
         if (rafIdRef.current !== null) {
           window.cancelAnimationFrame(rafIdRef.current);
           rafIdRef.current = null;
@@ -173,10 +163,11 @@ export function DrawerPanel({
         }
 
         if (panel) {
-          panel.classList.remove('resizing');
-          // Get the final width and save to localStorage
-          const currentWidth = parseFloat(panel.style.width) || persistedWidthPercent;
-          setPersistedWidthPercent(currentWidth);
+          panel.removeAttribute('data-resizing');
+          // Get the computed width considering min/max constraints and save to localStorage
+          const computedStyle = window.getComputedStyle(panel);
+          const widthValue = (parseFloat(computedStyle.width) / viewportWidth) * 100;
+          setPersistedWidthPercent(widthValue);
         }
 
         document.removeEventListener('mousemove', handleMouseMove);
@@ -186,7 +177,7 @@ export function DrawerPanel({
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [persistedWidthPercent, setPersistedWidthPercent]
+    [setPersistedWidthPercent]
   );
 
   useLayoutEffect(() => {
@@ -212,15 +203,17 @@ export function DrawerPanel({
           }
         }}
         transitionProps={transitionProps}
-        panelWidth={`${persistedWidthPercent}%`} // Initial width only
+        panelWidth={'var(--drawer-width)'} // Initial width only
         className="drawer-panel"
       >
         {drawerKey && (
           <ResizeHandle
             ref={resizeHandleRef}
             onMouseDown={handleResizeStart}
-            data-at-min-width={(persistedWidthPercent <= 30).toString()}
-            data-at-max-width={(Math.abs(persistedWidthPercent - 90) < 1).toString()}
+            data-at-min-width={(persistedWidthPercent <= MIN_WIDTH_PERCENT).toString()}
+            data-at-max-width={(
+              Math.abs(persistedWidthPercent - MAX_WIDTH_PERCENT) < 1
+            ).toString()}
           />
         )}
         <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
@@ -319,7 +312,19 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   position: relative;
   pointer-events: auto;
 
-  &.resizing {
+  /* Set default values for CSS variables */
+  --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
+  --drawer-min-width: ${MIN_WIDTH_PERCENT}%;
+  --drawer-max-width: ${MAX_WIDTH_PERCENT}%;
+
+  /* Use clamp in CSS to enforce min/max constraints */
+  width: clamp(
+    var(--drawer-min-width),
+    var(--drawer-width),
+    var(--drawer-max-width)
+  ) !important;
+
+  &[data-resizing] {
     /* Hide scrollbars during resize */
     overflow: hidden !important;
 
