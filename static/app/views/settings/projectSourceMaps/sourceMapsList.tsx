@@ -195,9 +195,8 @@ export function SourceMapsList({location, router, project}: Props) {
       {isReactNative && (
         <Fragment>
           <p>
-            {tct(
-              'If you are searching for React Native source maps to match specific debugIds, be sure during your build you are running these scripts to upload source maps for both iOS and Android:',
-              {}
+            {t(
+              'If you are searching for React Native source maps to match specific Debug IDs, be sure during your build you are running these scripts to upload source maps for both iOS and Android:'
             )}
           </p>
           <InstructionBlock>
