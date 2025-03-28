@@ -5,16 +5,12 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import (
-    APITestCase,
-    MetricsEnhancedPerformanceTestCase,
-    SnubaTestCase,
-    SpanTestCase,
-)
+from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
+from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -536,37 +532,69 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
             )
 
 
-class OrganizationEventsEAPSpanEndpointTest(OrganizationSpansSamplesEndpoint, SpanTestCase):
-    is_eap = True
+class OrganizationSpansSamplesEAPRPCEndpointTest(OrganizationEventsEndpointTestBase):
+    viewname = "sentry-api-0-organization-spans-samples"
 
-    @pytest.mark.xfail(reason="bounds not yet implemented yet")
-    def test_is_segment_properly_converted_in_filter(self):
-        super.test_is_segment_properly_converted_in_filter()
-
-    @pytest.mark.xfail(reason="bounds not implemented yet")
-    def test_is_using_sample_rate(self):
-        super.test_is_using_sample_rate()
+    def do_request(self, query, features=None, **kwargs):
+        query["useRpc"] = "1"
+        return super().do_request(query, features, **kwargs)
 
     def test_simple(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+        spans = [
+            self.create_span(
+                {"description": "bar", "trace_id": "1" * 32},
+                start_ts=self.ten_mins_ago,
+                duration=20,
+            ),
+            self.create_span(
+                {"description": "bar", "trace_id": "2" * 32},
+                start_ts=self.ten_mins_ago,
+                duration=100000,
+            ),
+            self.create_span(
+                {"description": "foo", "trace_id": "3" * 32},
+                start_ts=self.ten_mins_ago,
+                duration=5,
+            ),
+            self.create_span(
+                {
+                    "description": "foo",
+                    "trace_id": "4" * 32,
+                    "sentry_tags": {"profile.id": "1"},
+                },
+                start_ts=self.ten_mins_ago,
+                duration=5,
+            ),
+            self.create_span(
+                {
+                    "description": "foo",
+                    "trace_id": "5" * 32,
+                    "sentry_tags": {"profile.id": "2"},
+                },
+                start_ts=self.ten_mins_ago,
+                duration=20,
+            ),
+        ]
+
         self.store_spans(
-            self.create_span(duration=5),
+            spans,
+            is_eap=True,
         )
 
-        response = self.client.get(
-            url,
+        response = self.do_request(
             {
-                "query": "resource.render_blocking_status:non-blocking span.group:8f291ce3d84c35ca transaction:/issues/:groupId/",
+                "query": "",
                 "lowerBound": "0",
                 "firstBound": "10",
                 "secondBound": "20",
                 "upperBound": "200",
-                "column": "span.duration",
-                "useRpc": 1,
+                "project": self.project.id,
             },
-            format="json",
-            extra={"project": [project.id]},
         )
         assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 4
+        assert data[0]["span_id"] == spans[0]["span_id"]
+        assert data[1]["span_id"] == spans[2]["span_id"]
+        assert data[2]["span_id"] == spans[3]["span_id"]
+        assert data[3]["span_id"] == spans[4]["span_id"]

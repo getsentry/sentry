@@ -85,8 +85,8 @@ def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, Trace
     lower_bound_filter = TraceItemFilter(
         comparison_filter=ComparisonFilter(
             key=attribute,
-            op=ComparisonFilter.OP_GREATER_THAN,
-            value=AttributeValue(val_int=lower_bound),
+            op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+            value=AttributeValue(val_double=lower_bound),
         )
     )
 
@@ -97,7 +97,7 @@ def resolve_bounded_sample(args: ResolvedArguments) -> tuple[AttributeKey, Trace
             comparison_filter=ComparisonFilter(
                 key=attribute,
                 op=ComparisonFilter.OP_LESS_THAN,
-                value=AttributeValue(val_int=upper_bound),
+                value=AttributeValue(val_double=upper_bound),
             )
         )
         filter = TraceItemFilter(
@@ -168,7 +168,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
         arguments=[
-            AttributeArgumentDefinition(attribute_types={"string"}),
+            AttributeArgumentDefinition(attribute_types={"millisecond"}),
             ValueArgumentDefinition(argument_types={"integer"}),
             ValueArgumentDefinition(argument_types={"integer"}, default_arg=None),
         ],
