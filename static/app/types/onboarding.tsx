@@ -6,7 +6,6 @@ import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 
 import type {Organization} from './organization';
 import type {PlatformIntegration, PlatformKey, Project} from './project';
-import type {AvatarUser} from './user';
 
 export enum OnboardingTaskGroup {
   GETTING_STARTED = 'getting_started',
@@ -99,7 +98,6 @@ export interface OnboardingTaskStatus {
   completionSeen?: string | boolean;
   data?: {[key: string]: string};
   dateCompleted?: string;
-  user?: AvatarUser | null;
 }
 
 interface OnboardingTaskWithAction

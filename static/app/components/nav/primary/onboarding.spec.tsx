@@ -68,7 +68,6 @@ describe('Onboarding Status', function () {
         {
           task: OnboardingTaskKey.FIRST_PROJECT,
           status: 'complete',
-          user: UserFixture(),
           completionSeen: undefined,
           dateCompleted: undefined,
         },

@@ -7,10 +7,13 @@ import GuideStore from 'sentry/stores/guideStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {getDemoGuides, getTourTask} from 'sentry/utils/demoMode/guides';
+import {
+  getDemoGuides,
+  getTourTask,
+  updateDemoWalkthroughTask,
+} from 'sentry/utils/demoMode/guides';
 
 import {demoEndModal} from './modal';
-import {updateOnboardingTask} from './onboardingTasks';
 
 const api = new Client();
 
@@ -78,7 +81,7 @@ export function recordFinish(
 
   if (isDemoModeActive() && tourTask && org) {
     const {tour, task} = tourTask;
-    updateOnboardingTask(api, org, {task, status: 'complete', completionSeen: true});
+    updateDemoWalkthroughTask({task, status: 'complete', completionSeen: true});
     fetchOrganizationDetails(api, org.slug);
     demoEndModal({tour, orgSlug});
   }

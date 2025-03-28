@@ -23,7 +23,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import {metric} from 'sentry/utils/analytics';
@@ -31,7 +30,7 @@ import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');
-jest.mock('sentry/actionCreators/onboardingTasks');
+
 jest.mock('sentry/actionCreators/indicator', () => ({
   addSuccessMessage: jest.fn(),
   addErrorMessage: jest.fn(),
@@ -329,15 +328,6 @@ describe('IssueRuleEditor', function () {
           data: expect.objectContaining({environment: '__all_environments__'}),
         })
       );
-      expect(metric.startSpan).toHaveBeenCalledTimes(1);
-      expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
-    });
-
-    it('updates the alert onboarding task', async function () {
-      createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
-
-      await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startSpan).toHaveBeenCalledTimes(1);
       expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
     });

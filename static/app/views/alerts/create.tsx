@@ -1,12 +1,15 @@
 import {Fragment, useEffect, useRef} from 'react';
 
+import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Member, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -62,6 +65,7 @@ function Create(props: Props) {
 
   const sessionId = useRef(uniqueId());
   const navigate = useNavigate();
+  const updateOnboardingTasks = useUpdateOnboardingTasks();
 
   const isDuplicateRule = createFromDuplicate === 'true' && duplicateRuleId;
 
@@ -172,6 +176,14 @@ function Create(props: Props) {
                 {...props}
                 userTeamIds={teams.map(({id}) => id)}
                 members={members}
+                onSaveSuccess={() => {
+                  if (isDemoModeActive()) {
+                    return;
+                  }
+                  updateOnboardingTasks.mutate([
+                    {task: OnboardingTaskKey.ALERT_RULE, status: 'complete'},
+                  ]);
+                }}
               />
             ) : (
               hasMetricAlerts &&

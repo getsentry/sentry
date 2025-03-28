@@ -1,45 +1,26 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import ConfigStore from 'sentry/stores/configStore';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('actionCreators/onboardingTasks', function () {
-  const api = new MockApiClient();
-  const user = ConfigStore.get('user');
-
   jest.spyOn(OrganizationStore, 'onUpdate');
 
-  describe('updateOnboardingTask', function () {
-    it('Adds the task to the organization when task does not exists', async function () {
-      const detailedOrg = OrganizationFixture();
-
-      // User is not passed into the update request
-      const testTask = {
-        task: OnboardingTaskKey.FIRST_PROJECT,
-        status: 'complete',
-      } as const;
-
-      const mockUpdate = MockApiClient.addMockResponse({
-        url: `/organizations/${detailedOrg.slug}/onboarding-tasks/`,
-        method: 'POST',
-        body: testTask,
-      });
-
-      updateOnboardingTask(api, detailedOrg, testTask);
-      await tick();
-
-      expect(mockUpdate).toHaveBeenCalled();
-
-      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
-        onboardingTasks: [{...testTask, user}],
-      });
-    });
-
-    it('Updates existing onboarding task', async function () {
-      const detailedOrg = OrganizationFixture({
-        onboardingTasks: [{task: OnboardingTaskKey.FIRST_EVENT, status: 'skipped'}],
+  describe('useUpdateOnboardingTasks', function () {
+    it('Updates existing onboarding tasks', async function () {
+      const organization = OrganizationFixture({
+        onboardingTasks: [
+          {
+            task: OnboardingTaskKey.FIRST_EVENT,
+            status: 'pending',
+          },
+        ],
       });
 
       const testTask = {
@@ -47,44 +28,28 @@ describe('actionCreators/onboardingTasks', function () {
         status: 'complete',
       } as const;
 
-      MockApiClient.clearMockResponses();
       const mockUpdate = MockApiClient.addMockResponse({
-        url: `/organizations/${detailedOrg.slug}/onboarding-tasks/`,
+        url: `/organizations/${organization.slug}/onboarding-tasks/`,
         method: 'POST',
         body: testTask,
       });
 
-      updateOnboardingTask(api, detailedOrg, testTask);
-      await tick();
+      const {result} = renderHook(() => useUpdateOnboardingTasks(), {
+        wrapper: ({children}) => (
+          <OrganizationContext.Provider value={organization}>
+            <QueryClientProvider client={makeTestQueryClient()}>
+              {children}
+            </QueryClientProvider>
+          </OrganizationContext.Provider>
+        ),
+      });
 
-      expect(mockUpdate).toHaveBeenCalled();
+      result.current.mutate([testTask]);
 
-      // NOTE: user is not passed as it is already associated to the existing
-      // onboarding task.
+      await waitFor(() => expect(mockUpdate).toHaveBeenCalled());
+
       expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
         onboardingTasks: [testTask],
-      });
-    });
-
-    it('Does not make API request without api object', async function () {
-      const detailedOrg = OrganizationFixture();
-
-      const testTask = {
-        task: OnboardingTaskKey.FIRST_EVENT,
-        status: 'complete',
-      } as const;
-
-      const mockUpdate = MockApiClient.addMockResponse({
-        url: `/organizations/${detailedOrg.slug}/onboarding-tasks/`,
-        method: 'POST',
-      });
-
-      updateOnboardingTask(null, detailedOrg, testTask);
-      await tick();
-
-      expect(mockUpdate).not.toHaveBeenCalled();
-      expect(OrganizationStore.onUpdate).toHaveBeenCalledWith({
-        onboardingTasks: [{...testTask, user}],
       });
     });
   });
