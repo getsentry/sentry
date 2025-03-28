@@ -28,7 +28,7 @@ describe('aiohttp onboarding docs', function () {
 
     // Does not render config option
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does not render config option
