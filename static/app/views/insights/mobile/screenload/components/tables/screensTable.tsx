@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -44,6 +45,7 @@ type Props = {
 };
 
 export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
+  const theme = useTheme();
   const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const organization = useOrganization();
@@ -121,6 +123,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     if (
       column.key.includes('time_to_full_display') &&

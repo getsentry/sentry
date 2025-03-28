@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
@@ -30,6 +31,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
   const {selection} = usePageFilters();
   const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const query = new MutableSearch('');
   query.addFilterValue('transaction', serviceEntrySpanName);
@@ -55,7 +57,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
         key: d[SpanIndexedField.SPAN_CATEGORY],
         leadingItems: (
           <OperationDot
-            backgroundColor={pickBarColor(d[SpanIndexedField.SPAN_CATEGORY])}
+            backgroundColor={pickBarColor(d[SpanIndexedField.SPAN_CATEGORY], theme)}
           />
         ),
       }))

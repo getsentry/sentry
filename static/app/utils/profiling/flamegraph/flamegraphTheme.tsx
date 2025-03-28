@@ -1,6 +1,5 @@
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {
   makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
@@ -209,10 +208,10 @@ export function makeLightFlamegraphTheme(theme: Theme): FlamegraphTheme {
         'by frequency': makeColorMapByFrequency,
         'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
       },
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: theme.chart.colors[12].map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
-        hexToColorChannels(CHART_PALETTE[4][2], 0.8),
-        hexToColorChannels(CHART_PALETTE[4][3], 0.8),
+        hexToColorChannels(theme.chart.colors[4][2], 0.8),
+        hexToColorChannels(theme.chart.colors[4][3], 0.8),
       ],
       CHART_CURSOR_INDICATOR: 'rgba(31,35,58,.75)',
       CHART_LABEL_COLOR: 'rgba(31,35,58,.75)',
@@ -266,10 +265,10 @@ export function makeDarkFlamegraphTheme(theme: Theme): FlamegraphTheme {
         'by frequency': makeColorMapByFrequency,
         'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
       },
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: theme.chart.colors[12].map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
-        hexToColorChannels(CHART_PALETTE[4][2], 0.5),
-        hexToColorChannels(CHART_PALETTE[4][3], 0.5),
+        hexToColorChannels(theme.chart.colors[4][2], 0.5),
+        hexToColorChannels(theme.chart.colors[4][3], 0.5),
       ],
       CHART_CURSOR_INDICATOR: 'rgba(255, 255, 255, 0.5)',
       CHART_LABEL_COLOR: 'rgba(255, 255, 255, 0.5)',
@@ -341,7 +340,7 @@ export const makeLightChonkFlamegraphTheme = (
       },
 
       // Charts
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: theme.chart.colors[12].map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
         hexToColorChannels(theme.colors.yellow400, 1),
         hexToColorChannels(theme.colors.red400, 1),
@@ -430,7 +429,7 @@ export const makeDarkChonkFlamegraphTheme = (
       },
 
       // Charts
-      CPU_CHART_COLORS: CHART_PALETTE[12].map(c => hexToColorChannels(c, 0.8)),
+      CPU_CHART_COLORS: theme.chart.colors[12].map(c => hexToColorChannels(c, 0.8)),
       MEMORY_CHART_COLORS: [
         hexToColorChannels(theme.colors.yellow400, 1),
         hexToColorChannels(theme.colors.red400, 1),

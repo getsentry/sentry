@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {
@@ -50,6 +51,7 @@ export function ScreensTable({
   customBodyCellRenderer,
   moduleName,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -82,6 +84,7 @@ export function ScreensTable({
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
   }
 

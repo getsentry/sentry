@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -36,8 +37,8 @@ function Measurements({
   node: TraceTreeNode<TraceTree.Span>;
   organization: Organization;
 }) {
+  const theme = useTheme();
   const {measurements} = node.value;
-
   const measurementNames: string[] = useMemo(() => {
     return Object.keys(measurements ?? {})
       .filter(name => isCustomMeasurement(`measurements.${name}`))
@@ -58,7 +59,7 @@ function Measurements({
           ? FIELD_FORMATTERS[fieldType].renderFunc(
               name,
               {[name]: renderValue},
-              {location, organization, unit}
+              {location, organization, unit, theme}
             )
           : renderValue;
 
@@ -90,7 +91,7 @@ function Measurements({
       }
     }
     return result;
-  }, [measurements, measurementNames, location, organization, projectID]);
+  }, [measurements, measurementNames, location, organization, projectID, theme]);
 
   if (measurementNames.length < 1) {
     return null;

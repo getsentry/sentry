@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -99,6 +100,7 @@ function BaseExploreFieldRenderer({
 }: BaseFieldProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
   const dateSelection = EventView.fromLocation(location).normalizeDateSelection(location);
   const query = new MutableSearch(userQuery);
   const field = column.name;
@@ -108,6 +110,7 @@ function BaseExploreFieldRenderer({
   let rendered = renderer(data, {
     location,
     organization,
+    theme,
     unit,
   });
 

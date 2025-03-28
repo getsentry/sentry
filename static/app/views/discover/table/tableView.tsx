@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
@@ -109,6 +110,7 @@ export type TableViewProps = {
  * object. The new EventView object is pushed to the location object.
  */
 function TableView(props: TableViewProps) {
+  const theme = useTheme();
   const {projects} = useProjects();
   const routes = useRoutes();
   const navigate = useNavigate();
@@ -207,7 +209,7 @@ function TableView(props: TableViewProps) {
 
       if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
-        value = fieldRenderer(dataRow, {organization, location});
+        value = fieldRenderer(dataRow, {organization, location, theme});
       }
 
       let target: any;
@@ -349,7 +351,7 @@ function TableView(props: TableViewProps) {
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
     const unit = tableData.meta.units?.[columnKey];
-    let cell = fieldRenderer(dataRow, {organization, location, unit});
+    let cell = fieldRenderer(dataRow, {organization, location, unit, theme});
 
     const isTransactionsDataset =
       hasDatasetSelector(organization) &&

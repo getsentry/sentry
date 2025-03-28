@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -88,6 +89,7 @@ export function QueriesTable({response, sort, system}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
@@ -122,7 +124,7 @@ export function QueriesTable({response, sort, system}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, system),
+            renderBodyCell(column, row, meta, location, organization, theme, system),
         }}
       />
       <Pagination
@@ -146,6 +148,7 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
+  theme: Theme,
   system?: string
 ) {
   if (column.key === 'span.description') {
@@ -171,6 +174,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 
   return rendered;

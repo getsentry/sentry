@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
@@ -30,7 +32,7 @@ function getAllowedChartsSmall(
 export function FrontendPageloadView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
   const {setPageError} = usePageAlert();
-
+  const theme = useTheme();
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.WORST_LCP_VITALS,
     PerformanceWidgetSetting.WORST_FCP_VITALS,
@@ -51,6 +53,7 @@ export function FrontendPageloadView(props: BasePerformanceViewProps) {
         />
         <Table
           {...props}
+          theme={theme}
           columnTitles={FRONTEND_PAGELOAD_COLUMN_TITLES}
           setError={setPageError}
         />

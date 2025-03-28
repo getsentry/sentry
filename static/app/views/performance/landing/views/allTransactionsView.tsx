@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -11,6 +13,7 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 import type {BasePerformanceViewProps} from './types';
 
 export function AllTransactionsView(props: BasePerformanceViewProps) {
+  const theme = useTheme();
   const {setPageError} = usePageAlert();
   const doubleChartRowCharts: PerformanceWidgetSetting[] = [];
   const organization = useOrganization();
@@ -65,7 +68,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
       <div data-test-id="all-transactions-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow {...props} allowedCharts={allowedCharts} />
-        <Table {...props} setError={setPageError} />
+        <Table {...props} setError={setPageError} theme={theme} />
       </div>
     </PerformanceDisplayProvider>
   );

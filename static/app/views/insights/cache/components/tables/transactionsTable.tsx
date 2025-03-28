@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -129,7 +130,7 @@ export function TransactionsTable({
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-
+  const theme = useTheme();
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
       pathname,
@@ -160,7 +161,7 @@ export function TransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
 
@@ -184,7 +185,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'transaction') {
     return (
@@ -207,5 +209,6 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }

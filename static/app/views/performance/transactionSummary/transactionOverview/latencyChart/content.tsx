@@ -87,7 +87,7 @@ function Content({
     const colors =
       currentFilter === SpanOperationBreakdownFilter.NONE
         ? theme.chart.getColorPalette(1)
-        : [filterToColor(currentFilter)];
+        : [filterToColor(currentFilter, theme)];
 
     // Use a custom tooltip formatter as we need to replace
     // the tooltip content entirely when zooming is no longer available.
