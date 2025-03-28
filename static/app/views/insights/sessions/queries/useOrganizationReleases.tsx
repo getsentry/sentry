@@ -64,13 +64,18 @@ export default function useOrganizationReleases({
     ? `${FieldKey.RELEASE_STAGE}:[${stages.join(',')}]`
     : undefined;
 
+  const queryString = [stage, finalizedQuery, location.query.query]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
   const {data, isError, isPending, getResponseHeader} = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          query: [stage, finalizedQuery].filter(Boolean).join(' '),
           ...locationWithoutWidth.query,
+          query: queryString,
           adoptionStages: 1,
           health: 1,
           per_page: 10,
@@ -78,7 +83,9 @@ export default function useOrganizationReleases({
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+    }
   );
 
   const releaseData =

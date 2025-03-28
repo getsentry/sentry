@@ -29,6 +29,7 @@ import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHeal
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
+import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -168,6 +169,7 @@ function ViewSpecificCharts({
           <ModuleLayout.Full>
             <FilterWrapper>
               <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+              <ReleaseTableSearch />
             </FilterWrapper>
             <ReleaseHealth filters={filters} />
           </ModuleLayout.Full>
@@ -191,4 +193,5 @@ export default PageWithProviders;
 const FilterWrapper = styled('div')`
   display: flex;
   margin: ${space(2)} 0;
+  gap: ${space(1)};
 `;
