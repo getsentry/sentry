@@ -12,7 +12,7 @@ import {
   TourGuide,
 } from 'sentry/components/tours/components';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
-import {useAssistant} from 'sentry/components/tours/useAssistant';
+import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -223,10 +223,11 @@ export function StackedNavigationTourReminder({children}: {children: React.React
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useTourModal() {
   const hasOpenedTourModal = useRef(false);
-  const {startTour, endTour} = useStackedNavigationTour();
+  const {startTour} = useStackedNavigationTour();
   const {data: assistantData} = useAssistant({
     notifyOnChangeProps: ['data'],
   });
+  const {mutate: mutateAssistant} = useMutateAssistant();
 
   const shouldShowTourModal =
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
@@ -239,7 +240,13 @@ export function useTourModal() {
         props => (
           <NavTourModal
             closeModal={props.closeModal}
-            handleDismissTour={endTour}
+            handleDismissTour={() => {
+              mutateAssistant({
+                guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+                status: 'dismissed',
+              });
+              props.closeModal();
+            }}
             handleStartTour={startTour}
           />
         ),
@@ -248,5 +255,5 @@ export function useTourModal() {
         }
       );
     }
-  }, [shouldShowTourModal, endTour, startTour]);
+  }, [shouldShowTourModal, startTour, mutateAssistant]);
 }
