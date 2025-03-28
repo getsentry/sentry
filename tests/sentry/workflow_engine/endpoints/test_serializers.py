@@ -44,7 +44,14 @@ class TestDetectorSerializer(TestCase):
             comparison=100,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.USER.value,
+            },
+        )
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
         detector = self.create_detector(
             project_id=self.project.id,
@@ -117,9 +124,9 @@ class TestDetectorSerializer(TestCase):
                     {
                         "id": str(action.id),
                         "type": "email",
-                        "data": '{"foo":"bar"}',
+                        "data": "{}",
                         "integration_id": None,
-                        "config": "{}",
+                        "config": '{"target_type":1,"target_identifier":"123"}',
                     }
                 ],
             },
@@ -216,7 +223,14 @@ class TestDataConditionGroupSerializer(TestCase):
             condition_result=DetectorPriorityLevel.HIGH,
         )
 
-        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.USER.value,
+            },
+        )
 
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
 
@@ -238,9 +252,9 @@ class TestDataConditionGroupSerializer(TestCase):
                 {
                     "id": str(action.id),
                     "type": "email",
-                    "data": '{"foo":"bar"}',
+                    "data": "{}",
                     "integration_id": None,
-                    "config": "{}",
+                    "config": '{"target_type":1,"target_identifier":"123"}',
                 }
             ],
         }
@@ -259,16 +273,16 @@ class TestActionSerializer(TestCase):
 
     def test_serialize_simple(self):
         action = self.create_action(
-            type=Action.Type.EMAIL,
-            data={"foo": "bar"},
+            type=Action.Type.PLUGIN,
+            data={},
         )
 
         result = serialize(action)
 
         assert result == {
             "id": str(action.id),
-            "type": "email",
-            "data": '{"foo":"bar"}',
+            "type": "plugin",
+            "data": "{}",
             "integration_id": None,
             "config": "{}",
         }
@@ -276,19 +290,23 @@ class TestActionSerializer(TestCase):
     def test_serialize_with_integration(self):
 
         action = self.create_action(
-            type=Action.Type.EMAIL,
-            data={"foo": "bar"},
+            type=Action.Type.OPSGENIE,
+            data={"priority": "P1"},
             integration_id=self.integration.id,
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.SPECIFIC.value,
+            },
         )
 
         result = serialize(action)
 
         assert result == {
             "id": str(action.id),
-            "type": "email",
-            "data": '{"foo":"bar"}',
+            "type": "opsgenie",
+            "data": '{"priority":"P1"}',
             "integration_id": self.integration.id,
-            "config": "{}",
+            "config": '{"target_type":0,"target_identifier":"123"}',
         }
 
     def test_serialize_with_integration_and_config(self):
@@ -359,7 +377,14 @@ class TestWorkflowSerializer(TestCase):
             organization_id=self.organization.id,
             logic_type=DataConditionGroup.Type.ALL,
         )
-        action = self.create_action(type=Action.Type.EMAIL, data={"foo": "bar"})
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            data={},
+            config={
+                "target_identifier": "123",
+                "target_type": ActionTarget.USER.value,
+            },
+        )
         self.create_data_condition_group_action(condition_group=condition_group, action=action)
         condition = self.create_data_condition(
             condition_group=condition_group,
@@ -412,9 +437,9 @@ class TestWorkflowSerializer(TestCase):
                         {
                             "id": str(action.id),
                             "type": "email",
-                            "data": '{"foo":"bar"}',
+                            "data": "{}",
                             "integration_id": None,
-                            "config": "{}",
+                            "config": '{"target_type":1,"target_identifier":"123"}',
                         }
                     ],
                 },
