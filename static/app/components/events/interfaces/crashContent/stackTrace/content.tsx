@@ -33,7 +33,6 @@ type Props = {
   event: Event;
   newestFirst: boolean;
   platform: PlatformKey;
-  threadId: number | undefined;
   className?: string;
   frameSourceMapDebuggerData?: FrameSourceMapDebuggerData[];
   hideIcon?: boolean;
@@ -43,6 +42,7 @@ type Props = {
   maxDepth?: number;
   mechanism?: StackTraceMechanism | null;
   meta?: Record<any, any>;
+  threadId?: number;
 } & Partial<DefaultProps>;
 
 function Content({

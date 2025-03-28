@@ -69,7 +69,7 @@ export interface DeprecatedLineProps {
   frameSourceResolutionResults: FrameSourceMapDebuggerData | undefined;
   hiddenFrameCount: number | undefined;
   hideSourceMapDebugger: boolean;
-  image: React.ComponentProps<typeof DebugImage>['image'];
+  image: React.ComponentProps<typeof DebugImage>['image'] | null;
   includeSystemFrames: boolean;
   isANR: boolean;
   isExpanded: boolean;
@@ -79,8 +79,6 @@ export interface DeprecatedLineProps {
   isHoverPreviewed: boolean;
   lockAddress: string | undefined;
   nextFrame: Frame | undefined;
-  onFunctionNameToggle: (event: React.MouseEvent<SVGElement>) => void;
-  onShowFramesToggle: (event: React.MouseEvent<HTMLElement>) => void;
   organization: Organization;
   platform: PlatformKey;
   prevFrame: Frame | undefined;
@@ -93,6 +91,8 @@ export interface DeprecatedLineProps {
    * Frames that are hidden under the most recent non-InApp frame
    */
   isSubFrame?: boolean;
+  onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
+  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
 }
@@ -109,7 +109,7 @@ type State = {
 function makeFilter(
   addr: string,
   addrMode: string | undefined,
-  image?: React.ComponentProps<typeof DebugImage>['image']
+  image?: React.ComponentProps<typeof DebugImage>['image'] | null
 ): string {
   if (!(!addrMode || addrMode === 'abs') && image) {
     return `${image.debug_id}!${addr}`;

@@ -31,23 +31,14 @@ const event = EventFixture({
 
 const data = eventEntryStacktrace.data as Required<StacktraceType>;
 
-function renderedComponent(
-  props: Partial<React.ComponentProps<typeof StackTraceContent>>
-) {
-  return render(
-    <StackTraceContent
-      data={data}
-      className="no-exception"
-      platform="other"
-      event={event}
-      newestFirst
-      includeSystemFrames
-      {...props}
-    />
-  );
-}
-
 describe('StackTrace', function () {
+  const defaultProps = {
+    platform: 'other' as const,
+    newestFirst: true,
+    className: 'no-exception',
+    includeSystemFrames: true,
+  } satisfies Partial<React.ComponentProps<typeof StackTraceContent>>;
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
@@ -66,7 +57,7 @@ describe('StackTrace', function () {
     ProjectsStore.loadInitialData([project]);
   });
   it('renders', function () {
-    renderedComponent({});
+    render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // stack trace content
     const stackTraceContent = screen.getByTestId('stack-trace-content');
@@ -81,7 +72,7 @@ describe('StackTrace', function () {
   });
 
   it('renders the frame in the correct order', function () {
-    renderedComponent({});
+    render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // frame - filename
     const frameFilenames = screen.getAllByTestId('filename');
@@ -103,7 +94,8 @@ describe('StackTrace', function () {
   });
 
   it('collapse/expand frames by clicking anywhere in the frame element', async function () {
-    renderedComponent({});
+    render(<StackTraceContent {...defaultProps} data={data} event={event} />);
+
     // frame list
     const frames = screen.getByTestId('frames');
     expect(frames.children).toHaveLength(5);
@@ -132,7 +124,7 @@ describe('StackTrace', function () {
   });
 
   it('collapse/expand frames by clicking on the toggle button', async function () {
-    renderedComponent({});
+    render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // frame list
     const frames = screen.getByTestId('frames');
@@ -163,7 +155,7 @@ describe('StackTrace', function () {
   });
 
   it('if all in_app equals false, all the frames are showing by default', function () {
-    renderedComponent({});
+    render(<StackTraceContent {...defaultProps} data={data} event={event} />);
 
     // frame list
     const frames = screen.getByTestId('frames');
@@ -176,9 +168,7 @@ describe('StackTrace', function () {
       framesOmitted: [0, 3],
     };
 
-    renderedComponent({
-      data: newData,
-    });
+    render(<StackTraceContent {...defaultProps} data={newData} event={event} />);
 
     const omittedFrames = screen.getByText(
       'Frames 0 until 3 were omitted and not available.'
@@ -195,9 +185,7 @@ describe('StackTrace', function () {
       frames: dataFrames,
     };
 
-    renderedComponent({
-      data: newData,
-    });
+    render(<StackTraceContent {...defaultProps} data={newData} event={event} />);
 
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
@@ -211,10 +199,14 @@ describe('StackTrace', function () {
       frames: dataFrames,
     };
 
-    renderedComponent({
-      data: newData,
-      includeSystemFrames: false,
-    });
+    render(
+      <StackTraceContent
+        {...defaultProps}
+        data={newData}
+        event={event}
+        includeSystemFrames={false}
+      />
+    );
 
     expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
   });
@@ -232,10 +224,15 @@ describe('StackTrace', function () {
       frames: dataFrames,
     };
 
-    renderedComponent({
-      data: newData,
-      includeSystemFrames: false,
-    });
+    render(
+      <StackTraceContent
+        {...defaultProps}
+        data={newData}
+        event={event}
+        includeSystemFrames={false}
+      />
+    );
+
     await userEvent.click(screen.getByText('Show 3 more frames'));
     expect(screen.getAllByText('non-in-app-frame')).toHaveLength(4);
     await userEvent.click(screen.getByText('Hide 3 more frames'));
@@ -253,10 +250,14 @@ describe('StackTrace', function () {
       frames: dataFrames,
     };
 
-    renderedComponent({
-      data: newData,
-      includeSystemFrames: false,
-    });
+    render(
+      <StackTraceContent
+        {...defaultProps}
+        data={newData}
+        event={event}
+        includeSystemFrames={false}
+      />
+    );
 
     expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
   });
@@ -274,14 +275,17 @@ describe('StackTrace', function () {
         ],
       };
 
-      renderedComponent({
-        data: newData,
-        event: EventFixture({
-          ...event,
-          entries: [{...event.entries[0], stacktace: newData.frames}],
-        }),
-        includeSystemFrames: false,
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={newData}
+          event={EventFixture({
+            ...event,
+            entries: [{...event.entries[0], stacktace: newData.frames}],
+          })}
+          includeSystemFrames={false}
+        />
+      );
 
       // clickable list item element
       const frameTitles = screen.getAllByTestId('title');
@@ -308,14 +312,17 @@ describe('StackTrace', function () {
         ],
       };
 
-      renderedComponent({
-        data: newData,
-        event: EventFixture({
-          ...event,
-          entries: [{...event.entries[0], stacktrace: newData.frames}],
-        }),
-        includeSystemFrames: false,
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={newData}
+          event={EventFixture({
+            ...event,
+            entries: [{...event.entries[0], stacktrace: newData.frames}],
+          })}
+          includeSystemFrames={false}
+        />
+      );
 
       // clickable list item element
       const frameTitles = screen.getAllByTestId('title');
@@ -344,14 +351,17 @@ describe('StackTrace', function () {
         ],
       };
 
-      renderedComponent({
-        data: newData,
-        event: EventFixture({
-          ...event,
-          entries: [{...event.entries[0], stacktrace: newData.frames}],
-        }),
-        includeSystemFrames: false,
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={newData}
+          event={EventFixture({
+            ...event,
+            entries: [{...event.entries[0], stacktrace: newData.frames}],
+          })}
+          includeSystemFrames={false}
+        />
+      );
 
       // clickable list item element
       const frameTitles = screen.getAllByTestId('title');
@@ -380,15 +390,18 @@ describe('StackTrace', function () {
         ],
       };
 
-      renderedComponent({
-        data: newData,
-        event: EventFixture({
-          ...event,
-          entries: [{...event.entries[0], stacktrace: newData.frames}],
-          type: EventOrGroupType.TRANSACTION,
-        }),
-        includeSystemFrames: false,
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={newData}
+          event={EventFixture({
+            ...event,
+            entries: [{...event.entries[0], stacktrace: newData.frames}],
+            type: EventOrGroupType.TRANSACTION,
+          })}
+          includeSystemFrames={false}
+        />
+      );
 
       // clickable list item element
       const frameTitles = screen.getAllByTestId('title');
@@ -414,16 +427,19 @@ describe('StackTrace', function () {
         ],
       };
 
-      renderedComponent({
-        data: newData,
-        event: EventFixture({
-          ...event,
-          entries: [{...event.entries[0], stacktrace: newData.frames}],
-          type: EventOrGroupType.ERROR,
-          tags: [{key: 'mechanism', value: 'ANR'}],
-        }),
-        includeSystemFrames: false,
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={newData}
+          event={EventFixture({
+            ...event,
+            entries: [{...event.entries[0], stacktrace: newData.frames}],
+            type: EventOrGroupType.ERROR,
+            tags: [{key: 'mechanism', value: 'ANR'}],
+          })}
+          includeSystemFrames={false}
+        />
+      );
 
       // clickable list item element
       const frameTitles = screen.getAllByTestId('title');
@@ -440,77 +456,89 @@ describe('StackTrace', function () {
 
   describe('platform icons', function () {
     it('uses the top in-app frame file extension for mixed stack trace platforms', function () {
-      renderedComponent({
-        data: {
-          ...data,
-          frames: [
-            EventStacktraceFrameFixture({
-              inApp: true,
-              filename: 'foo.cs',
-            }),
-            EventStacktraceFrameFixture({
-              inApp: true,
-              filename: 'foo.py',
-            }),
-            EventStacktraceFrameFixture({
-              inApp: true,
-              filename: 'foo',
-            }),
-            EventStacktraceFrameFixture({
-              inApp: false,
-              filename: 'foo.rb',
-            }),
-          ],
-        },
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={{
+            ...data,
+            frames: [
+              EventStacktraceFrameFixture({
+                inApp: true,
+                filename: 'foo.cs',
+              }),
+              EventStacktraceFrameFixture({
+                inApp: true,
+                filename: 'foo.py',
+              }),
+              EventStacktraceFrameFixture({
+                inApp: true,
+                filename: 'foo',
+              }),
+              EventStacktraceFrameFixture({
+                inApp: false,
+                filename: 'foo.rb',
+              }),
+            ],
+          }}
+          event={event}
+        />
+      );
 
       // foo.py is the most recent in-app frame with a valid file extension
       expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     });
 
     it('uses frame.platform if file extension does not work', function () {
-      renderedComponent({
-        data: {
-          ...data,
-          frames: [
-            EventStacktraceFrameFixture({
-              inApp: true,
-              filename: 'foo.cs',
-            }),
-            EventStacktraceFrameFixture({
-              inApp: true,
-              filename: 'foo',
-              platform: 'node',
-            }),
-            EventStacktraceFrameFixture({
-              inApp: true,
-              filename: 'foo',
-            }),
-            EventStacktraceFrameFixture({
-              inApp: false,
-              filename: 'foo.rb',
-            }),
-          ],
-        },
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={{
+            ...data,
+            frames: [
+              EventStacktraceFrameFixture({
+                inApp: true,
+                filename: 'foo.cs',
+              }),
+              EventStacktraceFrameFixture({
+                inApp: true,
+                filename: 'foo',
+                platform: 'node',
+              }),
+              EventStacktraceFrameFixture({
+                inApp: true,
+                filename: 'foo',
+              }),
+              EventStacktraceFrameFixture({
+                inApp: false,
+                filename: 'foo.rb',
+              }),
+            ],
+          }}
+          event={event}
+        />
+      );
 
       expect(screen.getByTestId('platform-icon-node')).toBeInTheDocument();
     });
 
     it('falls back to the event platform if there is no other information', function () {
-      renderedComponent({
-        data: {
-          ...data,
-          frames: [
-            EventStacktraceFrameFixture({
-              inApp: true,
-              filename: 'foo',
-              platform: null,
-            }),
-          ],
-        },
-        platform: 'python',
-      });
+      render(
+        <StackTraceContent
+          {...defaultProps}
+          data={{
+            ...data,
+            frames: [
+              EventStacktraceFrameFixture({
+                inApp: true,
+                filename: 'foo',
+                platform: null,
+              }),
+            ],
+          }}
+          platform="python"
+          event={event}
+        />
+      );
 
       expect(screen.getByTestId('platform-icon-python')).toBeInTheDocument();
     });
