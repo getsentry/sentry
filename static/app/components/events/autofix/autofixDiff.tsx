@@ -777,6 +777,7 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
+  overflow: visible;
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -809,6 +810,7 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.25)};
   display: flex;
+  z-index: 1;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
