@@ -36,6 +36,8 @@ const EXCLUDED_TAGS: string[] = [
   'device',
   'os',
   'user',
+  // Prefer issues 'trace' field which has a better description. 'trace.id' tag is for display purposes only.
+  'trace.id',
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
@@ -206,6 +208,7 @@ export default function FeedbackSearch() {
   return (
     <SearchQueryBuilder
       initialQuery={decodeScalar(locationQuery.query, '')}
+      fieldDefinitionGetter={getFeedbackFieldDefinition}
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}

@@ -101,7 +101,7 @@ const StyledLayoutBody = styled('div')<{
 }>`
   display: grid;
   background-color: ${p => p.theme.background};
-  grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, auto) 325px' : '1fr')};
+  grid-template-columns: ${p => (p.sidebarOpen ? 'minmax(100px, 100%) 325px' : '100%')};
 
   @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: flex;

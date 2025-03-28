@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
@@ -27,6 +27,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -48,6 +49,7 @@ export interface MultiQueryChartProps {
   mode: Mode;
   query: ReadableExploreQueryParts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  isProgressivelyLoading?: boolean;
 }
 
 export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
@@ -58,6 +60,7 @@ export function MultiQueryModeChart({
   mode,
   timeseriesResult,
   canUsePreviousResults,
+  isProgressivelyLoading,
 }: MultiQueryChartProps) {
   const theme = useTheme();
 
@@ -166,6 +169,7 @@ export function MultiQueryModeChart({
         key={index}
         height={CHART_HEIGHT}
         Title={Title}
+        TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
       />
@@ -255,6 +259,7 @@ export function MultiQueryModeChart({
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
+      TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
       Actions={[
         <Tooltip
           key="visualization"

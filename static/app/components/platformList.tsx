@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -21,41 +20,42 @@ type Props = {
 
 type WrapperProps = Required<Pick<Props, 'size'>>;
 
-export const PlatformList = forwardRef(
-  (
-    {platforms = [], max = 3, size = 16, className}: Props,
-    ref: React.Ref<HTMLDivElement>
-  ) => {
-    const visiblePlatforms = platforms.slice(0, max);
+export function PlatformList({
+  platforms = [],
+  max = 3,
+  size = 16,
+  className,
+  ref,
+}: Props & {ref?: React.Ref<HTMLDivElement>}) {
+  const visiblePlatforms = platforms.slice(0, max);
 
-    function renderContent() {
-      if (!platforms.length) {
-        return <StyledPlatformIcon size={size} platform="default" />;
-      }
-
-      const platformIcons = visiblePlatforms.slice().reverse();
-
-      return (
-        <PlatformIcons>
-          {platformIcons.map((visiblePlatform, index) => (
-            <StyledPlatformIcon
-              data-test-id={`platform-icon-${visiblePlatform}`}
-              key={visiblePlatform + index}
-              platform={visiblePlatform}
-              size={size}
-            />
-          ))}
-        </PlatformIcons>
-      );
+  function renderContent() {
+    if (!platforms.length) {
+      return <StyledPlatformIcon size={size} platform="default" />;
     }
 
+    const platformIcons = visiblePlatforms.slice().reverse();
+
     return (
-      <Wrapper ref={ref} className={className} size={size}>
-        {renderContent()}
-      </Wrapper>
+      <PlatformIcons>
+        {platformIcons.map((visiblePlatform, index) => (
+          <StyledPlatformIcon
+            data-test-id={`platform-icon-${visiblePlatform}`}
+            key={visiblePlatform + index}
+            platform={visiblePlatform}
+            size={size}
+          />
+        ))}
+      </PlatformIcons>
     );
   }
-);
+
+  return (
+    <Wrapper ref={ref} className={className} size={size}>
+      {renderContent()}
+    </Wrapper>
+  );
+}
 
 function getOverlapWidth(size: number) {
   return Math.round(size / 4);
@@ -92,7 +92,7 @@ const Counter = styled('div')`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   background-color: ${p => p.theme.gray200};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   padding: 0 1px;
   position: absolute;
   right: -1px;

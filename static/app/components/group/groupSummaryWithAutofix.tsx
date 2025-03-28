@@ -193,6 +193,7 @@ function AutofixSummary({
               <InsightCardButton
                 key={card.id}
                 onClick={card.onClick}
+                role="button"
                 initial="initial"
                 animate={card.isLoading ? 'animate' : 'initial'}
                 variants={pulseAnimation}
@@ -264,7 +265,7 @@ const InsightGrid = styled('div')`
   gap: ${space(1.5)};
 `;
 
-const InsightCardButton = styled(motion.button)`
+const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   width: 100%;

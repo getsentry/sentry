@@ -26,6 +26,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -47,6 +48,7 @@ import {
   hasContextSource,
   hasContextVars,
   isExpandable,
+  isPotentiallyThirdPartyFrame,
 } from './utils';
 
 const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
@@ -62,7 +64,7 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
 export interface DeprecatedLineProps {
   data: Frame;
   event: Event;
-  registers: Record<string, string>;
+  registers: StacktraceType['registers'];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
   frameSourceResolutionResults?: FrameSourceMapDebuggerData;
@@ -371,6 +373,7 @@ export class DeprecatedLine extends Component<Props, State> {
                   platform={this.props.platform ?? 'other'}
                   isHoverPreviewed={isHoverPreviewed}
                   meta={this.props.frameMeta}
+                  isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
                 />
               </div>
             </LeftLineTitle>

@@ -281,7 +281,7 @@ const Description = styled('div')`
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Events = styled('div')<{isLegacy: boolean}>`
@@ -305,7 +305,7 @@ const StyledHovercard = styled(Hovercard)`
   width: 400px;
 
   ${Header} {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     text-transform: uppercase;
     font-size: ${p => p.theme.fontSizeSmall};
     border-radius: 6px 6px 0px 0px;

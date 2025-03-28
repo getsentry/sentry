@@ -228,7 +228,7 @@ export function QueriesWidget({query}: {query?: string}) {
 
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1;
   min-width: 0px;

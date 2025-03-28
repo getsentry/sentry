@@ -11,7 +11,6 @@ import {
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
-import {OnboardingProjectStatus} from 'sentry/types/onboarding';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import * as useProjects from 'sentry/utils/useProjects';
 import Onboarding from 'sentry/views/onboarding/onboarding';
@@ -126,20 +125,13 @@ describe('Onboarding', function () {
     render(
       <OnboardingContextProvider
         value={{
-          selectedSDK: {
+          selectedPlatform: {
             key: nextJsProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
             category: 'browser',
             name: 'Next.js',
             link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
-          },
-          projects: {
-            [nextJsProject.id]: {
-              slug: nextJsProject.slug,
-              status: OnboardingProjectStatus.WAITING,
-              firstIssueId: undefined,
-            },
           },
         }}
       >
@@ -204,20 +196,13 @@ describe('Onboarding', function () {
     render(
       <OnboardingContextProvider
         value={{
-          selectedSDK: {
+          selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
             category: 'browser',
             name: 'React',
             link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
-          },
-          projects: {
-            [reactProject.id]: {
-              slug: reactProject.slug,
-              status: OnboardingProjectStatus.WAITING,
-              firstIssueId: undefined,
-            },
           },
         }}
       >
@@ -323,20 +308,13 @@ describe('Onboarding', function () {
     render(
       <OnboardingContextProvider
         value={{
-          selectedSDK: {
+          selectedPlatform: {
             key: reactProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
             category: 'browser',
             name: 'React',
             link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
-          },
-          projects: {
-            [reactProject.id]: {
-              slug: reactProject.slug,
-              status: OnboardingProjectStatus.WAITING,
-              firstIssueId: undefined,
-            },
           },
         }}
       >

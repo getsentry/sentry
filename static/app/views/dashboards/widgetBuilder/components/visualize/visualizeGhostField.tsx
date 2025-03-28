@@ -167,13 +167,13 @@ function VisualizeGhostField({
                       (parameter: any, parameterIndex: number) => {
                         const currentValue =
                           draggingField?.function[parameterIndex + 2] || '';
-                        const key = `${draggingField.function!.join('_')}-${parameterIndex}`;
+                        const key = `${draggingField.function.join('_')}-${parameterIndex}`;
 
                         return (
                           <AggregateParameterField
                             key={key}
                             parameter={parameter}
-                            fieldValue={draggingField!}
+                            fieldValue={draggingField}
                             currentValue={currentValue}
                             onChange={() => {}}
                           />
@@ -186,7 +186,7 @@ function VisualizeGhostField({
                 draggingField?.kind === FieldValueKind.FUNCTION && (
                   <AggregateParameterField
                     parameter={draggableMatchingAggregate?.value.meta.parameters[0]}
-                    fieldValue={draggingField!}
+                    fieldValue={draggingField}
                     currentValue={draggingField?.function[1]}
                     onChange={() => {}}
                   />

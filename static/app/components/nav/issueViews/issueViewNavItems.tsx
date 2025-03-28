@@ -20,7 +20,10 @@ import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {generateTempViewId} from 'sentry/views/issueList/issueViews/issueViews';
 import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpdateGroupSearchViews';
 import {makeFetchGroupSearchViewsKey} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {
+  type GroupSearchView,
+  GroupSearchViewVisibility,
+} from 'sentry/views/issueList/types';
 
 interface IssueViewNavItemsProps {
   baseUrl: string;
@@ -140,8 +143,7 @@ export function IssueViewNavItems({
                 name: tab.label,
                 query: tab.query,
                 querySort: tab.querySort,
-                projects: isEqual(tab.projects, [-1]) ? [] : tab.projects,
-                isAllProjects: isEqual(tab.projects, [-1]),
+                projects: tab.projects,
                 environments: tab.environments,
                 timeFilters: tab.timeFilters,
               })),
@@ -202,6 +204,8 @@ export function IssueViewNavItems({
           ...v,
           isAllProjects: isEqual(v.projects, [-1]),
           name: v.label,
+          lastVisited: null,
+          visibility: GroupSearchViewVisibility.OWNER,
         }))
       );
     },
@@ -243,6 +247,8 @@ export function IssueViewNavItems({
             ...v,
             isAllProjects: isEqual(v.projects, [-1]),
             name: v.label,
+            lastVisited: null,
+            visibility: GroupSearchViewVisibility.OWNER,
           }))
         );
       }
@@ -291,6 +297,11 @@ export function IssueViewNavItems({
           />
         ))}
       </Reorder.Group>
+      {organization.features.includes('issue-view-sharing') && (
+        <SecondaryNav.Item to={`${baseUrl}/views/`} end>
+          {t('All Views')}
+        </SecondaryNav.Item>
+      )}
     </SecondaryNav.Section>
   );
 }

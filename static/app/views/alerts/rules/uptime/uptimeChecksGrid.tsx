@@ -72,7 +72,7 @@ export function UptimeChecksGrid({uptimeRule, uptimeChecks}: Props) {
         renderHeadCell: (col: GridColumnOrder) => <Cell>{col.name}</Cell>,
         renderBodyCell: (column, dataRow) => (
           <CheckInBodyCell
-            column={column}
+            column={column as GridColumnOrder<keyof UptimeCheck>}
             uptimeRule={uptimeRule}
             check={dataRow}
             spanCount={traceSpanCounts?.[dataRow.traceId]}

@@ -55,7 +55,7 @@ function combineSelection(state: ListState<ParseResultToken>, newSelection: Key[
 }
 
 function useKeyboardSelectionState() {
-  const cursorKeyPositionRef = useRef<Key | null>();
+  const cursorKeyPositionRef = useRef<Key | null>(null);
 
   const selectInDirection = useCallback<SelectFunc>(
     ({state, beginNewSelectionFromKey, direction}) => {

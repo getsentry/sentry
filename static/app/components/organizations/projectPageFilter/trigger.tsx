@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from 'sentry/components/core/badge';
@@ -18,19 +17,18 @@ interface ProjectPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value
   nonMemberProjects: Project[];
   ready: boolean;
   value: number[];
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-function BaseProjectPageFilterTrigger(
-  {
-    value,
-    memberProjects,
-    nonMemberProjects,
-    ready,
-    desynced,
-    ...props
-  }: ProjectPageFilterTriggerProps,
-  forwardedRef: React.ForwardedRef<HTMLButtonElement>
-) {
+export function ProjectPageFilterTrigger({
+  value,
+  memberProjects,
+  nonMemberProjects,
+  ready,
+  desynced,
+  ref: forwardedRef,
+  ...props
+}: ProjectPageFilterTriggerProps) {
   const isMemberProjectsSelected = memberProjects.every(p =>
     value.includes(parseInt(p.id, 10))
   );
@@ -99,8 +97,6 @@ function BaseProjectPageFilterTrigger(
     </DropdownButton>
   );
 }
-
-export const ProjectPageFilterTrigger = forwardRef(BaseProjectPageFilterTrigger);
 
 const TriggerLabelWrap = styled('span')`
   position: relative;

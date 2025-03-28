@@ -123,7 +123,7 @@ export function GroupTagsDrawer({
           // TODO(issues): Dropdown menu doesn't support hrefs yet
           onAction: () => {
             window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
+              `/${organization.slug}/${project.slug}/issues/${group.id}/${TabPaths[Tab.DISTRIBUTIONS]}${tagKey}/export/`,
               '_blank'
             );
           },
@@ -200,7 +200,7 @@ export function GroupTagsDrawer({
                   label: t('All Tags'),
                   to: tagKey
                     ? {
-                        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
                         query: {...location.query, tab: DrawerTab.TAGS},
                       }
                     : undefined,
@@ -209,7 +209,7 @@ export function GroupTagsDrawer({
                   label: t('All Feature Flags'),
                   to: tagKey
                     ? {
-                        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
                         query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
                       }
                     : undefined,
@@ -219,9 +219,7 @@ export function GroupTagsDrawer({
         />
       </EventDrawerHeader>
       <EventNavigator>
-        <Header>
-          {getHeaderTitle(tagKey, tab as DrawerTab, includeFeatureFlagsTab)}
-        </Header>
+        <Header>{getHeaderTitle(tagKey, tab, includeFeatureFlagsTab)}</Header>
         {headerActions}
       </EventNavigator>
       <EventDrawerBody>

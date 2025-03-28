@@ -90,7 +90,7 @@ function Spacer({width}: {width: string}) {
 const Subtitle = styled('em')`
   ${p => p.theme.overflowEllipsis};
   display: inline-block;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-style: normal;
   height: 100%;
 `;
