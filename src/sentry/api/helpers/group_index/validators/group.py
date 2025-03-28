@@ -12,8 +12,9 @@ from . import InboxDetailsValidator, StatusDetailsValidator
 
 
 class GroupValidator(serializers.Serializer):
-    inbox = serializers.BooleanField()
-    inboxDetails = InboxDetailsValidator()
+    inbox = serializers.BooleanField(
+        help_text="If true, marks the issue as reviewed by the requestor."
+    )
     status = serializers.ChoiceField(
         help_text="Limit mutations to only issues with the given status.",
         choices=list(zip(STATUS_UPDATE_CHOICES.keys(), STATUS_UPDATE_CHOICES.keys())),
@@ -53,16 +54,17 @@ class GroupValidator(serializers.Serializer):
         ),
     )
 
-    # These fields are not documented in the API docs.
-    #  - The `ignore-` fields are already present on `statusDetails`.
-    #  - The `snooze` field is deprecated.
+    ####################################################
+    # These fields are not documented in the API docs. #
+    ####################################################
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
-    # in minutes, max of one week
     ignoreWindow = serializers.IntegerField(max_value=7 * 24 * 60)
     ignoreUserCount = serializers.IntegerField()
-    # in minutes, max of one week
     ignoreUserWindow = serializers.IntegerField(max_value=7 * 24 * 60)
+    # The `inboxDetails`` field is empty.
+    inboxDetails = InboxDetailsValidator()
+    # The `snooze` field is deprecated.
     # TODO(dcramer): remove in 9.0
     # for the moment, the CLI sends this for any issue update, so allow nulls
     snoozeDuration = serializers.IntegerField(allow_null=True)

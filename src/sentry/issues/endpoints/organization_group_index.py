@@ -26,6 +26,7 @@ from sentry.api.helpers.group_index import (
     track_slo_response,
     update_groups_with_search_fn,
 )
+from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.helpers.group_index.validators.group import GroupValidator
 from sentry.api.paginator import DateTimePaginator, Paginator
@@ -46,6 +47,7 @@ from sentry.apidocs.parameters import (
     IssueParams,
     OrganizationParams,
 )
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -255,7 +257,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=IssueExamples.ORGANIZATION_GROUP_INDEX,
+        examples=IssueExamples.ORGANIZATION_GROUP_INDEX_GET,
     )
     @track_slo_response("workflow")
     def get(self, request: Request, organization: Organization) -> Response:
@@ -438,15 +440,16 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         ],
         request=GroupValidator,
         responses={
-            # TODO(Leander): Add the correct response type
+            200: inline_sentry_response_serializer(
+                "OrganizationGroupIndexPutResponse", list[MutateIssueResponse]
+            ),
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        # TODO(Leander): Add examples
-        # examples=IssueExamples.ORGANIZATION_GROUP_INDEX,
+        examples=IssueExamples.ORGANIZATION_GROUP_INDEX_PUT,
     )
     @track_slo_response("workflow")
     def put(self, request: Request, organization: Organization) -> Response:

@@ -2,11 +2,29 @@ from datetime import datetime
 
 from drf_spectacular.utils import OpenApiExample
 
+from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnubaResponse
 
 SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "annotations": [],
-    "assignedTo": {"id": "1", "name": "John Doe", "email": "john.doe@example.com"},
+    "assignedTo": {
+        "id": "1",
+        "name": "John Doe",
+        "email": "john.doe@example.com",
+        "username": "john.doe",
+        "avatarUrl": "https://example.com/avatar.png",
+        "isActive": True,
+        "hasPasswordAuth": True,
+        "isManaged": False,
+        "dateJoined": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        "lastLogin": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        "has2fa": False,
+        "lastActive": datetime.fromisoformat("2018-11-06T21:19:55Z"),
+        "isSuperuser": False,
+        "isStaff": False,
+        "experiments": [],
+        "emails": [],
+    },
     "count": 150,
     "culprit": "raven.scripts.runner in main",
     "firstSeen": datetime.fromisoformat("2018-11-06T21:19:55Z"),
@@ -60,12 +78,51 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "userCount": 0,
 }
 
+MUTATE_ISSUE: MutateIssueResponse = {
+    "assignedTo": {"type": "user", "id": "1", "name": "John Doe", "email": "john.doe@example.com"},
+    "discard": False,
+    "hasSeen": True,
+    "inbox": True,
+    "isBookmarked": False,
+    "isPublic": True,
+    "isSubscribed": True,
+    "merge": {
+        "children": ["11", "12", "13"],
+        "parent": "10",
+    },
+    "priority": "medium",
+    "shareId": "123def456abc",
+    "status": "ignored",
+    "statusDetails": {
+        "ignoreCount": 10,
+        "ignoreDuration": None,
+        "ignoreWindow": 60,
+        "inCommit": None,
+        "inNextRelease": False,
+        "inRelease": None,
+        "inUpcomingRelease": False,
+    },
+    "subscriptionDetails": {
+        "disabled": False,
+        "reason": "mentioned",
+    },
+    "substatus": "archived_until_condition_met",
+}
+
 
 class IssueExamples:
-    ORGANIZATION_GROUP_INDEX = [
+    ORGANIZATION_GROUP_INDEX_GET = [
         OpenApiExample(
             "Return a list of issues for an organization",
             value=[SIMPLE_ISSUE],
+            response_only=True,
+            status_codes=["200"],
+        )
+    ]
+    ORGANIZATION_GROUP_INDEX_PUT = [
+        OpenApiExample(
+            "Return the update results for issues in an organization",
+            value=[MUTATE_ISSUE],
             response_only=True,
             status_codes=["200"],
         )
