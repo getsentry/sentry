@@ -29,13 +29,9 @@ import {
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getWizardSnippet} from 'sentry/utils/gettingStartedDocs/cliSdkWizard';
 
 type Params = DocsParams;
-
-const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '' : '--saas';
-  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
-};
 
 const getInstallConfig = (params: Params) => {
   return [
@@ -48,8 +44,10 @@ const getInstallConfig = (params: Params) => {
           ),
         }
       ),
-      language: 'bash',
-      code: getInstallSnippet(params),
+      code: getWizardSnippet({
+        platform: 'nextjs',
+        params,
+      }),
     },
   ];
 };
@@ -301,7 +299,8 @@ const performanceOnboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'bash',
-          code: getInstallSnippet(params),
+          code:
+            getInstallConfig(params)?.[0]?.code ?? 'npx @sentry/wizard@latest -i nextjs',
         },
       ],
     },
