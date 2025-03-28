@@ -17,7 +17,6 @@ import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys
 import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -27,6 +26,7 @@ import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
 export default function FeedbackListPage() {

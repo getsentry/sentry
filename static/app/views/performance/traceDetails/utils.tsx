@@ -1,6 +1,5 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {DateString} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -15,6 +14,7 @@ import type {
 import {isTraceSplitResult, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
