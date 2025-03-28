@@ -252,6 +252,16 @@ export function useTourModal() {
         ),
         {
           modalCss: navTourModalCss,
+
+          // If user closes modal through other means, also prevent the modal from being shown again.
+          onClose: reason => {
+            if (reason) {
+              mutateAssistant({
+                guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+                status: 'dismissed',
+              });
+            }
+          },
         }
       );
     }
