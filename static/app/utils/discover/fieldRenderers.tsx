@@ -650,7 +650,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   user: {
     sortField: 'user',
     renderFunc: data => {
-      if (data.user) {
+      if (data.user?.split) {
         const [key, value] = data.user.split(':');
         const userObj = {
           id: '',
