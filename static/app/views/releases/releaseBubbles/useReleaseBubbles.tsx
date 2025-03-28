@@ -40,6 +40,7 @@ import type {
 import {createReleaseBuckets} from 'sentry/views/releases/releaseBubbles/utils/createReleaseBuckets';
 
 interface CreateReleaseBubbleMouseListenersParams {
+  alignInMiddle: boolean;
   buckets: Bucket[];
   color: string;
   environments: readonly string[];
@@ -56,6 +57,7 @@ interface CreateReleaseBubbleMouseListenersParams {
  * main chart when a release bubble is hovered over.
  */
 function createReleaseBubbleMouseListeners({
+  alignInMiddle,
   chartRenderer,
   color,
   openDrawer,
@@ -119,6 +121,9 @@ function createReleaseBubbleMouseListeners({
 
       const data = params.data as unknown as Bucket;
 
+      // Match behavior of ReleaseBubblSeries
+      const xAxisShift = alignInMiddle ? (data.end - data.start) / 2 : 0;
+
       // Create an empty series that has a `markArea` which is then
       // rectangular area of the "release bucket" that was hovered over (in
       // the release bubbles). This is drawn on the main chart so that users
@@ -134,10 +139,10 @@ function createReleaseBubbleMouseListeners({
               data: [
                 [
                   {
-                    xAxis: data.start,
+                    xAxis: data.start - xAxisShift,
                   },
                   {
-                    xAxis: data.end,
+                    xAxis: data.end - xAxisShift,
                   },
                 ],
               ],
@@ -150,6 +155,7 @@ function createReleaseBubbleMouseListeners({
 }
 
 interface ReleaseBubbleSeriesProps {
+  alignInMiddle: boolean;
   bubblePadding: number;
   bubbleSize: number;
   buckets: Bucket[];
@@ -171,6 +177,7 @@ function ReleaseBubbleSeries({
   bubbleSize,
   bubblePadding,
   dateFormatOptions,
+  alignInMiddle,
 }: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
   const totalReleases = buckets.reduce((acc, {releases}) => acc + releases.length, 0);
   const avgReleases = totalReleases / buckets.length;
@@ -210,14 +217,9 @@ function ReleaseBubbleSeries({
     // bubble. The 2nd tuple passed to `api.coord()` is always 0 because we
     // don't care about the y-coordinate as the bubbles have a static height.
     const [bubbleStartX, bubbleStartY] = api.coord([dataItem.start, 0]);
-    const [bubbleEndX, bubbleEndY] = api.coord([dataItem.end, 0]);
+    const [bubbleEndX] = api.coord([dataItem.end, 0]);
 
-    if (
-      !defined(bubbleStartX) ||
-      !defined(bubbleStartY) ||
-      !defined(bubbleEndX) ||
-      !defined(bubbleEndY)
-    ) {
+    if (!defined(bubbleStartX) || !defined(bubbleStartY) || !defined(bubbleEndX)) {
       return null;
     }
 
@@ -239,8 +241,12 @@ function ReleaseBubbleSeries({
       //                 |--|
       //                 bubblePadding
 
-      x: bubbleStartX + bubblePadding / 2,
+      // If `alignInMiddle` is true, we shift the starting x positon back by
+      // 50% of width so that the middle of the bubble aligns with starting
+      // timestamp. This matches the behavior of EChart's bar charts.
+      x: bubbleStartX + bubblePadding / 2 - (alignInMiddle ? width / 2 : 0),
       width: width - bubblePadding,
+
       // We configure base chart's grid and xAxis to create a gap size of
       // `bubbleSize`. We then have to configure `y` and `height` to fit within this
       //
@@ -337,6 +343,12 @@ ${t('Click to expand')}
 
 interface UseReleaseBubblesParams {
   /**
+   * Align the starting timestamp to the middle of the release bubble (e.g. if
+   * we want to match ECharts' bar charts), otherwise we draw starting at
+   * starting timestamp
+   */
+  alignInMiddle?: boolean;
+  /**
    * The whitespace around the bubbles.
    */
   bubblePadding?: number;
@@ -381,6 +393,7 @@ export function useReleaseBubbles({
   environments,
   projects,
   legendSelected,
+  alignInMiddle = false,
   bubbleSize = 4,
   bubblePadding = 2,
   desiredBuckets = 10,
@@ -490,6 +503,7 @@ export function useReleaseBubbles({
      * An object map of ECharts event handlers. These should be spread onto a Chart component
      */
     releaseBubbleEventHandlers: createReleaseBubbleMouseListeners({
+      alignInMiddle,
       buckets,
       chartRenderer,
       color: theme.blue400,
@@ -502,6 +516,7 @@ export function useReleaseBubbles({
      * Series to append to a chart's existing `series`
      */
     releaseBubbleSeries: ReleaseBubbleSeries({
+      alignInMiddle,
       buckets,
       bubbleSize,
       bubblePadding,
