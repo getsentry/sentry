@@ -2,7 +2,7 @@ import logging
 import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Collection, Sequence
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 class RuleData(TypedDict):
     actions: list[dict[str, Any]]
-    legacy_rule_id: str | None
+    legacy_rule_id: NotRequired[int]
 
 
 class LegacyRegistryHandler(ABC):
@@ -155,7 +155,7 @@ class BaseIssueAlertHandler(ABC):
             project=detector.project,
             environment_id=environment_id,
             label=detector.name,
-            data=data,
+            data=dict(data),
             status=ObjectStatus.ACTIVE,
             source=RuleSource.ISSUE,
         )
