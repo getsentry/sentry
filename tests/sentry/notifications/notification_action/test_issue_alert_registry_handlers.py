@@ -6,6 +6,25 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.notification_action.issue_alert_registry import (
+    AzureDevopsIssueAlertHandler,
+    DiscordIssueAlertHandler,
+    EmailIssueAlertHandler,
+    GithubIssueAlertHandler,
+    JiraIssueAlertHandler,
+    JiraServerIssueAlertHandler,
+    MSTeamsIssueAlertHandler,
+    OpsgenieIssueAlertHandler,
+    PagerDutyIssueAlertHandler,
+    PluginIssueAlertHandler,
+    SentryAppIssueAlertHandler,
+    SlackIssueAlertHandler,
+    WebhookIssueAlertHandler,
+)
+from sentry.notifications.notification_action.types import (
+    BaseIssueAlertHandler,
+    TicketingIssueAlertHandler,
+)
 from sentry.testutils.helpers.data_blobs import (
     AZURE_DEVOPS_ACTION_DATA_BLOBS,
     EMAIL_ACTION_DATA_BLOBS,
@@ -13,19 +32,6 @@ from sentry.testutils.helpers.data_blobs import (
     JIRA_ACTION_DATA_BLOBS,
     JIRA_SERVER_ACTION_DATA_BLOBS,
     WEBHOOK_ACTION_DATA_BLOBS,
-)
-from sentry.workflow_engine.handlers.action.notification.issue_alert import (
-    BaseIssueAlertHandler,
-    DiscordIssueAlertHandler,
-    EmailIssueAlertHandler,
-    MSTeamsIssueAlertHandler,
-    OpsgenieIssueAlertHandler,
-    PagerDutyIssueAlertHandler,
-    PluginIssueAlertHandler,
-    SentryAppIssueAlertHandler,
-    SlackIssueAlertHandler,
-    TicketingIssueAlertHandler,
-    WebhookIssueAlertHandler,
 )
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -145,10 +151,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.status == ObjectStatus.ACTIVE
         assert rule.source == RuleSource.ISSUE
 
-    @mock.patch("sentry.workflow_engine.handlers.action.notification.issue_alert.safe_execute")
-    @mock.patch(
-        "sentry.workflow_engine.handlers.action.notification.issue_alert.activate_downstream_actions"
-    )
+    @mock.patch("sentry.notifications.notification_action.types.safe_execute")
+    @mock.patch("sentry.notifications.notification_action.types.activate_downstream_actions")
     @mock.patch("uuid.uuid4")
     def test_invoke_legacy_registry(
         self, mock_uuid, mock_activate_downstream_actions, mock_safe_execute
@@ -183,10 +187,6 @@ class TestDiscordIssueAlertHandler(BaseWorkflowTest):
             config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
-        # self.project = self.create_project()
-        # self.detector = self.create_detector(project=self.project)
-        # self.group, self.event, self.group_event = self.create_group_event()
-        # self.job = WorkflowEventData(event=self.group_event)
 
     def test_build_rule_action_blob(self):
         """Test that build_rule_action_blob creates correct Discord action data"""
@@ -358,8 +358,8 @@ class TestOpsgenieIssueAlertHandler(BaseWorkflowTest):
 class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
     def setUp(self):
         super().setUp()
-        self.handler = TicketingIssueAlertHandler()
         self.detector = self.create_detector(project=self.project)
+        self.handler: TicketingIssueAlertHandler
 
     def _test_build_rule_action_blob(self, expected, action_type: Action.Type):
         action_data = pop_keys_from_data_blob(expected, action_type)
@@ -388,6 +388,10 @@ class TestTicketingIssueAlertHandlerBase(BaseWorkflowTest):
 
 
 class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
+    def setUp(self):
+        super().setUp()
+        self.handler = GithubIssueAlertHandler()
+
     def test_build_rule_action_blob(self):
         for expected in GITHUB_ACTION_DATA_BLOBS:
             if expected["id"] == ACTION_FIELD_MAPPINGS[Action.Type.GITHUB]["id"]:
@@ -397,18 +401,30 @@ class TestGithubIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
 
 
 class TestAzureDevopsIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
+    def setUp(self):
+        super().setUp()
+        self.handler = AzureDevopsIssueAlertHandler()
+
     def test_build_rule_action_blob(self):
         for expected in AZURE_DEVOPS_ACTION_DATA_BLOBS:
             self._test_build_rule_action_blob(expected, Action.Type.AZURE_DEVOPS)
 
 
 class TestJiraIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
+    def setUp(self):
+        super().setUp()
+        self.handler = JiraIssueAlertHandler()
+
     def test_build_rule_action_blob(self):
         for expected in JIRA_ACTION_DATA_BLOBS:
             self._test_build_rule_action_blob(expected, Action.Type.JIRA)
 
 
 class TestJiraServerIssueAlertHandler(TestTicketingIssueAlertHandlerBase):
+    def setUp(self):
+        super().setUp()
+        self.handler = JiraServerIssueAlertHandler()
+
     def test_build_rule_action_blob(self):
         for expected in JIRA_SERVER_ACTION_DATA_BLOBS:
             self._test_build_rule_action_blob(expected, Action.Type.JIRA_SERVER)

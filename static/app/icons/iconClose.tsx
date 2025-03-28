@@ -13,7 +13,6 @@ interface Props extends SVGIconProps {
 }
 
 function IconClose({
-  ref,
   ['data-test-id']: dataTestId = 'icon-close',
   isCircled = false,
   ...props
@@ -21,7 +20,6 @@ function IconClose({
   const theme = useTheme();
   return (
     <SvgIcon
-      ref={ref}
       {...props}
       data-test-id={dataTestId}
       kind={theme.isChonk ? 'stroke' : 'path'}

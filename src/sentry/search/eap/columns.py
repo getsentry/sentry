@@ -26,14 +26,9 @@ ResolvedArgument: TypeAlias = AttributeKey | str | int
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
 
 
-class QuerySettings(TypedDict):
-    snuba_params: SnubaParams
-    granularity_secs: int | None
-
-
 class ResolverSettings(TypedDict):
     extrapolation_mode: ExtrapolationMode.ValueType
-    query_settings: QuerySettings
+    snuba_params: SnubaParams
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -250,7 +245,7 @@ class FunctionDefinition:
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
-        query_settings: QuerySettings,
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -269,7 +264,7 @@ class AggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
-        query_settings: QuerySettings,
+        snuba_params: SnubaParams,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -315,7 +310,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
-        query_settings: QuerySettings,
+        snuba_params: SnubaParams,
     ) -> ResolvedConditionalAggregate:
         key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -345,7 +340,7 @@ class FormulaDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
-        query_settings: QuerySettings,
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula:
         resolver_settings = ResolverSettings(
             extrapolation_mode=(
@@ -353,7 +348,7 @@ class FormulaDefinition(FunctionDefinition):
                 if self.extrapolation
                 else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
             ),
-            query_settings=query_settings,
+            snuba_params=snuba_params,
         )
 
         return ResolvedFormula(

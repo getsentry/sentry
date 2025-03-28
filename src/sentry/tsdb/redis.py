@@ -13,7 +13,14 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from redis.client import Script
 
-from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBItem, TSDBKey, TSDBModel
+from sentry.tsdb.base import (
+    BaseTSDB,
+    IncrMultiOptions,
+    SnubaCondition,
+    TSDBItem,
+    TSDBKey,
+    TSDBModel,
+)
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_redis_script
 from sentry.utils.versioning import Version
@@ -530,7 +537,7 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
         referrer_suffix: str | None = None,
-        conditions: list[tuple[str, str, str]] | None = None,
+        conditions: list[SnubaCondition] | None = None,
     ) -> dict[int, Any]:
         """
         Count distinct items during a time range.
