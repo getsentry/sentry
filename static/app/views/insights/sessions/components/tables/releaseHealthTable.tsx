@@ -180,7 +180,6 @@ export default function ReleaseHealthTable({
         renderHeadCell,
         renderBodyCell: (column, row) => renderBodyCell(column, row),
       }}
-      title={t('Release Health')}
     />
   );
 }
