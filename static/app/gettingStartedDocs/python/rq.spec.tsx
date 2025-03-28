@@ -33,7 +33,7 @@ describe('rq onboarding docs', function () {
 
     // Does not render config option
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does not render config option
@@ -47,15 +47,15 @@ describe('rq onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0/))
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/))
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace"/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
     const matches = screen.getAllByText(
-      textWithMarkupMatcher(/profiles_sample_rate=1\.0,/)
+      textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/)
     );
     expect(matches.length).toBeGreaterThan(0);
     matches.forEach(match => expect(match).toBeInTheDocument());
@@ -76,20 +76,19 @@ describe('rq onboarding docs', function () {
 
     // Does not render transaction profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const startMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/sentry_sdk.profiler.start_profiler\(\)/)
+    const sampleRateMatches = screen.getAllByText(
+      textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/)
     );
-    expect(startMatches.length).toBeGreaterThan(0);
-    startMatches.forEach(match => expect(match).toBeInTheDocument());
-
-    const stopMatches = screen.queryAllByText(
-      textWithMarkupMatcher(/sentry_sdk.profiler.stop_profiler\(\)/)
+    expect(sampleRateMatches.length).toBeGreaterThan(0);
+    sampleRateMatches.forEach(match => expect(match).toBeInTheDocument());
+    const lifeCycleMatches = screen.getAllByText(
+      textWithMarkupMatcher(/profile_lifecycle="trace",/)
     );
-    expect(stopMatches.length).toBeGreaterThan(0);
-    stopMatches.forEach(match => expect(match).toBeInTheDocument());
+    expect(lifeCycleMatches.length).toBeGreaterThan(0);
+    lifeCycleMatches.forEach(match => expect(match).toBeInTheDocument());
   });
 });
