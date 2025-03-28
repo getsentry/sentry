@@ -149,15 +149,7 @@ const VerySmallIconArrow = styled(IconArrow)`
   height: 8px;
 `;
 
-// forwardRef is required so that skipWrapper can be applied by the tooltip
-const TrailingItemsContainer = styled(
-  ({
-    ref,
-    ...props
-  }: React.HTMLAttributes<HTMLDivElement> & {
-    ref?: React.Ref<HTMLDivElement>;
-  }) => <div {...props} ref={ref} />
-)<{
+const TrailingItemsContainer = styled('div')<{
   layout: 'vertical' | 'horizontal';
 }>`
   display: flex;
