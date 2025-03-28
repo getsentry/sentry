@@ -5,7 +5,12 @@ from django.urls import reverse
 from rest_framework.exceptions import ParseError
 
 from sentry.issues.grouptype import ProfileFileIOGroupType
-from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import (
+    APITestCase,
+    MetricsEnhancedPerformanceTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+)
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
@@ -529,3 +534,39 @@ class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
                 "MATCH (spans SAMPLE 100000000.0)"
                 in mock_raw_snql_query.call_args_list[0][0][0].serialize()
             )
+
+
+class OrganizationEventsEAPSpanEndpointTest(OrganizationSpansSamplesEndpoint, SpanTestCase):
+    is_eap = True
+
+    @pytest.mark.xfail(reason="bounds not yet implemented yet")
+    def test_is_segment_properly_converted_in_filter(self):
+        super.test_is_segment_properly_converted_in_filter()
+
+    @pytest.mark.xfail(reason="bounds not implemented yet")
+    def test_is_using_sample_rate(self):
+        super.test_is_using_sample_rate()
+
+    def test_simple(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+        url = reverse(self.url_name, kwargs={"organization_id_or_slug": project.organization.slug})
+        self.store_spans(
+            self.create_span(duration=5),
+        )
+
+        response = self.client.get(
+            url,
+            {
+                "query": "resource.render_blocking_status:non-blocking span.group:8f291ce3d84c35ca transaction:/issues/:groupId/",
+                "lowerBound": "0",
+                "firstBound": "10",
+                "secondBound": "20",
+                "upperBound": "200",
+                "column": "span.duration",
+                "useRpc": 1,
+            },
+            format="json",
+            extra={"project": [project.id]},
+        )
+        assert response.status_code == 200, response.content
