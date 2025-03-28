@@ -405,12 +405,13 @@ def taskbroker_send_tasks(
     kafka_topic: str,
     namespace: str,
 ) -> None:
-    from sentry.conf.server import KAFKA_CLUSTERS, TASKWORKER_ROUTES
+    from sentry import options
+    from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.utils.imports import import_string
 
     KAFKA_CLUSTERS["default"]["common"]["bootstrap.servers"] = bootstrap_servers
     if kafka_topic and namespace:
-        TASKWORKER_ROUTES[namespace] = kafka_topic
+        options.set("taskworker.route.overrides", {namespace: kafka_topic})
 
     try:
         func = import_string(task_function_path)
