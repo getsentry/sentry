@@ -11,7 +11,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
-            "organizations:ourlogs-enabled": True,
+            "organizations:discover-basic": True,
         }
 
     def test_simple(self):
