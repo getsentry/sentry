@@ -312,12 +312,10 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
   position: relative;
   pointer-events: auto;
 
-  /* Set default values for CSS variables */
   --drawer-width: ${DEFAULT_WIDTH_PERCENT}%;
   --drawer-min-width: ${MIN_WIDTH_PERCENT}%;
   --drawer-max-width: ${MAX_WIDTH_PERCENT}%;
 
-  /* Use clamp in CSS to enforce min/max constraints */
   width: clamp(
     var(--drawer-min-width),
     var(--drawer-width),
