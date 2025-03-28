@@ -114,10 +114,10 @@ function DropdownMenuItem({
   onClose,
   showDivider,
   renderAs = 'li',
-  ref: forwardedRef,
+  ref,
   ...props
 }: DropdownMenuItemProps) {
-  const ref = useRef<HTMLLIElement | null>(null);
+  const listElementRef = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {key, onAction, to, label, isSubmenu, trailingItems, externalHref, ...itemProps} =
@@ -178,7 +178,7 @@ function DropdownMenuItem({
             ctrlKey: e.ctrlKey,
             metaKey: e.metaKey,
           });
-          ref.current
+          listElementRef.current
             ?.querySelector(`${MenuListItemInnerWrap}`)
             ?.dispatchEvent(mouseEvent);
           return;
@@ -212,7 +212,7 @@ function DropdownMenuItem({
       isDisabled,
     },
     state,
-    ref
+    listElementRef
   );
 
   // Merged menu item props, class names are combined, event handlers chained,
@@ -233,7 +233,7 @@ function DropdownMenuItem({
 
   return (
     <MenuListItem
-      ref={mergeRefs(ref, forwardedRef)}
+      ref={mergeRefs(listElementRef, ref)}
       as={renderAs}
       data-test-id={key}
       label={itemLabel}

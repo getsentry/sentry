@@ -61,3 +61,31 @@ ONCALL_ACTION_CONFIG_SCHEMA = {
     "required": ["target_identifier", "target_type"],
     "additionalProperties": False,
 }
+
+EMAIL_ACTION_CONFIG_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "description": "The configuration schema for an email Action",
+    "type": "object",
+    "properties": {
+        "target_identifier": {"type": ["string", "null"]},
+        "target_display": {"type": ["null"]},
+        "target_type": {
+            "type": ["integer"],
+            "enum": [*ActionTarget],
+        },
+    },
+    "required": ["target_type"],
+    "additionalProperties": False,
+}
+
+EMAIL_ACTION_DATA_SCHEMA = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "fallthroughType": {
+            "type": "string",
+            "description": "The fallthrough type for issue owners email notifications",
+        },
+    },
+    "additionalProperties": False,
+}

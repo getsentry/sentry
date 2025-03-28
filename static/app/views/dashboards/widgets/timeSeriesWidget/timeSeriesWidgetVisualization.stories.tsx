@@ -18,9 +18,11 @@ import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../comm
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
+import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -376,6 +378,34 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </FillParent>
         </SmallSizingWindow>
+      </Fragment>
+    );
+  });
+
+  story('Samples', () => {
+    return (
+      <Fragment>
+        <p>
+          <code>Samples</code> plots discontinuous points. It's useful for placing markers
+          for individual events on top of a continuous aggregate series. In the example
+          below, we plot a set of span duration samples on top of an aggregate series of
+          the 99th percentile of those durations. Samples that are faster than a baseline
+          are green, samples that are slower are red.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Line(sampleDurationTimeSeries),
+              new Samples(spanSamplesWithDurations, {
+                alias: 'Span Samples',
+                attributeName: 'p99(span.duration)',
+                baselineValue: 175,
+                baselineLabel: 'Average',
+              }),
+            ]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });

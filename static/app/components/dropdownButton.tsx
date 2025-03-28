@@ -17,7 +17,7 @@ export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'
   /**
    * Forward a ref to the button's root
    */
-  ref?: React.ForwardedRef<HTMLButtonElement>;
+  ref?: React.Ref<HTMLButtonElement>;
   /**
    * Should a chevron icon be shown?
    */

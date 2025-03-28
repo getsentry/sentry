@@ -4,9 +4,9 @@ import {SvgIcon} from './svgIcon';
 /**
  * @deprecated This icon will be removed in new UI.
  */
-function IconCircleFill({ref, ...props}: SVGIconProps) {
+function IconCircleFill(props: SVGIconProps) {
   return (
-    <SvgIcon {...props} ref={ref} viewBox="0 0 24 24" kind="path">
+    <SvgIcon {...props} viewBox="0 0 24 24" kind="path">
       <circle cx="12" cy="12" r="10" />
     </SvgIcon>
   );
