@@ -34,10 +34,7 @@ export interface LinkProps
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
-  /**
-   * Forwarded ref
-   */
-  forwardedRef?: React.Ref<HTMLAnchorElement>;
+  ref?: React.Ref<HTMLAnchorElement>;
   replace?: ReactRouterLinkProps['replace'];
   state?: ReactRouterLinkProps['state'];
 }
@@ -46,28 +43,19 @@ export interface LinkProps
  * A context-aware version of Link (from react-router) that falls
  * back to <a> if there is no router present
  */
-function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
+function BaseLink({disabled, to, ...props}: LinkProps): React.ReactElement {
   const location = useLocation();
   to = normalizeUrl(to, location);
 
   if (!disabled && location) {
-    return (
-      <RouterLink to={locationDescriptorToTo(to)} ref={forwardedRef as any} {...props} />
-    );
+    return <RouterLink to={locationDescriptorToTo(to)} {...props} />;
   }
 
-  return <a href={typeof to === 'string' ? to : ''} ref={forwardedRef} {...props} />;
+  return <a href={typeof to === 'string' ? to : ''} {...props} />;
 }
 
 // Re-assign to Link to make auto-importing smarter
-const Link = styled(
-  ({
-    ref,
-    ...props
-  }: Omit<LinkProps, 'forwardedRef'> & {
-    ref?: React.Ref<HTMLAnchorElement>;
-  }) => <BaseLink forwardedRef={ref} {...props} />
-)`
+const Link = styled(BaseLink)`
   ${linkStyles}
 `;
 

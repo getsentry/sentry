@@ -22,7 +22,6 @@ export function EnvironmentPageFilterTrigger({
   environments,
   ready,
   desynced,
-  ref: forwardedRef,
   ...props
 }: EnvironmentPageFilterTriggerProps) {
   const isAllEnvironmentsSelected =
@@ -42,11 +41,7 @@ export function EnvironmentPageFilterTrigger({
   const remainingCount = isAllEnvironmentsSelected ? 0 : value.length - envsToShow.length;
 
   return (
-    <DropdownButton
-      {...props}
-      ref={forwardedRef}
-      data-test-id="page-filter-environment-selector"
-    >
+    <DropdownButton {...props} data-test-id="page-filter-environment-selector">
       <TriggerLabelWrap>
         <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
         {desynced && <DesyncedFilterIndicator role="presentation" />}

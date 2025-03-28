@@ -83,7 +83,6 @@ type Props = {
   disableXAxis?: boolean;
   durationUnit?: number;
   error?: Error | null;
-  forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxis?: boolean;
@@ -104,6 +103,7 @@ type Props = {
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
   rateUnit?: RateUnit;
+  ref?: RefObject<ReactEchartsRef>;
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
@@ -135,7 +135,7 @@ function Chart({
   onMouseOver,
   onMouseOut,
   onHighlight,
-  forwardedRef,
+  ref,
   chartGroup,
   tooltipFormatterOptions = {},
   error,
@@ -155,7 +155,7 @@ function Chart({
   const isLegendVisible = renderingContext?.isFullscreen ?? showLegend;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
-  const chartRef = forwardedRef || defaultRef;
+  const chartRef = ref || defaultRef;
 
   const echartsInstance = chartRef?.current?.getEchartsInstance?.();
   if (echartsInstance && !echartsInstance.group) {
@@ -500,7 +500,7 @@ function Chart({
 
     return (
       <AreaChart
-        forwardedRef={chartRef}
+        ref={chartRef}
         height={height}
         {...zoomRenderProps}
         series={[...series, ...incompleteSeries, ...(releaseSeries ?? [])]}
