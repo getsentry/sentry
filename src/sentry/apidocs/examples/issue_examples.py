@@ -78,7 +78,7 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "userCount": 0,
 }
 
-MUTATE_ISSUE: MutateIssueResponse = {
+MUTATE_ISSUE_RESULT: MutateIssueResponse = {
     "assignedTo": {"type": "user", "id": "1", "name": "John Doe", "email": "john.doe@example.com"},
     "discard": False,
     "hasSeen": True,
@@ -122,7 +122,7 @@ class IssueExamples:
     ORGANIZATION_GROUP_INDEX_PUT = [
         OpenApiExample(
             "Return the update results for issues in an organization",
-            value=[MUTATE_ISSUE],
+            value=MUTATE_ISSUE_RESULT,
             response_only=True,
             status_codes=["200"],
         )
