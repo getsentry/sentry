@@ -213,11 +213,8 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       groupBys: ['span.description'],
       mode: Mode.AGGREGATE,
       query: 'span.op:[pageload,navigation]',
-      sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
-      visualizes: [
-        {chartType: ChartType.LINE, yAxes: ['avg(span.duration)']},
-        {chartType: ChartType.LINE, yAxes: ['p50(span.duration)']},
-      ],
+      sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
+      visualizes: [{chartType: ChartType.LINE, yAxes: ['count(span.duration)']}],
     },
   ];
 
