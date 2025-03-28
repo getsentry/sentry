@@ -391,7 +391,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       type={SectionKey.DEBUGMETA}
       title={isJSPlatform ? t('Source Maps Loaded') : t('Images Loaded')}
       help={t(
-        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute to the application code that is referenced in stack traces.'
       )}
       actions={actions}
       initialCollapse
