@@ -183,8 +183,8 @@ class BaseRequestParserTest(TestCase):
             oi_params={"status": ObjectStatus.DISABLED},
         )
         parser = ExampleRequestParser(self.request, self.response_handler)
-        with pytest.raises(OrganizationIntegration.DoesNotExist):
-            parser.get_organizations_from_integration(integration)
+        organizations = parser.get_organizations_from_integration(integration)
+        assert len(organizations) == 0
 
         assert mock_record.call_count == 2
         assert_halt_metric(mock_record, MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST)
