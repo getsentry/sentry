@@ -298,30 +298,27 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
   );
 
   const handleMarkSkipped = useCallback(() => {
+    // all demos tasks are not skippable,
+    // so this apply for the quick start only.
+    // Adding this check here just in case it changes in the future
+    if (isDemoModeActive()) {
+      return;
+    }
+
     trackAnalytics('quick_start.task_card_clicked', {
       organization,
       todo_id: task.task,
       todo_title: task.title,
       action: 'skipped',
     });
-    // all demos tasks are not skippable,
-    // so this apply for the quick start only.
-    // Adding this code here just in case this changes in the future.
-    if (isDemoModeActive()) {
-      updateDemoWalkthroughTask({
+
+    updateOnboardingTasks.mutate([
+      {
         task: task.task,
         status: 'skipped',
         completionSeen: true,
-      });
-    } else {
-      updateOnboardingTasks.mutate([
-        {
-          task: task.task,
-          status: 'skipped',
-          completionSeen: true,
-        },
-      ]);
-    }
+      },
+    ]);
   }, [task, organization, updateOnboardingTasks]);
 
   const iconTooltipText = useMemo(() => {
