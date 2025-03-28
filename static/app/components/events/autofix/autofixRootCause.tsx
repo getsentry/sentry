@@ -43,6 +43,7 @@ type AutofixRootCauseProps = {
   runId: string;
   agentCommentThread?: CommentThread;
   feedback?: AutofixFeedback;
+  isRootCauseFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   terminationReason?: string;
@@ -424,7 +425,7 @@ function AutofixRootCauseDisplay({
 export function AutofixRootCause(props: AutofixRootCauseProps) {
   if (props.causes.length === 0) {
     return (
-      <AnimatePresence initial>
+      <AnimatePresence initial={props.isRootCauseFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoCausesPadding>
             <Alert.Container>
@@ -439,7 +440,7 @@ export function AutofixRootCause(props: AutofixRootCauseProps) {
   }
 
   return (
-    <AnimatePresence initial>
+    <AnimatePresence initial={props.isRootCauseFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <AutofixRootCauseDisplay {...props} />
       </AnimationWrapper>
