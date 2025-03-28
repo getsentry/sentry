@@ -534,9 +534,11 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         condition_group_results = get_condition_group_results(condition_groups, project)
 
     if features.has("organizations:workflow-engine-process-workflows", project.organization):
-        serialized_results = {
-            str(query): count_dict for query, count_dict in condition_group_results.items()
-        }
+        serialized_results = (
+            {str(query): count_dict for query, count_dict in condition_group_results.items()}
+            if condition_group_results
+            else None
+        )
         logger.info(
             "delayed_processing.condition_group_results",
             extra={

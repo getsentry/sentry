@@ -275,7 +275,7 @@ def get_groups_to_fire(
         workflow_env = workflows_to_envs[workflow_id] if workflow_id else None
 
         for group_id in dcg_to_groups[dcg.id]:
-            conditions_to_evaluate: tuple[DataCondition, list[int]] = []
+            conditions_to_evaluate: list[tuple[DataCondition, list[int]]] = []
             for condition in slow_conditions:
                 unique_queries = generate_unique_queries(condition, workflow_env)
                 query_values = [
