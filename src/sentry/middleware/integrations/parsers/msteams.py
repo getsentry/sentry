@@ -103,9 +103,6 @@ class MsTeamsRequestParser(BaseRequestParser):
             return self.get_default_missing_integration_response()
 
         if len(regions) == 0:
-            return self.get_default_missing_integration_response()
-
-        if len(regions) == 0:
             with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("view_class", self.view_class)
                 scope.set_extra("request_method", self.request.method)
@@ -118,7 +115,7 @@ class MsTeamsRequestParser(BaseRequestParser):
                     )
                 )
             logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+            return self.get_default_missing_integration_response()
 
         if self._check_if_event_should_be_sync(data=self.request_data):
             logger.info(
