@@ -14,7 +14,7 @@ export default function FilterReleaseDropdown({
   } = usePageFilters();
 
   const finalizedOptions = [t('Not Finalized'), t('Finalized')];
-  const statusOptions = [t('Active'), t('Archived')];
+  const statusOptions = [t('Open'), t('Archived')];
   const stageOptions = [t('Adopted'), t('Replaced'), t('Low Adoption')];
 
   const arrayToOptions = ({

@@ -30,13 +30,12 @@ export default function ReleaseHealth({filters}: {filters: string[]}) {
             crash_free_sessions: 'percentage',
             sessions: 'integer',
             error_count: 'integer',
-            lifespan: 'duration',
+            status: 'string',
             adoption: 'percentage',
           },
           units: {
             crash_free_sessions: '%',
             adoption: '%',
-            lifespan: 'millisecond',
           },
         }}
       />
