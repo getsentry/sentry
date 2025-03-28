@@ -1,30 +1,53 @@
+from typing import Generic, TypeVar
+
 from rest_framework import serializers
-from rest_framework.fields import Field
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.db.models import Model
+from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.endpoints.validators.utils import (
+    validate_json_primitive,
+    validate_json_schema,
+)
+from sentry.workflow_engine.models.data_condition import CONDITION_OPS, Condition
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import DataConditionHandler
+
+T = TypeVar("T", bound=Model)
 
 
-class BaseDataConditionValidator(CamelSnakeSerializer):
-    type = serializers.CharField(
-        required=True,
-        max_length=200,
-        help_text="Condition used to compare data value to the stored comparison value",
-    )
+class BaseDataConditionValidator(CamelSnakeSerializer[T], Generic[T]):
+    type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
 
-    @property
-    def comparison(self) -> Field:
-        raise NotImplementedError
+    comparison = serializers.JSONField(required=True)
+    condition_result = serializers.JSONField(required=True)
+    # condition_group_id = serializers.IntegerField(required=True)
 
-    @property
-    def result(self) -> Field:
-        raise NotImplementedError
+    def _get_handler(self) -> DataConditionHandler | None:
+        condition_type = self.initial_data.get("type")
+        if condition_type in CONDITION_OPS:
+            return None
 
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-        return attrs
+        try:
+            return condition_handler_registry.get(condition_type)
+        except NoRegistrationExistsError:
+            raise serializers.ValidationError(f"Invalid condition type: {condition_type}")
 
+    def validate_comparison(self, value):
+        handler = self._get_handler()
 
-class BaseDataConditionGroupValidator(CamelSnakeSerializer):
-    logic_type = serializers.CharField(required=True)
-    organization_id = serializers.IntegerField(required=True)
-    conditions = BaseDataConditionValidator(many=True)
+        if handler:
+            schema = handler.comparison_json_schema
+            validate_json_schema(value, schema)
+        else:
+            validate_json_primitive(value)
+
+        return value
+
+    def validate_condition_result(self, value):
+        return validate_json_primitive(value)
+
+    def validate_condition_group(self, value):
+        # TODO - validate that the condition group exists
+        # TODO - validate they have permissions to access the group?
+        return value
