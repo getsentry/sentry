@@ -1081,9 +1081,32 @@ def get_open_periods_for_group(
     limit: int | None = None,
 ) -> list[OpenPeriod]:
     from sentry.incidents.utils.metric_issue_poc import OpenPeriod
+    from sentry.models.groupopenperiod import GroupOpenPeriod
 
     if not features.has("organizations:issue-open-periods", group.organization):
         return []
+
+    # Try to get open periods from the GroupOpenPeriod table first
+    group_open_periods = GroupOpenPeriod.objects.filter(group=group)
+    if group_open_periods.exists() and query_start:
+        group_open_periods = group_open_periods.filter(
+            date_started__gte=query_start, date_ended__lte=query_end, id__gte=offset or 0
+        ).order_by("-date_started")[:limit]
+
+        return [
+            OpenPeriod(
+                start=period.date_started,
+                end=period.date_ended,
+                duration=period.date_ended - period.date_started if period.date_ended else None,
+                is_open=period.date_ended is None,
+                last_checked=get_last_checked_for_open_period(group),
+            )
+            for period in group_open_periods
+        ]
+
+    # If there are no open periods in the table, we need to calculate them
+    # from the activity log.
+    # TODO(snigdha): This is temporary until we have backfilled the GroupOpenPeriod table
 
     if query_start is None or query_end is None:
         query_start = timezone.now() - timedelta(days=90)
