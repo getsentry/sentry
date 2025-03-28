@@ -204,6 +204,9 @@ class HandleQueryErrorsTest(APITestCase):
         class TimeoutError(OperationalError):
             pgcode = psycopg2.errorcodes.QUERY_CANCELED
 
+            def __str__(self):
+                return "canceling statement due to statement timeout"
+
         # Test when option is disabled (default)
         try:
             with handle_query_errors():
@@ -222,6 +225,21 @@ class HandleQueryErrorsTest(APITestCase):
                     str(e)
                     == "Query timeout. Please try with a smaller date range or fewer conditions."
                 )
+
+    def test_handle_postgres_user_cancel(self):
+        class UserCancelError(OperationalError):
+            pgcode = psycopg2.errorcodes.QUERY_CANCELED
+
+            def __str__(self):
+                return "canceling statement due to user request"
+
+        # Should propagate the error regardless of the feature flag
+        with override_options({"api.postgres-query-timeout-error-handling.enabled": True}):
+            try:
+                with handle_query_errors():
+                    raise UserCancelError()
+            except Exception as e:
+                assert isinstance(e, UserCancelError)  # Should propagate original error
 
     @patch("sentry.api.utils.ParseError")
     def test_handle_other_operational_error(self, mock_parse_error):

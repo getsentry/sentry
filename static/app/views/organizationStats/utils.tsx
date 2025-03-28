@@ -45,7 +45,8 @@ export function formatUsageWithUnits(
   }
 
   if (
-    dataCategory === DATA_CATEGORY_INFO.profileDuration.plural &&
+    (dataCategory === DATA_CATEGORY_INFO.profileDuration.plural ||
+      dataCategory === DATA_CATEGORY_INFO.profileDurationUI.plural) &&
     Number.isFinite(usageQuantity)
   ) {
     // Profile duration is in milliseconds, convert to hours

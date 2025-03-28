@@ -6,10 +6,9 @@ interface Props extends SVGIconProps {
   side?: 'left' | 'right';
 }
 
-function IconParenthesis({ref, side = 'left', ...props}: Props) {
+function IconParenthesis({side = 'left', ...props}: Props) {
   return (
     <StyledIcon
-      ref={ref}
       data-test-id="icon-parenthesis"
       viewBox="0 0 5 26"
       data-paren-side={side}
