@@ -63,6 +63,7 @@ describe('FormSource', function () {
                 resultType: 'field',
                 sourceType: 'field',
                 to: {pathname: '/route/', hash: '#test-field'},
+                resolvedTs: expect.anything(),
               },
             }),
           ],

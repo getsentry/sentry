@@ -2,6 +2,7 @@ import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
@@ -66,10 +67,14 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
   onZoom?: EChartDataZoomHandler;
+
+  ref?: React.Ref<ReactEchartsRef>;
+
   /**
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
+
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
@@ -112,16 +117,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+    chartRenderer: ({start: trimStart, end: trimEnd, ref: chartRendererRef}) => {
       return (
-        <TimeSeriesWidgetVisualization
-          {...props}
-          disableReleaseNavigation
-          plottables={props.plottables.map(plottable =>
-            plottable.constrain(trimStart, trimEnd)
-          )}
-          showReleaseAs="line"
-        />
+        <DrawerWidgetWrapper>
+          <TimeSeriesWidgetVisualization
+            {...props}
+            ref={chartRendererRef}
+            disableReleaseNavigation
+            plottables={props.plottables.map(plottable =>
+              plottable.constrain(trimStart, trimEnd)
+            )}
+            showReleaseAs="line"
+          />
+        </DrawerWidgetWrapper>
       );
     },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
@@ -155,9 +163,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
 
   const handleChartRef = useCallback(
-    (e: ReactEchartsRef) => {
-      chartRef.current = e;
-
+    (e: ReactEchartsRef | null) => {
       if (!e?.getEchartsInstance) {
         return;
       }
@@ -447,7 +453,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={handleChartRef}
+      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
       {...releaseBubbleEventHandlers}
       autoHeightResize
       series={[...series, releaseSeries].filter(defined)}
@@ -543,6 +549,10 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
+`;
+
+const DrawerWidgetWrapper = styled('div')`
+  height: 220px;
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;

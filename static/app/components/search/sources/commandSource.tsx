@@ -1,21 +1,22 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import {Client} from 'sentry/api';
-import Access from 'sentry/components/acl/access';
+import type {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
+import {useUser} from 'sentry/utils/useUser';
 
 import type {ChildProps, ResultItem} from './types';
+import {makeResolvedTs} from './utils';
 
 type Action = {
   action: () => void;
@@ -145,99 +146,52 @@ type Props = {
    */
   query: string;
   /**
-   * Array of routes to search
-   */
-  searchMap?: PlainRoute[];
-
-  /**
    * fuse.js options
    */
   searchOptions?: Fuse.IFuseOptions<Action>;
 };
 
-type State = {
-  fuzzy: null | Fuse<Action>;
-};
-
 /**
  * This source is a hardcoded list of action creators and/or routes maybe
  */
-class _CommandSource extends Component<Props, State> {
-  static defaultProps = {
-    searchMap: [],
-    searchOptions: {},
-  };
+function CommandSource({searchOptions, query, children}: Props) {
+  const {isSuperuser} = useUser();
+  const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
+  const params = useParams();
+  const api = useApi();
 
-  state: State = {
-    fuzzy: null,
-  };
-
-  componentDidMount() {
-    this.createSearch(ACTIONS);
-  }
-
-  api = new Client();
-
-  async createSearch(searchMap: Action[]) {
-    const copyDSNAction = createCopyDSNAction(
-      this.api,
-      this.props.params.orgId,
-      this.props.params.projectId
+  const createSearch = useCallback(async () => {
+    const copyDSNAction = createCopyDSNAction(api, params.orgId, params.projectId);
+    setFuzzy(
+      await createFuzzySearch<Action>([...ACTIONS, copyDSNAction], {
+        ...searchOptions,
+        keys: ['title', 'description'],
+      })
     );
-    const searchActions = [...searchMap, copyDSNAction].filter(
-      action => action.isVisible
-    );
-    const options = {
-      ...this.props.searchOptions,
-      keys: ['title', 'description'],
-    };
-    this.setState({
-      fuzzy: await createFuzzySearch<Action>(searchActions, options),
-    });
-  }
+  }, [searchOptions, api, params.orgId, params.projectId]);
 
-  render() {
-    const {searchMap, query, isSuperuser, children} = this.props;
-    const {fuzzy} = this.state;
+  useEffect(() => void createSearch(), [createSearch]);
 
-    const results =
+  const results = useMemo(() => {
+    const resolvedTs = makeResolvedTs();
+    return (
       fuzzy
         ?.search(query)
         .filter(({item}) => !item.requiresSuperuser || isSuperuser)
-        .map(value => {
-          const {item, ...rest} = value;
-          return {
-            item: {
-              ...item,
-              sourceType: 'command',
-              resultType: 'command',
-            } as ResultItem,
-            ...rest,
-          };
-        }) ?? [];
+        .filter(({item}) => item.isVisible)
+        .map(({item, ...rest}) => ({
+          item: {
+            ...item,
+            sourceType: 'command',
+            resultType: 'command',
+            resolvedTs,
+          } as ResultItem,
+          ...rest,
+        })) ?? []
+    );
+  }, [fuzzy, query, isSuperuser]);
 
-    return children({
-      isLoading: searchMap === null,
-      results,
-    });
-  }
+  return children({isLoading: fuzzy === null, results});
 }
 
-/**
- * This component is a wrapper around the _CommandSource component that
- * obtains the params from the current route.
- */
-function CommandSource(props: Omit<Props, 'params'>) {
-  const params = useParams();
-  return <_CommandSource {...props} params={params} />;
-}
-
-function CommandSourceWithFeature(props: Omit<Props, 'isSuperuser'>) {
-  return (
-    <Access access={[]} isSuperuser>
-      {({hasSuperuser}) => <CommandSource {...props} isSuperuser={hasSuperuser} />}
-    </Access>
-  );
-}
-export default CommandSourceWithFeature;
-export {CommandSource};
+export default CommandSource;

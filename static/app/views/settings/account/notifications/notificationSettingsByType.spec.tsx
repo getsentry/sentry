@@ -337,7 +337,9 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.getByText('Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(
+      screen.getByText('Continuous Profile Hours', {exact: true})
+    ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
@@ -392,7 +394,9 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.getByText('Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(
+      screen.getByText('Continuous Profile Hours', {exact: true})
+    ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
   });
 
@@ -414,7 +418,9 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-    expect(screen.queryByText('Profile Hours', {exact: true})).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Continuous Profile Hours', {exact: true})
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Spans')).not.toBeInTheDocument();
   });
@@ -436,7 +442,9 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Session Replays')).toBeInTheDocument();
     expect(screen.getByText('Attachments')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
-    expect(screen.getByText('Profile Hours', {exact: true})).toBeInTheDocument();
+    expect(
+      screen.getByText('Continuous Profile Hours', {exact: true})
+    ).toBeInTheDocument();
     expect(screen.getByText('UI Profile Hours', {exact: true})).toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
 
@@ -492,7 +500,9 @@ describe('NotificationSettingsByType', function () {
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
 
     // These should NOT be present
-    expect(screen.queryByText('Profile Hours', {exact: true})).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Continuous Profile Hours', {exact: true})
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('UI Profile Hours', {exact: true})).not.toBeInTheDocument();
     expect(screen.queryByText('Transactions')).not.toBeInTheDocument();
   });

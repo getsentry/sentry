@@ -39,7 +39,7 @@ const dataTypeLabels = {
   [DataType.INDEXED_TRANSACTIONS]: 'Indexed Transactions',
   [DataType.PROFILES]: 'Profiles',
   [DataType.INDEXED_PROFILES]: 'Indexed Profiles',
-  [DataType.PROFILE_DURATION]: 'Profile Hours',
+  [DataType.PROFILE_DURATION]: 'Continuous Profile Hours',
   [DataType.PROFILE_DURATION_UI]: 'UI Profile Hours',
   [DataType.PROFILE_CHUNK]: 'Profile Chunks',
   [DataType.PROFILE_CHUNK_UI]: 'UI Profile Chunks',
