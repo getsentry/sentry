@@ -72,7 +72,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
 
         self.save_group_with_open_period(self.group)
-        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
     def save_group_with_open_period(self, group: Group) -> None:
         # test a new group has an open period
