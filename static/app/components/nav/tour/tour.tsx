@@ -223,7 +223,7 @@ export function StackedNavigationTourReminder({children}: {children: React.React
 // Displays the introductory tour modal when a user is entering the experience for the first time.
 export function useTourModal() {
   const hasOpenedTourModal = useRef(false);
-  const {startTour} = useStackedNavigationTour();
+  const {startTour, endTour} = useStackedNavigationTour();
   const {data: assistantData} = useAssistant({
     notifyOnChangeProps: ['data'],
   });
@@ -245,6 +245,7 @@ export function useTourModal() {
                 guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
                 status: 'dismissed',
               });
+              endTour();
               props.closeModal();
             }}
             handleStartTour={startTour}
@@ -260,10 +261,11 @@ export function useTourModal() {
                 guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
                 status: 'dismissed',
               });
+              endTour();
             }
           },
         }
       );
     }
-  }, [shouldShowTourModal, startTour, mutateAssistant]);
+  }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
 }
