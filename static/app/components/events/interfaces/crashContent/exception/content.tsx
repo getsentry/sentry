@@ -29,14 +29,14 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
+  newestFirst: boolean;
   projectSlug: Project['slug'];
   type: StackType;
+  values: ExceptionType['values'];
   meta?: Record<any, any>;
-  newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
   threadId?: number;
-} & Pick<ExceptionType, 'values'> &
-  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
+} & Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
 type CollapsedExceptionMap = {[exceptionId: number]: boolean};
 

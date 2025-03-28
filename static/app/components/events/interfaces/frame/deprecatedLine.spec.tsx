@@ -28,20 +28,41 @@ describe('Frame - Line', function () {
     trust: null,
     vars: null,
   };
+  const platform = 'javascript' as const;
+
+  const defaultProps = {
+    platform,
+    emptySourceNotation: false,
+    hiddenFrameCount: 0,
+    frameMeta: {},
+    hideSourceMapDebugger: false,
+    isHoverPreviewed: false,
+    lockAddress: undefined,
+    nextFrame: undefined,
+    frameSourceResolutionResults: undefined,
+    image: null,
+    includeSystemFrames: false,
+    prevFrame: undefined,
+    timesRepeated: 0,
+    isANR: false,
+    threadId: undefined,
+    registers: {},
+    components: [],
+  } satisfies Partial<React.ComponentProps<typeof DeprecatedLine>>;
 
   describe('renderOriginalSourceInfo()', function () {
     it('should render the source map information as a HTML string', function () {
       render(
         <DeprecatedLine
+          {...defaultProps}
           data={{
             origAbsPath: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js',
             mapUrl: 'https://beta.getsentry.com/_static/sentry/dist/vendor.js.map',
             map: 'vendor.js.map',
             ...data,
           }}
-          registers={{}}
-          components={[]}
           event={event}
+          isExpanded={false}
         />
       );
     });
@@ -51,6 +72,7 @@ describe('Frame - Line', function () {
     it('should render context lines', () => {
       render(
         <DeprecatedLine
+          {...defaultProps}
           data={{
             ...data,
             context: [
@@ -62,8 +84,6 @@ describe('Frame - Line', function () {
               [213, "    crashed_thread['crashed'] = True"],
             ],
           }}
-          registers={{}}
-          components={[]}
           event={event}
           isExpanded
         />
@@ -73,6 +93,7 @@ describe('Frame - Line', function () {
     it('should render register values', () => {
       render(
         <DeprecatedLine
+          {...defaultProps}
           data={data}
           registers={{
             r10: '0x00007fff9300bf70',
@@ -93,7 +114,6 @@ describe('Frame - Line', function () {
             rsi: '0x0000000000000300',
             rsp: '0x00007ffedfdff7c0',
           }}
-          components={[]}
           event={event}
           isExpanded
         />
@@ -102,15 +122,7 @@ describe('Frame - Line', function () {
     });
 
     it('should not render empty registers', () => {
-      render(
-        <DeprecatedLine
-          data={data}
-          registers={{}}
-          components={[]}
-          event={event}
-          isExpanded
-        />
-      );
+      render(<DeprecatedLine {...defaultProps} data={data} event={event} isExpanded />);
 
       expect(screen.queryByText('Registers')).not.toBeInTheDocument();
     });
@@ -129,9 +141,8 @@ describe('Frame - Line', function () {
 
       render(
         <DeprecatedLine
+          {...defaultProps}
           data={{...data, vars}}
-          registers={{}}
-          components={[]}
           event={event}
           isExpanded
         />
@@ -201,9 +212,8 @@ describe('Frame - Line', function () {
 
       render(
         <DeprecatedLine
+          {...defaultProps}
           data={suspectFrame}
-          registers={{}}
-          components={[]}
           event={eventWithThreads}
           threadId={13920}
           isANR

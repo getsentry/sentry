@@ -75,7 +75,9 @@ export function StackTracePreviewContent({
     newestFirst,
     event,
     isHoverPreviewed: true,
-  };
+  } satisfies
+    | Partial<React.ComponentProps<typeof NativeContent>>
+    | Partial<React.ComponentProps<typeof StackTraceContent>>;
 
   if (isNativePlatform(platform)) {
     return (

@@ -51,29 +51,30 @@ import {SymbolicatorStatus} from './types';
 
 type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
+  emptySourceNotation: boolean;
   event: Event;
   frame: Frame;
+  frameMeta: Record<any, any>;
+  hiddenFrameCount: number | undefined;
+  image: React.ComponentProps<typeof DebugImage>['image'];
   isFirstInAppFrame: boolean;
-  isUsedForGrouping: boolean;
-  platform: PlatformKey;
-  registers: StacktraceType['registers'];
-  emptySourceNotation?: boolean;
-  frameMeta?: Record<any, any>;
-  hiddenFrameCount?: number;
-  image?: React.ComponentProps<typeof DebugImage>['image'];
-  isHoverPreviewed?: boolean;
-  isOnlyFrame?: boolean;
-  isShowFramesToggleExpanded?: boolean;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed: boolean | undefined;
+  isShowFramesToggleExpanded: boolean;
   /**
    * Frames that are hidden under the most recent non-InApp frame
    */
-  isSubFrame?: boolean;
-  maxLengthOfRelativeAddress?: number;
-  nextFrame?: Frame;
-  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
-  prevFrame?: Frame;
-  registersMeta?: Record<any, any>;
-  showStackedFrames?: boolean;
+  isSubFrame: boolean;
+  isUsedForGrouping: boolean;
+  maxLengthOfRelativeAddress: number;
+  nextFrame: Frame;
+  onShowFramesToggle: (event: React.MouseEvent<HTMLElement>) => void;
+  platform: PlatformKey;
+  prevFrame: Frame | undefined;
+  registers: StacktraceType['registers'];
+  registersMeta: Record<any, any>;
 };
 
 function NativeFrame({
@@ -84,7 +85,6 @@ function NativeFrame({
   maxLengthOfRelativeAddress,
   image,
   registers,
-  isOnlyFrame,
   event,
   components,
   hiddenFrameCount,
@@ -95,10 +95,7 @@ function NativeFrame({
   platform,
   registersMeta,
   frameMeta,
-  emptySourceNotation = false,
-  /**
-   * Is the stack trace being previewed in a hovercard?
-   */
+  emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
@@ -138,7 +135,6 @@ function NativeFrame({
     registers,
     platform,
     emptySourceNotation,
-    isOnlyFrame,
   });
 
   const inlineFrame =
@@ -151,7 +147,7 @@ function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(() => isOnlyFrame || isFirstInAppFrame);
+  const [expanded, setExpanded] = useState(() => isFirstInAppFrame);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
