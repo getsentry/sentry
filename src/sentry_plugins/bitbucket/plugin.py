@@ -1,14 +1,24 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
+from sentry_plugins.base import CorePluginMixin
 
-from .mixins import BitbucketMixin
+from .client import BitbucketClient
 from .repository_provider import BitbucketRepositoryProvider
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
+
 
 ISSUE_TYPES = (
     ("bug", "Bug"),
@@ -32,10 +42,11 @@ ERR_404 = (
 )
 
 
-class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
+class BitbucketPlugin(CorePluginMixin, IssuePlugin2):
     description = "Integrate Bitbucket issues by linking a repository to a project."
     slug = "bitbucket"
-    conf_title = BitbucketMixin.title
+    title: str | _StrPromise = "Bitbucket"
+    conf_title = title
     conf_key = "bitbucket"
     auth_provider = "bitbucket"
     required_field = "repo"
@@ -60,6 +71,12 @@ class BitbucketPlugin(BitbucketMixin, IssuePlugin2):
             IntegrationFeatures.ISSUE_BASIC,
         ),
     ]
+
+    def get_client(self, user):
+        auth = self.get_auth(user=user)
+        if auth is None:
+            raise PluginError("You still need to associate an identity with Bitbucket.")
+        return BitbucketClient(auth)
 
     def get_group_urls(self):
         return super().get_group_urls() + [

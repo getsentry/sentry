@@ -1,18 +1,34 @@
-import secrets
+from __future__ import annotations
 
+import secrets
+from typing import TYPE_CHECKING
+
+from sentry.exceptions import PluginError
 from sentry.locks import locks
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.plugins.providers import RepositoryProvider
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.email import parse_email, parse_user_name
 from sentry.utils.http import absolute_uri
+from sentry_plugins.base import CorePluginMixin
 
-from .mixins import BitbucketMixin
+from .client import BitbucketClient
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise
 
 
-class BitbucketRepositoryProvider(BitbucketMixin, RepositoryProvider):
+class BitbucketRepositoryProvider(CorePluginMixin, RepositoryProvider):
     name = "Bitbucket"
     auth_provider = "bitbucket"
+
+    title: str | _StrPromise = "Bitbucket"
+
+    def get_client(self, user):
+        auth = self.get_auth(user=user)
+        if auth is None:
+            raise PluginError("You still need to associate an identity with Bitbucket.")
+        return BitbucketClient(auth)
 
     def get_config(self):
         return [
