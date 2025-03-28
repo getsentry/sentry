@@ -41,4 +41,4 @@ def _ensure_symmetry(sup: dict[str, float], sub: dict[str, float]) -> dict[str, 
 
 
 def _smooth_distribution(dist: dict[str, float]) -> dict[str, float]:
-    return dict(zip(dist.keys(), laplace_smooth(dist.values())))
+    return dict(zip(dist.keys(), laplace_smooth(list(dist.values()))))
