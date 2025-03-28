@@ -21,6 +21,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import withProjects from 'sentry/utils/withProjects';
+import {droppedProfileChunkMultiplier} from 'sentry/views/organizationStats/mapSeriesToChart';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
@@ -123,6 +124,15 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
     ) {
       groupBy.push('category');
       category.push('span_indexed');
+    }
+    if (
+      dataCategory.apiName === 'profile_duration' ||
+      dataCategory.apiName === 'profile_duration_ui'
+    ) {
+      groupBy.push('category');
+      category.push(
+        dataCategory.apiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
+      );
     }
 
     // We do not need more granularity in the data so interval is '1d'
@@ -388,6 +398,9 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         const {outcome, category, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
+        const multiplier = droppedProfileChunkMultiplier(category, outcome);
+        const value = group.totals['sum(quantity)']! * multiplier;
+
         if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
           // we need `span_indexed` data for `accepted_stored` only
           return;
@@ -402,11 +415,11 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
-          stats[projectId!]!.total += group.totals['sum(quantity)']!;
+          stats[projectId!]!.total += value;
         }
 
         if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
-          stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
+          stats[projectId!]!.accepted_stored += value;
           return;
         }
 
@@ -415,7 +428,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
+          stats[projectId!]![outcome] += value;
         }
 
         if (
@@ -423,7 +436,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.ABUSE
         ) {
-          stats[projectId!]![SortBy.RATE_LIMITED] += group.totals['sum(quantity)']!;
+          stats[projectId!]![SortBy.RATE_LIMITED] += value;
         }
       });
 

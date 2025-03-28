@@ -47,7 +47,7 @@ import UsageChart, {
   SeriesTypes,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {isDisplayUtc} from './utils';
+import {isContinuousProfiling, isDisplayUtc} from './utils';
 
 export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategory: DataCategoryInfo['plural'];
@@ -149,6 +149,12 @@ class UsageStatsOrganization<
     ) {
       groupBy.push('category');
       category.push('span_indexed');
+    }
+    if (['profile_duration', 'profile_duration_ui'].includes(dataCategoryApiName)) {
+      groupBy.push('category');
+      category.push(
+        dataCategoryApiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
+      );
     }
 
     return {
@@ -370,6 +376,7 @@ class UsageStatsOrganization<
     const {total, accepted, accepted_stored, invalid, rateLimited, filtered} =
       this.chartData.cardStats;
     const dataCategoryNameLower = dataCategoryName.toLowerCase();
+    const shouldShowEstimate = isContinuousProfiling(dataCategory);
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
       event.preventDefault();
@@ -429,6 +436,7 @@ class UsageStatsOrganization<
           }
         ),
         score: filtered,
+        isEstimate: shouldShowEstimate,
       },
       rateLimited: {
         title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
@@ -445,6 +453,7 @@ class UsageStatsOrganization<
           }
         ),
         score: rateLimited,
+        isEstimate: shouldShowEstimate,
       },
       invalid: {
         title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
@@ -461,6 +470,7 @@ class UsageStatsOrganization<
           }
         ),
         score: invalid,
+        isEstimate: shouldShowEstimate,
       },
     };
     return cardMetadata;
@@ -478,6 +488,7 @@ class UsageStatsOrganization<
         score={loading ? undefined : card.score}
         help={card.help}
         trend={card.trend}
+        isEstimate={card.isEstimate}
         isTooltipHoverable
       />
     ));

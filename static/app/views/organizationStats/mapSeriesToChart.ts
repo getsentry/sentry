@@ -13,6 +13,20 @@ import type {ChartStats} from './usageChart';
 import {SeriesTypes} from './usageChart';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
+// used for estimated dropped continuous profile hours and ui profile hours from profile chunks and profile chunks ui
+export function droppedProfileChunkMultiplier(
+  category: number | string | undefined,
+  outcome: number | string | undefined
+) {
+  if (category === 'profile_chunk' || category === 'profile_chunk_ui') {
+    if (outcome === Outcome.ACCEPTED) {
+      return 0;
+    }
+    return 9000;
+  }
+  return 1;
+}
+
 export function mapSeriesToChart({
   orgStats,
   dataCategory,
@@ -101,10 +115,13 @@ export function mapSeriesToChart({
           countAcceptedStored += group.totals['sum(quantity)']!;
         }
       } else {
+        const value =
+          group.totals['sum(quantity)']! *
+          droppedProfileChunkMultiplier(category, outcome);
         if (outcome !== Outcome.CLIENT_DISCARD) {
-          count.total += group.totals['sum(quantity)']!;
+          count.total += value;
         }
-        (count as any)[outcome!] += group.totals['sum(quantity)']!;
+        (count as any)[outcome!] += value;
       }
 
       if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
@@ -113,6 +130,7 @@ export function mapSeriesToChart({
       }
 
       group.series['sum(quantity)']!.forEach((stat, i) => {
+        stat = stat * droppedProfileChunkMultiplier(category, outcome);
         const dataObject = {name: orgStats.intervals[i]!, value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');
