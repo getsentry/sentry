@@ -41,8 +41,8 @@ describe('provisionSubscriptionAction', function () {
     });
   }
 
-  async function typeNum(field: HTMLElement, value: string, clear: boolean) {
-    if (clear) {
+  async function typeNum(field: HTMLElement, value: string, clearField: boolean) {
+    if (clearField) {
       await userEvent.clear(field);
     }
     await userEvent.click(field, {delay: null, skipHover: true});
