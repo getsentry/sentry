@@ -1381,8 +1381,9 @@ BGTASKS = {
 }
 
 # Taskworker settings #
-# Shared secret used to sign RPC requests to taskbrokers
-TASKWORKER_SHARED_SECRET: str | None = None
+# Shared secrets used to sign RPC requests to taskbrokers
+# The first secret is used for signing.
+TASKWORKER_SHARED_SECRET: list[str] | None = None
 
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
