@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from django.conf import settings
 from django.db.models import Case, DateTimeField, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
+from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -30,6 +31,7 @@ from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.serializers.alert_rule import (
     AlertRuleSerializer,
@@ -65,7 +67,6 @@ from sentry.relay.config.metric_extraction import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
@@ -74,18 +75,58 @@ from sentry.uptime.models import (
 from sentry.utils.cursors import Cursor, StringCursor
 
 
+def create_metric_alert(
+    request: Request, organization: Organization, project: Project | None = None
+) -> HttpResponseBase:
+    if not features.has("organizations:incidents", organization, actor=request.user):
+        raise ResourceDoesNotExist
+
+    data = deepcopy(request.data)
+    if project:
+        data["projects"] = [project.slug]
+
+    serializer = DrfAlertRuleSerializer(
+        context={
+            "organization": organization,
+            "access": request.access,
+            "user": request.user,
+            "ip_address": request.META.get("REMOTE_ADDR"),
+            "installations": app_service.installations_for_organization(
+                organization_id=organization.id
+            ),
+        },
+        data=data,
+    )
+    if not serializer.is_valid():
+        raise ValidationError(serializer.errors)
+
+    try:
+        trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
+    except SentryAppBaseError as e:
+        return e.response_from_exception()
+
+    if get_slack_actions_with_async_lookups(organization, request.data):
+        # need to kick off an async job for Slack
+        client = RedisRuleStatus()
+        task_args = {
+            "organization_id": organization.id,
+            "uuid": client.uuid,
+            "data": request.data,
+            "user_id": request.user.id,
+        }
+        find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
+        return Response({"uuid": client.uuid}, status=202)
+    else:
+        alert_rule = serializer.save()
+        return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
+
+
 class AlertRuleIndexMixin(Endpoint):
     def fetch_metric_alert(
-        self, request: Request, organization: Organization, project: Project | None = None
-    ):
+        self, request: Request, organization: Organization, alert_rules: BaseQuerySet[AlertRule]
+    ) -> HttpResponseBase:
         if not features.has("organizations:incidents", organization, actor=request.user):
             raise ResourceDoesNotExist
-
-        if not project:
-            projects = self.get_projects(request, organization)
-            alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
-        else:
-            alert_rules = AlertRule.objects.fetch_for_project(project)
 
         if not features.has("organizations:performance-view", organization):
             alert_rules = alert_rules.filter(snuba_query__dataset=Dataset.Events.value)
@@ -102,57 +143,6 @@ class AlertRuleIndexMixin(Endpoint):
         response[ALERT_RULES_COUNT_HEADER] = len(alert_rules)
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
-
-    def create_metric_alert(
-        self, request: Request, organization: Organization, project: Project | None = None
-    ):
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
-
-        data = deepcopy(request.data)
-        if project:
-            data["projects"] = [project.slug]
-
-        serializer = DrfAlertRuleSerializer(
-            context={
-                "organization": organization,
-                "access": request.access,
-                "user": request.user,
-                "ip_address": request.META.get("REMOTE_ADDR"),
-                "installations": app_service.installations_for_organization(
-                    organization_id=organization.id
-                ),
-            },
-            data=data,
-        )
-        if not serializer.is_valid():
-            raise ValidationError(serializer.errors)
-
-        try:
-            trigger_sentry_app_action_creators_for_incidents(serializer.validated_data)
-        except SentryAppBaseError as e:
-            return e.response_from_exception()
-
-        if get_slack_actions_with_async_lookups(organization, request.user, request.data):
-            # need to kick off an async job for Slack
-            client = RedisRuleStatus()
-            task_args = {
-                "organization_id": organization.id,
-                "uuid": client.uuid,
-                "data": request.data,
-                "user_id": request.user.id,
-            }
-            find_channel_id_for_alert_rule.apply_async(kwargs=task_args)
-            return Response({"uuid": client.uuid}, status=202)
-        else:
-            alert_rule = serializer.save()
-            return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
-
-    def get_query_type_description(self, value):
-        try:
-            return SnubaQuery.Type(value).name
-        except ValueError:
-            return "Unknown"
 
 
 @region_silo_endpoint
@@ -202,9 +192,11 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         project_ids = self.get_requested_project_ids_unchecked(request) or None
         if project_ids == {-1}:  # All projects for org:
-            project_ids = Project.objects.filter(
-                organization=organization, status=ObjectStatus.ACTIVE
-            ).values_list("id", flat=True)
+            project_ids = set(
+                Project.objects.filter(
+                    organization=organization, status=ObjectStatus.ACTIVE
+                ).values_list("id", flat=True)
+            )
         elif project_ids is None:  # All projects for user
             org_team_list = Team.objects.filter(organization=organization).values_list(
                 "id", flat=True
@@ -212,14 +204,16 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             user_team_list = OrganizationMemberTeam.objects.filter(
                 organizationmember__user_id=request.user.id, team__in=org_team_list
             ).values_list("team", flat=True)
-            project_ids = Project.objects.filter(
-                teams__in=user_team_list, status=ObjectStatus.ACTIVE
-            ).values_list("id", flat=True)
+            project_ids = set(
+                Project.objects.filter(
+                    teams__in=user_team_list, status=ObjectStatus.ACTIVE
+                ).values_list("id", flat=True)
+            )
 
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
         # index to filter on. Also enforces permission checks.
-        projects = self.get_projects(request, organization, project_ids=set(project_ids))
+        projects = self.get_projects(request, organization, project_ids=project_ids)
 
         teams = request.GET.getlist("team", [])
         teams_query = None
@@ -556,7 +550,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.LIST_METRIC_ALERT_RULES,  # TODO: make
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Return a list of active metric alert rules bound to an organization.
 
@@ -567,7 +561,9 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         predefined threshold. These rules help you proactively identify and address issues in your
         project.
         """
-        return self.fetch_metric_alert(request, organization)
+        projects = self.get_projects(request, organization)
+        alert_rules = AlertRule.objects.fetch_for_organization(organization, projects)
+        return self.fetch_metric_alert(request, organization, alert_rules)
 
     @extend_schema(
         operation_id="Create a Metric Alert Rule for an Organization",
@@ -581,7 +577,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         },
         examples=MetricAlertExamples.CREATE_METRIC_ALERT_RULE,
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> HttpResponseBase:
         """
         Create a new metric alert rule for the given organization.
 
@@ -732,4 +728,4 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         ```
         """
         self.check_can_create_alert(request, organization)
-        return self.create_metric_alert(request, organization)
+        return create_metric_alert(request, organization)
