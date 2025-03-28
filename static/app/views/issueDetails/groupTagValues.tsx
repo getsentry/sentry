@@ -33,7 +33,6 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {
@@ -298,7 +297,7 @@ export function GroupTagValues() {
             <LinkButton
               size="sm"
               priority="default"
-              href={`/${orgId}/${group.project.slug}/issues/${group.id}/${TabPaths[Tab.DISTRIBUTIONS]}${tagKey}/export/`}
+              href={`/${orgId}/${group.project.slug}/issues/${group.id}/tags/${tagKey}/export/`}
             >
               {t('Export Page to CSV')}
             </LinkButton>
