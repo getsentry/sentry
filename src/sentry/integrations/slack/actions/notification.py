@@ -464,7 +464,12 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         key = f"slack:{integration.id}:{channel}"
 
-        metrics.incr("notifications.sent", instance="slack.notification", skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance="slack.notification",
+            tags={"group_category": event.group.issue_category},
+            skip_internal=False,
+        )
         if features.has(
             "organizations:workflow-engine-notification-action", self.project.organization
         ):

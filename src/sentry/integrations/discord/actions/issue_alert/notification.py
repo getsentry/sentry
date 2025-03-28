@@ -81,7 +81,12 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
         key = f"discord:{integration.id}:{channel_id}"
 
-        metrics.incr("notifications.sent", instance="discord.notifications", skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance="discord.notifications",
+            tags={"group_category": event.group.issue_category},
+            skip_internal=False,
+        )
         yield self.future(send_notification, key=key)
 
     def render_label(self) -> str:

@@ -59,7 +59,12 @@ class NotifyEmailAction(EventAction):
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
-        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance=self.metrics_slug,
+            tags={"group_category": group.issue_category},
+            skip_internal=False,
+        )
         yield self.future(
             lambda event, futures: mail_adapter.rule_notify(
                 event,
