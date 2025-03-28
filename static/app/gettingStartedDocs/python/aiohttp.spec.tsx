@@ -42,15 +42,16 @@ describe('aiohttp onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle: "trace",/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/)
-    );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profiles_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
   });
 
   it('renders continuous profiling', function () {
@@ -72,10 +73,11 @@ describe('aiohttp onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/profile_lifecycle: "trace"/)
-    );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
+    ).toBeInTheDocument();
   });
 });

@@ -42,7 +42,10 @@ describe('tornado onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle: "trace",/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -72,10 +75,15 @@ describe('tornado onboarding docs', function () {
     ).not.toBeInTheDocument();
 
     // Does render continuous profiling config
-    const matches = screen.getAllByText(
-      textWithMarkupMatcher(/profile_lifecycle: "trace",/)
+    const sampleRateMatches = screen.getAllByText(
+      textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/)
     );
-    expect(matches.length).toBeGreaterThan(0);
-    matches.forEach(match => expect(match).toBeInTheDocument());
+    expect(sampleRateMatches.length).toBeGreaterThan(0);
+    sampleRateMatches.forEach(match => expect(match).toBeInTheDocument());
+    const lifeCycleMatches = screen.getAllByText(
+      textWithMarkupMatcher(/profile_lifecycle="trace",/)
+    );
+    expect(lifeCycleMatches.length).toBeGreaterThan(0);
+    lifeCycleMatches.forEach(match => expect(match).toBeInTheDocument());
   });
 });

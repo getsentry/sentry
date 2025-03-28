@@ -35,7 +35,10 @@ describe('tryton onboarding docs', function () {
 
     // Does not render continuous profiling config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle: "trace",/))
+      screen.queryByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).not.toBeInTheDocument();
 
     // Does render transaction profiling config
@@ -64,7 +67,10 @@ describe('tryton onboarding docs', function () {
 
     // Does render continuous profiling config
     expect(
-      screen.getByText(textWithMarkupMatcher(/profile_lifecycle: "trace",/))
+      screen.getByText(textWithMarkupMatcher(/profile_session_sample_rate=1\.0,/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profile_lifecycle="trace",/))
     ).toBeInTheDocument();
   });
 });
