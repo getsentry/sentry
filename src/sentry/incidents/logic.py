@@ -1838,7 +1838,6 @@ def translate_aggregate_field(
 # TODO(Ecosystem): Convert to using get_filtered_actions
 def get_slack_actions_with_async_lookups(
     organization: Organization,
-    user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> list[Mapping[str, Any]]:
     """Return Slack trigger actions that require async lookup"""
@@ -1853,7 +1852,6 @@ def get_slack_actions_with_async_lookups(
                     context={
                         "organization": organization,
                         "access": SystemAccess(),
-                        "user": user,
                         "input_channel_id": action.get("inputChannelId"),
                         "installations": app_service.installations_for_organization(
                             organization_id=organization.id
@@ -1882,7 +1880,7 @@ def get_slack_channel_ids(
     user: User | RpcUser | None,
     data: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    slack_actions = get_slack_actions_with_async_lookups(organization, user, data)
+    slack_actions = get_slack_actions_with_async_lookups(organization, data)
     mapped_slack_channels = {}
     for action in slack_actions:
         if not action["target_identifier"] in mapped_slack_channels:
