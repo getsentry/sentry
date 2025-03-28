@@ -25,6 +25,7 @@ from sentry.utils import snuba_rpc
 
 def convert_rpc_attribute_to_json(
     attributes: list[dict],
+    trace_item_type: SupportedTraceItemType,
 ) -> Generator[dict]:
     for attribute in attributes:
         source = attribute["value"]
@@ -41,7 +42,7 @@ def convert_rpc_attribute_to_json(
 
                 name = (
                     translate_internal_to_public_alias(
-                        attribute["name"], column_type, SupportedTraceItemType.LOGS
+                        attribute["name"], column_type, trace_item_type
                     )
                     or attribute["name"]
                 )
@@ -111,7 +112,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "itemId": resp["itemId"],
             "timestamp": resp["timestamp"],
             "attributes": sorted(
-                list(convert_rpc_attribute_to_json(resp["attributes"])),
+                list(convert_rpc_attribute_to_json(resp["attributes"], trace_item_type)),
                 key=lambda x: (x["type"], x["name"]),
             ),
         }
