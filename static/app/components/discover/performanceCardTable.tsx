@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -49,6 +49,7 @@ function PerformanceCardTable({
   performanceType,
   isLoading,
 }: PerformanceCardTableProps) {
+  const theme = useTheme();
   const miseryRenderer =
     allReleasesTableData?.meta &&
     getFieldRenderer('user_misery()', allReleasesTableData.meta, false);
@@ -236,15 +237,19 @@ function PerformanceCardTable({
         {allReleasesTableData?.data.length === 0
           ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
-              const allReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
+              const allReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
               const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
               const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
 
               return (
@@ -264,15 +269,19 @@ function PerformanceCardTable({
         {thisReleaseTableData?.data.length === 0
           ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
-              const thisReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
+              const thisReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
               const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
               const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
 
               return (
@@ -416,13 +425,21 @@ function PerformanceCardTable({
         {allReleasesTableData?.data.length === 0
           ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
-              const allReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
-              const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
+              const allReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
+              const allReleasesApdex = apdexRenderer?.(
+                dataRow,
+                {organization, location},
+                theme
+              );
               const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
 
               return (
@@ -439,16 +456,24 @@ function PerformanceCardTable({
         {thisReleaseTableData?.data.length === 0
           ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
-              const thisReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
-              const thisReleasesApdex = apdexRenderer?.(dataRow, {
-                organization,
-                location,
-              });
+              const thisReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
+              const thisReleasesApdex = apdexRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
               const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
 
               return (
@@ -540,12 +565,16 @@ function PerformanceCardTable({
         {allReleasesTableData?.data.length === 0
           ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
-              const allReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
+              const allReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
               const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
 
               return (
@@ -560,12 +589,16 @@ function PerformanceCardTable({
         {thisReleaseTableData?.data.length === 0
           ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
-              const thisReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
+              const thisReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
               const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location}, theme)
               );
 
               return (
@@ -610,10 +643,14 @@ function PerformanceCardTable({
         {allReleasesTableData?.data.length === 0
           ? emptyColumn
           : allReleasesTableData?.data.map((dataRow, idx) => {
-              const allReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
+              const allReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
 
               return (
                 <div key={idx}>
@@ -624,10 +661,14 @@ function PerformanceCardTable({
         {thisReleaseTableData?.data.length === 0
           ? emptyColumn
           : thisReleaseTableData?.data.map((dataRow, idx) => {
-              const thisReleasesMisery = miseryRenderer?.(dataRow, {
-                organization,
-                location,
-              });
+              const thisReleasesMisery = miseryRenderer?.(
+                dataRow,
+                {
+                  organization,
+                  location,
+                },
+                theme
+              );
 
               return (
                 <div key={idx}>

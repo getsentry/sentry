@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 import trimStart from 'lodash/trimStart';
@@ -51,6 +52,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  theme: Theme;
   widget: Widget;
   eventView?: EventView;
   isFirstPage?: boolean;
@@ -185,6 +187,7 @@ export const renderGridBodyCell = ({
   isFirstPage,
   projects,
   eventView,
+  theme,
 }: Props) =>
   function (
     column: GridColumnOrder,
@@ -199,7 +202,7 @@ export const renderGridBodyCell = ({
       case WidgetType.ISSUE:
         cell = (
           getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, ISSUE_FIELDS)
-        )(dataRow, {organization, location});
+        )(dataRow, {organization, location}, theme);
         break;
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
@@ -209,16 +212,16 @@ export const renderGridBodyCell = ({
           return dataRow[column.key];
         }
         const unit = tableData.meta.units?.[column.key];
-        cell = getCustomEventsFieldRenderer(
-          columnKey,
-          tableData.meta,
-          widget
-        )(dataRow, {
-          organization,
-          location,
-          eventView,
-          unit,
-        });
+        cell = getCustomEventsFieldRenderer(columnKey, tableData.meta, widget)(
+          dataRow,
+          {
+            organization,
+            location,
+            eventView,
+            unit,
+          },
+          theme
+        );
 
         const fieldName = getAggregateAlias(columnKey);
         const value = dataRow[fieldName];
@@ -270,7 +273,13 @@ export const renderGridBodyCell = ({
   };
 
 export const renderPrependColumns =
-  ({location, organization, tableData, eventView}: Props & {eventView: EventView}) =>
+  ({
+    location,
+    organization,
+    tableData,
+    eventView,
+    theme,
+  }: Props & {eventView: EventView}) =>
   (isHeader: boolean, dataRow?: any, rowIndex?: number): React.ReactNode[] => {
     if (isHeader) {
       return [
@@ -289,7 +298,7 @@ export const renderPrependColumns =
 
     if (tableData?.meta) {
       const fieldRenderer = getFieldRenderer('id', tableData?.meta);
-      value = fieldRenderer(dataRow, {organization, location});
+      value = fieldRenderer(dataRow, {organization, location}, theme);
     }
 
     const eventSlug = generateEventSlug(dataRow);

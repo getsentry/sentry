@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -119,6 +120,7 @@ export function DomainTransactionsTable({
   sort,
   domain,
 }: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -153,7 +155,7 @@ export function DomainTransactionsTable({
               sortParameterName: QueryParameterNames.TRANSACTIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, domain, location, organization),
+            renderBodyCell(column, row, meta, domain, location, organization, theme),
         }}
       />
 
@@ -168,7 +170,8 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   domain: string | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'transaction') {
     return (
@@ -193,6 +196,7 @@ function renderBodyCell(
       location,
       organization,
       unit: meta.units?.[column.key],
-    }
+    },
+    theme
   );
 }

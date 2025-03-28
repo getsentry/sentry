@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -67,6 +68,7 @@ export function ReleaseDrawerTable({
   onMouseOutRelease,
   onSelectRelease,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -180,15 +182,26 @@ export function ReleaseDrawerTable({
 
       return (
         <CellWrapper>
-          {renderer(dataRow, {
-            location,
-            organization,
-            unit: meta.units[column.key],
-          })}
+          {renderer(
+            dataRow,
+            {
+              location,
+              organization,
+              unit: meta.units[column.key],
+            },
+            theme
+          )}
         </CellWrapper>
       );
     },
-    [organization, location, onSelectRelease, onMouseOutRelease, onMouseOverRelease]
+    [
+      organization,
+      location,
+      onSelectRelease,
+      onMouseOutRelease,
+      onMouseOverRelease,
+      theme,
+    ]
   );
 
   const tableEmptyMessage = (

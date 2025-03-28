@@ -1,4 +1,5 @@
 import {type ReactNode, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -64,6 +65,7 @@ export default function ReleaseHealthTable({
   location,
   meta,
 }: Props) {
+  const theme = useTheme();
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'date', kind: 'desc'},
     location,
@@ -144,15 +146,19 @@ export default function ReleaseHealthTable({
 
       return (
         <CellWrapper>
-          {renderer(dataRow, {
-            location,
-            organization,
-            unit: meta.units?.[column.key],
-          })}
+          {renderer(
+            dataRow,
+            {
+              location,
+              organization,
+              unit: meta.units?.[column.key],
+            },
+            theme
+          )}
         </CellWrapper>
       );
     },
-    [organization, location, meta]
+    [organization, location, meta, theme]
   );
 
   const tableEmptyMessage = (

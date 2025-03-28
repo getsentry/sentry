@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
@@ -82,7 +83,6 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
-
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
@@ -106,7 +106,8 @@ type FieldFormatterRenderFunction = (
 
 type FieldFormatterRenderFunctionPartial = (
   data: EventData,
-  baggage: RenderFunctionBaggage
+  baggage: RenderFunctionBaggage,
+  theme: Theme
 ) => React.ReactNode;
 
 type FieldFormatter = {
@@ -957,6 +958,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization, eventView}: RenderFunctionBaggage,
+  theme: Theme,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};
@@ -1019,7 +1021,7 @@ export const spanOperationRelativeBreakdownRenderer = (
             >
               <RectangleRelativeOpsBreakdown
                 style={{
-                  backgroundColor: pickBarColor(operationName),
+                  backgroundColor: pickBarColor(operationName, theme),
                   cursor: enableOnClick ? 'pointer' : 'default',
                 }}
                 onClick={event => {

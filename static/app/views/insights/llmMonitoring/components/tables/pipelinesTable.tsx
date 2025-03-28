@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -94,6 +95,7 @@ export function isAValidSort(sort: Sort): sort is ValidSort {
 }
 
 export function EAPPipelinesTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const moduleURL = useModuleURL('ai');
@@ -233,7 +235,7 @@ export function EAPPipelinesTable() {
                 sortParameterName: QueryParameterNames.SPANS_SORT,
               }),
             renderBodyCell: (column, row) =>
-              renderBodyCell(moduleURL, column, row, meta, location, organization),
+              renderBodyCell(moduleURL, column, row, meta, location, organization, theme),
           }}
         />
         <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -243,6 +245,7 @@ export function EAPPipelinesTable() {
 }
 
 export function PipelinesTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const moduleURL = useModuleURL('ai');
@@ -380,7 +383,7 @@ export function PipelinesTable() {
                 sortParameterName: QueryParameterNames.SPANS_SORT,
               }),
             renderBodyCell: (column, row) =>
-              renderBodyCell(moduleURL, column, row, meta, location, organization),
+              renderBodyCell(moduleURL, column, row, meta, location, organization, theme),
           }}
         />
         <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -395,7 +398,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'span.description') {
     if (!row['span.description']) {
@@ -444,11 +448,15 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  const rendered = renderer(row, {
-    location,
-    organization,
-    unit: meta.units?.[column.key],
-  });
+  const rendered = renderer(
+    row,
+    {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    },
+    theme
+  );
 
   return rendered;
 }

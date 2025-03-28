@@ -8,6 +8,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
+import {lightTheme} from 'sentry/utils/theme';
 import {
   getCustomEventsFieldRenderer,
   transformEventsResponseToTable,
@@ -78,7 +79,8 @@ describe('getCustomFieldRenderer', function () {
             ...baseEventViewOptions,
             fields: [{field: 'trace'}],
           }),
-        }
+        },
+        lightTheme
       ) as React.ReactElement<any, any>,
       {router}
     );
@@ -107,7 +109,8 @@ describe('getCustomFieldRenderer', function () {
             fields: [{field: 'id'}],
             project: [parseInt(project.id, 10)],
           }),
-        }
+        },
+        lightTheme
       ) as React.ReactElement<any, any>,
       {router}
     );
@@ -149,7 +152,8 @@ describe('getCustomFieldRenderer', function () {
             fields: [{field: 'id'}],
             project: [parseInt(project.id, 10)],
           }),
-        }
+        },
+        lightTheme
       ) as React.ReactElement<any, any>,
       {router}
     );

@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import trimStart from 'lodash/trimStart';
 
@@ -436,7 +437,7 @@ export function getCustomEventsFieldRenderer(
 
   // When title or transaction are << unparameterized >>, link out to discover showing unparameterized transactions
   if (['title', 'transaction'].includes(field)) {
-    return function (data: any, baggage: any) {
+    return function (data: any, baggage: any, theme: Theme) {
       if (data[field] === UNPARAMETERIZED_TRANSACTION) {
         return (
           <Container>
@@ -452,7 +453,7 @@ export function getCustomEventsFieldRenderer(
           </Container>
         );
       }
-      return getFieldRenderer(field, meta, false)(data, baggage);
+      return getFieldRenderer(field, meta, false)(data, baggage, theme);
     };
   }
   return getFieldRenderer(field, meta, false);

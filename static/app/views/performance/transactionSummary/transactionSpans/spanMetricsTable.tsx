@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -101,6 +103,7 @@ export default function SpanMetricsTable(props: Props) {
   const location = useLocation();
   const sort = useSpansTabTableSort();
   const domainViewFilters = useDomainViewFilters();
+  const theme = useTheme();
 
   const query = useLocationQuery({
     fields: {
@@ -175,6 +178,7 @@ export default function SpanMetricsTable(props: Props) {
               location,
               organization,
               transactionName,
+              theme,
               project,
               domainViewFilters?.view
             ),
@@ -190,6 +194,7 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   transactionName: string,
+  theme: Theme,
   project?: Project,
   view?: DomainView
 ) {
@@ -233,7 +238,7 @@ function renderBodyCell(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE, false);
-    const rendered = fieldRenderer(dataRow, {location, organization});
+    const rendered = fieldRenderer(dataRow, {location, organization}, theme);
 
     return rendered;
   };

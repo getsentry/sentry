@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -292,6 +293,7 @@ function LogFieldsTreeRow({
   config = {},
   ...props
 }: LogFieldsTreeRowProps) {
+  const theme = useTheme();
   const originalAttribute = content.originalAttribute;
   const hasErrors = false; // No error handling in this simplified version
   const hasStem = !isLast && isEmptyObject(content.subtree);
@@ -338,6 +340,7 @@ function LogFieldsTreeRow({
             content={content}
             renderers={props.renderers}
             renderExtra={props.renderExtra}
+            theme={theme}
           />
         </TreeValue>
         {attributeActions}
@@ -445,10 +448,11 @@ function LogFieldsTreeValue({
   content,
   renderers = {},
   renderExtra,
+  theme,
 }: {
   content: AttributeTreeContent;
   config?: LogFieldsTreeRowConfig;
-} & LogAttributeFieldRender) {
+} & LogAttributeFieldRender & {theme: Theme}) {
   const {originalAttribute} = content;
   if (!originalAttribute) {
     return null;
@@ -463,7 +467,11 @@ function LogFieldsTreeValue({
       ? adjustLogTraceID(content.value as string)
       : content.value;
 
-  const basicRendered = basicRenderer({[attributeKey]: adjustedValue}, renderExtra);
+  const basicRendered = basicRenderer(
+    {[attributeKey]: adjustedValue},
+    renderExtra,
+    theme
+  );
   const defaultValue = <span>{String(adjustedValue)}</span>;
 
   if (config?.disableRichValue) {

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -71,6 +72,7 @@ export default function SpanTable(props: Props) {
     transactionName,
   } = props;
 
+  const theme = useTheme();
   const {view} = useDomainViewFilters();
 
   if (!defined(examples)) {
@@ -115,6 +117,7 @@ export default function SpanTable(props: Props) {
               location,
               organization,
               transactionName,
+              theme,
               suspectSpan,
               view
             ),
@@ -144,6 +147,7 @@ function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
   transactionName: string,
+  theme: Theme,
   suspectSpan?: SuspectSpan,
   view?: DomainView
 ) {
@@ -160,7 +164,7 @@ function renderBodyCellWithMeta(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    let rendered = fieldRenderer(dataRow, {location, organization});
+    let rendered = fieldRenderer(dataRow, {location, organization}, theme);
 
     if (column.key === 'id') {
       const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';
@@ -250,6 +254,7 @@ type SpanDurationBarProps = {
 };
 
 export function SpanDurationBar(props: SpanDurationBarProps) {
+  const theme = useTheme();
   const {spanOp, spanDuration, transactionDuration} = props;
   const widthPercentage = spanDuration / transactionDuration;
   const position = widthPercentage < 0.7 ? 'right' : 'inset';
@@ -264,7 +269,7 @@ export function SpanDurationBar(props: SpanDurationBarProps) {
           })}
           containerDisplayMode="block"
         >
-          <DurationBarSection style={{backgroundColor: pickBarColor(spanOp)}}>
+          <DurationBarSection style={{backgroundColor: pickBarColor(spanOp, theme)}}>
             <DurationPill durationDisplay={position} showDetail={false}>
               <PerformanceDuration abbreviation milliseconds={spanDuration} />
             </DurationPill>

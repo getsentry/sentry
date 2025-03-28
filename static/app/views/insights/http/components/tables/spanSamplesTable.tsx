@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -74,6 +75,7 @@ export function SpanSamplesTable({
   onSampleMouseOut,
   highlightedSpanId,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -92,7 +94,7 @@ export function SpanSamplesTable({
             location,
           }),
         renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, meta, location, organization),
+          renderBodyCell(column, row, meta, location, organization, theme),
       }}
       highlightedRowKey={data.findIndex(row => row.span_id === highlightedSpanId)}
       onRowMouseOver={onSampleMouseOver}
@@ -106,7 +108,8 @@ function renderBodyCell(
   row: DataRow,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === SpanIndexedField.SPAN_ID) {
     return (
@@ -133,11 +136,15 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  return renderer(row, {
-    location,
-    organization,
-    unit: meta.units?.[column.key],
-  });
+  return renderer(
+    row,
+    {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    },
+    theme
+  );
 }
 
 const SpanDescriptionCell = styled('span')`

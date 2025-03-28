@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -31,7 +32,6 @@ import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
   EAPSpanResponse,
@@ -121,6 +121,7 @@ export function ServiceEntrySpansTable({
   supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -251,7 +252,7 @@ export function ServiceEntrySpansTable({
               column,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, projectSlug, location, organization),
+            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
       />
     </Fragment>
@@ -264,7 +265,8 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'span_id') {
     return (
@@ -325,11 +327,15 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  const rendered = renderer(row, {
-    location,
-    organization,
-    unit: meta.units?.[column.key],
-  });
+  const rendered = renderer(
+    row,
+    {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    },
+    theme
+  );
 
   return rendered;
 }

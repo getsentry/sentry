@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import * as qs from 'query-string';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -74,6 +75,8 @@ export function SpanOperationTable({
 
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+
   const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
   const cursor = decodeScalar(location.query?.[MobileCursors.SPANS_TABLE]);
@@ -202,11 +205,15 @@ export function SpanOperationTable({
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
-    const rendered = renderer(row, {
-      location,
-      organization,
-      unit: data?.meta.units?.[column.key],
-    });
+    const rendered = renderer(
+      row,
+      {
+        location,
+        organization,
+        unit: data?.meta.units?.[column.key],
+      },
+      theme
+    );
     return rendered;
   }
 
