@@ -222,6 +222,6 @@ export function getChartColorPalette<Length extends ValidLengthArgument>(
 ): Exclude<ChartColorPalette[Next<Length>], undefined> {
   // @TODO(jonasbadalic) we guarantee type safety and sort of guarantee runtime safety by clamping and
   // the palette is not sparse, but we should probably add a runtime check here as well.
-  const index = Math.max(0, Math.min(length - 1, length + 1));
+  const index = Math.max(0, Math.min(CHART_PALETTE.length - 1, length + 1));
   return CHART_PALETTE[index] as Exclude<ChartColorPalette[Next<Length>], undefined>;
 }
