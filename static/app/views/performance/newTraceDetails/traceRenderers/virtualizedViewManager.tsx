@@ -9,7 +9,7 @@ import {
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
-import {isMissingInstrumentationNode} from '../traceGuards';
+import {isEAPError, isMissingInstrumentationNode} from '../traceGuards';
 import {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import {TraceRowWidthMeasurer} from '../traceRenderers/traceRowWidthMeasurer';
@@ -1701,9 +1701,10 @@ function getIconTimestamps(
   }
 
   for (const err of node.errors) {
-    if (typeof err.timestamp === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, err.timestamp * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, err.timestamp * 1e3 + icon_width);
+    const timestamp = isEAPError(err) ? err.start_timestamp : err.timestamp;
+    if (typeof timestamp === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
     }
   }
 
