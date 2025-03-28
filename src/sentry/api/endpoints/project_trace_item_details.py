@@ -1,23 +1,25 @@
 import uuid
-from collections.abc import Generator
 from typing import Literal
 
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtoTimestamp
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
-from sentry_protos.snuba.v1.request_common_pb2 import TRACE_ITEM_TYPE_LOG, RequestMeta
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import BadRequest
 from sentry.models.project import Project
-from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap import constants
+from sentry.search.eap.types import SupportedTraceItemType, TraceItemAttribute
 from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
@@ -26,19 +28,21 @@ from sentry.utils import snuba_rpc
 def convert_rpc_attribute_to_json(
     attributes: list[dict],
     trace_item_type: SupportedTraceItemType,
-) -> Generator[dict]:
+) -> list[TraceItemAttribute]:
+    result: list[TraceItemAttribute] = []
     for attribute in attributes:
         internal_name = attribute["name"]
         source = attribute["value"]
         if len(source) == 0:
             raise BadRequest(f"unknown field in protobuf: {internal_name}")
         for k, v in source.items():
-            if k.startswith("val"):
-                val_type = k[3:].lower()
+            lowered_key = k.lower()
+            if lowered_key.startswith("val"):
+                val_type = lowered_key[3:]
                 column_type: Literal["string", "number"] = "string"
-                if val_type == "str" or val_type == "bool":
+                if val_type in ["str", "bool"]:
                     column_type = "string"
-                elif val_type == "int" or val_type == "float" or val_type == "double":
+                elif val_type in ["int", "float", "double"]:
                     column_type = "number"
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
@@ -53,7 +57,18 @@ def convert_rpc_attribute_to_json(
                     else:
                         external_name = internal_name
 
-                yield {"name": external_name, "type": val_type, "value": v}
+                result.append(
+                    TraceItemAttribute({"name": external_name, "type": val_type, "value": v})
+                )
+
+    return sorted(result, key=lambda x: (x["type"], x["name"]))
+
+
+class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
+    trace_id = serializers.UUIDField(format="hex", required=True)
+    item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=False)
+    dataset = serializers.ChoiceField(["ourlogs"], required=False)
+    referrer = serializers.CharField(required=False)
 
 
 @region_silo_endpoint
@@ -70,12 +85,39 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
 
         For example, you might ask 'give me all the details about the span/log with id 01234567'
         """
-        dataset = request.GET.get("dataset")
-        referrer = request.GET.get("referrer", Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value)
+
+        if not features.has(
+            "organizations:discover-basic", project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        serialized = serializer.validated_data
+        trace_id = serialized.get("trace_id")
+        item_type = serialized.get("item_type")
+        dataset = serialized.get("dataset")
+        referrer = serialized.get("referrer", Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value)
+
+        trace_item_type = None
+        if item_type is not None:
+
+            trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
+                SupportedTraceItemType(item_type), None
+            )
+
         if dataset == "ourlogs":
-            trace_item_type = TRACE_ITEM_TYPE_LOG
-        else:
-            raise BadRequest(detail=f"Unknown dataset: '{dataset}'")
+            trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
+                SupportedTraceItemType.LOGS, None
+            )
+            item_type = SupportedTraceItemType.LOGS
+
+        if trace_item_type is None:
+            raise BadRequest(
+                detail=f"Unknown dataset or trace item type: '{dataset}' / {item_type}"
+            )
 
         start_timestamp_proto = ProtoTimestamp()
         start_timestamp_proto.FromSeconds(0)
@@ -118,10 +160,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         resp_dict = {
             "itemId": resp["itemId"],
             "timestamp": resp["timestamp"],
-            "attributes": sorted(
-                list(convert_rpc_attribute_to_json(resp["attributes"], trace_item_type)),
-                key=lambda x: (x["type"], x["name"]),
-            ),
+            "attributes": convert_rpc_attribute_to_json(resp["attributes"], item_type),
         }
 
         return Response(resp_dict)
