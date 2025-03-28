@@ -19,6 +19,23 @@ type Options = {
 const LIMIT = 5;
 const CURSOR_NAME = 'serviceEntrySpansCursor';
 
+const FIELDS: EAPSpanProperty[] = [
+  'span_id',
+  'user.id',
+  'user.email',
+  'user.username',
+  'user.ip',
+  'span.duration',
+  'trace',
+  'timestamp',
+  'replayId',
+  'profile.id',
+  'profiler.id',
+  'thread.id',
+  'precise.start_ts',
+  'precise.finish_ts',
+];
+
 export function useServiceEntrySpansQuery({
   query,
   transactionName,
@@ -30,30 +47,122 @@ export function useServiceEntrySpansQuery({
   const spanCategoryUrlParam = decodeScalar(
     location.query?.[SpanIndexedField.SPAN_CATEGORY]
   );
+
+  const isSingleQueryEnabled =
+    selected.value === TransactionFilterOptions.RECENT || !spanCategoryUrlParam;
+
+  const {
+    data: singleQueryData,
+    isLoading: isSingleQueryLoading,
+    error: singleQueryError,
+    pageLinks: singleQueryPageLinks,
+    meta: singleQueryMeta,
+  } = useSingleQuery({
+    query,
+    sort,
+    p95,
+    selected,
+    enabled: isSingleQueryEnabled,
+  });
+
+  const isMultipleQueriesEnabled = Boolean(
+    spanCategoryUrlParam && selected.value !== TransactionFilterOptions.RECENT
+  );
+
+  const {
+    data: multipleQueriesData,
+    isLoading: isMultipleQueriesLoading,
+    error: multipleQueriesError,
+    pageLinks: multipleQueriesPageLinks,
+    meta: multipleQueriesMeta,
+  } = useMultipleQueries({
+    transactionName,
+    sort,
+    p95,
+    selected,
+    enabled: isMultipleQueriesEnabled,
+  });
+
+  if (isSingleQueryEnabled) {
+    return {
+      data: singleQueryData,
+      isLoading: isSingleQueryLoading,
+      error: singleQueryError,
+      pageLinks: singleQueryPageLinks,
+      meta: singleQueryMeta,
+    };
+  }
+
+  return {
+    data: multipleQueriesData,
+    isLoading: isMultipleQueriesLoading,
+    error: multipleQueriesError,
+    pageLinks: multipleQueriesPageLinks,
+    meta: multipleQueriesMeta,
+  };
+}
+
+type UseSingleQueryOptions = {
+  p95: number;
+  query: string;
+  selected: DropdownOption;
+  sort: Sort;
+  enabled?: boolean;
+};
+
+// Hook for executing the default query to fetch table data for spans when no category is selected
+function useSingleQuery(options: UseSingleQueryOptions) {
+  const location = useLocation();
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
   const {selection} = usePageFilters();
+  const {query, sort, p95, selected, enabled} = options;
+  const newQuery = new MutableSearch(query);
 
-  const fields: EAPSpanProperty[] = [
-    'span_id',
-    'user.id',
-    'user.email',
-    'user.username',
-    'user.ip',
-    'span.duration',
-    'trace',
-    'timestamp',
-    'replayId',
-    'profile.id',
-    'profiler.id',
-    'thread.id',
-    'precise.start_ts',
-    'precise.finish_ts',
-  ];
+  if (selected.value === TransactionFilterOptions.SLOW && p95) {
+    newQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
+  }
 
-  // If a span category is selected, we must query the data differently for this to work on the EAP dataset.
-  // - Make an initial query to fetch service entry spans with the highest cumulative durations of spans that have the span category.
-  // - Then make a second query to fetch the table data for these spans
-  // - If no span category is selected, only one query is made to fetch the table data.
+  // selected.value === TransactionFilterOptions.RECENT || !spanCategoryUrlParam,
+
+  const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
+    {
+      search: query,
+      fields: FIELDS,
+      sorts: [sort],
+      limit: LIMIT,
+      cursor,
+      pageFilters: selection,
+      enabled,
+    },
+    'api.performance.service-entry-spans-table',
+    true
+  );
+
+  return {
+    data,
+    isLoading,
+    pageLinks,
+    meta,
+    error,
+  };
+}
+
+type UseMultipleQueriesOptions = {
+  p95: number;
+  selected: DropdownOption;
+  sort: Sort;
+  transactionName: string;
+  enabled?: boolean;
+};
+
+function useMultipleQueries(options: UseMultipleQueriesOptions) {
+  const {transactionName, sort, p95, selected, enabled} = options;
+  const location = useLocation();
+  const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
+  const {selection} = usePageFilters();
+  const spanCategoryUrlParam = decodeScalar(
+    location.query?.[SpanIndexedField.SPAN_CATEGORY]
+  );
 
   const categorizedSpansQuery = new MutableSearch(
     `transaction:${transactionName} span.category:${spanCategoryUrlParam}`
@@ -82,9 +191,7 @@ export function useServiceEntrySpansQuery({
       cursor,
       pageFilters: selection,
       // This query does not apply when the Recent option is selected
-      enabled: Boolean(
-        spanCategoryUrlParam && selected.value !== TransactionFilterOptions.RECENT
-      ),
+      enabled,
     },
     'api.performance.service-entry-spans-table',
     true
@@ -108,7 +215,7 @@ export function useServiceEntrySpansQuery({
   } = useEAPSpans(
     {
       search: specificSpansQuery,
-      fields,
+      fields: FIELDS,
       cursor,
       limit: LIMIT,
       enabled: !!categorizedSpanIds && categorizedSpanIds.length > 0,
@@ -117,43 +224,11 @@ export function useServiceEntrySpansQuery({
     true
   );
 
-  // The recent option disregards span category
-  const finalQuery = new MutableSearch(query);
-  if (selected.value === TransactionFilterOptions.RECENT) {
-    finalQuery.removeFilter('span.category');
-  }
-
-  // Default query to fetch table data for spans when no category is selected
-  const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
-    {
-      search: finalQuery,
-      fields,
-      sorts: [sort],
-      limit: LIMIT,
-      cursor,
-      pageFilters: selection,
-      enabled:
-        selected.value === TransactionFilterOptions.RECENT || !spanCategoryUrlParam,
-    },
-    'api.performance.service-entry-spans-table',
-    true
-  );
-
-  if (spanCategoryUrlParam && selected.value !== TransactionFilterOptions.RECENT) {
-    return {
-      data: categorizedSpansData,
-      isLoading: isCategorizedSpanIdsLoading || isCategorizedSpansLoading,
-      pageLinks: categorizedSpansPageLinks,
-      meta: categorizedSpansMeta,
-      error: categorizedSpanIdsError || categorizedSpansError,
-    };
-  }
-
   return {
-    data,
-    isLoading,
-    pageLinks,
-    meta,
-    error,
+    data: categorizedSpansData,
+    isLoading: isCategorizedSpanIdsLoading || isCategorizedSpansLoading,
+    pageLinks: categorizedSpansPageLinks,
+    meta: categorizedSpansMeta,
+    error: categorizedSpanIdsError || categorizedSpansError,
   };
 }
