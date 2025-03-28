@@ -13,7 +13,7 @@ import {PRIMARY_SIDEBAR_WIDTH, SECONDARY_SIDEBAR_WIDTH} from 'sentry/views/nav/c
 import {useNavContext} from 'sentry/views/nav/context';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
-import {SecondarySidebar} from 'sentry/views/nav/secondarySidebar';
+import {SecondarySidebar} from 'sentry/views/nav/secondary/secondarySidebar';
 import {useStackedNavigationTour, useTourModal} from 'sentry/views/nav/tour/tour';
 import {useCollapsedNav} from 'sentry/views/nav/useCollapsedNav';
 
