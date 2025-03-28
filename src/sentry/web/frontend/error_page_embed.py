@@ -190,7 +190,7 @@ class ErrorPageEmbedView(View):
                 if report.group_id:
                     report.notify()
 
-            user_feedback_received.send(
+            user_feedback_received.send_robust(
                 project=Project.objects.get(id=report.project_id),
                 sender=self,
             )
