@@ -9,12 +9,18 @@ import {
   useExploreFields,
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
+import {
+  QUERY_MODE,
+  type SpansRPCQueryExtras,
+  useProgressiveQuery,
+} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 interface UseExploreSpansTableOptions {
   enabled: boolean;
   limit: number;
   query: string;
+  queryExtras?: SpansRPCQueryExtras;
 }
 
 export interface SpansTableResult {
@@ -26,6 +32,19 @@ export function useExploreSpansTable({
   enabled,
   limit,
   query,
+}: UseExploreSpansTableOptions) {
+  return useProgressiveQuery<typeof useExploreSpansTableImp>({
+    queryHookImplementation: useExploreSpansTableImp,
+    queryHookArgs: {enabled, limit, query},
+    queryMode: QUERY_MODE.SERIAL,
+  });
+}
+
+function useExploreSpansTableImp({
+  enabled,
+  limit,
+  query,
+  queryExtras,
 }: UseExploreSpansTableOptions): SpansTableResult {
   const {selection} = usePageFilters();
 
@@ -76,6 +95,7 @@ export function useExploreSpansTable({
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
     trackResponseAnalytics: false,
+    queryExtras,
   });
 
   return useMemo(() => {
