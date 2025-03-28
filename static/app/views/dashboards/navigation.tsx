@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
-import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
-import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 type DashboardsNavigationProps = {
   children: React.ReactNode;

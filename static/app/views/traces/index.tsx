@@ -1,9 +1,9 @@
 import Feature from 'sentry/components/acl/feature';
-import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import Redirect from 'sentry/components/redirect';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
 export const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
 

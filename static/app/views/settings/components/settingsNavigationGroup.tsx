@@ -1,6 +1,6 @@
-import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
+import {SecondaryNav} from 'sentry/views/nav/secondary';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
 import type {NavigationGroupProps} from 'sentry/views/settings/types';
 

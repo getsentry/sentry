@@ -7,7 +7,6 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -22,6 +21,7 @@ import type {ColorOrAlias} from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 const LINKS = {

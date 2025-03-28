@@ -1,6 +1,6 @@
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 const LEGACY_REPLAYS_BASE_PATHNAME = 'replays';
 const REPLAYS_BASE_PATHNAME = 'explore/replays';

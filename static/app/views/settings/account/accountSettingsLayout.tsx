@@ -2,10 +2,10 @@ import {Component, Fragment} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import type {Client} from 'sentry/api';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import withLatestContext from 'sentry/utils/withLatestContext';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import AccountSettingsNavigation from 'sentry/views/settings/account/accountSettingsNavigation';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
