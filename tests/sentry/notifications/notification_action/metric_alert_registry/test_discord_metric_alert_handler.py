@@ -9,7 +9,7 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.metric_alert_registry import MSTeamsMetricAlertHandler
+from sentry.notifications.notification_action.metric_alert_registry import DiscordMetricAlertHandler
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -18,18 +18,17 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 )
 
 
-class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
+class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
         self.detector = self.create_detector(project=self.project)
         self.workflow = self.create_workflow(environment=self.environment)
         self.action = self.create_action(
-            type=Action.Type.MSTEAMS,
+            type=Action.Type.DISCORD,
             integration_id=1234567890,
             config={
                 "target_identifier": "channel123",
-                "target_display": "Channel 123",
                 "target_type": ActionTarget.SPECIFIC,
             },
         )
@@ -46,10 +45,10 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             ),
         )
         self.job = WorkflowEventData(event=self.group_event, workflow_env=self.workflow.environment)
-        self.handler = MSTeamsMetricAlertHandler()
+        self.handler = DiscordMetricAlertHandler()
 
     @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.handlers.msteams_metric_alert_handler.send_incident_alert_notification"
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.discord_metric_alert_handler.send_incident_alert_notification"
     )
     def test_send_alert(self, mock_send_incident_alert_notification):
         notification_context = NotificationContext.from_action_model(self.action)
@@ -82,7 +81,7 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
         )
 
     @mock.patch(
-        "sentry.notifications.notification_action.metric_alert_registry.MSTeamsMetricAlertHandler.send_alert"
+        "sentry.notifications.notification_action.metric_alert_registry.DiscordMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert):
         self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
@@ -101,7 +100,7 @@ class TestMsteamsMetricAlertHandler(MetricAlertHandlerBase):
             notification_context,
             integration_id=1234567890,
             target_identifier="channel123",
-            target_display="Channel 123",
+            target_display=None,
             sentry_app_config=None,
             sentry_app_id=None,
         )
