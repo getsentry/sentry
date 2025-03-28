@@ -28,7 +28,10 @@ def convert_rpc_attribute_to_json(
     trace_item_type: SupportedTraceItemType,
 ) -> Generator[dict]:
     for attribute in attributes:
+        internal_name = attribute["name"]
         source = attribute["value"]
+        if len(source) == 0:
+            raise BadRequest(f"unknown field in protobuf: {internal_name}")
         for k, v in source.items():
             if k.startswith("val"):
                 val_type = k[3:].lower()
@@ -40,13 +43,17 @@ def convert_rpc_attribute_to_json(
                 else:
                     raise BadRequest(f"unknown column type in protobuf: {val_type}")
 
-                name = (
-                    translate_internal_to_public_alias(
-                        attribute["name"], column_type, trace_item_type
-                    )
-                    or attribute["name"]
+                external_name = translate_internal_to_public_alias(
+                    internal_name, column_type, trace_item_type
                 )
-                yield {"name": name, "type": val_type, "value": v}
+
+                if external_name is None:
+                    if type == "number":
+                        external_name = f"tags[{internal_name},number]"
+                    else:
+                        external_name = internal_name
+
+                yield {"name": external_name, "type": val_type, "value": v}
 
 
 @region_silo_endpoint
