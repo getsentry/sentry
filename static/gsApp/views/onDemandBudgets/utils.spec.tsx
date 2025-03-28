@@ -153,6 +153,8 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
         attachmentsBudget: 300,
         monitorSeatsBudget: 400,
         replaysBudget: 0,
+        profileDurationBudget: 0,
+        profileDurationUIBudget: 0,
         budgets: {
           errors: 100,
           transactions: 200,
@@ -160,6 +162,8 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
           replays: 0,
           monitorSeats: 400,
           uptime: 500,
+          profileDuration: 0,
+          profileDurationUI: 0,
         },
         attachmentSpendUsed: 0,
         errorSpendUsed: 0,
@@ -171,6 +175,8 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
           replays: 0,
           monitorSeats: 0,
           uptime: 0,
+          profileDuration: 0,
+          profileDurationUI: 0,
         },
       },
     });
@@ -188,6 +194,8 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
       monitorSeatsBudget: 400,
       uptimeBudget: 500,
       replaysBudget: 0,
+      profileDurationBudget: 0,
+      profileDurationUIBudget: 0,
       budgets: {
         errors: 100,
         transactions: 200,
@@ -195,6 +203,8 @@ describe('parseOnDemandBudgetsFromSubscription', function () {
         replays: 0,
         monitorSeats: 400,
         uptime: 500,
+        profileDuration: 0,
+        profileDurationUI: 0,
       },
     });
   });
