@@ -131,7 +131,7 @@ def test_get_task_ok():
 
 
 @django_db_all
-@override_settings(TASKWORKER_SHARED_SECRET=["a long secret value", "notused"])
+@override_settings(TASKWORKER_SHARED_SECRET='["a long secret value","notused"]')
 def test_get_task_with_interceptor():
     channel = MockChannel()
     channel.add_response(

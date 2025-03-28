@@ -1386,12 +1386,13 @@ BGTASKS = {
 
 # Shared secrets used to sign RPC requests to taskbrokers
 # The first secret is used for signing.
-TASKWORKER_SHARED_SECRET: list[str] | None = env(
-    "TASKWORKER_SHARED_SECRET", default=None, type=env_types.List
-)
+# Environment variable is expected to be a JSON encoded list
+TASKWORKER_SHARED_SECRET = os.getenv("TASKWORKER_SHARED_SECRET")
 
 TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
-TASKWORKER_ROUTES: dict[str, str] = env("TASKWORKER_ROUTES", default={}, type=env_types.Dict)
+
+# Expected to be a JSON encoded dictionary of namespace:topic
+TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
