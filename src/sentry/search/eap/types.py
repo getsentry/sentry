@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Literal
+from enum import Enum
+from typing import Literal, TypedDict
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Reliability
 
@@ -23,6 +24,18 @@ CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {
 }
 Confidence = Literal["low", "high"] | None
 ConfidenceData = list[dict[str, Confidence]]
+
+
+# These are the strings that are used in the API for convienence
+class SupportedTraceItemType(str, Enum):
+    LOGS = "logs"
+    SPANS = "spans"
+
+
+class TraceItemAttribute(TypedDict):
+    name: str
+    type: Literal["string", "number"]
+    value: str | int | float
 
 
 class EAPResponse(EventsResponse):

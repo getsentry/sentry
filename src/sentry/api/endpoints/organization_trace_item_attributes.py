@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from enum import Enum
 from typing import Literal
 
 import sentry_sdk
@@ -30,24 +29,12 @@ from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.spans.utils import translate_internal_to_public_alias
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagValue
 from sentry.utils import snuba_rpc
-
-
-class TraceItemType(str, Enum):
-    LOGS = "logs"
-    SPANS = "spans"
-
-
-# Mapping from our enum types to the protobuf enum types
-TRACE_ITEM_TYPE_MAP = {
-    TraceItemType.LOGS: ProtoTraceItemType.TRACE_ITEM_TYPE_LOG,
-    TraceItemType.SPANS: ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN,
-}
 
 
 class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBase):
@@ -59,20 +46,24 @@ class OrganizationTraceItemAttributesEndpointBase(OrganizationEventsV2EndpointBa
 
 
 class OrganizationTraceItemAttributesEndpointSerializer(serializers.Serializer):
-    item_type = serializers.ChoiceField([e.value for e in TraceItemType], required=True)
+    item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
     attribute_type = serializers.ChoiceField(["string", "number"], required=True)
     substring_match = serializers.CharField(required=False)
     query = serializers.CharField(required=False)
 
 
 def is_valid_item_type(item_type: str) -> bool:
-    return item_type in [e.value for e in TraceItemType]
+    return item_type in [e.value for e in SupportedTraceItemType]
+
+
+def get_column_definitions(item_type: SupportedTraceItemType) -> ColumnDefinitions:
+    return SPAN_DEFINITIONS if item_type == SupportedTraceItemType.SPANS else OURLOG_DEFINITIONS
 
 
 def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
     return (
         Referrer.API_SPANS_TAG_KEYS_RPC
-        if item_type == TraceItemType.SPANS.value
+        if item_type == SupportedTraceItemType.SPANS.value
         else Referrer.API_LOGS_TAG_KEYS_RPC
     )
 
@@ -80,13 +71,15 @@ def resolve_attribute_referrer(item_type: str, attribute_type: str) -> Referrer:
 def resolve_attribute_values_referrer(item_type: str) -> Referrer:
     return (
         Referrer.API_SPANS_TAG_VALUES_RPC
-        if item_type == TraceItemType.SPANS.value
+        if item_type == SupportedTraceItemType.SPANS.value
         else Referrer.API_LOGS_TAG_VALUES_RPC
     )
 
 
-def as_attribute_key(name: str, type: Literal["string", "number"]):
-    key = translate_internal_to_public_alias(name, type)
+def as_attribute_key(
+    name: str, type: Literal["string", "number"], item_type: SupportedTraceItemType
+):
+    key = translate_internal_to_public_alias(name, type, item_type)
 
     if key is not None:
         name = key
@@ -103,8 +96,10 @@ def as_attribute_key(name: str, type: Literal["string", "number"]):
     }
 
 
-def empty_filter(trace_item_type: TraceItemType):
-    column_name = "sentry.body" if trace_item_type == TraceItemType.LOGS else "sentry.description"
+def empty_filter(trace_item_type: SupportedTraceItemType):
+    column_name = (
+        "sentry.body" if trace_item_type == SupportedTraceItemType.LOGS else "sentry.description"
+    )
     return TraceItemFilter(
         exists_filter=ExistsFilter(
             key=AttributeKey(name=column_name),
@@ -138,15 +133,16 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
         max_attributes = options.get("performance.spans-tags-key.max")
         value_substring_match = translate_escape_sequences(substring_match)
-        item_type_type = TraceItemType(item_type)
-        referrer = resolve_attribute_referrer(item_type_type, attribute_type)
+        trace_item_type = SupportedTraceItemType(item_type)
+        referrer = resolve_attribute_referrer(trace_item_type, attribute_type)
+        column_definitions = get_column_definitions(trace_item_type)
         resolver = SearchResolver(
-            params=snuba_params, config=SearchResolverConfig(), definitions=SPAN_DEFINITIONS
+            params=snuba_params, config=SearchResolverConfig(), definitions=column_definitions
         )
         filter, _, _ = resolver.resolve_query(query_string)
         meta = resolver.resolve_meta(referrer=referrer.value)
-        meta.trace_item_type = TRACE_ITEM_TYPE_MAP.get(
-            item_type_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
+        meta.trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
+            trace_item_type, ProtoTraceItemType.TRACE_ITEM_TYPE_SPAN
         )
 
         adjusted_start_date, adjusted_end_date = adjust_start_end_window(
@@ -155,7 +151,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         snuba_params.start = adjusted_start_date
         snuba_params.end = adjusted_end_date
 
-        filter = filter or empty_filter(item_type_type)
+        filter = filter or empty_filter(trace_item_type)
         attr_type = (
             AttributeKey.Type.TYPE_DOUBLE
             if attribute_type == "number"
@@ -176,7 +172,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         paginator = ChainPaginator(
             [
                 [
-                    as_attribute_key(attribute.name, serialized["attribute_type"])
+                    as_attribute_key(attribute.name, serialized["attribute_type"], trace_item_type)
                     for attribute in rpc_response.attributes
                     if attribute.name
                 ],
@@ -220,7 +216,9 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
         max_attribute_values = options.get("performance.spans-tags-values.max")
 
         definitions = (
-            SPAN_DEFINITIONS if item_type == TraceItemType.SPANS.value else OURLOG_DEFINITIONS
+            SPAN_DEFINITIONS
+            if item_type == SupportedTraceItemType.SPANS.value
+            else OURLOG_DEFINITIONS
         )
 
         executor = TraceItemAttributeValuesAutocompletionExecutor(
