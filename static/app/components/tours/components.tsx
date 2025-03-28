@@ -543,7 +543,6 @@ const BlurWindow = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.tour.blur};
   user-select: none;
-  pointer-events: none;
   backdrop-filter: blur(3px);
 `;
 
