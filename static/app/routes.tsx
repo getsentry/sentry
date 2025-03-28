@@ -1824,7 +1824,9 @@ function buildRoutes() {
     <Route
       path={`/${DOMAIN_VIEW_BASE_URL}/`}
       withOrgPath
-      component={make(() => import('sentry/views/insights/navigation'))}
+      component={make(
+        () => import('sentry/views/nav/secondary/sections/insights/insightsSecondaryNav')
+      )}
     >
       {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>

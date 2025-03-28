@@ -33,8 +33,8 @@ import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
-import {MODULE_BASE_URLS} from './common/utils/useModuleURL';
-import {ModuleName} from './types';
+import {MODULE_BASE_URLS} from '../../../../insights/common/utils/useModuleURL';
+import {ModuleName} from '../../../../insights/types';
 
 type InsightsNavigationProps = {
   children: React.ReactNode;
