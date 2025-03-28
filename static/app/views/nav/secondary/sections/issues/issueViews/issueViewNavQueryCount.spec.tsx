@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-import {IssueViewNavQueryCount} from 'sentry/views/nav/issueViews/issueViewNavQueryCount';
+import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
 
 describe('IssueViewNavQueryCount', () => {
   const mockView = {

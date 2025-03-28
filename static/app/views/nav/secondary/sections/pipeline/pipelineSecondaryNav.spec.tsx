@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import PipelineSecondaryNav from 'sentry/views/pipeline/navigation';
+import PipelineSecondaryNav from 'sentry/views/nav/secondary/sections/pipeline/pipelineSecondaryNav';
 
 jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),

@@ -24,12 +24,12 @@ import type {
 import {normalizeProjectsEnvironments} from 'sentry/views/issueList/issueViewsHeader';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useNavContext} from 'sentry/views/nav/context';
-import IssueViewNavEditableTitle from 'sentry/views/nav/issueViews/issueViewNavEditableTitle';
-import {IssueViewNavEllipsisMenu} from 'sentry/views/nav/issueViews/issueViewNavEllipsisMenu';
-import {constructViewLink} from 'sentry/views/nav/issueViews/issueViewNavItems';
-import {IssueViewNavQueryCount} from 'sentry/views/nav/issueViews/issueViewNavQueryCount';
 import ProjectIcon from 'sentry/views/nav/projectIcon';
-import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import IssueViewNavEditableTitle from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEditableTitle';
+import {IssueViewNavEllipsisMenu} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavEllipsisMenu';
+import {constructViewLink} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
+import {IssueViewNavQueryCount} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavQueryCount';
 
 export interface IssueViewNavItemContentProps {
   /**
