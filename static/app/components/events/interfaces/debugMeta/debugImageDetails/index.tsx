@@ -20,7 +20,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
