@@ -137,7 +137,6 @@ function createIncidentSeries(
 
 export type MetricChartData = {
   rule: MetricRule;
-  theme: Theme;
   timeseriesData: Series[];
   anomalies?: Anomaly[];
   handleIncidentClick?: (incident: Incident) => void;
@@ -165,7 +164,7 @@ export function getMetricAlertChartOption({
   showWaitingForData,
   anomalies,
   theme,
-}: MetricChartData): MetricChartOption {
+}: MetricChartData & {theme: Theme}): MetricChartOption {
   let criticalTrigger: Trigger | undefined;
   let warningTrigger: Trigger | undefined;
 
