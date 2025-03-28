@@ -41,10 +41,10 @@ sentry_sdk.init(
       params.isProfilingSelected &&
       params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
-    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
-    profile_session_sample_rate=1.0,`
+    profiles_sample_rate=1.0,`
         : params.isProfilingSelected &&
             params.profilingOptions?.defaultProfilingMode === 'continuous'
           ? `
