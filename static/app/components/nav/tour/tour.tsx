@@ -121,7 +121,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
     initialUrlRef.current = location.pathname + location.search + location.hash;
 
     // Scroll to top and lock scrolling when the tour starts.
-    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     window.scrollTo(0, 0);
   }, [location.hash, location.pathname, location.search]);
 
@@ -135,7 +135,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
     initialUrlRef.current = null;
 
     // Unlock scrolling when the tour ends.
-    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
   }, [navigate, setShowTourReminder]);
 
   const onStepChange = useCallback(
