@@ -13,7 +13,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 
 
-class OrganizationMemberIndexDetailsEndpoint(OrganizationEndpoint):
+class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -33,7 +33,7 @@ class OrganizationMemberIndexDetailsEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         try:
-            kwargs["invited_member"] = OrganizationMemberInvite.objects.filter(
+            kwargs["invited_member"] = OrganizationMemberInvite.objects.get(
                 id=int(member_invite_id)
             )
         except OrganizationMemberInvite.DoesNotExist:
@@ -43,6 +43,7 @@ class OrganizationMemberIndexDetailsEndpoint(OrganizationEndpoint):
     def get(
         self,
         request: Request,
+        organization: Organization,
         invited_member: OrganizationMemberInvite,
     ) -> Response:
         """
