@@ -1,7 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -20,6 +19,11 @@ jest.mock('sentry/utils/useNavigate', () => ({
   useNavigate: () => mockUseNavigate,
 }));
 
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: () => true,
+}));
+
 describe('EventDetailsHeader', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({
@@ -31,9 +35,7 @@ describe('EventDetailsHeader', () => {
   });
   const event = EventFixture({id: 'event-id'});
   const defaultProps = {group, event, project};
-  const router = RouterFixture({
-    location: LocationFixture({query: {streamline: '1'}}),
-  });
+  const router = RouterFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
