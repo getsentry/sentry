@@ -6,146 +6,271 @@ from sentry.utils.cache import cache
 class UpdateWithNewestVersionOrCreateTest(TestCase):
     event_type = EventType.PROFILE_CHUNK
 
+    def assert_db_entry(
+        self,
+        project,
+        event_type,
+        sdk_name,
+        sdk_version,
+    ):
+        project_sdk = ProjectSDK.objects.get(
+            project=project,
+            event_type=event_type.value,
+            sdk_name=sdk_name,
+        )
+        assert project_sdk.sdk_version == sdk_version
+        return project_sdk
+
+    def assert_cache_entry(
+        self,
+        project,
+        event_type,
+        sdk_name,
+        sdk_version,
+    ):
+        cache_key = ProjectSDK.get_cache_key(project, event_type, sdk_name)
+        project_sdk = cache.get(cache_key)
+
+        assert project_sdk.project == project
+        assert project_sdk.event_type == event_type.value
+        assert project_sdk.sdk_name == sdk_name
+        assert project_sdk.sdk_version == sdk_version
+        return project_sdk
+
     def test_first_sdk_version(self):
-        project_sdk = ProjectSDK.update_with_newest_version_or_create(
+        ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
             sdk_name="sentry.python",
             sdk_version="2.23.0",
         )
 
-        assert project_sdk.project == self.project
-        assert project_sdk.event_type == self.event_type.value
-        assert project_sdk.sdk_name == "sentry.python"
-        assert project_sdk.sdk_version == "2.23.0"
+        # check the db entry was created
+        db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+
+        # check the cache entry was created
+        cache_project_sdk = self.assert_cache_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+
+        assert db_project_sdk.id == cache_project_sdk.id
 
     def test_newer_sdk_version(self):
-        old = ProjectSDK.objects.create(
+        project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
             sdk_name="sentry.python",
             sdk_version="2.21.0",
         )
 
-        new = ProjectSDK.update_with_newest_version_or_create(
+        ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
             sdk_name="sentry.python",
             sdk_version="2.23.0",
         )
 
-        assert old.id == new.id
+        # check the db entry was updated
+        db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == db_project_sdk.id
 
-        assert new.project == self.project
-        assert new.event_type == self.event_type.value
-        assert new.sdk_name == "sentry.python"
-        assert new.sdk_version == "2.23.0"
+        # check the cache entry was created
+        cache_project_sdk = self.assert_cache_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == cache_project_sdk.id
 
     def test_older_sdk_version(self):
-        old = ProjectSDK.objects.create(
+        project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
             sdk_name="sentry.python",
             sdk_version="2.23.0",
         )
 
-        new = ProjectSDK.update_with_newest_version_or_create(
+        ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
             sdk_name="sentry.python",
             sdk_version="2.21.0",
         )
 
-        assert old.id == new.id
+        # check the db entry was unchanged
+        db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == db_project_sdk.id
 
-        assert new.project == self.project
-        assert new.event_type == self.event_type.value
-        assert new.sdk_name == "sentry.python"
-        assert new.sdk_version == "2.23.0"
+        # check the cache entry was created
+        cache_project_sdk = self.assert_cache_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == cache_project_sdk.id
 
     def test_same_sdk_version(self):
-        old = ProjectSDK.objects.create(
+        project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
             sdk_name="sentry.python",
             sdk_version="2.23.0",
         )
 
-        new = ProjectSDK.update_with_newest_version_or_create(
+        ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
             sdk_name="sentry.python",
             sdk_version="2.23.0",
         )
 
-        assert old.id == new.id
-
-        assert new.project == self.project
-        assert new.event_type == self.event_type.value
-        assert new.sdk_name == "sentry.python"
-        assert new.sdk_version == "2.23.0"
-
-    def test_cached_sdk_version(self):
-        project_sdk = ProjectSDK.update_with_newest_version_or_create(
-            project=self.project,
-            event_type=self.event_type,
-            sdk_name="sentry.python",
-            sdk_version="2.23.0",
+        # check the db entry was unchanged
+        db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
         )
+        assert project_sdk.id == db_project_sdk.id
 
-        assert project_sdk.project == self.project
-        assert project_sdk.event_type == self.event_type.value
-        assert project_sdk.sdk_name == "sentry.python"
-        assert project_sdk.sdk_version == "2.23.0"
-
-        cache_key = ProjectSDK.get_cache_key(self.project, self.event_type, "sentry.python")
-        cached = cache.get(cache_key)
-
-        assert cached.id == project_sdk.id
-        assert cached.project == project_sdk.project
-        assert cached.event_type == project_sdk.event_type
-        assert cached.sdk_name == project_sdk.sdk_name
-        assert cached.sdk_version == project_sdk.sdk_version
+        # check the cache entry was created
+        cache_project_sdk = self.assert_cache_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == cache_project_sdk.id
 
     def test_no_existing_version(self):
-        existing = ProjectSDK.objects.create(
+        project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
             sdk_name="sentry.python",
         )
 
-        project_sdk = ProjectSDK.update_with_newest_version_or_create(
+        ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
             sdk_name="sentry.python",
             sdk_version="2.23.0",
         )
 
-        assert existing.id == project_sdk.id
+        # check the db entry was updated
+        db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == db_project_sdk.id
 
-        assert project_sdk.project == self.project
-        assert project_sdk.event_type == self.event_type.value
-        assert project_sdk.sdk_name == "sentry.python"
-        assert project_sdk.sdk_version == "2.23.0"
+        # check the cache entry was created
+        cache_project_sdk = self.assert_cache_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == cache_project_sdk.id
 
     def test_no_new_version(self):
-        existing = ProjectSDK.objects.create(
+        project_sdk = ProjectSDK.objects.create(
             project=self.project,
             event_type=self.event_type.value,
             sdk_name="sentry.python",
             sdk_version="2.23.0",
         )
 
-        project_sdk = ProjectSDK.update_with_newest_version_or_create(
+        ProjectSDK.update_with_newest_version_or_create(
             project=self.project,
             event_type=self.event_type,
             sdk_name="sentry.python",
             sdk_version="",
         )
 
-        assert existing.id == project_sdk.id
+        # check the db entry was unchanged
+        db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert project_sdk.id == db_project_sdk.id
 
-        assert project_sdk.project == self.project
-        assert project_sdk.event_type == self.event_type.value
-        assert project_sdk.sdk_name == "sentry.python"
-        assert project_sdk.sdk_version == "2.23.0"
+        # check the cache entry does not exist
+        cache_key = ProjectSDK.get_cache_key(self.project, self.event_type, "sentry.python")
+        cache_project_sdk = cache.get(cache_key)
+
+        assert cache_project_sdk is None
+
+    def test_updated_cached_sdk_version(self):
+        ProjectSDK.update_with_newest_version_or_create(
+            project=self.project,
+            event_type=self.event_type,
+            sdk_name="sentry.python",
+            sdk_version="2.21.0",
+        )
+
+        # check the db entry was created
+        before_db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.21.0",
+        )
+
+        # check the cache entry was created
+        before_cache_project_sdk = self.assert_cache_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.21.0",
+        )
+
+        assert before_db_project_sdk.id == before_cache_project_sdk.id
+
+        ProjectSDK.update_with_newest_version_or_create(
+            project=self.project,
+            event_type=self.event_type,
+            sdk_name="sentry.python",
+            sdk_version="2.23.0",
+        )
+
+        # check the db entry was created
+        db_project_sdk = self.assert_db_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert before_db_project_sdk.id == db_project_sdk.id
+
+        # check the cache entry was created
+        cache_project_sdk = self.assert_cache_entry(
+            self.project,
+            self.event_type,
+            "sentry.python",
+            "2.23.0",
+        )
+        assert before_cache_project_sdk.id == cache_project_sdk.id

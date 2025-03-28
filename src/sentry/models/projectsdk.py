@@ -4,12 +4,13 @@ from collections.abc import Sequence
 from enum import Enum
 
 from django.db import models
-from packaging.version import InvalidVersion
+from packaging.version import InvalidVersion, Version
 from packaging.version import parse as parse_version
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -45,8 +46,12 @@ class ProjectSDK(DefaultFieldsModel):
     __repr__ = sane_repr("project", "event_type", "sdk_name", "sdk_version")
 
     @classmethod
+    def get_lock_key(cls, project: Project, event_type: EventType, sdk_name: str):
+        return f"lprojectsdk:{project.id}:{event_type.value}:{md5_text(sdk_name).hexdigest()}"
+
+    @classmethod
     def get_cache_key(cls, project: Project, event_type: EventType, sdk_name: str):
-        return f"projectsdk:1:{project.id}:{event_type.value}:{md5_text(sdk_name).hexdigest()}"
+        return f"projectsdk:{project.id}:{event_type.value}:{md5_text(sdk_name).hexdigest()}"
 
     @classmethod
     def update_with_newest_version_or_create(
@@ -55,11 +60,42 @@ class ProjectSDK(DefaultFieldsModel):
         event_type: EventType,
         sdk_name: str,
         sdk_version: str,
-    ) -> ProjectSDK:
+    ):
+        try:
+            new_version = parse_version(sdk_version)
+        except InvalidVersion:
+            # non-semver sdk version, ignore and move on
+            return
+
+        lock_key = cls.get_lock_key(project, event_type, sdk_name)
+        lock = locks.get(lock_key, duration=10, name="projectsdk")
+
+        # This can raise `sentry.utils.locking.UnableToAcquireLock`
+        # that needs to be handled by the caller and handled
+        # appropriately with retries if needed.
+        with lock.acquire():
+            cls.__update_with_newest_version_or_create(
+                project,
+                event_type,
+                sdk_name,
+                sdk_version,
+                new_version,
+            )
+
+    @classmethod
+    def __update_with_newest_version_or_create(
+        cls,
+        project: Project,
+        event_type: EventType,
+        sdk_name: str,
+        sdk_version: str,
+        new_version: Version,
+    ):
+        cache_key = cls.get_cache_key(project, event_type, sdk_name)
+
         with metrics.timer(
             "models.projectsdk.update_with_newest_version_or_create"
         ) as metrics_tags:
-            cache_key = cls.get_cache_key(project, event_type, sdk_name)
             project_sdk = cache.get(cache_key)
 
             if project_sdk is None:
@@ -68,43 +104,26 @@ class ProjectSDK(DefaultFieldsModel):
                     project=project,
                     event_type=event_type.value,
                     sdk_name=sdk_name,
+                    defaults={"sdk_version": sdk_version},
                 )
+                should_update_cache = True
             else:
                 metrics_tags["cache_hit"] = "true"
-                created = False
+                should_update_cache = False
 
             assert project_sdk is not None
 
-            should_update_version = created or is_newer_version(
-                sdk_version, project_sdk.sdk_version
-            )
+            if sdk_version != project_sdk.sdk_version:
+                try:
+                    old_version = parse_version(project_sdk.sdk_version)
+                except InvalidVersion:
+                    # non-semver sdk version, always overwrite
+                    old_version = None
 
-            if should_update_version:
-                project_sdk.sdk_version = sdk_version
-                project_sdk.save()
+                if old_version is None or old_version < new_version:
+                    project_sdk.sdk_version = sdk_version
+                    project_sdk.save()
+                    should_update_cache = True
+
+            if should_update_cache:
                 cache.set(cache_key, project_sdk, 3600)
-
-            return project_sdk
-
-
-def is_newer_version(version_to_check: str, existing_version: str) -> bool:
-    # quick check, if they're the same string, we don't need to do any
-    # further validation as they are the same version
-    if version_to_check == existing_version:
-        return False
-
-    try:
-        new_version = parse_version(version_to_check)
-    except InvalidVersion:
-        # version to check is not valid semver version so it can't
-        # be a newer version
-        return False
-
-    try:
-        old_version = parse_version(existing_version)
-    except InvalidVersion:
-        # existing version is not valid semver version so the valid
-        # version to check is always newer
-        return True
-
-    return new_version > old_version
