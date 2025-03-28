@@ -81,9 +81,15 @@ class Task(Generic[P, R]):
         The provided parameters will be JSON encoded and stored within
         a `TaskActivation` protobuf that is appended to kafka
         """
-        self.apply_async(args, kwargs)
+        if settings.TASK_WORKER_ALWAYS_EAGER:
+            self._func(*args, **kwargs)
+        else:
+            # TODO(taskworker) promote parameters to headers
+            self._namespace.send_task(
+                self.create_activation(*args, **kwargs), wait_for_delivery=self.wait_for_delivery
+            )
 
-    def apply_async(self, args: Any, kwargs: Any) -> None:
+    def apply_async(self, args: Any = None, kwargs: Any = None) -> None:
         """
         Schedule a task to run later with a set of arguments.
 
@@ -92,13 +98,11 @@ class Task(Generic[P, R]):
 
         Prefer using `delay()` instead of `apply_async()`.
         """
-        if settings.TASK_WORKER_ALWAYS_EAGER:
-            self._func(*args, **kwargs)
-        else:
-            # TODO(taskworker) promote parameters to headers
-            self._namespace.send_task(
-                self.create_activation(*args, **kwargs), wait_for_delivery=self.wait_for_delivery
-            )
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+        self.delay(*args, **kwargs)
 
     def create_activation(self, *args: P.args, **kwargs: P.kwargs) -> TaskActivation:
         received_at = Timestamp()
