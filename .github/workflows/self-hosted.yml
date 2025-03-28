@@ -73,6 +73,7 @@ jobs:
           if [ ${{ github.event_name }} = 'push' ]; then
             args=(
               --tag ghcr.io/getsentry/sentry-self-hosted:latest
+              --tag ghcr.io/getsentry/sentry-self-hosted:nightly
               --push
             )
           else
