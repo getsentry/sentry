@@ -47,7 +47,7 @@ class SelectAsyncField extends SelectField {
         id={this.getId()}
         onResults={this.onResults}
         onQuery={this.onQuery}
-        {...(this.props as any)}
+        {...this.props}
         value={this.state.value}
         onChange={this.onChange}
       />
