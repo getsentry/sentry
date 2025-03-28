@@ -104,7 +104,7 @@ export function DrawerPanel({
       panelRef.current.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
       panelRef.current.style.setProperty('--drawer-max-width', `${MAX_WIDTH_PERCENT}%`);
     }
-  }, [persistedWidthPercent, drawerKey]);
+  }, [persistedWidthPercent]);
 
   const handleResizeStart = useCallback(
     (e: React.MouseEvent) => {
