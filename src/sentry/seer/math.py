@@ -74,26 +74,3 @@ def rrf_score(
     a = kl_alpha * (1 / (offset + kl_score))
     b = (1 - entropy_alpha) * (1 / (offset + entropy_score))
     return a + b
-
-
-def _ranked(probabilities: list[float], reverse=False) -> list[float]:
-    ranked = sorted(enumerate(probabilities), key=lambda k: k[1], reverse=reverse)
-    ranks = [0] * len(ranked)
-
-    i = 0
-    while i < len(ranked):
-        j = i
-        while j < len(ranked) and ranked[i][1] == ranked[j][1]:
-            j += 1
-        for k in range(i, j):
-            ranks[ranked[k][0]] = i + 1
-        i = j
-    return ranks
-
-
-def max_ranked(probabilities: list[float]) -> list[float]:
-    return _ranked(probabilities, reverse=True)
-
-
-def min_ranked(probabilities: list[float]) -> list[float]:
-    return _ranked(probabilities, reverse=False)
