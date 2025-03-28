@@ -29,7 +29,10 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.serializers.models.group_stream import (
+    StreamGroupSerializerSnuba,
+    StreamGroupSerializerSnubaResponse,
+)
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -37,7 +40,14 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
+from sentry.apidocs.examples.issue_examples import IssueExamples
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    IssueParams,
+    OrganizationParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -217,11 +227,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List an Organization's Issues",
         description="""
-        Return a list of issues (groups) bound to an organization.  All parameters are supplied as query string parameters.
-A default query of ``is:unresolved issue.priority:[high,medium]`` is applied. To return results with other statuses send a new query value (i.e. ``?query=`` for all results).
+        Return a list of issues for an organization.  All parameters are supplied as query string parameters.
+A default query of `is:unresolved issue.priority:[high,medium]` is applied. To return results with other statuses send a new query value (i.e. ``?query=`` for all results).
 """,
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
@@ -236,13 +248,15 @@ A default query of ``is:unresolved issue.priority:[high,medium]`` is applied. To
             CursorQueryParam,
         ],
         responses={
-            # TODO(Leander): Include 200
+            200: inline_sentry_response_serializer(
+                "IssueListResponse", list[StreamGroupSerializerSnubaResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        # TODO(Leander): Include examples
+        examples=IssueExamples.ORGANIZATION_GROUP_INDEX,
     )
     @track_slo_response("workflow")
     def get(self, request: Request, organization: Organization) -> Response:
