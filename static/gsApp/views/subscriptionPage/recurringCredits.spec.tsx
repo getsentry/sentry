@@ -99,8 +99,8 @@ describe('Recurring Credits', function () {
       categoryDisplayNames: {
         ...subscription.planDetails.categoryDisplayNames,
         [DataCategory.PROFILE_DURATION]: {
-          singular: 'profile hour',
-          plural: 'profile hours',
+          singular: 'continuous profile hour',
+          plural: 'continuous profile hours',
         },
       },
     };
@@ -111,7 +111,7 @@ describe('Recurring Credits', function () {
 
     await screen.findByRole('heading', {name: /recurring credits/i});
 
-    expect(screen.getByText('profile hours')).toBeInTheDocument();
+    expect(screen.getByText('continuous profile hours')).toBeInTheDocument();
     expect(screen.getByTestId('amount')).toHaveTextContent('+10/mo');
   });
 

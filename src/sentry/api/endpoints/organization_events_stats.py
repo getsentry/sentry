@@ -301,7 +301,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         orderby=self.get_orderby(request),
                         limit=top_events,
                         referrer=referrer,
-                        granularity_secs=rollup,
                         config=SearchResolverConfig(
                             auto_fields=False,
                             use_aggregate_conditions=True,
@@ -337,7 +336,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
-                    granularity_secs=rollup,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,

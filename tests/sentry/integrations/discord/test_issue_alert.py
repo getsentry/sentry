@@ -140,7 +140,7 @@ class DiscordIssueAlertTest(RuleTestCase):
                 notification_uuid=notification_uuid,
             ),
             "color": LEVEL_TO_COLOR["error"],
-            "footer": {"text": build_footer(self.event.group, self.event.project, None, "{text}")},
+            "footer": {"text": build_footer(self.event.group, self.event.project, "{text}", None)},
             "fields": [],
             "timestamp": self.event.timestamp,
         }

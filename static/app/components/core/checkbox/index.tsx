@@ -1,4 +1,4 @@
-import {forwardRef, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -32,51 +32,55 @@ export interface CheckboxProps
   size?: FormSize;
 }
 
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({checked = false, size = 'sm', className, ...props}, ref) => {
-    const nativeCheckBoxRef = useCallback(
-      (node: HTMLInputElement | null) => {
-        if (node) {
-          node.indeterminate = checked === 'indeterminate';
-        }
-      },
-      [checked]
-    );
+export function Checkbox({
+  checked = false,
+  size = 'sm',
+  className,
+  ref,
+  ...props
+}: CheckboxProps & {ref?: React.Ref<HTMLInputElement>}) {
+  const nativeCheckBoxRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      if (node) {
+        node.indeterminate = checked === 'indeterminate';
+      }
+    },
+    [checked]
+  );
 
-    const wrapperProps: React.HTMLAttributes<HTMLDivElement> = {
-      className,
-      style: props.style,
-    };
+  const wrapperProps: React.HTMLAttributes<HTMLDivElement> = {
+    className,
+    style: props.style,
+  };
 
-    return (
-      <CheckboxWrapper size={size} {...wrapperProps}>
-        <NativeHiddenCheckbox
-          ref={mergeRefs(nativeCheckBoxRef, ref)}
-          checked={checked !== 'indeterminate' && checked}
-          type="checkbox"
-          {...props}
-        />
+  return (
+    <CheckboxWrapper size={size} {...wrapperProps}>
+      <NativeHiddenCheckbox
+        ref={mergeRefs(nativeCheckBoxRef, ref)}
+        checked={checked !== 'indeterminate' && checked}
+        type="checkbox"
+        {...props}
+      />
 
-        <FakeCheckbox aria-hidden size={size}>
-          {(checked === true || checked === 'indeterminate') && (
-            <CheckboxIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
-              {checked === 'indeterminate' ? (
-                <path d="M3 8H13" />
-              ) : (
-                <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
-              )}
-            </CheckboxIcon>
-          )}
-        </FakeCheckbox>
-        {!props.disabled && (
-          <InteractionStateLayer
-            higherOpacity={checked === true || checked === 'indeterminate'}
-          />
+      <FakeCheckbox aria-hidden size={size}>
+        {(checked === true || checked === 'indeterminate') && (
+          <CheckboxIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
+            {checked === 'indeterminate' ? (
+              <path d="M3 8H13" />
+            ) : (
+              <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
+            )}
+          </CheckboxIcon>
         )}
-      </CheckboxWrapper>
-    );
-  }
-);
+      </FakeCheckbox>
+      {!props.disabled && (
+        <InteractionStateLayer
+          higherOpacity={checked === true || checked === 'indeterminate'}
+        />
+      )}
+    </CheckboxWrapper>
+  );
+}
 
 const CheckboxWrapper = styled('div')<{
   size: FormSize;

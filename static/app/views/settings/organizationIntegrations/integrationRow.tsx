@@ -214,7 +214,7 @@ type PublishStatusProps = {status: SentryApp['status']};
 const PublishStatus = styled(({status, ...props}: PublishStatusProps) => (
   <div {...props}>{status}</div>
 ))`
-  color: ${p => (p.status === 'published' ? p.theme.success : p.theme.gray300)};
+  color: ${p => (p.status === 'published' ? p.theme.success : p.theme.subText)};
   font-weight: light;
   margin-right: ${space(0.75)};
   text-transform: capitalize;

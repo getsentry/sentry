@@ -30,7 +30,7 @@ const PRODUCTS = {
   [DataCategory.ATTACHMENTS]: 'Attachments',
   [DataCategory.SPANS]: 'Spans',
   [DataCategory.UPTIME]: 'Uptime Monitoring',
-  [DataCategory.PROFILE_DURATION]: 'Profile Hours',
+  [DataCategory.PROFILE_DURATION]: 'Continuous Profile Hours',
   [DataCategory.PROFILE_DURATION_UI]: 'UI Profile Hours',
 };
 

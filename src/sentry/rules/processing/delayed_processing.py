@@ -523,11 +523,29 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
     logger.info(
         "delayed_processing.condition_groups",
-        extra={"condition_groups": len(condition_groups), "project_id": project_id},
+        extra={
+            "condition_groups": len(condition_groups),
+            "project_id": project_id,
+            "rules_to_groups": rules_to_groups,
+        },
     )
 
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
+
+    if features.has("organizations:workflow-engine-process-workflows", project.organization):
+        serialized_results = (
+            {str(query): count_dict for query, count_dict in condition_group_results.items()}
+            if condition_group_results
+            else None
+        )
+        logger.info(
+            "delayed_processing.condition_group_results",
+            extra={
+                "condition_group_results": serialized_results,
+                "project_id": project_id,
+            },
+        )
 
     rules_to_slow_conditions = defaultdict(list)
     for rule in alert_rules:
