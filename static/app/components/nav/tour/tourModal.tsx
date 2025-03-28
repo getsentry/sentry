@@ -63,6 +63,7 @@ export function NavTourModal({
 }
 
 const ModalImage = styled('img')`
+  height: 226px;
   width: calc(100% - ${space(1.5)} - ${space(1.5)});
   margin: ${space(1.5)} 0 0 ${space(1.5)};
   background-size: cover;
