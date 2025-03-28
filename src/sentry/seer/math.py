@@ -68,11 +68,11 @@ def rrf_score(
     kl_score: float,
     entropy_alpha: float = 0.2,
     kl_alpha: float = 0.8,
-    offset: int = 0,
+    offset: int = 60,
 ) -> float:
     """Compute reciprocal rank fusion score."""
-    a = kl_alpha * 1 / (offset + kl_score)
-    b = (1 - entropy_alpha) * 1 / (offset + entropy_score)
+    a = kl_alpha * (1 / (offset + kl_score))
+    b = (1 - entropy_alpha) * (1 / (offset + entropy_score))
     return a + b
 
 
