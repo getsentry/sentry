@@ -122,11 +122,13 @@ function useSingleQuery(options: UseSingleQueryOptions) {
     newQuery.addFilterValue('span.duration', `<=${p95.toFixed(0)}`);
   }
 
-  // selected.value === TransactionFilterOptions.RECENT || !spanCategoryUrlParam,
+  if (selected.value === TransactionFilterOptions.RECENT) {
+    newQuery.removeFilter('span.category');
+  }
 
   const {data, isLoading, pageLinks, meta, error} = useEAPSpans(
     {
-      search: query,
+      search: newQuery,
       fields: FIELDS,
       sorts: [sort],
       limit: LIMIT,
@@ -217,6 +219,7 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
       search: specificSpansQuery,
       fields: FIELDS,
       cursor,
+      sorts: [sort],
       limit: LIMIT,
       enabled: !!categorizedSpanIds && categorizedSpanIds.length > 0,
     },
