@@ -22,7 +22,7 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
         "lastActive": datetime.fromisoformat("2018-11-06T21:19:55Z"),
         "isSuperuser": False,
         "isStaff": False,
-        "experiments": [],
+        "experiments": {},
         "emails": [],
     },
     "count": 150,
@@ -39,8 +39,8 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "metadata": {"title": "This is an example Python exception"},
     "numComments": 0,
     "permalink": "https://sentry.io/the-interstellar-jurisdiction/pump-station/issues/1/",
-    "project": {"id": "2", "name": "Pump Station", "slug": "pump-station"},
-    "shareId": None,
+    "project": {"id": "2", "name": "Pump Station", "slug": "pump-station", "platform": "python"},
+    "shareId": "123def456abc",
     "shortId": "PUMP-STATION-1",
     "stats": {
         "24h": [

@@ -2,6 +2,7 @@ from typing import Any, TypedDict
 
 from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.issues.merge import MergedGroup
+from sentry.notifications.helpers import SubscriptionDetails
 
 
 # This type isn't being enforced, but is necessary to publish the API.
@@ -19,5 +20,5 @@ class MutateIssueResponse(TypedDict):
     shareId: str | None
     status: str | None
     statusDetails: dict[str, Any] | None
-    subscriptionDetails: dict[str, str] | None
+    subscriptionDetails: SubscriptionDetails | None
     substatus: str | None
