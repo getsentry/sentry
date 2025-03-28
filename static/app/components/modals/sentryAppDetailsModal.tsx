@@ -50,7 +50,7 @@ export default function SentryAppDetailsModal(props: Props) {
       },
       {startSession: true}
     );
-  }, [organization, isInstalled, sentryApp]);
+  }, [organization, isInstalled, sentryApp.slug, sentryApp.status]);
 
   const {
     data: featureData,
