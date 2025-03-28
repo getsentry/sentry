@@ -40,6 +40,7 @@ import {populateChartData, useSeries} from 'admin/components/customers/customerS
 import CustomerDetails from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
 import {BillingType, PlanTier} from 'getsentry/types';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -4491,5 +4492,106 @@ describe('Customer Details', function () {
         );
       });
     });
+  });
+});
+
+describe('Gift Categories Availability', function () {
+  const {organization, router} = initializeOrg();
+  let customerDetails: CustomerDetails;
+
+  beforeEach(() => {
+    // Mock specific subscription with controlled checkoutCategories and onDemandCategories
+    const customSubscription = SubscriptionFixture({
+      organization,
+      planDetails: {
+        ...SubscriptionFixture({organization}).planDetails,
+        checkoutCategories: [DataCategory.ERRORS, DataCategory.REPLAYS],
+        onDemandCategories: [DataCategory.ERRORS, DataCategory.PROFILE_DURATION],
+        categories: [
+          DataCategory.ERRORS,
+          DataCategory.REPLAYS,
+          DataCategory.PROFILE_DURATION,
+          DataCategory.SPANS,
+        ],
+      },
+    });
+
+    // Replace categories with specific values for testing
+    customSubscription.categories = {
+      errors: MetricHistoryFixture({
+        category: DataCategory.ERRORS,
+        reserved: 50000,
+        order: 1,
+      }),
+      replays: MetricHistoryFixture({
+        category: DataCategory.REPLAYS,
+        reserved: 50,
+        order: 2,
+      }),
+      profileDuration: MetricHistoryFixture({
+        category: DataCategory.PROFILE_DURATION,
+        reserved: 0,
+        order: 3,
+      }),
+      spans: MetricHistoryFixture({
+        category: DataCategory.SPANS,
+        reserved: -1, // Unlimited
+        order: 4,
+      }),
+    };
+
+    renderMocks(organization, customSubscription);
+
+    // Instantiate the component to test the giftCategories getter
+    customerDetails = new CustomerDetails({
+      router,
+      location: router.location,
+      routes: router.routes,
+      routeParams: router.params,
+      route: {},
+      params: {orgId: organization.slug},
+    });
+
+    // Set state directly to simulate component with the data loaded
+    customerDetails.state = {
+      data: customSubscription,
+      organization,
+      billingConfig: null,
+      // Add required properties from DeprecatedAsyncComponent state
+      error: false,
+      errors: {},
+      loading: false,
+      reloading: false,
+    };
+  });
+
+  it('enables categories in checkoutCategories but not in onDemandCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // REPLAYS is in checkoutCategories only
+    expect(giftCategories[DataCategory.REPLAYS]?.disabled).toBe(false);
+  });
+
+  it('enables categories in onDemandCategories but not in checkoutCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // PROFILE_DURATION is in onDemandCategories only
+    expect(giftCategories[DataCategory.PROFILE_DURATION]?.disabled).toBe(false);
+  });
+
+  it('enables categories in both checkoutCategories and onDemandCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // ERRORS is in both checkoutCategories and onDemandCategories
+    expect(giftCategories[DataCategory.ERRORS]?.disabled).toBe(false);
+  });
+
+  it('disables categories with unlimited quota', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // SPANS has unlimited quota (reserved = -1)
+    expect(giftCategories[DataCategory.SPANS]?.disabled).toBe(true);
+  });
+
+  it('disables categories in neither checkoutCategories nor onDemandCategories', function () {
+    const giftCategories = customerDetails.giftCategories;
+    // PROFILE_DURATION_UI is not in either checkoutCategories or onDemandCategories
+    expect(giftCategories[DataCategory.PROFILE_DURATION_UI]?.disabled).toBe(true);
   });
 });
