@@ -430,7 +430,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         showTimeInTooltip
         minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
         period={DEFAULT_STATS_PERIOD || period}
-        forwardedRef={this.handleRef}
+        ref={this.handleRef}
         grid={CHART_GRID}
         {...chartOptions}
         graphic={Graphic({

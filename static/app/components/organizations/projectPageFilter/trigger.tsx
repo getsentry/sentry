@@ -26,7 +26,6 @@ export function ProjectPageFilterTrigger({
   nonMemberProjects,
   ready,
   desynced,
-  ref: forwardedRef,
   ...props
 }: ProjectPageFilterTriggerProps) {
   const isMemberProjectsSelected = memberProjects.every(p =>
@@ -75,7 +74,6 @@ export function ProjectPageFilterTrigger({
   return (
     <DropdownButton
       {...props}
-      ref={forwardedRef}
       data-test-id="page-filter-project-selector"
       icon={
         ready &&
