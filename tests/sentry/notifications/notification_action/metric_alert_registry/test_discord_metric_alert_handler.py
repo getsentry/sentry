@@ -91,6 +91,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             notification_context,
             alert_context,
             metric_issue_context,
+            open_period_context,
             organization,
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
@@ -120,6 +121,12 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
+        )
+
+        self.assert_open_period_context(
+            open_period_context,
+            date_started=self.group_event.group.date_added,
+            date_closed=None,
         )
 
         assert organization == self.detector.project.organization

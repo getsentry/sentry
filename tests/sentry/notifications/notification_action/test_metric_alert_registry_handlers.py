@@ -183,12 +183,14 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         notification_context = kwargs["notification_context"]
         alert_context = kwargs["alert_context"]
         metric_issue_context = kwargs["metric_issue_context"]
+        open_period_context = kwargs["open_period_context"]
         organization = kwargs["organization"]
         notification_uuid = kwargs["notification_uuid"]
         return (
             notification_context,
             alert_context,
             metric_issue_context,
+            open_period_context,
             organization,
             notification_uuid,
         )
@@ -410,7 +412,6 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -426,6 +427,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             notification_context,
             alert_context,
             metric_issue_context,
+            open_period_context,
             organization,
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
@@ -458,6 +460,12 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
+        )
+
+        self.assert_open_period_context(
+            open_period_context,
+            date_started=self.group_event.group.first_seen,
+            date_closed=None,
         )
 
         assert organization == self.detector.project.organization
@@ -502,7 +510,6 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -518,6 +525,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             notification_context,
             alert_context,
             metric_issue_context,
+            open_period_context,
             organization,
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
@@ -550,6 +558,12 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
+        )
+
+        self.assert_open_period_context(
+            open_period_context,
+            date_started=self.group_event.group.first_seen,
+            date_closed=None,
         )
 
         assert organization == self.detector.project.organization
