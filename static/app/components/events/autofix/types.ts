@@ -64,7 +64,14 @@ export type AutofixRepository = {
   is_writeable?: boolean;
 };
 
+export type CodebaseState = {
+  is_readable: boolean | null;
+  is_writeable: boolean | null;
+  repo_external_id: string | null;
+};
+
 export type AutofixData = {
+  codebases: Record<string, CodebaseState>;
   created_at: string;
   repositories: AutofixRepository[];
   run_id: string;
