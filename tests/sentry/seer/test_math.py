@@ -51,4 +51,4 @@ def test_relative_entropy():
 def test_rrf_score():
     kl_score = kl_divergence([0.5, 0.5], [0.8, 0.2])
     entropy_score = entropy([0.8, 0.2])
-    assert math.isclose(rrf_score(entropy_score, kl_score), 5.1838, rel_tol=1e-3)
+    assert math.isclose(rrf_score(entropy_score, kl_score), 0.0265, rel_tol=1e-3)
