@@ -39,19 +39,6 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 
 const noop = () => void 0;
 
-interface TransactionProfilesContentProps {
-  query: string;
-  transaction: string;
-}
-
-export function TransactionProfilesContent(props: TransactionProfilesContentProps) {
-  return (
-    <TransactionProfilesContentContainer>
-      <ProfileVisualization {...props} />
-    </TransactionProfilesContentContainer>
-  );
-}
-
 function isEmpty(resp: Profiling.Schema) {
   const profile = resp.profiles[0];
   if (!profile) {
@@ -76,7 +63,12 @@ function isEmpty(resp: Profiling.Schema) {
   return false;
 }
 
-function ProfileVisualization(props: TransactionProfilesContentProps) {
+interface TransactionProfilesContentProps {
+  query: string;
+  transaction: string;
+}
+
+export function TransactionProfilesContent(props: TransactionProfilesContentProps) {
   const {data, status} = useAggregateFlamegraphQuery({
     query: props.query,
   });
@@ -121,66 +113,68 @@ function ProfileVisualization(props: TransactionProfilesContentProps) {
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   return (
-    <ProfileVisualizationContainer>
-      <ProfileGroupProvider
-        traceID=""
-        type="flamegraph"
-        input={data ?? null}
-        frameFilter={flamegraphFrameFilter}
-      >
-        <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
-          <FlamegraphThemeProvider>
-            <FlamegraphProvider>
-              <AggregateFlamegraphToolbar
-                scheduler={scheduler}
-                canvasPoolManager={canvasPoolManager}
-                visualization={visualization}
-                onVisualizationChange={onVisualizationChange}
-                frameFilter={frameFilter}
-                onFrameFilterChange={onFrameFilterChange}
-                hideSystemFrames={false}
-                setHideSystemFrames={noop}
-              />
-              <FlamegraphContainer>
-                {visualization === 'flamegraph' ? (
-                  <AggregateFlamegraphCanvasContainer>
-                    <AggregateFlamegraph
-                      status={status}
-                      filter={frameFilter}
-                      onResetFilter={onResetFrameFilter}
+    <TransactionProfilesContentContainer>
+      <ProfileVisualizationContainer>
+        <ProfileGroupProvider
+          traceID=""
+          type="flamegraph"
+          input={data ?? null}
+          frameFilter={flamegraphFrameFilter}
+        >
+          <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
+            <FlamegraphThemeProvider>
+              <FlamegraphProvider>
+                <AggregateFlamegraphToolbar
+                  scheduler={scheduler}
+                  canvasPoolManager={canvasPoolManager}
+                  visualization={visualization}
+                  onVisualizationChange={onVisualizationChange}
+                  frameFilter={frameFilter}
+                  onFrameFilterChange={onFrameFilterChange}
+                  hideSystemFrames={false}
+                  setHideSystemFrames={noop}
+                />
+                <FlamegraphContainer>
+                  {visualization === 'flamegraph' ? (
+                    <AggregateFlamegraphCanvasContainer>
+                      <AggregateFlamegraph
+                        status={status}
+                        filter={frameFilter}
+                        onResetFilter={onResetFrameFilter}
+                        canvasPoolManager={canvasPoolManager}
+                        scheduler={scheduler}
+                      />
+                      <AggregateFlamegraphSidePanel scheduler={scheduler} />
+                    </AggregateFlamegraphCanvasContainer>
+                  ) : (
+                    <AggregateFlamegraphTreeTable
+                      recursion={null}
+                      expanded={false}
+                      frameFilter={frameFilter}
                       canvasPoolManager={canvasPoolManager}
-                      scheduler={scheduler}
+                      withoutBorders
                     />
-                    <AggregateFlamegraphSidePanel scheduler={scheduler} />
-                  </AggregateFlamegraphCanvasContainer>
-                ) : (
-                  <AggregateFlamegraphTreeTable
-                    recursion={null}
-                    expanded={false}
-                    frameFilter={frameFilter}
-                    canvasPoolManager={canvasPoolManager}
-                    withoutBorders
-                  />
-                )}
-              </FlamegraphContainer>
-              {status === 'pending' ? (
-                <RequestStateMessageContainer>
-                  <LoadingIndicator />
-                </RequestStateMessageContainer>
-              ) : status === 'error' ? (
-                <RequestStateMessageContainer>
-                  {t('There was an error loading the flamegraph.')}
-                </RequestStateMessageContainer>
-              ) : isEmpty(data) ? (
-                <RequestStateMessageContainer>
-                  {t('No profiling data found')}
-                </RequestStateMessageContainer>
-              ) : null}
-            </FlamegraphProvider>
-          </FlamegraphThemeProvider>
-        </FlamegraphStateProvider>
-      </ProfileGroupProvider>
-    </ProfileVisualizationContainer>
+                  )}
+                </FlamegraphContainer>
+                {status === 'pending' ? (
+                  <RequestStateMessageContainer>
+                    <LoadingIndicator />
+                  </RequestStateMessageContainer>
+                ) : status === 'error' ? (
+                  <RequestStateMessageContainer>
+                    {t('There was an error loading the flamegraph.')}
+                  </RequestStateMessageContainer>
+                ) : isEmpty(data) ? (
+                  <RequestStateMessageContainer>
+                    {t('No profiling data found')}
+                  </RequestStateMessageContainer>
+                ) : null}
+              </FlamegraphProvider>
+            </FlamegraphThemeProvider>
+          </FlamegraphStateProvider>
+        </ProfileGroupProvider>
+      </ProfileVisualizationContainer>
+    </TransactionProfilesContentContainer>
   );
 }
 
