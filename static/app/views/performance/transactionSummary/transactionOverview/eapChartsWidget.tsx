@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
