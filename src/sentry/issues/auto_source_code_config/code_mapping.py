@@ -448,7 +448,8 @@ def create_code_mapping(
             "organization_integration_id": installation.org_integration.id,
             "source_root": code_mapping.source_path,
             "default_branch": code_mapping.repo.branch,
-            "automatically_generated": True,
+            # This function is called from the UI, thus, we know that the code mapping is user generated
+            "automatically_generated": False,
         },
     )
 

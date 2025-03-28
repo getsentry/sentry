@@ -70,8 +70,8 @@ def get_file_and_repo_matches(request: Request, organization: Organization) -> l
 def get_frame_info_from_request(request: Request) -> FrameInfo:
     frame = {
         "absPath": request.GET.get("absPath"),
-        # Currently, the only required parameter
-        "filename": request.GET.get("stacktraceFilename"),
+        # Currently, the only required parameter, thus, avoiding the `get` method
+        "filename": request.GET["stacktraceFilename"],
         "module": request.GET.get("module"),
     }
     return FrameInfo(frame, request.GET.get("platform"))
@@ -79,7 +79,7 @@ def get_frame_info_from_request(request: Request) -> FrameInfo:
 
 def process_post_request(request: Request, organization: Organization) -> Response:
     try:
-        project = Project.objects.get(id=request.data.get("projectId"))
+        project = Project.objects.get(id=request.data["projectId"])
         if not request.access.has_project_access(project):
             return Response(status=status.HTTP_403_FORBIDDEN)
         installation = get_installation(organization)
