@@ -6,7 +6,7 @@ import pytest
 import rapidjson
 from sentry_redis_tools.clients import StrictRedis
 
-from sentry.spans.buffer import OutputSpan, SegmentId, Span, SpansBuffer
+from sentry.spans.buffer import OutputSpan, SegmentKey, Span, SpansBuffer
 
 
 def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
@@ -16,7 +16,7 @@ def shallow_permutations(spans: list[Span]) -> list[list[Span]]:
     ]
 
 
-def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentId:
+def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
     return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
 
 
@@ -34,7 +34,7 @@ def _output_segment(span_id: bytes, segment_id: bytes, is_segment: bool) -> Outp
     )
 
 
-def _normalize_output(output: dict[SegmentId, list[OutputSpan]]):
+def _normalize_output(output: dict[SegmentKey, list[OutputSpan]]):
     for segment in output.values():
         segment.sort(key=lambda span: span.payload["span_id"])
 
