@@ -7,6 +7,7 @@ import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {BillingHistoryFixture} from 'getsentry-test/fixtures/billingHistory';
 import {ChargeFixture} from 'getsentry-test/fixtures/charge';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
+import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {OnboardingTasksFixture} from 'getsentry-test/fixtures/onboardingTasks';
 import {OwnerFixture} from 'getsentry-test/fixtures/owner';
 import {PoliciesFixture} from 'getsentry-test/fixtures/policies';
@@ -40,7 +41,6 @@ import {populateChartData, useSeries} from 'admin/components/customers/customerS
 import CustomerDetails from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
 import {BillingType, PlanTier} from 'getsentry/types';
-import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
