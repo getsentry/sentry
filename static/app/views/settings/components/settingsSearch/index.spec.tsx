@@ -7,17 +7,16 @@ import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibr
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import FormSearchStore from 'sentry/stores/formSearchStore';
+import {setSearchMap} from 'sentry/components/search/sources/formSource';
 import SettingsSearch from 'sentry/views/settings/components/settingsSearch';
 
-jest.mock('sentry/actionCreators/formSearch');
 jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
   let orgsMock: jest.Mock;
 
   beforeEach(function () {
-    FormSearchStore.loadSearchMap([]);
+    setSearchMap([]);
     MockApiClient.clearMockResponses();
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',

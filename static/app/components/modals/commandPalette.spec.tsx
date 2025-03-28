@@ -14,13 +14,13 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import CommandPaletteModal from 'sentry/components/modals/commandPalette';
-import FormSearchStore from 'sentry/stores/formSearchStore';
 
-jest.mock('sentry/actionCreators/formSearch');
+import {setSearchMap} from '../search/sources/formSource';
+
 jest.mock('sentry/actionCreators/navigation');
 
 function renderMockRequests() {
-  FormSearchStore.loadSearchMap([]);
+  setSearchMap([]);
 
   const organization = MockApiClient.addMockResponse({
     url: '/organizations/',
