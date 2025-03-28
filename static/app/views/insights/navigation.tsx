@@ -2,12 +2,6 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import ProjectIcon from 'sentry/components/nav/projectIcon';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
-import {PrimaryNavGroup} from 'sentry/components/nav/types';
-import {isLinkActive} from 'sentry/components/nav/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey, Project} from 'sentry/types/project';
@@ -32,6 +26,12 @@ import {
   MOBILE_SIDEBAR_LABEL,
 } from 'sentry/views/insights/pages/mobile/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import ProjectIcon from 'sentry/views/nav/projectIcon';
+import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
+import {isLinkActive} from 'sentry/views/nav/utils';
 
 import {MODULE_BASE_URLS} from './common/utils/useModuleURL';
 import {ModuleName} from './types';

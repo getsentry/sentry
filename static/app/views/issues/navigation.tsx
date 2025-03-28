@@ -1,11 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
-import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
-import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
@@ -13,6 +8,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {IssueViewNavItems} from 'sentry/views/nav/issueViews/issueViewNavItems';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/issueViews/useUpdateGroupSearchViewLastVisited';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 interface IssuesWrapperProps extends RouteComponentProps {
   children: React.ReactNode;
