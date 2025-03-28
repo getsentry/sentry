@@ -129,9 +129,7 @@ export function GroupBySelector({
     }>(
       (acc, key) => {
         const value = fieldOptions[key]!;
-        const optionInColumnsIndex = columnFieldsAsString.findIndex(
-          column => column === value.value.meta.name
-        );
+        const optionInColumnsIndex = columnFieldsAsString.indexOf(value.value.meta.name);
         if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
           return acc;
