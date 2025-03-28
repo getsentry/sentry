@@ -207,7 +207,9 @@ class SentryPermission(ScopedPermission):
                     after_login_redirect = None
 
                 raise SsoRequired(
-                    organization=organization, after_login_redirect=after_login_redirect
+                    organization=organization,
+                    request=request,
+                    after_login_redirect=after_login_redirect,
                 )
 
             if self.is_not_2fa_compliant(request, org_context.organization):
