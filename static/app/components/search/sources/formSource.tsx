@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import type {Field, FieldObject, JsonFormObject} from 'sentry/components/forms/types';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -14,23 +14,6 @@ export type FormSearchField = {
   title: React.ReactNode;
 };
 
-interface Props {
-  children: (props: ChildProps) => React.ReactElement;
-  /**
-   * search term
-   */
-  query: string;
-  /**
-   * fusejs options.
-   */
-  searchOptions?: Fuse.IFuseOptions<FormSearchField>;
-}
-
-type State = {
-  fuzzy: null | Fuse<FormSearchField>;
-  resolvedTs: number;
-};
-
 let ALL_FORM_FIELDS_CACHED: FormSearchField[] | null = null;
 
 type SearchMapParams = {
@@ -38,6 +21,7 @@ type SearchMapParams = {
   formGroups: JsonFormObject[];
   route: string;
 };
+
 /**
  * Creates a list of objects to be injected by a search source
  *
@@ -111,54 +95,53 @@ export function setSearchMap(fields: FormSearchField[]) {
   ALL_FORM_FIELDS_CACHED = fields;
 }
 
-class FormSource extends Component<Props, State> {
-  static defaultProps = {
-    searchOptions: {},
-  };
-  state: State = {
-    fuzzy: null,
-    resolvedTs: 0,
-  };
+interface Props {
+  children: (props: ChildProps) => React.ReactElement;
+  /**
+   * search term
+   */
+  query: string;
+  /**
+   * fusejs options.
+   */
+  searchOptions?: Fuse.IFuseOptions<FormSearchField>;
+}
 
-  componentDidMount() {
-    this.createSearch(getSearchMap());
-  }
+function FormSource({searchOptions, query, children}: Props) {
+  const [fuzzy, setFuzzy] = useState<Fuse<FormSearchField> | null>(null);
 
-  async createSearch(searchMap: FormSearchField[]) {
-    const fuzzy = await createFuzzySearch(searchMap || [], {
-      ...this.props.searchOptions,
-      keys: ['title', 'description'],
-      getFn: strGetFn,
-    });
+  const createSearch = useCallback(async () => {
+    setFuzzy(
+      await createFuzzySearch(getSearchMap(), {
+        ...searchOptions,
+        keys: ['title', 'description'],
+        getFn: strGetFn,
+      })
+    );
+  }, [searchOptions]);
+
+  useEffect(() => void createSearch(), [createSearch]);
+
+  const results = useMemo(() => {
     const resolvedTs = makeResolvedTs();
+    return (
+      fuzzy?.search(query).map<Result>(({item, ...rest}) => ({
+        item: {
+          ...item,
+          sourceType: 'field',
+          resultType: 'field',
+          to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
+          resolvedTs,
+        } as ResultItem,
+        ...rest,
+      })) ?? []
+    );
+  }, [fuzzy, query]);
 
-    this.setState({fuzzy, resolvedTs});
-  }
-
-  render() {
-    const {query, children} = this.props;
-    const {fuzzy, resolvedTs} = this.state;
-
-    const results =
-      fuzzy?.search(query).map<Result>(value => {
-        const {item, ...rest} = value;
-        return {
-          item: {
-            ...item,
-            sourceType: 'field',
-            resultType: 'field',
-            to: {pathname: item.route, hash: `#${encodeURIComponent(item.field.name)}`},
-            resolvedTs,
-          } as ResultItem,
-          ...rest,
-        };
-      }) ?? [];
-
-    return children({
-      isLoading: fuzzy === null,
-      results,
-    });
-  }
+  return children({
+    isLoading: fuzzy === null,
+    results,
+  });
 }
 
 export default FormSource;
