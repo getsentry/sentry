@@ -1,6 +1,7 @@
 from typing import Protocol
 
 from django.conf import settings
+from sentry_sdk import capture_exception
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
@@ -17,10 +18,12 @@ class DefaultRouter:
     _route_map: dict[str, str]
 
     def __init__(self) -> None:
-        try:
-            routes = json.loads(settings.TASKWORKER_ROUTES)
-        except Exception:
-            routes = {}
+        routes = {}
+        if settings.TASKWORKER_ROUTES:
+            try:
+                routes = json.loads(settings.TASKWORKER_ROUTES)
+            except Exception as err:
+                capture_exception(err)
         self._route_map = routes
 
     def route_namespace(self, name: str) -> Topic:
