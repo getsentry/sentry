@@ -6,7 +6,6 @@ import type {
   ModalRenderProps,
 } from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import theme from 'sentry/utils/theme';
 import {EditOwnershipRules} from 'sentry/views/settings/project/projectOwnership/editRulesModal';
 
 type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
