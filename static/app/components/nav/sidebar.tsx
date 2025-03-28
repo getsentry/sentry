@@ -12,6 +12,7 @@ import {useNavContext} from 'sentry/components/nav/context';
 import {OrgDropdown} from 'sentry/components/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/components/nav/primary/index';
 import {SecondarySidebar} from 'sentry/components/nav/secondarySidebar';
+import {useStackedNavigationTour, useTourModal} from 'sentry/components/nav/tour/tour';
 import {useCollapsedNav} from 'sentry/components/nav/useCollapsedNav';
 import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
@@ -21,7 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export function Sidebar() {
   const organization = useOrganization();
-  const {isCollapsed} = useNavContext();
+  const {isCollapsed: isCollapsedState} = useNavContext();
   const {isOpen} = useCollapsedNav();
 
   // Avoid showing superuser UI on certain organizations
@@ -31,9 +32,21 @@ export function Sidebar() {
   const showSuperuserWarning =
     isActiveSuperuser() && !ConfigStore.get('isSelfHosted') && !isExcludedOrg;
 
+  const {currentStepId: currentStepId} = useStackedNavigationTour();
+
+  const tourIsActive = currentStepId !== null;
+  const forceExpanded = tourIsActive;
+  const isCollapsed = forceExpanded ? false : isCollapsedState;
+
+  useTourModal();
+
   return (
     <Fragment>
-      <SidebarWrapper role="navigation" aria-label="Primary Navigation">
+      <SidebarWrapper
+        role="navigation"
+        aria-label="Primary Navigation"
+        tourIsActive={currentStepId !== null}
+      >
         <SidebarHeader isSuperuser={showSuperuserWarning}>
           <OrgDropdown />
           {showSuperuserWarning && (
@@ -65,14 +78,19 @@ export function Sidebar() {
   );
 }
 
-const SidebarWrapper = styled('div')`
+const SidebarWrapper = styled('div')<{tourIsActive: boolean}>`
   width: ${PRIMARY_SIDEBAR_WIDTH}px;
   padding: ${space(1.5)} 0 ${space(1)} 0;
   border-right: 1px solid ${p => p.theme.translucentGray200};
   background: ${p => p.theme.surface300};
   display: flex;
   flex-direction: column;
-  z-index: ${p => p.theme.zIndex.sidebar};
+
+  ${p =>
+    !p.tourIsActive &&
+    css`
+      z-index: ${p.theme.zIndex.sidebar};
+    `}
 `;
 
 const CollapsedSecondaryWrapper = styled(motion.div)`
