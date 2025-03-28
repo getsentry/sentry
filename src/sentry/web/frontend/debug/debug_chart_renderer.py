@@ -809,12 +809,12 @@ class DebugChartRendererView(View):
             }
         )
 
-        ret.append(
-            {
-                "chart": charts.generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert),
-                "title": "Slack metric alert events",
-            }
-        )
+        # ret.append(
+        #     {
+        #         "chart": charts.generate_chart(ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert),
+        #         "title": "Slack metric alert events",
+        #     }
+        # )
         ret.append(
             {
                 "chart": charts.generate_chart(
@@ -823,13 +823,13 @@ class DebugChartRendererView(View):
                 "title": "Slack metric alert sessions crash free",
             }
         )
-        ret.append(
-            {
-                "chart": charts.generate_chart(
-                    ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert_with_anomalies
-                ),
-                "title": "Slack metric alert with anomalies",
-            }
-        )
+        # ret.append(
+        #     {
+        #         "chart": charts.generate_chart(
+        #             ChartType.SLACK_METRIC_ALERT_EVENTS, metric_alert_with_anomalies
+        #         ),
+        #         "title": "Slack metric alert with anomalies",
+        #     }
+        # )
 
         return render_to_response("sentry/debug/chart-renderer.html", context={"charts": ret})

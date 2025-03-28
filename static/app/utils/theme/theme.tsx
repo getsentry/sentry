@@ -1067,6 +1067,9 @@ const commonTheme = {
   dataCategory,
 };
 
+// Redeclare as we dont want to use the deprecation
+const getColorPalette = getChartColorPalette;
+
 // Light and dark theme definitions
 const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
@@ -1091,7 +1094,7 @@ export const lightTheme = {
   stacktraceActiveText: lightColors.white,
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: getChartColorPalette,
+    getColorPalette,
   },
   prismVariables: generateThemePrismVariables(
     prismLight,

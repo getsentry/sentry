@@ -9,7 +9,7 @@ import {lightenHexToRgb} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
 
-import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
@@ -21,6 +21,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
     axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
   });
 
+  const slackChartDefaults = makeSlackChartDefaults(theme);
   const discoverCharts: Array<RenderDescriptor<ChartType>> = [];
 
   discoverCharts.push({

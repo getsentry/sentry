@@ -10,7 +10,7 @@ import type {EventsStatsSeries} from 'sentry/types/organization';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
-import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
@@ -25,6 +25,7 @@ type FunctionRegressionChartData = {
 
 export function makePerformanceCharts(theme: Theme): Array<RenderDescriptor<ChartType>> {
   const performanceCharts: Array<RenderDescriptor<ChartType>> = [];
+  const slackChartDefaults = makeSlackChartDefaults(theme);
 
   const performanceChartDefaults = {
     ...slackChartDefaults,

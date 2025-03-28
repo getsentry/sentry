@@ -799,6 +799,9 @@ interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
   space: typeof space;
 }
 
+// Redeclare as we dont want to use the deprecation
+const getColorPalette = getChartColorPalette;
+
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
 
@@ -830,7 +833,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 
   chart: {
     colors: CHART_PALETTE,
-    getColorPalette: getChartColorPalette,
+    getColorPalette,
   },
 
   prismVariables: generateThemePrismVariables(

@@ -11,7 +11,7 @@ import {
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
-import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, makeSlackChartDefaults, slackChartSize} from './slack';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
@@ -43,6 +43,7 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
 }
 
 export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<ChartType>> {
+  const slackChartDefaults = makeSlackChartDefaults(theme);
   const metricAlertCharts: Array<RenderDescriptor<ChartType>> = [];
 
   const metricAlertXaxis = XAxis({
