@@ -1,13 +1,17 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
+import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 
 import type {ChildProps, ResultItem} from './types';
@@ -16,6 +20,7 @@ import {makeResolvedTs} from './utils';
 type Action = {
   action: () => void;
   description: string;
+  isVisible: boolean;
   requiresSuperuser: boolean;
   title: string;
 };
@@ -24,6 +29,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Open Sudo Modal'),
     description: t('Open Sudo Modal to re-identify yourself.'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () =>
       openSudo({
@@ -34,6 +40,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Open Superuser Modal'),
     description: t('Open Superuser Modal to re-identify yourself.'),
+    isVisible: true,
     requiresSuperuser: true,
     action: () =>
       openSudo({
@@ -45,6 +52,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Toggle dark mode'),
     description: t('Toggle dark mode (superuser only atm)'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       removeBodyTheme();
@@ -55,6 +63,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Toggle Translation Markers'),
     description: t('Toggles translation markers on or off in the application'),
+    isVisible: true,
     requiresSuperuser: true,
     action: () => {
       toggleLocaleDebug();
@@ -65,6 +74,7 @@ const ACTIONS: Action[] = [
   {
     title: t('Search Documentation and FAQ'),
     description: t('Open the Documentation and FAQ search modal.'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       openHelpSearchModal();
@@ -83,6 +93,7 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   ACTIONS.push({
     title: t('Open in Production'),
     description: t('Open the current page in sentry.io'),
+    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       const url = new URL(window.location.toString());
@@ -94,9 +105,38 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
+function createCopyDSNAction(orgId: string | undefined, projectId: string | undefined) {
+  return {
+    title: t('Copy Project DSN to Clipboard'),
+    description: t('Copies the Project DSN to the clipboard.'),
+    isVisible: !!orgId && !!projectId,
+    requiresSuperuser: false,
+    action: async () => {
+      const api = new Client();
+      const data: ProjectKey[] = await api.requestPromise(
+        `/projects/${orgId}/${projectId}/keys/`
+      );
+
+      if (data.length > 0 && data[0]?.dsn?.public) {
+        navigator.clipboard.writeText(data[0]?.dsn?.public);
+        addSuccessMessage(t('Copied DSN to clipboard'));
+      } else {
+        addErrorMessage(t('No DSN found for project'));
+      }
+    },
+  };
+}
+
 type Props = {
   children: (props: ChildProps) => React.ReactElement;
   isSuperuser: boolean;
+  /**
+   * params obtained from the current route
+   */
+  params: {
+    orgId?: string;
+    projectId?: string;
+  };
   /**
    * search term
    */
@@ -113,15 +153,17 @@ type Props = {
 function CommandSource({searchOptions, query, children}: Props) {
   const {isSuperuser} = useUser();
   const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
+  const params = useParams();
 
   const createSearch = useCallback(async () => {
+    const copyDSNAction = createCopyDSNAction(params.orgId, params.projectId);
     setFuzzy(
-      await createFuzzySearch<Action>(ACTIONS || [], {
+      await createFuzzySearch<Action>([...ACTIONS, copyDSNAction], {
         ...searchOptions,
         keys: ['title', 'description'],
       })
     );
-  }, [searchOptions]);
+  }, [searchOptions, params.orgId, params.projectId]);
 
   useEffect(() => void createSearch(), [createSearch]);
 
@@ -131,6 +173,7 @@ function CommandSource({searchOptions, query, children}: Props) {
       fuzzy
         ?.search(query)
         .filter(({item}) => !item.requiresSuperuser || isSuperuser)
+        .filter(({item}) => item.isVisible)
         .map(({item, ...rest}) => ({
           item: {
             ...item,
