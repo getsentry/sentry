@@ -1,7 +1,5 @@
 from django.db import router, transaction
-from django.db.models import Q
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,21 +9,18 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.endpoints.organization_member import get_allowed_org_roles
-from sentry.api.endpoints.organization_member.utils import (
-    ERR_RATE_LIMITED,
-    ROLE_CHOICES,
-    MemberConflictValidationError,
-)
+from sentry.api.endpoints.organization_member.utils import ERR_RATE_LIMITED
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import StaffPermissionMixin
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organizationmemberinvite import (
     OrganizationMemberInviteSerializer,
 )
+from sentry.api.serializers.rest_framework.organizationmemberinvite import (
+    OrganizationMemberInviteRequestValidator,
+)
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
-from sentry.models.team import Team, TeamStatus
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.organizations.services.organization.model import (
@@ -34,102 +29,21 @@ from sentry.organizations.services.organization.model import (
 )
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
-from sentry.users.api.parsers.email import AllowedEmailField
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.audit import create_audit_entry
 
 
 class MemberInvitePermission(OrganizationPermission):
     scope_map = {
         "GET": ["member:read", "member:write", "member:admin"],
         # We will do an additional check to see if a user can invite members. If
-        # not, then create an invite request, not an invite.
+        # not, then POST creates an invite request, not an invite.
         "POST": ["member:read", "member:write", "member:admin", "member:invite"],
     }
 
 
 class MemberInviteAndStaffPermission(StaffPermissionMixin, MemberInvitePermission):
     pass
-
-
-class OrganizationMemberInviteRequestSerializer(serializers.Serializer):
-    email = AllowedEmailField(
-        max_length=75, required=True, help_text="The email address to send the invitation to."
-    )
-    orgRole = serializers.ChoiceField(
-        choices=ROLE_CHOICES,
-        default=organization_roles.get_default().id,
-        required=False,
-        help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
-    )
-    teams = serializers.ListField(required=False, allow_null=False, default=[])
-
-    def validate_email(self, email):
-        users = user_service.get_many_by_email(
-            emails=[email],
-            is_active=True,
-            organization_id=self.context["organization"].id,
-            is_verified=False,
-        )
-        member_queryset = OrganizationMember.objects.filter(
-            Q(user_id__in=[u.id for u in users]),
-            organization=self.context["organization"],
-        )
-
-        if member_queryset.exists():
-            raise MemberConflictValidationError("The user %s is already a member" % email)
-
-        # check for existing invites
-        invite_queryset = OrganizationMemberInvite.objects.filter(
-            Q(email=email),
-            organization=self.context["organization"],
-        )
-        if invite_queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
-            raise MemberConflictValidationError("The user %s has already been invited" % email)
-
-        if invite_queryset.filter(
-            Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
-            | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value)
-        ).exists():
-            raise MemberConflictValidationError(
-                "There is an existing invite request for %s" % email
-            )
-
-        return email
-
-    def validate_orgRole(self, role):
-        if role == "billing" and features.has(
-            "organizations:invite-billing", self.context["organization"]
-        ):
-            return role
-        # Error if the assigned role is not a member and the request is made via integration token
-        if self.context.get("is_integration_token", False) and role != "member":
-            raise serializers.ValidationError(
-                "Integration tokens are restricted to inviting new members with the member role only."
-            )
-
-        role_obj = next((r for r in self.context["allowed_roles"] if r.id == role), None)
-        if role_obj is None:
-            raise serializers.ValidationError(
-                "You do not have permission to invite a member with that org-level role"
-            )
-        if not self.context.get("allow_retired_roles", True) and role_obj.is_retired:
-            raise serializers.ValidationError(
-                f"The role '{role}' is deprecated, and members may no longer be invited with it."
-            )
-        return role
-
-    def validate_teams(self, teams):
-        valid_teams = list(
-            Team.objects.filter(
-                organization=self.context["organization"], status=TeamStatus.ACTIVE, slug__in=teams
-            )
-        )
-
-        if len(valid_teams) != len(teams):
-            raise serializers.ValidationError("Invalid teams")
-
-        return valid_teams
 
 
 def _can_invite_member(
@@ -148,6 +62,43 @@ def _can_invite_member(
     return not organization.flags.disable_member_invite
 
 
+def _create_invite_object(
+    request, organization, result, is_request: bool
+) -> OrganizationMemberInvite:
+    with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
+        teams = []
+        for team in result.get("teams", []):
+            teams.append({"id": team.id, "slug": team.slug, "role": None})
+
+        omi = OrganizationMemberInvite(
+            organization=organization,
+            email=result["email"],
+            role=result["orgRole"],
+            inviter_id=request.user.id,
+            organization_member_team_data=teams,
+            invite_status=(
+                InviteStatus.REQUESTED_TO_BE_INVITED.value
+                if is_request
+                else InviteStatus.APPROVED.value
+            ),
+        )
+
+        omi.save()
+
+    create_audit_entry(
+        request=request,
+        organization_id=organization.id,
+        target_object=omi.id,
+        data=omi.get_audit_log_data(),
+        event=(
+            (audit_log.get_event_id("INVITE_REQUEST_ADD"))
+            if is_request
+            else (audit_log.get_event_id("MEMBER_INVITE"))
+        ),
+    )
+    return omi
+
+
 @region_silo_endpoint
 @extend_schema(tags=["Organizations"])
 class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
@@ -159,64 +110,29 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberInviteAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
-    def _create_invite_object(
-        self, request, organization, result, is_request: bool
-    ) -> OrganizationMemberInvite:
-        with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
-            teams = []
-            for team in result.get("teams", []):
-                teams.append({"id": team.id, "slug": team.slug, "role": None})
-
-            omi = OrganizationMemberInvite(
-                organization=organization,
-                email=result["email"],
-                role=result["orgRole"],
-                inviter_id=request.user.id,
-                organization_member_team_data=teams,
-                invite_status=(
-                    InviteStatus.REQUESTED_TO_BE_INVITED.value
-                    if is_request
-                    else InviteStatus.APPROVED.value
-                ),
-            )
-
-            omi.save()
-
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=omi.id,
-            data=omi.get_audit_log_data(),
-            event=(
-                (audit_log.get_event_id("INVITE_REQUEST_ADD"))
-                if is_request
-                else (audit_log.get_event_id("MEMBER_INVITE"))
-            ),
-        )
-        return omi
-
     def _invite_member(self, request, organization) -> Response:
-        assigned_org_role = request.data.get("orgRole") or organization_roles.get_default().id
         allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
 
-        # We allow requests from integration tokens to invite new members as the member role only
-        if not allowed_roles and request.access.is_integration_token:
-            allowed_roles = [organization_roles.get("member")]
+        is_member = not request.access.has_scope("member:admin") and (
+            request.access.has_scope("member:invite")
+        )
 
-        serializer = OrganizationMemberInviteRequestSerializer(
+        validator = OrganizationMemberInviteRequestValidator(
             data=request.data,
             context={
                 "organization": organization,
                 "allowed_roles": allowed_roles,
                 "allow_retired_roles": not features.has("organizations:team-roles", organization),
                 "is_integration_token": request.access.is_integration_token,
+                "is_member": is_member,
+                "actor": request.user,
             },
         )
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+        if not validator.is_valid():
+            return Response(validator.errors, status=400)
 
-        result = serializer.validated_data
+        result = validator.validated_data
 
         if ratelimits.for_organization_member_invite(
             organization=organization,
@@ -232,40 +148,7 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        is_member = not request.access.has_scope("member:admin") and (
-            request.access.has_scope("member:invite")
-        )
-        # if Open Team Membership is disabled and Member Invites are enabled, members can only invite members to teams they are in
-        members_can_only_invite_to_members_teams = (
-            not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
-        )
-        has_teams = bool(result.get("teams"))
-
-        if is_member and members_can_only_invite_to_members_teams and has_teams:
-            requester_teams = set(
-                OrganizationMember.objects.filter(
-                    organization=organization,
-                    user_id=request.user.id,
-                    user_is_active=True,
-                ).values_list("teams__slug", flat=True)
-            )
-            team_slugs = [team.slug for team in result.get("teams", [])]
-            # ensure that the requester is a member of all teams they are trying to assign
-            if not requester_teams.issuperset(team_slugs):
-                return Response(
-                    {"detail": "You cannot assign members to teams you are not a member of."},
-                    status=400,
-                )
-
-        if has_teams and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
-            return Response(
-                {
-                    "email": f"The user with a '{assigned_org_role}' role cannot have team-level permissions."
-                },
-                status=400,
-            )
-
-        omi = self._create_invite_object(request, organization, result, is_request=False)
+        omi = _create_invite_object(request, organization, result, is_request=False)
 
         referrer = request.query_params.get("referrer")
         omi.send_invite_email(referrer)
@@ -276,19 +159,20 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         return Response(serialize(omi), status=201)
 
     def _request_to_invite_member(self, request: Request, organization) -> Response:
-        serializer = OrganizationMemberInviteRequestSerializer(
+        validator = OrganizationMemberInviteRequestValidator(
             data=request.data,
             context={
                 "organization": organization,
                 "allow_retired_roles": not features.has("organizations:team-roles", organization),
                 "allowed_roles": roles.get_all(),
+                "actor": request.user,
             },
         )
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-        result = serializer.validated_data
+        if not validator.is_valid():
+            return Response(validator.errors, status=400)
+        result = validator.validated_data
 
-        omi = self._create_invite_object(request, organization, result, is_request=True)
+        omi = _create_invite_object(request, organization, result, is_request=True)
 
         async_send_notification(InviteRequestNotification, omi, request.user)
         return Response(serialize(omi), status=201)
@@ -321,7 +205,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             return Response(
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
-
         # Check to see if the requesting user can invite members. If not, create an invite
         # request.
         if not _can_invite_member(request, organization):

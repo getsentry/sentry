@@ -1,15 +1,10 @@
 from dataclasses import replace
 from unittest.mock import patch
 
-from sentry import roles
-from sentry.api.endpoints.organization_member_invite.index import (
-    OrganizationMemberInviteRequestSerializer,
-)
-from sentry.models.organizationmember import InviteStatus
-from sentry.models.organizationmemberinvite import OrganizationMemberInvite
+from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.roles import organization_roles
-from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import Feature
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -21,123 +16,6 @@ def mock_organization_roles_get_factory(original_organization_roles_get):
         return role_obj
 
     return wrapped_method
-
-
-class OrganizationMemberInviteRequestSerializerTest(TestCase):
-    def test_valid(self):
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {
-            "email": "mifu@email.com",
-            "orgRole": "member",
-            "teams": [self.team.slug],
-        }
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-        assert serializer.is_valid()
-        assert serializer.validated_data["teams"][0] == self.team
-
-    def test_member_with_email_exists(self):
-        org = self.create_organization()
-        user = self.create_user()
-        self.create_member(organization=org, user=user)
-
-        context = {"organization": org, "allowed_roles": [roles.get("member")]}
-        data = {"email": user.email, "orgRole": "member", "teams": []}
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-        assert not serializer.is_valid()
-        assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
-
-    def test_invite_with_email_exists(self):
-        email = "mifu@email.com"
-        self.create_member_invite(organization=self.organization, email=email)
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": email, "orgRole": "member", "teamRoles": []}
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-        assert not serializer.is_valid()
-        assert serializer.errors == {"email": [f"The user {email} has already been invited"]}
-
-    def test_invalid_team_invites(self):
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": "mifu@email.com", "orgRole": "member", "teams": ["faketeam"]}
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-
-        assert not serializer.is_valid()
-        assert serializer.errors == {"teams": ["Invalid teams"]}
-
-    def test_invalid_org_role(self):
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": "mifu@email.com", "orgRole": "owner", "teamRoles": []}
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-
-        assert not serializer.is_valid()
-        assert serializer.errors == {
-            "orgRole": ["You do not have permission to invite a member with that org-level role"]
-        }
-
-    def test_cannot_invite_with_existing_request(self):
-        email = "test@gmail.com"
-
-        self.create_member_invite(
-            email=email,
-            organization=self.organization,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": email, "orgRole": "member", "teams": [self.team.slug]}
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-
-        assert not serializer.is_valid()
-        assert serializer.errors == {
-            "email": ["There is an existing invite request for test@gmail.com"]
-        }
-
-    @with_feature({"organizations:team-roles": False})
-    def test_deprecated_org_role_without_flag(self):
-        context = {
-            "organization": self.organization,
-            "allowed_roles": [roles.get("admin"), roles.get("member")],
-        }
-        data = {"email": "mifu@email.com", "orgRole": "admin", "teams": []}
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-        assert serializer.is_valid()
-
-    @with_feature("organizations:team-roles")
-    def test_deprecated_org_role_with_flag(self):
-        context = {
-            "organization": self.organization,
-            "allowed_roles": [roles.get("admin"), roles.get("member")],
-        }
-        data = {"email": "mifu@email.com", "orgRole": "admin", "teams": []}
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-        assert serializer.is_valid()
-
-    @with_feature("organizations:invite-billing")
-    def test_valid_invite_billing_member(self):
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {
-            "email": "bill@localhost",
-            "orgRole": "billing",
-            "teamRoles": [],
-        }
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-        assert serializer.is_valid()
-
-    def test_invalid_invite_billing_member(self):
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {
-            "email": "bill@localhost",
-            "orgRole": "billing",
-            "teamRoles": [],
-        }
-
-        serializer = OrganizationMemberInviteRequestSerializer(context=context, data=data)
-        assert not serializer.is_valid()
 
 
 class OrganizationMemberInviteListTest(APITestCase):
@@ -154,7 +32,7 @@ class OrganizationMemberInviteListTest(APITestCase):
         )
 
     def test_simple(self):
-        # if requestor doesn't have org admin permissions, only list approved invites
+        # if requester doesn't have org admin permissions, only list approved invites
         user = self.create_user("mifu@email.com", username="mifu")
         self.create_member(organization=self.organization, user=user)
         self.login_as(user)
@@ -190,6 +68,19 @@ class OrganizationMemberInviteListTest(APITestCase):
         assert response.data[1]["email"] == self.requested_invite.email
         assert response.data[1]["inviteStatus"] == "requested_to_be_invited"
 
+    def test_org_manager(self):
+        user = self.create_user("manager-mifu@email.com", username="strong mifu")
+        self.create_member(organization=self.organization, user=user, role="manager")
+        self.login_as(user)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert len(response.data) == 2
+        assert response.data[0]["email"] == self.approved_invite.email
+        assert response.data[0]["inviteStatus"] == "approved"
+        assert response.data[1]["email"] == self.requested_invite.email
+        assert response.data[1]["inviteStatus"] == "requested_to_be_invited"
+
 
 class OrganizationMemberInvitePermissionRoleTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
@@ -205,6 +96,7 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
         member = self.create_member(user=user, organization=self.organization, role=role)
         self.login_as(user=user)
 
+        # When this is set to True, only roles with the member:admin permission can invite members
         self.organization.flags.disable_member_invite = True
         self.organization.save()
 
@@ -286,7 +178,7 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
             self.organization.slug, **get_data("foo4", True), status_code=400
         )
         assert (
-            response.data.get("detail")
+            response.data["teams"][0]
             == "You cannot assign members to teams you are not a member of."
         )
         response = self.get_error_response(
@@ -295,7 +187,7 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
             status_code=400,
         )
         assert (
-            response.data.get("detail")
+            response.data["teams"][0]
             == "You cannot assign members to teams you are not a member of."
         )
 
@@ -338,7 +230,7 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
         assert response.data["email"] == "eric@localhost"
 
 
-class OrganizationMemberInviteListPostTest(APITestCase):
+class OrganizationMemberInvitePostTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
     method = "post"
 
@@ -465,6 +357,6 @@ class OrganizationMemberInviteListPostTest(APITestCase):
         }
         response = self.get_error_response(self.organization.slug, **data, status_code=400)
         assert (
-            response.data["email"]
+            response.data["teams"][0]
             == "The user with a 'member' role cannot have team-level permissions."
         )
