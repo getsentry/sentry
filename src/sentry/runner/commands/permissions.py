@@ -6,6 +6,7 @@ import click
 from django.db import router
 
 from sentry.runner.decorators import configuration
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 if TYPE_CHECKING:
     from sentry.users.models.user import User
@@ -46,6 +47,7 @@ def add(user: str, permission: str) -> None:
         with transaction.atomic(router.db_for_write(UserPermission)):
             UserPermission.objects.create(user=user_inst, permission=permission)
     except IntegrityError:
+        incr_rollback_metrics(UserPermission)
         click.echo(f"Permission already exists for `{user_inst.username}`")
     else:
         click.echo(f"Added permission `{permission}` to `{user_inst.username}`")

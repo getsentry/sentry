@@ -47,6 +47,7 @@ from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sdk import Scope, bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
@@ -519,6 +520,7 @@ class OrganizationReleasesEndpoint(
                     },
                 )
             except IntegrityError:
+                incr_rollback_metrics(Release)
                 raise ConflictError(
                     "Could not create the release it conflicts with existing data",
                 )
