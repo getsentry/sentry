@@ -165,7 +165,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
         aggregate_resolver=resolve_count_starts,
     ),
     "bounded_sample": ConditionalAggregateDefinition(
-        # Bounded sample will return 1.0 if the sample is between the lower bound (2nd parameter) and if provided, the upper bound (3rd parameter).
+        # Bounded sample will return 1.0 if the sample is between the lower bound (2nd parameter) and if provided, greater the upper bound (3rd parameter).
         # You should also `group_by` the `span.id` so that this function is applied to each span.
         internal_function=Function.FUNCTION_COUNT,
         default_search_type="integer",
