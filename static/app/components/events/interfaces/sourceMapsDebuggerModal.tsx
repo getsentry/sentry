@@ -1163,8 +1163,8 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
     <CheckListItem status="alert" title={errorMessage}>
       <CheckListInstruction type="muted">
         <p>
-          {tct('You did not upload any artifacts with debug IDs yet.', {
-            link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
+          {tct('You did not upload any artifacts with [link:Debug IDs] yet.', {
+            link: <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />,
           })}
         </p>
         {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName}) && (
