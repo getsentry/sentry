@@ -92,9 +92,9 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule=rule)
     except AlertRuleWorkflow.DoesNotExist:
         # OK state, rule may not have been migrated
-        logger.exception(
-            "workflow_engine.issue_alert.updated.error",
-            extra={"rule_id": rule.id, "error": "AlertRuleWorkflow does not exist"},
+        logger.info(
+            "rule was not dual written or objects were already deleted, returning early",
+            extra={"rule_id": rule.id},
         )
         return None
 
