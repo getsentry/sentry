@@ -237,7 +237,8 @@ def test_update_task_ok_with_next():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
-        client._task_id_to_stub_idx = {"abc123": 0}
+        client._task_id_to_host = {"abc123": "localhost-0:50051"}
+        assert set(client._host_to_stubs.keys()) == {"localhost-0:50051"}
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
         )
@@ -264,7 +265,7 @@ def test_update_task_ok_with_next_namespace():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
-        client._task_id_to_stub_idx = {"abc123": 0}
+        client._task_id_to_host = {"abc123": "localhost-0:50051"}
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace="testing")
         )
@@ -298,7 +299,7 @@ def test_update_task_not_found():
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
         client = TaskworkerClient("localhost:50051", 1)
-        client._task_id_to_stub_idx = {"abc123": 0}
+        client._task_id_to_host = {"abc123": "localhost-0:50051"}
         result = client.update_task(
             "abc123", TASK_ACTIVATION_STATUS_RETRY, FetchNextTask(namespace=None)
         )
@@ -381,8 +382,13 @@ def test_client_loadbalance():
     )
     with patch("sentry.taskworker.client.grpc.insecure_channel") as mock_channel:
         mock_channel.side_effect = [channel_0, channel_1, channel_2, channel_3]
-        with patch("sentry.taskworker.client.random.randint") as mock_randint:
-            mock_randint.side_effect = [0, 1, 2, 3]
+        with patch("sentry.taskworker.client.random.choice") as mock_randchoice:
+            mock_randchoice.side_effect = [
+                "localhost-0:50051",
+                "localhost-1:50051",
+                "localhost-2:50051",
+                "localhost-3:50051",
+            ]
             client = TaskworkerClient(
                 "localhost:50051", num_brokers=4, max_tasks_before_rebalance=1
             )
@@ -396,13 +402,30 @@ def test_client_loadbalance():
             task_3 = client.get_task()
             assert task_3 is not None and task_3.id == "3"
 
-            assert client._task_id_to_stub_idx == {"0": 0, "1": 1, "2": 2, "3": 3}
+            assert client._task_id_to_host == {
+                "0": "localhost-0:50051",
+                "1": "localhost-1:50051",
+                "2": "localhost-2:50051",
+                "3": "localhost-3:50051",
+            }
 
             client.update_task(task_0.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_stub_idx == {"1": 1, "2": 2, "3": 3}
+            assert client._task_id_to_host == {
+                "1": "localhost-1:50051",
+                "2": "localhost-2:50051",
+                "3": "localhost-3:50051",
+            }
+
             client.update_task(task_1.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_stub_idx == {"2": 2, "3": 3}
+            assert client._task_id_to_host == {
+                "2": "localhost-2:50051",
+                "3": "localhost-3:50051",
+            }
+
             client.update_task(task_2.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_stub_idx == {"3": 3}
+            assert client._task_id_to_host == {
+                "3": "localhost-3:50051",
+            }
+
             client.update_task(task_3.id, TASK_ACTIVATION_STATUS_COMPLETE, None)
-            assert client._task_id_to_stub_idx == {}
+            assert client._task_id_to_host == {}
