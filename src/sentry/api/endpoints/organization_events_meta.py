@@ -230,7 +230,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
 
             for row in rpc_res["data"]:
                 lower, middle, top = row["lower"], row["middle"], row["top"]
-                if lower and lower:
+                if lower:
                     span_ids.append(row["id"])
                 if middle:
                     span_ids.append(row["id"])

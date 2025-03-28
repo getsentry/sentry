@@ -175,6 +175,7 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ValueArgumentDefinition(argument_types={"integer"}, default_arg=None),
         ],
         aggregate_resolver=resolve_bounded_sample,
+        processor=lambda x: x > 1.0,
         extrapolation=False,
     ),
 }
