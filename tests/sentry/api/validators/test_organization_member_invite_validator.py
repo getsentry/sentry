@@ -108,7 +108,6 @@ class OrganizationMemberInviteRequestValidatorTest(TestCase):
             "organization": self.organization,
             "allowed_roles": [roles.get("admin"), roles.get("member")],
             "actor": self.user,
-            "allow_retired_roles": False,
         }
         data = {"email": "mifu@email.com", "orgRole": "admin", "teams": []}
 

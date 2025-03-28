@@ -122,7 +122,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             context={
                 "organization": organization,
                 "allowed_roles": allowed_roles,
-                "allow_retired_roles": not features.has("organizations:team-roles", organization),
                 "is_integration_token": request.access.is_integration_token,
                 "is_member": is_member,
                 "actor": request.user,
@@ -163,7 +162,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
             data=request.data,
             context={
                 "organization": organization,
-                "allow_retired_roles": not features.has("organizations:team-roles", organization),
                 "allowed_roles": roles.get_all(),
                 "actor": request.user,
             },
@@ -184,8 +182,6 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         queryset = OrganizationMemberInvite.objects.filter(organization=organization).order_by(
             "invite_status", "email"
         )
-        if not request.access.has_scope("member:write"):
-            queryset = queryset.filter(invite_status=InviteStatus.APPROVED.value)
 
         return self.paginate(
             request=request,

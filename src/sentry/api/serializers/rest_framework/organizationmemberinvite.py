@@ -80,7 +80,10 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
             raise serializers.ValidationError(
                 "You do not have permission to invite a member with that org-level role"
             )
-        if not self.context.get("allow_retired_roles", True) and role_obj.is_retired:
+        if (
+            not features.has("organizations:team-roles", self.context["organization"])
+            and role_obj.is_retired
+        ):
             raise serializers.ValidationError(
                 f"The role '{role}' is deprecated, and members may no longer be invited with it."
             )

@@ -32,19 +32,6 @@ class OrganizationMemberInviteListTest(APITestCase):
         )
 
     def test_simple(self):
-        # if requester doesn't have org admin permissions, only list approved invites
-        user = self.create_user("mifu@email.com", username="mifu")
-        self.create_member(organization=self.organization, user=user)
-        self.login_as(user)
-
-        response = self.get_success_response(self.organization.slug)
-
-        assert len(response.data) == 1
-        assert response.data[0]["email"] == self.approved_invite.email
-        # make sure we don't serialize token
-        assert not response.data[0].get("token")
-
-    def test_staff(self):
         self.login_as(self.user)
 
         response = self.get_success_response(self.organization.slug)
@@ -55,31 +42,8 @@ class OrganizationMemberInviteListTest(APITestCase):
         assert response.data[1]["email"] == self.requested_invite.email
         assert response.data[1]["inviteStatus"] == "requested_to_be_invited"
 
-    def test_org_owner(self):
-        user = self.create_user("supreme-mifu@email.com", username="powerful mifu")
-        self.create_member(organization=self.organization, user=user, role="owner")
-        self.login_as(user)
-
-        response = self.get_success_response(self.organization.slug)
-
-        assert len(response.data) == 2
-        assert response.data[0]["email"] == self.approved_invite.email
-        assert response.data[0]["inviteStatus"] == "approved"
-        assert response.data[1]["email"] == self.requested_invite.email
-        assert response.data[1]["inviteStatus"] == "requested_to_be_invited"
-
-    def test_org_manager(self):
-        user = self.create_user("manager-mifu@email.com", username="strong mifu")
-        self.create_member(organization=self.organization, user=user, role="manager")
-        self.login_as(user)
-
-        response = self.get_success_response(self.organization.slug)
-
-        assert len(response.data) == 2
-        assert response.data[0]["email"] == self.approved_invite.email
-        assert response.data[0]["inviteStatus"] == "approved"
-        assert response.data[1]["email"] == self.requested_invite.email
-        assert response.data[1]["inviteStatus"] == "requested_to_be_invited"
+        # make sure we don't serialize token
+        assert not response.data[0].get("token")
 
 
 class OrganizationMemberInvitePermissionRoleTest(APITestCase):
