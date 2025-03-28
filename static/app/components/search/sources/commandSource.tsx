@@ -3,7 +3,7 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
-import type {Client} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {NODE_ENV, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -11,7 +11,6 @@ import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
-import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -106,17 +105,14 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
-function createCopyDSNAction(
-  api: Client,
-  orgId: string | undefined,
-  projectId: string | undefined
-) {
+function createCopyDSNAction(orgId: string | undefined, projectId: string | undefined) {
   return {
     title: t('Copy Project DSN to Clipboard'),
     description: t('Copies the Project DSN to the clipboard.'),
     isVisible: !!orgId && !!projectId,
     requiresSuperuser: false,
     action: async () => {
+      const api = new Client();
       const data: ProjectKey[] = await api.requestPromise(
         `/projects/${orgId}/${projectId}/keys/`
       );
@@ -158,17 +154,16 @@ function CommandSource({searchOptions, query, children}: Props) {
   const {isSuperuser} = useUser();
   const [fuzzy, setFuzzy] = useState<Fuse<Action> | null>(null);
   const params = useParams();
-  const api = useApi();
 
   const createSearch = useCallback(async () => {
-    const copyDSNAction = createCopyDSNAction(api, params.orgId, params.projectId);
+    const copyDSNAction = createCopyDSNAction(params.orgId, params.projectId);
     setFuzzy(
       await createFuzzySearch<Action>([...ACTIONS, copyDSNAction], {
         ...searchOptions,
         keys: ['title', 'description'],
       })
     );
-  }, [searchOptions, api, params.orgId, params.projectId]);
+  }, [searchOptions, params.orgId, params.projectId]);
 
   useEffect(() => void createSearch(), [createSearch]);
 
