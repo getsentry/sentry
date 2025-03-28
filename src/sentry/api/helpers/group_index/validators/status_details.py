@@ -35,10 +35,10 @@ class StatusDetailsValidator(serializers.Serializer):
         )
     )
     inCommit = InCommitValidator(
-        help_text="The commit hash that the issue should be resolved in.", required=False
+        help_text="The commit data that the issue should use for resolution.", required=False
     )
     ignoreDuration = serializers.IntegerField(
-        help_text="Ignore the issue until for this many minutes"
+        help_text="Ignore the issue until for this many minutes."
     )
     ignoreCount = serializers.IntegerField(
         help_text="Ignore the issue until it has occurred this many times in `ignoreWindow` minutes."

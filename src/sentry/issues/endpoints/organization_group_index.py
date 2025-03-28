@@ -31,7 +31,10 @@ from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.helpers.group_index.validators.group import GroupValidator
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.serializers.models.group_stream import (
+    StreamGroupSerializerSnuba,
+    StreamGroupSerializerSnubaResponse,
+)
 from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -157,6 +160,7 @@ def inbox_search(
     return results
 
 
+@extend_schema(tags=["Events"])
 @region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -250,7 +254,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             CursorQueryParam,
         ],
         responses={
-            200: StreamGroupSerializerSnuba,
+            200: inline_sentry_response_serializer(
+                "OrganizationGroupIndexGetResponse", list[StreamGroupSerializerSnubaResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -441,7 +447,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         request=GroupValidator,
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationGroupIndexPutResponse", list[MutateIssueResponse]
+                "OrganizationGroupIndexPutResponse", MutateIssueResponse
             ),
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,

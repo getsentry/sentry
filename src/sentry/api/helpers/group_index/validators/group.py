@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from typing import Any
 
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.api.fields import ActorField
@@ -11,6 +12,17 @@ from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 from . import InboxDetailsValidator, StatusDetailsValidator
 
 
+@extend_schema_serializer(
+    exclude_fields=[
+        "ignoreDuration",
+        "ignoreCount",
+        "ignoreWindow",
+        "ignoreUserCount",
+        "ignoreUserWindow",
+        "inboxDetails",
+        "snoozeDuration",
+    ]
+)
 class GroupValidator(serializers.Serializer):
     inbox = serializers.BooleanField(
         help_text="If true, marks the issue as reviewed by the requestor."

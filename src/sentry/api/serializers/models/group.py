@@ -132,14 +132,14 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     type: str
     issueType: str
     issueCategory: str
-    metadata: Mapping[str, Any]
+    metadata: dict[str, Any]
     numComments: int
     assignedTo: UserSerializerResponse
     isBookmarked: bool
     isSubscribed: bool
     subscriptionDetails: SubscriptionDetails | None
     hasSeen: bool
-    annotations: Sequence[GroupAnnotation]
+    annotations: list[GroupAnnotation]
 
 
 class SeenStats(TypedDict):
