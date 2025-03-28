@@ -16,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed", "visible"))
 
@@ -117,5 +118,5 @@ class PromptsActivityEndpoint(Endpoint):
                     feature=feature, user_id=request.user.id, values={"data": data}, **fields
                 )
         except IntegrityError:
-            pass
+            incr_rollback_metrics(PromptsActivity)
         return HttpResponse(status=201)

@@ -14,6 +14,7 @@ from sentry.db.models import (
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 
 @region_silo_model
@@ -65,6 +66,7 @@ class GroupRelease(Model):
                         True,
                     )
             except IntegrityError:
+                incr_rollback_metrics(cls)
                 instance, created = (
                     cls.objects.get(
                         release_id=release.id, group_id=group.id, environment=environment.name
