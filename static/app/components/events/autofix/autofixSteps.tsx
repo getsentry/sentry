@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -150,9 +150,14 @@ export function Step({
 export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
-  const previousRootCauseRef = useRef<boolean>(false);
-  const previousSolutionRef = useRef<boolean>(false);
-  const previousChangesRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (!steps?.length) {
     return null;
@@ -179,19 +184,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
     '';
 
-  const hasRootCauseStep = steps.some(
-    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
-  );
-  const hasSolutionStep = steps.some(step => step.type === AutofixStepType.SOLUTION);
-  const hasChangesStep = steps.some(step => step.type === AutofixStepType.CHANGES);
-
-  const isRootCauseFirstAppearance = hasRootCauseStep && !previousRootCauseRef.current;
-  const isSolutionFirstAppearance = hasSolutionStep && !previousSolutionRef.current;
-  const isChangesFirstAppearance = hasChangesStep && !previousChangesRef.current;
-
-  previousRootCauseRef.current = hasRootCauseStep;
-  previousSolutionRef.current = hasSolutionStep;
-  previousChangesRef.current = hasChangesStep;
+  const isInitialMount = !isMountedRef.current;
 
   return (
     <StepsContainer>
@@ -247,19 +240,13 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               previousInsightCount={previousInsightCount}
               feedback={data.feedback}
               isRootCauseFirstAppearance={
-                step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
-                isRootCauseFirstAppearance &&
-                !(isSolutionFirstAppearance || isChangesFirstAppearance)
+                step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && !isInitialMount
               }
               isSolutionFirstAppearance={
-                step.type === AutofixStepType.SOLUTION &&
-                isSolutionFirstAppearance &&
-                !(isRootCauseFirstAppearance || isChangesFirstAppearance)
+                step.type === AutofixStepType.SOLUTION && !isInitialMount
               }
               isChangesFirstAppearance={
-                step.type === AutofixStepType.CHANGES &&
-                isChangesFirstAppearance &&
-                !(isRootCauseFirstAppearance || isSolutionFirstAppearance)
+                step.type === AutofixStepType.CHANGES && !isInitialMount
               }
             />
           </div>
