@@ -31,7 +31,7 @@ function ScoreCard({
   isEstimate,
 }: ScoreCardProps) {
   const value = score ?? '\u2014';
-  const displayScore = isEstimate ? `~${value}` : value;
+  const displayScore = isEstimate && value !== '0' ? `~${value}` : value;
 
   return (
     <ScorePanel className={className}>
@@ -135,7 +135,7 @@ const Asterisk = styled('div')`
   width: 10pt;
   height: 10pt;
   position: relative;
-  top: -10px;
+  top: -10pt;
   margin-left: ${space(0.25)};
 `;
 
