@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections.abc import Callable
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Generic, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, ParamSpec, TypeVar
 from uuid import uuid4
 
 import orjson
@@ -81,14 +81,16 @@ class Task(Generic[P, R]):
         The provided parameters will be JSON encoded and stored within
         a `TaskActivation` protobuf that is appended to kafka
         """
-        self.apply_async(*args, **kwargs)
+        self.apply_async(args, kwargs)
 
-    def apply_async(self, *args: P.args, **kwargs: P.kwargs) -> None:
+    def apply_async(self, args: Any, kwargs: Any) -> None:
         """
         Schedule a task to run later with a set of arguments.
 
         The provided parameters will be JSON encoded and stored within
         a `TaskActivation` protobuf that is appended to kafka
+
+        Prefer using `delay()` instead of `apply_async()`.
         """
         if settings.TASK_WORKER_ALWAYS_EAGER:
             self._func(*args, **kwargs)
