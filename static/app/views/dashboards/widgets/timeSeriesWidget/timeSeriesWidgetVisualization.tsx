@@ -42,7 +42,7 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn, info} = Sentry._experiment_log;
+const {error, warn, info} = Sentry.logger;
 
 export interface TimeSeriesWidgetVisualizationProps {
   /**

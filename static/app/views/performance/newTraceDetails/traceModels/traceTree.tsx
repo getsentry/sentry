@@ -51,7 +51,7 @@ import {SiblingAutogroupNode} from './siblingAutogroupNode';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 import {TraceTreeNode} from './traceTreeNode';
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 /**
  *

@@ -22,7 +22,7 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 
-const {warn, fmt} = Sentry._experiment_log;
+const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
   severityNumber: number | null,
