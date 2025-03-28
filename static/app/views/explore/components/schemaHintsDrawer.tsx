@@ -102,8 +102,9 @@ function SchemaHintsDrawer({
     (hint: Tag) => {
       const filterQuery = new MutableSearch(currentQuery);
       if (
-        filterQuery.getFilterKeys().includes(hint.key) ||
-        filterQuery.getFilterKeys().includes(`!${hint.key}`)
+        filterQuery
+          .getFilterKeys()
+          .some(key => key === hint.key || key === `!${hint.key}`)
       ) {
         // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(hint.key);
