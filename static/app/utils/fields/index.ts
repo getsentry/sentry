@@ -1103,12 +1103,12 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
   [MobileVital.STALL_TOTAL_TIME]: {
     desc: t('Total stall duration (React Native)'),
     kind: FieldKind.METRICS,
-    valueType: FieldValueType.PERCENTAGE,
+    valueType: FieldValueType.DURATION,
   },
   [MobileVital.STALL_LONGEST_TIME]: {
     desc: t('Duration of slowest Javascript event loop (React Native)'),
     kind: FieldKind.METRICS,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.DURATION,
   },
   [MobileVital.STALL_PERCENTAGE]: {
     desc: t('Total stall duration out of the total transaction duration (React Native)'),
@@ -1849,6 +1849,8 @@ const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...SPAN_HTTP_FIELD_DEFINITIONS,
 };
 
+const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
+
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
   FieldKey.ASSIGNED_OR_SUGGESTED,
@@ -2120,6 +2122,7 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
+  REPLAY_TYPE = 'replay_type',
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
@@ -2171,6 +2174,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
   FieldKey.RELEASE,
+  ReplayFieldKey.REPLAY_TYPE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   ReplayFieldKey.SEEN_BY_ME,
@@ -2242,6 +2246,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.OS_VERSION]: {
     desc: t('Version number of the Operating System'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.REPLAY_TYPE]: {
+    desc: t('The replay recording mode - "session" or "buffer"'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2459,7 +2468,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event',
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' | 'log' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
@@ -2512,6 +2521,21 @@ export const getFieldDefinition = (
       }
 
       return null;
+
+    case 'log':
+      if (key in LOG_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.STRING,
+        };
+      }
+      return null;
+
     case 'event':
     default:
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

@@ -435,9 +435,9 @@ describe('GroupReplays', () => {
       expect(screen.getByText('7 days ago')).toBeInTheDocument();
     });
 
-    it('Should render the replay player when replay-play-from-replay-tab is enabled', async () => {
+    it('Should render the replay player', async () => {
       const {router, organization} = init({
-        organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
+        organizationProps: {features: ['session-replay']},
       });
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
@@ -510,7 +510,7 @@ describe('GroupReplays', () => {
       );
     });
 
-    it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
+    it('Should switch replays when clicking', async () => {
       const {router, organization} = init({
         organizationProps: {features: ['session-replay']},
       });

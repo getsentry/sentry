@@ -21,9 +21,7 @@ describe('StreamlinedSidebar', function () {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture({
-    features: ['gen-ai-features'],
-  });
+  const organization = OrganizationFixture({features: ['gen-ai-features']});
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
@@ -63,9 +61,7 @@ describe('StreamlinedSidebar', function () {
 
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/autofix/`,
-      body: {
-        steps: [],
-      },
+      body: {steps: []},
     });
 
     mockFirstLastRelease = MockApiClient.addMockResponse({
@@ -102,7 +98,7 @@ describe('StreamlinedSidebar', function () {
       organization,
     });
 
-    expect(await screen.findByText('Solutions Hub')).toBeInTheDocument();
+    expect(await screen.findByText('Seer')).toBeInTheDocument();
 
     expect(await screen.findByText('First seen')).toBeInTheDocument();
     expect(screen.getByText('Last seen')).toBeInTheDocument();

@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from sentry.grouping.component import BaseGroupingComponent
+from sentry.grouping.enhancer.matchers import MatchFrame
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 
+if TYPE_CHECKING:
+    from sentry.grouping.enhancer.rules import EnhancementRule
+
 ACTIONS = ["group", "app"]
 ACTION_BITSIZE = 8
-assert len(ACTIONS) < 1 << ACTION_BITSIZE
+# Ensure that the number of possible actions is smaller than the number of numbers which can be
+# represented with `ACTION_BITSIZE` bits
+assert len(ACTIONS) < 1 << ACTION_BITSIZE  # This is 2^ACTION_BITSIZE
 ACTION_FLAGS = {
     (True, None): 0,
     (True, "up"): 1,
@@ -22,63 +29,79 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class EnhancementAction:
-    _is_modifier: bool
-    _is_updater: bool
+    # True if this action updates a frame's `category` or `in_app` value
+    is_classifier: bool
+    # True if this action updates the `contributes` value of either a frame or the stacktrace
+    sets_contributes: bool
 
     def apply_modifications_to_frame(
         self,
         frames: Sequence[dict[str, Any]],
-        match_frames: Sequence[dict[str, Any]],
+        match_frames: list[MatchFrame],
         idx: int,
-        rule: Any = None,
+        rule: Any | None = None,
     ) -> None:
         pass
 
     def update_frame_components_contributions(
-        self, components, frames: Sequence[dict[str, Any]], idx, rule=None
+        self,
+        components: list[BaseGroupingComponent],
+        frames: list[dict[str, Any]],
+        idx: int,
+        rule: Any | None = None,
     ) -> None:
         pass
 
     def modify_stacktrace_state(self, state, rule):
         pass
 
-    @property
-    def is_modifier(self) -> bool:
-        """Does this action modify the frame?"""
-        return self._is_modifier
-
-    @property
-    def is_updater(self) -> bool:
-        """Does this action update grouping components?"""
-        return self._is_updater
-
     @classmethod
-    def _from_config_structure(cls, val, version: int):
-        if isinstance(val, list):
-            return VarAction(val[0], val[1])
+    def _from_config_structure(cls, val: list[str] | int, version: int) -> EnhancementAction:
+        if isinstance(val, list):  # This is a `VarAction`
+            variable, value = val
+            return VarAction(variable, value)
+        # Otherwise, assume it's a `FlagAction`, since those are the only two types we currently have
         flag, range_direction = REVERSE_ACTION_FLAGS[val >> ACTION_BITSIZE]
         return FlagAction(ACTIONS[val & 0xF], flag, range_direction)
 
+    def _to_config_structure(self, version: int) -> int | list[str | int]:
+        raise NotImplementedError()
+
 
 class FlagAction(EnhancementAction):
+    """
+    An action which sets either a frame's `contributes` value or its `in_app` value.
+
+    May optionally set the value for all frames above or below it in the stacktrace as well.
+    """
+
     def __init__(self, key: str, flag: bool, range: str | None) -> None:
-        self.key = key
-        self._is_updater = key in {"group", "app"}
-        self._is_modifier = key == "app"
-        self.flag = flag
-        self.range = range  # e.g. None, "up", "down"
+        self.key = key  # The type of change (`app` or `group`)
+        self.flag = flag  # True for `+app/+group` rules, False for `-app/-group` rules
+        self.range = range  # None (apply the action to this frame), "up", or "down"
+        self.is_classifier = key == "app"
+        self.sets_contributes = key == "group"
 
     def __str__(self) -> str:
         return "{}{}{}".format(
             {"up": "^", "down": "v", None: ""}.get(self.range),
-            self.flag and "+" or "-",
+            "+" if self.flag else "-",
             self.key,
         )
 
-    def _to_config_structure(self, version: int):
+    def _to_config_structure(self, version: int) -> int:
+        """
+        Convert the action into an integer by
+            - converting the combination of its boolean value (if it's a `+app/+group` rule or a
+              `-app/-group` rule) and its range (if it applies to this frame, frames above, or
+              frames below) into a number (see `ACTION_FLAGS`) and then multiplying that number by
+              2^ACTION_BITSIZE
+            - converting its type (app or group) into a number (using the index in `ACTIONS`)
+            - bitwise or-ing those two numbers
+        """
         return ACTIONS.index(self.key) | (ACTION_FLAGS[self.flag, self.range] << ACTION_BITSIZE)
 
-    def _slice_to_range(self, seq, idx):
+    def _slice_to_range(self, seq: list[Any], idx: int) -> list[Any]:
         if self.range is None:
             return [seq[idx]]
         elif self.range == "down":
@@ -87,7 +110,7 @@ class FlagAction(EnhancementAction):
             return seq[idx + 1 :]
         return []
 
-    def _in_app_changed(self, frame: dict[str, Any], component) -> bool:
+    def _in_app_changed(self, frame: dict[str, Any]) -> bool:
         orig_in_app = get_path(frame, "data", "orig_in_app")
 
         if orig_in_app is not None:
@@ -95,17 +118,14 @@ class FlagAction(EnhancementAction):
                 orig_in_app = None
             return orig_in_app != frame.get("in_app")
         else:
-            # FIXME: I don't fully understand this. The `group` Action is the only
-            # one I can find that actually sets the `contributes` flag to `True`.
-            # And `orig_in_app` is only `None` if the `app` Action was never applied.
-            return self.flag == component.contributes
+            return False
 
     def apply_modifications_to_frame(
         self,
         frames: Sequence[dict[str, Any]],
-        match_frames: Sequence[dict[str, Any]],
+        match_frames: list[MatchFrame],
         idx: int,
-        rule: Any = None,
+        rule: Any | None = None,
     ) -> None:
         # Change a frame or many to be in_app
         if self.key == "app":
@@ -113,7 +133,11 @@ class FlagAction(EnhancementAction):
                 match_frame["in_app"] = self.flag
 
     def update_frame_components_contributions(
-        self, components, frames: Sequence[dict[str, Any]], idx, rule=None
+        self,
+        components: list[BaseGroupingComponent],
+        frames: list[dict[str, Any]],
+        idx: int,
+        rule: EnhancementRule | None = None,
     ) -> None:
         rule_hint = "stack trace rule"
         if rule:
@@ -129,7 +153,7 @@ class FlagAction(EnhancementAction):
                 )
             # The in app flag was set by `apply_modifications_to_frame`
             # but we want to add a hint if there is none yet.
-            elif self.key == "app" and self._in_app_changed(frame, component):
+            elif self.key == "app" and self._in_app_changed(frame):
                 component.update(
                     hint="marked {} by {}".format(self.flag and "in-app" or "out of app", rule_hint)
                 )
@@ -148,8 +172,8 @@ class VarAction(EnhancementAction):
 
     def __init__(self, var: str, value: str) -> None:
         self.var = var
-        self._is_modifier = self.var == "category"
-        self._is_updater = self.var not in VarAction._FRAME_VARIABLES
+        self.is_classifier = self.var == "category"
+        self.sets_contributes = self.var in ["min-frames", "max-frames"]
 
         try:
             self.value = VarAction._VALUE_PARSERS[var](value)
@@ -165,19 +189,20 @@ class VarAction(EnhancementAction):
     def __str__(self) -> str:
         return f"{self.var}={self.value}"
 
-    def _to_config_structure(self, version):
+    def _to_config_structure(self, version: int) -> list[str | int]:
+        # TODO: Can we switch this to a tuple so we can type it more exactly?
         return [self.var, self.value]
 
-    def modify_stacktrace_state(self, state, rule):
+    def modify_stacktrace_state(self, state, rule) -> None:
         if self.var not in VarAction._FRAME_VARIABLES:
             state.set(self.var, self.value, rule)
 
     def apply_modifications_to_frame(
         self,
         frames: Sequence[dict[str, Any]],
-        match_frames: Sequence[dict[str, Any]],
+        match_frames: list[MatchFrame],
         idx: int,
-        rule: Any = None,
+        rule: Any | None = None,
     ) -> None:
         if self.var == "category":
             frame = frames[idx]

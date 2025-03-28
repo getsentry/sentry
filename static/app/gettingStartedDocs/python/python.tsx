@@ -355,7 +355,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
     const {integrationName, packageName, makeConfigureCode, makeVerifyCode} =
       FEATURE_FLAG_CONFIGURATION_MAP[
         featureFlagOptions.integration as keyof typeof FEATURE_FLAG_CONFIGURATION_MAP
-      ]!;
+      ];
 
     return [
       {

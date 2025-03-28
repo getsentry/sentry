@@ -2,10 +2,9 @@ import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +15,6 @@ import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import {sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
-import CronsBetaTrialAlert from 'getsentry/components/productTrial/cronsBetaTrialAlert';
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {ProductTrial, Subscription} from 'getsentry/types';
@@ -32,6 +30,8 @@ const PRODUCTS = {
   [DataCategory.ATTACHMENTS]: 'Attachments',
   [DataCategory.SPANS]: 'Spans',
   [DataCategory.UPTIME]: 'Uptime Monitoring',
+  [DataCategory.PROFILE_DURATION]: 'Continuous Profile Hours',
+  [DataCategory.PROFILE_DURATION_UI]: 'UI Profile Hours',
 };
 
 const PRODUCT_URLS = {
@@ -44,9 +44,9 @@ const PRODUCT_URLS = {
     'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/',
   [DataCategory.SPANS]: 'https://docs.sentry.io/product/performance/', // TODO: update with real docs link
   [DataCategory.UPTIME]: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
+  [DataCategory.PROFILE_DURATION]: 'https://docs.sentry.io/product/explore/profiling/', // TODO(Continuous Profiling)
+  [DataCategory.PROFILE_DURATION_UI]: 'https://docs.sentry.io/product/explore/profiling/', // TODO(Continuous Profiling)
 };
-
-const CRONS_BETA_REASON_CODE = 1004;
 
 export interface ProductTrialAlertProps {
   api: Client;
@@ -74,15 +74,6 @@ function ProductTrialAlert(props: ProductTrialAlertProps) {
   let alertText: string | null = null;
   let alertHeader: string | null = null;
   let alertButton: React.ReactElement | null = null;
-
-  // Make an exception for the crons beta trial as that banners looks reasonably different from other trial banners
-  if (
-    trial.category === DATA_CATEGORY_INFO.monitorSeat.plural &&
-    trial.reasonCode === CRONS_BETA_REASON_CODE &&
-    trial.isStarted
-  ) {
-    return <CronsBetaTrialAlert {...props} />;
-  }
 
   if (daysLeft >= 0 && !trial.isStarted) {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

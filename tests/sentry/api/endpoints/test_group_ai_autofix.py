@@ -2,7 +2,6 @@ from datetime import datetime
 from unittest.mock import Mock, patch
 
 from sentry.autofix.utils import AutofixState, AutofixStatus, CodebaseState
-from sentry.models.group import Group
 from sentry.seer.autofix import TIMEOUT_SECONDS
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -314,8 +313,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
         expected_repo = {
@@ -324,16 +323,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_args[2]
+        assert expected_repo in call_kwargs["repos"]
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
@@ -387,20 +386,20 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter is an empty list (no code mappings)
-        assert call_args[2] == []
+        assert call_kwargs["repos"] == []
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
@@ -460,8 +459,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
         expected_repo = {
@@ -470,16 +469,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_args[2]
+        assert expected_repo in call_kwargs["repos"]
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
@@ -539,8 +538,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_call.assert_called_once()
 
         # Check individual parameters that we care about
-        call_args = mock_call.call_args[0]
-        assert call_args[1].id == group.id  # Check that the group object matches
+        call_kwargs = mock_call.call_args.kwargs
+        assert call_kwargs["group"].id == group.id  # Check that the group object matches
 
         # Check that the repos parameter contains the expected data
         expected_repo = {
@@ -549,16 +548,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "name": "sentry",
             "external_id": "123",
         }
-        assert expected_repo in call_args[2]
+        assert expected_repo in call_kwargs["repos"]
 
         # Check that the instruction was passed correctly
-        assert call_args[6] == "Yes"
+        assert call_kwargs["instruction"] == "Yes"
 
         # Check other parameters
-        assert call_args[7] == TIMEOUT_SECONDS
+        assert call_kwargs["timeout_secs"] == TIMEOUT_SECONDS
 
         # Verify that the serialized event has an exception entry
-        serialized_event_arg = call_args[3]
+        serialized_event_arg = call_kwargs["serialized_event"]
         assert any(
             [entry.get("type") == "exception" for entry in serialized_event_arg.get("entries", [])]
         )
@@ -602,53 +601,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             self._get_url(group.id), data={"instruction": "Yes"}, format="json"
         )
         assert response.status_code == 400
-
-    @patch("sentry.seer.autofix._call_autofix")
-    def test_ai_autofix_without_stacktrace(self, mock_call):
-        release = self.create_release(project=self.project, version="1.0.0")
-
-        # Creating a repository with a valid name 'getsentry/sentry'
-        valid_repo = self.create_repo(
-            project=self.project,
-            name="getsentry/sentry",
-            provider="integrations:github",
-            external_id="123",
-        )
-        valid_repo.save()
-
-        self.create_commit(project=self.project, release=release, key="1234", repo=valid_repo)
-
-        data = load_data("python", timestamp=before_now(minutes=1))
-
-        event = self.store_event(
-            data={
-                **data,
-                "release": release.version,
-                "exception": None,
-                "stacktrace": None,
-            },
-            project_id=self.project.id,
-        )
-
-        group = event.group
-
-        assert group is not None
-        group.save()
-
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"instruction": "Yes", "event_id": event.event_id},
-            format="json",
-        )
-        mock_call.assert_not_called()
-
-        group = Group.objects.get(id=group.id)
-
-        error_msg = "Cannot fix issues without a stacktrace."
-
-        assert response.status_code == 400  # Expecting a Bad Request response for invalid repo
-        assert response.data["detail"] == error_msg
 
     @patch("sentry.api.endpoints.group_ai_autofix.get_autofix_state")
     @patch("sentry.api.endpoints.group_ai_autofix.cache")

@@ -8,6 +8,7 @@ jest.mock('sentry/utils/analytics', () => ({
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -38,9 +39,15 @@ const ALL_AVAILABLE_FEATURES = [
 describe('Nav', function () {
   beforeEach(() => {
     localStorage.clear();
+    MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/broadcasts/`,
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/assistant/`,
       body: [],
     });
   });
@@ -50,7 +57,7 @@ describe('Nav', function () {
   }: {
     initialPathname?: string;
   } = {}) {
-    render(
+    return render(
       <NavContextProvider>
         <Nav />
         <SecondaryNav group={PrimaryNavGroup.ISSUES}>
@@ -196,7 +203,7 @@ describe('Nav', function () {
       const issues = screen.getByRole('link', {name: 'Issues'});
       await userEvent.click(issues);
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.clicked_sidebar',
+        'navigation.primary_item_clicked',
         expect.objectContaining({
           item: 'issues',
         })
@@ -205,6 +212,7 @@ describe('Nav', function () {
   });
 
   describe('mobile navigation', function () {
+    const initialMatchMedia = window.matchMedia;
     beforeEach(() => {
       // Need useMedia() to return true for isMobile query
       window.matchMedia = jest.fn().mockImplementation(query => ({
@@ -217,6 +225,10 @@ describe('Nav', function () {
         removeEventListener: jest.fn(),
         dispatchEvent: jest.fn(),
       }));
+    });
+
+    afterEach(() => {
+      window.matchMedia = initialMatchMedia;
     });
 
     it('renders mobile navigation on small screen sizes', async function () {
@@ -252,6 +264,47 @@ describe('Nav', function () {
       // Tapping one of the primary navigation items should close the menu
       await userEvent.click(screen.getByRole('link', {name: 'Explore'}));
       expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('tour', function () {
+    it('shows the tour modal when the user has not completed the tour', async function () {
+      MockApiClient.addMockResponse({
+        url: `/assistant/`,
+        body: [{guide: 'tour.stacked_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({
+        url: `/assistant/`,
+        method: 'PUT',
+        body: {},
+      });
+
+      renderGlobalModal();
+      const {router} = renderNav();
+
+      // Shows the tour modal
+      const modal = await screen.findByRole('dialog');
+      expect(within(modal).getByText('Welcome to a simpler Sentry')).toBeInTheDocument();
+      await userEvent.click(within(modal).getByRole('button', {name: 'Take a tour'}));
+
+      // Starts tour with the issues step
+      await screen.findByText('See what broke');
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+
+      // Navigates to the explore page on step 2
+      await screen.findByText('Dig into data');
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/explore/traces/');
+      });
+
+      // Dissmissing tour should navigate back to the initial page
+      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+      });
+
+      // Shows the reminder on help menu
+      await screen.findByText('Come back anytime');
     });
   });
 });

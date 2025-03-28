@@ -324,7 +324,7 @@ const FeatureListItem = styled('li')<{isSelected: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(2)};
-  color: ${p => (p.isSelected ? p.theme.gray500 : p.theme.gray300)};
+  color: ${p => (p.isSelected ? p.theme.gray500 : p.theme.subText)};
   ${p => p.isSelected && `font-weight: ${p.theme.fontWeightBold};`}
   cursor: pointer;
   :hover {

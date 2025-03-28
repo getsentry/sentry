@@ -1,13 +1,11 @@
-import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useNavContext} from 'sentry/components/nav/context';
 import useDefaultProject from 'sentry/components/nav/issueViews/useDefaultProject';
-import {NavLayout} from 'sentry/components/nav/types';
+import type {NavLayout} from 'sentry/components/nav/types';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,7 +57,6 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
             query: 'is:unresolved',
             querySort: IssueSortOptions.DATE,
             projects: defaultProject,
-            isAllProjects: false,
             environments: DEFAULT_ENVIRONMENTS,
             timeFilters: DEFAULT_TIME_FILTERS,
           },
@@ -70,64 +67,35 @@ export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {
   };
 
   return (
-    <motion.div>
-      <AddViewButton
-        borderless
-        size="zero"
-        layout={layout}
-        onClick={handleOnAddView}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <LoadingIndicator mini />
+    <AddViewButton
+      borderless
+      size="zero"
+      layout={layout}
+      onClick={handleOnAddView}
+      disabled={isLoading}
+      title={!isLoading && t('Add View')}
+      aria-label={t('Add View')}
+      tooltipProps={{
+        delay: 500,
+      }}
+      icon={
+        isLoading ? (
+          <StyledLoadingIndicator mini size={14} />
         ) : (
-          <Fragment>
-            <StyledIconAdd size="xs" />
-            {t('Add View')}
-          </Fragment>
-        )}
-      </AddViewButton>
-    </motion.div>
+          <IconAdd size="sm" color="subText" />
+        )
+      }
+    />
   );
 }
 
-const AddViewButton = styled(Button)<{layout: NavLayout}>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: ${space(0.5)};
-
-  width: 100%;
-  position: relative;
-  height: 34px;
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  line-height: 177.75%;
-  border-radius: ${p => p.theme.borderRadius};
-
-  &:hover {
-    color: inherit;
-  }
-
-  [data-isl] {
-    transform: translate(0, 0);
-    top: 1px;
-    bottom: 1px;
-    right: 0;
-    left: 0;
-    width: initial;
-    height: initial;
-  }
-
-  ${p =>
-    p.layout === NavLayout.MOBILE &&
-    css`
-      padding: 0 ${space(1.5)} 0 48px;
-      border-radius: 0;
-    `}
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  width: 14px;
+  height: 14px !important;
+  margin: 0 !important;
 `;
 
-const StyledIconAdd = styled(IconAdd)`
-  margin-right: 4px;
+const AddViewButton = styled(Button)<{layout: NavLayout}>`
+  padding: ${space(0.5)};
+  margin-right: -${space(0.5)};
 `;

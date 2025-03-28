@@ -11,6 +11,7 @@ import {PrimaryNavigationHelp} from 'sentry/components/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/components/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/components/nav/primary/serviceIncidents';
 import {PrimaryNavigationWhatsNew} from 'sentry/components/nav/primary/whatsNew';
+import {NavTourElement, StackedNavigationTour} from 'sentry/components/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/components/nav/types';
 import {
   IconDashboard,
@@ -32,7 +33,7 @@ function SidebarBody({children}: {children: React.ReactNode}) {
 function SidebarFooter({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
   return (
-    <SidebarFooterWrapper>
+    <SidebarFooterWrapper isMobile={layout === NavLayout.MOBILE}>
       <SidebarItemList
         isMobile={layout === NavLayout.MOBILE}
         compact={layout === NavLayout.SIDEBAR}
@@ -50,59 +51,89 @@ export function PrimaryNavigationItems() {
   return (
     <Fragment>
       <SidebarBody>
-        <SidebarLink
-          to={`/${prefix}/issues/`}
-          analyticsKey="issues"
-          label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
-        >
-          <IconIssues />
-        </SidebarLink>
+        <NavTourElement id={StackedNavigationTour.ISSUES} title={null} description={null}>
+          <SidebarLink
+            to={`/${prefix}/issues/`}
+            analyticsKey="issues"
+            label={NAV_GROUP_LABELS[PrimaryNavGroup.ISSUES]}
+          >
+            <IconIssues />
+          </SidebarLink>
+        </NavTourElement>
 
-        <SidebarLink
-          to={`/${prefix}/explore/traces/`}
-          activeTo={`/${prefix}/explore`}
-          analyticsKey="explore"
-          label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+        <NavTourElement
+          id={StackedNavigationTour.EXPLORE}
+          title={null}
+          description={null}
         >
-          <IconSearch />
-        </SidebarLink>
+          <SidebarLink
+            to={
+              organization.features.includes('performance-view')
+                ? `/${prefix}/explore/traces/`
+                : `/${prefix}/explore/profiling/`
+            }
+            activeTo={`/${prefix}/explore`}
+            analyticsKey="explore"
+            label={NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+          >
+            <IconSearch />
+          </SidebarLink>
+        </NavTourElement>
 
         <Feature
           features={['discover', 'discover-query', 'dashboards-basic', 'dashboards-edit']}
           hookName="feature-disabled:dashboards-sidebar-item"
           requireAll={false}
         >
-          <SidebarLink
-            to={`/${prefix}/dashboards/`}
-            activeTo={`/${prefix}/dashboard`}
-            analyticsKey="customizable-dashboards"
-            label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
+          <NavTourElement
+            id={StackedNavigationTour.DASHBOARDS}
+            title={null}
+            description={null}
           >
-            <IconDashboard />
-          </SidebarLink>
+            <SidebarLink
+              to={`/${prefix}/dashboards/`}
+              activeTo={`/${prefix}/dashboard`}
+              analyticsKey="dashboards"
+              label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
+            >
+              <IconDashboard />
+            </SidebarLink>
+          </NavTourElement>
         </Feature>
 
         <Feature features={['performance-view']}>
-          <SidebarLink
-            to={`/${prefix}/insights/frontend/`}
-            activeTo={`/${prefix}/insights`}
-            analyticsKey="insights-domains"
-            label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+          <NavTourElement
+            id={StackedNavigationTour.INSIGHTS}
+            title={null}
+            description={null}
           >
-            <IconGraph />
-          </SidebarLink>
+            <SidebarLink
+              to={`/${prefix}/insights/frontend/`}
+              activeTo={`/${prefix}/insights`}
+              analyticsKey="insights"
+              label={NAV_GROUP_LABELS[PrimaryNavGroup.INSIGHTS]}
+            >
+              <IconGraph type="area" />
+            </SidebarLink>
+          </NavTourElement>
         </Feature>
 
         <SeparatorItem />
 
-        <SidebarLink
-          to={`/${prefix}/settings/${organization.slug}/`}
-          activeTo={`/${prefix}/settings/`}
-          analyticsKey="settings"
-          label={NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
+        <NavTourElement
+          id={StackedNavigationTour.SETTINGS}
+          title={null}
+          description={null}
         >
-          <IconSettings />
-        </SidebarLink>
+          <SidebarLink
+            to={`/${prefix}/settings/${organization.slug}/`}
+            activeTo={`/${prefix}/settings/`}
+            analyticsKey="settings"
+            label={NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
+          >
+            <IconSettings />
+          </SidebarLink>
+        </NavTourElement>
       </SidebarBody>
 
       <SidebarFooter>
@@ -149,10 +180,11 @@ const SidebarItemList = styled('ul')<{isMobile: boolean; compact?: boolean}>`
     `}
 `;
 
-const SidebarFooterWrapper = styled('div')`
+const SidebarFooterWrapper = styled('div')<{isMobile: boolean}>`
   position: relative;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   margin-top: auto;
+  margin-bottom: ${p => (p.isMobile ? space(1) : 0)};
 `;

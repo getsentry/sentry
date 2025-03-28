@@ -319,9 +319,10 @@ function ReleasesDetailContainer(props: ReleasesDetailContainerProps) {
         }))}
         router={router}
         nextPath={{
-          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
-            release!
-          )}/`,
+          pathname: makeReleasesPathname({
+            path: `/${encodeURIComponent(release)}/`,
+            organization,
+          }),
         }}
         noProjectRedirectPath={makeReleasesPathname({
           organization,

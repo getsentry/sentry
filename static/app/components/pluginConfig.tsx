@@ -7,8 +7,8 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -43,7 +43,7 @@ export default function PluginConfig({
   const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   const [testResults, setTestResults] = useState('');
   const [isPluginLoading, setIsPluginLoading] = useState(!plugins.isLoaded(plugin));
-  const loadingPluginIdRef = useRef<string | undefined>();
+  const loadingPluginIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Avoid loading the same plugin multiple times

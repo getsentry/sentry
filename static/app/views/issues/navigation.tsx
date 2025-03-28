@@ -1,10 +1,12 @@
 import {Fragment, useEffect, useRef} from 'react';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {IssueViewNavItems} from 'sentry/components/nav/issueViews/issueViewNavItems';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
 import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
+import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -50,61 +52,88 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
         <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
         <SecondaryNav.Body>
           <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/`} end>
+            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
               {t('Feed')}
             </SecondaryNav.Item>
-            <SecondaryNav.Item to={`${baseUrl}/feedback/`}>
+            <SecondaryNav.Item
+              to={`${baseUrl}/feedback/`}
+              analyticsItemName="issues_feedback"
+            >
               {t('Feedback')}
             </SecondaryNav.Item>
           </SecondaryNav.Section>
           {groupSearchViews && (
-            <SecondaryNav.Section title={t('Starred Views')}>
-              <IssueViewNavItems
-                loadedViews={groupSearchViews.map(
-                  (
-                    {
-                      id,
-                      name,
-                      query: viewQuery,
-                      querySort: viewQuerySort,
-                      environments: viewEnvironments,
-                      projects: viewProjects,
-                      timeFilters: viewTimeFilters,
-                      isAllProjects,
-                    },
-                    index
-                  ): IssueView => {
-                    const tabId = id ?? `default${index.toString()}`;
+            <IssueViewNavItems
+              loadedViews={groupSearchViews.map(
+                (
+                  {
+                    id,
+                    name,
+                    query: viewQuery,
+                    querySort: viewQuerySort,
+                    environments: viewEnvironments,
+                    projects: viewProjects,
+                    timeFilters: viewTimeFilters,
+                  },
+                  index
+                ): IssueView => {
+                  const tabId = id ?? `default${index.toString()}`;
 
-                    return {
-                      id: tabId,
-                      key: tabId,
-                      label: name,
-                      query: viewQuery,
-                      querySort: viewQuerySort,
-                      environments: viewEnvironments,
-                      projects: isAllProjects ? [-1] : viewProjects,
-                      timeFilters: viewTimeFilters,
-                      isCommitted: true,
-                    };
-                  }
-                )}
-                sectionRef={sectionRef}
-                baseUrl={baseUrl}
-              />
-            </SecondaryNav.Section>
+                  return {
+                    id: tabId,
+                    key: tabId,
+                    label: name,
+                    query: viewQuery,
+                    querySort: viewQuerySort,
+                    environments: viewEnvironments,
+                    projects: viewProjects,
+                    timeFilters: viewTimeFilters,
+                    isCommitted: true,
+                  };
+                }
+              )}
+              sectionRef={sectionRef}
+              baseUrl={baseUrl}
+            />
           )}
-          <SecondaryNav.Section title={t('Configure')}>
-            <SecondaryNav.Item
-              to={`${baseUrl}/alerts/rules/`}
-              activeTo={`${baseUrl}/alerts/`}
-            >
-              {t('Alerts')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
+          <ConfigureSection baseUrl={baseUrl} />
         </SecondaryNav.Body>
       </SecondaryNav>
       {children}
     </Fragment>
+  );
+}
+
+function ConfigureSection({baseUrl}: {baseUrl: string}) {
+  const hasWorkflowEngine = useWorkflowEngineFeatureGate();
+  return (
+    <SecondaryNav.Section title={t('Configure')}>
+      {hasWorkflowEngine ? (
+        <Fragment>
+          <SecondaryNav.Item
+            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            to={`${baseUrl}/monitors/`}
+            activeTo={`${baseUrl}/monitors`}
+          >
+            {t('Monitors')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            trailingItems={<FeatureBadge type="alpha" variant="short" />}
+            to={`${baseUrl}/automations/`}
+            activeTo={`${baseUrl}/automations`}
+          >
+            {t('Automations')}
+          </SecondaryNav.Item>
+        </Fragment>
+      ) : (
+        <SecondaryNav.Item
+          to={`${baseUrl}/alerts/rules/`}
+          activeTo={`${baseUrl}/alerts/`}
+          analyticsItemName="issues_alerts"
+        >
+          {t('Alerts')}
+        </SecondaryNav.Item>
+      )}
+    </SecondaryNav.Section>
   );
 }

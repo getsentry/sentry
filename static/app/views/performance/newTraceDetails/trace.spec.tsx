@@ -889,7 +889,9 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
   it('renders error state if meta fails to load', async () => {
@@ -906,10 +908,17 @@ describe('trace view', () => {
     mockEventsResponse();
 
     render(<TraceView />, {router});
-    expect(await screen.findByText(/we failed to load your trace/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Woof. We failed to load your trace./i)
+    ).toBeInTheDocument();
   });
 
-  it('renders empty state', async () => {
+  it('renders empty state for successfully ingested trace', async () => {
+    // set timestamp to 3 minutes ago
+    const threeMinutesAgoInSeconds = Math.floor(
+      new Date(Date.now() - 3 * 60 * 1000).getTime() / 1000
+    );
+
     mockPerformanceSubscriptionDetailsResponse();
     mockTraceResponse({
       body: {
@@ -921,9 +930,40 @@ describe('trace view', () => {
     mockTraceTagsResponse();
     mockEventsResponse();
 
-    render(<TraceView />, {router});
+    window.location.search = `?timestamp=${threeMinutesAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
     expect(
-      await screen.findByText(/trace does not contain any data/i)
+      await screen.findByText(/This trace is so empty, even tumbleweeds don't roll here/i)
+    ).toBeInTheDocument();
+  });
+
+  it('renders empty state for yet to be ingested trace', async () => {
+    // set timestamp to 1 minute ago
+    const oneMinuteAgoInSeconds = Math.floor(
+      new Date(Date.now() - 1 * 60 * 1000).getTime() / 1000
+    );
+
+    mockPerformanceSubscriptionDetailsResponse();
+    mockTraceResponse({
+      body: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    });
+    mockTraceMetaResponse();
+    mockTraceTagsResponse();
+    mockEventsResponse();
+
+    window.location.search = `?timestamp=${oneMinuteAgoInSeconds.toString()}`;
+    render(<TraceView />, {
+      router,
+    });
+    expect(
+      await screen.findByText(
+        /We're still processing this trace. In a few seconds, refresh/i
+      )
     ).toBeInTheDocument();
   });
 
@@ -974,7 +1014,9 @@ describe('trace view', () => {
       expect(rows[4]!.textContent?.includes('Autogrouped')).toBe(true);
     });
     it('scrolls to child of parent autogroup node', async () => {
-      mockQueryString('?node=span-redis0&node=txn-1');
+      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
+      // as path is prioritized over targetId/eventId
+      mockQueryString('?node=span-redis0&node=txn-1&targetId=doesnotexist');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);
@@ -1002,7 +1044,9 @@ describe('trace view', () => {
     });
 
     it('scrolls to child of sibling autogroup node', async () => {
-      mockQueryString('?node=span-http0&node=txn-1');
+      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
+      // as path is prioritized over targetId/eventId
+      mockQueryString('?node=span-http0&node=txn-1&targetId=doesnotexist');
 
       const {virtualizedContainer} = await completeTestSetup();
       await within(virtualizedContainer).findAllByText(/Autogrouped/i);

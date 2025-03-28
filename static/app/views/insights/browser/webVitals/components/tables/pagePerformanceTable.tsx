@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -121,7 +121,7 @@ export function PagePerformanceTable() {
 
       return {
         ...location,
-        query: {...location.query, sort: newSort},
+        query: {...location.query, sort: newSort, cursor: undefined},
       };
     }
     const sortableFields = SORTABLE_FIELDS;
@@ -394,5 +394,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

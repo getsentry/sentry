@@ -1430,28 +1430,13 @@ function buildRoutes() {
     </Fragment>
   );
 
+  // XXX(epurkhiser): This is legacy until we remove crons from the sidebar
   const cronsRoutes = (
     <Route
       path="/crons/"
       component={make(() => import('sentry/views/monitors'))}
       withOrgPath
-    >
-      <IndexRoute component={make(() => import('sentry/views/monitors/overview'))} />
-      <Route
-        path="create/"
-        component={make(() => import('sentry/views/monitors/create'))}
-      />
-      <Redirect from=":monitorSlug/" to="/crons/" />
-      <Redirect from=":monitorSlug/edit/" to="/crons/" />
-      <Route
-        path=":projectId/:monitorSlug/"
-        component={make(() => import('sentry/views/monitors/details'))}
-      />
-      <Route
-        path=":projectId/:monitorSlug/edit/"
-        component={make(() => import('sentry/views/monitors/edit'))}
-      />
-    </Route>
+    />
   );
 
   const replayChildRoutes = (
@@ -1592,6 +1577,7 @@ function buildRoutes() {
           () => import('sentry/views/performance/transactionSummary/transactionOverview')
         )}
       />
+      {traceViewRoute}
       <Route
         path="replays/"
         component={make(
@@ -2016,6 +2002,10 @@ function buildRoutes() {
         {releasesChildRoutes}
       </Route>
       <Route path="logs/" component={make(() => import('sentry/views/explore/logs'))} />
+      <Route
+        path="saved-queries/"
+        component={make(() => import('sentry/views/explore/savedQueries'))}
+      />
     </Route>
   );
 
@@ -2078,11 +2068,11 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
       />
       <Route
-        path={TabPaths[Tab.TAGS]}
+        path={TabPaths[Tab.DISTRIBUTIONS]}
         component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
       />
       <Route
-        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
+        path={`${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
         component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
       />
       <Route
@@ -2110,10 +2100,35 @@ function buildRoutes() {
   );
 
   const issueRoutes = (
-    <Route path="/issues" component={errorHandler(IssueNavigation)} withOrgPath>
+    <Route path="/issues/" component={errorHandler(IssueNavigation)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route
+        path="views/"
+        component={make(
+          () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
+        )}
+      />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+
+      {/* Redirects for legacy tags route. */}
+      <Redirect
+        from=":groupId/tags/"
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}`}
+      />
+      <Redirect
+        from=":groupId/tags/:tagKey/"
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
+      />
+
       <Route
         path=":groupId/"
         component={make(() => import('sentry/views/issueDetails/groupDetails'))}
@@ -2132,6 +2147,8 @@ function buildRoutes() {
         {alertChildRoutes({forCustomerDomain: true})}
       </Route>
       {traceViewRoute}
+      {automationRoutes}
+      {detectorRoutes}
     </Route>
   );
 
@@ -2388,8 +2405,6 @@ function buildRoutes() {
 
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationLayout)}>
-      {automationRoutes}
-      {detectorRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}

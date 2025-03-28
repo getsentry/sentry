@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {BaseGroup, GroupTombstoneHelper} from 'sentry/types/group';
 import {getTitle, isTombstone} from 'sentry/utils/events';
@@ -48,12 +47,6 @@ function EventOrGroupTitle({
         ) : (
           titleLabel
         )}
-        {secondaryTitle && (
-          <Fragment>
-            <Spacer width={space(1)} />
-            <Message title={secondaryTitle}>{secondaryTitle}</Message>
-          </Fragment>
-        )}
       </span>
     );
   }
@@ -97,14 +90,9 @@ function Spacer({width}: {width: string}) {
 const Subtitle = styled('em')`
   ${p => p.theme.overflowEllipsis};
   display: inline-block;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-style: normal;
   height: 100%;
-`;
-
-const Message = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Title = styled('span')`

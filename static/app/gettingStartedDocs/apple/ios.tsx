@@ -35,10 +35,9 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') === -1
-        ? InstallationMode.AUTO
-        : InstallationMode.MANUAL,
+    defaultValue: navigator.userAgent.includes('Win')
+      ? InstallationMode.MANUAL
+      : InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -175,8 +174,8 @@ SentrySDK.start(configureOptions: { options in
 })`;
 
 const getReplayConfigurationSnippet = () => `
-options.sessionReplay.redactAllText = true
-options.sessionReplay.redactAllImages = true`;
+options.sessionReplay.maskAllText = true
+options.sessionReplay.maskAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>

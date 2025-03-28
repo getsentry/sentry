@@ -60,16 +60,16 @@ function Tooltip({
     arrowProps,
     reset,
     update,
-  } = useHoverOverlay('tooltip', hoverOverlayProps);
+  } = useHoverOverlay(hoverOverlayProps);
 
   const {forceVisible} = hoverOverlayProps;
 
   // Reset the visibility when the tooltip becomes disabled
   useEffect(() => {
-    if (disabled) {
+    if (disabled && isOpen) {
       reset();
     }
-  }, [reset, disabled]);
+  }, [reset, disabled, isOpen]);
 
   // Update the tooltip when the tooltip is forced to be visible and the children change
   useEffect(() => {

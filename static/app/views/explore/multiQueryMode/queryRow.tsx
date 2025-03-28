@@ -6,8 +6,12 @@ import {LazyRender} from 'sentry/components/lazyRender';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useCompareAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -32,6 +36,7 @@ type Props = {
 };
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
+  const organization = useOrganization();
   const deleteQuery = useDeleteQueryAtIndex();
 
   const {groupBys, query, yAxes, sortBys} = queryParts;
@@ -53,10 +58,16 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     enabled: mode === Mode.SAMPLES,
   });
 
-  const {timeseriesResult, canUsePreviousResults} = useMultiQueryTimeseries({
+  const {
+    result: timeseriesResult,
+    canUsePreviousResults,
+    samplingMode: timeseriesSamplingMode,
+  } = useMultiQueryTimeseries({
     index,
     enabled: true,
   });
+
+  const [interval] = useChartInterval();
 
   useCompareAnalytics({
     aggregatesTableResult,
@@ -65,6 +76,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     spansTableResult,
     timeseriesResult,
     queryType: mode === Mode.AGGREGATE ? 'aggregate' : 'samples',
+    interval,
   });
 
   return (
@@ -93,6 +105,11 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             query={queryParts}
             timeseriesResult={timeseriesResult}
             canUsePreviousResults={canUsePreviousResults}
+            isProgressivelyLoading={
+              organization.features.includes('visibility-explore-progressive-loading') &&
+              defined(timeseriesSamplingMode) &&
+              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
+            }
           />
           <MultiQueryTable
             confidences={[]}

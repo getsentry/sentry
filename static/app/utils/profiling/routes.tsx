@@ -223,21 +223,23 @@ export function generateProfileRouteFromProfileReference({
   reference,
   query,
 }: {
-  frameName: string;
-  framePackage: string | undefined;
   organization: Organization;
   projectSlug: Project['slug'];
   reference: Profiling.BaseProfileReference | Profiling.ProfileReference;
+  frameName?: string;
+  framePackage?: string;
   query?: Location['query'];
 }): LocationDescriptor {
   if (typeof reference === 'string') {
-    return generateProfileFlamechartRouteWithHighlightFrame({
+    return generateProfileFlamechartRouteWithQuery({
       organization,
       projectSlug,
       profileId: reference,
-      frameName,
-      framePackage,
-      query,
+      query: {
+        ...query,
+        frameName,
+        framePackage,
+      },
     });
   }
 

@@ -3,8 +3,8 @@ import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 
-import {ListBox} from 'sentry/components/compactSelect/listBox';
-import type {SelectOptionOrSectionWithKey} from 'sentry/components/compactSelect/types';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
+import type {SelectOptionOrSectionWithKey} from 'sentry/components/core/compactSelect/types';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
@@ -68,10 +68,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
   const valueListBoxContent = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-      <SectionedOverlay
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={popoverRef}
-      >
+      <SectionedOverlay ref={popoverRef}>
         {isLoading && hiddenOptions.size >= totalOptions ? (
           <LoadingWrapper>
             <LoadingIndicator mini />
@@ -80,7 +77,6 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
           <Fragment>
             <StyledListBox
               {...listBoxProps}
-              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={listBoxRef}
               listState={state}
               hasSearch={!!filterValue}

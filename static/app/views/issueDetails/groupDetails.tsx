@@ -518,6 +518,7 @@ function useTrackView({
     location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -535,7 +536,11 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
+    enforced_streamlined_ui:
+      organization.features.includes('issue-details-streamline-enforce') &&
+      user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
+    has_streamlined_ui: hasStreamlinedUI,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -660,7 +665,7 @@ function GroupDetailsContent({
       return;
     }
 
-    if (currentTab === Tab.TAGS) {
+    if (currentTab === Tab.DISTRIBUTIONS) {
       openTagsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
@@ -683,7 +688,7 @@ function GroupDetailsContent({
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
-    Tab.TAGS,
+    Tab.DISTRIBUTIONS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
     Tab.ACTIVITY,
@@ -721,7 +726,6 @@ function GroupDetailsContent({
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
   const projectSlug = props.group?.project?.slug;
   const api = useApi();
-  const location = useLocation();
   const organization = useOrganization();
   const [injectedEvent, setInjectedEvent] = useState(null);
   const {
@@ -729,7 +733,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
   } = useProjects({slugs: projectSlug ? [projectSlug] : []});
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
@@ -745,17 +748,10 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     const issueDetailsTourData = assistantData?.find(
       item => item.guide === ISSUE_DETAILS_TOUR_GUIDE_KEY
     );
-    return issueDetailsTourData?.seen ?? false;
+
+    // Prevent tour from showing until assistant data is loaded
+    return issueDetailsTourData?.seen ?? true;
   }, [assistantData]);
-  const isIssueDetailsTourAvailable = useMemo(() => {
-    if (!hasStreamlinedUI) {
-      return false;
-    }
-    return (
-      location.hash === '#tour' ||
-      organization.features.includes('issue-details-streamline-tour')
-    );
-  }, [hasStreamlinedUI, location.hash, organization.features]);
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
@@ -826,7 +822,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   return (
     <TourContextProvider<IssueDetailsTour>
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isAvailable={isIssueDetailsTourAvailable}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       tourContext={IssueDetailsTourContext}

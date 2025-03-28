@@ -26,6 +26,7 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
+  isProgressivelyLoading: boolean;
   samplesTab: Tab;
   setSamplesTab: (tab: Tab) => void;
 }
@@ -109,5 +110,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;

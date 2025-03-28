@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -83,7 +83,7 @@ export function getIgnoreActions({
       <CustomIgnoreCountModal
         {...deps}
         onSelected={details => onCustomIgnore(details)}
-        label={t('Ignore this issue until it occurs again\u2026')}
+        label={t('Archive this issue until it occurs again\u2026')}
         countLabel={t('Number of times')}
         countName="ignoreCount"
         windowName="ignoreWindow"
@@ -96,7 +96,7 @@ export function getIgnoreActions({
       <CustomIgnoreCountModal
         {...deps}
         onSelected={details => onCustomIgnore(details)}
-        label={t('Ignore this issue until it affects an additional\u2026')}
+        label={t('Archive this issue until it affects an additional\u2026')}
         countLabel={t('Number of users')}
         countName="ignoreUserCount"
         windowName="ignoreUserWindow"
@@ -247,9 +247,10 @@ function IgnoreActions({
   });
 
   return (
-    <ButtonBar className={className} merged>
+    <ButtonBar merged>
       <IgnoreButton
         size={size}
+        className={className}
         tooltipProps={{delay: 300, disabled}}
         title={t(
           'Silences alerts for this issue and removes it from the issue stream by default.'
@@ -261,6 +262,7 @@ function IgnoreActions({
       </IgnoreButton>
       <DropdownMenu
         size="sm"
+        className={className}
         trigger={triggerProps => (
           <DropdownTrigger
             {...triggerProps}

@@ -14,6 +14,7 @@ import {DataCategory} from 'sentry/types/core';
 import {GIGABYTE, RESERVED_BUDGET_QUOTA, UNLIMITED_RESERVED} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode, type Subscription} from 'getsentry/types';
+import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 import UsageTotals, {
   calculateCategoryOnDemandUsage,
   calculateCategoryPrepaidUsage,
@@ -107,6 +108,56 @@ describe('Subscription > UsageTotals', function () {
     expect(
       screen.getByRole('columnheader', {name: 'Profile Events'})
     ).toBeInTheDocument();
+  });
+
+  it('renders continuous profiling totals', async function () {
+    const profileDurationTotals = UsageTotalFixture({
+      accepted: 15 * MILLISECONDS_IN_HOUR,
+      dropped: 0,
+      droppedOverQuota: 0,
+      droppedSpikeProtection: 0,
+      droppedOther: 0,
+    });
+
+    const profileChunksTotals = UsageTotalFixture({
+      accepted: 0,
+      dropped: 5 * MILLISECONDS_IN_HOUR,
+      droppedOverQuota: 0,
+      droppedSpikeProtection: 0,
+      droppedOther: 0,
+    });
+
+    render(
+      <UsageTotals
+        category="profileDuration"
+        totals={profileDurationTotals}
+        eventTotals={{profileChunks: profileChunksTotals}}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(
+      screen.getByText('Continuous profile hours usage this period')
+    ).toBeInTheDocument();
+    expect(screen.getByText('15')).toBeInTheDocument();
+
+    // Expand usage table
+    await userEvent.click(screen.getByRole('button'));
+
+    expect(
+      screen.getByRole('row', {
+        name: 'Continuous Profile Hours Quantity % of Continuous Profile Hours',
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Accepted 15 75%'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'Total Dropped (estimated) 5 25%'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Over Quota 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Spike Protection 0 0%'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'Other 0 0%'})).toBeInTheDocument();
   });
 
   it('does not render transaction event totals without feature', async function () {

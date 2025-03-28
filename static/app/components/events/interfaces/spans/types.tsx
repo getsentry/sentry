@@ -39,6 +39,7 @@ export type RawSpanType = {
   description?: string;
   exclusive_time?: number;
   hash?: string;
+  links?: SpanLink[];
   op?: string;
   origin?: string;
   parent_span_id?: string;
@@ -199,6 +200,16 @@ export enum TickAlignment {
   CENTER = 2,
 }
 
+type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
+
+export type SpanLink = {
+  span_id: string;
+  trace_id: string;
+  attributes?: Record<string, AttributeValue> & {'sentry.link.type'?: AttributeValue};
+  parent_span_id?: string;
+  sampled?: boolean;
+};
+
 export type TraceContextType = {
   client_sample_rate?: number;
   count?: number;
@@ -207,6 +218,7 @@ export type TraceContextType = {
   exclusive_time?: number;
   frequency?: number;
   hash?: string;
+  links?: SpanLink[];
   op?: string;
   parent_span_id?: string;
   span_id?: string;

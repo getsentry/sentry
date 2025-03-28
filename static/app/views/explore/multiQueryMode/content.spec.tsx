@@ -23,7 +23,7 @@ jest.mock('sentry/components/lazyRender', () => ({
 describe('MultiQueryModeContent', function () {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['visibility-explore-rpc'],
+      features: ['visibility-explore-rpc', 'performance-saved-queries'],
     },
   });
   let eventsRequest: any;
@@ -376,7 +376,7 @@ describe('MultiQueryModeContent', function () {
           query: expect.objectContaining({
             dataset: 'spans',
             field: [],
-            interval: '1h',
+            interval: '12h',
             orderby: undefined,
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -427,7 +427,7 @@ describe('MultiQueryModeContent', function () {
             dataset: 'spans',
             excludeOther: 0,
             field: ['span.op', 'avg(span.duration)'],
-            interval: '1h',
+            interval: '12h',
             orderby: '-avg_span_duration',
             project: ['2'],
             query: '!transaction.span_id:00',
@@ -566,9 +566,9 @@ describe('MultiQueryModeContent', function () {
 
     const section = screen.getByTestId('section-visualization-0');
     expect(
-      await within(section).findByRole('button', {name: '1 hour'})
+      await within(section).findByRole('button', {name: '12 hours'})
     ).toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('button', {name: '1 hour'}));
+    await userEvent.click(within(section).getByRole('button', {name: '12 hours'}));
     await userEvent.click(within(section).getByRole('option', {name: '30 minutes'}));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/traces/compare',
@@ -579,5 +579,12 @@ describe('MultiQueryModeContent', function () {
         ],
       }),
     });
+  });
+
+  it('renders a save query button', async function () {
+    render(<MultiQueryModeContent />, {organization});
+    expect(await screen.findByLabelText('Save')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Save'));
+    expect(await screen.findByText('A New Query')).toBeInTheDocument();
   });
 });

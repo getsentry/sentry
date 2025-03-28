@@ -4,17 +4,13 @@ from unittest import mock
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.factory import DetectPerformanceIssuesStrategyFactory
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.kafka_config import get_topic_definition
 from tests.sentry.spans.consumers.process import build_mock_span
-
-SNUBA_SPANS_CODEC: Codec[SpanEvent] = get_topic_codec(Topic.SNUBA_SPANS)
 
 
 def build_mock_message(data, topic=None):
@@ -25,11 +21,7 @@ def build_mock_message(data, topic=None):
     return message
 
 
-@override_options(
-    {
-        "standalone-spans.process-segments-consumer.enable": True,
-    }
-)
+@override_options({"standalone-spans.process-segments-consumer.enable": True})
 @mock.patch(
     "sentry.spans.consumers.process_segments.factory.process_segment", side_effect=lambda x: x
 )
@@ -44,6 +36,7 @@ def test_segment_deserialized_correctly(mock_process_segment):
         max_batch_size=2,
         max_batch_time=1,
         output_block_size=1,
+        skip_produce=False,
     )
 
     with mock.patch.object(factory, "producer", new=mock.Mock()) as mock_producer:
@@ -92,4 +85,6 @@ def test_segment_deserialized_correctly(mock_process_segment):
 
         assert mock_producer.produce.call_count == 2
         assert mock_producer.produce.call_args.args[0] == ArroyoTopic("snuba-spans")
-        SNUBA_SPANS_CODEC.decode(mock_producer.produce.call_args.args[1].value)
+
+        value = mock_producer.produce.call_args.args[1].value
+        assert json.loads(value) == span_data

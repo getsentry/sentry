@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import debounce from 'lodash/debounce';
 import pick from 'lodash/pick';
@@ -8,10 +9,10 @@ import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -92,6 +93,7 @@ function ManageDashboards() {
   const api = useApi();
   const dashboardGridRef = useRef<HTMLDivElement>(null);
   const prefersStackedNav = usePrefersStackedNav();
+  const queryClient = useQueryClient();
 
   const [showTemplates, setShowTemplatesLocal] = useLocalStorageState(
     SHOW_TEMPLATES_KEY,
@@ -220,6 +222,21 @@ function ManageDashboards() {
     });
   };
 
+  const handleDashboardsChange = () => {
+    refetchDashboards();
+
+    // We also need to invalidate the cache for the query that is used by the
+    // <DashboardsSecondaryNav /> component ('static/app/views/dashboards/navigation.tsx').
+    // Otherwise, the starred / unstarred dashboards will not be reflected in the navigation
+    // before a full page reload.
+    queryClient.invalidateQueries({
+      queryKey: [
+        `/organizations/${organization.slug}/dashboards/`,
+        {query: {filter: 'onlyFavorites'}},
+      ],
+    });
+  };
+
   const toggleTemplates = () => {
     trackAnalytics('dashboards_manage.templates.toggle', {
       organization,
@@ -316,7 +333,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={handleDashboardsChange}
         isLoading={isLoading}
         rowCount={rowCount}
         columnCount={columnCount}
@@ -327,7 +344,7 @@ function ManageDashboards() {
         dashboards={dashboards}
         organization={organization}
         location={location}
-        onDashboardsChange={() => refetchDashboards()}
+        onDashboardsChange={handleDashboardsChange}
         isLoading={isLoading}
       />
     );

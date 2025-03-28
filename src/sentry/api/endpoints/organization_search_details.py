@@ -10,6 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationSear
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.savedsearch import (
+    BaseOrganizationSearchSerializer,
     OrganizationSearchAdminSerializer,
     OrganizationSearchMemberSerializer,
 )
@@ -70,7 +71,9 @@ class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
         Updates a saved search
         """
         if request.access.has_scope("org:write"):
-            serializer = OrganizationSearchAdminSerializer(data=request.data)
+            serializer: BaseOrganizationSearchSerializer = OrganizationSearchAdminSerializer(
+                data=request.data
+            )
         else:
             serializer = OrganizationSearchMemberSerializer(data=request.data)
 

@@ -274,16 +274,6 @@ class ReleaseParams:
     )
 
 
-class SCIMParams:
-    TEAM_ID = OpenApiParameter(
-        name="team_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the team you'd like to query / update.",
-    )
-
-
 class IssueParams:
     KEY = OpenApiParameter(
         name="key",
@@ -816,6 +806,16 @@ Available fields are:
 - `recentlyViewed`
 - `myqueries`
         """,
+    )
+
+
+class ExploreSavedQueryParams:
+    EXPLORE_SAVED_QUERY_ID = OpenApiParameter(
+        name="id",
+        location="path",
+        required=True,
+        type=int,
+        description="""The ID of the Explore query you'd like to retrieve.""",
     )
 
 

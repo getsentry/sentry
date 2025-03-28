@@ -6,7 +6,6 @@ import isEqual from 'lodash/isEqual';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useNavContext} from 'sentry/components/nav/context';
-import {GrabHandleIcon} from 'sentry/components/nav/issueViews/grabHandleIcon';
 import IssueViewNavEditableTitle from 'sentry/components/nav/issueViews/issueViewNavEditableTitle';
 import {IssueViewNavEllipsisMenu} from 'sentry/components/nav/issueViews/issueViewNavEllipsisMenu';
 import {constructViewLink} from 'sentry/components/nav/issueViews/issueViewNavItems';
@@ -15,6 +14,7 @@ import ProjectIcon from 'sentry/components/nav/projectIcon';
 import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -130,6 +130,8 @@ export function IssueViewNavItemContent({
 
   const {startInteraction, endInteraction, isInteractingRef} = useNavContext();
 
+  const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+
   return (
     <StyledReorderItem
       as="div"
@@ -148,13 +150,18 @@ export function IssueViewNavItemContent({
       }}
       dragListener={false}
       dragControls={controls}
+      // This style is a hack to fix a framer-motion bug that causes views to
+      // jump from the bottom of the nav bar to their correct positions
+      // upon scrolling down on the page and triggering a page navigation.
+      // See: https://github.com/motiondivision/motion/issues/2006
       style={{
-        ...(isDragging
+        ...(isDragging || scrollPosition === 0
           ? {}
           : {
               originY: '0px',
             }),
       }}
+      grabbing={isDragging === view.id}
     >
       <StyledSecondaryNavItem
         to={constructViewLink(baseUrl, view)}
@@ -170,7 +177,7 @@ export function IssueViewNavItemContent({
               }}
             >
               <StyledInteractionStateLayer isPressed={isDragging === view.id} />
-              <GrabHandleIcon color="gray300" />
+              <IconGrabbable color="gray300" />
             </GrabHandleWrapper>
             <ProjectIcon projectPlatforms={projectPlatforms} />
           </LeadingItemsWrapper>
@@ -207,6 +214,7 @@ export function IssueViewNavItemContent({
             });
           }
         }}
+        analyticsItemName="issues_view_starred"
       >
         <IssueViewNavEditableTitle
           label={view.label}
@@ -344,9 +352,9 @@ const hasUnsavedChanges = (
 
 // Reorder.Item does handle lifting an item being dragged above other items out of the box,
 // but we need to ensure the item is relatively positioned and has a background color for it to work
-const StyledReorderItem = styled(Reorder.Item)`
+const StyledReorderItem = styled(Reorder.Item)<{grabbing: boolean}>`
   position: relative;
-  background-color: ${p => p.theme.translucentSurface200};
+  background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
   border-radius: ${p => p.theme.borderRadius};
 `;
 
@@ -421,7 +429,7 @@ const LeadingItemsWrapper = styled('div')`
   margin-right: ${space(0.75)};
 `;
 
-const GrabHandleWrapper = styled(motion.div)`
+const GrabHandleWrapper = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   display: flex;
   align-items: center;
   justify-content: center;

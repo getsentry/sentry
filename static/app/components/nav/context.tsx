@@ -10,13 +10,15 @@ export interface NavContext {
   activeGroup: PrimaryNavGroup | null;
   endInteraction: () => void;
   isCollapsed: boolean;
-  isInteractingRef: React.RefObject<boolean>;
+  isInteractingRef: React.RefObject<boolean | null>;
   layout: NavLayout;
-  navParentRef: React.RefObject<HTMLDivElement>;
+  navParentRef: React.RefObject<HTMLDivElement | null>;
   secondaryNavEl: HTMLElement | null;
   setActiveGroup: (group: PrimaryNavGroup | null) => void;
   setIsCollapsed: (isCollapsed: boolean) => void;
   setSecondaryNavEl: (el: HTMLElement | null) => void;
+  setShowTourReminder: (showTourReminder: boolean) => void;
+  showTourReminder: boolean;
   startInteraction: () => void;
 }
 
@@ -32,6 +34,8 @@ const NavContext = createContext<NavContext>({
   isInteractingRef: {current: false},
   startInteraction: () => {},
   endInteraction: () => {},
+  showTourReminder: false,
+  setShowTourReminder: () => {},
 });
 
 export function useNavContext(): NavContext {
@@ -47,6 +51,7 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
   );
   const [secondaryNavEl, setSecondaryNavEl] = useState<HTMLElement | null>(null);
   const [activeGroup, setActiveGroup] = useState<PrimaryNavGroup | null>(null);
+  const [showTourReminder, setShowTourReminder] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -72,6 +77,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       isInteractingRef,
       startInteraction,
       endInteraction,
+      showTourReminder,
+      setShowTourReminder,
     }),
     [
       secondaryNavEl,
@@ -81,6 +88,8 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
       activeGroup,
       startInteraction,
       endInteraction,
+      showTourReminder,
+      setShowTourReminder,
     ]
   );
 

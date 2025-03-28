@@ -1,6 +1,10 @@
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {SidebarMenu} from 'sentry/components/nav/primary/components';
+import {
+  StackedNavigationTourReminder,
+  useStackedNavigationTour,
+} from 'sentry/components/nav/tour/tour';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -10,8 +14,6 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {activateZendesk, zendeskIsLoaded} from 'sentry/utils/zendesk';
-
-import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 function getContactSupportItem({
   organization,
@@ -30,7 +32,7 @@ function getContactSupportItem({
       label: t('Contact Support'),
       onAction() {
         activateZendesk();
-        trackGetsentryAnalytics('zendesk_link.clicked', {
+        trackAnalytics('zendesk_link.clicked', {
           organization,
           source: 'sidebar',
         });
@@ -50,85 +52,95 @@ export function PrimaryNavigationHelp() {
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const contactSupportItem = getContactSupportItem({organization});
   const openForm = useFeedbackForm();
+  const {startTour} = useStackedNavigationTour();
 
   return (
-    <SidebarMenu
-      items={[
-        {
-          key: 'search',
-          label: t('Search Support, Docs and More'),
-          onAction() {
-            openHelpSearchModal({organization});
+    <StackedNavigationTourReminder>
+      <SidebarMenu
+        items={[
+          {
+            key: 'search',
+            label: t('Search support, docs and more'),
+            onAction() {
+              openHelpSearchModal({organization});
+            },
           },
-        },
-        {
-          key: 'resources',
-          label: t('Resources'),
-          children: [
-            {
-              key: 'help-center',
-              label: t('Help Center'),
-              externalHref: 'https://sentry.zendesk.com/hc/en-us',
-            },
-            {
-              key: 'docs',
-              label: t('Documentation'),
-              externalHref: 'https://docs.sentry.io',
-            },
-          ],
-        },
-        {
-          key: 'help',
-          label: t('Get Help'),
-          children: [
-            ...(contactSupportItem ? [contactSupportItem] : []),
-            {
-              key: 'github',
-              label: t('Sentry on GitHub'),
-              externalHref: 'https://github.com/getsentry/sentry/issues',
-            },
-            {
-              key: 'discord',
-              label: t('Join our Discord'),
-              externalHref: 'https://discord.com/invite/sentry',
-            },
-          ],
-        },
-        {
-          key: 'actions',
-          children: [
-            {
-              key: 'give-feedback',
-              label: t('Give Feedback'),
-              onAction() {
-                openForm?.({
-                  tags: {
-                    ['feedback.source']: 'navigation_sidebar',
-                  },
-                });
+          {
+            key: 'resources',
+            label: t('Resources'),
+            children: [
+              {
+                key: 'help-center',
+                label: t('Help Center'),
+                externalHref: 'https://sentry.zendesk.com/hc/en-us',
               },
-              hidden: !openForm,
-            },
-            {
-              key: 'new-ui',
-              label: t('Switch to Old Navigation'),
-              onAction() {
-                mutateUserOptions({prefersStackedNavigation: false});
-                trackAnalytics(
-                  'navigation.help_menu_opt_out_stacked_navigation_clicked',
-                  {
-                    organization,
-                  }
-                );
+              {
+                key: 'docs',
+                label: t('Documentation'),
+                externalHref: 'https://docs.sentry.io',
               },
-            },
-          ],
-        },
-      ]}
-      analyticsKey="help"
-      label={t('Help')}
-    >
-      <IconQuestion />
-    </SidebarMenu>
+            ],
+          },
+          {
+            key: 'help',
+            label: t('Get Help'),
+            children: [
+              ...(contactSupportItem ? [contactSupportItem] : []),
+              {
+                key: 'github',
+                label: t('Sentry on GitHub'),
+                externalHref: 'https://github.com/getsentry/sentry/issues',
+              },
+              {
+                key: 'discord',
+                label: t('Join our Discord'),
+                externalHref: 'https://discord.com/invite/sentry',
+              },
+            ],
+          },
+          {
+            key: 'actions',
+            children: [
+              {
+                key: 'give-feedback',
+                label: t('Give feedback'),
+                onAction() {
+                  openForm?.({
+                    tags: {
+                      ['feedback.source']: 'navigation_sidebar',
+                    },
+                  });
+                },
+                hidden: !openForm,
+              },
+              {
+                key: 'tour',
+                label: t('Tour the new navigation'),
+                onAction() {
+                  startTour();
+                },
+              },
+              {
+                key: 'new-ui',
+                label: t('Switch to old navigation'),
+                onAction() {
+                  mutateUserOptions({prefersStackedNavigation: false});
+                  trackAnalytics(
+                    'navigation.help_menu_opt_out_stacked_navigation_clicked',
+                    {
+                      organization,
+                    }
+                  );
+                },
+              },
+            ],
+          },
+        ]}
+        analyticsKey="help"
+        label={t('Help')}
+      >
+        <IconQuestion />
+      </SidebarMenu>
+    </StackedNavigationTourReminder>
   );
 }

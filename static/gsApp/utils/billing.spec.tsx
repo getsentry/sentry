@@ -16,6 +16,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isDeveloperPlan,
+  isNewPayingCustomer,
   isTeamPlanFamily,
   MILLISECONDS_IN_HOUR,
   trialPromptIsDismissed,
@@ -316,24 +317,22 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23 TB');
   });
 
-  it('returns correct string for Profile Duration', function () {
-    expect(formatUsageWithUnits(0, DataCategory.PROFILE_DURATION)).toBe('0');
-    expect(formatUsageWithUnits(1, DataCategory.PROFILE_DURATION)).toBe('0');
-    expect(formatUsageWithUnits(360000, DataCategory.PROFILE_DURATION)).toBe('0.1');
-    expect(
-      formatUsageWithUnits(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
-    ).toBe('1');
-    expect(
-      formatUsageWithUnits(5.23 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
-    ).toBe('5.2');
-    expect(
-      formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
-    ).toBe('1,000');
-    expect(
-      formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION, {
-        isAbbreviated: true,
-      })
-    ).toBe('1K');
+  it('returns correct string for continuous profiling', function () {
+    [DataCategory.PROFILE_DURATION, DataCategory.PROFILE_DURATION_UI].forEach(
+      (cat: DataCategory) => {
+        expect(formatUsageWithUnits(0, cat)).toBe('0');
+        expect(formatUsageWithUnits(1, cat)).toBe('0');
+        expect(formatUsageWithUnits(360000, cat)).toBe('0.1');
+        expect(formatUsageWithUnits(MILLISECONDS_IN_HOUR, cat)).toBe('1');
+        expect(formatUsageWithUnits(5.23 * MILLISECONDS_IN_HOUR, cat)).toBe('5.2');
+        expect(formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat)).toBe('1,000');
+        expect(
+          formatUsageWithUnits(1000 * MILLISECONDS_IN_HOUR, cat, {
+            isAbbreviated: true,
+          })
+        ).toBe('1K');
+      }
+    );
   });
 });
 
@@ -809,5 +808,54 @@ describe('getActiveProductTrial', function () {
   it('returns null trial for null trials', function () {
     const pt = getProductTrial(null, DataCategory.ERRORS);
     expect(pt).toBeNull();
+  });
+});
+
+describe('isNewPayingCustomer', function () {
+  it('returns true for customer on free plan', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({organization, isFree: true});
+    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+  });
+
+  it('returns true for customer on trial plan', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_t',
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+  });
+
+  it('returns true for customer with partner migration feature', function () {
+    const organization = OrganizationFixture({features: ['partner-billing-migration']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+  });
+
+  it('returns false for customer on plan trial', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isTrial: true,
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(false);
+  });
+
+  it('returns false for paying customer', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(false);
   });
 });

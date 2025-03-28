@@ -35,7 +35,11 @@ type ReleaseHealthItem = {
 
 interface Props {
   end: string;
+  environments: readonly string[];
+  onMouseOutRelease: (release: string) => void;
+  onMouseOverRelease: (release: string) => void;
   onSelectRelease: (release: string, projectId: string) => void;
+  projects: readonly number[];
   start: string;
 }
 
@@ -44,7 +48,7 @@ type Column = GridColumnHeader<keyof ReleaseHealthGridItem>;
 
 const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
   {key: 'release', name: 'release', width: 400},
-  {key: 'error_count', name: 'new issues'},
+  {key: 'error_count', name: 'new issues', width: 110},
   {key: 'date', name: 'created'},
 ];
 
@@ -54,7 +58,15 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * can't re-use because this will eventually be a bit different,
  * especially with the in-drawer navigation.
  */
-export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
+export function ReleaseDrawerTable({
+  end,
+  environments,
+  projects,
+  start,
+  onMouseOverRelease,
+  onMouseOutRelease,
+  onSelectRelease,
+}: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -63,6 +75,8 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
+          project: projects,
+          environment: environments,
           ...Object.fromEntries(
             Object.entries(location.query).filter(([key]) =>
               ['project', 'environment'].includes(key)
@@ -123,6 +137,12 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
         return (
           <ReleaseLink
             to="#"
+            onMouseOver={() => {
+              onMouseOverRelease(dataRow.release);
+            }}
+            onMouseOut={() => {
+              onMouseOutRelease(dataRow.release);
+            }}
             onClick={e => {
               e.preventDefault();
               onSelectRelease(String(value), String(dataRow.project_id));
@@ -135,7 +155,8 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       }
 
       if (column.key === 'error_count') {
-        return (
+        const value = dataRow[column.key];
+        return value > 0 ? (
           <Tooltip title={t('Open in Issues')} position="auto-start">
             <GlobalSelectionLink
               to={getReleaseNewIssuesUrl(
@@ -144,9 +165,11 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
                 dataRow.release
               )}
             >
-              <Count value={dataRow[column.key]} />
+              <Count value={value} />
             </GlobalSelectionLink>
           </Tooltip>
+        ) : (
+          <Count value={value} />
         );
       }
       if (!meta?.fields) {
@@ -165,7 +188,7 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
         </CellWrapper>
       );
     },
-    [organization, location, onSelectRelease]
+    [organization, location, onSelectRelease, onMouseOutRelease, onMouseOverRelease]
   );
 
   const tableEmptyMessage = (

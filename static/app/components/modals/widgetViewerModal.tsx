@@ -12,9 +12,9 @@ import moment from 'moment-timezone';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Select} from 'sentry/components/core/select';
 import {SelectOption} from 'sentry/components/core/select/option';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -113,7 +113,6 @@ export interface WidgetViewerModalOptions {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
-  isSampled?: boolean | null;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
@@ -199,7 +198,6 @@ function WidgetViewerModal(props: Props) {
     dashboardCreator,
     confidence,
     sampleCount,
-    isSampled,
   } = props;
   const location = useLocation();
   const {projects} = useProjects();
@@ -859,7 +857,6 @@ function WidgetViewerModal(props: Props) {
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
                 confidence={confidence}
                 sampleCount={sampleCount}
-                isSampled={isSampled}
               />
             ) : (
               <MemoizedWidgetCardChartContainer

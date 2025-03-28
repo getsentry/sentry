@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
@@ -27,7 +27,9 @@ export enum DataType {
   SPANS = 'spans',
   INDEXED_SPANS = 'indexed_spans',
   PROFILE_DURATION = 'profile_duration',
+  PROFILE_DURATION_UI = 'profile_duration_ui',
   PROFILE_CHUNK = 'profile_chunk',
+  PROFILE_CHUNK_UI = 'profile_chunk_ui',
   ATTACHMENTS = 'attachments',
 }
 
@@ -37,8 +39,10 @@ const dataTypeLabels = {
   [DataType.INDEXED_TRANSACTIONS]: 'Indexed Transactions',
   [DataType.PROFILES]: 'Profiles',
   [DataType.INDEXED_PROFILES]: 'Indexed Profiles',
-  [DataType.PROFILE_DURATION]: 'Profile Hours',
+  [DataType.PROFILE_DURATION]: 'Continuous Profile Hours',
+  [DataType.PROFILE_DURATION_UI]: 'UI Profile Hours',
   [DataType.PROFILE_CHUNK]: 'Profile Chunks',
+  [DataType.PROFILE_CHUNK_UI]: 'UI Profile Chunks',
   [DataType.REPLAYS]: 'Replays',
   [DataType.FEEDBACK]: 'Feedback',
   [DataType.MONITORS]: 'Monitor Check-Ins',
@@ -59,8 +63,12 @@ export function categoryFromDataType(dataType: DataType): string {
       return 'profile_indexed';
     case DataType.PROFILE_DURATION:
       return 'profile_duration';
+    case DataType.PROFILE_DURATION_UI:
+      return 'profile_duration_ui';
     case DataType.PROFILE_CHUNK:
       return 'profile_chunk';
+    case DataType.PROFILE_CHUNK_UI:
+      return 'profile_chunk_ui';
     case DataType.REPLAYS:
       return 'replay';
     case DataType.FEEDBACK:

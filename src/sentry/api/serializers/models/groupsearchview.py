@@ -13,14 +13,16 @@ class GroupSearchViewSerializerResponse(TypedDict):
     name: str
     query: str
     querySort: SORT_LITERALS
-    position: int
     projects: list[int]
-    isAllProjects: bool
     environments: list[str]
     timeFilters: dict
     lastVisited: str | None
     dateCreated: str
     dateUpdated: str
+
+
+class GroupSearchViewStarredSerializerResponse(GroupSearchViewSerializerResponse):
+    position: int
 
 
 @register(GroupSearchView)
@@ -51,25 +53,21 @@ class GroupSearchViewSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
         if self.has_global_views is False:
-            is_all_projects = False
-
             projects = list(obj.projects.values_list("id", flat=True))
             num_projects = len(projects)
             if num_projects != 1:
                 projects = [projects[0] if num_projects > 1 else self.default_project]
-
         else:
-            is_all_projects = obj.is_all_projects
-            projects = list(obj.projects.values_list("id", flat=True))
+            projects = (
+                [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
+            )
 
         return {
             "id": str(obj.id),
             "name": obj.name,
             "query": obj.query,
             "querySort": obj.query_sort,
-            "position": obj.position,
             "projects": projects,
-            "isAllProjects": is_all_projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
             "lastVisited": attrs["last_visited"] if attrs else None,
@@ -86,7 +84,7 @@ class GroupSearchViewStarredSerializer(Serializer):
         self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
+    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewStarredSerializerResponse:
         serialized_view: GroupSearchViewSerializerResponse = serialize(
             obj.group_search_view,
             user,

@@ -6,6 +6,7 @@ import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function useGroupTagsDrawer({
@@ -35,13 +36,14 @@ export function useGroupTagsDrawer({
                 ...location.query,
                 tagDrawerSort: undefined,
                 tab: undefined,
+                flagDrawerCursor: undefined,
               },
             },
             {replace: true}
           );
         },
         shouldCloseOnLocationChange: newLocation => {
-          return !newLocation.pathname.includes('/tags/');
+          return !newLocation.pathname.includes(`/${TabPaths[Tab.DISTRIBUTIONS]}`);
         },
       }
     );

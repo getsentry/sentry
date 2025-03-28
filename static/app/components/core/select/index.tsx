@@ -1,19 +1,24 @@
-import {forwardRef, useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import Async from 'react-select/async';
 import AsyncCreatable from 'react-select/async-creatable';
 import Creatable from 'react-select/creatable';
-import type {CSSObject} from '@emotion/react';
+import type {CSSObject, Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
 import {Chevron} from 'sentry/components/chevron';
+import {
+  ChonkClearIndicator,
+  ChonkDropdownIndicator,
+  getChonkStylesConfig,
+  type StylesConfig,
+} from 'sentry/components/core/select/index.chonk';
 import type {
   GroupedOptionsType,
   OptionsType,
   OptionTypeBase,
   Props as ReactSelectProps,
-  StylesConfig as ReactSelectStylesConfig,
 } from 'sentry/components/forms/controls/reactSelectWrapper';
 import {
   components as selectComponents,
@@ -31,6 +36,8 @@ import PanelProvider from 'sentry/utils/panelProvider';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';
+
+export type {StylesConfig};
 
 function isGroupedOptions<OptionType extends OptionTypeBase>(
   maybe:
@@ -144,6 +151,7 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
    * Handler for changes. Narrower than the types in react-select.
    */
   onChange?: (value?: OptionType | null) => void;
+  ref?: React.Ref<typeof ReactSelect>;
   /**
    * Show line dividers between options
    */
@@ -158,222 +166,225 @@ export interface ControlProps<OptionType extends OptionTypeBase = GeneralSelectV
   value?: any;
 }
 
-/**
- * Additional props provided by forwardRef
- */
-interface WrappedControlProps<OptionType extends OptionTypeBase>
-  extends ControlProps<OptionType> {
-  /**
-   * Ref forwarded into ReactSelect component.
-   * The any is inherited from react-select.
-   */
-  forwardedRef: React.Ref<typeof ReactSelect>;
-}
-
 // TODO(ts) The exported component uses forwardRef.
 // This means we cannot fill the SelectValue generic
 // at the call site. We use `any` here to avoid type errors with select
 // controls that have custom option structures
 export type GeneralSelectValue = SelectValue<any>;
 
-// We don't care about any options for the styles config
-export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
-
-function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
-  props: WrappedControlProps<OptionType>
-) {
-  const theme = useTheme();
-  const {size, maxMenuWidth, isInsideModal} = props;
-
+const getStylesConfig = ({
+  theme,
+  size,
+  maxMenuWidth,
+  isInsideModal,
+}: {
+  isInsideModal: boolean | undefined;
+  maxMenuWidth: string | number | undefined;
+  size: FormSize | undefined;
+  theme: Theme;
+}) => {
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
 
   // Unfortunately we cannot use emotions `css` helper here, since react-select
   // *requires* object styles, which the css helper cannot produce.
-  const indicatorStyles = useCallback(
-    (provided: CSSObject): CSSObject => ({
-      ...provided,
-      padding: '4px',
+  const indicatorStyles = (provided: CSSObject): CSSObject => ({
+    ...provided,
+    padding: '4px',
+    alignItems: 'center',
+    cursor: 'pointer',
+    color: theme.subText,
+  });
+
+  return {
+    control: (_, state: any) => ({
+      display: 'flex',
+      color: theme.formText,
+      background: theme.background,
+      border: `1px solid ${theme.border}`,
+      boxShadow: theme.dropShadowMedium,
+      borderRadius: theme.borderRadius,
+      transition: 'border 0.1s, box-shadow 0.1s',
       alignItems: 'center',
+      ...(state.isFocused && {
+        borderColor: theme.focusBorder,
+        boxShadow: `${theme.focusBorder} 0 0 0 1px`,
+      }),
+      ...(state.isDisabled && {
+        borderColor: theme.border,
+        background: theme.backgroundSecondary,
+        color: theme.disabled,
+        cursor: 'not-allowed',
+      }),
+      ...(!state.isSearchable && {
+        cursor: 'pointer',
+      }),
+      ...omit(theme.form[size ?? 'md'], 'height'),
+      ...(state.isMulti && {
+        maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
+        overflow: 'hidden',
+      }),
+    }),
+
+    menu: provided => ({
+      ...provided,
+      zIndex: theme.zIndex.dropdown,
+      background: theme.backgroundElevated,
+      borderRadius: theme.borderRadius,
+      boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
+      width: 'auto',
+      minWidth: '100%',
+      maxWidth: maxMenuWidth ?? 'auto',
+    }),
+
+    menuPortal: provided => ({
+      ...provided,
+      maxWidth: maxMenuWidth ?? '24rem',
+      zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
+    }),
+
+    option: provided => ({
+      ...provided,
       cursor: 'pointer',
-      color: theme.subText,
-    }),
-    [theme]
-  );
-
-  const defaultStyles = useMemo<StylesConfig>(
-    () => ({
-      control: (_, state: any) => ({
-        display: 'flex',
-        color: theme.formText,
-        background: theme.background,
-        border: `1px solid ${theme.border}`,
-        boxShadow: theme.dropShadowMedium,
-        borderRadius: theme.borderRadius,
-        transition: 'border 0.1s, box-shadow 0.1s',
-        alignItems: 'center',
-        ...(state.isFocused && {
-          borderColor: theme.focusBorder,
-          boxShadow: `${theme.focusBorder} 0 0 0 1px`,
-        }),
-        ...(state.isDisabled && {
-          borderColor: theme.border,
-          background: theme.backgroundSecondary,
-          color: theme.disabled,
-          cursor: 'not-allowed',
-        }),
-        ...(!state.isSearchable && {
-          cursor: 'pointer',
-        }),
-        ...omit(theme.form[size ?? 'md'], 'height'),
-        ...(state.isMulti && {
-          maxHeight: '20.8em', // 10 lines (1.8em * 10) + padding
-          overflow: 'hidden',
-        }),
-      }),
-
-      menu: provided => ({
-        ...provided,
-        zIndex: theme.zIndex.dropdown,
-        background: theme.backgroundElevated,
-        borderRadius: theme.borderRadius,
-        boxShadow: `${theme.dropShadowHeavy}, 0 0 0 1px ${theme.translucentBorder}`,
-        width: 'auto',
-        minWidth: '100%',
-        maxWidth: maxMenuWidth ?? 'auto',
-      }),
-
-      menuPortal: provided => ({
-        ...provided,
-        maxWidth: maxMenuWidth ?? '24rem',
-        zIndex: isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,
-      }),
-
-      option: provided => ({
-        ...provided,
-        cursor: 'pointer',
-        color: theme.textColor,
+      color: theme.textColor,
+      background: 'transparent',
+      padding: 0,
+      ':active': {
         background: 'transparent',
-        padding: 0,
-        ':active': {
-          background: 'transparent',
-        },
-      }),
-      valueContainer: (provided, state) => ({
-        ...provided,
-        alignItems: 'center',
-        paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
-        paddingRight: space(0.5),
-        // offset horizontal margin/padding from multiValue (space(0.25)) &
-        // multiValueLabel (space(0.75))
-        ...(state.isMulti && {
-          marginLeft: `-${space(1)}`,
-          maxHeight: 'inherit',
-          overflowY: 'auto',
-          scrollbarColor: `${theme.purple200} ${theme.background}`,
-        }),
-      }),
-      input: provided => ({
-        ...provided,
-        color: theme.formText,
-        margin: 0,
-      }),
-      singleValue: provided => ({
-        ...provided,
-        color: theme.formText,
-        display: 'flex',
-        alignItems: 'center',
-        marginLeft: 0,
-        marginRight: 0,
-        width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
-          0.5
-        )})`,
-      }),
-      placeholder: provided => ({
-        ...provided,
-        color: theme.formPlaceholder,
-      }),
-      multiValue: provided => ({
-        ...provided,
-        color: theme.textColor,
-        backgroundColor: theme.background,
-        borderRadius: '2px',
-        border: `1px solid ${theme.border}`,
-        display: 'flex',
-        marginLeft: space(0.25),
-      }),
-      multiValueLabel: provided => ({
-        ...provided,
-        color: theme.textColor,
-        padding: '0',
-        paddingLeft: space(0.75),
-        lineHeight: '1.8',
-      }),
-      multiValueRemove: () => ({
-        cursor: 'pointer',
-        alignItems: 'center',
-        borderLeft: `1px solid ${theme.innerBorder}`,
-        borderRadius: '0 2px 2px 0',
-        display: 'flex',
-        padding: '0 4px',
-        marginLeft: '4px',
-
-        '&:hover': {
-          color: theme.headingColor,
-          background: theme.backgroundTertiary,
-        },
-      }),
-      indicatorsContainer: () => ({
-        display: 'grid',
-        gridAutoFlow: 'column',
-        gridGap: '2px',
-        marginRight: '6px',
-      }),
-      clearIndicator: indicatorStyles,
-      dropdownIndicator: indicatorStyles,
-      loadingIndicator: indicatorStyles,
-      groupHeading: provided => ({
-        ...provided,
-        lineHeight: '1.5',
-        fontWeight: 600,
-        color: theme.subText,
-        marginBottom: 0,
-        padding: `${space(0.5)} ${space(1.5)}`,
-        ':empty': {
-          display: 'none',
-        },
-      }),
-      group: provided => ({
-        ...provided,
-        paddingTop: 0,
-        ':last-of-type': {
-          paddingBottom: 0,
-        },
-        ':not(:last-of-type)': {
-          position: 'relative',
-          marginBottom: space(1),
-        },
-        // Add divider between sections
-        ':not(:last-of-type)::after': {
-          content: '""',
-          position: 'absolute',
-          left: space(1.5),
-          right: space(1.5),
-          bottom: 0,
-          borderBottom: `solid 1px ${theme.innerBorder}`,
-        },
+      },
+    }),
+    valueContainer: (provided, state) => ({
+      ...provided,
+      alignItems: 'center',
+      paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+      paddingRight: space(0.5),
+      // offset horizontal margin/padding from multiValue (space(0.25)) &
+      // multiValueLabel (space(0.75))
+      ...(state.isMulti && {
+        marginLeft: `-${space(1)}`,
+        maxHeight: 'inherit',
+        overflowY: 'auto',
+        scrollbarColor: `${theme.purple200} ${theme.background}`,
       }),
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [theme, size, maxMenuWidth, indicatorStyles]
-  );
+    input: provided => ({
+      ...provided,
+      color: theme.formText,
+      margin: 0,
+    }),
+    singleValue: provided => ({
+      ...provided,
+      color: theme.formText,
+      display: 'flex',
+      alignItems: 'center',
+      marginLeft: 0,
+      marginRight: 0,
+      width: `calc(100% - ${theme.formPadding[size ?? 'md'].paddingLeft}px - ${space(
+        0.5
+      )})`,
+    }),
+    placeholder: provided => ({
+      ...provided,
+      color: theme.formPlaceholder,
+    }),
+    multiValue: provided => ({
+      ...provided,
+      color: theme.textColor,
+      backgroundColor: theme.background,
+      borderRadius: '2px',
+      border: `1px solid ${theme.border}`,
+      display: 'flex',
+      marginLeft: space(0.25),
+    }),
+    multiValueLabel: provided => ({
+      ...provided,
+      color: theme.textColor,
+      padding: '0',
+      paddingLeft: space(0.75),
+      lineHeight: '1.8',
+    }),
+    multiValueRemove: () => ({
+      cursor: 'pointer',
+      alignItems: 'center',
+      borderLeft: `1px solid ${theme.innerBorder}`,
+      borderRadius: '0 2px 2px 0',
+      display: 'flex',
+      padding: '0 4px',
+      marginLeft: '4px',
+
+      '&:hover': {
+        color: theme.headingColor,
+        background: theme.backgroundTertiary,
+      },
+    }),
+    indicatorsContainer: () => ({
+      display: 'grid',
+      gridAutoFlow: 'column',
+      gridGap: '2px',
+      marginRight: '6px',
+    }),
+    clearIndicator: indicatorStyles,
+    dropdownIndicator: indicatorStyles,
+    loadingIndicator: indicatorStyles,
+    groupHeading: provided => ({
+      ...provided,
+      lineHeight: '1.5',
+      fontWeight: 600,
+      color: theme.subText,
+      marginBottom: 0,
+      padding: `${space(0.5)} ${space(1.5)}`,
+      ':empty': {
+        display: 'none',
+      },
+    }),
+    group: provided => ({
+      ...provided,
+      paddingTop: 0,
+      ':last-of-type': {
+        paddingBottom: 0,
+      },
+      ':not(:last-of-type)': {
+        position: 'relative',
+        marginBottom: space(1),
+      },
+      // Add divider between sections
+      ':not(:last-of-type)::after': {
+        content: '""',
+        position: 'absolute',
+        left: space(1.5),
+        right: space(1.5),
+        bottom: 0,
+        borderBottom: `solid 1px ${theme.innerBorder}`,
+      },
+    }),
+  } satisfies StylesConfig;
+};
+
+function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValue>(
+  props: ControlProps<OptionType>
+) {
+  const theme = useTheme();
+  const {size, maxMenuWidth, isInsideModal, isSearchable, isDisabled} = props;
+
+  const defaultStyles = useMemo(() => {
+    return theme.isChonk
+      ? getChonkStylesConfig({
+          theme: theme as any,
+          size,
+          maxMenuWidth,
+          isInsideModal,
+          isSearchable,
+          isDisabled,
+        })
+      : getStylesConfig({theme, size, maxMenuWidth, isInsideModal});
+  }, [theme, size, maxMenuWidth, isInsideModal, isSearchable, isDisabled]);
 
   const getFieldLabelStyle = (label?: string): CSSObject => ({
     ':before': {
       content: `"${label}"`,
-      color: theme.gray300,
+      color: theme.isChonk ? theme.gray500 : theme.gray300,
       fontWeight: 600,
-      marginRight: space(1),
+      marginRight: theme.formSpacing[size ?? 'md'],
     },
   });
 
@@ -445,8 +456,8 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   const replacedComponents = {
     SingleValue,
-    ClearIndicator,
-    DropdownIndicator,
+    ClearIndicator: theme.isChonk ? ChonkClearIndicator : ClearIndicator,
+    DropdownIndicator: theme.isChonk ? ChonkDropdownIndicator : DropdownIndicator,
     MultiValueRemove,
     LoadingIndicator: SelectLoadingIndicator,
     IndicatorSeparator: null,
@@ -504,7 +515,7 @@ export interface PickerProps<OptionType extends OptionTypeBase>
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
-  forwardedRef,
+  ref,
   ...props
 }: PickerProps<OptionType>) {
   // Pick the right component to use
@@ -520,12 +531,13 @@ function SelectPicker<OptionType extends OptionTypeBase>({
     Component = ReactSelect;
   }
 
-  return <Component ref={forwardedRef} {...props} />;
+  return <Component ref={ref as any} {...props} />;
 }
 
-// The generics need to be filled here as forwardRef can't expose generics.
-export const Select = forwardRef<typeof ReactSelect<GeneralSelectValue>, ControlProps>(
-  function RefForwardedSelectControl(props, ref) {
-    return <SelectControl forwardedRef={ref as any} {...props} />;
-  }
-);
+// XXX (tkdodo): this type assertion is a leftover from when we had forwardRef
+// Omit on the ControlProps messes up the union type
+// the fix is to remove this type assertion, export Select directly and fix the type issues
+export const Select = SelectControl as (
+  props: Omit<ControlProps, 'ref'> &
+    React.RefAttributes<typeof ReactSelect<GeneralSelectValue>>
+) => React.JSX.Element;

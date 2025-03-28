@@ -16,8 +16,15 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  LogsPageDataProvider,
+  useLogsPageData,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
@@ -163,7 +170,11 @@ function SpanSections({
         onParentClick={onParentClick}
       />
       {hasSpanSpecificData ? (
-        <InterimSection title={t('Span Specific')} type="span_specifc" initialCollapse>
+        <InterimSection
+          title={t('Span Specific')}
+          type="span_specifc"
+          disableCollapsePersistence
+        >
           <TraceDrawerComponents.SectionCardGroup>
             {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
@@ -176,6 +187,14 @@ function SpanSections({
       ) : null}
     </Fragment>
   );
+}
+
+function LogDetails() {
+  const {logsData} = useLogsPageData();
+  if (!logsData.data?.length) {
+    return null;
+  }
+  return <LogsTable tableData={logsData} showHeader={false} />;
 }
 
 function LegacySpanSections({
@@ -231,7 +250,11 @@ function ProfileDetails({
   }
 
   return (
-    <InterimSection title={t('Profile')} type="span_profile_details" initialCollapse>
+    <InterimSection
+      title={t('Profile')}
+      type="span_profile_details"
+      disableCollapsePersistence
+    >
       <EmbededContentWrapper>
         <SpanProfileDetails span={span} event={event} />
       </EmbededContentWrapper>
@@ -248,6 +271,7 @@ export function SpanNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
+  traceId,
 }: TraceTreeNodeDetailsProps<
   TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
 >) {
@@ -273,7 +297,18 @@ export function SpanNodeDetails({
           onTabScrollToNode={onTabScrollToNode}
         />
         <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
-          <div>TO DO: EAP Span Details</div>
+          <LogsPageParamsProvider
+            isOnEmbeddedView
+            limitToTraceId={traceId}
+            limitToSpanId={node.value.event_id}
+            limitToProjectIds={[node.value.project_id]}
+            analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+          >
+            <LogsPageDataProvider>
+              <LogDetails />
+              <div>TO DO: EAP Span Details</div>
+            </LogsPageDataProvider>
+          </LogsPageParamsProvider>
         </TraceDrawerComponents.BodyContainer>
       </TraceDrawerComponents.DetailContainer>
     );

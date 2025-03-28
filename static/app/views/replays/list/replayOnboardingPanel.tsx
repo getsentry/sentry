@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -368,7 +368,7 @@ const QuestionContent = styled('div')`
 const StyledHeaderContainer = styled(HeaderContainer)`
   font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: flex;
   gap: ${space(0.5)};
   align-items: center;

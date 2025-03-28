@@ -299,6 +299,7 @@ function AutofixHighlightPopupContent({
             placeholder={t('Questions or comments?')}
             value={comment}
             onChange={e => setComment(e.target.value)}
+            maxLength={4096}
             size="sm"
             autoFocus
           />
@@ -316,11 +317,12 @@ function AutofixHighlightPopupContent({
   );
 }
 
-function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect, spacing = 36) {
+function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
   const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
 
-  // Try positioning to the left first (default)
-  const left = referenceRect.left - popupRect.width - spacing;
+  // Fixed position from the right edge of the viewport
+  const left = viewportWidth / 2 - popupRect.width + 8;
   let top = referenceRect.top;
 
   // Ensure the popup stays within the viewport vertically
@@ -426,7 +428,9 @@ function AutofixHighlightPopup(props: Props) {
   );
 }
 
-const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
+const Wrapper = styled(motion.div)<
+  {isFocused?: boolean} & React.HTMLAttributes<HTMLDivElement>
+>`
   z-index: ${p => (p.isFocused ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.tooltip)};
   display: flex;
   flex-direction: column;
@@ -447,7 +451,7 @@ const ScaleContainer = styled(motion.div)`
   padding-left: ${space(2)};
 `;
 
-const Container = styled(motion.div)`
+const Container = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
