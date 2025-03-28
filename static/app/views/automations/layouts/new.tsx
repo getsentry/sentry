@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 export default function NewAutomationLayout({children}: {children: React.ReactNode}) {
   return (
     <SentryDocumentTitle title={t('New Automation')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/automations/'}}>
+      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
         <EditLayout>{children}</EditLayout>
       </BreadcrumbsProvider>
     </SentryDocumentTitle>
