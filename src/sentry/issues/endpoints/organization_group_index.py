@@ -27,16 +27,15 @@ from sentry.api.helpers.group_index import (
     update_groups_with_search_fn,
 )
 from sentry.api.helpers.group_index.validators import ValidationError
+from sentry.api.helpers.group_index.validators.group import GroupValidator
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import (
-    StreamGroupSerializerSnuba,
-    StreamGroupSerializerSnubaResponse,
-)
+from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
@@ -47,7 +46,6 @@ from sentry.apidocs.parameters import (
     IssueParams,
     OrganizationParams,
 )
-from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
@@ -195,6 +193,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
                 def use_group_snuba_dataset() -> bool:
                     # if useGroupSnubaDataset is present, override the flag so we can test the new dataset
+                    # XXX: This query param is omitted from the API docs as it is currently internal.
                     req_param_value: str | None = request.GET.get("useGroupSnubaDataset")
                     if req_param_value and req_param_value.lower() == "true":
                         return True
@@ -226,10 +225,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's Issues",
-        description="""
-        Return a list of issues for an organization.  All parameters are supplied as query string parameters.
-A default query of `is:unresolved issue.priority:[high,medium]` is applied. To return results with other statuses send a new query value (i.e. ``?query=`` for all results).
-""",
+        description=(
+            "Return a list of issues for an organization. "
+            "All parameters are supplied as query string parameters. "
+            "A default query of `is:unresolved issue.priority:[high,medium]` is applied. "
+            "To return all results, use an empty query value (i.e. ``?query=`). "
+        ),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
@@ -243,14 +244,12 @@ A default query of `is:unresolved issue.priority:[high,medium]` is applied. To r
             IssueParams.VIEW_ID,
             IssueParams.VIEW_SORT,
             IssueParams.LIMIT,
-            IssueParams.EXPAND,
-            IssueParams.COLLAPSE,
+            IssueParams.GROUP_INDEX_EXPAND,
+            IssueParams.GROUP_INDEX_COLLAPSE,
             CursorQueryParam,
         ],
         responses={
-            200: inline_sentry_response_serializer(
-                "IssueListResponse", list[StreamGroupSerializerSnubaResponse]
-            ),
+            200: StreamGroupSerializerSnuba,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -418,70 +417,39 @@ A default query of `is:unresolved issue.priority:[high,medium]` is applied. To r
         # TODO(jess): add metrics that are similar to project endpoint here
         return response
 
+    @extend_schema(
+        operation_id="Bulk Mutate an Organization's Issues",
+        description=(
+            "Bulk mutate various attributes on a maxmimum of 1000 issues. \n"
+            "- For non-status updates, the `id` query parameter is required. \n"
+            "- For status updates, the `id` query parameter may be omitted to update issues that match the filtering. \n"
+            "If any IDs are out of scope, the data won't be mutated but the endpoint will still produce a successful response. "
+            "For example, if no issues were found matching the criteria, a HTTP 204 is returned."
+        ),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
+            IssueParams.MUTATE_ISSUE_ID_LIST,
+            IssueParams.DEFAULT_QUERY,
+            IssueParams.VIEW_ID,
+            IssueParams.VIEW_SORT,
+            IssueParams.LIMIT,
+        ],
+        request=GroupValidator,
+        responses={
+            # TODO(Leander): Add the correct response type
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        # TODO(Leander): Add examples
+        # examples=IssueExamples.ORGANIZATION_GROUP_INDEX,
+    )
     @track_slo_response("workflow")
     def put(self, request: Request, organization: Organization) -> Response:
-        """
-        Bulk Mutate a List of Issues
-        ````````````````````````````
-
-        Bulk mutate various attributes on issues.  The list of issues
-        to modify is given through the `id` query parameter.  It is repeated
-        for each issue that should be modified.
-
-        - For non-status updates, the `id` query parameter is required.
-        - For status updates, the `id` query parameter may be omitted
-          for a batch "update all" query.
-        - An optional `status` query parameter may be used to restrict
-          mutations to only events with the given status.
-
-        The following attributes can be modified and are supplied as
-        JSON object in the body:
-
-        If any ids are out of scope this operation will succeed without
-        any data mutation.
-
-        :qparam int id: a list of IDs of the issues to be mutated.  This
-                        parameter shall be repeated for each issue.  It
-                        is optional only if a status is mutated in which
-                        case an implicit `update all` is assumed.
-        :qparam string status: optionally limits the query to issues of the
-                               specified status.  Valid values are
-                               ``"resolved"``, ``"unresolved"`` and
-                               ``"ignored"``.
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``"resolvedInNextRelease"``,
-                              ``"unresolved"``, and ``"ignored"``. Status
-                              updates that include release data are only allowed
-                              for groups within a single project.
-        :param map statusDetails: additional details about the resolution.
-                                  Valid values are ``"inRelease"``, ``"inNextRelease"``,
-                                  ``"inCommit"``,  ``"ignoreDuration"``, ``"ignoreCount"``,
-                                  ``"ignoreWindow"``, ``"ignoreUserCount"``, and
-                                  ``"ignoreUserWindow"``. Status detail
-                                  updates that include release data are only allowed
-                                  for groups within a single project.
-        :param int ignoreDuration: the number of minutes to ignore this issue.
-        :param boolean isPublic: sets the issue to public or private.
-        :param boolean merge: allows to merge or unmerge different issues.
-        :param string assignedTo: the user or team that should be assigned to
-                                  these issues. Can be of the form ``"<user_id>"``,
-                                  ``"user:<user_id>"``, ``"<username>"``,
-                                  ``"<user_primary_email>"``, or ``"team:<team_id>"``.
-                                  Bulk assigning issues is limited to groups
-                                  within a single project.
-        :param boolean hasSeen: in case this API call is invoked with a user
-                                context this allows changing of the flag
-                                that indicates if the user has seen the
-                                event.
-        :param boolean isBookmarked: in case this API call is invoked with a
-                                     user context this allows changing of
-                                     the bookmark flag.
-        :param string substatus: the new substatus for the issues. Valid values
-                                 defined in GroupSubStatus.
-        :auth: required
-        """
         projects = self.get_projects(request, organization)
         is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
 
@@ -505,29 +473,34 @@ A default query of `is:unresolved issue.priority:[high,medium]` is applied. To r
         ids = [int(id) for id in request.GET.getlist("id")]
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
+    @extend_schema(
+        operation_id="Bulk Remove an Organization's Issues",
+        description=(
+            "Permanently remove the given issues. "
+            "If IDs are provided, queries and filtering will be ignored. "
+            "If any IDs are out of scope, the data won't be mutated but the endpoint will still produce a successful response. "
+            "For example, if no issues were found matching the criteria, a HTTP 204 is returned."
+        ),
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
+            IssueParams.DELETE_ISSUE_ID_LIST,
+            IssueParams.DEFAULT_QUERY,
+            IssueParams.VIEW_ID,
+            IssueParams.VIEW_SORT,
+            IssueParams.LIMIT,
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @track_slo_response("workflow")
     def delete(self, request: Request, organization: Organization) -> Response:
-        """
-        Bulk Remove a List of Issues
-        ````````````````````````````
-
-        Permanently remove the given issues. The list of issues to
-        modify is given through the `id` query parameter.  It is repeated
-        for each issue that should be removed.
-
-        Only queries by 'id' are accepted.
-
-        If any IDs are out of scope this operation will succeed without
-        any data mutation.
-
-        :qparam int id: a list of IDs of the issues to be removed.  This
-                        parameter shall be repeated for each issue, e.g.
-                        `?id=1&id=2&id=3`. If this parameter is not provided,
-                        it will attempt to remove the first 1000 issues.
-        :pparam string organization_id_or_slug: the id or slug of the organization the
-                                          issues belong to.
-        :auth: required
-        """
         projects = self.get_projects(request, organization)
 
         is_fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"

@@ -327,7 +327,7 @@ class IssueParams:
 
     DEFAULT_QUERY = OpenApiParameter(
         name="query",
-        description="An optional search query for filtering issues. A default query may be used if none is provided, for all results use this parameter with an empty string.",
+        description="An optional search query for filtering issues. A default query will apply if no view/query is set. For all results use this parameter with an empty string.",
         default="is:unresolved issue.priority:[high,medium]",
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
@@ -354,14 +354,14 @@ class IssueParams:
 
     LIMIT = OpenApiParameter(
         name="limit",
-        description="The maximum number of issues to return. The maximum is 100.",
+        description="The maximum number of issues to affect. The maximum is 100.",
         default=100,
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.INT,
         required=False,
     )
 
-    EXPAND = OpenApiParameter(
+    GROUP_INDEX_EXPAND = OpenApiParameter(
         name="expand",
         description="Additional data to include in the response.",
         enum=[
@@ -380,12 +380,28 @@ class IssueParams:
         many=True,
     )
 
-    COLLAPSE = OpenApiParameter(
+    GROUP_INDEX_COLLAPSE = OpenApiParameter(
         name="collapse",
         description="Fields to remove from the response to improve query performance.",
         enum=["stats", "lifetime", "base", "unhandled", "filtered"],
         location=OpenApiParameter.QUERY,
         type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+    MUTATE_ISSUE_ID_LIST = OpenApiParameter(
+        name="id",
+        description="The list of issue IDs to mutate. It is optional for status updates, in which an implicit `update all` is assumed.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+        many=True,
+    )
+    DELETE_ISSUE_ID_LIST = OpenApiParameter(
+        name="id",
+        description="The list of issue IDs to be removed. If not provided, it will attempt to remove the first 1000 issues.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
         required=False,
         many=True,
     )
