@@ -27,7 +27,11 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
-from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
+from sentry.search.eap.spans.utils import (
+    WEB_VITALS_MEASUREMENTS,
+    operate_multiple_columns,
+    transform_vital_score_to_ratio,
+)
 from sentry.search.eap.utils import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 
@@ -186,6 +190,37 @@ def opportunity_score(args: ResolvedArguments, settings: ResolverSettings) -> Co
         op=Column.BinaryFormula.OP_MULTIPLY,
         right=Column(literal=LiteralValue(val_double=weight)),
     )
+
+
+def total_opportunity_score(_: ResolvedArguments, settings: ResolverSettings):
+    vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+    vital_score_columns: list[Column] = []
+    extrapolation_mode = settings["extrapolation_mode"]
+
+    for vital in vitals:
+        vital_score = f"score.{vital}"
+        vital_score_key = AttributeKey(name=vital_score, type=AttributeKey.TYPE_DOUBLE)
+        ratio_attribute = transform_vital_score_to_ratio([vital_score_key])
+        vital_score_columns.append(
+            Column(
+                formula=Column.BinaryFormula(
+                    left=Column(formula=opportunity_score([vital_score_key], settings)),
+                    op=Column.BinaryFormula.OP_DIVIDE,
+                    right=Column(
+                        conditional_aggregation=AttributeConditionalAggregation(
+                            aggregate=Function.FUNCTION_COUNT,
+                            filter=TraceItemFilter(
+                                exists_filter=ExistsFilter(key=ratio_attribute),
+                            ),
+                            key=ratio_attribute,
+                            extrapolation_mode=extrapolation_mode,
+                        )
+                    ),
+                )
+            )
+        )
+
+    return operate_multiple_columns(vital_score_columns, Column.BinaryFormula.OP_ADD)
 
 
 def http_response_rate(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
@@ -390,9 +425,15 @@ def time_spent_percentage(
     )
 
 
-def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
-    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the period time"""
+def epm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
+    is_timeseries_request = settings["snuba_params"].is_timeseries_request
+
+    divisor = (
+        settings["snuba_params"].timeseries_granularity_secs
+        if is_timeseries_request
+        else settings["snuba_params"].interval
+    )
 
     return Column.BinaryFormula(
         left=Column(
@@ -404,11 +445,7 @@ def spm(_: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormul
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_COUNT,
-                key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name="sentry.exclusive_time_ms"),
-                extrapolation_mode=extrapolation_mode,
-            )
+            literal=LiteralValue(val_double=divisor / 60),
         ),
     )
 
@@ -473,6 +510,12 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=opportunity_score,
         is_aggregate=True,
     ),
+    "total_opportunity_score": FormulaDefinition(
+        default_search_type="percentage",
+        arguments=[],
+        formula_resolver=total_opportunity_score,
+        is_aggregate=True,
+    ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
@@ -535,7 +578,7 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
     ),
-    "spm": FormulaDefinition(
-        default_search_type="percentage", arguments=[], formula_resolver=spm, is_aggregate=True
+    "epm": FormulaDefinition(
+        default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
     ),
 }

@@ -248,7 +248,7 @@ describe('getReservedBudgetDisplayName', function () {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'attachments, cron monitors, errors, performance units, profile hours, replays, and uptime monitors'
+      'attachments, continuous profile hours, cron monitors, errors, performance units, replays, UI profile hours, and uptime monitors'
     );
   });
 
@@ -260,7 +260,7 @@ describe('getReservedBudgetDisplayName', function () {
         hadCustomDynamicSampling: false,
       })
     ).toBe(
-      'attachments, cron monitors, errors, profile hours, replays, spans, and uptime monitors'
+      'attachments, continuous profile hours, cron monitors, errors, replays, spans, UI profile hours, and uptime monitors'
     );
   });
 
@@ -290,7 +290,7 @@ describe('getReservedBudgetDisplayName', function () {
         shouldTitleCase: true,
       })
     ).toBe(
-      'Attachments, Cron Monitors, Errors, Profile Hours, Replays, Spans, and Uptime Monitors'
+      'Attachments, Continuous Profile Hours, Cron Monitors, Errors, Replays, Spans, UI Profile Hours, and Uptime Monitors'
     );
   });
 });

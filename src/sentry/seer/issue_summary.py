@@ -120,7 +120,7 @@ def _generate_fixability_score(group_id: int):
     )
 
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}{path}",
+        f"{settings.SEER_SEVERITY_URL}{path}",
         data=body,
         headers={
             "content-type": "application/json;charset=utf-8",
@@ -134,8 +134,13 @@ def _generate_fixability_score(group_id: int):
 
 
 def _get_trace_connected_issues(event: GroupEvent) -> list[Group]:
-    trace_id = event.trace_id
-    if not trace_id:
+    try:
+        trace_id = event.trace_id
+        if not trace_id:
+            return []
+    except (
+        AttributeError
+    ):  # sometimes the trace doesn't exist and this errors, so we just ignore it
         return []
     organization = event.group.organization
     conditions = [["trace", "=", trace_id]]

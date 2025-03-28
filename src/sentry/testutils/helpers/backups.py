@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
 from uuid import uuid4
 
 from cryptography.hazmat.backends import default_backend
@@ -18,12 +17,7 @@ from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.crypto import (
-    KeyManagementServiceClient,
-    LocalFileDecryptor,
-    LocalFileEncryptor,
-    decrypt_encrypted_tarball,
-)
+from sentry.backup.crypto import LocalFileDecryptor, LocalFileEncryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     NormalizedModelName,
     get_model,
@@ -129,21 +123,6 @@ __all__ = [
 ]
 
 NOOP_PRINTER = Printer()
-
-
-class FakeKeyManagementServiceClient:
-    """
-    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
-    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
-    endpoint.
-    """
-
-    asymmetric_decrypt = MagicMock()
-    get_public_key = MagicMock()
-
-    @staticmethod
-    def crypto_key_version_path(**kwargs) -> str:
-        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class ValidationError(Exception):

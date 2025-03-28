@@ -26,6 +26,7 @@ import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/tim
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   useExploreDataset,
   useExploreVisualizes,
@@ -47,6 +48,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  isProgressivelyLoading?: boolean;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -71,6 +73,7 @@ export function ExploreCharts({
   confidences,
   query,
   timeseriesResult,
+  isProgressivelyLoading,
 }: ExploreChartsProps) {
   const theme = useTheme();
   const dataset = useExploreDataset();
@@ -196,6 +199,7 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
+                TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               />
             );
           }
@@ -239,6 +243,7 @@ export function ExploreCharts({
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
+              TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               Actions={[
                 <Tooltip
                   key="visualization"

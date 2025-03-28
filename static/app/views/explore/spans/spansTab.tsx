@@ -34,6 +34,7 @@ import SchemaHintsList, {
   SCHEMA_HINTS_DRAWER_WIDTH,
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -53,6 +54,7 @@ import {useExploreAggregatesTable} from 'sentry/views/explore/hooks/useExploreAg
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
@@ -131,10 +133,16 @@ export function SpansTabContentImpl({
     limit,
     enabled: isAllowedSelection && queryType === 'traces',
   });
-  const {timeseriesResult, canUsePreviousResults} = useExploreTimeseries({
+
+  const {
+    result: timeseriesResult,
+    canUsePreviousResults,
+    samplingMode: timeseriesSamplingMode,
+  } = useExploreTimeseries({
     query,
     enabled: isAllowedSelection,
   });
+
   const confidences = useMemo(
     () =>
       visualizes.map(visualize => {
@@ -174,6 +182,14 @@ export function SpansTabContentImpl({
       : queryType === 'samples'
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
+
+  const tableIsProgressivelyLoading =
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    (queryType === 'samples'
+      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      : queryType === 'aggregate'
+        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        : false);
 
   return (
     <Body
@@ -242,6 +258,7 @@ export function SpansTabContentImpl({
             isLoading={numberTagsLoading || stringTagsLoading}
             exploreQuery={query}
             setExploreQuery={setQuery}
+            source={SchemaHintsSources.EXPLORE}
           />
         </SchemaHintsSection>
       </Feature>
@@ -256,6 +273,11 @@ export function SpansTabContentImpl({
             confidences={confidences}
             query={query}
             timeseriesResult={timeseriesResult}
+            isProgressivelyLoading={
+              organization.features.includes('visibility-explore-progressive-loading') &&
+              defined(timeseriesSamplingMode) &&
+              timeseriesSamplingMode !== SAMPLING_MODE.BEST_EFFORT
+            }
           />
           <ExploreTables
             aggregatesTableResult={aggregatesTableResult}
@@ -264,6 +286,7 @@ export function SpansTabContentImpl({
             confidences={confidences}
             samplesTab={samplesTab}
             setSamplesTab={setSamplesTab}
+            isProgressivelyLoading={tableIsProgressivelyLoading}
           />
           <Toggle>
             <StyledButton

@@ -26,7 +26,7 @@ type Row = Pick<
   | 'project'
   | 'project.id'
   | 'span.domain'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
@@ -38,7 +38,7 @@ type Row = Pick<
 type Column = GridColumnHeader<
   | 'span.domain'
   | 'project'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
@@ -58,7 +58,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -91,7 +91,7 @@ const COLUMN_ORDER: Column[] = [
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
-  'spm()',
+  'epm()',
   'http_response_rate(3)',
   'http_response_rate(4)',
   'http_response_rate(5)',

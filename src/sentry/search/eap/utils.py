@@ -62,15 +62,21 @@ def transform_column_to_expression(column: Column) -> Expression:
             label=column.label,
         )
 
-    if column.aggregation.aggregate == Function.FUNCTION_UNSPECIFIED:
+    if column.aggregation.aggregate != Function.FUNCTION_UNSPECIFIED:
+        return Expression(
+            aggregation=column.aggregation,
+            label=column.label,
+        )
+
+    if column.conditional_aggregation.aggregate != Function.FUNCTION_UNSPECIFIED:
         return Expression(
             conditional_aggregation=column.conditional_aggregation,
             label=column.label,
         )
 
     return Expression(
-        aggregation=column.aggregation,
         label=column.label,
+        literal=column.literal,
     )
 
 
