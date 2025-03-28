@@ -4,15 +4,15 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.integrations.pagerduty.utils import send_incident_alert_notification
+from sentry.integrations.msteams.utils import send_incident_alert_notification
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import metric_alert_handler_registry
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.workflow_engine.models import Action
 
 
-@metric_alert_handler_registry.register(Action.Type.PAGERDUTY)
-class PagerDutyMetricAlertHandler(BaseMetricAlertHandler):
+@metric_alert_handler_registry.register(Action.Type.MSTEAMS)
+class MSTeamsMetricAlertHandler(BaseMetricAlertHandler):
     @classmethod
     def send_alert(
         cls,
@@ -23,10 +23,15 @@ class PagerDutyMetricAlertHandler(BaseMetricAlertHandler):
         organization: Organization,
         notification_uuid: str,
     ) -> None:
+
         send_incident_alert_notification(
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
             organization=organization,
             notification_uuid=notification_uuid,
+            # TODO(iamrajjoshi): Add responses here once we make a decision on how to handle them
+            alert_rule_serialized_response=None,
+            incident_serialized_response=None,
         )
