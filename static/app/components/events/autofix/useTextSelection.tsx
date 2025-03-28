@@ -35,22 +35,23 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
         return;
       }
 
-      // Get the text content of the clicked element
+      // Get the text content of the clicked element or its container
       const clickedText = target.textContent?.trim() || '';
       if (!clickedText) {
         setSelection(null);
         return;
       }
 
-      // Clear selection if clicking the same text
-      if (selection?.referenceElement === target) {
+      // Clear selection if clicking within the same container while already selected
+      if (selection?.referenceElement === containerRef.current) {
         setSelection(null);
         return;
       }
 
+      // Use the containerRef as the reference element for positioning
       setSelection({
         selectedText: clickedText,
-        referenceElement: target,
+        referenceElement: containerRef.current,
       });
     },
     [containerRef, selection]
