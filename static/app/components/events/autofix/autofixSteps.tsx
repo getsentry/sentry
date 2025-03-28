@@ -248,13 +248,18 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               feedback={data.feedback}
               isRootCauseFirstAppearance={
                 step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS &&
-                isRootCauseFirstAppearance
+                isRootCauseFirstAppearance &&
+                !(isSolutionFirstAppearance || isChangesFirstAppearance)
               }
               isSolutionFirstAppearance={
-                step.type === AutofixStepType.SOLUTION && isSolutionFirstAppearance
+                step.type === AutofixStepType.SOLUTION &&
+                isSolutionFirstAppearance &&
+                !(isRootCauseFirstAppearance || isChangesFirstAppearance)
               }
               isChangesFirstAppearance={
-                step.type === AutofixStepType.CHANGES && isChangesFirstAppearance
+                step.type === AutofixStepType.CHANGES &&
+                isChangesFirstAppearance &&
+                !(isRootCauseFirstAppearance || isSolutionFirstAppearance)
               }
             />
           </div>
