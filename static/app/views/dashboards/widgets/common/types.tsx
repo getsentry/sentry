@@ -43,20 +43,19 @@ export type TimeSeries = {
 
 export type TabularValueType = AttributeValueType;
 export type TabularValueUnit = AttributeValueUnit;
-export type TabularMeta = {
-  fields: {
-    [key: string]: TabularValueType;
-  };
-  units: {
-    [key: string]: TabularValueUnit;
-  };
+export type TabularMeta<TFields extends string = string> = {
+  fields: Record<TFields, TabularValueType>;
+  units: Record<TFields, TabularValueUnit>;
 };
 
-export type TabularRow = Record<string, number | string | undefined>;
+export type TabularRow<TFields extends string = string> = Record<
+  TFields,
+  number | string | null
+>;
 
-export type TabularData = {
-  data: TabularRow[];
-  meta: TabularMeta;
+export type TabularData<TFields extends string = string> = {
+  data: Array<TabularRow<TFields>>;
+  meta: TabularMeta<TFields>;
 };
 
 export type ErrorProp = Error | string;
