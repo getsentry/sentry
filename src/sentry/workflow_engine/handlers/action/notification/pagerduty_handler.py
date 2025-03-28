@@ -1,4 +1,5 @@
 from sentry.integrations.pagerduty.client import PagerdutySeverity
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.workflow_engine.handlers.action.notification.base import IntegrationActionHandler
 from sentry.workflow_engine.handlers.action.notification.common import ONCALL_ACTION_CONFIG_SCHEMA
 from sentry.workflow_engine.models import Action
@@ -9,7 +10,7 @@ from sentry.workflow_engine.types import ActionHandler
 @action_handler_registry.register(Action.Type.PAGERDUTY)
 class PagerdutyActionHandler(IntegrationActionHandler):
     group = ActionHandler.Group.NOTIFICATION
-    provider_slug = "pagerduty"
+    provider_slug = IntegrationProviderSlug.PAGERDUTY
 
     config_schema = ONCALL_ACTION_CONFIG_SCHEMA
     data_schema = {
