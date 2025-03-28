@@ -1,20 +1,24 @@
 import math
 
 
-def entropy(series: list[float], base=math.e) -> float:
+def entropy(probabilities: list[float], base=math.e) -> float:
     """
     Shannon entropy. Quantifies the amount of uncertainty in a probability distribution.
 
-    H = -sum(p(x) * log2(p(x)))
+    Equation:
+        H = -sum(p(x) * log2(p(x)))
+
+    Parameters:
+        probabilities: A list of non-negative floating point values which sum to 1.
     """
-    if len(series) == 0:
+    if len(probabilities) == 0:
         return 0.0
 
     # Negative probabilities are not allowed.
-    if any(s < 0 for s in series):
+    if any(s < 0 for s in probabilities):
         return -math.inf
 
-    total = sum(series)
+    total = sum(probabilities)
 
     # If the sum of the probabilities is 0 we return nan to emulate scipy's behavior.
     if total == 0:
@@ -26,23 +30,27 @@ def entropy(series: list[float], base=math.e) -> float:
     # maintaining its relative dimension.
     #
     # We check for reasonable proximity to 1 with the offset 1e-9. Floating point numbers might not
-    # add up to 1 but may be close enough to not matter. If we were to ratio every series that
+    # add up to 1 but may be close enough to not matter. If we were to ratio every probability that
     # didn't end up as 1 we would introduce additional amounts of floating point loss.
     if not math.isclose(total, 1.0, rel_tol=1e-9):
-        series = [n / total for n in series]
+        probabilities = [n / total for n in probabilities]
 
-    return -sum(n * math.log(n, base) for n in series if n > 0)
+    return -sum(n * math.log(n, base) for n in probabilities if n > 0)
 
 
-def laplace_smooth(series: list[float], alpha: float = 1e-3) -> list[float]:
+def laplace_smooth(probabilities: list[float], alpha: float = 1e-3) -> list[float]:
     """
     Removes 0 probabilities, preserves relative distribution of values, and normalizes range
     between 0 and 1.
 
-    P(x) = (count(x) + a) / (N + a * |V|)
+    Equation:
+        P(x) = (count(x) + a) / (N + a * |V|)
+
+    Parameters:
+        probabilities: A list of non-negative floating point values which sum to 1.
     """
-    total = sum(series)
-    return [(value + alpha) / (total + alpha * len(series)) for value in series]
+    total = sum(probabilities)
+    return [(value + alpha) / (total + alpha * len(probabilities)) for value in probabilities]
 
 
 def relative_entropy(a: list[float], b: list[float]) -> list[float]:
@@ -56,22 +64,20 @@ def kl_divergence(a: list[float], b: list[float]) -> float:
 
 
 def rrf_score(
-    baseline: list[float],
-    outlier: list[float],
-    kl_alpha: float = 0.8,
+    entropy_score: float,
+    kl_score: float,
     entropy_alpha: float = 0.2,
-    offset: int = 60,
+    kl_alpha: float = 0.8,
+    offset: int = 0,
 ) -> float:
     """Compute reciprocal rank fusion score."""
-    assert len(baseline) == len(outlier)
-
-    a = kl_alpha * 1 / (offset + kl_divergence(baseline, outlier))
-    b = (1 - entropy_alpha) * 1 / (offset + entropy(baseline))
+    a = kl_alpha * 1 / (offset + kl_score)
+    b = (1 - entropy_alpha) * 1 / (offset + entropy_score)
     return a + b
 
 
-def _ranked(series: list[float], reverse=False) -> list[float]:
-    ranked = sorted(enumerate(series), key=lambda k: k[1], reverse=reverse)
+def _ranked(probabilities: list[float], reverse=False) -> list[float]:
+    ranked = sorted(enumerate(probabilities), key=lambda k: k[1], reverse=reverse)
     ranks = [0] * len(ranked)
 
     i = 0
@@ -85,9 +91,9 @@ def _ranked(series: list[float], reverse=False) -> list[float]:
     return ranks
 
 
-def max_ranked(series: list[float]) -> list[float]:
-    return _ranked(series, reverse=True)
+def max_ranked(probabilities: list[float]) -> list[float]:
+    return _ranked(probabilities, reverse=True)
 
 
-def min_ranked(series: list[float]) -> list[float]:
-    return _ranked(series, reverse=False)
+def min_ranked(probabilities: list[float]) -> list[float]:
+    return _ranked(probabilities, reverse=False)
