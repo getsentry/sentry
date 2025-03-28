@@ -136,8 +136,6 @@ module = [
     "sentry.integrations.gitlab.client",
     "sentry.integrations.gitlab.issues",
     "sentry.integrations.jira.integration",
-    "sentry.integrations.jira.webhooks.base",
-    "sentry.integrations.jira.webhooks.issue_updated",
     "sentry.integrations.msteams.client",
     "sentry.integrations.msteams.notifications",
     "sentry.integrations.pagerduty.actions.form",
