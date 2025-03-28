@@ -458,6 +458,7 @@ module = [
     "sentry_plugins.base",
     "social_auth.migrations.*",
     "sudo.*",
+    "tests.sentry.api.endpoints.issues.test_organization_derive_code_mappings",
     "tests.sentry.audit_log.services.*",
     "tests.sentry.deletions.test_group",
     "tests.sentry.event_manager.test_event_manager",

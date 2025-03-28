@@ -1,3 +1,7 @@
+import logging
+from typing import Literal
+
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,11 +12,21 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationIntegrationsLoosePermission,
 )
+from sentry.api.serializers import serialize
+from sentry.issues.auto_source_code_config.code_mapping import NeedsExtension, create_code_mapping
 from sentry.issues.auto_source_code_config.derived_code_mappings_endpoint import (
-    process_get_request,
-    process_post_request,
+    get_code_mapping_from_request,
+    get_file_and_repo_matches,
+)
+from sentry.issues.auto_source_code_config.integration_utils import (
+    InstallationCannotGetTreesError,
+    InstallationNotFoundError,
+    get_installation,
 )
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -41,7 +55,33 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string platform:
         :auth: required
         """
-        return process_get_request(request, organization)
+        try:
+            file_repo_matches = []
+            resp_status: Literal[200, 204, 400] = status.HTTP_400_BAD_REQUEST
+
+            file_repo_matches = get_file_and_repo_matches(request, organization)
+            if file_repo_matches:
+                resp_status = status.HTTP_200_OK
+            else:
+                resp_status = status.HTTP_204_NO_CONTENT
+
+            return self.respond(serialize(file_repo_matches), status=resp_status)
+        except InstallationCannotGetTreesError:
+            return self.respond(
+                {"text": "The integration does not support getting trees"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except InstallationNotFoundError:
+            return self.respond(
+                {"text": "Could not find this integration installed on your organization"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except NeedsExtension:
+            return self.respond({"text": "Needs extension"}, status=status.HTTP_400_BAD_REQUEST)
+        except KeyError:
+            return self.respond(
+                {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
@@ -56,4 +96,36 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string sourceRoot:
         :auth: required
         """
-        return process_post_request(request, organization)
+        try:
+            project = Project.objects.get(id=request.data["projectId"])
+            if not request.access.has_project_access(project):
+                return self.respond(status=status.HTTP_403_FORBIDDEN)
+            installation = get_installation(organization)
+            # It helps with typing since org_integration can be None
+            if not installation.org_integration:
+                raise InstallationNotFoundError
+
+            code_mapping = get_code_mapping_from_request(request)
+            new_code_mapping = create_code_mapping(organization, code_mapping, project)
+        except KeyError:
+            return self.respond(
+                {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        except Project.DoesNotExist:
+            return self.respond(
+                {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except InstallationNotFoundError:
+            return self.respond(
+                {"text": "Could not find this integration installed on your organization"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except InstallationCannotGetTreesError:
+            return self.respond(
+                {"text": "The integration does not support getting trees"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return self.respond(
+            serialize(new_code_mapping, request.user), status=status.HTTP_201_CREATED
+        )
