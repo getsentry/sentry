@@ -154,17 +154,19 @@ type MetricChartOption = {
   warningDuration: number;
 };
 
-export function getMetricAlertChartOption({
-  timeseriesData,
-  rule,
-  seriesName,
-  incidents,
-  selectedIncident,
-  handleIncidentClick,
-  showWaitingForData,
-  anomalies,
-  theme,
-}: MetricChartData & {theme: Theme}): MetricChartOption {
+export function getMetricAlertChartOption(
+  {
+    timeseriesData,
+    rule,
+    seriesName,
+    incidents,
+    selectedIncident,
+    handleIncidentClick,
+    showWaitingForData,
+    anomalies,
+  }: MetricChartData,
+  theme: Theme
+): MetricChartOption {
   let criticalTrigger: Trigger | undefined;
   let warningTrigger: Trigger | undefined;
 

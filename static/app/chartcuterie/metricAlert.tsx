@@ -65,7 +65,7 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
   metricAlertCharts.push({
     key: ChartType.SLACK_METRIC_ALERT_EVENTS,
     getOption: (data: MetricChartData) => {
-      const {chartOption} = getMetricAlertChartOption({...data, theme});
+      const {chartOption} = getMetricAlertChartOption(data, theme);
 
       return {
         ...chartOption,
@@ -94,12 +94,14 @@ export function makeMetricAlertCharts(theme: Theme): Array<RenderDescriptor<Char
     key: ChartType.SLACK_METRIC_ALERT_SESSIONS,
     getOption: (data: MetricAlertSessionData) => {
       const {sessionResponse, rule, ...rest} = data;
-      const {chartOption} = getMetricAlertChartOption({
-        ...rest,
-        rule,
-        timeseriesData: transformSessionResponseToSeries(sessionResponse, rule),
-        theme,
-      });
+      const {chartOption} = getMetricAlertChartOption(
+        {
+          ...rest,
+          rule,
+          timeseriesData: transformSessionResponseToSeries(sessionResponse, rule),
+        },
+        theme
+      );
 
       return {
         ...chartOption,
