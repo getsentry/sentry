@@ -17,8 +17,8 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {feedbackOnboardingCrashApiDart} from 'sentry/gettingStartedDocs/dart/dart';
 import {t, tct} from 'sentry/locale';
+import {getWizardSnippet} from 'sentry/utils/gettingStartedDocs/cliSdkWizard';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
-import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -172,7 +172,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                code: getWizardInstallSnippet({
+                code: getWizardSnippet({
                   platform: 'flutter',
                   params,
                 }),

@@ -1,5 +1,5 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list/';
+import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
@@ -14,8 +14,8 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {appleFeedbackOnboarding} from 'sentry/gettingStartedDocs/apple/macos';
 import {t, tct} from 'sentry/locale';
+import {getWizardSnippet} from 'sentry/utils/gettingStartedDocs/cliSdkWizard';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
-import {getWizardInstallSnippet} from 'sentry/utils/gettingStartedDocs/mobileWizard';
 
 export enum InstallationMode {
   AUTO = 'auto',
@@ -197,7 +197,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                code: getWizardInstallSnippet({
+                code: getWizardSnippet({
                   platform: 'ios',
                   params,
                 }),

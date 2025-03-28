@@ -27,12 +27,11 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getWizardSnippet} from 'sentry/utils/gettingStartedDocs/cliSdkWizard';
 
 type Params = DocsParams;
 
-const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
-  const urlParam = isSelfHosted ? '' : '--saas';
-
+const getConfigStep = (params: Params) => {
   return [
     {
       description: tct(
@@ -43,8 +42,10 @@ const getConfigStep = ({isSelfHosted, organization, projectSlug}: Params) => {
           ),
         }
       ),
-      language: 'bash',
-      code: `npx @sentry/wizard@latest -i remix ${urlParam}  --org ${organization.slug} --project ${projectSlug}`,
+      code: getWizardSnippet({
+        platform: 'remix',
+        params,
+      }),
     },
   ];
 };

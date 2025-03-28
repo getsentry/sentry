@@ -19,6 +19,7 @@ import {
   getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
+import {getWizardSnippet} from 'sentry/utils/gettingStartedDocs/cliSdkWizard';
 import {getInstallConfig} from 'sentry/utils/gettingStartedDocs/reactNative';
 
 export enum InstallationMode {
@@ -137,14 +138,10 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             ),
             configurations: [
               {
-                code: [
-                  {
-                    label: 'npx',
-                    value: 'npx',
-                    language: 'bash',
-                    code: `npx @sentry/wizard@latest -i reactNative ${params.isSelfHosted ? '' : '--saas'} --org ${params.organization.slug} --project ${params.projectSlug}`,
-                  },
-                ],
+                code: getWizardSnippet({
+                  platform: 'reactNative',
+                  params,
+                }),
               },
               {
                 description: (

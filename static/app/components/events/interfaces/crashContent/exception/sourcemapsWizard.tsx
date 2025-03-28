@@ -1,25 +1,22 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {getWizardConfig} from 'sentry/utils/gettingStartedDocs/cliSdkWizard';
 import localStorage from 'sentry/utils/localStorage';
 
 const LOCAL_STORAGE_KEY = 'issues-sourcemap-wizard-hide-until';
 const DISMISS_TIME = 1000 * 60 * 60 * 24 * 7; // 1 week
-
-const wizardCommand = 'npx @sentry/wizard@latest -i sourcemaps';
 
 function getHideUntilTime() {
   return Number(localStorage.getItem(LOCAL_STORAGE_KEY)) || 0;
@@ -42,8 +39,6 @@ interface Props {
 }
 
 export default function SourceMapsWizard({analyticsParams}: Props) {
-  const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
-
   const [isHidden, setIsHidden] = useState(() => {
     const hideUntilTime = getHideUntilTime();
     if (hideUntilTime && Date.now() < hideUntilTime) {
@@ -56,6 +51,34 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
   if (isHidden) {
     return null;
   }
+
+  // Get the wizard configuration including the tabs
+  // Cast as any since we're passing a minimal set of parameters
+  // The getWizardSnippet function only uses isSelfHosted, organization.slug, and projectSlug
+  const wizardConfig = getWizardConfig(
+    {
+      isSelfHosted: false,
+      organization: analyticsParams.organization,
+      projectSlug: analyticsParams.project_id,
+      // Provide a complete mock of sourcePackageRegistries with the expected structure
+      sourcePackageRegistries: {
+        isLoading: false,
+        data: {
+          'sentry.wizard': {
+            version: '4.0.1',
+          },
+        },
+      },
+    } as any,
+    'source-maps',
+    {
+      onCopy: () => {
+        trackAnalytics('issue_details.sourcemap_wizard_copy', {
+          ...analyticsParams,
+        });
+      },
+    }
+  );
 
   return (
     <StyledPanel dashedBorder data-test-id="sourcemaps-wizard">
@@ -92,28 +115,17 @@ export default function SourceMapsWizard({analyticsParams}: Props) {
           }
         )}
       >
-        <StyledCodeSnippet
-          dark
-          isDarkMode={isDarkmode}
-          hideCopyButton={false}
-          language="bash"
-          onCopy={() => {
-            trackAnalytics('issue_details.sourcemap_wizard_copy', {
-              ...analyticsParams,
-            });
-          }}
-        >
-          {wizardCommand}
-        </StyledCodeSnippet>
+        <StyledCodeContainer>
+          <TabbedCodeSnippet tabs={wizardConfig.code} onCopy={wizardConfig.onCopy} />
+        </StyledCodeContainer>
       </EmptyMessage>
     </StyledPanel>
   );
 }
 
-const StyledCodeSnippet = styled(CodeSnippet)<{isDarkMode: boolean}>`
+const StyledCodeContainer = styled('div')`
   margin-top: ${space(2)};
   width: 500px;
-  border: ${p => (p.isDarkMode ? `1px solid ${p.theme.border}` : 'none')};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
