@@ -202,7 +202,7 @@ export const renderGridBodyCell = ({
       case WidgetType.ISSUE:
         cell = (
           getIssueFieldRenderer(columnKey) ?? getFieldRenderer(columnKey, ISSUE_FIELDS)
-        )(dataRow, {organization, location}, theme);
+        )(dataRow, {organization, location, theme});
         break;
       case WidgetType.DISCOVER:
       case WidgetType.TRANSACTIONS:
@@ -212,16 +212,17 @@ export const renderGridBodyCell = ({
           return dataRow[column.key];
         }
         const unit = tableData.meta.units?.[column.key];
-        cell = getCustomEventsFieldRenderer(columnKey, tableData.meta, widget)(
-          dataRow,
-          {
-            organization,
-            location,
-            eventView,
-            unit,
-          },
-          theme
-        );
+        cell = getCustomEventsFieldRenderer(
+          columnKey,
+          tableData.meta,
+          widget
+        )(dataRow, {
+          organization,
+          location,
+          eventView,
+          unit,
+          theme,
+        });
 
         const fieldName = getAggregateAlias(columnKey);
         const value = dataRow[fieldName];
@@ -298,7 +299,7 @@ export const renderPrependColumns =
 
     if (tableData?.meta) {
       const fieldRenderer = getFieldRenderer('id', tableData?.meta);
-      value = fieldRenderer(dataRow, {organization, location}, theme);
+      value = fieldRenderer(dataRow, {organization, location, theme});
     }
 
     const eventSlug = generateEventSlug(dataRow);

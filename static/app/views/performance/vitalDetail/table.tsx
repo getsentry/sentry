@@ -147,7 +147,7 @@ class Table extends Component<Props, State> {
     }
 
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location}, theme);
+    const rendered = fieldRenderer(dataRow, {organization, location, theme});
 
     const allowActions = [
       Actions.ADD,

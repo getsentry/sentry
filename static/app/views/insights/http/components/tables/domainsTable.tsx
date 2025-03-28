@@ -205,7 +205,7 @@ function renderBodyCell(
       location,
       organization,
       unit: meta.units?.[column.key],
-    },
-    theme
+      theme,
+    }
   );
 }

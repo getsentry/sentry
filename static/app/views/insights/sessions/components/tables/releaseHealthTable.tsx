@@ -146,15 +146,12 @@ export default function ReleaseHealthTable({
 
       return (
         <CellWrapper>
-          {renderer(
-            dataRow,
-            {
-              location,
-              organization,
-              unit: meta.units?.[column.key],
-            },
-            theme
-          )}
+          {renderer(dataRow, {
+            location,
+            organization,
+            unit: meta.units?.[column.key],
+            theme,
+          })}
         </CellWrapper>
       );
     },

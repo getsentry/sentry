@@ -466,8 +466,7 @@ export function TransactionCell({
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location},
-          theme,
+          {organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>

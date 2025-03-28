@@ -119,15 +119,12 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
-    const rendered = renderer(
-      row,
-      {
-        location,
-        organization,
-        unit: data?.meta.units?.[column.key],
-      },
-      theme
-    );
+    const rendered = renderer(row, {
+      location,
+      organization,
+      unit: data?.meta.units?.[column.key],
+      theme,
+    });
     if (
       column.key.includes('time_to_full_display') &&
       row[column.key] === 0 &&

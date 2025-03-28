@@ -146,7 +146,7 @@ function TransactionsTable(props: Props) {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {organization, location}, theme);
+      let rendered = fieldRenderer(row, {organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, row, location);
 

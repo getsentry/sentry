@@ -236,15 +236,12 @@ function renderBodyCell(
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
 
-  const rendered = renderer(
-    row,
-    {
-      location,
-      organization,
-      unit: meta.units?.[column.key],
-    },
-    theme
-  );
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+    theme,
+  });
 
   return rendered;
 }

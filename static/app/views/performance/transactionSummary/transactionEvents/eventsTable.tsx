@@ -200,16 +200,13 @@ class EventsTable extends Component<Props, State> {
     const tableMeta = tableData.meta;
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(
-      dataRow,
-      {
-        organization,
-        location,
-        eventView,
-        projectSlug,
-      },
-      theme
-    );
+    const rendered = fieldRenderer(dataRow, {
+      organization,
+      location,
+      eventView,
+      theme,
+      projectSlug,
+    });
 
     const allowActions = [
       Actions.ADD,

@@ -266,15 +266,12 @@ class _Table extends Component<Props, State> {
     const field = String(column.key);
 
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(
-      dataRow,
-      {
-        organization,
-        location,
-        unit: tableMeta.units?.[column.key],
-      },
-      this.props.theme
-    );
+    const rendered = fieldRenderer(dataRow, {
+      organization,
+      location,
+      theme: this.props.theme,
+      unit: tableMeta.units?.[column.key],
+    });
 
     const allowActions = [
       Actions.ADD,

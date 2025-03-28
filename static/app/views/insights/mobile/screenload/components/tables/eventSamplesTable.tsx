@@ -118,15 +118,12 @@ export function EventSamplesTable({
     }
 
     const renderer = getFieldRenderer(column.key, data?.meta.fields, false);
-    const rendered = renderer(
-      row,
-      {
-        location,
-        organization,
-        unit: data?.meta.units?.[column.key],
-      },
-      theme
-    );
+    const rendered = renderer(row, {
+      location,
+      organization,
+      unit: data?.meta.units?.[column.key],
+      theme,
+    });
     return rendered;
   }
 

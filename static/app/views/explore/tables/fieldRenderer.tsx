@@ -107,15 +107,12 @@ function BaseExploreFieldRenderer({
 
   const renderer = getExploreFieldRenderer(field, meta);
 
-  let rendered = renderer(
-    data,
-    {
-      location,
-      organization,
-      unit,
-    },
-    theme
-  );
+  let rendered = renderer(data, {
+    location,
+    organization,
+    theme,
+    unit,
+  });
 
   if (field === 'timestamp') {
     const date = new Date(data.timestamp);

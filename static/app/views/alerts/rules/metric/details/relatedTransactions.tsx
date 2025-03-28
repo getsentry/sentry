@@ -59,7 +59,7 @@ function RelatedTransactions({
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location}, theme);
+    const rendered = fieldRenderer(dataRow, {organization, location, theme});
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);

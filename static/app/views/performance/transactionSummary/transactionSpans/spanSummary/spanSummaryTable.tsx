@@ -336,7 +336,7 @@ function renderBodyCell(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    const rendered = fieldRenderer(dataRow, {location, organization}, theme);
+    const rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     return rendered;
   };

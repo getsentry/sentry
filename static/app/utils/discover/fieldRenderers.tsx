@@ -89,6 +89,7 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
 export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
+  theme: Theme;
   eventView?: EventView;
   projectSlug?: string;
   unit?: string;
@@ -106,8 +107,7 @@ type FieldFormatterRenderFunction = (
 
 type FieldFormatterRenderFunctionPartial = (
   data: EventData,
-  baggage: RenderFunctionBaggage,
-  theme: Theme
+  baggage: RenderFunctionBaggage
 ) => React.ReactNode;
 
 type FieldFormatter = {
@@ -957,8 +957,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView}: RenderFunctionBaggage,
-  theme: Theme,
+  {location, organization, eventView, theme}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};

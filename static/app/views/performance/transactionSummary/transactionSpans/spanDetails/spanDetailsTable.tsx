@@ -164,7 +164,7 @@ function renderBodyCellWithMeta(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    let rendered = fieldRenderer(dataRow, {location, organization}, theme);
+    let rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     if (column.key === 'id') {
       const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';

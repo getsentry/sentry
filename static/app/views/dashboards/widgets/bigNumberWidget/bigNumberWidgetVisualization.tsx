@@ -83,8 +83,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
             {
               [field]: value,
             },
-            baggage,
-            theme
+            {...baggage, theme}
           )}
         </NumberAndDifferenceContainer>
       </Wrapper>
@@ -127,8 +126,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               {
                 [field]: clampedValue,
               },
-              baggage,
-              theme
+              {...baggage, theme}
             )}
           </Tooltip>
         </NumberContainerOverride>
@@ -144,7 +142,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               field={field}
               preferredPolarity={preferredPolarity}
               renderer={(previousDatum: TabularRow) =>
-                fieldRenderer(previousDatum, baggage, theme)
+                fieldRenderer(previousDatum, {...baggage, theme})
               }
             />
           )}

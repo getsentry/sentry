@@ -115,13 +115,13 @@ function TeamMisery({
                 return null;
               }
 
-              const periodMisery = miseryRenderer?.(
-                dataRow,
-                {organization, location},
-                theme
-              );
+              const periodMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+                theme,
+              });
               const weekMisery =
-                weekRow && miseryRenderer?.(weekRow, {organization, location}, theme);
+                weekRow && miseryRenderer?.(weekRow, {organization, location, theme});
               const trendValue = Math.round(Math.abs(trend));
 
               if (idx >= COLLAPSE_COUNT && !isExpanded) {

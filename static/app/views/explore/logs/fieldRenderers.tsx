@@ -158,8 +158,7 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
   const basicRendered = basicRenderer(
     {...props, [adjustedFieldKey]: adjustedValue},
-    props.extra,
-    theme
+    {...props.extra, theme}
   );
 
   const customRenderer = getLogFieldRenderer(props.item.fieldKey);

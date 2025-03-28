@@ -79,7 +79,10 @@ describe('getFieldRenderer', function () {
   it('can render string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByText(data.url)).toBeInTheDocument();
@@ -89,7 +92,10 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = '';
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
@@ -98,7 +104,10 @@ describe('getFieldRenderer', function () {
   it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByText('true')).toBeInTheDocument();
@@ -107,7 +116,10 @@ describe('getFieldRenderer', function () {
   it('can render integer fields', function () {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
@@ -124,7 +136,7 @@ describe('getFieldRenderer', function () {
       );
 
       render(
-        renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+        renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
           any,
           any
         >
@@ -142,7 +154,7 @@ describe('getFieldRenderer', function () {
       );
 
       render(
-        renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+        renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
           any,
           any
         >
@@ -168,7 +180,7 @@ describe('getFieldRenderer', function () {
     it('can render date fields', async function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
-        renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+        renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
           any,
           any
         >
@@ -180,14 +192,11 @@ describe('getFieldRenderer', function () {
     it('can render date fields using utc when query string has utc set to true', async function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
-        renderer(
-          data,
-          {
-            location: {...location, query: {utc: 'true'}},
-            organization,
-          },
-          lightTheme
-        ) as React.ReactElement<any, any>
+        renderer(data, {
+          location: {...location, query: {utc: 'true'}},
+          organization,
+          theme: lightTheme,
+        }) as React.ReactElement<any, any>
       );
 
       await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
@@ -197,7 +206,10 @@ describe('getFieldRenderer', function () {
   it('can render null date fields', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
@@ -218,7 +230,10 @@ describe('getFieldRenderer', function () {
 
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByText('Sep 5, 2021')).toBeInTheDocument();
@@ -231,8 +246,7 @@ describe('getFieldRenderer', function () {
       const {unmount} = render(
         renderer(
           {'error.handled': value},
-          {location, organization},
-          lightTheme
+          {location, organization, theme: lightTheme}
         ) as React.ReactElement<any, any>
       );
       expect(screen.getByText(expectText)).toBeInTheDocument();
@@ -262,7 +276,10 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
@@ -274,7 +291,10 @@ describe('getFieldRenderer', function () {
 
     delete data.user;
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -286,7 +306,10 @@ describe('getFieldRenderer', function () {
 
     delete data.release;
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<any, any>
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
+        any,
+        any
+      >
     );
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
@@ -296,7 +319,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
         any,
         any
       >,
@@ -316,7 +339,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
         any,
         any
       >,
@@ -336,7 +359,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
         any,
         any
       >,
@@ -355,7 +378,7 @@ describe('getFieldRenderer', function () {
     data = {...data, project: parseInt(project.id, 10)};
 
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
         any,
         any
       >,
@@ -374,7 +397,7 @@ describe('getFieldRenderer', function () {
     });
 
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
         any,
         any
       >,
@@ -397,7 +420,7 @@ describe('getFieldRenderer', function () {
     delete data.project;
 
     render(
-      renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+      renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
         any,
         any
       >,
@@ -424,7 +447,7 @@ describe('getFieldRenderer', function () {
       });
 
       render(
-        renderer(data, {location, organization}, lightTheme) as React.ReactElement<
+        renderer(data, {location, organization, theme: lightTheme}) as React.ReactElement<
           any,
           any
         >,
@@ -442,30 +465,27 @@ describe('getFieldRenderer', function () {
       });
 
       render(
-        renderer(
-          data,
-          {
-            location,
-            organization,
-            eventView: new EventView({
-              sorts: [{field: 'spans.db', kind: 'desc'}],
-              createdBy: UserFixture(),
-              display: undefined,
-              end: undefined,
-              start: undefined,
-              id: undefined,
-              name: undefined,
-              project: [],
-              query: '',
-              statsPeriod: undefined,
-              environment: [],
-              fields: [{field: 'spans.db'}],
-              team: [],
-              topEvents: undefined,
-            }),
-          },
-          lightTheme
-        ) as React.ReactElement<any, any>,
+        renderer(data, {
+          location,
+          organization,
+          theme: lightTheme,
+          eventView: new EventView({
+            sorts: [{field: 'spans.db', kind: 'desc'}],
+            createdBy: UserFixture(),
+            display: undefined,
+            end: undefined,
+            start: undefined,
+            id: undefined,
+            name: undefined,
+            project: [],
+            query: '',
+            statsPeriod: undefined,
+            environment: [],
+            fields: [{field: 'spans.db'}],
+            team: [],
+            topEvents: undefined,
+          }),
+        }) as React.ReactElement<any, any>,
         {router: context.router}
       );
 

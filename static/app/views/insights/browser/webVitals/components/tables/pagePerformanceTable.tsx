@@ -279,15 +279,12 @@ export function PagePerformanceTable() {
 
     const renderer = getFieldRenderer(col.key, meta.fields, false);
 
-    return renderer(
-      row,
-      {
-        location,
-        organization,
-        unit: meta.units?.[col.key],
-      },
-      theme
-    );
+    return renderer(row, {
+      location,
+      organization,
+      unit: meta.units?.[col.key],
+      theme,
+    });
   }
 
   const handleSearch = (newQuery: string) => {

@@ -44,7 +44,7 @@ export function NumericChange({
         spm: 'rate',
       },
       false
-    )({[columnKey]: value}, {organization, location, unit}, theme);
+    )({[columnKey]: value}, {organization, location, unit, theme});
 
   if (Math.round(percentChange) !== 0) {
     let percentChangeLabel = `${percentChange > 0 ? '+' : ''}${Math.round(

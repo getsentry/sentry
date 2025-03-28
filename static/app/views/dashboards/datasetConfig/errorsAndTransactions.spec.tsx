@@ -75,12 +75,12 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme: lightTheme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'trace'}],
           }),
-        },
-        lightTheme
+        }
       ) as React.ReactElement<any, any>,
       {router}
     );
@@ -104,13 +104,13 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme: lightTheme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
             project: [parseInt(project.id, 10)],
           }),
-        },
-        lightTheme
+        }
       ) as React.ReactElement<any, any>,
       {router}
     );
@@ -147,13 +147,13 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme: lightTheme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
             project: [parseInt(project.id, 10)],
           }),
-        },
-        lightTheme
+        }
       ) as React.ReactElement<any, any>,
       {router}
     );

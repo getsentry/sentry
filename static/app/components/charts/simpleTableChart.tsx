@@ -77,7 +77,7 @@ function SimpleTableChart({
         getFieldRenderer(column.key, tableMeta);
 
       const unit = tableMeta.units?.[column.key];
-      let cell = fieldRenderer(row, {organization, location, eventView, unit}, theme);
+      let cell = fieldRenderer(row, {organization, location, eventView, unit, theme});
 
       if (column.key === 'transaction' && row.transaction) {
         cell = (

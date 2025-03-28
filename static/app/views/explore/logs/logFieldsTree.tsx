@@ -469,8 +469,7 @@ function LogFieldsTreeValue({
 
   const basicRendered = basicRenderer(
     {[attributeKey]: adjustedValue},
-    renderExtra,
-    theme
+    {...renderExtra, theme}
   );
   const defaultValue = <span>{String(adjustedValue)}</span>;
 

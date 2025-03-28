@@ -122,7 +122,7 @@ function renderBodyCellWithMeta(
       );
     }
 
-    return fieldRenderer(dataRow, {location, organization}, theme);
+    return fieldRenderer(dataRow, {location, organization, theme});
   };
 }
 
