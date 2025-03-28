@@ -12,7 +12,7 @@ import {
   TourGuide,
 } from 'sentry/components/tours/components';
 import type {TourContextType} from 'sentry/components/tours/tourContext';
-import {useAssistant} from 'sentry/components/tours/useAssistant';
+import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -227,6 +227,7 @@ export function useTourModal() {
   const {data: assistantData} = useAssistant({
     notifyOnChangeProps: ['data'],
   });
+  const {mutate: mutateAssistant} = useMutateAssistant();
 
   const shouldShowTourModal =
     assistantData?.find(item => item.guide === STACKED_NAVIGATION_TOUR_GUIDE_KEY)
@@ -239,14 +240,32 @@ export function useTourModal() {
         props => (
           <NavTourModal
             closeModal={props.closeModal}
-            handleDismissTour={endTour}
+            handleDismissTour={() => {
+              mutateAssistant({
+                guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+                status: 'dismissed',
+              });
+              endTour();
+              props.closeModal();
+            }}
             handleStartTour={startTour}
           />
         ),
         {
           modalCss: navTourModalCss,
+
+          // If user closes modal through other means, also prevent the modal from being shown again.
+          onClose: reason => {
+            if (reason) {
+              mutateAssistant({
+                guide: STACKED_NAVIGATION_TOUR_GUIDE_KEY,
+                status: 'dismissed',
+              });
+              endTour();
+            }
+          },
         }
       );
     }
-  }, [shouldShowTourModal, endTour, startTour]);
+  }, [shouldShowTourModal, startTour, mutateAssistant, endTour]);
 }
