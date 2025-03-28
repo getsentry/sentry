@@ -92,10 +92,9 @@ export function useServiceEntrySpansQuery({
 
   const specificSpansQuery = new MutableSearch('');
   if (categorizedSpanIds && !isCategorizedSpanIdsLoading) {
-    let spanIdsString = categorizedSpanIds
+    const spanIdsString = categorizedSpanIds
       .map(datum => datum['transaction.span_id'])
       .join(',');
-    spanIdsString = spanIdsString.slice(0, -1);
     specificSpansQuery.addFilterValue('span_id', `[${spanIdsString}]`);
   }
 
