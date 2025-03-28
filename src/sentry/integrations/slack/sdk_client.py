@@ -8,7 +8,7 @@ from slack_sdk.web import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.integrations.base import disable_integration, is_response_error, is_response_success
+from sentry.integrations.base import is_response_error, is_response_success
 from sentry.integrations.models import Integration
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.services.integration import integration_service
@@ -63,7 +63,14 @@ def record_response_for_disabling_integration(response: SlackResponse, integrati
         if is_response_error(response):
             buffer.record_error()
     if buffer.is_integration_broken():
-        disable_integration(buffer, redis_key, integration_id)
+        # disable_integration(buffer, redis_key, integration_id)
+        logger.info(
+            "integration.should_disable",
+            extra={
+                "integration_id": integration_id,
+                "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
+            },
+        )
 
 
 def wrapper(method: FunctionType):

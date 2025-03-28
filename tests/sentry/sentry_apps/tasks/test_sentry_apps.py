@@ -1368,6 +1368,7 @@ class TestWebhookRequests(TestCase):
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     @override_settings(BROKEN_TIMEOUT_THRESHOLD=3)
+    @pytest.mark.skip(reason="Feature is temporarily disabled")
     def test_timeout_disable(self, safe_urlopen):
         """
         Test that the integration is disabled after BROKEN_TIMEOUT_THRESHOLD number of timeouts
@@ -1412,6 +1413,7 @@ class TestWebhookRequests(TestCase):
     @patch(
         "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
     )
+    @pytest.mark.skip(reason="Feature is temporarily disabled")
     def test_slow_should_disable(self, safe_urlopen):
         """
         Tests that the integration is broken after 7 days of errors and disabled
