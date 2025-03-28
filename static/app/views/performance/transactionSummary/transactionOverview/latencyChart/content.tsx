@@ -1,11 +1,11 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {BarChart} from 'sentry/components/charts/barChart';
 import BarChartZoom from 'sentry/components/charts/barChartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -56,6 +56,7 @@ function Content({
   queryExtras,
   totalCount,
 }: Props) {
+  const theme = useTheme();
   const [zoomError, setZoomError] = useState(false);
 
   function handleMouseOver() {
@@ -85,7 +86,7 @@ function Content({
 
     const colors =
       currentFilter === SpanOperationBreakdownFilter.NONE
-        ? getChartColorPalette(1)
+        ? theme.chart.getColorPalette(1)
         : [filterToColor(currentFilter)];
 
     // Use a custom tooltip formatter as we need to replace

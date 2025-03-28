@@ -1,4 +1,5 @@
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
+import type {Theme} from '@emotion/react';
+
 import {WebVital} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {VitalGroup} from 'sentry/utils/performance/vitals/types';
@@ -29,22 +30,27 @@ const _VITAL_GROUPS = [
   },
 ];
 
-const _COLORS = [
-  ...getChartColorPalette(
-    _VITAL_GROUPS.reduce((count, {vitals}) => count + vitals.length, 0) - 1
-  ).slice(),
-].reverse();
+const makeColors = (theme: Theme) =>
+  [
+    ...theme.chart
+      .getColorPalette(
+        _VITAL_GROUPS.reduce((count, {vitals}) => count + vitals.length, 0) - 1
+      )
+      .slice(),
+  ].reverse();
 
-export const VITAL_GROUPS: VitalGroup[] = _VITAL_GROUPS.map(group => ({
-  ...group,
-  colors: _COLORS.splice(0, group.vitals.length),
-}));
+export const makeVitalGroups = (theme: Theme): VitalGroup[] =>
+  _VITAL_GROUPS.map(group => ({
+    ...group,
+    colors: makeColors(theme).splice(0, group.vitals.length),
+  }));
 
-export const ZOOM_KEYS = _VITAL_GROUPS.reduce((keys: string[], {vitals}) => {
-  vitals.forEach(vital => {
-    const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
-    keys.push(`${vitalSlug}Start`);
-    keys.push(`${vitalSlug}End`);
-  });
-  return keys;
-}, []);
+export const makeZoomKeys = () =>
+  _VITAL_GROUPS.reduce((keys: string[], {vitals}) => {
+    vitals.forEach(vital => {
+      const vitalSlug = WEB_VITAL_DETAILS[vital].slug;
+      keys.push(`${vitalSlug}Start`);
+      keys.push(`${vitalSlug}End`);
+    });
+    return keys;
+  }, []);

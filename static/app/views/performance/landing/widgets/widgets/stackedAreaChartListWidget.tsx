@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -6,7 +7,6 @@ import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Truncate from 'sentry/components/truncate';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
@@ -61,13 +61,14 @@ type ComponentData = React.ComponentProps<
 >;
 
 export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const {setPageError} = usePageAlert();
 
-  const colors = [...getChartColorPalette(5)].reverse();
+  const colors = [...theme.chart.getColorPalette(5)].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({

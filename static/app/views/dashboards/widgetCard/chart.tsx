@@ -21,7 +21,6 @@ import {getSeriesSelection, isChartHovered} from 'sentry/components/charts/utils
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {PlaceholderProps} from 'sentry/components/placeholder';
 import Placeholder from 'sentry/components/placeholder';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -322,9 +321,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       seriesName?.match(otherRegex)
     );
     const colors = timeseriesResults
-      ? (getChartColorPalette(
-          timeseriesResults.length - (shouldColorOther ? 3 : 2)
-        ).slice() as string[])
+      ? (theme.chart
+          .getColorPalette(timeseriesResults.length - (shouldColorOther ? 3 : 2))
+          .slice() as string[])
       : [];
     // TODO(wmak): Need to change this when updating dashboards to support variable topEvents
     if (shouldColorOther) {

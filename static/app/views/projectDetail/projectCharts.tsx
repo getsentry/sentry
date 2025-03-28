@@ -23,7 +23,6 @@ import {
 } from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -354,7 +353,7 @@ class ProjectCharts extends Component<Props, State> {
                   router={router}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[CHART_PALETTE[0][0], theme.purple200]}
+                  colors={[theme.chart.colors[0][0], theme.purple200]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (

@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {IncidentTriggerFixture} from 'sentry-fixture/incidentTrigger';
 import {MetricRuleFixture} from 'sentry-fixture/metricRule';
@@ -31,10 +32,13 @@ jest.mock('sentry/utils/analytics', () => ({
 
 describe('Incident Rules Form', () => {
   let organization: any, project: any, router: any, location: any, anomalies: any;
-  // create wrapper
-  const createWrapper = (props: any) =>
+  function Component(props: any) {
+    const theme = useTheme();
+    return <RuleFormContainer theme={theme} {...props} />;
+  }
+  function createWrapper(props: any) {
     render(
-      <RuleFormContainer
+      <Component
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         location={location}
@@ -43,6 +47,7 @@ describe('Incident Rules Form', () => {
       />,
       {router, organization}
     );
+  }
 
   beforeEach(() => {
     const initialData = initializeOrg({

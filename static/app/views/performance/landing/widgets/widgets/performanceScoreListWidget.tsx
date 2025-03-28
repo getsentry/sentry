@@ -1,5 +1,6 @@
 import type {ReactElement} from 'react';
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
@@ -8,7 +9,6 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
@@ -43,6 +43,7 @@ type DataType = {
 };
 
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, InteractiveTitle} = props;
@@ -64,7 +65,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
   const getAreaChart = () => {
-    const segmentColors = getChartColorPalette(3).slice(0, 5);
+    const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
     return (
       <Chart
         stacked

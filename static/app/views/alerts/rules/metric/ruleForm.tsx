@@ -1,4 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -111,6 +112,7 @@ type Props = {
   projects: Project[];
   routes: PlainRoute[];
   rule: MetricRule;
+  theme: Theme;
   userTeamIds: string[];
   disableProjectSelector?: boolean;
   eventView?: EventView;
@@ -1174,6 +1176,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
       confidence,
+      theme: this.props.theme,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;

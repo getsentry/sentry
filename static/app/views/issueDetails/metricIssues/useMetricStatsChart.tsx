@@ -95,13 +95,16 @@ export function useMetricStatsChart(
 
   let chartProps: Partial<AreaChartProps> = {};
   if (stats.length > 0) {
-    const {chartOption} = getMetricAlertChartOption({
-      timeseriesData: stats,
-      rule,
-      anomalies,
-      incidents,
-      seriesName: rule.aggregate,
-    });
+    const {chartOption} = getMetricAlertChartOption(
+      {
+        timeseriesData: stats,
+        rule,
+        anomalies,
+        incidents,
+        seriesName: rule.aggregate,
+      },
+      theme
+    );
     chartProps = {...chartOption};
   }
 

@@ -1,4 +1,5 @@
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -13,6 +14,7 @@ interface TotalTokensUsedChartProps {
 }
 
 export function EAPTotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
+  const theme = useTheme();
   const aggregate = 'sum(ai.total_tokens.used)';
 
   let query = 'span.category:"ai"';
@@ -32,7 +34,7 @@ export function EAPTotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Total tokens used')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2][0]}]}
+      series={[{...data[aggregate], color: theme.chart.colors[2][0]}]}
       isLoading={isPending}
       error={error}
     />
@@ -40,6 +42,7 @@ export function EAPTotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
 }
 
 export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
+  const theme = useTheme();
   const aggregate = 'sum(ai.total_tokens.used)';
 
   let query = 'span.category:"ai"';
@@ -58,7 +61,7 @@ export function TotalTokensUsedChart({groupId}: TotalTokensUsedChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Total tokens used')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2][0]}]}
+      series={[{...data[aggregate], color: theme.chart.colors[2][0]}]}
       isLoading={isPending}
       error={error}
     />
@@ -70,6 +73,7 @@ interface NumberOfPipelinesChartProps {
 }
 
 export function EAPNumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
+  const theme = useTheme();
   const aggregate = 'count()';
 
   let query = 'span.category:"ai.pipeline"';
@@ -89,13 +93,14 @@ export function EAPNumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps
   return (
     <InsightsLineChartWidget
       title={t('Number of AI pipelines')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2][1]}]}
+      series={[{...data[aggregate], color: theme.chart.colors[2][1]}]}
       isLoading={isPending}
       error={error}
     />
   );
 }
 export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
+  const theme = useTheme();
   const aggregate = 'count()';
 
   let query = 'span.category:"ai.pipeline"';
@@ -114,7 +119,7 @@ export function NumberOfPipelinesChart({groupId}: NumberOfPipelinesChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Number of AI pipelines')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2][1]}]}
+      series={[{...data[aggregate], color: theme.chart.colors[2][1]}]}
       isLoading={isPending}
       error={error}
     />
@@ -126,6 +131,7 @@ interface PipelineDurationChartProps {
 }
 
 export function EAPPipelineDurationChart({groupId}: PipelineDurationChartProps) {
+  const theme = useTheme();
   const aggregate = 'avg(span.duration)';
   let query = 'span.category:"ai.pipeline"';
   if (groupId) {
@@ -144,7 +150,7 @@ export function EAPPipelineDurationChart({groupId}: PipelineDurationChartProps) 
   return (
     <InsightsLineChartWidget
       title={t('Pipeline Duration')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2][2]}]}
+      series={[{...data[aggregate], color: theme.chart.colors[2][2]}]}
       isLoading={isPending}
       error={error}
     />
@@ -152,6 +158,8 @@ export function EAPPipelineDurationChart({groupId}: PipelineDurationChartProps) 
 }
 
 export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
+  const theme = useTheme();
+
   const aggregate = 'avg(span.duration)';
   let query = 'span.category:"ai.pipeline"';
   if (groupId) {
@@ -169,7 +177,7 @@ export function PipelineDurationChart({groupId}: PipelineDurationChartProps) {
   return (
     <InsightsLineChartWidget
       title={t('Pipeline Duration')}
-      series={[{...data[aggregate], color: CHART_PALETTE[2][2]}]}
+      series={[{...data[aggregate], color: theme.chart.colors[2][2]}]}
       isLoading={isPending}
       error={error}
     />

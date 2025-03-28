@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import pick from 'lodash/pick';
 
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -38,6 +39,7 @@ function MetricRuleDuplicate({
   userTeamIds,
   ...otherProps
 }: MetricRuleDuplicateProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const duplicateRuleId: string = otherProps.location.query.duplicateRuleId;
   const {
@@ -82,6 +84,7 @@ function MetricRuleDuplicate({
   return (
     <Layout.Main>
       <RuleForm
+        theme={theme}
         organization={organization}
         onSubmitSuccess={handleSubmitSuccess}
         rule={
