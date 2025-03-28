@@ -2,6 +2,7 @@ from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
+    OpenPeriodContext,
 )
 from sentry.integrations.opsgenie.utils import send_incident_alert_notification
 from sentry.models.organization import Organization
@@ -18,6 +19,7 @@ class OpsgenieMetricAlertHandler(BaseMetricAlertHandler):
         notification_context: NotificationContext,
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
+        open_period_context: OpenPeriodContext,
         organization: Organization,
         notification_uuid: str,
     ) -> None:
