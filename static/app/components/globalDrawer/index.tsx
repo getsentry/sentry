@@ -33,6 +33,10 @@ export interface DrawerOptions {
    */
   closeOnOutsideClick?: boolean;
   /**
+   * Key to identify the drawer and enable persistence of the drawer width
+   */
+  drawerKey?: string;
+  /**
    * Custom width for the drawer
    */
   drawerWidth?: string;
@@ -186,6 +190,7 @@ export function GlobalDrawer({children}: any) {
               headerContent={currentDrawerConfig?.options?.headerContent ?? null}
               transitionProps={currentDrawerConfig?.options?.transitionProps}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerKey={currentDrawerConfig?.options?.drawerKey}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>
