@@ -125,7 +125,7 @@ class TestDiscordMetricAlertHandler(MetricAlertHandlerBase):
 
         self.assert_open_period_context(
             open_period_context,
-            date_started=self.group_event.group.date_added,
+            date_started=self.group_event.group.first_seen,
             date_closed=None,
         )
 
