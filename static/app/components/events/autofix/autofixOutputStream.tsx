@@ -315,7 +315,6 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  z-index: 2;
 `;
 
 const SeerIconContainer = styled('div')`

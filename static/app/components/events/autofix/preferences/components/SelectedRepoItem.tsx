@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
+import {TextArea} from 'sentry/components/core/textarea';
 import type {RepoSettings} from 'sentry/components/events/autofix/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron as IconExpandToggle, IconClose, IconCommit} from 'sentry/icons';
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export function SelectedRepoItem({repo, onRemove, settings, onSettingsChange}: Props) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isEditingBranch, setIsEditingBranch] = useState(false);
   const [branchInputValue, setBranchInputValue] = useState(settings.branch);
   const [instructionsValue, setInstructionsValue] = useState(settings.instructions);
@@ -182,6 +183,8 @@ const SelectedRepoContainer = styled('div')`
   width: 100%;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+  box-shadow: ${p => p.theme.dropShadowLight};
+  overflow: hidden;
 `;
 
 const SelectedRepoHeader = styled('div')`
@@ -278,7 +281,7 @@ const FormActions = styled('div')`
   padding-top: ${space(2)};
 `;
 
-const StyledTextArea = styled('textarea')`
+const StyledTextArea = styled(TextArea)`
   width: 100%;
   padding: ${space(1)};
   border: 1px solid ${p => p.theme.border};

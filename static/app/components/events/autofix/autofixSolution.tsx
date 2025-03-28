@@ -825,6 +825,7 @@ const InstructionsInputWrapper = styled('form')`
 
 const InstructionsInput = styled(Input)`
   flex-grow: 1;
+  padding-right: ${space(4)};
 
   &::placeholder {
     color: ${p => p.theme.subText};
