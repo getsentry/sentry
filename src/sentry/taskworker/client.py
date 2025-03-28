@@ -105,13 +105,14 @@ class TaskworkerClient:
         if grpc_config:
             self._grpc_options = [("grpc.service_config", grpc_config)]
 
-        self._cur_stub_idx = random.randint(0, len(self._hosts) - 1)
-        self._stubs: dict[int, ConsumerServiceStub] = {
-            self._cur_stub_idx: self._connect_to_host(self._hosts[self._cur_stub_idx])
+        self._cur_host = random.choice(self._hosts)
+        self._host_to_stubs: dict[str, ConsumerServiceStub] = {
+            self._cur_host: self._connect_to_host(self._cur_host)
         }
+        self._task_id_to_host: dict[str, str] = {}
+
         self._max_tasks_before_rebalance = max_tasks_before_rebalance
         self._num_tasks_before_rebalance = max_tasks_before_rebalance
-        self._task_id_to_stub_idx: dict[str, int] = {}
 
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
         logger.info("Connecting to %s with options %s", host, self._grpc_options)
@@ -133,18 +134,16 @@ class TaskworkerClient:
         domain, port = pattern.split(":")
         return [f"{domain}-{i}:{port}" for i in range(0, num_brokers)]
 
-    def _get_cur_stub(self) -> tuple[int, ConsumerServiceStub]:
+    def _get_cur_stub(self) -> tuple[str, ConsumerServiceStub]:
         if self._num_tasks_before_rebalance == 0:
-            new_stub_idx = random.randint(0, len(self._stubs) - 1)
-            if new_stub_idx != self._cur_stub_idx:
-                self._cur_stub_idx = new_stub_idx
-                self._stubs[self._cur_stub_idx] = self._stubs.get(
-                    self._cur_stub_idx, self._connect_to_host(self._hosts[self._cur_stub_idx])
-                )
+            self._cur_host = random.choice(self._hosts)
             self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
 
+        if self._cur_host not in self._host_to_stubs:
+            self._host_to_stubs[self._cur_host] = self._connect_to_host(self._cur_host)
+
         self._num_tasks_before_rebalance -= 1
-        return self._cur_stub_idx, self._stubs[self._cur_stub_idx]
+        return self._cur_host, self._host_to_stubs[self._cur_host]
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
         """
@@ -156,7 +155,7 @@ class TaskworkerClient:
         request = GetTaskRequest(namespace=namespace)
         try:
             with metrics.timer("taskworker.get_task.rpc"):
-                stub_idx, stub = self._get_cur_stub()
+                host, stub = self._get_cur_stub()
                 response = stub.GetTask(request)
         except grpc.RpcError as err:
             metrics.incr(
@@ -170,7 +169,7 @@ class TaskworkerClient:
                 "taskworker.client.get_task",
                 tags={"namespace": response.task.namespace},
             )
-            self._task_id_to_stub_idx[response.task.id] = stub_idx
+            self._task_id_to_host[response.task.id] = host
             return response.task
         return None
 
@@ -193,11 +192,11 @@ class TaskworkerClient:
         )
         try:
             with metrics.timer("taskworker.update_task.rpc"):
-                if task_id not in self._task_id_to_stub_idx:
+                if task_id not in self._task_id_to_host:
                     metrics.incr("taskworker.client.task_id_not_in_client")
                     return None
-                stub_idx = self._task_id_to_stub_idx.pop(task_id)
-                response = self._stubs[stub_idx].SetTaskStatus(request)
+                host = self._task_id_to_host.pop(task_id)
+                response = self._host_to_stubs[host].SetTaskStatus(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
@@ -207,6 +206,6 @@ class TaskworkerClient:
                 return None
             raise
         if response.HasField("task"):
-            self._task_id_to_stub_idx[response.task.id] = stub_idx
+            self._task_id_to_host[response.task.id] = host
             return response.task
         return None
