@@ -145,13 +145,14 @@ export function DrawerPanel({
         }}
         transitionProps={transitionProps}
         panelWidth={`${persistedWidthPercent}%`}
-        className="drawer-panel"
+        className={`drawer-panel${isHeld ? ' resizing' : ''}`}
       >
         {drawerKey && (
           <ResizeHandle
             onMouseDown={onMouseDown}
             isResizing={isHeld}
             isAtMinWidth={persistedWidthPercent <= MIN_WIDTH_PERCENT}
+            isAtMaxWidth={persistedWidthPercent >= MAX_WIDTH_PERCENT}
           />
         )}
         <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
@@ -276,6 +277,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
 
 const ResizeHandle = styled('div')<{
   isResizing: boolean;
+  isAtMaxWidth?: boolean;
   isAtMinWidth?: boolean;
 }>`
   position: absolute;
@@ -286,6 +288,9 @@ const ResizeHandle = styled('div')<{
   cursor: ${p => {
     if (p.isAtMinWidth) {
       return 'w-resize';
+    }
+    if (p.isAtMaxWidth) {
+      return 'e-resize';
     }
     return 'ew-resize';
   }};
