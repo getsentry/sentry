@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -6,7 +6,8 @@ import CircleIndicator from 'sentry/components/circleIndicator';
 import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,6 +19,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
 
 type Props = {
@@ -26,31 +28,14 @@ type Props = {
   onInstall: () => Promise<void>;
   organization: Organization;
   sentryApp: SentryApp;
-} & DeprecatedAsyncComponent['props'];
-
-type State = {
-  featureData: IntegrationFeature[];
-} & DeprecatedAsyncComponent['state'];
+};
 
 // No longer a modal anymore but yea :)
-export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
-  Props,
-  State
-> {
-  componentDidUpdate(prevProps: Props) {
+export default function SentryAppDetailsModal(props: Props) {
+  const {closeModal, organization, sentryApp, isInstalled, onInstall} = props;
+
+  useEffect(() => {
     // if the user changes org, count this as a fresh event to track
-    if (this.props.organization.id !== prevProps.organization.id) {
-      this.trackOpened();
-    }
-  }
-
-  componentDidMount() {
-    super.componentDidMount();
-    this.trackOpened();
-  }
-
-  trackOpened() {
-    const {sentryApp, organization, isInstalled} = this.props;
     recordInteraction(sentryApp.slug, 'sentry_app_viewed');
 
     trackIntegrationAnalytics(
@@ -65,37 +50,44 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
       },
       {startSession: true}
     );
+  }, [organization, isInstalled, sentryApp.slug, sentryApp.status]);
+
+  const {
+    data: featureData,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${sentryApp.slug}/features/`], {
+    staleTime: 0,
+  });
+
+  const installMutation = useMutation({
+    mutationFn: onInstall,
+    onSettled: () => {
+      // we want to make sure install finishes before we close the modal
+      // and we should close the modal if there is an error as well
+      closeModal();
+    },
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {sentryApp} = this.props;
-    return [['featureData', `/sentry-apps/${sentryApp.slug}/features/`]];
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  featureTags(features: Array<Pick<IntegrationFeature, 'featureGate'>>) {
+  const featureTags = (features: Array<Pick<IntegrationFeature, 'featureGate'>>) => {
     return features.map(feature => {
       const feat = feature.featureGate.replace(/integrations/g, '');
       return <StyledTag key={feat}>{feat.replace(/-/g, ' ')}</StyledTag>;
     });
-  }
+  };
 
-  get permissions() {
-    return toPermissions(this.props.sentryApp.scopes);
-  }
+  const permissions = toPermissions(sentryApp.scopes);
 
-  async onInstall() {
-    const {onInstall} = this.props;
-    // we want to make sure install finishes before we close the modal
-    // and we should close the modal if there is an error as well
-    try {
-      await onInstall();
-    } catch (_err) {
-      /* stylelint-disable-next-line no-empty-block */
-    }
-  }
-
-  renderPermissions() {
-    const permissions = this.permissions;
+  const renderPermissions = () => {
     if (
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       Object.keys(permissions).filter(scope => permissions[scope].length > 0).length === 0
@@ -142,71 +134,67 @@ export default class SentryAppDetailsModal extends DeprecatedAsyncComponent<
         )}
       </Fragment>
     );
-  }
+  };
 
-  renderBody() {
-    const {sentryApp, closeModal, isInstalled, organization} = this.props;
-    const {featureData} = this.state;
-    // Prepare the features list
-    const features = (featureData || []).map(f => ({
-      featureGate: f.featureGate,
-      description: (
-        <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
-      ),
-    }));
+  // Prepare the features list
+  const features = (featureData || []).map(f => ({
+    featureGate: f.featureGate,
+    description: (
+      <span dangerouslySetInnerHTML={{__html: singleLineRenderer(f.description)}} />
+    ),
+  }));
 
-    const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
+  const {FeatureList, IntegrationFeatures} = getIntegrationFeatureGate();
 
-    const overview = sentryApp.overview || '';
-    const featureProps = {organization, features};
+  const overview = sentryApp.overview || '';
+  const featureProps = {organization, features};
 
-    return (
-      <Fragment>
-        <Heading>
-          <SentryAppAvatar sentryApp={sentryApp} size={50} />
-          <HeadingInfo>
-            <Name>{sentryApp.name}</Name>
-            {!!features.length && <Features>{this.featureTags(features)}</Features>}
-          </HeadingInfo>
-        </Heading>
-        <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
-        <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
-        <IntegrationFeatures {...featureProps}>
-          {({disabled, disabledReason}) => (
-            <Fragment>
-              {!disabled && this.renderPermissions()}
-              <Footer>
-                <Author>{t('Authored By %s', sentryApp.author)}</Author>
-                <div>
-                  {disabled && <DisabledNotice reason={disabledReason} />}
-                  <Button size="sm" onClick={closeModal}>
-                    {t('Cancel')}
-                  </Button>
+  return (
+    <Fragment>
+      <Heading>
+        <SentryAppAvatar sentryApp={sentryApp} size={50} />
+        <HeadingInfo>
+          <Name>{sentryApp.name}</Name>
+          {!!features.length && <Features>{featureTags(features)}</Features>}
+        </HeadingInfo>
+      </Heading>
+      <Description dangerouslySetInnerHTML={{__html: marked(overview)}} />
+      <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
+      <IntegrationFeatures {...featureProps}>
+        {({disabled, disabledReason}) => (
+          <Fragment>
+            {!disabled && renderPermissions()}
+            <Footer>
+              <Author>{t('Authored By %s', sentryApp.author)}</Author>
+              <div>
+                {disabled && <DisabledNotice reason={disabledReason} />}
+                <Button size="sm" onClick={closeModal}>
+                  {t('Cancel')}
+                </Button>
 
-                  <Access access={['org:integrations']} organization={organization}>
-                    {({hasAccess}) =>
-                      hasAccess && (
-                        <Button
-                          size="sm"
-                          priority="primary"
-                          disabled={isInstalled || disabled}
-                          onClick={() => this.onInstall()}
-                          style={{marginLeft: space(1)}}
-                          data-test-id="install"
-                        >
-                          {t('Accept & Install')}
-                        </Button>
-                      )
-                    }
-                  </Access>
-                </div>
-              </Footer>
-            </Fragment>
-          )}
-        </IntegrationFeatures>
-      </Fragment>
-    );
-  }
+                <Access access={['org:integrations']} organization={organization}>
+                  {({hasAccess}) =>
+                    hasAccess && (
+                      <Button
+                        size="sm"
+                        priority="primary"
+                        disabled={isInstalled || disabled}
+                        onClick={() => installMutation.mutate()}
+                        style={{marginLeft: space(1)}}
+                        data-test-id="install"
+                      >
+                        {t('Accept & Install')}
+                      </Button>
+                    )
+                  }
+                </Access>
+              </div>
+            </Footer>
+          </Fragment>
+        )}
+      </IntegrationFeatures>
+    </Fragment>
+  );
 }
 
 const Heading = styled('div')`
