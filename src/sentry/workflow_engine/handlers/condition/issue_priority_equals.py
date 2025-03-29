@@ -11,6 +11,6 @@ class IssuePriorityCondition(DataConditionHandler[WorkflowEventData]):
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
-        group = job.event.group
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        group = event_data.event.group
         return group.priority == comparison

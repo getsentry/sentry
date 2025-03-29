@@ -62,7 +62,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             adopted=self.now,
         )
 
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -104,7 +104,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
 
     def test_semver(self):
         # Test no release
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.create_group_release(group=self.group, release=self.newest_release)
         self.assert_passes(self.dc, WorkflowEventData(event=self.group_event))
@@ -223,7 +223,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         assert cache.get(cache_key) is None
 
         self.create_group_release(group=self.group, release=self.newest_release)
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
         assert cache.get(cache_key) is not None
 
         # ensure we clear the cache after creating a new release
@@ -232,36 +232,36 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         )
         assert cache.get(cache_key) is None
 
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
         assert cache.get(cache_key) is not None
 
         # ensure we clear the cache when a release is deleted
         oldest_group_release.delete()
         assert cache.get(cache_key) is None
 
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
     def test_release_does_not_exist(self, mock_get_first_last_release):
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
         "sentry.workflow_engine.handlers.condition.latest_release_handler.get_latest_release_for_env",
         return_value=None,
     )
     def test_latest_release_for_env_does_not_exist(self, mock_get_latest_release_for_env):
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
         "sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.get_first_last_release_for_env",
         return_value=None,
     )
     def test_first_last_release_for_env_does_not_exist(self, mock_get_first_last_release_for_env):
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     @patch(
         "sentry.models.environment.Environment.get_for_organization_id",
         side_effect=Environment.DoesNotExist,
     )
     def test_environment_does_not_exist(self, mock_get_env):
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

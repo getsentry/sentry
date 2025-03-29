@@ -56,7 +56,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
 
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(
+        self.event_data = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
@@ -79,11 +79,11 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=workflow,
         )
 
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
     def test_error_event(self):
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
     @with_feature("organizations:workflow-engine-process-workflows-logs")
@@ -94,7 +94,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         rule = Rule.objects.get(project=self.project)
         AlertRuleWorkflow.objects.create(workflow=self.error_workflow, rule=rule)
 
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow}
 
         mock_logger.info.assert_called_with(
@@ -102,7 +102,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             extra={
                 "workflow_id": self.error_workflow.id,
                 "rule_id": rule.id,
-                "payload": asdict(self.job),
+                "payload": asdict(self.event_data),
                 "group_id": self.group.id,
                 "event_id": self.event.event_id,
             },
@@ -150,10 +150,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=workflow, condition_group=workflow_filters
         )
 
-        assert self.job.group_state
-        self.job.group_state["is_new"] = True
+        assert self.event_data.group_state
+        self.event_data.group_state["is_new"] = True
 
-        process_workflows(self.job)
+        process_workflows(self.event_data)
 
         mock_filter.assert_called_with({workflow_filters}, self.group)
 
@@ -162,7 +162,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         other_env = self.create_environment(project=self.project)
 
         self.group, self.event, self.group_event = self.create_group_event(environment=env.name)
-        self.job = WorkflowEventData(
+        self.event_data = WorkflowEventData(
             event=self.group_event,
             group_state=GroupState(
                 id=1, is_new=False, is_regression=True, is_new_group_environment=False
@@ -199,14 +199,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=mismatched_env_workflow,
         )
 
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow, matching_env_workflow}
 
     def test_issue_occurrence_event(self):
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         self.group_event.occurrence = issue_occurrence
 
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.workflow}
 
     def test_regressed_event(self):
@@ -224,7 +224,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
             workflow=workflow,
         )
 
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
         assert triggered_workflows == {self.error_workflow, workflow}
 
     @patch("sentry.workflow_engine.processors.workflow.metrics")
@@ -232,7 +232,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_no_detector(self, mock_logger, mock_metrics):
         self.group_event.occurrence = self.build_occurrence(evidence_data={})
 
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
 
         assert not triggered_workflows
 
@@ -246,7 +246,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_no_environment(self, mock_logger, mock_metrics):
         Environment.objects.all().delete()
-        triggered_workflows = process_workflows(self.job)
+        triggered_workflows = process_workflows(self.event_data)
 
         assert not triggered_workflows
 
@@ -259,15 +259,15 @@ class TestProcessWorkflows(BaseWorkflowTest):
     @patch("sentry.utils.metrics.incr")
     @patch("sentry.workflow_engine.processors.workflow.logger")
     def test_no_metrics_triggered(self, mock_logger, mock_incr):
-        self.job.event.project_id = 0
+        self.event_data.event.project_id = 0
 
-        process_workflows(self.job)
+        process_workflows(self.event_data)
         mock_incr.assert_called_once_with("workflow_engine.process_workflows.error")
         mock_logger.exception.assert_called_once()
 
     @patch("sentry.utils.metrics.incr")
     def test_metrics_with_workflows(self, mock_incr):
-        process_workflows(self.job)
+        process_workflows(self.event_data)
 
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows",
@@ -277,7 +277,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
     @patch("sentry.utils.metrics.incr")
     def test_metrics_triggered_workflows(self, mock_incr):
-        process_workflows(self.job)
+        process_workflows(self.event_data)
 
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.triggered_workflows",
@@ -290,7 +290,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_metrics_triggered_actions(self, mock_incr):
         # add actions to the workflow
 
-        process_workflows(self.job)
+        process_workflows(self.event_data)
         mock_incr.assert_any_call(
             "workflow_engine.process_workflows.triggered_actions",
             amount=0,
@@ -311,21 +311,21 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
 
     def test_workflow_trigger(self):
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert triggered_workflows == {self.workflow}
 
     def test_workflow_trigger__no_conditions(self):
         assert self.workflow.when_condition_group
         self.workflow.when_condition_group.conditions.all().delete()
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert triggered_workflows == {self.workflow}
 
     def test_no_workflow_trigger(self):
-        triggered_workflows = evaluate_workflow_triggers(set(), self.job)
+        triggered_workflows = evaluate_workflow_triggers(set(), self.event_data)
         assert not triggered_workflows
 
     def test_workflow_many_filters(self):
@@ -339,7 +339,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=75,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert triggered_workflows == {self.workflow}
 
     def test_workflow_filtered_out(self):
@@ -352,12 +352,14 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert not triggered_workflows
 
     def test_many_workflows(self):
         workflow_two, _, _, _ = self.create_detector_and_workflow(name_prefix="two")
-        triggered_workflows = evaluate_workflow_triggers({self.workflow, workflow_two}, self.job)
+        triggered_workflows = evaluate_workflow_triggers(
+            {self.workflow, workflow_two}, self.event_data
+        )
 
         assert triggered_workflows == {self.workflow, workflow_two}
 
@@ -375,7 +377,7 @@ class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         # no workflows are triggered because the slow conditions need to be evaluted
         assert triggered_workflows == set()
 
@@ -396,7 +398,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=occurrence,
         )
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.create_workflow_action(self.workflow)
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
@@ -417,10 +419,10 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert not triggered_workflows
 
-        process_workflows(self.job)
+        process_workflows(self.event_data)
 
         project_ids = buffer.backend.get_sorted_set(
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
@@ -448,7 +450,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert not triggered_workflows
 
         project_ids = buffer.backend.get_sorted_set(
@@ -473,7 +475,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert triggered_workflows == {self.workflow}
         project_ids = buffer.backend.get_sorted_set(
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
@@ -501,7 +503,7 @@ class TestEnqueueWorkflow(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.job)
+        triggered_workflows = evaluate_workflow_triggers({self.workflow}, self.event_data)
         assert not triggered_workflows
         project_ids = buffer.backend.get_sorted_set(
             WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
@@ -523,10 +525,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         self.group, self.event, self.group_event = self.create_group_event(
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
 
     def test_basic__no_filter(self):
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action}
 
     def test_basic__with_filter__passes(self):
@@ -537,7 +539,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             condition_result=True,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert set(triggered_actions) == {self.action}
 
     def test_basic__with_filter__filtered(self):
@@ -548,7 +550,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             comparison=self.detector.id + 1,
         )
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
         assert not triggered_actions
 
     def test_with_slow_conditions(self):
@@ -568,7 +570,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         )
         self.action_group.save()
 
-        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.job)
+        triggered_actions = evaluate_workflows_action_filters({self.workflow}, self.event_data)
 
         assert self.action_group.conditions.count() == 2
 
