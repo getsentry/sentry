@@ -14,6 +14,7 @@ export default function useReleaseNewIssues() {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
