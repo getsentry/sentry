@@ -105,7 +105,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         self,
         organization_id: int,
         operator: str,
-        build: str,
+        build: str | Sequence[str],
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
     ) -> models.QuerySet:
