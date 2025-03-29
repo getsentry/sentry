@@ -1007,7 +1007,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.auto_source_code_config.stacktraces import get_frames_to_process
-    from sentry.issues.auto_source_code_config.utils import supported_platform
+    from sentry.issues.auto_source_code_config.utils.platform import supported_platform
     from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:

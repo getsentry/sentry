@@ -20,7 +20,7 @@ from sentry.utils.event_frames import EventFrame, try_munge_frame_path
 
 from .constants import METRIC_PREFIX
 from .integration_utils import InstallationNotFoundError, get_installation
-from .utils import PlatformConfig
+from .utils.platform import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ def derive_code_mappings(
     trees_helper = CodeMappingTreesHelper(trees)
     try:
         frame_filename = FrameInfo(frame, platform)
-        return trees_helper.list_file_matches(frame_filename)
+        return trees_helper.get_file_and_repo_matches(frame_filename)
     except NeedsExtension:
         logger.warning("Needs extension: %s", frame.get("filename"))
 
@@ -190,7 +190,7 @@ class CodeMappingTreesHelper:
 
         return list(self.code_mappings.values())
 
-    def list_file_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
+    def get_file_and_repo_matches(self, frame_filename: FrameInfo) -> list[dict[str, str]]:
         """List all the files in a repo that match the frame_filename"""
         file_matches = []
         for repo_full_name in self.trees.keys():
@@ -425,11 +425,8 @@ def convert_stacktrace_frame_path_to_source_path(
 
 def create_code_mapping(
     organization: Organization,
+    code_mapping: CodeMapping,
     project: Project,
-    stacktrace_root: str,
-    source_path: str,
-    repo_name: str,
-    branch: str,
 ) -> RepositoryProjectPathConfig:
     installation = get_installation(organization)
     # It helps with typing since org_integration can be None
@@ -437,21 +434,22 @@ def create_code_mapping(
         raise InstallationNotFoundError
 
     repository, _ = Repository.objects.get_or_create(
-        name=repo_name,
+        name=code_mapping.repo.name,
         organization_id=organization.id,
         defaults={"integration_id": installation.model.id},
     )
     new_code_mapping, _ = RepositoryProjectPathConfig.objects.update_or_create(
         project=project,
-        stack_root=stacktrace_root,
+        stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
             "organization_id": organization.id,
             "integration_id": installation.model.id,
             "organization_integration_id": installation.org_integration.id,
-            "source_root": source_path,
-            "default_branch": branch,
-            "automatically_generated": True,
+            "source_root": code_mapping.source_path,
+            "default_branch": code_mapping.repo.branch,
+            # This function is called from the UI, thus, we know that the code mapping is user generated
+            "automatically_generated": False,
         },
     )
 

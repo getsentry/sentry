@@ -21,7 +21,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.source_code_management.commit_context import CommitInfo, FileBlameInfo
-from sentry.issues.auto_source_code_config.utils import get_supported_platforms
+from sentry.issues.auto_source_code_config.utils.platform import get_supported_platforms
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
