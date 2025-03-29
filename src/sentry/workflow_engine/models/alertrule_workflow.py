@@ -1,3 +1,4 @@
+from django.db import models
 from django.db.models import CheckConstraint, Q
 
 from sentry.backup.scopes import RelocationScope
@@ -12,8 +13,8 @@ class AlertRuleWorkflow(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
-    rule = FlexibleForeignKey("sentry.Rule", null=True)
+    alert_rule = models.IntegerField(null=True)
+    rule = models.IntegerField(null=True)
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
 
     class Meta:

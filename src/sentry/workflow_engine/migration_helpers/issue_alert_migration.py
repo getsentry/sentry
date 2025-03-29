@@ -82,7 +82,7 @@ class IssueAlertMigrator:
             ).first()
             if error_detector:
                 created = not AlertRuleDetector.objects.filter(
-                    detector=error_detector, rule=self.rule
+                    detector=error_detector, rule_id=self.rule.id
                 ).exists()
             else:
                 error_detector = Detector(type=ErrorGroupType.slug, project=self.project)
@@ -94,7 +94,7 @@ class IssueAlertMigrator:
                 defaults={"config": {}, "name": "Error Detector"},
             )
             _, created = AlertRuleDetector.objects.get_or_create(
-                detector=error_detector, rule=self.rule
+                detector=error_detector, rule_id=self.rule.id
             )
 
         if not created:
@@ -232,7 +232,7 @@ class IssueAlertMigrator:
             workflow = Workflow.objects.create(**kwargs)
             workflow.update(date_added=self.rule.date_added)
             DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
-            AlertRuleWorkflow.objects.create(rule=self.rule, workflow=workflow)
+            AlertRuleWorkflow.objects.create(rule_id=self.rule.id, workflow=workflow)
 
         return workflow
 

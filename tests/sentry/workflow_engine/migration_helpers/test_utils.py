@@ -66,7 +66,7 @@ class WorkflowNameTest(APITestCase):
         Test that the action text is what we expect when we migrate an alert rule with only a critical trigger
         """
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert self.rpc_user
@@ -86,7 +86,7 @@ class WorkflowNameTest(APITestCase):
             target_identifier=str(self.rpc_user.id),
         )
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert (
@@ -121,7 +121,7 @@ class WorkflowNameTest(APITestCase):
             target_identifier=str(user4.id),
         )
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert self.rpc_user
@@ -167,7 +167,7 @@ class WorkflowNameTest(APITestCase):
             integration_id=self.slack_integration.id,
         )
         migrate_alert_rule(self.metric_alert, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.metric_alert)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=self.metric_alert)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert self.rpc_user
@@ -185,7 +185,7 @@ class WorkflowNameTest(APITestCase):
         )
 
         migrate_alert_rule(alert_rule, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert workflow.name == "Email [removed]"
@@ -202,7 +202,7 @@ class WorkflowNameTest(APITestCase):
         team.delete()
 
         migrate_alert_rule(alert_rule, self.rpc_user)
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+        alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule)
         workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
 
         assert workflow.name == "Email [removed]"
