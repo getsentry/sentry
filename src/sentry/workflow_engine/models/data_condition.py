@@ -169,6 +169,11 @@ class DataCondition(DefaultFieldsModel):
         result = handler.evaluate_value(value, self.comparison)
         return self.get_condition_result() if result else None
 
+    def get_preview_groups(self, group_ids: set[int]) -> set[int]:
+        # TODO(cathy): grab the handler which should implement how to
+        # filter the groups based on the condition
+        return group_ids
+
 
 def is_slow_condition(condition: DataCondition) -> bool:
     return Condition(condition.type) in SLOW_CONDITIONS
