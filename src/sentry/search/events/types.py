@@ -85,6 +85,7 @@ class SnubaParams:
     start: datetime | None = None
     end: datetime | None = None
     stats_period: str | None = None
+    query_string: str | None = None
     # granularity is used with timeseries requests to specifiy bucket size
     granularity_secs: int | None = None
     # The None value in this sequence is because the filter params could include that
