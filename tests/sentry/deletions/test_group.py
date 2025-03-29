@@ -265,7 +265,7 @@ class DeleteIssuePlatformTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert self.select_issue_platform_events(self.project.id) == occurrence_expected
 
         # This will delete the group and the events from the node store and Snuba
-        with self.tasks(), self.feature({"organizations:issue-platform-deletion": True}):
+        with self.tasks():
             delete_groups(object_ids=[issue_platform_group.id])
 
         # The original event and group still exist
