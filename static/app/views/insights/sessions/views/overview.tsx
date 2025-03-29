@@ -96,26 +96,26 @@ function ViewSpecificCharts({
     case FRONTEND_LANDING_SUB_PATH:
       return (
         <Fragment>
-          <ModuleLayout.Third>
+          <ModuleLayout.Half>
             <ErrorFreeSessionsChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <SessionHealthCountChart />
-          </ModuleLayout.Third>
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <UserHealthRateChart />
+          </ModuleLayout.Half>
+
           <ModuleLayout.Third>
             <UserHealthCountChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <UserHealthRateChart />
-          </ModuleLayout.Third>
 
+          <ModuleLayout.Third>
+            <SessionHealthCountChart />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
