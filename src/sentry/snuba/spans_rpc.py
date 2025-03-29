@@ -249,7 +249,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="=",
-                    value=SearchValue(raw_value=value),
+                    value=SearchValue(raw_value=value, use_raw_value=True),
                 )
             )
             if resolved_term is not None:
@@ -258,7 +258,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="!=",
-                    value=SearchValue(raw_value=value),
+                    value=SearchValue(raw_value=value, use_raw_value=True),
                 )
             )
             if other_term is not None:
