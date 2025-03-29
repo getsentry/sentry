@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Generic, TypeVar
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
@@ -27,17 +27,33 @@ class ExternalProviders(ValueEqualityEnum):
         return EXTERNAL_PROVIDERS.get(ExternalProviders(self.value), "")
 
 
-class ExternalProviderEnum(Enum):
-    EMAIL = "email"
+class IntegrationProviderSlug(StrEnum):
     SLACK = "slack"
-    MSTEAMS = "msteams"
-    PAGERDUTY = "pagerduty"
     DISCORD = "discord"
-    OPSGENIE = "opsgenie"
+    MSTEAMS = "msteams"
+    JIRA = "jira"
+    JIRA_SERVER = "jira_server"
+    AZURE_DEVOPS = "vsts"
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
     GITLAB = "gitlab"
+    BITBUCKET = "bitbucket"
+    BITBUCKET_SERVER = "bitbucket_server"
+    PAGERDUTY = "pagerduty"
+    OPSGENIE = "opsgenie"
+
+
+class ExternalProviderEnum(StrEnum):
+    EMAIL = "email"
     CUSTOM = "custom_scm"
+    SLACK = IntegrationProviderSlug.SLACK
+    MSTEAMS = IntegrationProviderSlug.MSTEAMS
+    PAGERDUTY = IntegrationProviderSlug.PAGERDUTY
+    DISCORD = IntegrationProviderSlug.DISCORD
+    OPSGENIE = IntegrationProviderSlug.OPSGENIE
+    GITHUB = IntegrationProviderSlug.GITHUB
+    GITHUB_ENTERPRISE = IntegrationProviderSlug.GITHUB_ENTERPRISE
+    GITLAB = IntegrationProviderSlug.GITLAB
 
 
 EXTERNAL_PROVIDERS_REVERSE = {
