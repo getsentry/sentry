@@ -178,6 +178,7 @@ def test_get_installation_component_contexts() -> None:
     result = app_service.get_installation_component_contexts(
         filter={"uuids": [install.uuid]},
         component_type="alert-rule-trigger",
+        include_contexts_without_component=False,
     )
     assert len(result) == 1
     row = result[0]

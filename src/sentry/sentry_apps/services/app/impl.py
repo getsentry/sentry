@@ -176,7 +176,7 @@ class DatabaseBackedAppService(AppService):
         *,
         filter: SentryAppInstallationFilterArgs,
         component_type: str,
-        include_contexts_without_component: bool,
+        include_contexts_without_component: bool = False,
     ) -> list[RpcSentryAppComponentContext]:
         install_query = self._FQ.query_many(filter=filter)
         app_ids = install_query.select_related("sentry_app", "sentry_app__application").values_list(
