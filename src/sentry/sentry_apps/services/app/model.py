@@ -94,7 +94,7 @@ class RpcSentryAppComponent(RpcModel):
 
 class RpcSentryAppComponentContext(RpcModel):
     installation: RpcSentryAppInstallation
-    component: RpcSentryAppComponent
+    component: RpcSentryAppComponent | None = None
 
 
 class RpcAlertRuleActionResult(RpcModel):
