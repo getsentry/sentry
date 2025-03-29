@@ -21,6 +21,7 @@ from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
 from sentry.types.activity import ActivityType
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sdk import Scope, bind_organization_context
 
 
@@ -147,6 +148,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     )
                 was_released = False
             except IntegrityError:
+                incr_rollback_metrics(Release)
                 release, created = (
                     Release.objects.get(
                         organization_id=project.organization_id, version=result["version"]

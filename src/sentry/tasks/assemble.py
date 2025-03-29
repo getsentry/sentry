@@ -43,6 +43,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.files import get_max_file_size
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 from sentry.utils.sdk import Scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -471,6 +472,7 @@ class ReleaseBundlePostAssembler(PostAssembler[ReleaseArchive]):
                         file=file, **dict(key_fields, **additional_fields)
                     )
             except IntegrityError:
+                incr_rollback_metrics(ReleaseFile)
                 # NB: This indicates a race, where another assemble task or
                 # file upload job has just created a conflicting file. Since
                 # we're upserting here anyway, yield to the faster actor and
