@@ -248,7 +248,7 @@ export function calculateCategoryPrepaidUsage(
     (hasReservedBudget && prepaidUsed >= prepaidTotal)
       ? categoryInfo.onDemandQuantity
       : 0;
-  const prepaidUsage = totals.accepted - onDemandUsage;
+  const prepaidUsage = categoryInfo.usage - onDemandUsage;
 
   return {
     prepaidPrice,
