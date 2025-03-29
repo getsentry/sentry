@@ -523,7 +523,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   <TrialSubscriptionAction
                     subscription={data}
                     startEnterpriseTrial
-                    canUseTrialOverride={hasAdminTestFeatures}
                     {...deps}
                   />
                 ),
@@ -652,7 +651,6 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                   orgId,
                   subscription: data,
                   billingConfig,
-                  canProvisionDsPlan: hasAdminTestFeatures,
                   onSuccess: () => this.reloadData(),
                 }),
             },
