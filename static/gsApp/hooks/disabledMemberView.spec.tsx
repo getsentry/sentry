@@ -20,7 +20,12 @@ describe('DisabledMemberView', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/?detailed=0&include_feature_flags=1`,
+      url: `/organizations/${organization.slug}/`,
+      method: 'GET',
+      query: {
+        detailed: '0',
+        include_feature_flags: '1',
+      },
       body: organization,
     });
 
@@ -33,7 +38,8 @@ describe('DisabledMemberView', function () {
       router,
     });
 
-    await userEvent.click(await screen.findByText('Request Upgrade'));
+    await screen.findByText('Request Upgrade');
+    await userEvent.click(screen.getByText('Request Upgrade'));
     expect(requestMock).toHaveBeenCalled();
   });
 });
