@@ -589,6 +589,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                     orgId={orgId}
                     {...deps}
                     partnerPlanId={data.partner?.isActive ? data.planDetails.id : null}
+                    subscription={data}
                   />
                 ),
               },

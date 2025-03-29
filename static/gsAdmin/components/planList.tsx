@@ -5,7 +5,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 
-import type {Plan, Subscription} from 'getsentry/types';
+import type {DataCategories, Plan, Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import titleCase from 'getsentry/utils/titleCase';
@@ -22,17 +22,13 @@ export type LimitName =
   | 'reservedProfileDurationUI';
 
 type Props = {
-  onLimitChange: (limit: LimitName, value: number) => void;
+  onLimitChange: (category: DataCategory, value: number) => void;
   onPlanChange: (planId: string) => void;
   planId: null | string;
   plans: Plan[];
-  reservedAttachments: null | number;
-  reservedErrors: null | number;
-  reservedMonitorSeats: null | number;
-  reservedReplays: null | number;
-  reservedSpans: null | number;
-  reservedTransactions: null | number;
-  reservedUptime: null | number;
+  reserved: {
+    [key in DataCategory]?: number | null;
+  };
   currentSubscription?: Subscription | null;
 };
 
@@ -49,13 +45,7 @@ const configurableCategories: DataCategory[] = [
 function PlanList({
   plans,
   planId,
-  reservedErrors,
-  reservedTransactions,
-  reservedReplays,
-  reservedAttachments,
-  reservedMonitorSeats,
-  reservedUptime,
-  reservedSpans,
+  reserved,
   onPlanChange,
   onLimitChange,
   currentSubscription,
@@ -72,9 +62,9 @@ function PlanList({
   if (!plans.length) {
     return null;
   }
-  function handleLimitChange(limit: LimitName) {
+  function handleLimitChange(category: DataCategory) {
     return function handleChange(value: string) {
-      onLimitChange(limit, parseInt(value, 10));
+      onLimitChange(category, parseInt(value, 10));
     };
   }
   const activePlan = plans.find(plan => plan.id === planId);
@@ -129,7 +119,7 @@ function PlanList({
               <input
                 data-test-id={`change-plan-radio-btn-${plan.id}`}
                 type="radio"
-                name="cancelAtPeriodEnd"
+                name="plan"
                 value={plan.id}
                 onChange={() => onPlanChange(plan.id)}
               />
@@ -166,82 +156,34 @@ function PlanList({
               )
               .map(category => {
                 const titleCategory = getPlanCategoryName({plan: activePlan, category});
-                const reserved = `reserved${
+                const reservedKey = `reserved${
                   titleCase(category[0]!) + category.substring(1, category.length)
                 }`;
                 const label =
                   category === DataCategory.ATTACHMENTS
                     ? `${titleCategory} (GB)`
                     : titleCategory;
-                let fieldValue: any;
-                let currentValueDisplay = null;
-                switch (category) {
-                  case DataCategory.ERRORS:
-                    fieldValue = reservedErrors;
-                    currentValueDisplay = getCurrentValueDisplay(
-                      category,
-                      'reservedErrors'
-                    );
-                    break;
-                  case DataCategory.TRANSACTIONS:
-                    fieldValue = reservedTransactions;
-                    currentValueDisplay = getCurrentValueDisplay(
-                      category,
-                      'reservedTransactions'
-                    );
-                    break;
-                  case DataCategory.SPANS:
-                    fieldValue = reservedSpans;
-                    currentValueDisplay = getCurrentValueDisplay(
-                      category,
-                      'reservedSpans'
-                    );
-                    break;
-                  case DataCategory.REPLAYS:
-                    fieldValue = reservedReplays;
-                    currentValueDisplay = getCurrentValueDisplay(
-                      category,
-                      'reservedReplays'
-                    );
-                    break;
-                  case DataCategory.ATTACHMENTS:
-                    fieldValue = reservedAttachments;
-                    currentValueDisplay = getCurrentValueDisplay(
-                      category,
-                      'reservedAttachments'
-                    );
-                    break;
-                  case DataCategory.MONITOR_SEATS:
-                    fieldValue = reservedMonitorSeats;
-                    currentValueDisplay = getCurrentValueDisplay(
-                      category,
-                      'reservedMonitorSeats'
-                    );
-                    break;
-                  case DataCategory.UPTIME:
-                    fieldValue = reservedUptime;
-                    currentValueDisplay = getCurrentValueDisplay(
-                      category,
-                      'reservedUptime'
-                    );
-                    break;
-                  default:
-                    throw new Error(`Category ${category} is not supported`);
-                }
+                const fieldValue = reserved[category as DataCategory] ?? null;
+                const currentValueDisplay = getCurrentValueDisplay(
+                  category as DataCategory,
+                  reservedKey as LimitName
+                );
                 return (
                   <SelectFieldWrapper key={`test-${category}`}>
                     <SelectField
                       inline={false}
                       stacked
-                      name={`${reserved}`}
+                      name={`${reservedKey}`}
                       label={label}
                       value={fieldValue}
-                      options={(activePlan.planCategories[category] || []).map(level => ({
+                      options={(
+                        activePlan.planCategories[category as DataCategories] || []
+                      ).map(level => ({
                         label: level.events.toLocaleString(),
                         value: level.events,
                       }))}
                       required
-                      onChange={handleLimitChange(reserved as LimitName)}
+                      onChange={handleLimitChange(category as DataCategory)}
                     />
                     {currentValueDisplay}
                   </SelectFieldWrapper>
