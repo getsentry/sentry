@@ -169,7 +169,7 @@ class AppService(RpcService):
         *,
         filter: SentryAppInstallationFilterArgs,
         component_type: str,
-        include_contexts_with_component: bool = True,
+        include_contexts_without_component: bool,
     ) -> list[RpcSentryAppComponentContext]:
         pass
 

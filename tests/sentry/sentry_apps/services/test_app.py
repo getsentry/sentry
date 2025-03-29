@@ -154,7 +154,9 @@ def test_get_installation_component_contexts() -> None:
 
     # wrong component type
     result = app_service.get_installation_component_contexts(
-        filter={"app_ids": [app.id]}, component_type="derp", include_contexts_with_component=False
+        filter={"app_ids": [app.id, no_component_app.id]},
+        component_type="derp",
+        include_contexts_without_component=False,
     )
     assert len(result) == 0
 
@@ -162,7 +164,7 @@ def test_get_installation_component_contexts() -> None:
     result = app_service.get_installation_component_contexts(
         filter={"app_ids": [app.id]},
         component_type="alert-rule-trigger",
-        include_contexts_with_component=False,
+        include_contexts_without_component=False,
     )
     assert len(result) == 2
     for row in result:
@@ -176,7 +178,6 @@ def test_get_installation_component_contexts() -> None:
     result = app_service.get_installation_component_contexts(
         filter={"uuids": [install.uuid]},
         component_type="alert-rule-trigger",
-        include_contexts_with_component=False,
     )
     assert len(result) == 1
     row = result[0]
@@ -190,7 +191,7 @@ def test_get_installation_component_contexts() -> None:
     result = app_service.get_installation_component_contexts(
         filter={"organization_id": org.id},
         component_type="alert-rule-trigger",
-        include_contexts_with_component=True,
+        include_contexts_without_component=True,
     )
     assert len(result) == 2
     for row in result:
@@ -206,7 +207,7 @@ def test_get_installation_component_contexts() -> None:
     result = app_service.get_installation_component_contexts(
         filter={"app_ids": [no_component_app.id]},
         component_type="alert-rule-trigger",
-        include_contexts_with_component=True,
+        include_contexts_without_component=True,
     )
     assert len(result) == 2
     for row in result:
