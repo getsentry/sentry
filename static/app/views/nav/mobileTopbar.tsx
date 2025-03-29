@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
-import {SecondaryMobile} from 'sentry/views/nav/secondaryMobile';
+import {SecondaryMobile} from 'sentry/views/nav/secondary/secondaryMobile';
 
 type ActiveView = 'primary' | 'secondary' | 'closed';
 

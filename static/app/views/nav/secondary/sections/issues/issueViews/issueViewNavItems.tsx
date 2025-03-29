@@ -21,9 +21,9 @@ import {
   type GroupSearchView,
   GroupSearchViewVisibility,
 } from 'sentry/views/issueList/types';
-import {IssueViewAddViewButton} from 'sentry/views/nav/issueViews/issueViewAddViewButton';
-import {IssueViewNavItemContent} from 'sentry/views/nav/issueViews/issueViewNavItemContent';
-import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {IssueViewAddViewButton} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewAddViewButton';
+import {IssueViewNavItemContent} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItemContent';
 
 interface IssueViewNavItemsProps {
   baseUrl: string;
