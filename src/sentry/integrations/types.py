@@ -19,6 +19,8 @@ class ExternalProviders(ValueEqualityEnum):
     GITHUB_ENTERPRISE = 201
     GITLAB = 210
 
+    FAKE_LOG = 300
+
     # TODO: do migration to delete this from database
     CUSTOM = 700
 
