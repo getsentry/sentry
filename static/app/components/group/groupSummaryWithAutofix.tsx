@@ -259,6 +259,7 @@ function AutofixSummary({
                         {card.insight && (
                           <div
                             onClick={e => {
+                              // Stop propagation if the click is directly on a link
                               if ((e.target as HTMLElement).tagName === 'A') {
                                 e.stopPropagation();
                               }
