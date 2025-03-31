@@ -5,7 +5,6 @@ from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
-from celery import current_task
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone as django_timezone
 from sentry_sdk import set_tag
@@ -26,7 +25,7 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry_task
 from sentry.tasks.groupowner import process_suspect_commits
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
@@ -141,10 +140,10 @@ def process_commit_context(
             except ApiError:
                 logger.info(
                     "process_commit_context_all_frames.retry",
-                    extra={**basic_logging_details, "retry_count": current_task.request.retries},
+                    extra=basic_logging_details,
                 )
                 metrics.incr("tasks.process_commit_context_all_frames.retry")
-                current_task.retry()
+                retry_task()
 
             if not blame or not installation:
                 # Fall back to the release logic if we can't find a commit for any of the frames
