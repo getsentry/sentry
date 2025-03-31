@@ -25,7 +25,6 @@ class IssueLinkCreator:
     fields: dict[str, Any]
     uri: str
     user: RpcUser
-    verified_action: IssueRequestActionType | None
 
     def run(self) -> PlatformExternalIssue:
         with transaction.atomic(using=router.db_for_write(PlatformExternalIssue)):
@@ -36,7 +35,7 @@ class IssueLinkCreator:
 
     def _verify_action(self) -> None:
         try:
-            self.verified_action = IssueRequestActionType(self.action)
+            self.action = IssueRequestActionType(self.action)
         except ValueError as e:
             raise SentryAppSentryError(
                 message=f"Invalid action: {self.action}", status_code=500
@@ -49,7 +48,7 @@ class IssueLinkCreator:
             group=self.group,
             fields=self.fields,
             user=self.user,
-            action=self.verified_action,
+            action=IssueRequestActionType(self.action),
         ).run()
         return response
 
