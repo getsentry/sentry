@@ -6,6 +6,7 @@ from random import random
 from time import time
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
@@ -94,9 +95,15 @@ class OptionsStore:
         if result is not None:
             return result
 
-        result = self.get_store(key, silent=silent)
-        if result is not None:
-            return result
+        with sentry_sdk.start_span(op="sentry_options_store.cache_miss") as span:
+            span.set_tag("key", key.name)
+            span.set_data("key", key.name)
+            span.set_data("ttl", key.ttl)
+            span.set_data("grace", key.grace)
+
+            result = self.get_store(key, silent=silent)
+            if result is not None:
+                return result
 
         # As a last ditch effort, let's hope we have a key
         # in local cache that's possibly stale
