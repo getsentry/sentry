@@ -38,8 +38,6 @@ const defaultProps = {
   statsPeriod: '24h',
   onDelete: jest.fn(),
   displayReprocessingActions: false,
-  onSortChange: jest.fn(),
-  sort: '',
 };
 
 function WrappedComponent(props: any) {
@@ -405,19 +403,6 @@ describe('IssueListActions', function () {
       expect(
         await screen.findByRole('menuitemradio', {name: 'Mark Reviewed'})
       ).toHaveAttribute('aria-disabled', 'true');
-    });
-  });
-
-  describe('sort', function () {
-    it('calls onSortChange with new sort value', async function () {
-      const mockOnSortChange = jest.fn();
-      render(<WrappedComponent onSortChange={mockOnSortChange} />);
-
-      await userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
-
-      await userEvent.click(screen.getByText(/Number of events/));
-
-      expect(mockOnSortChange).toHaveBeenCalledWith('freq');
     });
   });
 

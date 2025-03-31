@@ -6,7 +6,6 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import useOrganization from 'sentry/utils/useOrganization';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
 type Props = {
@@ -22,10 +21,7 @@ function Headers({
   statsPeriod,
   onSelectStatsPeriod,
   isReprocessingQuery,
-  isSavedSearchesOpen,
 }: Props) {
-  const organization = useOrganization();
-
   return (
     <Fragment>
       {isReprocessingQuery ? (
@@ -36,42 +32,16 @@ function Headers({
         </Fragment>
       ) : (
         <Fragment>
-          {organization.features.includes('issue-stream-table-layout') ? (
-            <Fragment>
-              <LastSeenLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
-                {t('Last Seen')}
-              </LastSeenLabel>
-              <FirstSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
-                {t('Age')}
-              </FirstSeenLabel>
-            </Fragment>
-          ) : null}
-          {organization.features.includes('issue-stream-table-layout') ? (
-            <NarrowGraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
-              <NarrowGraphLabelContents>
-                {t('Trend')}
-                <NarrowGraphToggles>
-                  {selection.datetime.period !== '24h' && (
-                    <GraphToggle
-                      active={statsPeriod === '24h'}
-                      onClick={() => onSelectStatsPeriod('24h')}
-                    >
-                      {t('24h')}
-                    </GraphToggle>
-                  )}
-                  <GraphToggle
-                    active={statsPeriod === 'auto'}
-                    onClick={() => onSelectStatsPeriod('auto')}
-                  >
-                    {selection.datetime.period || t('Custom')}
-                  </GraphToggle>
-                </NarrowGraphToggles>
-              </NarrowGraphLabelContents>
-            </NarrowGraphLabel>
-          ) : (
-            <GraphHeaderWrapper isSavedSearchesOpen={isSavedSearchesOpen}>
-              <GraphHeader>
-                <StyledToolbarHeader>{t('Graph:')}</StyledToolbarHeader>
+          <LastSeenLabel breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+            {t('Last Seen')}
+          </LastSeenLabel>
+          <FirstSeenLabel breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+            {t('Age')}
+          </FirstSeenLabel>
+          <GraphLabel breakpoint={COLUMN_BREAKPOINTS.TREND}>
+            <GraphLabelContents>
+              {t('Trend')}
+              <GraphToggles>
                 {selection.datetime.period !== '24h' && (
                   <GraphToggle
                     active={statsPeriod === '24h'}
@@ -86,42 +56,21 @@ function Headers({
                 >
                   {selection.datetime.period || t('Custom')}
                 </GraphToggle>
-              </GraphHeader>
-            </GraphHeaderWrapper>
-          )}
-          {organization.features.includes('issue-stream-table-layout') ? (
-            <Fragment>
-              <NarrowEventsOrUsersLabel
-                breakpoint={COLUMN_BREAKPOINTS.EVENTS}
-                align="right"
-              >
-                {t('Events')}
-              </NarrowEventsOrUsersLabel>
-              <NarrowEventsOrUsersLabel
-                breakpoint={COLUMN_BREAKPOINTS.USERS}
-                align="right"
-              >
-                {t('Users')}
-              </NarrowEventsOrUsersLabel>
-              <NarrowPriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="left">
-                {t('Priority')}
-              </NarrowPriorityLabel>
-              <NarrowAssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
-                {t('Assignee')}
-              </NarrowAssigneeLabel>
-            </Fragment>
-          ) : (
-            <Fragment>
-              <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
-              <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
-              <PriorityLabel isSavedSearchesOpen={isSavedSearchesOpen}>
-                <ToolbarHeader>{t('Priority')}</ToolbarHeader>
-              </PriorityLabel>
-              <AssigneeLabel isSavedSearchesOpen={isSavedSearchesOpen}>
-                <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
-              </AssigneeLabel>
-            </Fragment>
-          )}
+              </GraphToggles>
+            </GraphLabelContents>
+          </GraphLabel>
+          <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.EVENTS} align="right">
+            {t('Events')}
+          </EventsOrUsersLabel>
+          <EventsOrUsersLabel breakpoint={COLUMN_BREAKPOINTS.USERS} align="right">
+            {t('Users')}
+          </EventsOrUsersLabel>
+          <PriorityLabel breakpoint={COLUMN_BREAKPOINTS.PRIORITY} align="left">
+            {t('Priority')}
+          </PriorityLabel>
+          <AssigneeLabel breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE} align="right">
+            {t('Assignee')}
+          </AssigneeLabel>
         </Fragment>
       )}
     </Fragment>
@@ -130,16 +79,7 @@ function Headers({
 
 export default Headers;
 
-const GraphHeaderWrapper = styled('div')<{isSavedSearchesOpen?: boolean}>`
-  width: 180px;
-
-  @media (max-width: ${p =>
-      p.isSavedSearchesOpen ? p.theme.breakpoints.xlarge : p.theme.breakpoints.large}) {
-    display: none;
-  }
-`;
-
-const NarrowGraphLabel = styled(IssueStreamHeaderLabel)`
+const GraphLabel = styled(IssueStreamHeaderLabel)`
   width: 175px;
   flex: 1;
   display: flex;
@@ -147,24 +87,15 @@ const NarrowGraphLabel = styled(IssueStreamHeaderLabel)`
   padding: 0;
 `;
 
-const NarrowGraphLabelContents = styled('div')`
+const GraphLabelContents = styled('div')`
   display: flex;
   flex: 1;
   justify-content: space-between;
 `;
 
-const NarrowGraphToggles = styled('div')`
+const GraphToggles = styled('div')`
   font-weight: ${p => p.theme.fontWeightNormal};
   margin-right: ${space(2)};
-`;
-
-const GraphHeader = styled('div')`
-  display: flex;
-  margin-right: ${space(1.5)};
-`;
-
-const StyledToolbarHeader = styled(ToolbarHeader)`
-  flex: 1;
 `;
 
 const GraphToggle = styled('a')<{active: boolean}>`
@@ -187,20 +118,7 @@ const FirstSeenLabel = styled(IssueStreamHeaderLabel)`
   width: 50px;
 `;
 
-const EventsOrUsersLabel = styled(ToolbarHeader)`
-  display: inline-grid;
-  align-items: center;
-  justify-content: flex-end;
-  text-align: right;
-  width: 60px;
-  margin: 0 ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    width: 80px;
-  }
-`;
-
-const NarrowEventsOrUsersLabel = styled(IssueStreamHeaderLabel)`
+const EventsOrUsersLabel = styled(IssueStreamHeaderLabel)`
   width: 60px;
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
@@ -208,36 +126,11 @@ const NarrowEventsOrUsersLabel = styled(IssueStreamHeaderLabel)`
   }
 `;
 
-const PriorityLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
-  justify-content: flex-end;
-  text-align: right;
-  width: 70px;
-  margin: 0 ${space(2)};
-
-  @media (max-width: ${p =>
-      p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
-    display: none;
-  }
-`;
-
-const NarrowPriorityLabel = styled(IssueStreamHeaderLabel)`
+const PriorityLabel = styled(IssueStreamHeaderLabel)`
   width: 64px;
 `;
 
-const AssigneeLabel = styled(ToolbarHeader)<{isSavedSearchesOpen?: boolean}>`
-  justify-content: flex-end;
-  text-align: right;
-  width: 60px;
-  margin-left: ${space(2)};
-  margin-right: ${space(2)};
-
-  @media (max-width: ${p =>
-      p.isSavedSearchesOpen ? p.theme.breakpoints.large : p.theme.breakpoints.medium}) {
-    display: none;
-  }
-`;
-
-export const NarrowAssigneeLabel = styled(IssueStreamHeaderLabel)`
+export const AssigneeLabel = styled(IssueStreamHeaderLabel)`
   width: 66px;
 `;
 

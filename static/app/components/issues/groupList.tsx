@@ -251,7 +251,6 @@ class GroupList extends Component<Props, State> {
     const {
       canSelectGroups,
       withChart,
-      organization,
       withColumns = ['graph', 'event', 'users', 'assignee'],
       renderEmptyMessage,
       renderErrorMessage,
@@ -268,9 +267,8 @@ class GroupList extends Component<Props, State> {
 
     const columns: GroupListColumn[] = [
       ...withColumns,
-      ...(organization.features.includes('issue-stream-table-layout')
-        ? ['firstSeen' as const, 'lastSeen' as const]
-        : []),
+      'firstSeen' as const,
+      'lastSeen' as const,
     ];
 
     if (error) {

@@ -185,12 +185,10 @@ export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: 
   return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
-export function getSortLabel(key: string, organization: Organization) {
+export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
-      return organization.features.includes('issue-stream-table-layout')
-        ? t('Age')
-        : t('First Seen');
+      return t('Age');
     case IssueSortOptions.TRENDS:
       return t('Trends');
     case IssueSortOptions.FREQ:
