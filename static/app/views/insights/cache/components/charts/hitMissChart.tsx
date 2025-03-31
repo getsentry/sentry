@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import type {Series} from 'sentry/types/echarts';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CHART_HEIGHT} from 'sentry/views/insights/cache/settings';
@@ -13,6 +15,7 @@ type Props = {
 };
 
 export function CacheHitMissChart({series, isLoading, error}: Props) {
+  const theme = useTheme();
   return (
     <ChartPanel title={DataTitles[`cache_miss_rate()`]}>
       <Chart
@@ -26,7 +29,7 @@ export function CacheHitMissChart({series, isLoading, error}: Props) {
         data={[series]}
         loading={isLoading}
         error={error}
-        chartColors={[AVG_COLOR]}
+        chartColors={[AVG_COLOR(theme)]}
         type={ChartType.LINE}
         aggregateOutputFormat="percentage"
         tooltipFormatterOptions={{
