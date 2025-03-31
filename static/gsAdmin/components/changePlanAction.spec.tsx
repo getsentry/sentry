@@ -4,21 +4,62 @@ import {UserFixture} from 'sentry-fixture/user';
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 
 import {PlanFixture} from 'getsentry/__fixtures__/plan';
+import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types';
 
-import ChangePlanAction from '../components/changePlanAction';
+import triggerChangePlanAction from '../components/changePlanAction';
 
 describe('ChangePlanAction', () => {
   const mockOrg = OrganizationFixture({slug: 'org-slug'});
-  const mockConfirmCallback = jest.fn();
-  const mockClose = jest.fn();
-  const mockOnConfirm = jest.fn();
-  const mockDisableConfirmButton = jest.fn();
+  const subscription: Subscription = SubscriptionFixture({
+    organization: mockOrg,
+    planTier: PlanTier.AM3,
+    plan: 'am3_business',
+    billingInterval: 'monthly',
+    contractInterval: 'monthly',
+    planDetails: PlanFixture({
+      id: 'am3_business',
+      name: 'Business',
+    }),
+    categories: {
+      errors: MetricHistoryFixture({
+        category: 'errors',
+        reserved: 1000000,
+        prepaid: 1000000,
+        order: 1,
+      }),
+    },
+  });
+  SubscriptionStore.set(mockOrg.slug, subscription);
+  const BILLING_CONFIG = BillingConfigFixture(PlanTier.ALL);
+  const testPlan = PlanFixture({
+    id: 'am3_test_monthly',
+    name: 'TEST Tier Test Plan',
+    price: 5000,
+    basePrice: 5000,
+    billingInterval: 'monthly',
+    contractInterval: 'monthly',
+    reservedMinimum: 500000,
+    categories: ['errors', 'transactions'],
+    planCategories: {
+      errors: [{events: 50000, price: 1000}],
+      transactions: [{events: 10000, price: 2500}],
+    },
+    userSelectable: true,
+    isTestPlan: true,
+  });
+
+  BILLING_CONFIG.planList.push(testPlan);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -28,105 +69,23 @@ describe('ChangePlanAction', () => {
     user.permissions = new Set(['billing.provision']);
     ConfigStore.set('user', user);
 
-    // Setup basic subscription
-    const subscription: Subscription = SubscriptionFixture({
-      organization: mockOrg,
-      planTier: PlanTier.AM3,
-      plan: 'am3_business',
-      billingInterval: 'monthly',
-      contractInterval: 'monthly',
-      planDetails: PlanFixture({
-        id: 'am3_business',
-        name: 'Business',
-      }),
-      categories: {
-        errors: MetricHistoryFixture({
-          category: 'errors',
-          reserved: 1000000,
-          prepaid: 1000000,
-          order: 1,
-        }),
-        transactions: MetricHistoryFixture({
-          category: 'transactions',
-          reserved: 1000000,
-          prepaid: 1000000,
-          order: 2,
-        }),
-      },
-    });
-
-    const AM3_BILLING_CONFIG = BillingConfigFixture(PlanTier.AM3);
-    const AM2_BILLING_CONFIG = BillingConfigFixture(PlanTier.AM2);
-    const AM1_BILLING_CONFIG = BillingConfigFixture(PlanTier.AM1);
-    const MM2_BILLING_CONFIG = BillingConfigFixture(PlanTier.MM2);
-
-    // Set up API responses for billing configs
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=mm2`,
-      body: MM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am1`,
-      body: AM1_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am2`,
-      body: AM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am3`,
-      body: AM3_BILLING_CONFIG,
-    });
-
     // Set up default subscription response
     MockApiClient.addMockResponse({
       url: `/subscriptions/${mockOrg.slug}/`,
       body: subscription,
     });
 
-    const testPlan = PlanFixture({
-      id: 'test_test_monthly',
-      name: 'TEST Tier Test Plan',
-      price: 5000,
-      basePrice: 5000,
-      billingInterval: 'monthly',
-      contractInterval: 'monthly',
-      reservedMinimum: 500000,
-      categories: ['errors', 'transactions'],
-      planCategories: {
-        errors: [{events: 50000, price: 1000}],
-        transactions: [{events: 10000, price: 2500}],
-      },
-      userSelectable: true,
-      isTestPlan: true,
-    });
-
-    AM3_BILLING_CONFIG.planList.push(PlanFixture({...testPlan}));
-
-    // Update API responses
     MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=mm2`,
-      body: MM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am1`,
-      body: AM1_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am2`,
-      body: AM2_BILLING_CONFIG,
-    });
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/billing-config/?tier=am3`,
-      body: AM3_BILLING_CONFIG,
+      url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
+      body: BILLING_CONFIG,
     });
 
     const testSubscription = {
       ...subscription,
       planTier: PlanTier.TEST,
-      plan: 'test_test_monthly',
+      plan: 'am3_test_monthly',
       planDetails: {
-        id: 'test_test_monthly',
+        id: 'am3_test_monthly',
         name: 'TEST Tier Test Plan',
         isTestPlan: true,
       },
@@ -142,23 +101,21 @@ describe('ChangePlanAction', () => {
     });
   });
 
-  function renderComponent(props = {}) {
-    return render(
-      <ChangePlanAction
-        orgId={mockOrg.slug}
-        partnerPlanId={null}
-        disableConfirmButton={mockDisableConfirmButton}
-        close={mockClose}
-        confirm={jest.fn()}
-        onConfirm={mockOnConfirm}
-        setConfirmCallback={mockConfirmCallback}
-        {...props}
-      />
-    );
+  async function openAndLoadModal(props = {}) {
+    triggerChangePlanAction({
+      subscription,
+      orgId: mockOrg.slug,
+      onSuccess: jest.fn(),
+      partnerPlanId: null,
+      ...props,
+    });
+    const modal = renderGlobalModal();
+    expect(await screen.findByText('Change Plan')).toBeInTheDocument();
+    return modal;
   }
 
   it('loads the billing config and displays plan options', async () => {
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for async data to load
     await waitFor(() => {
@@ -178,39 +135,7 @@ describe('ChangePlanAction', () => {
     await userEvent.click(am2Tab);
   });
 
-  it('calls confirm callback when changes are confirmed', async () => {
-    // Mock the PUT endpoint response
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/subscription/`,
-      method: 'PUT',
-      body: {success: true},
-    });
-
-    renderComponent();
-
-    // Wait for component to load
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    });
-
-    // Select a plan
-    const planRadio = screen.getByTestId('change-plan-radio-btn-am3_business');
-    await userEvent.click(planRadio);
-
-    // Directly call the mock function with known data
-    const data = {
-      plan: 'am3_business',
-      reservedErrors: 1000000,
-      reservedTransactions: 1000000,
-    };
-    mockOnConfirm(data);
-
-    // Check if the onConfirm was called
-    expect(mockOnConfirm).toHaveBeenCalled();
-    expect(mockOnConfirm).toHaveBeenCalledWith(data);
-  });
-
-  it('tests complete form submission flow', async () => {
+  it('completes form submission flow', async () => {
     // Mock the PUT endpoint response
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
@@ -218,7 +143,7 @@ describe('ChangePlanAction', () => {
       body: {success: true},
     });
 
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for component to load
     await waitFor(() => {
@@ -229,14 +154,17 @@ describe('ChangePlanAction', () => {
     const planRadio = screen.getByTestId('change-plan-radio-btn-am3_business');
     await userEvent.click(planRadio);
 
-    // Verify that the confirm callback was set
-    expect(mockConfirmCallback).toHaveBeenCalled();
+    // Select reserved volumes
+    await userEvent.type(screen.getByRole('textbox', {name: 'Errors'}), '100000\n');
+    expect(screen.getByRole('textbox', {name: 'Errors'})).toHaveValue('100,000');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Replays'}), '50\n');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Spans'}), '10000000\n');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Cron monitors'}), '1\n');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1\n');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Attachments (GB)'}), '1\n');
 
-    // Get the callback function
-    const confirmCallback = mockConfirmCallback.mock.calls[0][0];
-
-    // Trigger the callback
-    await confirmCallback();
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
 
     // Verify the PUT API was called
     expect(putMock).toHaveBeenCalled();
@@ -244,28 +172,8 @@ describe('ChangePlanAction', () => {
     expect(requestData).toHaveProperty('plan', 'am3_business');
   });
 
-  it('calls disableConfirmButton when plan state changes', async () => {
-    // This test focuses on verifying that handlePlanChange calls disableConfirmButton
-    renderComponent();
-
-    // Wait for component to load
-    await waitFor(() => {
-      expect(screen.getByRole('tab', {name: 'AM3'})).toBeInTheDocument();
-    });
-
-    // Reset the mock count
-    mockDisableConfirmButton.mockClear();
-
-    // Select a plan
-    const planRadio = screen.getByTestId('change-plan-radio-btn-am3_business');
-    await userEvent.click(planRadio);
-
-    // Verify disableConfirmButton was called
-    expect(mockDisableConfirmButton).toHaveBeenCalled();
-  });
-
   it('updates plan list when switching between tiers', async () => {
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for component to load
     await waitFor(() => {
@@ -299,7 +207,7 @@ describe('ChangePlanAction', () => {
   });
 
   it('shows only test plans when using TEST tier', async () => {
-    renderComponent();
+    openAndLoadModal();
 
     // First, click the TEST tier to activate it
     await waitFor(() => {
@@ -311,14 +219,12 @@ describe('ChangePlanAction', () => {
 
     // Verify TEST tier plans are shown after clicking the TEST tier tab
     await waitFor(() => {
-      const testPlans = screen.queryAllByTestId(
-        'change-plan-radio-btn-test_test_monthly'
-      );
+      const testPlans = screen.queryAllByTestId('change-plan-radio-btn-am3_test_monthly');
       expect(testPlans.length).toBeGreaterThan(0);
     });
   });
 
-  it('tests complete form submission flow for the TEST tier', async () => {
+  it('completes form submission flow for the TEST tier', async () => {
     // Mock the PUT endpoint response
     const putMock = MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/subscription/`,
@@ -326,7 +232,7 @@ describe('ChangePlanAction', () => {
       body: {success: true},
     });
 
-    renderComponent();
+    openAndLoadModal();
 
     // Wait for component to load
     await waitFor(() => {
@@ -341,7 +247,7 @@ describe('ChangePlanAction', () => {
     await waitFor(
       () => {
         const testPlans = screen.queryAllByTestId(
-          'change-plan-radio-btn-test_test_monthly'
+          'change-plan-radio-btn-am3_test_monthly'
         );
         expect(testPlans.length).toBeGreaterThan(0);
         return testPlans;
@@ -353,19 +259,10 @@ describe('ChangePlanAction', () => {
       }
     });
 
-    // Verify that the confirm callback was set
-    expect(mockConfirmCallback).toHaveBeenCalled();
-
-    // Get the callback function
-    const confirmCallback = mockConfirmCallback.mock.calls[0][0];
-
-    // Trigger the callback
-    await confirmCallback();
-
     // Verify the PUT API was called
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
-    expect(requestData).toHaveProperty('plan', 'test_test_monthly');
+    expect(requestData).toHaveProperty('plan', 'am3_test_monthly');
     expect(requestData).toHaveProperty('reservedErrors', 50000);
     expect(requestData).toHaveProperty('reservedTransactions', 10000);
   });

@@ -1,32 +1,40 @@
-import React, {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import InputField from 'sentry/components/forms/fields/inputField';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
+import FormModel from 'sentry/components/forms/model';
+import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {DataCategory} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
-import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
-import PlanList from 'admin/components/planList';
+import type {LimitName} from 'admin/components/planList';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {CheckoutType, PlanTier} from 'getsentry/types';
-import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
-import titleCase from 'getsentry/utils/titleCase';
+import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import formatCurrency from 'getsentry/utils/formatCurrency';
 
 const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
-type Props = AdminConfirmRenderProps & {
+type Props = {
+  onSuccess: () => void;
   orgId: string;
   partnerPlanId: string | null;
   subscription: Subscription;
-};
+} & ModalRenderProps;
 
 /**
  * Rendered as part of a openAdminConfirmModal call
@@ -35,15 +43,14 @@ function ChangePlanAction({
   subscription,
   orgId,
   partnerPlanId,
-  onConfirm,
-  setConfirmCallback,
-  disableConfirmButton,
+  onSuccess,
+  closeModal,
 }: Props) {
   const [billingInterval, setBillingInterval] = useState<string>(MONTHLY);
   const [contractInterval, setContractInterval] = useState<string>(MONTHLY);
   const [activeTier, setActiveTier] = useState<PlanTier>(PlanTier.AM3);
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [reserved, setReserved] = useState<{[key in DataCategory]?: number | null}>({});
+  const [activePlan, setActivePlan] = useState<Plan | null>(null);
+  const [formModel] = useState(() => new FormModel());
 
   const api = useApi({persistInFlight: true});
   const {
@@ -84,28 +91,51 @@ function ChangePlanAction({
     );
   }, [activeTier, billingInterval, contractInterval, partnerPlanId, planList]);
 
-  const canSubmit = useCallback(() => {
-    if (!selectedPlanId) {
-      return false;
+  const handleConfirm: OnSubmitCallback = async (
+    data: Data,
+    _: (data: Data) => void,
+    onSubmitError: (error: any) => void
+  ) => {
+    addLoadingMessage('Updating plan\u2026');
+
+    data.plan = activePlan?.id;
+    if (!data.plan || !planList.find(p => p.id === data.plan)) {
+      onSubmitError({error: 'Plan not found'});
+      return;
     }
 
     if (activeTier === PlanTier.MM2) {
-      return true;
+      try {
+        await api.requestPromise(`/customers/${orgId}/`, {
+          method: 'PUT',
+          data,
+        });
+        addSuccessMessage(
+          `Customer account has been updated with ${JSON.stringify(data)}.`
+        );
+        onSuccess?.();
+        closeModal();
+      } catch (error) {
+        onSubmitError({error});
+      }
+      return;
     }
 
-    const plan = getPlanList().find(p => p.id === selectedPlanId) || null;
-    if (!plan) {
-      return false;
+    // AM plans use a different endpoint to update plans
+    try {
+      await api.requestPromise(`/customers/${orgId}/subscription/`, {
+        method: 'PUT',
+        data,
+      });
+      addSuccessMessage(
+        `Customer account has been updated with ${JSON.stringify(data)}.`
+      );
+      onSuccess?.();
+      closeModal();
+    } catch (error) {
+      onSubmitError({error});
     }
-
-    return Object.entries(reserved)
-      .filter(([category, _]) => plan.checkoutCategories.includes(category))
-      .every(([_, value]) => value !== null);
-  }, [activeTier, selectedPlanId, reserved, getPlanList]);
-
-  useEffect(() => {
-    disableConfirmButton(!canSubmit());
-  }, [canSubmit, disableConfirmButton]);
+  };
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -119,7 +149,7 @@ function ChangePlanAction({
     return ConfigStore.get('user')?.permissions?.has?.('billing.provision');
   };
 
-  // Find the closest volume tier in the plan for a given category and current volume
+  // // Find the closest volume tier in the plan for a given category and current volume
   const findClosestTier = (
     plan: Plan | null,
     category: string,
@@ -154,8 +184,8 @@ function ChangePlanAction({
     return sortedTiers[sortedTiers.length - 1];
   };
 
-  // Set initial values for reserved volumes based on the current subscription
-  // and available tiers in the selected plan
+  // // Set initial values for reserved volumes based on the current subscription
+  // // and available tiers in the newly selected plan
   const setInitialReservedVolumes = (planId: string): void => {
     if (!subscription) {
       return;
@@ -168,72 +198,28 @@ function ChangePlanAction({
 
     const updates: Record<string, number | null> = {};
     Object.entries(subscription.categories).forEach(([category, metricHistory]) => {
-      if (metricHistory.reserved !== undefined) {
-        updates[category] = findClosestTier(plan, category, metricHistory.reserved || 0);
+      if (metricHistory.reserved) {
+        const closestTier = findClosestTier(plan, category, metricHistory.reserved);
+        if (closestTier) {
+          formModel.setValue(
+            `reserved${toTitleCase(category, {
+              allowInnerUpperCase: true,
+            })}`,
+            closestTier
+          );
+          updates[
+            `reserved${toTitleCase(category, {
+              allowInnerUpperCase: true,
+            })}`
+          ] = closestTier;
+        }
       }
     });
-    setReserved(updates);
   };
 
-  const handleConfirm = async () => {
-    addLoadingMessage('Updating plan\u2026');
-
-    if (activeTier === PlanTier.MM2) {
-      const data = {plan: selectedPlanId};
-      try {
-        await api.requestPromise(`/customers/${orgId}/`, {
-          method: 'PUT',
-          data,
-        });
-        addSuccessMessage(
-          `Customer account has been updated with ${JSON.stringify(data)}.`
-        );
-        onConfirm?.(data);
-      } catch (error) {
-        onConfirm?.({error});
-      }
-      return;
-    }
-
-    // AM plans use a different endpoint to update plans
-    const plan = getPlanList().find(p => p.id === selectedPlanId) || null;
-    if (!plan) {
-      onConfirm?.({error: 'Plan not found'});
-      return;
-    }
-
-    const data: Record<string, string | number | null> = {
-      plan: selectedPlanId,
-    };
-    plan.checkoutCategories.forEach(category => {
-      const reservedVolume = reserved[category as DataCategory] || null;
-      data[
-        `reserved${titleCase(getCategoryInfoFromPlural(category as DataCategory)?.apiName ?? category)}`
-      ] = reservedVolume;
-    });
-
-    try {
-      await api.requestPromise(`/customers/${orgId}/subscription/`, {
-        method: 'PUT',
-        data,
-      });
-      addSuccessMessage(
-        `Customer account has been updated with ${JSON.stringify(data)}.`
-      );
-      onConfirm?.(data);
-    } catch (error) {
-      onConfirm?.({error});
-    }
-  };
-  setConfirmCallback(handleConfirm);
-
-  const handlePlanChange = (planId: string) => {
-    setSelectedPlanId(planId);
-    setInitialReservedVolumes(planId);
-  };
-
-  const handleLimitChange = (category: DataCategory, value: number) => {
-    setReserved(prev => ({...prev, [category]: value}));
+  const handlePlanChange = (plan: Plan) => {
+    setActivePlan(plan);
+    setInitialReservedVolumes(plan.id);
   };
 
   // Plan for partner sponsored subscriptions is not modifiable so skipping
@@ -267,6 +253,7 @@ function ChangePlanAction({
         <Tabs
           value={activeTier}
           onChange={tab => {
+            setActivePlan(null);
             setActiveTier(tab);
             setBillingInterval(MONTHLY);
             setContractInterval(MONTHLY);
@@ -330,17 +317,169 @@ function ChangePlanAction({
     </React.Fragment>
   );
 
+  // Helper to get current value display for a category
+  const getCurrentValueDisplay = (category: DataCategory, fieldName: LimitName) => {
+    if (!subscription) {
+      return null;
+    }
+
+    // Check if categories exist
+    if (subscription.categories) {
+      // Get the category data using type assertion to allow string indexing
+      const categories = subscription.categories as Record<string, {reserved?: number}>;
+      const categoryKey = category.toLowerCase();
+
+      if (categories[categoryKey] && categories[categoryKey].reserved !== undefined) {
+        const reservedValue = categories[categoryKey].reserved;
+
+        return (
+          <CurrentValueText>
+            Current: {reservedValue.toLocaleString()}{' '}
+            {category === DataCategory.ATTACHMENTS ? 'GB' : ''}
+          </CurrentValueText>
+        );
+      }
+    }
+
+    // Fallback to the old method if categories data is not available
+    const currentValue = (subscription as Record<string, any>)[fieldName];
+    if (currentValue === null || currentValue === undefined) {
+      return null;
+    }
+
+    return (
+      <CurrentValueText>
+        Current: {currentValue.toLocaleString()}{' '}
+        {category === DataCategory.ATTACHMENTS ? 'GB' : ''}
+      </CurrentValueText>
+    );
+  };
+
+  const changeValue = {
+    6000000: '6M',
+    5000000: '5M',
+    4000000: '4M',
+    3000000: '3M',
+    1500000: '1.5M',
+    500000: '500k',
+    100000: '100K',
+  };
+
   return (
     <Fragment>
       {header}
-      <PlanList
-        planId={selectedPlanId}
-        reserved={reserved}
-        plans={getPlanList()}
-        onPlanChange={handlePlanChange}
-        onLimitChange={handleLimitChange}
-        currentSubscription={subscription}
-      />
+
+      <Form
+        onSubmit={handleConfirm}
+        onCancel={closeModal}
+        submitLabel="Change Plan"
+        submitPriority="danger"
+        model={formModel}
+      >
+        {getPlanList().map(plan => (
+          <div key={plan.id}>
+            <PlanLabel>
+              <div>
+                <input
+                  data-test-id={`change-plan-radio-btn-${plan.id}`}
+                  type="radio"
+                  name="plan"
+                  value={plan.id}
+                  onChange={() => {
+                    handlePlanChange(plan);
+                  }}
+                />
+              </div>
+              <div>
+                <strong>
+                  {plan.name}{' '}
+                  {
+                    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    changeValue[plan.reservedMinimum] ?? ''
+                  }
+                </strong>{' '}
+                <SubText>— {plan.id}</SubText>
+                <br />
+                <small>
+                  {formatCurrency(plan.price)} /{' '}
+                  {plan.billingInterval === 'annual' ? 'annually' : 'monthly'}
+                </small>
+              </div>
+            </PlanLabel>
+          </div>
+        ))}
+        {activePlan &&
+          (
+            activePlan?.planCategories.transactions ||
+            activePlan?.planCategories.spans ||
+            []
+          ).length > 1 && (
+            <div>
+              <h4>Reserved Volumes</h4>
+              {activePlan.checkoutCategories.map(category => {
+                const titleCategory = getPlanCategoryName({plan: activePlan, category});
+                const reservedKey = `reserved${toTitleCase(category, {
+                  allowInnerUpperCase: true,
+                })}`;
+                const label =
+                  category === DataCategory.ATTACHMENTS
+                    ? `${titleCategory} (GB)`
+                    : titleCategory;
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                const currentMetricHistory = subscription.categories[category];
+                const currentReserved = currentMetricHistory?.reserved ?? 0;
+                const fieldValue =
+                  findClosestTier(activePlan, category, currentReserved) ?? null;
+                const currentValueDisplay = getCurrentValueDisplay(
+                  category as DataCategory,
+                  reservedKey as LimitName
+                );
+                return (
+                  <SelectFieldWrapper key={`test-${category}`}>
+                    <SelectField
+                      inline={false}
+                      stacked
+                      name={reservedKey}
+                      label={label}
+                      value={fieldValue}
+                      options={
+                        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                        (activePlan.planCategories[category as DataCategories] || []).map(
+                          (level: {events: {toLocaleString: () => any}}) => ({
+                            label: level.events.toLocaleString(),
+                            value: level.events,
+                          })
+                        )
+                      }
+                      required
+                    />
+                    {currentValueDisplay}
+                  </SelectFieldWrapper>
+                );
+              })}
+            </div>
+          )}
+        <AuditFields>
+          <InputField
+            data-test-id="url-field"
+            name="ticket-url"
+            type="url"
+            label="TicketUrl"
+            inline={false}
+            stacked
+            flexibleControlStateSize
+          />
+          <TextField
+            data-test-id="notes-field"
+            name="notes"
+            label="Notes"
+            inline={false}
+            stacked
+            flexibleControlStateSize
+            maxLength={500}
+          />
+        </AuditFields>
+      </Form>
     </Fragment>
   );
 }
@@ -349,4 +488,46 @@ const TabsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default ChangePlanAction;
+const PlanLabel = styled('label')`
+  margin-bottom: 10px;
+
+  display: flex;
+  align-items: flex-start;
+
+  & > div {
+    margin-right: ${space(3)};
+  }
+`;
+
+const SubText = styled('small')`
+  font-weight: normal;
+  color: #999;
+`;
+
+const SelectFieldWrapper = styled('div')`
+  position: relative;
+`;
+
+const CurrentValueText = styled('div')`
+  color: #666;
+  font-size: 0.9em;
+  margin-top: -8px;
+  margin-bottom: 10px;
+  font-style: italic;
+`;
+
+const AuditFields = styled('div')`
+  margin-top: ${space(2)};
+`;
+
+type Options = {
+  onSuccess: () => void;
+  orgId: string;
+  partnerPlanId: string | null;
+  subscription: Subscription;
+};
+
+const triggerChangePlanAction = (opts: Options) =>
+  openModal(deps => <ChangePlanAction {...deps} {...opts} />);
+
+export default triggerChangePlanAction;

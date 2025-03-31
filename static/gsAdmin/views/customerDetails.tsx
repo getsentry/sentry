@@ -24,7 +24,7 @@ import CancelSubscriptionAction from 'admin/components/cancelSubscriptionAction'
 import triggerChangeBalanceModal from 'admin/components/changeBalanceAction';
 import triggerChangeDatesModal from 'admin/components/changeDatesAction';
 import triggerGoogleDomainModal from 'admin/components/changeGoogleDomainAction';
-import ChangePlanAction from 'admin/components/changePlanAction';
+import triggerChangePlanAction from 'admin/components/changePlanAction';
 import CloseAccountInfo from 'admin/components/closeAccountInfo';
 import CustomerCharges from 'admin/components/customers/customerCharges';
 import CustomerHistory from 'admin/components/customers/customerHistory';
@@ -572,20 +572,14 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
               disabledReason: data.partner?.isActive
                 ? 'This account is managed by a third-party.'
                 : 'No payment method on file.',
-              confirmModalOpts: {
-                disableConfirmButton: true,
-                priority: 'danger',
-                confirmText: 'Change Plan',
-                renderModalSpecificContent: deps => (
-                  <ChangePlanAction
-                    orgId={orgId}
-                    {...deps}
-                    partnerPlanId={data.partner?.isActive ? data.planDetails.id : null}
-                    subscription={data}
-                  />
-                ),
-              },
-              onAction: params => this.onChangePlan({...params}),
+              skipConfirmModal: true,
+              onAction: () =>
+                triggerChangePlanAction({
+                  orgId,
+                  subscription: data,
+                  partnerPlanId: data.partner?.isActive ? data.planDetails.id : null,
+                  onSuccess: () => this.reloadData(),
+                }),
             },
             {
               key: 'checkAM2',
