@@ -1,6 +1,6 @@
+import type {Theme} from '@emotion/react';
 import Color from 'color';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -81,7 +81,9 @@ export function transformDeviceClassEvents({
   primaryRelease,
   secondaryRelease,
   data,
+  theme,
 }: {
+  theme: Theme;
   yAxes: YAxis[];
   data?: TableData;
   primaryRelease?: string;
@@ -134,7 +136,7 @@ export function transformDeviceClassEvents({
             name: deviceClass,
             value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
-              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
+              color: isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1],
             },
           } as SeriesDataUnit;
         }
