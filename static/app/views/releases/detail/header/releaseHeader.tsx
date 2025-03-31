@@ -160,7 +160,7 @@ const IconWrapper = styled('span')`
 
   &,
   a {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
     display: flex;
     &:hover {
       cursor: pointer;

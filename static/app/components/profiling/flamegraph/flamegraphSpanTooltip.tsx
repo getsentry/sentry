@@ -24,7 +24,6 @@ export function formatWeightToTransactionDuration(
 }
 
 export interface FlamegraphSpanTooltipProps {
-  canvasBounds: Rect;
   configSpaceCursor: vec2;
   hoveredNode: SpanChartNode;
   spanChart: SpanChart;
@@ -34,7 +33,6 @@ export interface FlamegraphSpanTooltipProps {
 }
 
 export function FlamegraphSpanTooltip({
-  canvasBounds,
   configSpaceCursor,
   spansCanvas,
   spanChart,
@@ -52,12 +50,7 @@ export function FlamegraphSpanTooltip({
   }, [spansView, hoveredNode]);
 
   return (
-    <BoundTooltip
-      cursor={configSpaceCursor}
-      canvas={spansCanvas}
-      canvasBounds={canvasBounds}
-      canvasView={spansView}
-    >
+    <BoundTooltip cursor={configSpaceCursor} canvas={spansCanvas} canvasView={spansView}>
       <FlamegraphTooltipFrameMainInfo>
         <FlamegraphTooltipColorIndicator
           backgroundImage={

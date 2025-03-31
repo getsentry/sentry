@@ -131,7 +131,7 @@ type FieldFormatters = {
 export type FieldTypes = keyof FieldFormatters;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 const emptyValue = <EmptyValueContainer>{t('(no value)')}</EmptyValueContainer>;
 const emptyStringValue = <EmptyValueContainer>{t('(empty string)')}</EmptyValueContainer>;
@@ -650,7 +650,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   user: {
     sortField: 'user',
     renderFunc: data => {
-      if (data.user) {
+      if (data.user?.split) {
         const [key, value] = data.user.split(':');
         const userObj = {
           id: '',

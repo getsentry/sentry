@@ -2,6 +2,7 @@ import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
@@ -18,7 +19,6 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -41,7 +41,7 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn} = Sentry._experiment_log;
+const {error, warn, info} = Sentry.logger;
 
 export interface TimeSeriesWidgetVisualizationProps {
   /**
@@ -66,10 +66,14 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
   onZoom?: EChartDataZoomHandler;
+
+  ref?: React.Ref<ReactEchartsRef>;
+
   /**
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
+
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
@@ -112,16 +116,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+    chartRenderer: ({start: trimStart, end: trimEnd, ref: chartRendererRef}) => {
       return (
-        <TimeSeriesWidgetVisualization
-          {...props}
-          disableReleaseNavigation
-          plottables={props.plottables.map(plottable =>
-            plottable.constrain(trimStart, trimEnd)
-          )}
-          showReleaseAs="line"
-        />
+        <DrawerWidgetWrapper>
+          <TimeSeriesWidgetVisualization
+            {...props}
+            ref={chartRendererRef}
+            disableReleaseNavigation
+            plottables={props.plottables.map(plottable =>
+              plottable.constrain(trimStart, trimEnd)
+            )}
+            showReleaseAs="line"
+          />
+        </DrawerWidgetWrapper>
       );
     },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
@@ -155,9 +162,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
 
   const handleChartRef = useCallback(
-    (e: ReactEchartsRef) => {
-      chartRef.current = e;
-
+    (e: ReactEchartsRef | null) => {
       if (!e?.getEchartsInstance) {
         return;
       }
@@ -189,32 +194,54 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     )
     .filter(axisType => !!axisType); // `TimeSeries` allows for a `null` data type , though it's not likely
 
-  // Assign most popular field type to left axis
-  const leftYAxisType = axisTypes.at(0)!;
+  // Partition the types between the two axes
+  let leftYAxisDataTypes: string[] = [];
+  let rightYAxisDataTypes: string[] = [];
 
-  // Assign the rest of the field types to right
-  const rightYAxisTypes = axisTypes.slice(1);
+  if (axisTypes.length === 1) {
+    // The simplest case, there is just one type. Assign it to the left axis
+    leftYAxisDataTypes = axisTypes;
+  } else if (axisTypes.length === 2) {
+    // Also a simple case. If there are only two types, split them evenly
+    leftYAxisDataTypes = axisTypes.slice(0, 1);
+    rightYAxisDataTypes = axisTypes.slice(1, 2);
+  } else if (axisTypes.length > 2 && axisTypes.at(0) === FALLBACK_TYPE) {
+    // There are multiple types, and the most popular one is the fallback. Don't
+    // bother creating a second fallback axis, plot everything on the left
+    leftYAxisDataTypes = axisTypes;
+  } else {
+    // There are multiple types. Assign the most popular type to the left axis,
+    // the rest to the right axis
+    leftYAxisDataTypes = axisTypes.slice(0, 1);
+    rightYAxisDataTypes = axisTypes.slice(1);
+  }
 
-  // Narrow down to just one type for the right Y axis. If there's just one field
-  // type for the right axis, use it. If there are more than one, fall back to a
-  // default. If there are 0, there's no type for the right axis, and we won't
-  // plot one
+  // The left Y axis might be responsible for 1 or more types. If there's just
+  // one, use that type. If it's responsible for more than 1 type, use the
+  // fallback type
+  const leftYAxisType =
+    leftYAxisDataTypes.length === 1 ? leftYAxisDataTypes.at(0)! : FALLBACK_TYPE;
+
+  // The right Y axis might be responsible for 0, 1, or more types. If there are
+  // none, don't set a type at all. If there is 1, use that type. If there are
+  // two or more, use fallback type
   const rightYAxisType =
-    rightYAxisTypes.length === 1
-      ? rightYAxisTypes[0]!
-      : rightYAxisTypes.length > 2
-        ? FALLBACK_TYPE
-        : undefined;
+    rightYAxisDataTypes.length === 0
+      ? undefined
+      : rightYAxisDataTypes.length === 1
+        ? rightYAxisDataTypes.at(0)
+        : FALLBACK_TYPE;
 
-  if (leftYAxisType === FALLBACK_TYPE && rightYAxisType !== FALLBACK_TYPE) {
-    warn(
-      '`TimeSeriesWidgetVisualization` assigned fallback to left Y axis instead of right Y axis',
-      {
-        labels: props.plottables.map(plottable => plottable.label),
-        leftYAxisType,
-        rightYAxisType,
-      }
-    );
+  if (axisTypes.length > 0) {
+    info('`TimeSeriesWidgetVisualization` assigned axes', {
+      labels: props.plottables.map(plottable => plottable.label),
+      types: props.plottables.map(plottable => plottable.dataType),
+      units: props.plottables.map(plottable => plottable.dataUnit),
+      leftYAxisDataTypes,
+      rightYAxisDataTypes,
+      leftYAxisType,
+      rightYAxisType,
+    });
   }
 
   // Create a map of used units by plottable data type
@@ -273,7 +300,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const palette =
     paletteSize > 0
-      ? getChartColorPalette(paletteSize - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+      ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
   // Create tooltip formatter
@@ -317,6 +344,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      nameFormatter: function (name, nameFormatterParams) {
+        if (!nameFormatterParams) {
+          return name;
+        }
+
+        if (
+          nameFormatterParams.seriesType === 'scatter' &&
+          Array.isArray(nameFormatterParams.data)
+        ) {
+          // For scatter series, the third point in the `data` array should be the sample's ID
+          const sampleId = nameFormatterParams.data.at(2);
+          return defined(sampleId) ? sampleId.toString() : name;
+        }
+
+        return name;
+      },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
 
@@ -378,14 +421,15 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
     let yAxisPosition: 'left' | 'right' = 'left';
 
-    if (plottable.dataType === leftYAxisType) {
-      // This plottable matches the left axis
+    if (leftYAxisDataTypes.includes(plottable.dataType)) {
+      // This plottable is assigned to the left axis
       yAxisPosition = 'left';
-    } else if (rightYAxisTypes.includes(plottable.dataType)) {
-      // This plottable matches the right axis
+    } else if (rightYAxisDataTypes.includes(plottable.dataType)) {
+      // This plottable is assigned to the right axis
       yAxisPosition = 'right';
     } else {
-      // This plottable's type isn't on either axis! Mysterious. If there is a catch-all right axis. Drop it into the first known "fallback" axis.
+      // This plottable's type isn't assignned to either axis! Mysterious.
+      // There's no graceful way to handle this.
       Sentry.withScope(scope => {
         const message =
           '`TimeSeriesWidgetVisualization` Could not assign Plottable to an axis';
@@ -406,6 +450,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition,
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+      theme,
     });
 
     seriesIndexToPlottableMapRanges.push({
@@ -424,7 +469,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={handleChartRef}
+      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
       {...releaseBubbleEventHandlers}
       autoHeightResize
       series={[...series, releaseSeries].filter(defined)}
@@ -520,6 +565,10 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
+`;
+
+const DrawerWidgetWrapper = styled('div')`
+  height: 220px;
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;

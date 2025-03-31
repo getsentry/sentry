@@ -1,29 +1,28 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 import {getSortedRegisters} from './utils';
 import {FrameRegisterValue} from './value';
 
 type Props = {
-  registers: Record<string, string | null>;
+  registers: NonNullable<StacktraceType['registers']>;
   deviceArch?: string;
   meta?: Record<any, any>;
 };
 
-const CLIPPED_HEIGHT = 120;
+const CLIPPED_HEIGHT = 250;
 
 export function FrameRegisters({registers, deviceArch, meta}: Props) {
-  // make sure that clicking on the registers does not actually do
-  // anything on the containing element.
-  const handlePreventToggling = (event: React.MouseEvent<HTMLDivElement>) => {
-    event.stopPropagation();
-  };
-
-  const sortedRegisters = getSortedRegisters(registers, deviceArch);
+  const sortedRegisters = useMemo(
+    () => getSortedRegisters(registers, deviceArch),
+    [registers, deviceArch]
+  );
 
   return (
     <Wrapper>
@@ -35,7 +34,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
               return null;
             }
             return (
-              <Register key={name} onClick={handlePreventToggling}>
+              <Register key={name}>
                 {name}
                 <FrameRegisterValue value={value} meta={meta?.[name]?.['']} />
               </Register>
@@ -51,7 +50,7 @@ const Wrapper = styled('div')`
   padding: ${space(0.5)} ${space(1.5)};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    padding: 18px 36px;
+    padding: ${space(1)} ${space(3)} ${space(2)};
   }
 `;
 
@@ -72,7 +71,7 @@ const Register = styled('div')`
   gap: ${space(0.5)};
   grid-template-columns: 3em 1fr;
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     text-align: right;

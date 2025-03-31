@@ -474,16 +474,14 @@ class MonitorCheckIn(Model):
 
     guid = UUIDField(unique=True, auto_add=True)
     project_id = BoundedBigIntegerField(db_index=True)
-    monitor = FlexibleForeignKey("sentry.Monitor")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment")
-    location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
+    monitor = FlexibleForeignKey("sentry.Monitor", db_index=False)
+    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
     """
     status = BoundedPositiveIntegerField(
         default=CheckInStatus.UNKNOWN,
         choices=CheckInStatus.as_choices(),
-        db_index=True,
     )
     """
     The status of the check-in
@@ -559,6 +557,8 @@ class MonitorCheckIn(Model):
         db_table = "sentry_monitorcheckin"
         indexes = [
             # used for endpoints for monitor stats + list check-ins
+            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor", "date_added", "status"]),
             # used for latest on api endpoints
             models.Index(
@@ -566,9 +566,12 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="api_latest",
             ),
-            # TODO(rjo100): to be removed when above is confirmed working
+            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor", "status", "date_added"]),
             # used for has_newer_result + thresholds
+            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor_environment", "date_added", "status"]),
             # used for latest in monitor consumer
             models.Index(
@@ -576,14 +579,19 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="consumer_latest",
             ),
-            # TODO(rjo100): to be removed when above is confirmed working
+            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
+            # column
             models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
+            # Note: If we remove all indexes that start with `status`, we need to add the index back on the column
             models.Index(fields=["status", "timeout_at"]),
             # used for dispatch_mark_unknown
-            models.Index(fields=["status", "date_added"]),
-            # used for check-in list
-            models.Index(fields=["trace_id"]),
+            models.Index(
+                fields=["-date_added"],
+                condition=Q(status=CheckInStatus.IN_PROGRESS),
+                include=["id", "monitor_environment_id"],
+                name="sentry_monitorcheckin_unknown",
+            ),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "status")

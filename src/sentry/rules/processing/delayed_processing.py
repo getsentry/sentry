@@ -433,6 +433,17 @@ def fire_rules(
         group_to_groupevent = get_group_to_groupevent(
             parsed_rulegroup_to_event_data, project.id, group_ids
         )
+        if features.has("organizations:workflow-engine-process-workflows", project.organization):
+            serialized_groups = {
+                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+            }
+            logger.info(
+                "delayed_processing.group_to_groupevent",
+                extra={
+                    "group_to_groupevent": serialized_groups,
+                    "project_id": project_id,
+                },
+            )
         for group, groupevent in group_to_groupevent.items():
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
             status = rule_statuses[rule.id]
@@ -523,11 +534,32 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
     logger.info(
         "delayed_processing.condition_groups",
-        extra={"condition_groups": len(condition_groups), "project_id": project_id},
+        extra={
+            "condition_groups": len(condition_groups),
+            "project_id": project_id,
+            "rules_to_groups": rules_to_groups,
+        },
     )
 
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
+
+    has_workflow_engine = features.has(
+        "organizations:workflow-engine-process-workflows", project.organization
+    )
+    if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
+        serialized_results = (
+            {str(query): count_dict for query, count_dict in condition_group_results.items()}
+            if condition_group_results
+            else None
+        )
+        logger.info(
+            "delayed_processing.condition_group_results",
+            extra={
+                "condition_group_results": serialized_results,
+                "project_id": project_id,
+            },
+        )
 
     rules_to_slow_conditions = defaultdict(list)
     for rule in alert_rules:
@@ -538,6 +570,11 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
         )
+        if has_workflow_engine:
+            logger.info(
+                "delayed_processing.rules_to_fire",
+                extra={"rules_to_fire": rules_to_fire, "project_id": project_id},
+            )
         if random.random() < 0.01:
             logger.info(
                 "delayed_processing.rule_to_fire",

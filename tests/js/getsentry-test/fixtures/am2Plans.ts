@@ -9,6 +9,7 @@ const AM2_CATEGORIES = [
   'attachments',
   'monitorSeats',
   'profileDuration',
+  'profileDurationUI',
   'uptime',
 ];
 
@@ -18,7 +19,8 @@ const AM2_CATEGORY_DISPLAY_NAMES = {
   replays: {singular: 'replay', plural: 'replays'},
   attachments: {singular: 'attachment', plural: 'attachments'},
   monitorSeats: {singular: 'cron monitor', plural: 'cron monitors'},
-  profileDuration: {plural: 'profile hours', singular: 'profile hour'},
+  profileDuration: {plural: 'continuous profile hours', singular: 'continuous profile hour'},
+  profileDurationUI: {plural: 'UI profile hours', singular: 'UI profile hour'},
   uptime: {singular: 'uptime monitor', plural: 'uptime monitors'},
 };
 
@@ -747,7 +749,14 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 1,
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
+        {
+          events: 0,
           unitPrice: 0,
           price: 0,
         },
@@ -825,7 +834,14 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 1,
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
+        {
+          events: 0,
           unitPrice: 0,
           price: 0,
         },
@@ -1498,7 +1514,14 @@ const AM2_PLANS: Record<string, Plan> = {
       ],
       profileDuration: [
         {
-          events: 1,
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
+        {
+          events: 0,
           unitPrice: 0,
           price: 0,
         },
@@ -1575,6 +1598,13 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
         {
           events: 0,
           unitPrice: 0,
@@ -2254,6 +2284,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      profileDurationUI: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
     },
   },
   am2_business_auf: {
@@ -2927,6 +2964,13 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      profileDurationUI: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
     },
   },
   am2_sponsored: {
@@ -2963,6 +3007,7 @@ const AM2_PLANS: Record<string, Plan> = {
       monitorSeats: [{events: 500, unitPrice: 0, price: 0}],
       uptime: [{events: 500, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
+      profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
   },
@@ -2999,6 +3044,7 @@ const AM2_PLANS: Record<string, Plan> = {
       monitorSeats: [{events: 10, unitPrice: 0, price: 0}],
       uptime: [{events: 10, unitPrice: 0, price: 0}],
       profileDuration: [{events: 0, unitPrice: 0, price: 0}],
+      profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
   },
@@ -3477,6 +3523,13 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
         {
           events: 0,
           unitPrice: 0,
@@ -4010,6 +4063,13 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
         {
           events: 0,
           unitPrice: 0,
@@ -4564,11 +4624,18 @@ const AM2_PLANS: Record<string, Plan> = {
           price: 0,
         },
       ],
+      profileDurationUI: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
     },
   },
   am2_business_ent_auf: {
     id: 'am2_business_ent_auf',
-    name: 'Business',
+    name: 'Enterprise (Business)',
     description: '',
     price: 0,
     basePrice: 0,
@@ -4636,6 +4703,98 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
       profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+    },
+  },
+  am2_business_ent: {
+    id: 'am2_business_ent',
+    name: 'Enterprise (Business)',
+    description: '',
+    price: 0,
+    basePrice: 0,
+    totalPrice: 0,
+    trialPlan: 'am2_business',
+    isTestPlan: false,
+    maxMembers: null,
+    retentionDays: 90,
+    userSelectable: false,
+    checkoutType: CheckoutType.STANDARD,
+    features: AM2_BUSINESS_FEATURES,
+    billingInterval: MONTHLY,
+    contractInterval: MONTHLY,
+    onDemandEventPrice: 0,
+    allowOnDemand: true,
+    reservedMinimum: 0,
+    allowAdditionalReservedEvents: true,
+    categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    categories: AM2_CATEGORIES,
+    checkoutCategories: AM2_CATEGORIES,
+    availableCategories: AM2_CATEGORIES,
+    onDemandCategories: AM2_CATEGORIES,
+    hasOnDemandModes: false,
+    planCategories: {
+      errors: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      transactions: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      replays: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      attachments: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      monitorSeats: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      uptime: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDuration: [
+        {
+          events: 0,
+          unitPrice: 0,
+          price: 0,
+        },
+      ],
+      profileDurationUI: [
         {
           events: 0,
           unitPrice: 0,

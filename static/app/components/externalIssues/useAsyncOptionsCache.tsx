@@ -7,8 +7,10 @@ import type {IssueConfigField} from 'sentry/types/integrations';
  * Manages state cache of options fetched for async fields.
  * This is used to avoid fetching the same options multiple times.
  */
-export function useAsyncOptionsCache() {
-  const [asyncOptions, setAsyncOptions] = useState<Record<string, Choices>>({});
+export function useAsyncOptionsCache(initialCache?: Record<string, Choices>) {
+  const [asyncOptions, setAsyncOptions] = useState<Record<string, Choices>>(
+    initialCache || {}
+  );
 
   const updateCache = useCallback(
     ({

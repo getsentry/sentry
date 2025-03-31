@@ -7,6 +7,7 @@ import styled, {
 import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
+import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
 import commonTheme, {
   type ColorMapping,
   darkTheme,
@@ -27,22 +28,22 @@ const formTheme: FormTheme = {
    */
   form: {
     md: {
+      height: '40px',
+      minHeight: '40px',
+      fontSize: '0.875rem',
+      lineHeight: '1rem',
+    },
+    sm: {
       height: '32px',
       minHeight: '32px',
       fontSize: '0.875rem',
       lineHeight: '1rem',
     },
-    sm: {
+    xs: {
       height: '28px',
       minHeight: '28px',
-      fontSize: '0.875rem',
-      lineHeight: '1rem',
-    },
-    xs: {
-      height: '24px',
-      minHeight: '24px',
       fontSize: '0.75rem',
-      lineHeight: '0.875rem',
+      lineHeight: '1rem',
     },
   },
 
@@ -52,33 +53,33 @@ const formTheme: FormTheme = {
    */
   formPadding: {
     md: {
+      paddingLeft: 16,
+      paddingRight: 16,
+      paddingTop: 12,
+      paddingBottom: 12,
+    },
+    sm: {
       paddingLeft: 12,
       paddingRight: 12,
       paddingTop: 8,
       paddingBottom: 8,
     },
-    sm: {
+    xs: {
       paddingLeft: 8,
       paddingRight: 8,
       paddingTop: 6,
       paddingBottom: 6,
     },
-    xs: {
-      paddingLeft: 6,
-      paddingRight: 6,
-      paddingTop: 4,
-      paddingBottom: 4,
-    },
   },
   formRadius: {
     md: {
-      borderRadius: '6px',
+      borderRadius: '8px',
     },
     sm: {
-      borderRadius: '5px',
+      borderRadius: '6px',
     },
     xs: {
-      borderRadius: '4px',
+      borderRadius: '5px',
     },
   },
   formSpacing: {
@@ -798,6 +799,9 @@ interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
   space: typeof space;
 }
 
+// Redeclare as we dont want to use the deprecation
+const getColorPalette = getChartColorPalette;
+
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
 
@@ -826,6 +830,11 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   button: generateButtonTheme(chonkLightColorMapping, lightAliases),
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
+
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette,
+  },
 
   prismVariables: generateThemePrismVariables(
     prismLight,
@@ -880,6 +889,11 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),
+
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette: getChartColorPalette,
+  },
 
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(

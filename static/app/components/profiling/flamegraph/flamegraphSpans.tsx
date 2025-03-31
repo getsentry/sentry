@@ -44,7 +44,6 @@ import {
 import {FlamegraphSpanTooltip} from './flamegraphSpanTooltip';
 
 interface FlamegraphSpansProps {
-  canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
   setSpansCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   spanChart: SpanChart;
@@ -57,7 +56,6 @@ interface FlamegraphSpansProps {
 export function FlamegraphSpans({
   spanChart,
   canvasPoolManager,
-  canvasBounds,
   spansView,
   spansCanvas,
   spansCanvasRef,
@@ -535,7 +533,6 @@ export function FlamegraphSpans({
           spansView={spansView}
           spansRenderer={spansRenderer}
           hoveredNode={hoveredNode}
-          canvasBounds={canvasBounds}
         />
       ) : null}
     </Fragment>

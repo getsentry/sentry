@@ -3,6 +3,7 @@ import type {Location} from 'history';
 
 import type {CursorHandler} from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
+import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {decodeProjects} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
@@ -26,6 +27,7 @@ const LOGS_CURSOR_KEY = 'logsCursor';
 export const LOGS_FIELDS_KEY = 'logsFields';
 
 interface LogsPageParams {
+  readonly analyticsPageSource: LogsAnalyticsPageSource;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableEditingFrozen: boolean | undefined;
@@ -50,24 +52,34 @@ const [_LogsPageParamsProvider, _useLogsPageParams, LogsPageParamsContext] =
   });
 
 export interface LogsPageParamsProviderProps {
+  analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
   isOnEmbeddedView?: boolean;
+  limitToProjectIds?: number[];
+  limitToSpanId?: string;
   limitToTraceId?: string;
 }
 
 export function LogsPageParamsProvider({
   children,
   limitToTraceId,
+  limitToSpanId,
+  limitToProjectIds,
   isOnEmbeddedView,
+  analyticsPageSource,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
-  const baseSearch = limitToTraceId
-    ? new MutableSearch('').addFilterValues(OurLogKnownFieldKey.TRACE_ID, [
-        limitToTraceId,
-      ])
-    : undefined;
+  let baseSearch: MutableSearch | undefined = undefined;
+  if (limitToSpanId && limitToTraceId) {
+    baseSearch = baseSearch ?? new MutableSearch('');
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+  } else if (limitToTraceId) {
+    baseSearch = baseSearch ?? new MutableSearch('');
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+  }
   const isTableEditingFrozen = isOnEmbeddedView;
   const fields = isTableEditingFrozen
     ? defaultLogFields()
@@ -75,7 +87,9 @@ export function LogsPageParamsProvider({
   const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
     : getLogSortBysFromLocation(location, fields);
-  const projectIds = isOnEmbeddedView ? [-1] : decodeProjects(location);
+  const projectIds = isOnEmbeddedView
+    ? (limitToProjectIds ?? [-1])
+    : decodeProjects(location);
 
   const cursor = getLogCursorFromLocation(location);
 
@@ -89,6 +103,7 @@ export function LogsPageParamsProvider({
         isTableEditingFrozen,
         baseSearch,
         projectIds,
+        analyticsPageSource,
       }}
     >
       {children}
@@ -253,6 +268,11 @@ export function useSetLogsSortBys() {
     },
     [setPageParams, currentPageSortBys]
   );
+}
+
+export function useLogsAnalyticsPageSource() {
+  const {analyticsPageSource} = useLogsPageParams();
+  return analyticsPageSource;
 }
 
 function getLogCursorFromLocation(location: Location): string {

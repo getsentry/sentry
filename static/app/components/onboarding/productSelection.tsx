@@ -13,7 +13,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
@@ -364,14 +363,8 @@ export function ProductSelection({
 
       onChange?.(selectedProducts);
       setParams({product: selectedProducts});
-
-      if (organization.features.includes('project-create-replay-feedback')) {
-        HookStore.get('callback:on-create-project-product-selection').map(cb =>
-          cb({defaultProducts: products ?? [], organization, selectedProducts})
-        );
-      }
     },
-    [products, organization, setParams, urlProducts, onChange]
+    [products, setParams, urlProducts, onChange]
   );
 
   if (!products) {

@@ -15,7 +15,7 @@ import {
   getFlagActionLabel,
   type RawFlag,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type ColumnKey = 'provider' | 'flag' | 'action' | 'createdAt';
@@ -88,7 +88,7 @@ export function OrganizationFeatureFlagsAuditLogTable({
         return getFlagActionLabel(dataRow.action);
       }
       default:
-        return dataRow[column.key!];
+        return dataRow[column.key];
     }
   };
 

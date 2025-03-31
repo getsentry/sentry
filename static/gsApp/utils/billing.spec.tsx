@@ -16,6 +16,7 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isDeveloperPlan,
+  isNewPayingCustomer,
   isTeamPlanFamily,
   MILLISECONDS_IN_HOUR,
   trialPromptIsDismissed,
@@ -807,5 +808,54 @@ describe('getActiveProductTrial', function () {
   it('returns null trial for null trials', function () {
     const pt = getProductTrial(null, DataCategory.ERRORS);
     expect(pt).toBeNull();
+  });
+});
+
+describe('isNewPayingCustomer', function () {
+  it('returns true for customer on free plan', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({organization, isFree: true});
+    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+  });
+
+  it('returns true for customer on trial plan', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_t',
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+  });
+
+  it('returns true for customer with partner migration feature', function () {
+    const organization = OrganizationFixture({features: ['partner-billing-migration']});
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(true);
+  });
+
+  it('returns false for customer on plan trial', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isTrial: true,
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(false);
+  });
+
+  it('returns false for paying customer', function () {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      isFree: false,
+    });
+    expect(isNewPayingCustomer(subscription, organization)).toBe(false);
   });
 });

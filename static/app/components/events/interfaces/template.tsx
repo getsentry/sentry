@@ -25,6 +25,20 @@ export function Template({data, event}: Props) {
             components={[]}
             frameMeta={meta}
             isExpanded
+            platform={event.platform ?? 'other'}
+            includeSystemFrames={false}
+            hideSourceMapDebugger={false}
+            isHoverPreviewed={false}
+            threadId={undefined}
+            frameSourceResolutionResults={undefined}
+            image={null}
+            emptySourceNotation={false}
+            hiddenFrameCount={0}
+            isANR={false}
+            lockAddress={undefined}
+            nextFrame={undefined}
+            prevFrame={undefined}
+            timesRepeated={0}
           />
         </ul>
       </div>

@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {DataCategory} from 'sentry/types/core';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {DataCategory, type DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -356,6 +357,14 @@ export const getAmPlanTier = (plan: string) => {
   return null;
 };
 
+export const isNewPayingCustomer = (
+  subscription: Subscription,
+  organization: Organization
+) =>
+  subscription.isFree ||
+  isTrialPlan(subscription.plan) ||
+  hasPartnerMigrationFeature(organization);
+
 /**
  * Promotion utility functions that are based off of formData which has the plan as a string
  * instead of a Plan
@@ -604,4 +613,15 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
+}
+
+export function getCategoryInfoFromPlural(
+  category: DataCategory
+): DataCategoryInfo | null {
+  const categories = Object.values(DATA_CATEGORY_INFO);
+  const info = categories.find(c => c.plural === category);
+  if (!info) {
+    return null;
+  }
+  return info;
 }

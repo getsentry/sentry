@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -660,12 +667,12 @@ function GroupDetailsContent({
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!hasStreamlinedUI || isDrawerOpen) {
       return;
     }
 
-    if (currentTab === Tab.TAGS) {
+    if (currentTab === Tab.DISTRIBUTIONS) {
       openTagsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
@@ -688,7 +695,7 @@ function GroupDetailsContent({
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
-    Tab.TAGS,
+    Tab.DISTRIBUTIONS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
     Tab.ACTIVITY,
@@ -726,7 +733,6 @@ function GroupDetailsContent({
 function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsState) {
   const projectSlug = props.group?.project?.slug;
   const api = useApi();
-  const location = useLocation();
   const organization = useOrganization();
   const [injectedEvent, setInjectedEvent] = useState(null);
   const {
@@ -734,7 +740,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     initiallyLoaded: projectsLoaded,
     fetchError: errorFetchingProjects,
   } = useProjects({slugs: projectSlug ? [projectSlug] : []});
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
@@ -754,15 +759,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     // Prevent tour from showing until assistant data is loaded
     return issueDetailsTourData?.seen ?? true;
   }, [assistantData]);
-  const isIssueDetailsTourAvailable = useMemo(() => {
-    if (!hasStreamlinedUI) {
-      return false;
-    }
-    return (
-      location.hash === '#tour' ||
-      organization.features.includes('issue-details-streamline-tour')
-    );
-  }, [hasStreamlinedUI, location.hash, organization.features]);
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
@@ -833,7 +829,6 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   return (
     <TourContextProvider<IssueDetailsTour>
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isAvailable={isIssueDetailsTourAvailable}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
       tourContext={IssueDetailsTourContext}

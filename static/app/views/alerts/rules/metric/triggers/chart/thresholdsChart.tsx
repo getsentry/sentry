@@ -1,4 +1,5 @@
 import {PureComponent} from 'react';
+import type {Theme} from '@emotion/react';
 import color from 'color';
 import type {TooltipComponentFormatterCallbackParams} from 'echarts';
 import debounce from 'lodash/debounce';
@@ -10,7 +11,6 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
@@ -39,6 +39,7 @@ type Props = DefaultProps & {
   aggregate: string;
   hideThresholdLines: boolean;
   resolveThreshold: MetricRule['resolveThreshold'];
+  theme: Theme;
   thresholdType: MetricRule['thresholdType'];
   triggers: Trigger[];
   anomalies?: Anomaly[];
@@ -429,7 +430,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         showTimeInTooltip
         minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
         period={DEFAULT_STATS_PERIOD || period}
-        forwardedRef={this.handleRef}
+        ref={this.handleRef}
         grid={CHART_GRID}
         {...chartOptions}
         graphic={Graphic({
@@ -438,7 +439,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
             ...this.getThresholdLine(trigger, 'resolveThreshold', true),
           ]),
         })}
-        colors={CHART_PALETTE[0]}
+        colors={this.props.theme.chart.colors[0]}
         series={[
           ...dataWithoutRecentBucket,
           ...comparisonMarkLines,

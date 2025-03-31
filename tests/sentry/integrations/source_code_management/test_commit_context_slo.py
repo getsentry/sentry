@@ -18,10 +18,10 @@ class MockCommitContextIntegration(CommitContextIntegration):
     """Mock implementation for testing"""
 
     integration_name = "mock_integration"
-    base_url = "https://example.com"
 
     def __init__(self):
         self.client = Mock()
+        self.client.base_url = "https://example.com"
 
     def get_client(self):
         return self.client
@@ -134,6 +134,10 @@ class CommitContextIntegrationTest(TestCase):
             integration_name = "gitlab"
             base_url = "https://bufo-bot.gitlab.com"
 
+            def __init__(self):
+                super().__init__()
+                self.client.base_url = self.base_url
+
         self.integration = MockGitlabIntegration()
 
         self.integration.client.get_blame_for_files = Mock(
@@ -155,6 +159,10 @@ class CommitContextIntegrationTest(TestCase):
         class MockGitlabIntegration(MockCommitContextIntegration):
             integration_name = "gitlab"
             base_url = GITLAB_CLOUD_BASE_URL
+
+            def __init__(self):
+                super().__init__()
+                self.client.base_url = self.base_url
 
         self.integration = MockGitlabIntegration()
 

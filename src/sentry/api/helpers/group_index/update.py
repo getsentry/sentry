@@ -612,7 +612,7 @@ def process_group_resolution(
     group.substatus = None
     group.resolved_at = now
     if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send(
+        post_save.send_robust(
             sender=Group,
             instance=group,
             created=False,

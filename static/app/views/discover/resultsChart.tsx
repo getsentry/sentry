@@ -102,9 +102,11 @@ class ResultsChart extends Component<ResultsChartProps> {
     const chartComponent =
       display === DisplayModes.BAR
         ? BarChart
-        : customPerformanceMetricFieldType === 'size' && isTopEvents
+        : display === DisplayModes.PREVIOUS
           ? AreaChart
-          : undefined;
+          : customPerformanceMetricFieldType === 'size' && isTopEvents
+            ? AreaChart
+            : undefined;
     const interval =
       display === DisplayModes.BAR
         ? getInterval(
@@ -320,6 +322,6 @@ const NoChartContainer = styled('div')<{height?: string}>`
   position: relative;
   border-color: transparent;
   margin-bottom: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

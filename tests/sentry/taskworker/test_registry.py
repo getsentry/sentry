@@ -121,13 +121,13 @@ def test_namespace_send_task_no_retry() -> None:
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DISCARD
 
     mock_producer = Mock()
-    namespace._producers[Topic.TASK_WORKER] = mock_producer
+    namespace._producers[Topic.TASKWORKER] = mock_producer
 
     namespace.send_task(activation)
     assert mock_producer.produce.call_count == 1
 
     mock_call = mock_producer.produce.call_args
-    assert mock_call[0][0].name == "task-worker"
+    assert mock_call[0][0].name == "taskworker"
 
     proto_message = mock_call[0][1].value
     assert proto_message == activation.SerializeToString()
@@ -153,7 +153,7 @@ def test_namespace_send_task_with_retry() -> None:
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
     mock_producer = Mock()
-    namespace._producers[Topic.TASK_WORKER] = mock_producer
+    namespace._producers[Topic.TASKWORKER] = mock_producer
 
     namespace.send_task(activation)
     assert mock_producer.produce.call_count == 1
@@ -181,13 +181,13 @@ def test_namespace_with_retry_send_task() -> None:
     assert activation.retry_state.on_attempts_exceeded == ON_ATTEMPTS_EXCEEDED_DEADLETTER
 
     mock_producer = Mock()
-    namespace._producers[Topic.TASK_WORKER] = mock_producer
+    namespace._producers[Topic.TASKWORKER] = mock_producer
 
     namespace.send_task(activation)
     assert mock_producer.produce.call_count == 1
 
     mock_call = mock_producer.produce.call_args
-    assert mock_call[0][0].name == "task-worker"
+    assert mock_call[0][0].name == "taskworker"
 
     proto_message = mock_call[0][1].value
     assert proto_message == activation.SerializeToString()
@@ -208,7 +208,7 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
     activation = simple_task.create_activation()
 
     mock_producer = Mock()
-    namespace._producers[Topic.TASK_WORKER] = mock_producer
+    namespace._producers[Topic.TASKWORKER] = mock_producer
 
     ret_value: Future[None] = Future()
     ret_value.set_result(None)
@@ -217,7 +217,7 @@ def test_namespace_with_wait_for_delivery_send_task() -> None:
     assert mock_producer.produce.call_count == 1
 
     mock_call = mock_producer.produce.call_args
-    assert mock_call[0][0].name == "task-worker"
+    assert mock_call[0][0].name == "taskworker"
 
     proto_message = mock_call[0][1].value
     assert proto_message == activation.SerializeToString()
@@ -267,7 +267,7 @@ def test_registry_create_namespace_simple() -> None:
     assert ns.default_expires is None
     assert ns.default_processing_deadline_duration == 10
     assert ns.name == "tests"
-    assert ns.topic == Topic.TASK_WORKER
+    assert ns.topic == Topic.TASKWORKER
 
     retry = Retry(times=3)
     ns = registry.create_namespace(
@@ -277,21 +277,17 @@ def test_registry_create_namespace_simple() -> None:
     assert ns.default_processing_deadline_duration == 60
     assert ns.default_expires == 60 * 10
     assert ns.name == "test-two"
-    assert ns.topic == Topic.TASK_WORKER
+    assert ns.topic == Topic.TASKWORKER
 
 
 @pytest.mark.django_db
 def test_registry_create_namespace_route_setting() -> None:
-    routes = {
-        "profiling": "profiles",
-        "lol": "nope",
-    }
-    with override_settings(TASKWORKER_ROUTES=routes):
+    with override_settings(TASKWORKER_ROUTES='{"profiling":"profiles", "lol":"nope"}'):
         registry = TaskRegistry()
 
         # namespaces without routes resolve to the default topic.
         tests = registry.create_namespace(name="tests")
-        assert tests.topic == Topic.TASK_WORKER
+        assert tests.topic == Topic.TASKWORKER
 
         profiling = registry.create_namespace(name="profiling")
         assert profiling.topic == Topic.PROFILES

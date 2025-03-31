@@ -1,3 +1,5 @@
+from typing import Literal
+
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import VirtualColumnContext
 
 from sentry.search.eap import constants
@@ -264,6 +266,37 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             internal_name="messaging.message.retry.count",
             search_type="number",
         ),
+        ResolvedAttribute(
+            public_alias="spans.browser",
+            internal_name="sentry.span_ops.ops.browser",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="spans.db",
+            internal_name="sentry.span_ops.ops.db",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="spans.http",
+            internal_name="sentry.span_ops.ops.http",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="spans.resource",
+            internal_name="sentry.span_ops.ops.resource",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="spans.ui",
+            internal_name="sentry.span_ops.ops.ui",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="span.system",
+            internal_name="db.system",
+            search_type="string",
+            secondary_alias=True,
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
@@ -352,6 +385,24 @@ def module_context_constructor(params: SnubaParams) -> VirtualColumnContext:
         to_column_name="span.module",
         value_map=value_map,
     )
+
+
+SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[Literal["string", "number"], dict[str, str]] = {
+    "string": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type == "string"
+    }
+    | {
+        # sentry.service is the project id as a string, but map to project for convenience
+        "sentry.service": "project",
+    },
+    "number": {
+        definition.internal_name: definition.public_alias
+        for definition in SPAN_ATTRIBUTE_DEFINITIONS.values()
+        if not definition.secondary_alias and definition.search_type != "string"
+    },
+}
 
 
 SPAN_VIRTUAL_CONTEXTS = {

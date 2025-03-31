@@ -14,7 +14,6 @@ class GroupSearchViewSerializerResponse(TypedDict):
     query: str
     querySort: SORT_LITERALS
     projects: list[int]
-    isAllProjects: bool
     environments: list[str]
     timeFilters: dict
     lastVisited: str | None
@@ -54,16 +53,14 @@ class GroupSearchViewSerializer(Serializer):
 
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
         if self.has_global_views is False:
-            is_all_projects = False
-
             projects = list(obj.projects.values_list("id", flat=True))
             num_projects = len(projects)
             if num_projects != 1:
                 projects = [projects[0] if num_projects > 1 else self.default_project]
-
         else:
-            is_all_projects = obj.is_all_projects
-            projects = list(obj.projects.values_list("id", flat=True))
+            projects = (
+                [-1] if obj.is_all_projects else list(obj.projects.values_list("id", flat=True))
+            )
 
         return {
             "id": str(obj.id),
@@ -71,7 +68,6 @@ class GroupSearchViewSerializer(Serializer):
             "query": obj.query,
             "querySort": obj.query_sort,
             "projects": projects,
-            "isAllProjects": is_all_projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
             "lastVisited": attrs["last_visited"] if attrs else None,

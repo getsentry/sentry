@@ -106,8 +106,8 @@ def sourcemap_images_from_data(data):
 
 # Most people don't upload release artifacts for their third-party libraries,
 # so ignore missing node_modules files or chrome extensions
-def should_skip_missing_source_error(abs_path):
-    "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
+def should_skip_missing_source_error(abs_path) -> bool:
+    return "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
 
 
 def map_symbolicator_process_js_errors(errors):

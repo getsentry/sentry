@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal, TypeAlias, TypedDict
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -24,6 +24,11 @@ from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
+
+
+class ResolverSettings(TypedDict):
+    extrapolation_mode: ExtrapolationMode.ValueType
+    snuba_params: SnubaParams
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -240,6 +245,7 @@ class FunctionDefinition:
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -258,6 +264,7 @@ class AggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -303,6 +310,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedConditionalAggregate:
         key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -320,7 +328,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
 @dataclass(kw_only=True)
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
-    formula_resolver: Callable[..., Column.BinaryFormula]
+    formula_resolver: Callable[[ResolvedArguments, ResolverSettings], Column.BinaryFormula]
     is_aggregate: bool
 
     @property
@@ -332,11 +340,21 @@ class FormulaDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula:
+        resolver_settings = ResolverSettings(
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+            snuba_params=snuba_params,
+        )
+
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_arguments),
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,

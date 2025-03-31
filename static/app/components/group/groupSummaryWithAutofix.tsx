@@ -23,7 +23,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import marked from 'sentry/utils/marked';
 import testableTransition from 'sentry/utils/testableTransition';
-import {useOpenSolutionsDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -62,7 +62,7 @@ export function GroupSummaryWithAutofix({
 }) {
   const {data: autofixData, isPending} = useAutofixData({groupId: group.id});
 
-  const openSolutionsDrawer = useOpenSolutionsDrawer(group, project, event);
+  const openSeerDrawer = useOpenSeerDrawer(group, project, event);
 
   const rootCauseDescription = useMemo(
     () => (autofixData ? getRootCauseDescription(autofixData) : null),
@@ -111,7 +111,7 @@ export function GroupSummaryWithAutofix({
         solutionIsLoading={solutionIsLoading}
         codeChangesDescription={codeChangesDescription}
         codeChangesIsLoading={codeChangesIsLoading}
-        openSolutionsDrawer={openSolutionsDrawer}
+        openSeerDrawer={openSeerDrawer}
         rootCauseCopyText={rootCauseCopyText}
         solutionCopyText={solutionCopyText}
       />
@@ -127,13 +127,13 @@ function AutofixSummary({
   solutionIsLoading,
   codeChangesDescription,
   codeChangesIsLoading,
-  openSolutionsDrawer,
+  openSeerDrawer,
   rootCauseCopyText,
   solutionCopyText,
 }: {
   codeChangesDescription: string | null;
   codeChangesIsLoading: boolean;
-  openSolutionsDrawer: () => void;
+  openSeerDrawer: () => void;
   rootCauseCopyText: string | null;
   rootCauseDescription: string | null;
   solutionCopyText: string | null;
@@ -146,7 +146,7 @@ function AutofixSummary({
       title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" color="pink400" />,
-      onClick: openSolutionsDrawer,
+      onClick: openSeerDrawer,
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
     },
@@ -159,7 +159,7 @@ function AutofixSummary({
             insight: solutionDescription,
             icon: <IconFix size="sm" color="green400" />,
             isLoading: solutionIsLoading,
-            onClick: openSolutionsDrawer,
+            onClick: openSeerDrawer,
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
           },
@@ -174,7 +174,7 @@ function AutofixSummary({
             insight: codeChangesDescription,
             icon: <IconCode size="sm" color="blue400" />,
             isLoading: codeChangesIsLoading,
-            onClick: openSolutionsDrawer,
+            onClick: openSeerDrawer,
           },
         ]
       : []),
@@ -193,6 +193,7 @@ function AutofixSummary({
               <InsightCardButton
                 key={card.id}
                 onClick={card.onClick}
+                role="button"
                 initial="initial"
                 animate={card.isLoading ? 'animate' : 'initial'}
                 variants={pulseAnimation}
@@ -264,7 +265,7 @@ const InsightGrid = styled('div')`
   gap: ${space(1.5)};
 `;
 
-const InsightCardButton = styled(motion.button)`
+const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   width: 100%;

@@ -21,6 +21,8 @@ const mockReservations: Reservations = {
   reservedMonitorSeats: 1,
   reservedTransactions: 100000,
   reservedUptime: 1,
+  reservedProfileDuration: 0,
+  reservedProfileDurationUI: 0,
 };
 
 const mockPreview = PreviewDataFixture({});

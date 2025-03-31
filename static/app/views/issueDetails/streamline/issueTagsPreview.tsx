@@ -1,6 +1,6 @@
 import type React from 'react';
 import {Fragment, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
@@ -10,7 +10,6 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -50,12 +49,13 @@ type Segment = {
   color?: string;
 };
 
-const bgColor = (index: number) =>
-  Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
+const bgColor = (index: number, theme: Theme) =>
+  Color(theme.chart.colors[4].at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
-  percentage < 1 ? '<1%' : `${Math.floor(percentage)}%`;
+  percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
 function SegmentedBar({segments}: {segments: Segment[]}) {
+  const theme = useTheme();
   return (
     <TagBarPlaceholder>
       {segments.map((segment, idx) => (
@@ -64,7 +64,7 @@ function SegmentedBar({segments}: {segments: Segment[]}) {
           style={{
             left: `${segments.slice(0, idx).reduce((sum, s) => sum + s.percentage, 0)}%`,
             width: `${segment.percentage}%`,
-            backgroundColor: bgColor(idx),
+            backgroundColor: bgColor(idx, theme),
           }}
         />
       ))}
@@ -104,9 +104,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
   const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
-  const otherPercentage = Math.floor(
-    percent(tag.totalValues - totalVisible, tag.totalValues)
-  );
+  const otherPercentage =
+    100 - segments.reduce((sum, seg) => sum + Math.round(seg.percentage), 0);
   const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
@@ -115,7 +114,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
       <LegendGrid>
         {segments.map((segment, idx) => (
           <Fragment key={idx}>
-            <LegendColor style={{backgroundColor: bgColor(idx)}} />
+            <LegendColor style={{backgroundColor: bgColor(idx, theme)}} />
             <LegendText ellipsisDirection={RTL_TAGS.includes(tag.key) ? 'left' : 'right'}>
               {segment.name}
             </LegendText>
@@ -139,7 +138,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}${tag.key}/`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
         }}
         onMouseEnter={() => {
@@ -182,7 +181,7 @@ function IssueTagButton({
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
           query: location.query,
         }}
         replace
@@ -196,7 +195,7 @@ function IssueTagButton({
   return (
     <IssueTagsLink
       to={{
-        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
       }}
       onClick={() => {
@@ -270,6 +269,20 @@ export default function IssueTagsPreview({
     return uniqueTags.slice(0, 4);
   }, [tags, project.platform, highlightTagKeys]);
 
+  if (
+    searchQuery ||
+    isScreenSmall ||
+    (!isPending && !isHighlightPending && tagsToPreview.length === 0)
+  ) {
+    return (
+      <IssueTagButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+      />
+    );
+  }
+
   if (isPending || isHighlightPending) {
     return (
       <Fragment>
@@ -283,16 +296,6 @@ export default function IssueTagsPreview({
 
   if (isError) {
     return null;
-  }
-
-  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
-    return (
-      <IssueTagButton
-        tags={tagsToPreview}
-        searchQuery={searchQuery}
-        isScreenSmall={isScreenSmall}
-      />
-    );
   }
 
   return (

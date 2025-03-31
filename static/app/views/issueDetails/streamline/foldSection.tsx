@@ -1,6 +1,5 @@
 import {
   type CSSProperties,
-  forwardRef,
   Fragment,
   useCallback,
   useEffect,
@@ -9,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
@@ -16,7 +16,6 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
@@ -58,6 +57,7 @@ export interface FoldSectionProps {
    * Disable the ability for the user to collapse the section
    */
   preventCollapse?: boolean;
+  ref?: React.Ref<HTMLElement>;
   style?: CSSProperties;
 }
 
@@ -77,19 +77,17 @@ function useOptionalLocalStorageState(
     : [persistedState, setPersistedState];
 }
 
-export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function FoldSection(
-  {
-    children,
-    title,
-    actions,
-    sectionKey,
-    className,
-    initialCollapse = false,
-    preventCollapse = false,
-    disableCollapsePersistence = false,
-  },
-  forwardedRef
-) {
+export function FoldSection({
+  ref,
+  children,
+  title,
+  actions,
+  sectionKey,
+  className,
+  initialCollapse = false,
+  preventCollapse = false,
+  disableCollapsePersistence = false,
+}: FoldSectionProps) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
 
@@ -167,7 +165,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
   return (
     <Fragment>
       <Section
-        ref={mergeRefs([forwardedRef, scrollToSection])}
+        ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
@@ -209,7 +207,7 @@ export const FoldSection = forwardRef<HTMLElement, FoldSectionProps>(function Fo
       <SectionDivider />
     </Fragment>
   );
-});
+}
 
 export const SectionDivider = styled('hr')`
   border-color: ${p => p.theme.translucentBorder};

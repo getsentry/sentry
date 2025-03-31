@@ -191,6 +191,7 @@ export function AutofixOutputStream({
                 type="text"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
+                maxLength={4096}
                 placeholder={
                   responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
                 }
@@ -314,7 +315,6 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  z-index: 2;
 `;
 
 const SeerIconContainer = styled('div')`

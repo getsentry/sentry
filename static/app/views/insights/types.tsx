@@ -92,6 +92,7 @@ export type SpanStringFields =
   | 'timestamp'
   | 'trace'
   | 'transaction'
+  | 'transaction.span_id'
   | 'transaction.id'
   | 'transaction.method'
   | 'release'
