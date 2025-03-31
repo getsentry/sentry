@@ -14,6 +14,7 @@ export default function useNewAndResolvedIssues({type}: {type: 'issue' | 'feedba
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
