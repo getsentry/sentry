@@ -507,9 +507,11 @@ class GroupManager(BaseManager["Group"]):
 
         project_list = Project.objects.get_for_team_ids(team_ids=[team.id])
         user_ids = list(team.member_set.values_list("user_id", flat=True))
-        assigned_groups = GroupAssignee.objects.filter(
-            Q(team=team) | Q(user_id__in=user_ids)
-        ).values_list("group_id", flat=True)
+
+        assigned_groups = GroupAssignee.objects.filter(team=team).values_list(
+            "group_id", flat=True
+        ) | GroupAssignee.objects.filter(user_id__in=user_ids).values_list("group_id", flat=True)
+
         return self.filter(
             project__in=project_list,
             id__in=assigned_groups,
