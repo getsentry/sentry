@@ -287,6 +287,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/browser',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/browser',
+      },
     ],
   },
 ];
@@ -314,7 +320,7 @@ const getVerifyConfig = () => [
 
 const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use our [strong: Loader Script] to set up:', {
+    tct("In this quick guide you'll use our [strong: Loader Script] to set up:", {
       strong: <strong />,
     }),
   install: params => [
@@ -448,14 +454,17 @@ const loaderScriptOnboarding: OnboardingConfig<PlatformOptions> = {
 
 const packageManagerOnboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
-    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-      strong: <strong />,
-    }),
+    tct(
+      "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+      {
+        strong: <strong />,
+      }
+    ),
   install: () => [
     {
       type: StepType.INSTALL,
       description: t(
-        'Sentry captures data by using an SDK within your application’s runtime.'
+        "Sentry captures data by using an SDK within your application's runtime."
       ),
       configurations: getInstallConfig(),
     },
@@ -802,6 +811,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
             value: 'yarn',
             language: 'bash',
             code: `yarn add @sentry/browser ${packageName}`,
+          },
+          {
+            label: 'pnpm',
+            value: 'pnpm',
+            language: 'bash',
+            code: `pnpm add @sentry/browser ${packageName}`,
           },
         ],
       },
