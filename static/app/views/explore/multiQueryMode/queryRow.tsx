@@ -79,6 +79,14 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     interval,
   });
 
+  const tableIsProgressivelyLoading =
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    (mode === Mode.SAMPLES
+      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      : mode === Mode.AGGREGATE
+        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        : false);
+
   return (
     <Fragment>
       <QueryConstructionSection>
@@ -118,6 +126,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             index={index}
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
+            isProgressivelyLoading={tableIsProgressivelyLoading}
           />
         </LazyRender>
       </QueryVisualizationSection>
