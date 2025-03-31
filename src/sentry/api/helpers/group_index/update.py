@@ -102,9 +102,10 @@ def handle_discard(
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:
+                incr_rollback_metrics(GroupTombstone)
                 # in this case, a tombstone has already been created
                 # for a group, so no hash updates are necessary
-                incr_rollback_metrics(GroupTombstone)
+                pass
             else:
                 groups_to_delete[group.project_id].append(group)
 
