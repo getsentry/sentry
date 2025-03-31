@@ -25,7 +25,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import DashboardParams, GlobalParams
 from sentry.models.dashboard import Dashboard, DashboardTombstone
-from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 EDIT_FEATURE = "organizations:dashboards-edit"
 READ_FEATURE = "organizations:dashboards-basic"
@@ -172,7 +171,6 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
                         organization=organization, slug=tombstone
                     )
         except IntegrityError:
-            incr_rollback_metrics(Dashboard)
             return self.respond({"Dashboard with that title already exists."}, status=409)
 
         return self.respond(serialize(serializer.instance, request.user), status=200)
