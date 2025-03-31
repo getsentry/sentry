@@ -12,7 +12,7 @@ import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import DrawerComponents from 'sentry/components/globalDrawer/components';
+import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';

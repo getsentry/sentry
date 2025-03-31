@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -19,6 +18,11 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   useIssueDetailsTour: () => mockTour(),
 }));
 
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: () => true,
+}));
+
 describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
@@ -27,9 +31,7 @@ describe('StreamlinedGroupHeader', () => {
     teams: [TeamFixture()],
   });
   const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const router = RouterFixture({
-    location: LocationFixture({query: {streamline: '1'}}),
-  });
+  const router = RouterFixture();
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {

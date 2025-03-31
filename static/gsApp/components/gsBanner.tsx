@@ -992,7 +992,6 @@ class GSBanner extends Component<Props, State> {
           clicked_event: eventType,
         });
       };
-      // @ts-expect-error TS(2339): Property 'profileDuration' does not exist on type ... Remove this comment to see the full error message
       return {
         error: (
           <ExternalLink
@@ -1085,20 +1084,32 @@ class GSBanner extends Component<Props, State> {
             })}
           </ExternalLink>
         ),
-        // TODO(continuous profiling): Uncomment when we have a continuous profile doc link
-        // profile: (
-        //   <ExternalLink
-        //     key="profiles"
-        //     href={getDocsLinkForEventType(DataCategoryExact.PROFILE)}
-        //     onClick={onClick}
-        //   >
-        //     {getSingularCategoryName({
-        //       plan,
-        //       category: DataCategory.PROFILES,
-        //       capitalize: false,
-        //     })}
-        //   </ExternalLink>
-        // ),
+        profileDuration: (
+          <ExternalLink
+            key="profiles"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
+        profileDurationUI: (
+          <ExternalLink
+            key="profiles-ui"
+            href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION_UI)}
+            onClick={onClick}
+          >
+            {getSingularCategoryName({
+              plan,
+              category: DataCategory.PROFILE_DURATION_UI,
+              capitalize: false,
+            })}
+          </ExternalLink>
+        ),
       }[eventType]!;
     };
 

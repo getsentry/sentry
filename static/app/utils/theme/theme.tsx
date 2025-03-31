@@ -11,7 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
 import {DataCategory, Outcome} from 'sentry/types/core';
 
 export const generateThemeAliases = (colors: Colors) => ({
@@ -1067,10 +1067,16 @@ const commonTheme = {
   dataCategory,
 };
 
+// Redeclare as we dont want to use the deprecation
+const getColorPalette = getChartColorPalette;
+
 // Light and dark theme definitions
 const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
 export const lightTheme = {
   isChonk: false,
   ...commonTheme,
@@ -1089,6 +1095,10 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette,
+  },
   prismVariables: generateThemePrismVariables(
     prismLight,
     lightAliases.backgroundSecondary
@@ -1108,6 +1118,9 @@ export const lightTheme = {
   },
 };
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
+ */
 export const darkTheme: typeof lightTheme = {
   isChonk: false,
   ...commonTheme,
@@ -1131,6 +1144,10 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette: getChartColorPalette,
+  },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?
     background: '#181622',
@@ -1147,6 +1164,7 @@ export type Color = keyof typeof lightColors;
 export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
+export type Theme = typeof lightTheme;
 
 export type StrictCSSObject = {
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
@@ -1162,4 +1180,7 @@ export type StrictCSSObject = {
  * @deprecated use useTheme hook instead.
  */
 const commonThemeExport = {...commonTheme};
+/**
+ * @deprecated Do not import the theme directly, use useTheme hook instead.
+ */
 export default commonThemeExport;

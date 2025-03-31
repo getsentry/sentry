@@ -34,6 +34,7 @@ import SchemaHintsList, {
   SCHEMA_HINTS_DRAWER_WIDTH,
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
   PageParamsProvider,
   useExploreDataset,
@@ -182,6 +183,14 @@ export function SpansTabContentImpl({
         ? spansTableResult.result.isPending
         : tracesTableResult.result.isPending;
 
+  const tableIsProgressivelyLoading =
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    (queryType === 'samples'
+      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      : queryType === 'aggregate'
+        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        : false);
+
   return (
     <Body
       withToolbar={expanded}
@@ -249,6 +258,7 @@ export function SpansTabContentImpl({
             isLoading={numberTagsLoading || stringTagsLoading}
             exploreQuery={query}
             setExploreQuery={setQuery}
+            source={SchemaHintsSources.EXPLORE}
           />
         </SchemaHintsSection>
       </Feature>
@@ -276,6 +286,7 @@ export function SpansTabContentImpl({
             confidences={confidences}
             samplesTab={samplesTab}
             setSamplesTab={setSamplesTab}
+            isProgressivelyLoading={tableIsProgressivelyLoading}
           />
           <Toggle>
             <StyledButton

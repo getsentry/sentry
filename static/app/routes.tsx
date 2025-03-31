@@ -29,7 +29,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
-import {IssueNavigation} from 'sentry/views/issues/navigation';
+import {IssueNavigation} from 'sentry/views/nav/secondary/sections/issues/issuesSecondaryNav';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -1109,7 +1109,12 @@ function buildRoutes() {
   );
 
   const dashboardRoutes = (
-    <Route component={make(() => import('sentry/views/dashboards/navigation'))}>
+    <Route
+      component={make(
+        () =>
+          import('sentry/views/nav/secondary/sections/dashboards/dashboardsSecondaryNav')
+      )}
+    >
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
           <Route
@@ -1824,7 +1829,9 @@ function buildRoutes() {
     <Route
       path={`/${DOMAIN_VIEW_BASE_URL}/`}
       withOrgPath
-      component={make(() => import('sentry/views/insights/navigation'))}
+      component={make(
+        () => import('sentry/views/nav/secondary/sections/insights/insightsSecondaryNav')
+      )}
     >
       {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
@@ -1980,7 +1987,9 @@ function buildRoutes() {
   const exploreRoutes = (
     <Route
       path="/explore/"
-      component={make(() => import('sentry/views/explore/navigation'))}
+      component={make(
+        () => import('sentry/views/nav/secondary/sections/explore/exploreSecondaryNav')
+      )}
       withOrgPath
     >
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
@@ -2068,11 +2077,11 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
       />
       <Route
-        path={TabPaths[Tab.TAGS]}
+        path={TabPaths[Tab.DISTRIBUTIONS]}
         component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
       />
       <Route
-        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
+        path={`${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
         component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
       />
       <Route
@@ -2102,8 +2111,33 @@ function buildRoutes() {
   const issueRoutes = (
     <Route path="/issues/" component={errorHandler(IssueNavigation)} withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route
+        path="views/"
+        component={make(
+          () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
+        )}
+      />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+
+      {/* Redirects for legacy tags route. */}
+      <Redirect
+        from=":groupId/tags/"
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}`}
+      />
+      <Redirect
+        from=":groupId/tags/:tagKey/"
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
+      />
+
       <Route
         path=":groupId/"
         component={make(() => import('sentry/views/issueDetails/groupDetails'))}
@@ -2122,6 +2156,8 @@ function buildRoutes() {
         {alertChildRoutes({forCustomerDomain: true})}
       </Route>
       {traceViewRoute}
+      {automationRoutes}
+      {detectorRoutes}
     </Route>
   );
 
@@ -2378,8 +2414,6 @@ function buildRoutes() {
 
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationLayout)}>
-      {automationRoutes}
-      {detectorRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}

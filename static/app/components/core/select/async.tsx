@@ -1,4 +1,6 @@
-import {Component} from 'react';
+// we need forwardRef for class components
+// eslint-disable-next-line no-restricted-syntax
+import {Component, forwardRef} from 'react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -23,7 +25,7 @@ export interface SelectAsyncControlProps {
   url: string;
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
-  ref?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
+  forwardedRef?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
 }
 
 type State = {
@@ -33,7 +35,7 @@ type State = {
 /**
  * Performs an API request to `url` to fetch the options
  */
-export class SelectAsync extends Component<SelectAsyncControlProps> {
+export class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   static defaultProps = {
     placeholder: '--',
     defaultOptions: true,
@@ -106,13 +108,13 @@ export class SelectAsync extends Component<SelectAsyncControlProps> {
   };
 
   render() {
-    const {value, ref, defaultOptions, ...props} = this.props;
+    const {value, forwardedRef, defaultOptions, ...props} = this.props;
     return (
       <Select
         // The key is used as a way to force a reload of the options:
         // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
         key={value}
-        ref={ref}
+        ref={forwardedRef}
         value={value}
         defaultOptions={defaultOptions}
         loadOptions={this.handleLoadOptions}
@@ -124,3 +126,7 @@ export class SelectAsync extends Component<SelectAsyncControlProps> {
     );
   }
 }
+
+export const SelectAsync = forwardRef((p: any, ref: any) => {
+  return <SelectAsyncControl {...p} forwardedRef={ref} />;
+});

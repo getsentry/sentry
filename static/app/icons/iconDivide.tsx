@@ -4,12 +4,11 @@ import {useTheme} from '@emotion/react';
 import type {SVGIconProps} from './svgIcon';
 import {SvgIcon} from './svgIcon';
 
-function IconDivide({ref, ...props}: SVGIconProps) {
+function IconDivide(props: SVGIconProps) {
   const theme = useTheme();
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       data-test-id="icon-divide"
       kind={theme.isChonk ? 'stroke' : 'path'}
     >

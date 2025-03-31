@@ -7,6 +7,7 @@ import {
   useReducer,
   useRef,
 } from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -55,6 +56,7 @@ interface IssuesTraceWaterfallProps extends Omit<TraceWaterfallProps, 'tree'> {
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
+  const theme = useTheme();
   const {projects} = useProjects();
   const organization = useOrganization();
   const traceState = useTraceState();
@@ -113,7 +115,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         span_list: {width: 1 - traceState.preferences.list.width},
       },
       traceScheduler,
-      traceView
+      traceView,
+      theme
     );
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,12 +271,16 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         start++;
       }
 
-      // Performance issues are tighter to focus on the suspect spans (of which there may be many)
-      const numSurroundingNodes =
-        props.event.type === 'transaction'
-          ? PERFORMANCE_ISSUE_SURROUNDING_NODES
-          : TRACE_PREVIEW_SURROUNDING_NODES;
-      props.tree.collapseList(preserveNodes, numSurroundingNodes);
+      let numSurroundingNodes = TRACE_PREVIEW_SURROUNDING_NODES;
+      let minShownNodes = MIN_NODES_TO_KEEP;
+      if (props.event.type === 'transaction') {
+        // Performance issues are tighter to focus on the suspect spans (of which there may be many)
+        numSurroundingNodes = PERFORMANCE_ISSUE_SURROUNDING_NODES;
+        // Performance issues have multiple collapse sections already, keep smaller
+        minShownNodes = 0;
+      }
+
+      props.tree.collapseList(preserveNodes, numSurroundingNodes, minShownNodes);
     }
 
     if (index === -1 || !node) {
@@ -411,6 +418,10 @@ const MAX_HEIGHT = 24 * ROW_HEIGHT + HEADER_HEIGHT;
 const MAX_ROW_COUNT = Math.floor(MAX_HEIGHT / ROW_HEIGHT);
 const PERFORMANCE_ISSUE_SURROUNDING_NODES = 2;
 const TRACE_PREVIEW_SURROUNDING_NODES = 3;
+/**
+ * After collapsing surrounding nodes, re-expand to make sure we didn't collapse everything
+ */
+const MIN_NODES_TO_KEEP = 12;
 
 const IssuesTraceGrid = styled(TraceGrid)<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
