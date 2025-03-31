@@ -331,8 +331,6 @@ export function InviteMissingMembersModal({
   );
 }
 
-export default InviteMissingMembersModal;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;

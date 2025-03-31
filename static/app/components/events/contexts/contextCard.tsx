@@ -10,7 +10,8 @@ import {
   getContextType,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
-import KeyValueData, {
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import type {Event} from 'sentry/types/event';

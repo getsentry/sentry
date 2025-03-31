@@ -344,5 +344,3 @@ export const KeyValueData = {
   CardPanel,
   Container,
 };
-
-export default KeyValueData;

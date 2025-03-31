@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {space} from 'sentry/styles/space';
 import {
   BreadcrumbMessageFormat,

@@ -4,7 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {ColorConfig} from 'sentry/components/timeline';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';

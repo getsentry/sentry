@@ -265,5 +265,3 @@ export function Chart({
     </ChartZoom>
   );
 }
-
-export default Chart;

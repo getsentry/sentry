@@ -73,7 +73,7 @@ function SecretList({
   );
 }
 
-export function OrganizationFeatureFlagsChangeTracking() {
+function OrganizationFeatureFlagsChangeTracking() {
   const organization = useOrganization();
   const api = useApi();
   const queryClient = useQueryClient();

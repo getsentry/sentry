@@ -232,5 +232,3 @@ const BarChartContainer = styled('div')<{hasPadding?: boolean}>`
 const MaskContainer = styled('div')`
   position: relative;
 `;
-
-export default HistogramChart;

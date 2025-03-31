@@ -21,5 +21,3 @@ export const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
     return p.theme.chart.getColorPalette(p.count - 2)?.[p.index];
   }};
 `;
-
-export default TopResultsIndicator;

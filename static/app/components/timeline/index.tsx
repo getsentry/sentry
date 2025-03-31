@@ -152,5 +152,3 @@ export const Timeline = {
   Item,
   Container,
 };
-
-export default Timeline;

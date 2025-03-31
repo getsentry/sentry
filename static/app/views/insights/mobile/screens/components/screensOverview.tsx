@@ -228,5 +228,3 @@ export function ScreensOverview() {
 const Container = styled('div')`
   padding-top: ${space(1)};
 `;
-
-export default ScreensOverview;

@@ -17,7 +17,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import {
   decodeColumnOrder,
   getTargetForTransactionSummaryLink,
