@@ -780,7 +780,7 @@ CELERY_IMPORTS = (
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
-    "sentry.tasks.auth",
+    "sentry.tasks.auth.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",

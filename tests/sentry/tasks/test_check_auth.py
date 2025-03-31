@@ -21,7 +21,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test
 class CheckAuthTest(TestCase):
-    @patch("sentry.tasks.check_auth.check_auth_identities")
+    @patch("sentry.tasks.auth.check_auth.check_auth_identities")
     def test_simple(self, mock_check_auth_identities):
         organization = self.create_organization(name="Test")
         user = self.create_user(email="bar@example.com")
