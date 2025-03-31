@@ -6,12 +6,10 @@ import {
   useRef,
   useState,
 } from 'react';
-import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import {space} from 'sentry/styles/space';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 
 import type {SliderProps} from './index';
 
@@ -93,7 +91,7 @@ function SliderTicks({
   );
 }
 
-const StepsContainer = styled('div')<{theme?: DO_NOT_USE_ChonkTheme}>`
+const StepsContainer = chonkStyled('div')`
   pointer-events: none;
   position: absolute;
   bottom: 0;
@@ -116,7 +114,7 @@ const StepsContainer = styled('div')<{theme?: DO_NOT_USE_ChonkTheme}>`
   }
 `;
 
-const StepMark = styled('span')<{filled?: boolean; theme?: DO_NOT_USE_ChonkTheme}>`
+const StepMark = chonkStyled('span')<{filled?: boolean}>`
   box-sizing: border-box;
   position: relative;
   flex-grow: 1;
@@ -150,23 +148,14 @@ function resolveMinMaxValue(props: SliderProps) {
   return {value, min, max};
 }
 
-const StyledSlider = styled('input')`
-  ${p => chonkSliderStyles(p as any)}
-`;
-export function chonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
-  const tokens = {
-    trackColor: p.theme.colors.surface100,
-    trackActiveColor: p.theme.colors.chonk.blue300,
-  };
-  return css`
-    /* stylelint-disable-next-line property-no-vendor-prefix */
+const StyledSlider = chonkStyled('input')`
     -webkit-appearance: none;
     appearance: none;
     position: relative;
     width: 100%;
     height: 16px;
     background: transparent;
-    border-radius: ${p.theme.radius.nano};
+    border-radius: ${p => p.theme.radius.nano};
     transition: box-shadow 0.1s;
     box-shadow:
       0 0 0 8px transparent,
@@ -175,8 +164,8 @@ export function chonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
     &:focus-visible {
       outline: none;
       box-shadow:
-        0 0 0 8px ${p.theme.background},
-        0 0 0 10px ${p.theme.focusBorder};
+        0 0 0 8px ${p => p.theme.background},
+        0 0 0 10px ${p => p.theme.focusBorder};
     }
 
     &[disabled] {
@@ -197,31 +186,31 @@ export function chonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
       position: absolute;
       inset: 0;
       margin: auto 0;
-      min-width: calc(${p.theme.radius.micro} * 6);
+      min-width: calc(${p => p.theme.radius.micro} * 6);
       width: var(--p, 50%);
       height: 4px;
-      background: ${tokens.trackActiveColor};
-      border: 1px solid ${tokens.trackActiveColor};
-      border-radius: ${p.theme.radius.micro};
+      background: ${p => p.theme.colors.chonk.blue300};
+      border: 1px solid ${p => p.theme.colors.chonk.blue300};
+      border-radius: ${p => p.theme.radius.micro};
     }
 
     /* Chrome styling */
     &::-webkit-slider-runnable-track {
       width: 100%;
       height: 4px;
-      background: ${tokens.trackColor};
-      border: 1px solid ${tokens.trackColor};
-      border-radius: ${p.theme.radius.micro};
+      background: ${p => p.theme.colors.surface100};
+      border: 1px solid ${p => p.theme.colors.surface100};
+      border-radius: ${p => p.theme.radius.micro};
     }
 
     &::-webkit-slider-thumb {
       appearance: none;
       width: 16px;
       height: 16px;
-      background: ${p.theme.colors.white};
-      border: 1px solid ${p.theme.colors.chonk.blue100};
-      border-bottom: 2px solid ${p.theme.colors.chonk.blue100};
-      border-radius: ${p.theme.radius.sm};
+      background: ${p => p.theme.colors.white};
+      border: 1px solid ${p => p.theme.colors.chonk.blue100};
+      border-bottom: 2px solid ${p => p.theme.colors.chonk.blue100};
+      border-radius: ${p => p.theme.radius.sm};
       transform: translateY(-7px);
       z-index: 10;
     }
@@ -230,31 +219,26 @@ export function chonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
     &::-moz-range-track {
       width: 100%;
       height: 4px;
-      background: ${tokens.trackColor};
-      border: 1px solid ${tokens.trackColor};
-      border-radius: ${p.theme.radius.micro};
+      background: ${p => p.theme.colors.surface100};
+      border: 1px solid ${p => p.theme.colors.surface100};
+      border-radius: ${p => p.theme.radius.micro};
     }
 
     &::-moz-range-thumb {
       appearance: none;
       width: 16px;
       height: 16px;
-      background: ${p.theme.colors.white};
-      border: 1px solid ${p.theme.colors.chonk.blue100};
-      border-bottom: 2px solid ${p.theme.colors.chonk.blue100};
-      border-radius: ${p.theme.radius.sm};
+      background: ${p => p.theme.colors.white};
+      border: 1px solid ${p => p.theme.colors.chonk.blue100};
+      border-bottom: 2px solid ${p => p.theme.colors.chonk.blue100};
+      border-radius: ${p => p.theme.radius.sm};
       transform: translateY(-7px);
       z-index: 1;
     }
-  `;
-}
-
-const SliderOutput = styled('output')`
-  ${p => chonkOutput(p as any)}
 `;
-export function chonkOutput(p: {theme: DO_NOT_USE_ChonkTheme}) {
-  return css`
-    --tx: clamp(-50%, calc(-50% + var(--p, 0)), 50%);
+
+const SliderOutput = chonkStyled('output')`
+  --tx: clamp(-50%, calc(-50% + var(--p, 0)), 50%);
     --ty: var(--label-ty);
     --o: var(--label-opacity);
 
@@ -265,7 +249,7 @@ export function chonkOutput(p: {theme: DO_NOT_USE_ChonkTheme}) {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: ${p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSizeSmall};
     position: absolute;
     height: 24px;
     width: calc(100% - 16px);
@@ -280,9 +264,9 @@ export function chonkOutput(p: {theme: DO_NOT_USE_ChonkTheme}) {
     transition:
       100ms opacity cubic-bezier(0.23, 1, 0.32, 1),
       50ms transform cubic-bezier(0.39, 0.575, 0.565, 1);
-  `;
-}
-const SliderLabel = styled('span')<{theme?: DO_NOT_USE_ChonkTheme}>`
+`;
+
+const SliderLabel = chonkStyled('span')`
   font-size: inherit;
   display: block;
   min-width: calc(3ch + ${space(0.5)});
@@ -296,7 +280,7 @@ const SliderLabel = styled('span')<{theme?: DO_NOT_USE_ChonkTheme}>`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const SliderContainer = styled('div')`
+const SliderContainer = chonkStyled('div')`
   position: relative;
   width: 100%;
   flex-grow: 1;
