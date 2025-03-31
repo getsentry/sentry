@@ -133,5 +133,3 @@ export function ProjectFiltersChart({project}: Props) {
     </Panel>
   );
 }
-
-export default ProjectFiltersChart;
