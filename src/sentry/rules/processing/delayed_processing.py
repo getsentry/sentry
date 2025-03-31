@@ -379,6 +379,14 @@ def passes_comparison(
         ]
     except KeyError:
         metrics.incr("delayed_processing.missing_query_result")
+        logger.info(
+            "delayed_processing.missing_query_result",
+            extra={
+                "condition_data": condition_data,
+                "project_id": project_id,
+                "group_id": group_id,
+            },
+        )
         return False
 
     calculated_value = query_values[0]
