@@ -411,7 +411,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
             for query in data.get("queries"):
-                if len(query.get("columns")) > 0:
+                if len(query.get("columns", [])) > 0:
                     has_columns = True
                 if (
                     data.get("widget_type") == DashboardWidgetTypes.ISSUE
