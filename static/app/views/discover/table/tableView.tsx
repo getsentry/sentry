@@ -558,7 +558,7 @@ function TableView(props: TableViewProps) {
           dataset={dataset}
         />
       ),
-      {modalCss, closeEvents: 'escape-key'}
+      {modalCss: modalCss(theme), closeEvents: 'escape-key'}
     );
   }
 

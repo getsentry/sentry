@@ -2,6 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -143,6 +144,7 @@ describe('Dashboards > Dashboard', () => {
   it('fetches tags', () => {
     render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -165,6 +167,7 @@ describe('Dashboards > Dashboard', () => {
     const mockCallbackToUnsetNewWidget = jest.fn();
     render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -190,6 +193,7 @@ describe('Dashboards > Dashboard', () => {
     const mockCallbackToUnsetNewWidget = jest.fn();
     const {rerender} = render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -211,6 +215,7 @@ describe('Dashboards > Dashboard', () => {
     // Re-render with newWidget prop
     rerender(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -235,6 +240,7 @@ describe('Dashboards > Dashboard', () => {
     const mockCallbackToUnsetNewWidget = jest.fn();
     render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -270,6 +276,7 @@ describe('Dashboards > Dashboard', () => {
       <OrganizationContext.Provider value={initialData.organization}>
         <MEPSettingProvider forceTransactions={false}>
           <Dashboard
+            theme={ThemeFixture()}
             paramDashboardId="1"
             dashboard={dashboardWithOneWidget}
             organization={initialData.organization}
@@ -324,6 +331,7 @@ describe('Dashboards > Dashboard', () => {
       <OrganizationContext.Provider value={initialData.organization}>
         <MEPSettingProvider forceTransactions={false}>
           <Dashboard
+            theme={ThemeFixture()}
             paramDashboardId="1"
             dashboard={dashboardWithOneWidget}
             organization={initialData.organization}
@@ -376,6 +384,7 @@ describe('Dashboards > Dashboard', () => {
         <OrganizationContext.Provider value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
             <Dashboard
+              theme={ThemeFixture()}
               paramDashboardId="1"
               dashboard={dashboard}
               organization={mockedOrg}
@@ -437,6 +446,7 @@ describe('Dashboards > Dashboard', () => {
         <OrganizationContext.Provider value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
             <Dashboard
+              theme={ThemeFixture()}
               paramDashboardId="1"
               dashboard={dashboard}
               organization={org}

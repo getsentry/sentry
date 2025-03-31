@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import DoAccentColors from 'sentry-images/stories/color/do-accent-colors.svg';
@@ -14,7 +15,6 @@ import ThemeToggle from 'sentry/components/stories/themeToggle';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
-import theme from 'sentry/utils/theme';
 
 interface Palette {
   color: ColorOrAlias;
@@ -297,6 +297,7 @@ const PalettePanelItem = styled(PanelItem)<{
 `;
 
 function ColorPalette({name, palette}: {name: string; palette: Palette[][]}) {
+  const theme = useTheme();
   return (
     <SideBySideList>
       {palette.map((section, i) => {

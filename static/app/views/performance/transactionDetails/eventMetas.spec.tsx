@@ -1,6 +1,7 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -19,6 +20,7 @@ describe('EventMetas', () => {
     });
     render(
       <EventMetas
+        theme={ThemeFixture()}
         event={event}
         location={LocationFixture()}
         organization={organization}

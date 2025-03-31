@@ -1,15 +1,15 @@
 import {vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
 import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {lightTheme} from 'sentry/utils/theme';
 
 import {makeLightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
 
-const theme = makeLightFlamegraphTheme(lightTheme);
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 describe('UIFramesRenderer', () => {
   const canvas = makeCanvasMock({

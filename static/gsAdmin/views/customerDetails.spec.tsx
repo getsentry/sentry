@@ -1,6 +1,7 @@
 import {ThemeProvider} from '@emotion/react';
 import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -32,7 +33,6 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import theme from 'sentry/utils/theme';
 import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {FREE_EVENTS_KEYS} from 'admin/components/addGiftEventsAction';
@@ -42,6 +42,7 @@ import CustomerDetails from 'admin/views/customerDetails';
 import type {Subscription} from 'getsentry/types';
 import {BillingType, PlanTier} from 'getsentry/types';
 
+const theme = ThemeFixture();
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type MockSubscription = Overwrite<

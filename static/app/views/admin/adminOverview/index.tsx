@@ -31,7 +31,7 @@ function AdminOverview() {
         <Panel key="api">
           <PanelHeader>{t('API Responses')}</PanelHeader>
           <PanelBody withPadding>
-            <ApiChart since={since} resolution={resolution} />
+            <ApiChart since={since} resolution={resolution} theme={theme} />
           </PanelBody>
         </Panel>
       </Fragment>

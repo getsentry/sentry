@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
@@ -48,7 +48,6 @@ import {space} from 'sentry/styles/space';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -96,6 +95,7 @@ function hidePanel(hash?: string) {
 }
 
 function Sidebar() {
+  const theme = useTheme();
   const location = useLocation();
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
@@ -597,7 +597,7 @@ function Sidebar() {
 
 export default Sidebar;
 
-const responsiveFlex = css`
+const responsiveFlex = (theme: Theme) => css`
   display: flex;
   flex-direction: column;
 
@@ -625,7 +625,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebar.border};
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     top: 0;
@@ -642,14 +642,14 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
 `;
 
 const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
   ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
   min-width: 0;
