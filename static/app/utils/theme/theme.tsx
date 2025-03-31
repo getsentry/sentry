@@ -11,7 +11,7 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import color from 'color';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
 import {DataCategory, Outcome} from 'sentry/types/core';
 
 export const generateThemeAliases = (colors: Colors) => ({
@@ -1067,6 +1067,9 @@ const commonTheme = {
   dataCategory,
 };
 
+// Redeclare as we dont want to use the deprecation
+const getColorPalette = getChartColorPalette;
+
 // Light and dark theme definitions
 const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
@@ -1089,6 +1092,10 @@ export const lightTheme = {
   level: generateLevelTheme(lightColors),
   stacktraceActiveBackground: lightColors.gray500,
   stacktraceActiveText: lightColors.white,
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette,
+  },
   prismVariables: generateThemePrismVariables(
     prismLight,
     lightAliases.backgroundSecondary
@@ -1131,6 +1138,10 @@ export const darkTheme: typeof lightTheme = {
   ),
   stacktraceActiveBackground: darkColors.gray200,
   stacktraceActiveText: darkColors.white,
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette: getChartColorPalette,
+  },
   sidebar: {
     // @TODO(jonasbadalic) What are these colors and where do they come from?
     background: '#181622',
