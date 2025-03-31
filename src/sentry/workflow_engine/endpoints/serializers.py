@@ -44,7 +44,7 @@ class ActionSerializer(Serializer):
 class SentryAppContext(TypedDict):
     id: str
     name: str
-    installationUuid: str
+    installationId: str
     status: int
     settings: NotRequired[dict[str, Any]]
 
@@ -53,9 +53,9 @@ class ActionHandlerSerializerResponse(TypedDict):
     type: str
     handlerGroup: str
     configSchema: dict
-    dataSchema: NotRequired[dict]
+    dataSchema: dict
     sentryApp: NotRequired[SentryAppContext]
-    installations: NotRequired[list]
+    integrations: NotRequired[list]
 
 
 @register(ActionHandler)
@@ -88,7 +88,7 @@ class ActionHandlerSerializer(Serializer):
         sentry_app_context = kwargs.get("sentry_app_context")
         if sentry_app_context:
             installation = sentry_app_context.installation
-            sentry_app = {
+            sentry_app: SentryAppContext = {
                 "id": str(installation.sentry_app.id),
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
