@@ -1111,7 +1111,8 @@ def track_latest_sdk(project: Project, profile: Profile) -> None:
     event_type = determine_profile_type(profile)
 
     client_sdk = profile.get("client_sdk")
-    if client_sdk is None:
+
+    if not client_sdk:
         raise UnknownClientSDKException
 
     sdk_name = client_sdk.get("name")
