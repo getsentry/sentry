@@ -326,6 +326,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
       minutesThresholdToDisplaySeconds,
       thresholdType,
       anomalies = [],
+      theme,
     } = this.props;
 
     const dataWithoutRecentBucket = data?.map(({data: eventData, ...restOfData}) => {
@@ -447,7 +448,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
         series={[
           ...dataWithoutRecentBucket,
           ...comparisonMarkLines,
-          ...getAnomalyMarkerSeries(anomalies),
+          ...getAnomalyMarkerSeries(anomalies, {theme}),
         ]}
         additionalSeries={comparisonDataWithoutRecentBucket.map(
           ({data: _data, ...otherSeriesProps}) =>

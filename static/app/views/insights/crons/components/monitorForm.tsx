@@ -1,5 +1,5 @@
 import {Fragment, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -26,7 +26,6 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
-import commonTheme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -174,6 +173,7 @@ function MonitorForm({
   apiMethod,
   onSubmitSuccess,
 }: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const form = useRef(
     new FormModel({
@@ -347,7 +347,7 @@ function MonitorForm({
                       defaultValue={DEFAULT_CRONTAB}
                       css={css`
                         input {
-                          font-family: ${commonTheme.text.familyMono};
+                          font-family: ${theme.text.familyMono};
                         }
                       `}
                       required

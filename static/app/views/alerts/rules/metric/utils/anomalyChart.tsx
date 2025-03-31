@@ -1,21 +1,22 @@
+import type {Theme} from '@emotion/react';
 import type {MarkAreaComponentOption} from 'echarts';
 import moment from 'moment-timezone';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import ConfigStore from 'sentry/stores/configStore';
-import {lightTheme as theme} from 'sentry/utils/theme';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 
 export interface AnomalyMarkerSeriesOptions {
+  theme: Theme;
   endDate?: Date;
   startDate?: Date;
 }
 
 export function getAnomalyMarkerSeries(
   anomalies: Anomaly[],
-  opts: AnomalyMarkerSeriesOptions = {}
+  opts: AnomalyMarkerSeriesOptions
 ): AreaChartSeries[] {
   const series: AreaChartSeries[] = [];
   if (!Array.isArray(anomalies) || anomalies.length === 0) {
@@ -67,7 +68,7 @@ export function getAnomalyMarkerSeries(
             },
           ]);
           // Create a marker line for the start of the anomaly
-          series.push(createAnomalyMarkerSeries(theme.purple300, start));
+          series.push(createAnomalyMarkerSeries(opts.theme.purple300, start));
         }
         // reset the start/end to capture the next anomaly block
         start = undefined;
@@ -77,7 +78,7 @@ export function getAnomalyMarkerSeries(
   if (start && end) {
     // push in the last block
     // Create a marker line for the start of the anomaly
-    series.push(createAnomalyMarkerSeries(theme.purple300, start));
+    series.push(createAnomalyMarkerSeries(opts.theme.purple300, start));
     anomalyBlocks.push([
       {
         xAxis: start,

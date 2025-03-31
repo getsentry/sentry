@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
@@ -42,7 +43,6 @@ import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import commonTheme from 'sentry/utils/theme';
 
 /**
  * Generates the class name used for contexts
@@ -334,8 +334,10 @@ export function getContextIcon({
   type,
   value = {},
   contextIconProps = {},
+  theme,
 }: {
   alias: string;
+  theme: Theme;
   type: string;
   contextIconProps?: Partial<ContextIconProps>;
   value?: Record<string, any>;
@@ -363,7 +365,7 @@ export function getContextIcon({
       break;
     case 'user': {
       const user = userContextToActor(value);
-      const iconSize = commonTheme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
+      const iconSize = theme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
       return <UserAvatar user={user} size={iconSize} gravatar={false} />;
     }
     case 'gpu':

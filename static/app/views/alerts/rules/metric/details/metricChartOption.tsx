@@ -359,7 +359,7 @@ export function getMetricAlertChartOption(
       });
   }
   if (anomalies) {
-    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate}));
+    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate, theme}));
   }
   let maxThresholdValue = 0;
   if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {

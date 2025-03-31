@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
@@ -83,6 +84,8 @@ export default function ContextCard({
 }: ContextCardProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
+
   if (isEmptyObject(value)) {
     return null;
   }
@@ -122,6 +125,7 @@ export default function ContextCard({
                 contextIconProps: {
                   size: 'sm',
                 },
+                theme,
               })}
             </ErrorBoundary>
           </div>

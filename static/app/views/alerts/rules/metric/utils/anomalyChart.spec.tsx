@@ -1,5 +1,9 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
 import {type Anomaly, AnomalyType} from 'sentry/views/alerts/types';
+
+const theme = ThemeFixture();
 
 const anomaly: Anomaly['anomaly'] = {anomaly_type: AnomalyType.NONE, anomaly_score: 0};
 const anomaly_high: Anomaly['anomaly'] = {
@@ -13,7 +17,7 @@ const anomaly_low: Anomaly['anomaly'] = {
 
 describe('anomalyChart', () => {
   it('should return an empty array for empty anomalies', () => {
-    expect(getAnomalyMarkerSeries([])).toEqual([]);
+    expect(getAnomalyMarkerSeries([], {theme})).toEqual([]);
   });
 
   it('should not create anomaly values', () => {
@@ -30,7 +34,7 @@ describe('anomalyChart', () => {
       },
     ];
 
-    expect(getAnomalyMarkerSeries(input)).toHaveLength(1);
+    expect(getAnomalyMarkerSeries(input, {theme})).toHaveLength(1);
   });
 
   it('should create two anomaly areas', () => {
@@ -57,7 +61,7 @@ describe('anomalyChart', () => {
       },
     ];
 
-    expect(getAnomalyMarkerSeries(input)).toHaveLength(2);
+    expect(getAnomalyMarkerSeries(input, {theme})).toHaveLength(2);
   });
 
   it('should create three anomaly areas', () => {
@@ -94,7 +98,7 @@ describe('anomalyChart', () => {
       },
     ];
 
-    expect(getAnomalyMarkerSeries(input)).toHaveLength(3);
+    expect(getAnomalyMarkerSeries(input, {theme})).toHaveLength(3);
   });
 });
 
