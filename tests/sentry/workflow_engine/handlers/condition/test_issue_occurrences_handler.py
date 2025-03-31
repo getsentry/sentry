@@ -17,7 +17,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
     def setUp(self):
         super().setUp()
         self.group.times_seen_pending = 0
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={
@@ -55,22 +55,22 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
 
     def test_compares_correctly(self):
         self.group.update(times_seen=11)
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.group.update(times_seen=10)
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.group.update(times_seen=8)
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_uses_pending(self):
         self.group.update(times_seen=8)
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.group.times_seen_pending = 3
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_fails_on_bad_data(self):
         self.dc.update(comparison={"value": "bad data"})
         self.group.update(times_seen=10)
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

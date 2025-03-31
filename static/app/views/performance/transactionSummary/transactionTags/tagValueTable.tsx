@@ -347,5 +347,3 @@ const LinkContainer = styled('div')<{disabled?: boolean}>`
     cursor: default;
   `}
 `;
-
-export default TagValueTable;

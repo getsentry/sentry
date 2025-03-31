@@ -19,5 +19,3 @@ export class DefaultIssuePlugin extends BasePlugin {
     return <IssueActions {...props} />;
   }
 }
-
-export default DefaultIssuePlugin;

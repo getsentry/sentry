@@ -22,7 +22,7 @@ class TestIssueAlertRegistryInvoker(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get"
@@ -32,7 +32,9 @@ class TestIssueAlertRegistryInvoker(BaseWorkflowTest):
         mock_registry_get.side_effect = NoRegistrationExistsError()
 
         with pytest.raises(NoRegistrationExistsError):
-            IssueAlertRegistryHandler.handle_workflow_action(self.job, self.action, self.detector)
+            IssueAlertRegistryHandler.handle_workflow_action(
+                self.event_data, self.action, self.detector
+            )
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.issue_alert_handler_registry.get"
@@ -47,7 +49,9 @@ class TestIssueAlertRegistryInvoker(BaseWorkflowTest):
         mock_registry_get.return_value = mock_handler
 
         with pytest.raises(NotificationHandlerException):
-            IssueAlertRegistryHandler.handle_workflow_action(self.job, self.action, self.detector)
+            IssueAlertRegistryHandler.handle_workflow_action(
+                self.event_data, self.action, self.detector
+            )
 
         mock_logger.exception.assert_called_once_with(
             "Error invoking issue alert handler",
@@ -62,7 +66,7 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
@@ -72,7 +76,9 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         mock_registry_get.side_effect = NoRegistrationExistsError()
 
         with pytest.raises(NoRegistrationExistsError):
-            MetricAlertRegistryHandler.handle_workflow_action(self.job, self.action, self.detector)
+            MetricAlertRegistryHandler.handle_workflow_action(
+                self.event_data, self.action, self.detector
+            )
 
     @mock.patch(
         "sentry.notifications.notification_action.registry.metric_alert_handler_registry.get"
@@ -87,7 +93,9 @@ class TestMetricAlertRegistryInvoker(BaseWorkflowTest):
         mock_registry_get.return_value = mock_handler
 
         with pytest.raises(NotificationHandlerException):
-            MetricAlertRegistryHandler.handle_workflow_action(self.job, self.action, self.detector)
+            MetricAlertRegistryHandler.handle_workflow_action(
+                self.event_data, self.action, self.detector
+            )
 
         mock_logger.exception.assert_called_once_with(
             "Error invoking metric alert handler",

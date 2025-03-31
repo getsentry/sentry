@@ -1,11 +1,11 @@
 import {Component} from 'react';
+import type {Theme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {TimeseriesValue} from 'sentry/types/core';
-import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
 
 const initialState = {
@@ -22,6 +22,7 @@ type Props = {
   api: Client;
   resolution: string;
   since: number;
+  theme: Theme;
 };
 
 type State = {
@@ -99,17 +100,17 @@ class ApiChart extends Component<Props, State> {
       {
         seriesName: '2xx',
         data: this.processRawSeries(rawData['client-api.all-versions.responses.2xx']!),
-        color: theme.green200,
+        color: this.props.theme.green200,
       },
       {
         seriesName: '4xx',
         data: this.processRawSeries(rawData['client-api.all-versions.responses.4xx']!),
-        color: theme.blue300,
+        color: this.props.theme.blue300,
       },
       {
         seriesName: '5xx',
         data: this.processRawSeries(rawData['client-api.all-versions.responses.5xx']!),
-        color: theme.red200,
+        color: this.props.theme.red200,
       },
     ];
   }

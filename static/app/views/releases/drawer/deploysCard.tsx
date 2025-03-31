@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import KeyValueData, {Card} from 'sentry/components/keyValueData';
+import {Card, KeyValueData} from 'sentry/components/keyValueData';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';

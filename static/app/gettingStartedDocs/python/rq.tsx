@@ -37,23 +37,19 @@ sentry_sdk.init(
   # of sampled transactions.
   # We recommend adjusting this value in production.
   profiles_sample_rate=1.0,`
-      : ''
+      : params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `
+  # Set profile_session_sample_rate to 1.0 to profile 100%
+  # of profile sessions.
+  profile_session_sample_rate=1.0,
+  # Set profile_lifecycle to "trace" to automatically
+  # run the profiler on when there is an active transaction
+  profile_lifecycle="trace",`
+        : ''
   }
-)${
-  params.isProfilingSelected &&
-  params.profilingOptions?.defaultProfilingMode === 'continuous'
-    ? `
-
-# Manually call start_profiler and stop_profiler
-# to profile the code in between
-sentry_sdk.profiler.start_profiler()
-# this code will be profiled
-#
-# Calls to stop_profiler are optional - if you don't stop the profiler, it will keep profiling
-# your application until the process exits or stop_profiler is called.
-sentry_sdk.profiler.stop_profiler()`
-    : ''
-}`;
+)
+`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk

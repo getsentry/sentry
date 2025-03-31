@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -62,6 +63,7 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location
   };
 
 function EventDetailsContent(props: Props) {
+  const theme = useTheme();
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
   const projectId = props.eventSlug.split(':')[0]!;
   const {organization, eventSlug, location} = props;
@@ -198,6 +200,7 @@ function EventDetailsContent(props: Props) {
                   {results && (
                     <Layout.Main fullWidth>
                       <EventMetas
+                        theme={theme}
                         quickTrace={results}
                         meta={metaResults?.meta ?? null}
                         event={transaction}

@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -33,7 +34,6 @@ import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
-
 /**
  * example: codeowners:/issues -> [['codeowners', '/issues']]
  */
@@ -200,6 +200,7 @@ function AssignedTo({
   onAssign,
   disableDropdown = false,
 }: AssignedToProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const api = useApi();
   const {data: eventOwners} = useIssueEventOwners({
@@ -278,6 +279,7 @@ function AssignedTo({
                   organization,
                   issueId: group.id,
                   eventData: event!,
+                  theme,
                 });
               }}
               aria-label={t('Create Ownership Rule')}

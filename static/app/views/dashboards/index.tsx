@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -22,6 +23,7 @@ type Props = RouteComponentProps & {
 
 function DashboardsV2Container(props: Props) {
   const {organization, children} = props;
+  const theme = useTheme();
 
   if (organization.features.includes('dashboards-edit')) {
     return <Fragment>{children}</Fragment>;
@@ -37,6 +39,7 @@ function DashboardsV2Container(props: Props) {
             <ErrorBoundary>
               <DashboardDetail
                 {...props}
+                theme={theme}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
                 dashboards={dashboards}

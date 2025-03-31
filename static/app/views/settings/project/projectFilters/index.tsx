@@ -12,7 +12,7 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import GroupTombstones from 'sentry/views/settings/project/projectFilters/groupTombstones';
-import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
+import {ProjectFiltersChart} from 'sentry/views/settings/project/projectFilters/projectFiltersChart';
 import {ProjectFiltersSettings} from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 

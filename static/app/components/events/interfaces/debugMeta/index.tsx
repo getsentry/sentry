@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
@@ -124,6 +125,7 @@ function applyImageFilters(
 }
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const listRef = useRef<List>(null);
   const panelTableRef = useRef<HTMLDivElement>(null);
@@ -289,10 +291,10 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             }
           />
         ),
-        {modalCss}
+        {modalCss: modalCss(theme)}
       );
     },
-    [event, groupId, handleReprocessEvent, organization, projectSlug]
+    [event, groupId, handleReprocessEvent, organization, projectSlug, theme]
   );
 
   // This hook replaces the componentDidMount/WillUnmount calls from its class component

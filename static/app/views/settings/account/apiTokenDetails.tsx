@@ -102,7 +102,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   );
 }
 
-export function ApiTokenDetails({params}: Props) {
+function ApiTokenDetails({params}: Props) {
   const {tokenId} = params;
 
   const {

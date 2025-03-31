@@ -1,6 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -82,6 +83,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -145,6 +147,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -217,6 +220,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -246,6 +250,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -292,6 +297,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}
@@ -313,6 +319,7 @@ describe('OrgDashboards', () => {
         {({dashboard, dashboards}) => {
           return dashboard ? (
             <DashboardDetail
+              theme={ThemeFixture()}
               api={api}
               initialState={DashboardState.VIEW}
               dashboard={dashboard}

@@ -39,7 +39,7 @@ if (!!JEST_TEST_BALANCER && !CI) {
   );
 }
 
-let JEST_TESTS;
+let JEST_TESTS: string[] | undefined;
 
 // prevents forkbomb as we don't want jest --listTests --json
 // to reexec itself here
@@ -99,12 +99,12 @@ function getTestsForGroup(
   const SUITE_P50_DURATION_MS = 1500;
 
   // First, iterate over all of the tests we have stats for.
-  for (const test in testStats) {
-    if (testStats[test] <= 0) {
+  Object.entries(testStats).forEach(([test, duration]) => {
+    if (duration <= 0) {
       throw new Error(`Test duration is <= 0 for ${test}`);
     }
-    tests.set(test, testStats[test]);
-  }
+    tests.set(test, duration);
+  });
   // Then, iterate over all of the remaining tests and assign them a default duration.
   for (const test of allTests) {
     if (tests.has(test)) {
@@ -139,7 +139,7 @@ function getTestsForGroup(
       // test that may exceed our target duration. For example, if target runtime for each group is
       // 10 seconds, we have currently accounted for 9 seconds, and the next test is 5 seconds, we
       // want to move that test to the next group so as to avoid a 40% imbalance.
-      const peek = testsSortedByPath[testsSortedByPath.length - 1];
+      const peek = testsSortedByPath[testsSortedByPath.length - 1]!;
       if (duration + peek[1] > targetDuration && peek[1] > 30_000) {
         break;
       }
@@ -147,7 +147,7 @@ function getTestsForGroup(
       if (!nextTest) {
         throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
       }
-      groups[group].push(nextTest[0]);
+      groups[group]!.push(nextTest[0]);
       duration += nextTest[1];
     }
   }
@@ -159,7 +159,7 @@ function getTestsForGroup(
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
-    groups[i % 4].push(nextTest[0]);
+    groups[i % 4]!.push(nextTest[0]);
     i++;
   }
 

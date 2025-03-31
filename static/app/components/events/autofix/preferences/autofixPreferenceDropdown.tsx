@@ -334,7 +334,10 @@ function AutofixPreferenceDropdown({project}: {project: Project}) {
               <ContentContainer ref={contentRef} className="scrollable-content">
                 <ContentHeader>
                   <ContentTitle>
-                    {t('Configure Autofix for %s', project.name.toUpperCase())}
+                    {t(
+                      'Configure Autofix for %s',
+                      project.slug.toUpperCase().slice(0, 1) + project.slug.slice(1)
+                    )}
                   </ContentTitle>
                 </ContentHeader>
                 {showSaveNotice && (

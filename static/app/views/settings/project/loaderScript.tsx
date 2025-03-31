@@ -19,7 +19,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
-export function ProjectLoaderScript({project}: {project: Project}) {
+function ProjectLoaderScript({project}: {project: Project}) {
   const organization = useOrganization();
   const apiEndpoint = `/projects/${organization.slug}/${project.slug}/keys/`;
   const [updatedProjectKeys, setUpdatedProjectKeys] = useState<ProjectKey[]>([]);

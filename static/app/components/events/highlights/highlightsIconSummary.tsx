@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
@@ -34,6 +35,7 @@ interface HighlightsIconSummaryProps {
 }
 
 export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
+  const theme = useTheme();
   const organization = useOrganization();
 
   // Project slug and project id are pull out because group is not always available
@@ -65,6 +67,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
         contextIconProps: {
           size: 'md',
         },
+        theme,
       }),
     }))
     .filter((item, _index, array) => {

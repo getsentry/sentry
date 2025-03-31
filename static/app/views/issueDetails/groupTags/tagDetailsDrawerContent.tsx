@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -200,6 +201,7 @@ function TagDetailsValue({
   tagValue: TagValue;
   valueLocation: LocationDescriptor;
 }) {
+  const theme = useTheme();
   const userValues = getUserTagValue(tagValue);
   const valueComponent =
     tagKey === 'user' ? (
@@ -211,6 +213,7 @@ function TagDetailsValue({
           contextIconProps: {
             size: 'md',
           },
+          theme,
         })}
         <div>{userValues.title}</div>
         {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}

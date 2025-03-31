@@ -143,5 +143,3 @@ export function OrganizationFeatureFlagsAuditLogTable({
     </Fragment>
   );
 }
-
-export default OrganizationFeatureFlagsAuditLogTable;

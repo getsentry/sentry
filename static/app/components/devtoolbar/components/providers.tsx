@@ -1,9 +1,7 @@
 import {useMemo} from 'react';
 import createCache from '@emotion/cache';
-import {CacheProvider, ThemeProvider} from '@emotion/react';
+import {CacheProvider, ThemeProvider, useTheme} from '@emotion/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-
-import {lightTheme} from 'sentry/utils/theme';
 
 import {ConfigurationContextProvider} from '../hooks/useConfiguration';
 import {ToolbarRouterContextProvider} from '../hooks/useToolbarRoute';
@@ -19,6 +17,7 @@ interface Props {
 }
 
 export default function Providers({children, config, container}: Props) {
+  const theme = useTheme();
   const queryClient = useMemo(() => new QueryClient({}), []);
 
   const myCache = useMemo(
@@ -36,7 +35,7 @@ export default function Providers({children, config, container}: Props) {
 
   return (
     <CacheProvider value={myCache}>
-      <ThemeProvider theme={lightTheme}>
+      <ThemeProvider theme={theme}>
         <ConfigurationContextProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <VisibilityContextProvider>

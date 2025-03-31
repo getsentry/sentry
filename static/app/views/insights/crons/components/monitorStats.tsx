@@ -182,5 +182,3 @@ export function MonitorStats({monitor, monitorEnvs}: Props) {
 const StyledHeaderTitle = styled(HeaderTitle)`
   margin-bottom: ${space(1)};
 `;
-
-export default MonitorStats;

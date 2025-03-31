@@ -6,7 +6,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ScreenDetailsPage} from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
+import ScreenDetailsPage from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');

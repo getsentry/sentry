@@ -7,6 +7,7 @@ import {
   useReducer,
   useRef,
 } from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -55,6 +56,7 @@ interface IssuesTraceWaterfallProps extends Omit<TraceWaterfallProps, 'tree'> {
 }
 
 export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
+  const theme = useTheme();
   const {projects} = useProjects();
   const organization = useOrganization();
   const traceState = useTraceState();
@@ -113,7 +115,8 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
         span_list: {width: 1 - traceState.preferences.list.width},
       },
       traceScheduler,
-      traceView
+      traceView,
+      theme
     );
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps

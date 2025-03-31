@@ -156,5 +156,3 @@ export const DrawerComponents = {
   DrawerHeader,
   DrawerPanel,
 };
-
-export default DrawerComponents;

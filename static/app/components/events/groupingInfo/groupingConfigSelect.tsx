@@ -76,5 +76,3 @@ const GroupingConfigItem = styled('span')<{
   font-weight: ${p => (p.isActive ? 'bold' : null)};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
-
-export default GroupingConfigSelect;

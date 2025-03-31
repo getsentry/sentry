@@ -15,7 +15,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import NewProviderForm from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
 import NewSecretHandler from 'sentry/views/settings/featureFlags/changeTracking/newSecretHandler';
 
-export function OrganizationFeatureFlagsNewSecet() {
+function OrganizationFeatureFlagsNewSecet() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
   const [provider, setProvider] = useState<string>('');
   const organization = useOrganization();

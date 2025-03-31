@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {MODULE_FEATURE} from 'sentry/views/insights/mobile/screens/settings';
-import {ScreensLandingPage} from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
+import ScreensLandingPage from 'sentry/views/insights/mobile/screens/views/screensLandingPage';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');

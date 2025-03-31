@@ -72,7 +72,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         )
 
         self.save_group_with_open_period(self.group)
-        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
     def save_group_with_open_period(self, group: Group) -> None:
         # test a new group has an open period
@@ -207,13 +207,25 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             data={"tags": "environment,user,my_tag"},
         )
 
+        self.group, self.event, self.group_event = self.create_group_event(
+            group_type_id=MetricIssuePOC.type_id,
+            occurrence=self.create_issue_occurrence(
+                initial_issue_priority=PriorityLevel.HIGH.value,
+                level="error",
+                evidence_data={
+                    "snuba_query_id": self.snuba_query.id,
+                    "metric_value": 123.45,
+                },
+            ),
+        )
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
-        self.job.event.occurrence = None
+        self.event_data.event.occurrence = None
 
         with pytest.raises(ValueError):
-            self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+            self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
     def test_get_incident_status(self):
         # Initial priority is high -> incident is critical
@@ -323,7 +335,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     @mock.patch.object(TestHandler, "send_alert")
     def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
 
@@ -384,6 +396,19 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             config={"target_identifier": "service123", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "default"},
         )
+        self.snuba_query = self.create_snuba_query()
+
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=self.create_issue_occurrence(
+                initial_issue_priority=PriorityLevel.HIGH.value,
+                level="error",
+                evidence_data={
+                    "snuba_query_id": self.snuba_query.id,
+                    "metric_value": 123.45,
+                },
+            ),
+        )
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
@@ -420,7 +445,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         "sentry.notifications.notification_action.metric_alert_registry.PagerDutyMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
         (
@@ -482,6 +507,21 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             config={"target_identifier": "team123", "target_type": ActionTarget.SPECIFIC},
             data={"priority": "P1"},
         )
+        self.snuba_query = self.create_snuba_query()
+
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=self.create_issue_occurrence(
+                initial_issue_priority=PriorityLevel.HIGH.value,
+                level="error",
+                evidence_data={
+                    "snuba_query_id": self.snuba_query.id,
+                    "metric_value": 123.45,
+                },
+            ),
+        )
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.workflow.environment
+        )
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
@@ -518,7 +558,7 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         "sentry.notifications.notification_action.metric_alert_registry.OpsgenieMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
         (

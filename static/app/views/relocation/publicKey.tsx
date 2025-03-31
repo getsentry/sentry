@@ -61,5 +61,3 @@ export function PublicKey({publicKeys, relocationState, onComplete}: StepProps) 
     </Wrapper>
   );
 }
-
-export default PublicKey;

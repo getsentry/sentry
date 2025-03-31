@@ -1,9 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import ColumnEditCollection from 'sentry/views/discover/table/columnEditCollection';
+import {ColumnEditCollection} from 'sentry/views/discover/table/columnEditCollection';
 
 describe('ColumnEditCollection', () => {
   let organization: Organization;
@@ -15,6 +16,7 @@ describe('ColumnEditCollection', () => {
   it('does not render the Add an Equation button when equations are not supported', () => {
     render(
       <ColumnEditCollection
+        theme={ThemeFixture()}
         columns={[]}
         fieldOptions={{}}
         onChange={jest.fn()}
@@ -28,6 +30,7 @@ describe('ColumnEditCollection', () => {
   it('renders the Add an Equation button when equations are supported', () => {
     render(
       <ColumnEditCollection
+        theme={ThemeFixture()}
         columns={[]}
         fieldOptions={{}}
         onChange={jest.fn()}

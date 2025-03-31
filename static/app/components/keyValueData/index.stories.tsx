@@ -4,7 +4,8 @@ import {type Theme, useTheme} from '@emotion/react';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import KeyValueData, {
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';

@@ -7,7 +7,7 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 interface Props {
   children: ReactNode;

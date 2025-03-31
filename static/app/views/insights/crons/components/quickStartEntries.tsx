@@ -451,6 +451,8 @@ $monitorConfig = new \\Sentry\\MonitorConfig(
     checkinMargin: 5, // Optional check-in margin in minutes
     maxRuntime: 15, // Optional max runtime in minutes
     timezone: 'Europe/Vienna', // Optional timezone
+    failureIssueThreshold: 2, // Optional failure issue threshold
+    recoveryThreshold: 5, // Optional recovery threshold
 );
 
 // 🟡 Notify Sentry your job is running:
@@ -465,7 +467,7 @@ $checkInId = \\Sentry\\captureCheckIn(
 // 🟢 Notify Sentry your job has completed successfully:
 \\Sentry\\captureCheckIn(
     slug: '<monitor-slug>',
-    status: \\Sentry\\CheckInStatus::inProgress(),
+    status: \\Sentry\\CheckInStatus::ok(),
     checkInId: $checkInId,
 );`;
 

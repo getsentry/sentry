@@ -13,5 +13,3 @@ export const FieldRequiredBadge = styled('div')`
   vertical-align: super;
   margin-left: ${space(0.5)};
 `;
-
-export default FieldRequiredBadge;

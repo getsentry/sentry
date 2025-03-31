@@ -6,7 +6,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
