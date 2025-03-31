@@ -192,7 +192,6 @@ function useMultipleQueries(options: UseMultipleQueriesOptions) {
       limit: LIMIT,
       cursor,
       pageFilters: selection,
-      // This query does not apply when the Recent option is selected
       enabled,
     },
     'api.performance.service-entry-spans-table',
