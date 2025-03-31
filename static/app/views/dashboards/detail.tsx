@@ -1,5 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -1430,4 +1431,10 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-export default withPageFilters(withProjects(withApi(withOrganization(DashboardDetail))));
+function DashboardDetailWithTheme(props: Props) {
+  const theme = useTheme();
+  return <DashboardDetail {...props} theme={theme} />;
+}
+export default withPageFilters(
+  withProjects(withApi(withOrganization(DashboardDetailWithTheme)))
+);
