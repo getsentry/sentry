@@ -11,6 +11,7 @@ export default function useReleaseSessionPercentage() {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },

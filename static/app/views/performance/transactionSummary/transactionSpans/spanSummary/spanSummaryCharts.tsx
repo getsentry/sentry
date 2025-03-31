@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
@@ -31,6 +33,7 @@ import {
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 
 function SpanSummaryCharts() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {spanSlug} = useParams();
   const [spanOp, groupId] = spanSlug!.split(':');
@@ -129,7 +132,7 @@ function SpanSummaryCharts() {
             definedAxisTicks={4}
             aggregateOutputFormat="duration"
             error={avgDurationError}
-            chartColors={[AVG_COLOR]}
+            chartColors={[AVG_COLOR(theme)]}
           />
         </ChartPanel>
       </Block>
@@ -145,7 +148,7 @@ function SpanSummaryCharts() {
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
             error={throughputError}
-            chartColors={[THROUGHPUT_COLOR]}
+            chartColors={[THROUGHPUT_COLOR(theme)]}
             tooltipFormatterOptions={{
               valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
             }}
@@ -164,7 +167,7 @@ function SpanSummaryCharts() {
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
             error={txnThroughputError}
-            chartColors={[TXN_THROUGHPUT_COLOR]}
+            chartColors={[TXN_THROUGHPUT_COLOR(theme)]}
             tooltipFormatterOptions={{
               valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
             }}

@@ -52,7 +52,5 @@ export default function AnalyticsArea({
   const parentArea = useAnalyticsArea();
   const area = overrideParent || !parentArea ? name : `${parentArea}.${name}`;
 
-  return (
-    <AnalyticsAreaContext.Provider value={area}>{children}</AnalyticsAreaContext.Provider>
-  );
+  return <AnalyticsAreaContext value={area}>{children}</AnalyticsAreaContext>;
 }
