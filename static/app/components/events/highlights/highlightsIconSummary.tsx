@@ -15,6 +15,7 @@ import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {SCREENSHOT_NAMES} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/utils';
+import {Text} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
@@ -105,10 +106,23 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   const releaseTag = event.tags?.find(tag => tag.key === 'release');
   const environmentTag = event.tags?.find(tag => tag.key === 'environment');
 
+  // fixme: derive runtime from other data (runtime is only available for server errors)
+  const runtimeLabel =
+    event.context?.runtime?.name === 'node' ? t('Backend') : t('Frontend');
+
   return items.length || screenshot ? (
     <Fragment>
       <IconBar>
         <ScrollCarousel gap={2} aria-label={t('Icon highlights')}>
+          {runtimeLabel && (
+            <Fragment>
+              <StyledRuntimeText>{runtimeLabel}</StyledRuntimeText>
+              <DividerWrapper>
+                <Divider />
+              </DividerWrapper>
+            </Fragment>
+          )}
+
           {screenshot && group && (
             <Fragment>
               <ScreenshotButton
@@ -223,4 +237,14 @@ const StyledVersion = styled(Version)`
 
 const ScreenshotButton = styled(Button)`
   font-weight: normal;
+`;
+
+const DividerWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+`;
+
+const StyledRuntimeText = styled(Text)`
+  padding: ${space(0.5)} 0;
 `;
