@@ -1,6 +1,3 @@
-from functools import reduce
-from operator import or_
-
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from rest_framework import serializers, status
@@ -12,7 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.paginator import SequencePaginator
+from sentry.api.paginator import ChainPaginator, SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import (
     GroupSearchViewSerializer,
@@ -62,9 +59,22 @@ class MemberPermission(OrganizationPermission):
 
 class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
     visibility = serializers.MultipleChoiceField(
-        choices=GroupSearchViewVisibility.as_choices(),
         required=False,
+        choices=GroupSearchViewVisibility.as_choices(),
     )
+
+    sort = serializers.ChoiceField(
+        required=False,
+        choices=("last_seen", "-last_seen", "alphabetical", "-alphabetical"),
+    )
+
+
+SORT_MAP = {
+    "last_seen": "groupsearchviewlastvisited__last_visited",
+    "-last_seen": "-groupsearchviewlastvisited__last_visited",
+    "alphabetical": "name",
+    "-alphabetical": "-name",
+}
 
 
 @region_silo_endpoint
@@ -101,7 +111,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         # Return only the default view(s) if user has no custom views yet
         # TODO(msun): Delete this logic once left-nav views have been fully rolled out.
-        if not query.exists():
+        if not query.exists() and not serializer.validated_data.get("visibility"):
             return self.paginate(
                 request=request,
                 paginator=SequencePaginator(
@@ -132,31 +142,70 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     data={"detail": "You do not have access to any projects."},
                 )
 
-        visibility = serializer.validated_data.get("visibility")
-        if visibility:
-            org_query = GroupSearchView.objects.filter(
-                organization=organization,
-                visibility=GroupSearchViewVisibility.ORGANIZATION,
-            ).prefetch_related("projects")
-
-            owner_query = GroupSearchView.objects.filter(
+        if serializer.validated_data.get("visibility"):
+            visibility = serializer.validated_data.get(
+                "visibility", [GroupSearchViewVisibility.OWNER]
+            )
+            sort = serializer.validated_data.get("sort", "-last_seen")
+            user_starred_views = GroupSearchViewStarred.objects.filter(
                 organization=organization,
                 user_id=request.user.id,
-                visibility=GroupSearchViewVisibility.OWNER,
-            ).prefetch_related("projects")
+            ).values_list("group_search_view_id", flat=True)
 
-            param_query_map = {
-                GroupSearchViewVisibility.ORGANIZATION: org_query,
-                GroupSearchViewVisibility.OWNER: owner_query,
-            }
+            owner_query_starred = (
+                GroupSearchView.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    visibility=GroupSearchViewVisibility.OWNER,
+                    id__in=user_starred_views,
+                )
+                .order_by(SORT_MAP[sort])
+                .prefetch_related("projects")
+            )
 
-            query_list = [param_query_map[v] for v in visibility]
-            query = reduce(or_, query_list)
+            owner_query_non_starred = (
+                GroupSearchView.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    visibility=GroupSearchViewVisibility.OWNER,
+                )
+                .exclude(id__in=user_starred_views)
+                .order_by(SORT_MAP[sort])
+                .prefetch_related("projects")
+            )
+
+            org_query_starred = (
+                GroupSearchView.objects.filter(
+                    organization=organization,
+                    visibility=GroupSearchViewVisibility.ORGANIZATION,
+                    id__in=user_starred_views,
+                )
+                .order_by(SORT_MAP[sort])
+                .prefetch_related("projects")
+            )
+
+            org_query_non_starred = (
+                GroupSearchView.objects.filter(
+                    organization=organization,
+                    visibility=GroupSearchViewVisibility.ORGANIZATION,
+                )
+                .exclude(id__in=user_starred_views)
+                .order_by(SORT_MAP[sort])
+                .prefetch_related("projects")
+            )
+
+            owner_queries = [owner_query_starred, owner_query_non_starred]
+            org_queries = [org_query_starred, org_query_non_starred]
+
+            query_sources = [
+                *(owner_queries if GroupSearchViewVisibility.OWNER in visibility else []),
+                *(org_queries if GroupSearchViewVisibility.ORGANIZATION in visibility else []),
+            ]
 
             return self.paginate(
                 request=request,
-                queryset=query,
-                order_by="id",
+                sources=query_sources,
+                paginator_cls=ChainPaginator,
                 on_results=lambda x: serialize(
                     x,
                     request.user,

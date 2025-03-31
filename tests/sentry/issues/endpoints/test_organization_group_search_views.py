@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.urls import reverse
@@ -12,6 +13,7 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.users.models.user import User
 
 
 # Ignores the dateCreated and dateUpdated fields
@@ -1339,6 +1341,231 @@ class OrganizationGroupSearchViewsGetVisibilityTest(APITestCase):
         response = self.client.get(self.url, {"visibility": ["random"]})
         assert response.status_code == 400
         assert str(response.data["visibility"][0]) == '"random" is not a valid choice.'
+
+
+class OrganizationGroupSearchViewsGetSortTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-views"
+    method = "get"
+
+    def create_view(
+        self,
+        user: User,
+        name: str = "Test View",
+        starred: bool = False,
+        last_visited: datetime | None = None,
+        visibility: str = "owner",
+    ) -> GroupSearchView:
+        view = GroupSearchView.objects.create(
+            name=name,
+            organization=self.organization,
+            user_id=user.id,
+            query="is:unresolved",
+            query_sort="date",
+            visibility=visibility,
+        )
+
+        if starred:
+            GroupSearchViewStarred.objects.insert_starred_view(
+                user_id=user.id,
+                organization=self.organization,
+                view=view,
+            )
+        if last_visited:
+            GroupSearchViewLastVisited.objects.create(
+                user_id=user.id,
+                organization=self.organization,
+                group_search_view=view,
+                last_visited=last_visited,
+            )
+        return view
+
+    def setUp(self) -> None:
+        self.user_1 = self.user
+        self.user_2 = self.create_user()
+        self.create_member(organization=self.organization, user=self.user_2, role="org:admin")
+
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    @freeze_time("2025-03-07T00:00:00Z")
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_sort_by_default_last_visited_neg(self) -> None:
+        self.login_as(user=self.user_1)
+
+        # Starred views should always appear first
+        first_view = self.create_view(
+            user=self.user_1, starred=True, last_visited=timezone.now() - timedelta(days=2)
+        )
+        second_view = self.create_view(
+            user=self.user_1, last_visited=timezone.now() - timedelta(days=1)
+        )
+        third_view = self.create_view(
+            user=self.user_1, last_visited=timezone.now() - timedelta(days=2)
+        )
+
+        response = self.client.get(self.url, {"visibility": ["owner"]})
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(first_view.id)
+        assert response.data[1]["id"] == str(second_view.id)
+        assert response.data[2]["id"] == str(third_view.id)
+
+    @freeze_time("2025-03-07T00:00:00Z")
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_owner_sort_by_last_visited(self) -> None:
+        self.login_as(user=self.user_1)
+
+        third_view = self.create_view(user=self.user_1, last_visited=timezone.now())
+        second_view = self.create_view(
+            user=self.user_1, last_visited=timezone.now() - timedelta(days=1)
+        )
+        first_view = self.create_view(
+            user=self.user_1, last_visited=timezone.now() - timedelta(days=2)
+        )
+
+        response = self.client.get(self.url, {"visibility": ["owner"], "sort": "last_seen"})
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(first_view.id)
+        assert response.data[1]["id"] == str(second_view.id)
+        assert response.data[2]["id"] == str(third_view.id)
+
+        response = self.client.get(self.url, {"visibility": ["organization"]})
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_owner_sort_by_alphabetical(self) -> None:
+        self.login_as(user=self.user_1)
+
+        first_view = self.create_view(user=self.user_1, name="D View Starred", starred=True)
+        second_view = self.create_view(user=self.user_1, name="A View")
+        third_view = self.create_view(user=self.user_1, name="B View")
+        fourth_view = self.create_view(user=self.user_1, name="C View")
+
+        response = self.client.get(self.url, {"visibility": ["owner"], "sort": "alphabetical"})
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert response.data[0]["id"] == str(first_view.id)
+        assert response.data[1]["id"] == str(second_view.id)
+        assert response.data[2]["id"] == str(third_view.id)
+        assert response.data[3]["id"] == str(fourth_view.id)
+
+        response = self.client.get(self.url, {"visibility": ["organization"]})
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_owner_sort_by_alphabetical_neg(self) -> None:
+        self.login_as(user=self.user_1)
+
+        first_view = self.create_view(user=self.user_1, name="D View Starred", starred=True)
+        second_view = self.create_view(user=self.user_1, name="C View Starred", starred=True)
+        third_view = self.create_view(user=self.user_1, name="B View")
+        fourth_view = self.create_view(user=self.user_1, name="A View")
+
+        response = self.client.get(self.url, {"visibility": ["owner"], "sort": "-alphabetical"})
+        assert response.status_code == 200
+        assert len(response.data) == 4
+        assert response.data[0]["id"] == str(first_view.id)
+        assert response.data[1]["id"] == str(second_view.id)
+        assert response.data[2]["id"] == str(third_view.id)
+        assert response.data[3]["id"] == str(fourth_view.id)
+
+        response = self.client.get(self.url, {"visibility": ["organization"]})
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_organization_sort_by_last_visited_neg(self) -> None:
+        self.login_as(user=self.user_1)
+
+        # Org admin (user_2) creates 3 organization scoped views
+        first_view = self.create_view(
+            user=self.user_2,
+            visibility="organization",
+            last_visited=timezone.now() - timedelta(days=4),
+        )
+        second_view = self.create_view(
+            user=self.user_2,
+            visibility="organization",
+            last_visited=timezone.now() - timedelta(days=1),
+        )
+        third_view = self.create_view(
+            user=self.user_2,
+            visibility="organization",
+            last_visited=timezone.now() - timedelta(days=2),
+        )
+
+        # user_1 stars the first view
+        GroupSearchViewStarred.objects.insert_starred_view(
+            user_id=self.user_1.id,
+            organization=self.organization,
+            view=first_view,
+        )
+
+        response = self.client.get(self.url, {"visibility": ["organization"]})
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(first_view.id)
+        assert response.data[1]["id"] == str(second_view.id)
+        assert response.data[2]["id"] == str(third_view.id)
+
+        response = self.client.get(self.url, {"visibility": ["owner"]})
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    @with_feature({"organizations:global-views": True})
+    def test_organization_sort_by_alphabetical_neg(self) -> None:
+        self.login_as(user=self.user_1)
+
+        first_view = self.create_view(
+            name="A View",
+            user=self.user_2,
+            visibility="organization",
+            last_visited=timezone.now() - timedelta(days=4),
+        )
+        second_view = self.create_view(
+            name="B View",
+            user=self.user_2,
+            visibility="organization",
+            last_visited=timezone.now() - timedelta(days=1),
+        )
+        third_view = self.create_view(
+            name="C View",
+            user=self.user_2,
+            visibility="organization",
+            last_visited=timezone.now() - timedelta(days=2),
+        )
+
+        # user_1 stars all 3 org views
+        for view in [first_view, second_view, third_view]:
+            GroupSearchViewStarred.objects.insert_starred_view(
+                user_id=self.user_1.id,
+                organization=self.organization,
+                view=view,
+            )
+
+        response = self.client.get(
+            self.url, {"visibility": ["organization"], "sort": "alphabetical"}
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 3
+        assert response.data[0]["id"] == str(first_view.id)
+        assert response.data[1]["id"] == str(second_view.id)
+        assert response.data[2]["id"] == str(third_view.id)
+
+        response = self.client.get(self.url, {"visibility": ["owner"], "sort": "-alphabetical"})
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
 
 class OrganizationGroupSearchViewsPutRegressionTest(APITestCase):
