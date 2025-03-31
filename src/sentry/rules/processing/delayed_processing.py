@@ -379,6 +379,14 @@ def passes_comparison(
         ]
     except KeyError:
         metrics.incr("delayed_processing.missing_query_result")
+        logger.info(
+            "delayed_processing.missing_query_result",
+            extra={
+                "condition_data": condition_data,
+                "project_id": project_id,
+                "group_id": group_id,
+            },
+        )
         return False
 
     calculated_value = query_values[0]
@@ -573,7 +581,14 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         if has_workflow_engine:
             logger.info(
                 "delayed_processing.rules_to_fire",
-                extra={"rules_to_fire": rules_to_fire, "project_id": project_id},
+                extra={
+                    "rules_to_fire": {rule.id: groups for rule, groups in rules_to_fire.items()},
+                    "project_id": project_id,
+                    "rules_to_slow_conditions": {
+                        rule.id: conditions for rule, conditions in rules_to_slow_conditions.items()
+                    },
+                    "rules_to_groups": rules_to_groups,
+                },
             )
         if random.random() < 0.01:
             logger.info(
