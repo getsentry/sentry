@@ -299,7 +299,7 @@ const Configuration = styled('div')`
 `;
 
 const Description = styled('div')`
-  code {
+  code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
   }
 
