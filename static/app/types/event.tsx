@@ -14,7 +14,7 @@ import type {Image} from './debugImage';
 import type {IssueAttachment, IssueCategory, IssueType} from './group';
 import type {PlatformKey} from './project';
 import type {Release} from './release';
-import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
+import type {StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -161,7 +161,7 @@ export interface Thread {
   crashed: boolean;
   current: boolean;
   id: number;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   heldLocks?: Record<string, Lock> | null;
   name?: string | null;
@@ -218,7 +218,7 @@ export enum FrameBadge {
 export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;
   module: string | null;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;

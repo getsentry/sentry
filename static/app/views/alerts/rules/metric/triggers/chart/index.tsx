@@ -1,5 +1,6 @@
 import {type ComponentProps, Fragment, PureComponent} from 'react';
 import React from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -48,6 +49,7 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -84,6 +86,7 @@ type Props = {
   projects: Project[];
   query: MetricRule['query'];
   resolveThreshold: MetricRule['resolveThreshold'];
+  theme: Theme;
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
@@ -469,6 +472,7 @@ class TriggersChart extends PureComponent<Props, State> {
           />
         ) : (
           <ThresholdsChart
+            theme={this.props.theme}
             period={statsPeriod}
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
@@ -620,7 +624,8 @@ class TriggersChart extends PureComponent<Props, State> {
                   comparisonTimeseriesData,
                   timeWindow,
                   triggers,
-                  thresholdType
+                  thresholdType,
+                  theme
                 );
               }
 
@@ -758,7 +763,8 @@ class TriggersChart extends PureComponent<Props, State> {
                 comparisonTimeseriesData,
                 timeWindow,
                 triggers,
-                thresholdType
+                thresholdType,
+                theme
               );
             }
 

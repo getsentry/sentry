@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
@@ -82,13 +83,13 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
-
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
 export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
+  theme: Theme;
   eventView?: EventView;
   projectSlug?: string;
   unit?: string;
@@ -650,7 +651,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   user: {
     sortField: 'user',
     renderFunc: data => {
-      if (data.user) {
+      if (data.user?.split) {
         const [key, value] = data.user.split(':');
         const userObj = {
           id: '',
@@ -956,7 +957,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 export const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization, eventView}: RenderFunctionBaggage,
+  {location, organization, eventView, theme}: RenderFunctionBaggage,
   options?: RenderFunctionOptions
 ): React.ReactNode => {
   const {enableOnClick = true} = options ?? {};
@@ -1019,7 +1020,7 @@ export const spanOperationRelativeBreakdownRenderer = (
             >
               <RectangleRelativeOpsBreakdown
                 style={{
-                  backgroundColor: pickBarColor(operationName),
+                  backgroundColor: pickBarColor(operationName, theme),
                   cursor: enableOnClick ? 'pointer' : 'default',
                 }}
                 onClick={event => {

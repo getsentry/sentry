@@ -24,7 +24,7 @@ interface IconProps extends SVGIconProps {
   kind?: 'stroke' | 'path';
 }
 
-export function SvgIcon({ref, ...props}: IconProps) {
+export function SvgIcon(props: IconProps) {
   const {
     color: providedColor = 'currentColor',
     size: providedSize = 'sm',
@@ -34,8 +34,17 @@ export function SvgIcon({ref, ...props}: IconProps) {
   } = useIconDefaults(props);
 
   const theme = useTheme();
+
+  // Chonk changes the color of the icon to gray300 to differ. We will remap
+  // the color to subText for the time being and remove this when the old theme
+  // aliases are removed.
+
+  let normalizedColor = providedColor;
+  if (theme.isChonk && providedColor === 'gray300') {
+    normalizedColor = 'subText';
+  }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const color = theme[providedColor] ?? providedColor;
+  const color = theme[normalizedColor] ?? normalizedColor;
   const size = legacySize ?? theme.iconSizes[providedSize];
 
   // Stroke based icons are only available in Chonk
@@ -46,7 +55,6 @@ export function SvgIcon({ref, ...props}: IconProps) {
         viewBox={'1.25 1.25 13.5 13.5'}
         height={size}
         width={size}
-        ref={ref}
         fill="none"
         stroke={color}
         strokeLinecap="round"
@@ -66,7 +74,6 @@ export function SvgIcon({ref, ...props}: IconProps) {
       fill={color}
       height={size}
       width={size}
-      ref={ref}
     />
   );
 }
