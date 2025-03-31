@@ -57,9 +57,9 @@ export function DrawerPanel({
           For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
           when it's button is pressed.
         */}
-        <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
+        <DrawerContentContext value={{onClose, ariaLabel}}>
           {children}
-        </DrawerContentContext.Provider>
+        </DrawerContentContext>
       </DrawerSlidePanel>
     </DrawerContainer>
   );

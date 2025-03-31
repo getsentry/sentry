@@ -13,7 +13,7 @@ import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
 import getUrlFromEvent from 'sentry/components/events/interfaces/request/getUrlFromEvent';
-import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -215,7 +215,7 @@ function EventDetailsContent(props: Props) {
                   <Layout.Main fullWidth={!isSidebarVisible}>
                     <Projects orgId={organization.slug} slugs={[projectId]}>
                       {({projects: _projects}) => (
-                        <SpanEntryContext.Provider
+                        <SpanEntryContext
                           value={{
                             getViewChildTransactionTarget: childTransactionProps => {
                               return getTransactionDetailsUrl(
@@ -227,7 +227,7 @@ function EventDetailsContent(props: Props) {
                             },
                           }}
                         >
-                          <QuickTraceContext.Provider value={results}>
+                          <QuickTraceContext value={results}>
                             {hasProfilingFeature ? (
                               <ProfilesProvider
                                 orgSlug={organization.slug}
@@ -263,8 +263,8 @@ function EventDetailsContent(props: Props) {
                                 showTagSummary={false}
                               />
                             )}
-                          </QuickTraceContext.Provider>
-                        </SpanEntryContext.Provider>
+                          </QuickTraceContext>
+                        </SpanEntryContext>
                       )}
                     </Projects>
                   </Layout.Main>
