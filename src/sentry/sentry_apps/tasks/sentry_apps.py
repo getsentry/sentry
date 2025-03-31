@@ -560,14 +560,14 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                 organization_id=installation.organization_id, actor_id=installation.id
             )
         except ServiceHook.DoesNotExist:
+            lifecycle.add_extra("events", installation.sentry_app.events)
             lifecycle.add_extras(
                 {
                     "installation_uuid": installation.uuid,
                     "installation_id": installation.id,
                     "organization": installation.organization_id,
                     "sentry_app": installation.sentry_app.id,
-                    "events": installation.sentry_app.events,
-                    "webhook_url": installation.sentry_app.webhook_url,
+                    "webhook_url": installation.sentry_app.webhook_url or "",
                 }
             )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
