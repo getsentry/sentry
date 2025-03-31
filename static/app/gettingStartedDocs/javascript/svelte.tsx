@@ -115,7 +115,14 @@ export default app;
 `;
 };
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (isVersion5: boolean) =>
+  isVersion5
+    ? `
+// SomeComponent.svelte
+<button type="button" onclick="{() => {throw new Error("This is your first error!");}}">
+  Break the world
+</button>`
+    : `
 // SomeComponent.svelte
 <button type="button" on:click="{() => {throw new Error("This is your first error!");}}">
   Break the world
@@ -208,10 +215,16 @@ const onboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getVerifySnippet(),
+              label: 'Svelte v5',
+              value: 'svelte v5',
+              language: 'html',
+              code: getVerifySnippet(true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'svelte v3/v4',
+              language: 'html',
+              code: getVerifySnippet(false),
             },
           ],
         },
