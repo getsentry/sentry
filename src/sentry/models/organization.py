@@ -439,7 +439,7 @@ class Organization(ReplicatedRegionModel):
         )
 
     def handle_2fa_required(self, request):
-        from sentry.tasks.auth import remove_2fa_non_compliant_members
+        from sentry.tasks.auth.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)
 
