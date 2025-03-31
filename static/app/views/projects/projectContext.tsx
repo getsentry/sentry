@@ -2,7 +2,6 @@ import {Component, createContext} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {setActiveProject} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -168,7 +167,6 @@ class ProjectContextProvider extends Component<Props, State> {
     }));
 
     if (activeProject && hasAccess) {
-      setActiveProject(null);
       const projectRequest = this.props.api.requestPromise(
         `/projects/${organization.slug}/${projectSlug}/`
       );
@@ -183,7 +181,6 @@ class ProjectContextProvider extends Component<Props, State> {
         });
 
         // assuming here that this means the project is considered the active project
-        setActiveProject(project);
         addProjectFeaturesHandler({
           project,
           handler: buildSentryFeaturesHandler('feature.projects:'),
