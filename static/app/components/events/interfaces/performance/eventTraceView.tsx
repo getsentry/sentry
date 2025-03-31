@@ -20,7 +20,7 @@ import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/trace
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
-import {SwitchToNonEAPTraceButton} from 'sentry/views/performance/newTraceDetails/traceHeader';
+import {ToggleTraceFormatButton} from 'sentry/views/performance/newTraceDetails/traceHeader';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {
   loadTraceViewPreferences,
@@ -175,7 +175,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       title={t('Trace Preview')}
       actions={
         <ButtonBar gap={1}>
-          <SwitchToNonEAPTraceButton location={location} organization={organization} />
+          <ToggleTraceFormatButton location={location} organization={organization} />
           <LinkButton
             size="xs"
             to={getTraceLinkForIssue(traceTarget)}
