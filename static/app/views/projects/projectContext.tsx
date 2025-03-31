@@ -239,9 +239,9 @@ class ProjectContextProvider extends Component<Props, State> {
 
     if (!error && project) {
       return (
-        <ProjectContext.Provider value={project}>
+        <ProjectContext value={project}>
           {typeof children === 'function' ? children({project}) : children}
-        </ProjectContext.Provider>
+        </ProjectContext>
       );
     }
 
