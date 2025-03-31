@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {
   type DashboardDetails,
   type DashboardListItem,
@@ -310,9 +311,16 @@ function _enforceWidgetLimit(widget: Widget) {
 
   const hasColumns = widget.queries.some(query => query.columns.length > 0);
   if (hasColumns && !defined(widget.limit)) {
+    // The default we historically assign for charts with a grouping is 5,
+    // continue using that default unless there are conditions which make 5
+    // too large to automatically apply.
+    const maxLimit = getResultsLimit(
+      widget.queries.length,
+      widget.queries[0]!.aggregates.length
+    );
     return {
       ...widget,
-      limit: getResultsLimit(widget.queries.length, widget.queries[0]!.aggregates.length),
+      limit: Math.min(maxLimit, TOP_N),
     };
   }
 
