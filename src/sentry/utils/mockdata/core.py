@@ -938,7 +938,6 @@ def create_mock_transactions(
             }
 
             def make_repeating_span(duration):
-                nonlocal timestamp
                 nonlocal n_plus_one_db_current_offset
                 nonlocal n_plus_one_db_duration
                 n_plus_one_db_duration += timedelta(milliseconds=duration) + timedelta(
@@ -1185,8 +1184,6 @@ def create_mock_transactions(
             duration = 200
 
             def make_repeating_span(i):
-                nonlocal timestamp
-                nonlocal duration
                 start_timestamp = timestamp + timedelta(milliseconds=i * (duration + 1))
                 end_timestamp = start_timestamp + timedelta(milliseconds=duration)
                 op = "http" if i % 2 == 0 else "db"

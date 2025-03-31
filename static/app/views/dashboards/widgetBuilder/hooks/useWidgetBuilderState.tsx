@@ -343,6 +343,7 @@ function useWidgetBuilderState(): {
           setQuery([config.defaultWidgetQuery.conditions]);
           setLegendAlias([]);
           setSelectedAggregate(undefined);
+          setLimit(undefined);
           break;
         }
         case BuilderStateAction.SET_FIELDS: {

@@ -394,8 +394,6 @@ def _import(
     # of how we do atomicity: on a per-model (if using multiple dbs) or global (if using a single
     # db) basis.
     def do_writes(pk_map: PrimaryKeyMap) -> None:
-        nonlocal deferred_org_auth_tokens, import_write_context
-
         for model_name, json_data, offset in yield_json_models(content):
             if model_name == org_auth_token_model_name:
                 deferred_org_auth_tokens.append(json_data)

@@ -92,8 +92,6 @@ def child_worker(
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        nonlocal current_activation, processed_tasks
-
         if current_activation:
             processed_tasks.put(
                 ProcessingResult(
