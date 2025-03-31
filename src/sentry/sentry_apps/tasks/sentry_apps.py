@@ -305,17 +305,14 @@ def _process_resource_change(
                 )
                 if event in installation.sentry_app.events
             ]
+            data = {}
+            if isinstance(instance, (Event, GroupEvent)):
+                assert instance.group_id, "group id is required to create webhook event data"
+                data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
+            else:
+                data[name] = serialize(instance)
 
             for installation in installations:
-                data = {}
-                if isinstance(instance, (Event, GroupEvent)):
-                    assert instance.group_id, "group id is required to create webhook event data"
-                    data[name] = _webhook_event_data(
-                        instance, instance.group_id, instance.project_id
-                    )
-                else:
-                    data[name] = serialize(instance)
-
                 # Trigger a new task for each webhook
                 send_resource_change_webhook.delay(
                     installation_id=installation.id, event=str(event), data=data
@@ -556,13 +553,23 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
-    ).capture():
+    ).capture() as lifecycle:
         servicehook: ServiceHook
         try:
             servicehook = ServiceHook.objects.get(
                 organization_id=installation.organization_id, actor_id=installation.id
             )
         except ServiceHook.DoesNotExist:
+            lifecycle.add_extras(
+                {
+                    "installation_uuid": installation.uuid,
+                    "installation_id": installation.id,
+                    "organization": installation.organization_id,
+                    "sentry_app": installation.sentry_app.id,
+                    "events": installation.sentry_app.events,
+                    "webhook_url": installation.sentry_app.webhook_url,
+                }
+            )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         if event not in servicehook.events:
             raise SentryAppSentryError(
