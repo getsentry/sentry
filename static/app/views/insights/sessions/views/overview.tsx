@@ -128,36 +128,36 @@ function ViewSpecificCharts({
     case MOBILE_LANDING_SUB_PATH:
       return (
         <Fragment>
-          <ModuleLayout.Third>
+          <ModuleLayout.Half>
             <CrashFreeSessionsChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="issue" />
-          </ModuleLayout.Third>
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <ReleaseSessionPercentageChart />
+          </ModuleLayout.Half>
+
           <ModuleLayout.Third>
             <ReleaseNewIssuesChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
             <ReleaseSessionCountChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthCountChart />
           </ModuleLayout.Third>
+
           <ModuleLayout.Third>
             <UserHealthCountChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
-            <ReleaseSessionPercentageChart />
+            <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
+
           <ModuleLayout.Third>
             <UserHealthRateChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
