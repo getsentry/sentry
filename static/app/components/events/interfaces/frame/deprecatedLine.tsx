@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -291,6 +292,10 @@ function DeprecatedLine({
                         />
                       ),
                       {
+                        modalCss: css`
+                          max-width: 800px;
+                          width: 100%;
+                        `,
                         onClose: () => {
                           trackAnalytics(
                             'source_map_debug_blue_thunder.modal_closed',

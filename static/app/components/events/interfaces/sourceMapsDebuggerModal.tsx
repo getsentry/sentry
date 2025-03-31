@@ -3,9 +3,14 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import BadStackTraceExample from 'sentry-images/issue_details/bad-stack-trace-example.png';
+import GoodStackTraceExample from 'sentry-images/issue_details/good-stack-trace-example.png';
+
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
+import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Alert} from 'sentry/components/core/alert';
 import {sourceMapSdkDocsMap} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
@@ -254,11 +259,8 @@ function SentryWizardCallout({
   return (
     <Fragment>
       <WizardInstructionParagraph>
-        {tct(
-          'Firstly, have you already run the Sentry Wizard with [code:sourcemaps] in your project’s terminal? It’s the easiest way to get source maps set up:',
-          {
-            code: <code />,
-          }
+        {t(
+          'Firstly, have you already run the Sentry Wizard with `sourcemaps` in your project’s terminal? It’s the easiest way to get source maps set up:'
         )}
       </WizardInstructionParagraph>
       <InstructionCodeSnippet
@@ -301,15 +303,17 @@ function MetaFrameworkConfigInfo({
 }) {
   if (framework === 'nextjs') {
     return (
-      <p>
-        {tct(
-          'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional" />
-            ),
-          }
-        )}
+      <Fragment>
+        <p>
+          {tct(
+            'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            {
+              docLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#step-5-add-readable-stack-traces-with-source-maps-optional" />
+              ),
+            }
+          )}
+        </p>
         <InstructionCodeSnippet
           language="javascript"
           dark
@@ -326,21 +330,23 @@ function MetaFrameworkConfigInfo({
   // ... rest of your sentry config
 });`}
         </InstructionCodeSnippet>
-      </p>
+      </Fragment>
     );
   }
 
   if (framework === 'nuxt') {
     return (
-      <p>
-        {tct(
-          'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
-          {
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload" />
-            ),
-          }
-        )}
+      <Fragment>
+        <p>
+          {tct(
+            'Firstly, ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            {
+              docLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nuxt/manual-setup/#source-maps-upload" />
+              ),
+            }
+          )}
+        </p>
         <InstructionCodeSnippet language="javascript" dark filename="nuxt.config.ts">
           {`export default defineNuxtConfig({
   modules: ["@sentry/nuxt/module"],
@@ -361,24 +367,26 @@ function MetaFrameworkConfigInfo({
 });
 `}
         </InstructionCodeSnippet>
-      </p>
+      </Fragment>
     );
   }
 
   if (framework === 'remix') {
     return (
-      <p>
-        {tct(
-          'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
-          {
-            vitePluginLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
-            ),
-            docLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/#using-vite-plugin-recommended" />
-            ),
-          }
-        )}
+      <Fragment>
+        <p>
+          {tct(
+            'Firstly, if you are using the [vitePluginLink:Sentry Vite Plugin] (recommended), ensure that source maps are enabled as in the snippet below. For more details [docLink:read the docs].',
+            {
+              vitePluginLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/vite/" />
+              ),
+              docLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/#using-vite-plugin-recommended" />
+              ),
+            }
+          )}
+        </p>
         <InstructionCodeSnippet language="javascript" dark filename="vite.config.ts">
           {`export default defineConfig({
   plugins: [
@@ -401,21 +409,23 @@ function MetaFrameworkConfigInfo({
   // ... rest of your Vite config
 });`}
         </InstructionCodeSnippet>
-      </p>
+      </Fragment>
     );
   }
 
   // Sveltekit
   return (
-    <p>
-      {tct(
-        'Firstly, make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
-        {
-          docLink: (
-            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload" />
-          ),
-        }
-      )}
+    <Fragment>
+      <p>
+        {tct(
+          'Firstly, make sure source maps is not disabled as in the snippet below. For more details [docLink:read the docs].',
+          {
+            docLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/#source-maps-upload" />
+            ),
+          }
+        )}
+      </p>
       <InstructionCodeSnippet language="javascript" dark filename="vite.config.(js|ts)">
         {`export default {
   plugins: [
@@ -433,10 +443,25 @@ function MetaFrameworkConfigInfo({
   // ... rest of your Vite config
 };`}
       </InstructionCodeSnippet>
-    </p>
+    </Fragment>
   );
 }
 type SourceMapsDocLinks = ReturnType<typeof getSourceMapsDocLinks>;
+
+function DebuggerSection({
+  title,
+  children,
+}: {
+  children: React.ReactNode;
+  title: React.ReactNode;
+}) {
+  return (
+    <DebuggerSectionContainer column gap={space(1.5)}>
+      <h5>{title}</h5>
+      {children}
+    </DebuggerSectionContainer>
+  );
+}
 
 export function SourceMapsDebuggerModal({
   Body,
@@ -485,196 +510,223 @@ export function SourceMapsDebuggerModal({
             "It looks like the original source code for this stack frame couldn't be determined when this error was captured. To get the original code for this stack frame, Sentry needs source maps to be configured."
           )}
         </p>
-        {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
-          <MetaFrameworkConfigInfo
-            framework={platform}
-            orgSlug={orgSlug}
-            projectSlug={project?.slug}
+        <DebuggerSection title={t('Why Configure Source Maps?')}>
+          <p>
+            {t(
+              "With properly configured source maps, you'll see the code that was writting instead of minified, obfuscated code. This makes debugging significantly easier and faster."
+            )}
+          </p>
+          <p>
+            {t(
+              'An image says more than a thousand words. Below you can see a comparison of how a bad and a good stack trace look like:'
+            )}
+          </p>
+          <ContentSliderDiff
+            beforeContent={
+              <img src={BadStackTraceExample} alt={t('Bad Stack Trace Example')} />
+            }
+            afterContent={
+              <img src={GoodStackTraceExample} alt={t('Good Stack Trace Example')} />
+            }
+            minHeight="300px"
           />
-        ) : (
-          <SentryWizardCallout
-            analyticsParams={analyticsParams}
-            orgSlug={orgSlug}
-            projectSlug={project?.slug}
-          />
-        )}
-        <p>
-          {t(
-            "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+        </DebuggerSection>
+        <DebuggerSection title={t('Troubleshooting Your Source Maps')}>
+          {metaFrameworksWithSentryWizardInOnboarding.includes(platform) ? (
+            <MetaFrameworkConfigInfo
+              framework={platform}
+              orgSlug={orgSlug}
+              projectSlug={project?.slug}
+            />
+          ) : (
+            <SentryWizardCallout
+              analyticsParams={analyticsParams}
+              orgSlug={orgSlug}
+              projectSlug={project?.slug}
+            />
           )}
-        </p>
-        <Tabs<'debug-ids' | 'release' | 'fetching'>
-          value={activeTab}
-          onChange={setActiveTab}
-        >
-          <TabList>
-            <TabList.Item
-              key="debug-ids"
-              textValue={`${t('Debug IDs')} (${
-                sourceResolutionResults.debugIdProgress
-              }/4)`}
-              hidden={sourceResolutionResults.sdkDebugIdSupport === 'not-supported'}
-            >
-              <StyledProgressRing
-                progressColor={
-                  activeTab === 'debug-ids' ? theme.purple300 : theme.gray300
+          <p>
+            {t(
+              "Secondly, let's go through a checklist to help you troubleshoot why source maps aren't showing up. There are a few ways to configure them:"
+            )}
+          </p>
+          <Tabs<'debug-ids' | 'release' | 'fetching'>
+            value={activeTab}
+            onChange={setActiveTab}
+          >
+            <TabList>
+              <TabList.Item
+                key="debug-ids"
+                textValue={`${t('Debug IDs')} (${
+                  sourceResolutionResults.debugIdProgress
+                }/4)`}
+                hidden={sourceResolutionResults.sdkDebugIdSupport === 'not-supported'}
+              >
+                <StyledProgressRing
+                  progressColor={
+                    activeTab === 'debug-ids' ? theme.purple300 : theme.gray300
+                  }
+                  backgroundColor={theme.gray200}
+                  value={sourceResolutionResults.debugIdProgressPercent * 100}
+                  size={16}
+                  barWidth={4}
+                />
+                {`${t('Debug IDs')}${
+                  sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
+                    ? ''
+                    : ' ' + t('(recommended)')
+                }`}
+              </TabList.Item>
+              <TabList.Item
+                key="release"
+                textValue={`${t('Releases')} (${
+                  sourceResolutionResults.releaseProgress
+                }/4)`}
+              >
+                <StyledProgressRing
+                  progressColor={
+                    activeTab === 'release' ? theme.purple300 : theme.gray300
+                  }
+                  backgroundColor={theme.gray200}
+                  value={sourceResolutionResults.releaseProgressPercent * 100}
+                  size={16}
+                  barWidth={4}
+                />
+                {t('Releases')}
+              </TabList.Item>
+              <TabList.Item
+                key="fetching"
+                textValue={`${t('Hosting Publicly')} (${
+                  sourceResolutionResults.scrapingProgress
+                }/4)`}
+                hidden={
+                  !sourceResolutionResults.hasScrapingData ||
+                  isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
                 }
-                backgroundColor={theme.gray200}
-                value={sourceResolutionResults.debugIdProgressPercent * 100}
-                size={16}
-                barWidth={4}
-              />
-              {`${t('Debug IDs')}${
-                sourceResolutionResults.sdkDebugIdSupport === 'not-supported'
-                  ? ''
-                  : ' ' + t('(recommended)')
-              }`}
-            </TabList.Item>
-            <TabList.Item
-              key="release"
-              textValue={`${t('Releases')} (${
-                sourceResolutionResults.releaseProgress
-              }/4)`}
-            >
-              <StyledProgressRing
-                progressColor={activeTab === 'release' ? theme.purple300 : theme.gray300}
-                backgroundColor={theme.gray200}
-                value={sourceResolutionResults.releaseProgressPercent * 100}
-                size={16}
-                barWidth={4}
-              />
-              {t('Releases')}
-            </TabList.Item>
-            <TabList.Item
-              key="fetching"
-              textValue={`${t('Hosting Publicly')} (${
-                sourceResolutionResults.scrapingProgress
-              }/4)`}
-              hidden={
-                !sourceResolutionResults.hasScrapingData ||
-                isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
-              }
-            >
-              <StyledProgressRing
-                progressColor={activeTab === 'fetching' ? theme.purple300 : theme.gray300}
-                backgroundColor={theme.gray200}
-                value={sourceResolutionResults.scrapingProgressPercent * 100}
-                size={16}
-                barWidth={4}
-              />
-              {t('Hosting Publicly')}
-            </TabList.Item>
-          </TabList>
-          <StyledTabPanels>
-            <TabPanels.Item key="debug-ids">
-              <p>
-                {tct(
-                  '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
-                  {
-                    link: defined(sourceMapsDocLinks.debugIds) ? (
-                      <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
-                    ) : (
-                      <Fragment />
-                    ),
+              >
+                <StyledProgressRing
+                  progressColor={
+                    activeTab === 'fetching' ? theme.purple300 : theme.gray300
                   }
+                  backgroundColor={theme.gray200}
+                  value={sourceResolutionResults.scrapingProgressPercent * 100}
+                  size={16}
+                  barWidth={4}
+                />
+                {t('Hosting Publicly')}
+              </TabList.Item>
+            </TabList>
+            <StyledTabPanels>
+              <TabPanels.Item key="debug-ids">
+                <p>
+                  {tct(
+                    '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
+                    {
+                      link: defined(sourceMapsDocLinks.debugIds) ? (
+                        <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
+                      ) : (
+                        <Fragment />
+                      ),
+                    }
+                  )}
+                </p>
+                <CheckList>
+                  <InstalledSdkChecklistItem
+                    setActiveTab={setActiveTab}
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                  <HasDebugIdChecklistItem
+                    shouldValidate={
+                      sourceResolutionResults.sdkDebugIdSupport === 'full' ||
+                      sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk' ||
+                      sourceResolutionResults.eventHasDebugIds
+                    }
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                  <UploadedSourceFileWithCorrectDebugIdChecklistItem
+                    shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                  <UploadedSourceMapWithCorrectDebugIdChecklistItem
+                    shouldValidate={
+                      sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
+                    }
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                </CheckList>
+                {sourceResolutionResults.debugIdProgressPercent === 1 ? (
+                  <ChecklistDoneNote />
+                ) : (
+                  <VerifyAgainNote />
                 )}
-              </p>
-              <CheckList>
-                <InstalledSdkChecklistItem
-                  setActiveTab={setActiveTab}
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-                <HasDebugIdChecklistItem
-                  shouldValidate={
-                    sourceResolutionResults.sdkDebugIdSupport === 'full' ||
-                    sourceResolutionResults.sdkDebugIdSupport === 'unofficial-sdk' ||
-                    sourceResolutionResults.eventHasDebugIds
-                  }
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-                <UploadedSourceFileWithCorrectDebugIdChecklistItem
-                  shouldValidate={sourceResolutionResults.stackFrameDebugId !== null}
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-                <UploadedSourceMapWithCorrectDebugIdChecklistItem
-                  shouldValidate={
-                    sourceResolutionResults.uploadedSourceFileWithCorrectDebugId
-                  }
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-              </CheckList>
-              {sourceResolutionResults.debugIdProgressPercent === 1 ? (
-                <ChecklistDoneNote />
-              ) : (
-                <VerifyAgainNote />
-              )}
-            </TabPanels.Item>
-            <TabPanels.Item key="release">
-              <p>
-                {tct(
-                  'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
-                  {
-                    link: (
-                      <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
-                    ),
-                  }
+              </TabPanels.Item>
+              <TabPanels.Item key="release">
+                <p>
+                  {tct(
+                    'You can match your stack trace to your source code based on [link:Releases] and artifact names. Follow all of the steps below to get a readable stack trace:',
+                    {
+                      link: (
+                        <ExternalLinkWithIcon href="https://docs.sentry.io/product/releases/" />
+                      ),
+                    }
+                  )}
+                </p>
+                <CheckList>
+                  <EventHasReleaseNameChecklistItem
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                  <ReleaseHasUploadedArtifactsChecklistItem
+                    shouldValidate={sourceResolutionResults.release !== null}
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                  <ReleaseSourceFileMatchingChecklistItem
+                    shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                  <ReleaseSourceMapMatchingChecklistItem
+                    shouldValidate={
+                      sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
+                      'found'
+                    }
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                </CheckList>
+                {sourceResolutionResults.releaseProgressPercent === 1 ? (
+                  <ChecklistDoneNote />
+                ) : (
+                  <VerifyAgainNote />
                 )}
-              </p>
-              <CheckList>
-                <EventHasReleaseNameChecklistItem
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-                <ReleaseHasUploadedArtifactsChecklistItem
-                  shouldValidate={sourceResolutionResults.release !== null}
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-                <ReleaseSourceFileMatchingChecklistItem
-                  shouldValidate={sourceResolutionResults.releaseHasSomeArtifact}
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-                <ReleaseSourceMapMatchingChecklistItem
-                  shouldValidate={
-                    sourceResolutionResults.sourceFileReleaseNameFetchingResult ===
-                    'found'
-                  }
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-              </CheckList>
-              {sourceResolutionResults.releaseProgressPercent === 1 ? (
-                <ChecklistDoneNote />
-              ) : (
-                <VerifyAgainNote />
-              )}
-            </TabPanels.Item>
-            <TabPanels.Item key="fetching">
-              <p>
-                {tct(
-                  'Sentry will fetch your source files and source maps if you [link:host them publicly].',
-                  {
-                    link: defined(sourceMapsDocLinks.hostingPublicly) ? (
-                      <ExternalLinkWithIcon href={sourceMapsDocLinks.hostingPublicly} />
-                    ) : (
-                      <Fragment />
-                    ),
-                  }
+              </TabPanels.Item>
+              <TabPanels.Item key="fetching">
+                <p>
+                  {tct(
+                    'Sentry will fetch your source files and source maps if you [link:host them publicly].',
+                    {
+                      link: defined(sourceMapsDocLinks.hostingPublicly) ? (
+                        <ExternalLinkWithIcon href={sourceMapsDocLinks.hostingPublicly} />
+                      ) : (
+                        <Fragment />
+                      ),
+                    }
+                  )}
+                </p>
+                <CheckList>
+                  <ScrapingSourceFileAvailableChecklistItem
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                  <ScrapingSourceMapAvailableChecklistItem
+                    sourceResolutionResults={sourceResolutionResults}
+                  />
+                </CheckList>
+                {sourceResolutionResults.scrapingProgressPercent === 1 ? (
+                  <ChecklistDoneNote />
+                ) : (
+                  <VerifyAgainNote />
                 )}
-              </p>
-              <CheckList>
-                <ScrapingSourceFileAvailableChecklistItem
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-                <ScrapingSourceMapAvailableChecklistItem
-                  sourceResolutionResults={sourceResolutionResults}
-                />
-              </CheckList>
-              {sourceResolutionResults.scrapingProgressPercent === 1 ? (
-                <ChecklistDoneNote />
-              ) : (
-                <VerifyAgainNote />
-              )}
-            </TabPanels.Item>
-          </StyledTabPanels>
-        </Tabs>
+              </TabPanels.Item>
+            </StyledTabPanels>
+          </Tabs>
+        </DebuggerSection>
       </Body>
       <Footer>
         <Link
@@ -1881,4 +1933,18 @@ const ScrapingSymbolificationErrorMessage = styled('p')`
   border-left: 2px solid ${p => p.theme.gray200};
   padding-left: ${space(1)};
   margin-top: -${space(1)};
+`;
+
+const DebuggerSectionContainer = styled(Flex)`
+  h5 {
+    margin-bottom: 0;
+    font-size: ${p => p.theme.fontSizeExtraLarge};
+  }
+  && {
+    > * {
+      margin-bottom: 0;
+      margin-top: 0;
+    }
+  }
+  margin-bottom: ${space(3)};
 `;
