@@ -11,7 +11,7 @@ import msgpack
 import sentry_sdk
 from django.conf import settings
 
-from sentry import options, quotas
+from sentry import features, options, quotas
 from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.lang.native.processing import _merge_image
@@ -20,6 +20,7 @@ from sentry.lang.native.utils import native_images_from_data
 from sentry.models.eventerror import EventError
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
     deobfuscate_signature,
@@ -36,6 +37,7 @@ from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import set_measurement
 
@@ -171,6 +173,12 @@ def process_profile_task(
 
     if sampled:
         with metrics.timer("process_profile.track_outcome.accepted"):
+            if features.has("organizations:profiling-sdks", organization):
+                try:
+                    track_latest_sdk(project, profile)
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
             if not project.flags.has_profiles:
                 first_profile_received.send_robust(project=project, sender=Project)
             try:
@@ -1073,3 +1081,53 @@ def _set_frames_platform(profile: Profile) -> None:
     for f in frames:
         if "platform" not in f:
             f["platform"] = platform
+
+
+class UnknownProfileTypeException(Exception):
+    pass
+
+
+class UnknownClientSDKException(Exception):
+    pass
+
+
+def determine_profile_type(profile: Profile) -> EventType:
+    if "version" in profile:
+        version = profile["version"]
+        if version == "1":
+            return EventType.PROFILE
+        elif version == "2":
+            return EventType.PROFILE_CHUNK
+    elif profile["platform"] == "android":
+        if "profiler_id" in profile:
+            return EventType.PROFILE_CHUNK
+        else:
+            # This is the legacy android format
+            return EventType.PROFILE
+    raise UnknownProfileTypeException
+
+
+def track_latest_sdk(project: Project, profile: Profile) -> None:
+    event_type = determine_profile_type(profile)
+
+    client_sdk = profile.get("client_sdk")
+    if client_sdk is None:
+        raise UnknownClientSDKException
+
+    sdk_name = client_sdk.get("name")
+    sdk_version = client_sdk.get("version")
+
+    if not sdk_name or not sdk_version:
+        raise UnknownClientSDKException
+
+    try:
+        ProjectSDK.update_with_newest_version_or_create(
+            project=project,
+            event_type=event_type,
+            sdk_name=sdk_name,
+            sdk_version=sdk_version,
+        )
+    except UnableToAcquireLock:
+        # unable to acquire the lock means another event is trying to update the version
+        # so we can skip the update from this event
+        pass
