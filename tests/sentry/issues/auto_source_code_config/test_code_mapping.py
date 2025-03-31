@@ -320,9 +320,9 @@ class TestDerivedCodeMappings(TestCase):
         assert code_mappings == []
         logger.warning.assert_called_with("More than one repo matched %s", "sentry/web/urls.py")
 
-    def test_list_file_matches_single(self) -> None:
+    def test_get_file_and_repo_matches_single(self) -> None:
         frame_filename = FrameInfo({"filename": "sentry_plugins/slack/client.py"})
-        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        matches = self.code_mapping_helper.get_file_and_repo_matches(frame_filename)
         expected_matches = [
             {
                 "filename": "src/sentry_plugins/slack/client.py",
@@ -334,9 +334,9 @@ class TestDerivedCodeMappings(TestCase):
         ]
         assert matches == expected_matches
 
-    def test_list_file_matches_multiple(self) -> None:
+    def test_get_file_and_repo_matches_multiple(self) -> None:
         frame_filename = FrameInfo({"filename": "sentry/web/urls.py"})
-        matches = self.code_mapping_helper.list_file_matches(frame_filename)
+        matches = self.code_mapping_helper.get_file_and_repo_matches(frame_filename)
         expected_matches = [
             {
                 "filename": "src/sentry/web/urls.py",

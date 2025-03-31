@@ -6,7 +6,7 @@ from typing import Any
 from sentry.db.models.fields.node import NodeData
 from sentry.utils.safe import get_path
 
-from .utils import PlatformConfig
+from .utils.platform import PlatformConfig
 
 logger = logging.getLogger(__name__)
 

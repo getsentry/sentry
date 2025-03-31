@@ -11,7 +11,7 @@ from sentry.issues.auto_source_code_config.constants import (
 )
 from sentry.issues.auto_source_code_config.integration_utils import InstallationNotFoundError
 from sentry.issues.auto_source_code_config.task import DeriveCodeMappingsErrorReason, process_event
-from sentry.issues.auto_source_code_config.utils import PlatformConfig
+from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
@@ -246,7 +246,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
     """Behaviour that is not specific to a language."""
 
     def test_skips_not_supported_platforms(self) -> None:
-        with patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}):
+        with patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}):
             self._process_and_assert_configuration_changes(
                 repo_trees={}, frames=[{}], platform="other"
             )
@@ -284,9 +284,11 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         file_in_repo = "src/foo/bar.py"
         platform = "other"
         with (
-            patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
-            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_supported", return_value=True),
-            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_dry_run_platform", return_value=True),
+            patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),
+            patch(f"{CODE_ROOT}.utils.platform.PlatformConfig.is_supported", return_value=True),
+            patch(
+                f"{CODE_ROOT}.utils.platform.PlatformConfig.is_dry_run_platform", return_value=True
+            ),
         ):
             # No code mapping will be stored, however, we get what would have been created
             self._process_and_assert_configuration_changes(
@@ -303,7 +305,7 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
         self.event = self.create_event([{"filename": frame_filename, "in_app": True}], platform)
 
         with (
-            patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
+            patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),
             patch(f"{REPO_TREES_CODE}.get_supported_extensions", return_value=[]),
         ):
             # No extensions are supported, thus, we won't generate a code mapping
@@ -329,8 +331,8 @@ class TestGenericBehaviour(BaseDeriveCodeMappings):
             REPO2: ["app/baz/qux.py"],
         }
         with (
-            patch(f"{CODE_ROOT}.utils.get_platform_config", return_value={}),
-            patch(f"{CODE_ROOT}.utils.PlatformConfig.is_supported", return_value=True),
+            patch(f"{CODE_ROOT}.utils.platform.get_platform_config", return_value={}),
+            patch(f"{CODE_ROOT}.utils.platform.PlatformConfig.is_supported", return_value=True),
         ):
             self._process_and_assert_configuration_changes(
                 repo_trees=repo_trees,
