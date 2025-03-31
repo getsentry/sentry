@@ -127,10 +127,6 @@ class BaseIssueAlertHandler(ABC):
         """
         environment_id = job.workflow_env.id if job.workflow_env else None
 
-        # TODO(iamrajjoshi): Remove the project null check once https://github.com/getsentry/sentry/pull/85240/files is merged
-        if detector.project is None:
-            raise ValueError(f"No project found for action type: {action.type}")
-
         data: RuleData = {
             "actions": [cls.build_rule_action_blob(action, detector.project.organization.id)],
         }

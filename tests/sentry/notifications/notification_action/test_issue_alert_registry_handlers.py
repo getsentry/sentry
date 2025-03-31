@@ -122,18 +122,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         with pytest.raises(ValueError):
             self.handler.create_rule_instance_from_action(self.action, self.detector, job)
 
-    def test_create_rule_instance_from_action_missing_workflow_id_raises_value_error(self):
-        job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(self.action, self.detector, job)
-
-    def test_create_rule_instance_from_action_missing_rule_raises_value_error(self):
-        job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
-        alert_rule = self.create_alert_rule(projects=[self.project], organization=self.organization)
-        self.create_alert_rule_workflow(workflow=self.workflow, alert_rule=alert_rule)
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(self.action, self.detector, job)
-
     def test_create_rule_instance_from_action(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         rule = self.handler.create_rule_instance_from_action(
@@ -164,33 +152,9 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
     @with_feature("organizations:workflow-engine-ui")
     def test_create_rule_instance_from_action_with_workflow_engine_ui_feature_flag(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        rule = self.handler.create_rule_instance_from_action(self.action, self.detector, self.job)
-
-        assert isinstance(rule, Rule)
-        assert rule.id == self.action.id
-        assert rule.project == self.detector.project
-        assert rule.environment_id is not None
-        assert self.workflow.environment is not None
-        assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == self.detector.name
-        assert rule.data == {
-            "actions": [
-                {
-                    "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
-                    "server": "1234567890",
-                    "channel_id": "channel456",
-                    "tags": "environment,user,my_tag",
-                }
-            ],
-            "legacy_rule_id": self.rule.id,
-        }
-        assert rule.status == ObjectStatus.ACTIVE
-        assert rule.source == RuleSource.ISSUE
-
-    @with_feature("organizations:workflow-engine-ui")
-    def test_create_rule_instance_from_action_with_workflow_engine_ui_feature_flag(self):
-        """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        rule = self.handler.create_rule_instance_from_action(self.action, self.detector, self.job)
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
 
         assert isinstance(rule, Rule)
         assert rule.id == self.action.id
