@@ -53,6 +53,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         )
         obj: Group | GroupEvent = self.event if self.event is not None else self.group
         rule_id = None
+        rule_environment_id = None
         if self.rules:
             rule_id = self.rules[0].id
             rule_environment_id = self.rules[0].environment_id

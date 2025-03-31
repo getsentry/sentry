@@ -627,6 +627,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = False
 
         rule_id = None
+        rule_environment_id = None
         if self.rules:
             rule_id = self.rules[0].id
             rule_environment_id = self.rules[0].environment_id
