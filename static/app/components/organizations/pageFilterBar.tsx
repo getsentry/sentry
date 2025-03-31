@@ -16,6 +16,7 @@ const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
   position: relative;
   border-radius: ${p.theme.borderRadius};
+  height: ${p.theme.form.md.height};
 
   ${p.condensed &&
   css`
