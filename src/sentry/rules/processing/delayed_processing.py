@@ -573,7 +573,10 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         if has_workflow_engine:
             logger.info(
                 "delayed_processing.rules_to_fire",
-                extra={"rules_to_fire": rules_to_fire, "project_id": project_id},
+                extra={
+                    "rules_to_fire": {rule.id: groups for rule, groups in rules_to_fire.items()},
+                    "project_id": project_id,
+                },
             )
         if random.random() < 0.01:
             logger.info(
