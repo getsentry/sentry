@@ -5,6 +5,7 @@ from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMem
 from sentry.roles import organization_roles
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -18,6 +19,7 @@ def mock_organization_roles_get_factory(original_organization_roles_get):
     return wrapped_method
 
 
+@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
 class OrganizationMemberInviteListTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
 
@@ -46,6 +48,7 @@ class OrganizationMemberInviteListTest(APITestCase):
         assert not response.data[0].get("token")
 
 
+@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
 class OrganizationMemberInvitePermissionRoleTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
     method = "post"
@@ -194,6 +197,7 @@ class OrganizationMemberInvitePermissionRoleTest(APITestCase):
         assert response.data["email"] == "eric@localhost"
 
 
+@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
 class OrganizationMemberInvitePostTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-invite-index"
     method = "post"

@@ -46,6 +46,9 @@ class MemberInviteAndStaffPermission(StaffPermissionMixin, MemberInvitePermissio
     pass
 
 
+MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
+
+
 def _can_invite_member(
     request: Request,
     organization: Organization | RpcOrganization | RpcUserOrganizationContext,
@@ -179,6 +182,11 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         """
         List all organization member invites.
         """
+        if not features.has(
+            "organizations:new-organization-member-invite", organization, actor=request.user
+        ):
+            return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
+
         queryset = OrganizationMemberInvite.objects.filter(organization=organization).order_by(
             "invite_status", "email"
         )
@@ -191,6 +199,11 @@ class OrganizationMemberInviteIndexEndpoint(OrganizationEndpoint):
         )
 
     def post(self, request: Request, organization) -> Response:
+        if not features.has(
+            "organizations:new-organization-member-invite", organization, actor=request.user
+        ):
+            return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
+
         assigned_org_role = request.data.get("orgRole") or organization_roles.get_default().id
         billing_bypass = assigned_org_role == "billing" and features.has(
             "organizations:invite-billing", organization
