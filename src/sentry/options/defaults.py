@@ -527,14 +527,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Extract logs from python loggers within sentry itself
-# 1.0 = extract all warning-level logs
-register(
-    "ourlogs.sentry-emit-rollout",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
 #
 # NOTE: Any value below 1.0 will break the product. Do not override in production.
