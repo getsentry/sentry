@@ -7,6 +7,7 @@ import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 interface Props {
