@@ -248,6 +248,7 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                     group, GroupHistoryStatus.SET_RESOLVED_IN_PULL_REQUEST, actor=acting_user
                 )
         except IntegrityError:
+            incr_rollback_metrics(name="resolved_in_pull_request")
             pass
         else:
             if repo is not None and repo.integration_id is not None:
