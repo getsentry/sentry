@@ -166,7 +166,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
-        "PUT": ApiPublishStatus.PUBLIC,
+        # TODO(Leander): I cannot for the life of me figure out why this method can't be published.
+        # Punting to a later PR.
+        "PUT": ApiPublishStatus.UNKNOWN,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (OrganizationEventPermission,)
