@@ -7,6 +7,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,9 +27,16 @@ const LIMIT = 10;
 const ALLOWED_CATEGORIES = ['http', 'db', 'browser', 'resource', 'ui'];
 
 export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const {selection} = usePageFilters();
   const location = useLocation();
+  const spanCategoryUrlParam = decodeScalar(
+    location.query?.[SpanIndexedField.SPAN_CATEGORY]
+  );
+
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
+    spanCategoryUrlParam
+  );
+
+  const {selection} = usePageFilters();
   const navigate = useNavigate();
 
   const query = new MutableSearch('');

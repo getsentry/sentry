@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 
@@ -21,7 +21,7 @@ from rest_framework.request import Request
 
 
 @region_silo_endpoint
-class GroupAutofixUpdateEndpoint(GroupEndpoint):
+class GroupAutofixUpdateEndpoint(GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }

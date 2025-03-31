@@ -9,7 +9,6 @@ import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
-import {OptInBanner} from 'sentry/components/nav/optInBanner';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -75,6 +74,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
+import {OptInBanner} from 'sentry/views/nav/optInBanner';
 
 import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -556,20 +556,24 @@ function Sidebar() {
                 hidePanel={hidePanel}
                 organization={organization}
               />
-              <Broadcasts
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
-                hidePanel={hidePanel}
-              />
-              <ServiceIncidents
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
-                hidePanel={hidePanel}
-              />
+              {!isDemoModeActive() && (
+                <Fragment>
+                  <Broadcasts
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                    hidePanel={hidePanel}
+                  />
+                  <ServiceIncidents
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                    hidePanel={hidePanel}
+                  />
+                </Fragment>
+              )}
             </SidebarSection>
 
             {!horizontal && (
