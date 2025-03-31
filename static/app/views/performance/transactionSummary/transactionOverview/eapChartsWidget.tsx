@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
 enum EAPWidgetType {
   DURATION_BREAKDOWN = 'duration_breakdown',
@@ -11,7 +14,6 @@ enum EAPWidgetType {
   DURATION_DISTRIBUTION = 'duration_distribution',
   TRENDS = 'trends',
   WEB_VITALS = 'web_vitals',
-  // USER_MISERY = 5
 }
 
 const WIDGET_OPTIONS: Record<EAPWidgetType, {description: string; title: string}> = {
@@ -74,7 +76,12 @@ function getWidgetContents(widgetType: EAPWidgetType) {
   return {title, description, visualization};
 }
 
-export function EAPChartsWidget() {
+type EAPChartsWidgetProps = {
+  query: string;
+  transactionName: string;
+};
+
+export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) {
   const [selectedWidget, setSelectedWidget] = useState<EAPWidgetType>(
     EAPWidgetType.DURATION_BREAKDOWN
   );
@@ -87,6 +94,18 @@ export function EAPChartsWidget() {
   }, []);
 
   const {title, description, visualization} = getWidgetContents(selectedWidget);
+
+  const {data: spanIndexedSeriesData} = useSpanIndexedSeries(
+    {
+      yAxis: ['count()'],
+      search: new MutableSearch(query),
+      transformAliasToInputFormat: true,
+    },
+    'transaction-summary-charts-widget',
+    DiscoverDatasets.SPANS_EAP
+  );
+
+  console.dir(spanIndexedSeriesData);
 
   return (
     <Widget
