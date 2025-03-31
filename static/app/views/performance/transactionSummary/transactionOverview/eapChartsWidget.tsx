@@ -1,10 +1,14 @@
 import {useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 
@@ -85,6 +89,9 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
   const [selectedWidget, setSelectedWidget] = useState<EAPWidgetType>(
     EAPWidgetType.DURATION_BREAKDOWN
   );
+  const theme = useTheme();
+
+  // console.log(transactionName);
 
   const options = useMemo(() => {
     return Object.entries(WIDGET_OPTIONS).map(([key, value]) => ({
@@ -93,9 +100,13 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
     }));
   }, []);
 
-  const {title, description, visualization} = getWidgetContents(selectedWidget);
+  const {title, description} = getWidgetContents(selectedWidget);
 
-  const {data: spanIndexedSeriesData} = useSpanIndexedSeries(
+  const {
+    data: spanIndexedSeriesData,
+    isPending,
+    error,
+  } = useSpanIndexedSeries(
     {
       yAxis: ['count()'],
       search: new MutableSearch(query),
@@ -107,6 +118,16 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
 
   console.dir(spanIndexedSeriesData);
 
+  const timeSeries: TimeSeries = {
+    field: 'count()',
+    meta: {
+      fields: spanIndexedSeriesData['count()'].meta.fields,
+      units: spanIndexedSeriesData['count()'].meta.units,
+    },
+    data: spanIndexedSeriesData['count()'].data,
+    color: theme.chart.colors[2][0],
+  };
+
   return (
     <Widget
       Title={<Widget.WidgetTitle title={title} />}
@@ -115,7 +136,9 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
           <Widget.WidgetDescription title={title} description={description} />
         </Widget.WidgetToolbar>
       }
-      Visualization={visualization}
+      Visualization={
+        <TimeSeriesWidgetVisualization plottables={[new Area(timeSeries)]} />
+      }
       Footer={
         <FooterContainer>
           <CompactSelect
