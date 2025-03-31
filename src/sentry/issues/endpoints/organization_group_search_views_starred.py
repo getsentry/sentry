@@ -11,29 +11,12 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewStarredSerializer
-from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
-from sentry.models.groupsearchview import DEFAULT_TIME_FILTER
+from sentry.models.groupsearchview import DEFAULT_VIEWS
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.savedsearch import SortOptions
 from sentry.models.team import Team
 from sentry.users.models.user import User
-
-DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
-    {
-        "name": "Prioritized",
-        "query": "is:unresolved issue.priority:[high, medium]",
-        "querySort": SortOptions.DATE.value,
-        "position": 0,
-        "isAllProjects": False,
-        "environments": [],
-        "projects": [],
-        "timeFilters": DEFAULT_TIME_FILTER,
-        "dateCreated": None,
-        "dateUpdated": None,
-    }
-]
 
 
 class MemberPermission(OrganizationPermission):
