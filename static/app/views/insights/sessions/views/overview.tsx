@@ -28,7 +28,6 @@ import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessio
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
-import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
@@ -117,12 +116,6 @@ function ViewSpecificCharts({
           <ModuleLayout.Third>
             <SessionHealthCountChart />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="feedback" />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <GiveFeedbackSection />
-          </ModuleLayout.Third>
         </Fragment>
       );
 
@@ -150,20 +143,10 @@ function ViewSpecificCharts({
             <UserHealthCountChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="issue" />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
             <UserHealthRateChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="feedback" />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <GiveFeedbackSection />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
