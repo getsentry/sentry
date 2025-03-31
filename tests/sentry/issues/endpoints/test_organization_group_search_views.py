@@ -5,8 +5,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
-from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
-from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
+from sentry.models.groupsearchview import DEFAULT_VIEWS, GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.testutils.cases import APITestCase, TransactionTestCase
