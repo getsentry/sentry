@@ -1054,8 +1054,9 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
     background: darkColors.surface400,
     header: darkColors.white,
     text: darkAliases.subText,
-    next: lightAliases.textColor,
-    previous: 'inherit',
+    next: '',
+    previous: '',
+    close: lightColors.white,
   },
 
   chart: {
@@ -1123,9 +1124,10 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   tour: {
     background: darkColors.blue400,
     header: darkColors.white,
-    text: darkAliases.subText,
-    next: lightAliases.textColor,
-    previous: 'inherit',
+    text: darkColors.white,
+    next: '',
+    previous: '',
+    close: lightColors.white,
   },
 
   chart: {

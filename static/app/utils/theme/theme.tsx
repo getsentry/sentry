@@ -1315,9 +1315,10 @@ export const lightTheme = {
   tour: {
     background: darkColors.surface400,
     header: darkColors.white,
-    text: lightColors.white,
+    text: darkAliases.textColor,
     next: lightAliases.textColor,
     previous: darkColors.white,
+    close: lightColors.white,
   },
   chart: {
     colors: CHART_PALETTE,
@@ -1371,9 +1372,10 @@ export const darkTheme: typeof lightTheme = {
   tour: {
     background: darkColors.purple300,
     header: darkColors.white,
-    text: darkColors.white,
+    text: darkAliases.textColor,
     next: lightAliases.textColor,
     previous: darkColors.white,
+    close: lightColors.white,
   },
   chart: {
     colors: CHART_PALETTE,

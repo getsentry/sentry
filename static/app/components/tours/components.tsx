@@ -362,8 +362,8 @@ export function TourGuide({
 }: TourGuideProps) {
   const config = useLegacyStore(ConfigStore);
   const prefersDarkMode = config.theme === 'dark';
-
   const theme = useTheme();
+
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
@@ -420,10 +420,8 @@ export function TourGuide({
                           <div>{countText}</div>
                           {isDismissVisible && (
                             <TourCloseButton
-                              onClick={e => {
-                                handleDismiss(e);
-                              }}
-                              icon={<IconClose style={{color: theme.textColor}} />}
+                              onClick={handleDismiss}
+                              icon={<IconClose />}
                               aria-label={t('Close')}
                               borderless
                               size="sm"
@@ -470,6 +468,10 @@ const TourCloseButton = styled(Button)`
   padding: 0;
   height: 14px;
   min-height: 14px;
+  color: ${p => p.theme.tour.close};
+  &:hover {
+    color: ${p => p.theme.tour.close};
+  }
 `;
 
 const TourOverlay = styled(Overlay)`
@@ -482,7 +484,7 @@ const TopRow = styled('div')`
   grid-template-columns: 1fr 15px;
   align-items: start;
   height: 18px;
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.tour.close};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   opacity: 0.6;
