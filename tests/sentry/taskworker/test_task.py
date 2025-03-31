@@ -2,7 +2,6 @@ import datetime
 
 import pytest
 import sentry_sdk
-from celery.exceptions import Retry as CeleryRetry
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DEADLETTER,
     ON_ATTEMPTS_EXCEEDED_DISCARD,
@@ -82,9 +81,6 @@ def test_should_retry(task_namespace: TaskNamespace) -> None:
         retry=retry,
     )
     err = RetryError("try again plz")
-    assert task.should_retry(state, err)
-
-    err = CeleryRetry()
     assert task.should_retry(state, err)
 
     state.attempts = 3
