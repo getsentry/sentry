@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -31,6 +31,7 @@ function isCacheHitError(error: RequestError | null) {
   );
 }
 export function CachesWidget({query}: {query?: string}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
@@ -131,7 +132,7 @@ export function CachesWidget({query}: {query?: string}) {
     cachesRequest.data.data.length > 0 &&
     timeSeries.length > 0;
 
-  const colorPalette = getChartColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
 
   const visualization = (
     <WidgetVisualizationStates
