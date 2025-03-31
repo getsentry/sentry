@@ -2,7 +2,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
@@ -179,6 +186,7 @@ describe('OrganizationStats', function () {
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
@@ -384,6 +392,8 @@ describe('OrganizationStats', function () {
       router: newOrg.router,
       organization: newOrg.organization,
     });
+
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getAllByText('proj-1')).toHaveLength(2);
