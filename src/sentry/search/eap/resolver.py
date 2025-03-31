@@ -464,7 +464,7 @@ class SearchResolver:
         self,
         term: event_search.SearchFilter,
         context_definition: VirtualColumnDefinition,
-    ) -> tuple[ResolvedAttribute, str | int | list[str | int]]:
+    ) -> tuple[ResolvedAttribute, str | int | list[str]]:
         """
         Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
         (see https://github.com/getsentry/eap-planning/issues/236)
@@ -481,7 +481,7 @@ class SearchResolver:
             else context.from_column_name
         )
         value = term.value.value
-        resolved_column, context_definition = self.resolve_column(public_alias)
+        resolved_column, _ = self.resolve_column(public_alias)
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{term.key.name} is not valid search term")
 
