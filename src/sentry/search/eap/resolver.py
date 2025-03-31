@@ -46,6 +46,7 @@ from sentry.search.eap.columns import (
     ResolvedFormula,
     VirtualColumnDefinition,
 )
+from sentry.search.eap.spans.attributes import SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import validate_sampling
 from sentry.search.events import constants as qb_constants
@@ -391,10 +392,13 @@ class SearchResolver:
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
+        value = term.value.value
+        if self.params.is_timeseries_request and context_definition is not None:
+            resolved_column, value = self.map_context_to_original_column(term, context_definition)
+            context_definition = None
+
         if not isinstance(resolved_column.proto_definition, AttributeKey):
             raise ValueError(f"{term.key.name} is not valid search term")
-
-        value = term.value.value
 
         if context_definition:
             if term.value.is_wildcard():
@@ -455,6 +459,66 @@ class SearchResolver:
             ),
             context_definition,
         )
+
+    def map_context_to_original_column(
+        self,
+        term: event_search.SearchFilter,
+        context_definition: VirtualColumnDefinition,
+    ) -> tuple[ResolvedAttribute, str | int | list[str]]:
+        """
+        Time series request do not support virtual column contexts, so we have to remap the value back to the original column.
+        (see https://github.com/getsentry/eap-planning/issues/236)
+        """
+        context = context_definition.constructor(self.params)
+
+        is_number_column = (
+            context.from_column_name in SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"]
+        )
+
+        public_alias = (
+            SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"].get(context.from_column_name)
+            if is_number_column
+            else context.from_column_name
+        )
+
+        if public_alias is None:
+            raise InvalidSearchQuery(f"Cannot map {context.from_column_name} to a public alias")
+
+        value = term.value.value
+        resolved_column, _ = self.resolve_column(public_alias)
+        if not isinstance(resolved_column.proto_definition, AttributeKey):
+            raise ValueError(f"{term.key.name} is not valid search term")
+
+        inverse_value_map: dict[str, list[str]] = {}
+        for key, val in context.value_map.items():
+            inverse_value_map[val] = inverse_value_map.get(val, []) + [key]
+
+        def remap_value(old_value: str) -> list[str]:
+            if old_value in inverse_value_map:
+                return inverse_value_map[old_value]
+            elif context.default_value:
+                return [context.default_value]
+            else:
+                raise InvalidSearchQuery(f"Unknown value {old_value}")
+
+        final_value: list[str] = []
+        if isinstance(value, list):
+            value_set: set[str] = set()
+            for v in value:
+                for mapped_values in remap_value(v):
+                    value_set.add(mapped_values)
+
+            final_value = list(value_set)
+
+        else:
+            final_value = remap_value(value)
+
+        if len(final_value) == 1 and not isinstance(value, list):
+            if is_number_column:
+                return resolved_column, int(final_value[0])
+            return resolved_column, final_value[0]
+
+        return resolved_column, final_value
 
     def resolve_aggregate_term(
         self, term: event_search.AggregateFilter
