@@ -435,7 +435,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         </TabsLayout>
       </TabsHeightContainer>
       {isDrawerMinimized ? null : (
-        <DrawerContainerRefContext.Provider value={contentContainerRef}>
+        <DrawerContainerRefContext value={contentContainerRef}>
           <Content
             ref={contentContainerRef}
             layout={traceState.preferences.layout}
@@ -474,7 +474,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
               ) : null}
             </ContentWrapper>
           </Content>
-        </DrawerContainerRefContext.Provider>
+        </DrawerContainerRefContext>
       )}
     </PanelWrapper>
   );
