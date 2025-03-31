@@ -737,6 +737,9 @@ class Referrer(StrEnum):
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+
+    INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
+
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"

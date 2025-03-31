@@ -1516,3 +1516,21 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[1][1][0]["count"] == 2.0
         assert data[2][1][0]["count"] == 1.0
         assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_time_spent_percentage_timeseries_fails(self):
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "time_spent_percentage(span.self_time)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Time_Spent_Percentage Is Not Enabled For This Request. Reason: Not Supported For Timeseries Requests"
+            in response.data["detail"].title()
+        )

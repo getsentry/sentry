@@ -235,6 +235,8 @@ class FunctionDefinition:
     extrapolation: bool = True
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
+    # returns true if the function should be enabled for the given request else returns false with a reason why it is not enabled
+    check_if_enabled: Callable[[SnubaParams], tuple[bool, str]] | None = None
 
     @property
     def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
