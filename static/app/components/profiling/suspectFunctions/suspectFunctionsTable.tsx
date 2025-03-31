@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 
@@ -86,6 +87,7 @@ export function SuspectFunctionsTable({
   eventView,
   project,
 }: SuspectFunctionsTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -117,6 +119,7 @@ export function SuspectFunctionsTable({
   const baggage: RenderFunctionBaggage = {
     location,
     organization,
+    theme,
     unit: 'nanosecond',
   };
 

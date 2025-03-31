@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -35,7 +36,6 @@ import {
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
   EAPSpanResponse,
@@ -124,6 +124,7 @@ export function ServiceEntrySpansTable({
   supportsInvestigationRule,
   showViewSampledEventsButton,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -236,7 +237,7 @@ export function ServiceEntrySpansTable({
               column,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, projectSlug, location, organization),
+            renderBodyCell(column, row, meta, projectSlug, location, organization, theme),
         }}
       />
     </Fragment>
@@ -249,7 +250,8 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   projectSlug: string | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'span_id') {
     return (
@@ -313,6 +315,7 @@ function renderBodyCell(
   const rendered = renderer(row, {
     location,
     organization,
+    theme,
     unit: meta.units?.[column.key],
   });
 

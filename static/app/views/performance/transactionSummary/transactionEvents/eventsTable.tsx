@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Component, Fragment, type ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
@@ -92,6 +93,7 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
+  theme: Theme;
   transactionName: string;
   applyEnvironmentFilter?: boolean;
   columnTitles?: string[];
@@ -189,7 +191,8 @@ class EventsTable extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location, transactionName, projectSlug} = this.props;
+    const {eventView, organization, location, transactionName, projectSlug, theme} =
+      this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -201,6 +204,7 @@ class EventsTable extends Component<Props, State> {
       organization,
       location,
       eventView,
+      theme,
       projectSlug,
     });
 

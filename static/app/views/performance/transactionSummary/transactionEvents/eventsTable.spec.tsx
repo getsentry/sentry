@@ -6,6 +6,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
+import {lightTheme} from 'sentry/utils/theme';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
 import {
   EVENTS_TABLE_RESPONSE_FIELDS,
@@ -149,6 +150,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={lightTheme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -194,6 +196,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={lightTheme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -228,6 +231,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={lightTheme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -275,6 +279,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={lightTheme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -310,6 +315,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={lightTheme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}

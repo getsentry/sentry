@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -81,6 +82,7 @@ export const FRONTEND_COLUMN_TITLES = [
 
 function FrontendOverviewPage() {
   useOverviewPageTrackPageload();
+  const theme = useTheme();
 
   const organization = useOrganization();
   const location = useLocation();
@@ -248,6 +250,7 @@ function FrontendOverviewPage() {
                     selectedProjects={eventView.project.map(String)}
                   >
                     <Table
+                      theme={theme}
                       projects={projects}
                       columnTitles={FRONTEND_COLUMN_TITLES}
                       setError={setPageError}

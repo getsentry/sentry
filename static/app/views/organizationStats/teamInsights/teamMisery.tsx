@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -46,6 +46,7 @@ function TeamMisery({
   period,
   error,
 }: TeamMiseryProps) {
+  const theme = useTheme();
   const miseryRenderer =
     periodTableData?.meta &&
     getFieldRenderer('user_misery()', periodTableData.meta, false);
@@ -114,9 +115,13 @@ function TeamMisery({
                 return null;
               }
 
-              const periodMisery = miseryRenderer?.(dataRow, {organization, location});
+              const periodMisery = miseryRenderer?.(dataRow, {
+                organization,
+                location,
+                theme,
+              });
               const weekMisery =
-                weekRow && miseryRenderer?.(weekRow, {organization, location});
+                weekRow && miseryRenderer?.(weekRow, {organization, location, theme});
               const trendValue = Math.round(Math.abs(trend));
 
               if (idx >= COLLAPSE_COUNT && !isExpanded) {

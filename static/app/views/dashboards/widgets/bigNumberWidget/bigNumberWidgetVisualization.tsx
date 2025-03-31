@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
@@ -43,6 +44,8 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
     unit,
   } = props;
 
+  const theme = useTheme();
+
   if ((typeof value === 'number' && !Number.isFinite(value)) || Number.isNaN(value)) {
     throw new Error(NON_FINITE_NUMBER_MESSAGE);
   }
@@ -80,7 +83,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
             {
               [field]: value,
             },
-            baggage
+            {...baggage, theme}
           )}
         </NumberAndDifferenceContainer>
       </Wrapper>
@@ -123,7 +126,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               {
                 [field]: clampedValue,
               },
-              baggage
+              {...baggage, theme}
             )}
           </Tooltip>
         </NumberContainerOverride>
@@ -139,7 +142,7 @@ export function BigNumberWidgetVisualization(props: BigNumberWidgetVisualization
               field={field}
               preferredPolarity={preferredPolarity}
               renderer={(previousDatum: TabularRow) =>
-                fieldRenderer(previousDatum, baggage)
+                fieldRenderer(previousDatum, {...baggage, theme})
               }
             />
           )}

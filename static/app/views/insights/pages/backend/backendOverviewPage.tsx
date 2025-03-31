@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -102,6 +103,7 @@ function BackendOverviewPage() {
 }
 
 function GenericBackendOverviewPage() {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -294,6 +296,7 @@ function GenericBackendOverviewPage() {
                       {...sharedProps}
                     />
                     <Table
+                      theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageError}

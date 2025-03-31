@@ -395,7 +395,10 @@ export function subTimingMarkToTime(span: RawSpanType, mark: SpanSubTimingMark) 
   return (span as any).data?.[mark] as number | undefined;
 }
 
-export function getSpanSubTimings(span: ProcessedSpanType): SubTimingInfo[] | null {
+export function getSpanSubTimings(
+  span: ProcessedSpanType,
+  theme: Theme
+): SubTimingInfo[] | null {
   if (span.type) {
     return null; // narrow to RawSpanType
   }
@@ -432,7 +435,7 @@ export function getSpanSubTimings(span: ProcessedSpanType): SubTimingInfo[] | nu
       duration: end - start,
       startTimestamp: start,
       endTimestamp: end,
-      color: lightenBarColor(getSpanOperation(span), def.colorLighten),
+      color: lightenBarColor(getSpanOperation(span), def.colorLighten, theme),
     });
   }
 

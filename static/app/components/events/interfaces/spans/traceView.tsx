@@ -130,6 +130,7 @@ function TraceView(props: Props) {
                                 <Observer>
                                   {() => (
                                     <SpanTree
+                                      theme={theme}
                                       traceViewRef={traceViewRef}
                                       traceViewHeaderRef={traceViewHeaderRef}
                                       dragProps={dragProps}
