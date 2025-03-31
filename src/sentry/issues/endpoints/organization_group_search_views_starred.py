@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,11 +12,13 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewStarredSerializer
 from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
-from sentry.issues.endpoints.organization_group_search_views import pick_default_project
 from sentry.models.groupsearchview import DEFAULT_TIME_FILTER
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.savedsearch import SortOptions
+from sentry.models.team import Team
+from sentry.users.models.user import User
 
 DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
     {
@@ -108,3 +111,15 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
                 ),
             ),
         )
+
+
+def pick_default_project(org: Organization, user: User | AnonymousUser) -> int | None:
+    user_teams = Team.objects.get_for_user(organization=org, user=user)
+    user_team_ids = [team.id for team in user_teams]
+    default_user_project = (
+        Project.objects.get_for_team_ids(user_team_ids)
+        .order_by("slug")
+        .values_list("id", flat=True)
+        .first()
+    )
+    return default_user_project
