@@ -80,7 +80,6 @@ function SliderTicks({
 }: {
   filledSteps: number;
   n: number;
-  disabled?: boolean;
 }) {
   return (
     <StepsContainer role="presentation">
