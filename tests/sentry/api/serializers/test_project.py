@@ -797,6 +797,12 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:replay_hydration_error_issues"] is False
 
+    def test_derived_grouping_enhancements(self):
+        test_value = "function:path:**/test.py -> path:**/test.py"
+        self.project.update_option("sentry:derived_grouping_enhancements", test_value)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["derivedGroupingEnhancements"] == test_value
+
     def test_toolbar_allowed_origins(self):
         # Does not allow trailing newline or extra whitespace.
         # Default is empty:
