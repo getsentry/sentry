@@ -42,14 +42,13 @@ export enum DrawerTab {
 }
 
 function useDrawerTab({enabled}: {enabled: boolean}) {
-  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams('tab');
-  const [tab, setTab] = useState<DrawerTab>(() =>
-    getTabParam() === DrawerTab.FEATURE_FLAGS ? DrawerTab.FEATURE_FLAGS : DrawerTab.TAGS
+  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
+    'tab',
+    DrawerTab.TAGS
   );
 
   const setTabCallback = useCallback(
     (newTab: DrawerTab) => {
-      setTab(newTab);
       setTabParam(newTab);
     },
     [setTabParam]
@@ -58,7 +57,7 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
   if (!enabled) {
     return {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
   }
-  return {tab, setTab: setTabCallback};
+  return {tab: enabled ? getTabParam() : DrawerTab.TAGS, setTab: setTabCallback};
 }
 
 function getHeaderTitle(
