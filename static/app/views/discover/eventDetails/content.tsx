@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -77,9 +78,9 @@ function EventHeader({event}: {event: Event}) {
 }
 
 function EventDetailsContent(props: Props) {
+  const theme = useTheme();
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
   const projectId = props.eventSlug.split(':')[0]!;
-
   const {
     data: event,
     isPending,
@@ -185,6 +186,7 @@ function EventDetailsContent(props: Props) {
           <Layout.Body>
             <Layout.Main fullWidth>
               <EventMetas
+                theme={theme}
                 quickTrace={results ?? null}
                 meta={metaResults?.meta ?? null}
                 event={event}

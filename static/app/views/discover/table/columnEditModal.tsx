@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -21,7 +21,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
-import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
@@ -39,6 +38,7 @@ type Props = {
 } & ModalRenderProps;
 
 function ColumnEditModal(props: Props) {
+  const theme = useTheme();
   const {
     Header,
     Body,
@@ -132,6 +132,7 @@ function ColumnEditModal(props: Props) {
           )}
         </Instruction>
         <ColumnEditCollection
+          theme={theme}
           columns={columns}
           fieldOptions={fieldOptions}
           filterAggregateParameters={option =>
