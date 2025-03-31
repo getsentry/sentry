@@ -3,9 +3,8 @@ from typing import Literal, cast
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
 from sentry_protos.snuba.v1.formula_pb2 import Literal as LiteralValue
-from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
@@ -29,9 +28,10 @@ from sentry.search.eap.columns import (
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
 from sentry.search.eap.spans.utils import WEB_VITALS_MEASUREMENTS, transform_vital_score_to_ratio
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
-from sentry.utils import snuba_rpc
+from sentry.snuba import spans_rpc
 
 
 def get_total_span_count(settings: ResolverSettings) -> Column:
@@ -368,34 +368,30 @@ def ttid_contribution_rate(
 def time_spent_percentage(
     args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
+    """Note this won't work for timeseries requests because we have to divide each bucket by it's own total time."""
     extrapolation_mode = settings["extrapolation_mode"]
     snuba_params = settings["snuba_params"]
 
     attribute = cast(AttributeKey, args[0])
+    column = "span.self_time" if attribute.name == "sentry.exclusive_time_ms" else "span.duration"
 
     if snuba_params.organization_id is None:
         raise Exception("An organization is required to resolve queries")
 
-    rpc_request = TraceItemTableRequest(
-        columns=[
-            Column(
-                aggregation=AttributeAggregation(aggregate=Function.FUNCTION_SUM, key=attribute),
-                label="total_time",
-            )
-        ],
-        meta=RequestMeta(
-            organization_id=snuba_params.organization_id,
-            referrer="time_spent_percentage.total_time",
-            project_ids=snuba_params.project_ids,
-            start_timestamp=snuba_params.rpc_start_date,
-            end_timestamp=snuba_params.rpc_end_date,
-            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
-        ),
+    rpc_res = spans_rpc.run_table_query(
+        snuba_params,
+        query_string="",
+        referrer="totalvitalcount",
+        selected_columns=[column],
+        orderby=None,
+        offset=0,
         limit=1,
+        config=SearchResolverConfig(
+            auto_fields=True,
+        ),
     )
-    rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
 
-    total_time = rpc_response.column_values[0].results[0].val_double
+    total_time = rpc_res["data"][0]["count"]
 
     return Column.BinaryFormula(
         left=Column(
@@ -558,6 +554,10 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
+        is_enabled=lambda params: (
+            params.is_timeseries_request is None,
+            "not supported for timeseries requests",
+        ),
     ),
     "epm": FormulaDefinition(
         default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
