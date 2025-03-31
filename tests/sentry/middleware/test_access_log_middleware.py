@@ -4,12 +4,13 @@ from urllib.parse import unquote
 import pytest
 from django.test import override_settings
 from django.urls import re_path, reverse
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationEndpoint
 from sentry.api.endpoints.internal.rpc import InternalRpcServiceEndpoint
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
@@ -19,7 +20,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     def get(self, request):
         return Response({"ok": True})
