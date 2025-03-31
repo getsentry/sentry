@@ -10,7 +10,7 @@ interface Props extends SVGIconProps {
   isSolid?: boolean;
 }
 
-function IconPin({ref, isSolid = false, ...props}: Props) {
+function IconPin({isSolid = false, ...props}: Props) {
   const theme = useTheme();
   const {color: providedColor = 'currentColor'} = useIconDefaults(props);
 
@@ -18,7 +18,7 @@ function IconPin({ref, isSolid = false, ...props}: Props) {
   const color = theme[providedColor] ?? providedColor;
 
   return (
-    <SvgIcon {...props} ref={ref} kind={theme.isChonk ? 'stroke' : 'path'}>
+    <SvgIcon {...props} kind={theme.isChonk ? 'stroke' : 'path'}>
       {theme.isChonk ? (
         <Fragment>
           <line x1="8.66" y1="2.04" x2="13.96" y2="7.34" />

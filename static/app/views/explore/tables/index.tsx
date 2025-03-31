@@ -26,6 +26,7 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
+  isProgressivelyLoading: boolean;
   samplesTab: Tab;
   setSamplesTab: (tab: Tab) => void;
 }

@@ -1,4 +1,11 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -660,12 +667,12 @@ function GroupDetailsContent({
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!hasStreamlinedUI || isDrawerOpen) {
       return;
     }
 
-    if (currentTab === Tab.TAGS) {
+    if (currentTab === Tab.DISTRIBUTIONS) {
       openTagsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
@@ -688,7 +695,7 @@ function GroupDetailsContent({
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
-    Tab.TAGS,
+    Tab.DISTRIBUTIONS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
     Tab.ACTIVITY,

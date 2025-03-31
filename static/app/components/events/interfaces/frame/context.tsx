@@ -14,6 +14,7 @@ import type {
 } from 'sentry/types/integrations';
 import {CodecovStatusCode, Coverage} from 'sentry/types/integrations';
 import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {getFileExtension} from 'sentry/utils/fileExtension';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -33,7 +34,7 @@ type Props = {
   components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
   event: Event;
   frame: Frame;
-  registers: {[key: string]: string};
+  registers: StacktraceType['registers'];
   className?: string;
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
@@ -196,7 +197,7 @@ function Context({
 
       {hasContextRegisters && (
         <FrameRegisters
-          registers={registers}
+          registers={registers!}
           meta={registersMeta}
           deviceArch={event.contexts?.device?.arch}
         />

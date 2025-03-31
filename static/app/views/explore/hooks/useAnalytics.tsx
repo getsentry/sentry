@@ -30,7 +30,7 @@ import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {usePerformanceSubscriptionDetails} from 'sentry/views/performance/newTraceDetails/traceTypeWarnings/usePerformanceSubscriptionDetails';
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 interface UseTrackAnalyticsProps {
   aggregatesTableResult: AggregatesTableResult;

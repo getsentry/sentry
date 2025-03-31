@@ -51,8 +51,8 @@ function confidenceMessage({sampleCount, confidence, topEvents}: Props) {
 
   if (confidence === 'low') {
     if (isTopN) {
-      return tct('Sample count for top [topEvents] groups: [sampleCount]', {
-        topEvents,
+      return tct('Sample count for top [groupText]: [sampleCount]', {
+        groupText: topEvents > 1 ? tct('[topEvents] groups', {topEvents}) : t('group'),
         sampleCount: lowAccuracySampleCount,
       });
     }

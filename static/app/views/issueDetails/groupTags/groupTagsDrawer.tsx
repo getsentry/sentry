@@ -200,7 +200,7 @@ export function GroupTagsDrawer({
                   label: t('All Tags'),
                   to: tagKey
                     ? {
-                        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
                         query: {...location.query, tab: DrawerTab.TAGS},
                       }
                     : undefined,
@@ -209,7 +209,7 @@ export function GroupTagsDrawer({
                   label: t('All Feature Flags'),
                   to: tagKey
                     ? {
-                        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+                        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
                         query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
                       }
                     : undefined,
