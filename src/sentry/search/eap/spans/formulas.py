@@ -422,6 +422,7 @@ def time_spent_percentage(
         orderby=None,
         offset=0,
         limit=1,
+        sampling_mode=None,
         config=SearchResolverConfig(),
     )
 

@@ -58,6 +58,7 @@ def query(
         offset=offset or 0,
         limit=limit,
         referrer=referrer or "referrer unset",
+        sampling_mode=None,
         resolver=get_resolver(
             params=snuba_params,
             config=SearchResolverConfig(
