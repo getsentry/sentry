@@ -578,7 +578,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
         )
-        if has_workflow_engine:
+        if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
             logger.info(
                 "delayed_processing.rules_to_fire",
                 extra={
