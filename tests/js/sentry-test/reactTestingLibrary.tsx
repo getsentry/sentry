@@ -147,15 +147,15 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <OrganizationContext.Provider value={optionalOrganization}>
+      <OrganizationContext value={optionalOrganization}>
         <GlobalDrawer>{children}</GlobalDrawer>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     const wrappedContent = options.disableRouterMocks ? (
       content
     ) : (
-      <TestRouteContext.Provider
+      <TestRouteContext
         value={{
           router,
           location: router.location,
@@ -165,7 +165,7 @@ function makeAllTheProviders(options: ProviderOptions) {
       >
         {/* ProvideAriaRouter may not be necessary in tests but matches routes.tsx */}
         <ProvideAriaRouter>{content}</ProvideAriaRouter>
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     if (!options.disableRouterMocks) {

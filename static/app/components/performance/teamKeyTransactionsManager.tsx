@@ -208,9 +208,9 @@ class UnwrappedProvider extends Component<Props> {
     };
 
     return (
-      <TeamKeyTransactionsManagerContext.Provider value={childrenProps}>
+      <TeamKeyTransactionsManagerContext value={childrenProps}>
         {this.props.children}
-      </TeamKeyTransactionsManagerContext.Provider>
+      </TeamKeyTransactionsManagerContext>
     );
   }
 }

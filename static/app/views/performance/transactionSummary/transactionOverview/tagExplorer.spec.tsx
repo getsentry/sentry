@@ -19,11 +19,11 @@ const mockUseLocation = jest.mocked(useLocation);
 
 function WrapperComponent(props: React.ComponentProps<typeof TagExplorer>) {
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <MEPSettingProvider>
         <TagExplorer {...props} />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

@@ -69,13 +69,11 @@ export function ReplayPlayerStateContextProvider({children}: {children: ReactNod
   );
 
   return (
-    <StateContext.Provider value={state}>
-      <DispatchContext.Provider value={dispatch}>
-        <UserActionContext.Provider value={handleUserAction}>
-          {children}
-        </UserActionContext.Provider>
-      </DispatchContext.Provider>
-    </StateContext.Provider>
+    <StateContext value={state}>
+      <DispatchContext value={dispatch}>
+        <UserActionContext value={handleUserAction}>{children}</UserActionContext>
+      </DispatchContext>
+    </StateContext>
   );
 }
 

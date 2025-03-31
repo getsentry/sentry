@@ -159,7 +159,7 @@ export function TransactionProfileProvider({
     };
   }, [api, orgSlug, projectSlug, profileId, setProfile]);
 
-  return <ProfileContext.Provider value={profile}>{children}</ProfileContext.Provider>;
+  return <ProfileContext value={profile}>{children}</ProfileContext>;
 }
 
 export interface ContinuousProfileQueryParams {
@@ -225,5 +225,5 @@ export function ContinuousProfileProvider({
     return () => api.clear();
   }, [api, profileMeta, orgSlug, projectSlug, projects, setProfile]);
 
-  return <ProfileContext.Provider value={profile}>{children}</ProfileContext.Provider>;
+  return <ProfileContext value={profile}>{children}</ProfileContext>;
 }

@@ -47,11 +47,7 @@ export function OnboardingContextProvider({children, value}: ProviderProps) {
     [onboarding, setOnboarding, removeOnboarding]
   );
 
-  return (
-    <OnboardingContext.Provider value={contextValue}>
-      {children}
-    </OnboardingContext.Provider>
-  );
+  return <OnboardingContext value={contextValue}>{children}</OnboardingContext>;
 }
 
 /**

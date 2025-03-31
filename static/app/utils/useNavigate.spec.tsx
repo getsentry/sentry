@@ -32,9 +32,9 @@ describe('useNavigate', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     expect(typeof navigate).toBe('function');
@@ -64,9 +64,9 @@ describe('useNavigate', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     expect(routeContext.router.push).toHaveBeenCalledWith({

@@ -11,11 +11,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function createWrapper(organization: Organization) {
   return function ({children}: {children: React.ReactNode}) {
-    return (
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
-    );
+    return <OrganizationContext value={organization}>{children}</OrganizationContext>;
   };
 }
 

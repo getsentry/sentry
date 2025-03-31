@@ -44,9 +44,7 @@ function createWrapper(org: Organization) {
     const queryClient = makeTestQueryClient();
     return (
       <QueryClientProvider client={queryClient}>
-        <OrganizationContext.Provider value={org}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={org}>{children}</OrganizationContext>
       </QueryClientProvider>
     );
   };

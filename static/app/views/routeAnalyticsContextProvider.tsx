@@ -72,9 +72,5 @@ export default function RouteAnalyticsContextProvider({children}: Props) {
     ]
   );
 
-  return (
-    <RouteAnalyticsContext.Provider value={memoizedValue}>
-      {children}
-    </RouteAnalyticsContext.Provider>
-  );
+  return <RouteAnalyticsContext value={memoizedValue}>{children}</RouteAnalyticsContext>;
 }

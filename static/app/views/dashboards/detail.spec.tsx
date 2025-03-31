@@ -213,7 +213,7 @@ describe('Dashboards > Detail', function () {
       });
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
@@ -222,7 +222,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -459,7 +459,7 @@ describe('Dashboards > Detail', function () {
         body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
       });
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -468,7 +468,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -522,7 +522,7 @@ describe('Dashboards > Detail', function () {
       });
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -531,7 +531,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -554,7 +554,7 @@ describe('Dashboards > Detail', function () {
         params: {orgId: 'org-slug', dashboardId: '1'},
       });
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -563,7 +563,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 
@@ -594,7 +594,7 @@ describe('Dashboards > Detail', function () {
       });
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -603,7 +603,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
@@ -619,7 +619,7 @@ describe('Dashboards > Detail', function () {
       types.MAX_WIDGETS = 1;
 
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <ViewEditDashboard
             {...RouteComponentPropsFixture()}
             params={{orgId: 'org-slug', dashboardId: '1'}}
@@ -628,7 +628,7 @@ describe('Dashboards > Detail', function () {
           >
             {null}
           </ViewEditDashboard>
-        </OrganizationContext.Provider>,
+        </OrganizationContext>,
         {router}
       );
 

@@ -26,9 +26,7 @@ jest.mock('sentry/utils/usePageFilters');
 function Wrapper({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={OrganizationFixture()}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={OrganizationFixture()}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }

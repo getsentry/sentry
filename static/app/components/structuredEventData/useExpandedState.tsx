@@ -5,7 +5,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 
 type State = 'expanded' | 'collapsed';
 
-const context = createContext<{
+const Context = createContext<{
   collapse: (path: string) => void;
   expand: (path: string) => void;
   expandedPaths: string[];
@@ -49,11 +49,11 @@ export function ExpandedStateContextProvider({
     [collapse, expand]
   );
 
-  return <context.Provider value={value}>{children}</context.Provider>;
+  return <Context value={value}>{children}</Context>;
 }
 
 export default function useExpandedState({path}: {path: string}) {
-  const {collapse, expand, expandedPaths} = useContext(context);
+  const {collapse, expand, expandedPaths} = useContext(Context);
   const isExpanded = expandedPaths.includes(path);
   return useMemo(
     () => ({

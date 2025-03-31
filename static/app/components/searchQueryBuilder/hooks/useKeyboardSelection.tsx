@@ -118,9 +118,5 @@ const KeyboardSelectionContext = createContext<KeyboardSelectionData>({
 export function KeyboardSelection({children}: {children: ReactNode}) {
   const state = useKeyboardSelectionState();
 
-  return (
-    <KeyboardSelectionContext.Provider value={state}>
-      {children}
-    </KeyboardSelectionContext.Provider>
-  );
+  return <KeyboardSelectionContext value={state}>{children}</KeyboardSelectionContext>;
 }

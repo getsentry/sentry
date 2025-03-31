@@ -83,9 +83,9 @@ describe('Discover > Landing', function () {
     const org = OrganizationFixture({features});
 
     render(
-      <OrganizationContext.Provider value={org}>
+      <OrganizationContext value={org}>
         <DiscoverLanding />
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     const expectedSorts = [
@@ -112,9 +112,9 @@ describe('Discover > Landing', function () {
     const org = OrganizationFixture({features});
 
     render(
-      <OrganizationContext.Provider value={org}>
+      <OrganizationContext value={org}>
         <DiscoverLanding />
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     expect(await screen.findByText('Discover')).toHaveAttribute(

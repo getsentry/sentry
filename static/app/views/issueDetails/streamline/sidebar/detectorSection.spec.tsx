@@ -31,9 +31,9 @@ describe('DetectorSection', () => {
     const detectorDetails = getDetectorDetails({event, organization, project});
 
     const {container} = render(
-      <IssueDetailsContext.Provider value={{...issueDetailsContext, detectorDetails}}>
+      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext.Provider>
+      </IssueDetailsContext>
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -53,9 +53,9 @@ describe('DetectorSection', () => {
     const detectorDetails = getDetectorDetails({event, organization, project});
 
     render(
-      <IssueDetailsContext.Provider value={{...issueDetailsContext, detectorDetails}}>
+      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext.Provider>
+      </IssueDetailsContext>
     );
 
     expect(screen.getByText('Metric Alert Detector')).toBeInTheDocument();
@@ -87,9 +87,9 @@ describe('DetectorSection', () => {
     const detectorDetails = getDetectorDetails({event, organization, project});
 
     render(
-      <IssueDetailsContext.Provider value={{...issueDetailsContext, detectorDetails}}>
+      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext.Provider>
+      </IssueDetailsContext>
     );
 
     expect(screen.getByText('Cron Monitor')).toBeInTheDocument();
@@ -122,9 +122,9 @@ describe('DetectorSection', () => {
     const detectorDetails = getDetectorDetails({event, organization, project});
 
     render(
-      <IssueDetailsContext.Provider value={{...issueDetailsContext, detectorDetails}}>
+      <IssueDetailsContext value={{...issueDetailsContext, detectorDetails}}>
         <DetectorSection group={group} project={project} />
-      </IssueDetailsContext.Provider>
+      </IssueDetailsContext>
     );
 
     expect(screen.getByText('Uptime Monitor')).toBeInTheDocument();

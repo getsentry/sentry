@@ -44,13 +44,13 @@ export function GettingStartedWithProjectContextProvider({
   );
 
   return (
-    <GettingStartedWithProjectContext.Provider
+    <GettingStartedWithProjectContext
       value={{
         project: sessionStorage.project,
         setProject: handleSetProject,
       }}
     >
       {children}
-    </GettingStartedWithProjectContext.Provider>
+    </GettingStartedWithProjectContext>
   );
 }

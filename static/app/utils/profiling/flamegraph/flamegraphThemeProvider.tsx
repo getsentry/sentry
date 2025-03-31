@@ -59,11 +59,11 @@ function FlamegraphThemeProvider(
   }, [mutation, colorMode, theme]);
 
   return (
-    <FlamegraphThemeMutationContext.Provider value={addModifier}>
-      <FlamegraphThemeContext.Provider value={activeFlamegraphTheme}>
+    <FlamegraphThemeMutationContext value={addModifier}>
+      <FlamegraphThemeContext value={activeFlamegraphTheme}>
         {props.children}
-      </FlamegraphThemeContext.Provider>
-    </FlamegraphThemeMutationContext.Provider>
+      </FlamegraphThemeContext>
+    </FlamegraphThemeMutationContext>
   );
 }
 

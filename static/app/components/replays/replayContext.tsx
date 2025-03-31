@@ -591,7 +591,7 @@ export function Provider({
 
   return (
     <ReplayCurrentTimeContextProvider>
-      <ReplayPlayerContext.Provider
+      <ReplayPlayerContext
         value={{
           analyticsContext,
           clearAllHighlights,
@@ -615,7 +615,7 @@ export function Provider({
         }}
       >
         {children}
-      </ReplayPlayerContext.Provider>
+      </ReplayPlayerContext>
     </ReplayCurrentTimeContextProvider>
   );
 }

@@ -12,7 +12,7 @@ import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomP
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMessage from 'sentry/components/events/eventMessage';
 import EventVitals from 'sentry/components/events/eventVitals';
-import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -201,7 +201,7 @@ function EventDetailsContent(props: Props) {
               <Projects orgId={organization.slug} slugs={[projectId]}>
                 {({projects, initiallyLoaded}) =>
                   initiallyLoaded ? (
-                    <SpanEntryContext.Provider
+                    <SpanEntryContext
                       value={{
                         getViewChildTransactionTarget: childTransactionProps => {
                           const childTransactionLink = eventDetailsRoute({
@@ -216,7 +216,7 @@ function EventDetailsContent(props: Props) {
                         },
                       }}
                     >
-                      <QuickTraceContext.Provider value={results}>
+                      <QuickTraceContext value={results}>
                         {hasProfilingFeature ? (
                           <ProfilesProvider
                             orgSlug={organization.slug}
@@ -250,8 +250,8 @@ function EventDetailsContent(props: Props) {
                             showTagSummary={false}
                           />
                         )}
-                      </QuickTraceContext.Provider>
-                    </SpanEntryContext.Provider>
+                      </QuickTraceContext>
+                    </SpanEntryContext>
                   ) : (
                     <LoadingIndicator />
                   )

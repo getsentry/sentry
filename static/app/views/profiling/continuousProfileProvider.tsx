@@ -66,7 +66,7 @@ export default function ProfileAndTransactionProvider(
       profile={profile}
       setProfile={setProfile}
     >
-      <ProfileTransactionContext.Provider value={profileTransaction}>
+      <ProfileTransactionContext value={profileTransaction}>
         <ContinuousProfileHeader
           projectId={projectSlug}
           transaction={
@@ -74,7 +74,7 @@ export default function ProfileAndTransactionProvider(
           }
         />
         {props.children}
-      </ProfileTransactionContext.Provider>
+      </ProfileTransactionContext>
     </ContinuousProfileProvider>
   );
 }

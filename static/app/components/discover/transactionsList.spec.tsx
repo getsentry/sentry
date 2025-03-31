@@ -9,11 +9,11 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 function WrapperComponent(props: any) {
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <MEPSettingProvider>
         <TransactionsList {...props} />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

@@ -10,7 +10,7 @@ type Context = {
   state: State;
 };
 
-const context = createContext<Context>({
+const Context = createContext<Context>({
   setState: () => {},
   state: {},
 });
@@ -21,9 +21,9 @@ export function AsyncSDKIntegrationContextProvider({
   children: React.ReactNode;
 }) {
   const [state, setState] = useState<State>({});
-  return <context.Provider value={{setState, state}}>{children}</context.Provider>;
+  return <Context value={{setState, state}}>{children}</Context>;
 }
 
 export default function useAsyncSDKIntegrationStore(): Context {
-  return useContext(context);
+  return useContext(Context);
 }

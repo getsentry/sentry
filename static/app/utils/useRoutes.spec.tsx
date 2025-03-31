@@ -28,9 +28,9 @@ describe('useRoutes', () => {
     };
 
     render(
-      <TestRouteContext.Provider value={routeContext}>
+      <TestRouteContext value={routeContext}>
         <HomePage />
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
     expect(routes).toHaveLength(1);
     expect(routes[0]).toEqual({path: '/', component: HomePage});

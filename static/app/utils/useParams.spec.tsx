@@ -43,9 +43,9 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <HomePage />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
 
       expect(params).toEqual({});
@@ -68,9 +68,9 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <HomePage />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
       expect(params).toEqual({slug: 'sentry'});
     });
@@ -105,9 +105,9 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <Component />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
 
       expect(
@@ -143,9 +143,9 @@ describe('useParams', () => {
       };
 
       render(
-        <TestRouteContext.Provider value={routeContext}>
+        <TestRouteContext value={routeContext}>
           <Component />
-        </TestRouteContext.Provider>
+        </TestRouteContext>
       );
 
       expect(

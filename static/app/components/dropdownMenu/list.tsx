@@ -240,7 +240,7 @@ function DropdownMenuList({
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
-        <DropdownMenuContext.Provider value={contextValue}>
+        <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             <DropdownMenuListWrap
@@ -256,7 +256,7 @@ function DropdownMenuList({
             </DropdownMenuListWrap>
             {menuFooter}
           </StyledOverlay>
-        </DropdownMenuContext.Provider>
+        </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
   );

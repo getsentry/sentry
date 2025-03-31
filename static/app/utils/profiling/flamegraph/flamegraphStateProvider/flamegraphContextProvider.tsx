@@ -79,10 +79,10 @@ export function FlamegraphStateProvider(
   }, [state, nextState, previousState]);
 
   return (
-    <FlamegraphStateValueContext.Provider value={flamegraphContextValue}>
-      <FlamegraphStateDispatchContext.Provider value={dispatch}>
+    <FlamegraphStateValueContext value={flamegraphContextValue}>
+      <FlamegraphStateDispatchContext value={dispatch}>
         {props.children}
-      </FlamegraphStateDispatchContext.Provider>
-    </FlamegraphStateValueContext.Provider>
+      </FlamegraphStateDispatchContext>
+    </FlamegraphStateValueContext>
   );
 }

@@ -71,9 +71,9 @@ function MultipleCheckbox<T extends string | number>({
   );
 
   return (
-    <MultipleCheckboxContext.Provider value={contextValue}>
+    <MultipleCheckboxContext value={contextValue}>
       <MultipleCheckboxWrapper className={className}>{children}</MultipleCheckboxWrapper>
-    </MultipleCheckboxContext.Provider>
+    </MultipleCheckboxContext>
   );
 }
 

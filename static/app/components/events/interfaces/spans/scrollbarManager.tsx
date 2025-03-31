@@ -534,9 +534,9 @@ export class Provider extends Component<Props, State> {
     };
 
     return (
-      <ScrollbarManagerContext.Provider value={childrenProps}>
+      <ScrollbarManagerContext value={childrenProps}>
         {this.props.children}
-      </ScrollbarManagerContext.Provider>
+      </ScrollbarManagerContext>
     );
   }
 }
