@@ -567,6 +567,7 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
                     "installation_id": installation.id,
                     "organization": installation.organization_id,
                     "sentry_app": installation.sentry_app.id,
+                    "events": installation.sentry_app.events,
                     "webhook_url": installation.sentry_app.webhook_url or "",
                 }
             )
