@@ -191,6 +191,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
     primaryRelease,
     secondaryRelease,
     data: deviceClassEvents,
+    theme,
   });
 
   function renderCharts() {
