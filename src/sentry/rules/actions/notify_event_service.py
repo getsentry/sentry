@@ -193,6 +193,10 @@ class NotifyEventServiceAction(EventAction):
                 self.logger.info("rule.fail.should_notify", extra=extra)
                 return
 
+            extra["organization_id"] = self.project.organization_id
+            extra["project_id"] = self.project.id
+            self.logger.info("rules.plugin_notification_sent", extra=extra)
+
             metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
             yield self.future(plugin.rule_notify)
 

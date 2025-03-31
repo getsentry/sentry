@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -11,8 +12,9 @@ import type {Client} from 'sentry/api';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {lightTheme} from 'sentry/utils/theme';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+
+const theme = ThemeFixture();
 
 describe('ErrorsConfig', function () {
   describe('getCustomFieldRenderer', function () {
@@ -44,7 +46,7 @@ describe('ErrorsConfig', function () {
           {
             organization,
             location: router.location,
-            theme: lightTheme,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'trace'}],
@@ -73,7 +75,7 @@ describe('ErrorsConfig', function () {
           {
             organization,
             location: router.location,
-            theme: lightTheme,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'id'}],

@@ -1,7 +1,3 @@
-// XXX(epurkhiser): Ensure the LatestContextStore is initialized before we set
-// the active org. Otherwise we will trigger an action that does nothing
-import 'sentry/stores/latestContextStore';
-
 import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
