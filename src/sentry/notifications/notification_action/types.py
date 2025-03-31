@@ -12,6 +12,7 @@ from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
+    OpenPeriodContext,
 )
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.organization import Organization
@@ -119,10 +120,6 @@ class BaseIssueAlertHandler(ABC):
         :return: Rule instance
         """
         environment_id = job.workflow_env.id if job.workflow_env else None
-
-        # TODO(iamrajjoshi): Remove the project null check once https://github.com/getsentry/sentry/pull/85240/files is merged
-        if detector.project is None:
-            raise ValueError(f"No project found for action type: {action.type}")
 
         rule = Rule(
             id=action.id,
@@ -243,11 +240,16 @@ class BaseMetricAlertHandler(ABC):
         return MetricIssueContext.from_group_event(event)
 
     @classmethod
+    def build_open_period_context(cls, event: GroupEvent) -> OpenPeriodContext:
+        return OpenPeriodContext.from_group(event.group)
+
+    @classmethod
     def send_alert(
         cls,
         notification_context: NotificationContext,
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
+        open_period_context: OpenPeriodContext,
         organization: Organization,
         notification_uuid: str,
     ) -> None:
@@ -270,13 +272,14 @@ class BaseMetricAlertHandler(ABC):
             notification_context = cls.build_notification_context(action)
             alert_context = cls.build_alert_context(detector, event.occurrence)
             metric_issue_context = cls.build_metric_issue_context(event)
-
+            open_period_context = cls.build_open_period_context(event)
             notification_uuid = str(uuid.uuid4())
 
             cls.send_alert(
                 notification_context=notification_context,
                 alert_context=alert_context,
                 metric_issue_context=metric_issue_context,
+                open_period_context=open_period_context,
                 organization=detector.project.organization,
                 notification_uuid=notification_uuid,
             )

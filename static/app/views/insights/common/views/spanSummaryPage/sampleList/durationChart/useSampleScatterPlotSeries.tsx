@@ -26,7 +26,7 @@ export function useSampleScatterPlotSeries(
       ({symbol, color} = getSampleChartSymbol(span[key], average, theme));
     } else {
       symbol = 'circle';
-      color = AVG_COLOR;
+      color = AVG_COLOR(theme);
     }
 
     const series: Series = {

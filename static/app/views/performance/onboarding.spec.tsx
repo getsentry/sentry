@@ -63,7 +63,9 @@ describe('Testing new onboarding ui', function () {
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher('Add the Sentry SDK as a dependency using npm or yarn')
+        textWithMarkupMatcher(
+          'Add the Sentry SDK as a dependency using npm, yarn, or pnpm'
+        )
       )
     ).toBeInTheDocument();
 

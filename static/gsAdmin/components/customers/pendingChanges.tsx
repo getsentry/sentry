@@ -351,13 +351,21 @@ function getChanges(subscription: Subscription, planMigrations: PlanMigration[])
   const effectiveDate = activeMigration?.effectiveAt ?? pendingChanges.effectiveDate;
 
   const regularChanges = getRegularChanges(subscription);
-  if (regularChanges.length > 0) {
-    changeSet.push({effectiveDate, items: regularChanges});
-  }
-
   const onDemandChanges = getOnDemandChanges(subscription);
-  if (onDemandChanges.length) {
-    changeSet.push({effectiveDate: onDemandEffectiveDate, items: onDemandChanges});
+
+  if (effectiveDate === onDemandEffectiveDate) {
+    const combinedChanges = [...regularChanges, ...onDemandChanges];
+    if (combinedChanges.length > 0) {
+      changeSet.push({effectiveDate, items: combinedChanges});
+    }
+  } else {
+    if (regularChanges.length > 0) {
+      changeSet.push({effectiveDate, items: regularChanges});
+    }
+
+    if (onDemandChanges.length > 0) {
+      changeSet.push({effectiveDate: onDemandEffectiveDate, items: onDemandChanges});
+    }
   }
 
   return changeSet;

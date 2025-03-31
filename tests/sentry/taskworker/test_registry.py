@@ -282,11 +282,7 @@ def test_registry_create_namespace_simple() -> None:
 
 @pytest.mark.django_db
 def test_registry_create_namespace_route_setting() -> None:
-    routes = {
-        "profiling": "profiles",
-        "lol": "nope",
-    }
-    with override_settings(TASKWORKER_ROUTES=routes):
+    with override_settings(TASKWORKER_ROUTES='{"profiling":"profiles", "lol":"nope"}'):
         registry = TaskRegistry()
 
         # namespaces without routes resolve to the default topic.

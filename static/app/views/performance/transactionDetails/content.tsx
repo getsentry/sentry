@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -12,7 +13,7 @@ import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import EventMetadata from 'sentry/components/events/eventMetadata';
 import EventVitals from 'sentry/components/events/eventVitals';
 import getUrlFromEvent from 'sentry/components/events/interfaces/request/getUrlFromEvent';
-import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import RootSpanStatus from 'sentry/components/events/rootSpanStatus';
 import FileSize from 'sentry/components/fileSize';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -62,6 +63,7 @@ type Props = Pick<RouteComponentProps<{eventSlug: string}>, 'params' | 'location
   };
 
 function EventDetailsContent(props: Props) {
+  const theme = useTheme();
   const [isSidebarVisible, setIsSidebarVisible] = useState<boolean>(true);
   const projectId = props.eventSlug.split(':')[0]!;
   const {organization, eventSlug, location} = props;
@@ -198,6 +200,7 @@ function EventDetailsContent(props: Props) {
                   {results && (
                     <Layout.Main fullWidth>
                       <EventMetas
+                        theme={theme}
                         quickTrace={results}
                         meta={metaResults?.meta ?? null}
                         event={transaction}
@@ -212,7 +215,7 @@ function EventDetailsContent(props: Props) {
                   <Layout.Main fullWidth={!isSidebarVisible}>
                     <Projects orgId={organization.slug} slugs={[projectId]}>
                       {({projects: _projects}) => (
-                        <SpanEntryContext.Provider
+                        <SpanEntryContext
                           value={{
                             getViewChildTransactionTarget: childTransactionProps => {
                               return getTransactionDetailsUrl(
@@ -224,7 +227,7 @@ function EventDetailsContent(props: Props) {
                             },
                           }}
                         >
-                          <QuickTraceContext.Provider value={results}>
+                          <QuickTraceContext value={results}>
                             {hasProfilingFeature ? (
                               <ProfilesProvider
                                 orgSlug={organization.slug}
@@ -260,8 +263,8 @@ function EventDetailsContent(props: Props) {
                                 showTagSummary={false}
                               />
                             )}
-                          </QuickTraceContext.Provider>
-                        </SpanEntryContext.Provider>
+                          </QuickTraceContext>
+                        </SpanEntryContext>
                       )}
                     </Projects>
                   </Layout.Main>

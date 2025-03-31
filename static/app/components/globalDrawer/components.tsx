@@ -216,9 +216,14 @@ export function DrawerPanel({
             ).toString()}
           />
         )}
-        <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
+        {/*
+          This provider allows data passed to openDrawer to be accessed by drawer components.
+          For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
+          when it's button is pressed.
+        */}
+        <DrawerContentContext value={{onClose, ariaLabel}}>
           {children}
-        </DrawerContentContext.Provider>
+        </DrawerContentContext>
       </DrawerSlidePanel>
     </DrawerContainer>
   );
@@ -392,5 +397,3 @@ export const DrawerComponents = {
   DrawerHeader,
   DrawerPanel,
 };
-
-export default DrawerComponents;

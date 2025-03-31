@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import omit from 'lodash/omit';
+import {EventFixture} from 'sentry-fixture/event';
 import {EventIdQueryResultFixture} from 'sentry-fixture/eventIdQueryResult';
 import {MembersFixture} from 'sentry-fixture/members';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -7,14 +7,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ShortIdQueryResultFixture} from 'sentry-fixture/shortIdQueryResult';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ApiSource} from 'sentry/components/search/sources/apiSource';
+import ApiSource from 'sentry/components/search/sources/apiSource';
 import ConfigStore from 'sentry/stores/configStore';
 
+import type {Result} from './types';
+
 describe('ApiSource', function () {
-  const {organization, router} = initializeOrg();
   let orgsMock: jest.Mock;
   let projectsMock: jest.Mock;
   let teamsMock: jest.Mock;
@@ -25,11 +25,7 @@ describe('ApiSource', function () {
 
   const defaultProps: ComponentProps<typeof ApiSource> = {
     query: '',
-    organization,
-    router,
-    location: router.location,
-    routes: [],
-    params: {},
+    debounceDuration: 0,
     children: jest.fn().mockReturnValue(null),
   };
 
@@ -57,12 +53,14 @@ describe('ApiSource', function () {
       body: MembersFixture(),
     });
     shortIdMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/shortids/test-1/',
+      url: '/organizations/org-slug/shortids/JAVASCRIPT-6QS/',
       body: ShortIdQueryResultFixture(),
     });
     eventIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',
-      body: EventIdQueryResultFixture(),
+      body: EventIdQueryResultFixture({
+        event: EventFixture({id: '12345678901234567890123456789012'}),
+      }),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',
@@ -141,7 +139,7 @@ describe('ApiSource', function () {
   it('only queries for shortids when query matches shortid format', async function () {
     const mock = jest.fn().mockReturnValue(null);
     const {rerender} = render(
-      <ApiSource {...defaultProps} query="test-">
+      <ApiSource {...defaultProps} query="JAVASCRIPT">
         {mock}
       </ApiSource>
     );
@@ -149,39 +147,24 @@ describe('ApiSource', function () {
     expect(shortIdMock).not.toHaveBeenCalled();
 
     rerender(
-      <ApiSource {...defaultProps} query="test-1">
+      <ApiSource {...defaultProps} query="JAVASCRIPT-6QS">
         {mock}
       </ApiSource>
     );
 
     expect(shortIdMock).toHaveBeenCalled();
 
-    // These may not be desired behavior in future, but lets specify the expectation regardless
-    expect(orgsMock).toHaveBeenCalled();
-    expect(projectsMock).toHaveBeenCalled();
-    expect(teamsMock).toHaveBeenCalled();
-    expect(membersMock).toHaveBeenCalled();
-    expect(eventIdMock).not.toHaveBeenCalled();
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenLastCalledWith(
+    await waitFor(() =>
+      expect(mock.mock.calls[5][0].results.map((result: Result) => result.item)).toEqual([
         expect.objectContaining({
-          results: [
-            {
-              item: expect.objectContaining({
-                title: 'group type',
-                description: 'group description',
-                sourceType: 'issue',
-                resultType: 'issue',
-                to: '/org-slug/project-slug/issues/1/',
-              }),
-              score: 1,
-              refIndex: 0,
-            },
-          ],
-        })
-      );
-    });
+          title: 'group type',
+          description: 'group description',
+          sourceType: 'issue',
+          resultType: 'issue',
+          to: '/org-slug/project-slug/issues/1/',
+        }),
+      ])
+    );
   });
 
   it('only queries for eventids when query matches eventid format of 32 chars', async function () {
@@ -205,39 +188,26 @@ describe('ApiSource', function () {
       expect(eventIdMock).toHaveBeenCalled();
     });
 
-    // These may not be desired behavior in future, but lets specify the expectation regardless
-    expect(orgsMock).toHaveBeenCalled();
-    expect(projectsMock).toHaveBeenCalled();
-    expect(teamsMock).toHaveBeenCalled();
-    expect(membersMock).toHaveBeenCalled();
-    expect(shortIdMock).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(mock).toHaveBeenLastCalledWith(
+      expect(mock.mock.calls[5][0].results.map((result: Result) => result.item)).toEqual([
         expect.objectContaining({
-          results: [
-            {
-              item: expect.objectContaining({
-                title: 'event type',
-                description: 'event description',
-                sourceType: 'event',
-                resultType: 'event',
-                to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
-              }),
-              score: 1,
-              refIndex: 0,
-            },
-          ],
-        })
-      )
+          title: 'Event',
+          description: undefined,
+          sourceType: 'event',
+          resultType: 'event',
+          to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
+        }),
+      ])
     );
   });
 
   it('only queries org endpoint if there is no org in context', async function () {
     const mock = jest.fn().mockReturnValue(null);
     render(
-      <ApiSource {...omit(defaultProps, 'organization')} params={{orgId: ''}} query="foo">
+      <ApiSource {...defaultProps} query="foo">
         {mock}
-      </ApiSource>
+      </ApiSource>,
+      {organization: null}
     );
 
     await waitFor(() => expect(orgsMock).toHaveBeenCalled());
@@ -249,94 +219,53 @@ describe('ApiSource', function () {
   it('render function is called with correct results', async function () {
     const mock = jest.fn().mockReturnValue(null);
     render(
-      <ApiSource {...defaultProps} organization={organization} query="foo">
+      <ApiSource {...defaultProps} query="foo">
         {mock}
       </ApiSource>
     );
 
     await waitFor(() => {
-      expect(mock).toHaveBeenLastCalledWith({
-        isLoading: false,
-        results: expect.arrayContaining([
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-org',
-              }),
-              sourceType: 'organization',
-              resultType: 'settings',
-              to: '/settings/foo-org/',
-            }),
-            matches: expect.anything(),
-            score: expect.anything(),
-          }),
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-org',
-              }),
-              sourceType: 'organization',
-              resultType: 'route',
-              to: '/foo-org/',
-            }),
-            matches: expect.anything(),
-            score: expect.anything(),
-          }),
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-project',
-              }),
-              sourceType: 'project',
-              resultType: 'route',
-              to: '/organizations/org-slug/projects/foo-project/?project=2',
-            }),
-            matches: expect.anything(),
-            score: expect.anything(),
-          }),
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-project',
-              }),
-              sourceType: 'project',
-              resultType: 'route',
-              to: '/organizations/org-slug/alerts/rules/?project=2',
-            }),
-            matches: expect.anything(),
-            score: expect.anything(),
-          }),
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-project',
-              }),
-              sourceType: 'project',
-              resultType: 'settings',
-              to: '/settings/org-slug/projects/foo-project/',
-            }),
-            matches: expect.anything(),
-            score: expect.anything(),
-          }),
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-team',
-              }),
-              sourceType: 'team',
-              resultType: 'settings',
-              to: '/settings/org-slug/teams/foo-team/',
-            }),
-            matches: expect.anything(),
-            score: expect.anything(),
-          }),
-        ]),
-      });
-    });
+      const results = mock.mock.calls[2][0].results.map((result: Result) => result.item);
 
-    // The return values here are because of fuzzy search matching.
-    // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(6);
+      expect(results).toEqual([
+        expect.objectContaining({
+          model: expect.objectContaining({slug: 'foo-org'}),
+          sourceType: 'organization',
+          resultType: 'route',
+          to: '/foo-org/',
+        }),
+        expect.objectContaining({
+          model: expect.objectContaining({slug: 'foo-org'}),
+          sourceType: 'organization',
+          resultType: 'settings',
+          to: '/settings/foo-org/',
+        }),
+        expect.objectContaining({
+          model: expect.objectContaining({slug: 'foo-project'}),
+          sourceType: 'project',
+          resultType: 'route',
+          to: '/organizations/org-slug/projects/foo-project/?project=2',
+        }),
+        expect.objectContaining({
+          model: expect.objectContaining({slug: 'foo-project'}),
+          sourceType: 'project',
+          resultType: 'settings',
+          to: '/settings/org-slug/projects/foo-project/',
+        }),
+        expect.objectContaining({
+          model: expect.objectContaining({slug: 'foo-project'}),
+          sourceType: 'project',
+          resultType: 'route',
+          to: '/organizations/org-slug/alerts/rules/?project=2',
+        }),
+        expect.objectContaining({
+          model: expect.objectContaining({slug: 'foo-team'}),
+          sourceType: 'team',
+          resultType: 'settings',
+          to: '/settings/org-slug/teams/foo-team/',
+        }),
+      ]);
+    });
   });
 
   it('render function is called with correct results when API requests partially succeed', async function () {
@@ -353,37 +282,11 @@ describe('ApiSource', function () {
     );
 
     await waitFor(() => {
-      expect(mock).toHaveBeenLastCalledWith({
-        isLoading: false,
-        results: expect.arrayContaining([
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-org',
-              }),
-            }),
-          }),
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-org',
-              }),
-            }),
-          }),
-          expect.objectContaining({
-            item: expect.objectContaining({
-              model: expect.objectContaining({
-                slug: 'foo-team',
-              }),
-            }),
-          }),
-        ]),
-      });
+      const titles = mock.mock.calls[2][0].results.map(
+        (result: Result) => result.item.title
+      );
+      expect(titles).toEqual(['foo-org Dashboard', 'foo-org Settings', '#foo-team']);
     });
-
-    // The return values here are because of fuzzy search matching.
-    // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(3);
   });
 
   it('render function is updated as query changes', async function () {
@@ -397,9 +300,9 @@ describe('ApiSource', function () {
     await waitFor(() => {
       // The return values here are because of fuzzy search matching.
       // There are no members that match
-      expect(mock.mock.calls[1][0].results).toHaveLength(6);
+      expect(mock.mock.calls[2][0].results).toHaveLength(6);
     });
-    expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
+    expect(mock.mock.calls[2][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();
 
@@ -413,7 +316,7 @@ describe('ApiSource', function () {
       // Still have 4 results, but is re-ordered
       expect(mock.mock.calls[0][0].results).toHaveLength(6);
     });
-    expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
+    expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-org');
   });
 
   describe('API queries', function () {

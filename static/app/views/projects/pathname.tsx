@@ -1,5 +1,5 @@
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 const LEGACY_PROJECTS_BASE_PATHNAME = 'projects';
 const PROJECTS_BASE_PATHNAME = 'insights/projects';

@@ -342,8 +342,8 @@ function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
   if (top + popupRect.height > viewportHeight) {
     top = viewportHeight - popupRect.height;
   }
-  if (top < 0) {
-    top = 0;
+  if (top < 42) {
+    top = 42;
   }
 
   return {left, top};

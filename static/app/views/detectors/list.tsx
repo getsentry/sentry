@@ -42,7 +42,11 @@ function TableHeader() {
 function Actions() {
   return (
     <Fragment>
-      <LinkButton to="/monitors/new/" priority="primary" icon={<IconAdd isCircled />}>
+      <LinkButton
+        to="/issues/monitors/new"
+        priority="primary"
+        icon={<IconAdd isCircled />}
+      >
         {t('Create Monitor')}
       </LinkButton>
     </Fragment>

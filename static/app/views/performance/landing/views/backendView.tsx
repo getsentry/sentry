@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import type {Organization} from 'sentry/types/organization';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
@@ -57,6 +59,7 @@ function getAllowedChartsSmall(
 export function BackendView(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
   const {setPageError} = usePageAlert();
+  const theme = useTheme();
   const organization = useOrganization();
 
   const doubleChartRowCharts = [
@@ -90,7 +93,12 @@ export function BackendView(props: BasePerformanceViewProps) {
           {...props}
           allowedCharts={getAllowedChartsSmall(props, mepSetting, organization)}
         />
-        <Table {...props} columnTitles={BACKEND_COLUMN_TITLES} setError={setPageError} />
+        <Table
+          {...props}
+          columnTitles={BACKEND_COLUMN_TITLES}
+          setError={setPageError}
+          theme={theme}
+        />
       </div>
     </PerformanceDisplayProvider>
   );

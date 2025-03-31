@@ -38,7 +38,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
         );
       },
       shouldCloseOnLocationChange: newLocation => {
-        return !newLocation.pathname.includes('/activity/');
+        return !newLocation.pathname.includes('/activity');
       },
     });
   }, [openDrawer, baseUrl, navigate, location.query, group, project]);

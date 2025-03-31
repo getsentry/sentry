@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import Mapping
 from dataclasses import asdict
+from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 
@@ -13,20 +14,22 @@ from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
+    OpenPeriodContext,
 )
 from sentry.issues.grouptype import MetricIssuePOC
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.notifications.models.notificationaction import ActionTarget
-from sentry.notifications.notification_action.metric_alert_registry.handlers.opsgenie_metric_alert_handler import (
+from sentry.notifications.notification_action.metric_alert_registry import (
     OpsgenieMetricAlertHandler,
-)
-from sentry.notifications.notification_action.metric_alert_registry.handlers.pagerduty_metric_alert_handler import (
     PagerDutyMetricAlertHandler,
 )
 from sentry.notifications.notification_action.types import BaseMetricAlertHandler
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -40,13 +43,48 @@ class TestHandler(BaseMetricAlertHandler):
         notification_context: NotificationContext,
         alert_context: AlertContext,
         metric_issue_context: MetricIssueContext,
+        open_period_context: OpenPeriodContext,
         organization: Organization,
         notification_uuid: str,
     ) -> None:
         pass
 
 
+@apply_feature_flag_on_cls("organizations:issue-open-periods")
 class MetricAlertHandlerBase(BaseWorkflowTest):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+        self.detector = self.create_detector(project=self.project)
+        self.workflow = self.create_workflow(environment=self.environment)
+
+        self.snuba_query = self.create_snuba_query()
+
+        self.group, self.event, self.group_event = self.create_group_event(
+            occurrence=self.create_issue_occurrence(
+                initial_issue_priority=PriorityLevel.HIGH.value,
+                level="error",
+                evidence_data={
+                    "snuba_query_id": self.snuba_query.id,
+                    "metric_value": 123.45,
+                },
+            ),
+        )
+
+        self.save_group_with_open_period(self.group)
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+
+    def save_group_with_open_period(self, group: Group) -> None:
+        # test a new group has an open period
+        group.type = MetricIssuePOC.type_id
+        group.save()
+        Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED.value,
+            datetime=timezone.now() + timedelta(days=1),
+        )
+
     def create_issue_occurrence(
         self,
         initial_issue_priority: int | None = None,
@@ -129,35 +167,45 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "group": group,
         }
 
+    def assert_open_period_context(
+        self,
+        open_period_context: OpenPeriodContext,
+        date_started: datetime,
+        date_closed: datetime | None,
+    ):
+        assert asdict(open_period_context) == {
+            "date_started": date_started,
+            "date_closed": date_closed,
+        }
+
     def unpack_kwargs(self, mock_send_alert):
         _, kwargs = mock_send_alert.call_args
         notification_context = kwargs["notification_context"]
         alert_context = kwargs["alert_context"]
         metric_issue_context = kwargs["metric_issue_context"]
+        open_period_context = kwargs["open_period_context"]
         organization = kwargs["organization"]
         notification_uuid = kwargs["notification_uuid"]
         return (
             notification_context,
             alert_context,
             metric_issue_context,
+            open_period_context,
             organization,
             notification_uuid,
         )
 
 
+@apply_feature_flag_on_cls("organizations:issue-open-periods")
 class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
         super().setUp()
-        self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
-        self.workflow = self.create_workflow(environment=self.environment)
         self.action = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
             config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
-        self.snuba_query = self.create_snuba_query()
 
         self.group, self.event, self.group_event = self.create_group_event(
             group_type_id=MetricIssuePOC.type_id,
@@ -170,14 +218,14 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = TestHandler()
 
     def test_missing_occurrence_raises_value_error(self):
-        self.job.event.occurrence = None
+        self.event_data.event.occurrence = None
 
         with pytest.raises(ValueError):
-            self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+            self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
     def test_get_incident_status(self):
         # Initial priority is high -> incident is critical
@@ -287,7 +335,7 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
 
     @mock.patch.object(TestHandler, "send_alert")
     def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
 
@@ -332,17 +380,16 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 notification_context=mock.MagicMock(),
                 alert_context=mock.MagicMock(),
                 metric_issue_context=mock.MagicMock(),
+                open_period_context=mock.MagicMock(),
                 organization=mock.MagicMock(),
                 notification_uuid="test-uuid",
             )
 
 
+@apply_feature_flag_on_cls("organizations:issue-open-periods")
 class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
         super().setUp()
-        self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
-        self.workflow = self.create_workflow(environment=self.environment)
         self.action = self.create_action(
             type=Action.Type.PAGERDUTY,
             integration_id=1234567890,
@@ -361,7 +408,7 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
         self.handler = PagerDutyMetricAlertHandler()
 
     @mock.patch(
@@ -374,12 +421,14 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             self.detector, self.group_event.occurrence
         )
         metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
+        open_period_context = OpenPeriodContext.from_group(self.group)
         notification_uuid = str(uuid.uuid4())
 
         self.handler.send_alert(
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -396,13 +445,14 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
         "sentry.notifications.notification_action.metric_alert_registry.PagerDutyMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
         (
             notification_context,
             alert_context,
             metric_issue_context,
+            open_period_context,
             organization,
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
@@ -437,16 +487,20 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             group=self.group_event.group,
         )
 
+        self.assert_open_period_context(
+            open_period_context,
+            date_started=self.group_event.group.first_seen,
+            date_closed=None,
+        )
+
         assert organization == self.detector.project.organization
         assert isinstance(notification_uuid, str)
 
 
+@apply_feature_flag_on_cls("organizations:issue-open-periods")
 class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
     def setUp(self):
         super().setUp()
-        self.project = self.create_project()
-        self.detector = self.create_detector(project=self.project)
-        self.workflow = self.create_workflow(environment=self.environment)
         self.action = self.create_action(
             type=Action.Type.OPSGENIE,
             integration_id=1234567890,
@@ -465,7 +519,9 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
                 },
             ),
         )
-        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.workflow.environment)
+        self.event_data = WorkflowEventData(
+            event=self.group_event, workflow_env=self.workflow.environment
+        )
         self.handler = OpsgenieMetricAlertHandler()
 
     @mock.patch(
@@ -478,12 +534,14 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             self.detector, self.group_event.occurrence
         )
         metric_issue_context = MetricIssueContext.from_group_event(self.group_event)
+        open_period_context = OpenPeriodContext.from_group(self.group)
         notification_uuid = str(uuid.uuid4())
 
         self.handler.send_alert(
             notification_context=notification_context,
             alert_context=alert_context,
             metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
             organization=self.detector.project.organization,
             notification_uuid=notification_uuid,
         )
@@ -500,13 +558,14 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
         "sentry.notifications.notification_action.metric_alert_registry.OpsgenieMetricAlertHandler.send_alert"
     )
     def test_invoke_legacy_registry(self, mock_send_alert):
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         assert mock_send_alert.call_count == 1
         (
             notification_context,
             alert_context,
             metric_issue_context,
+            open_period_context,
             organization,
             notification_uuid,
         ) = self.unpack_kwargs(mock_send_alert)
@@ -539,6 +598,12 @@ class TestOpsgenieMetricAlertHandler(MetricAlertHandlerBase):
             new_status=IncidentStatus.CRITICAL,
             metric_value=123.45,
             group=self.group_event.group,
+        )
+
+        self.assert_open_period_context(
+            open_period_context,
+            date_started=self.group_event.group.first_seen,
+            date_closed=None,
         )
 
         assert organization == self.detector.project.organization
