@@ -114,6 +114,14 @@ export function PerformanceScoreBreakdownChart({
             };
           }),
           color: segmentColors[index],
+          meta: {
+            // TODO: The backend doesn't return these score fields with the "score" type yet. Fill this in manually for now.
+            fields: {
+              ...series.meta?.fields,
+              [key]: 'score',
+            },
+            units: series.meta?.units,
+          },
         };
 
         return scaledSeries;
