@@ -41,6 +41,8 @@ type ParamKeys =
   | 'viewId'
   | 'widgetIndex';
 
+export type Params = Partial<Record<ParamKeys, string | undefined>>;
+
 /**
  * Get params from the current route. Param availability depends on the current route.
  *
@@ -49,7 +51,7 @@ type ParamKeys =
  * const params = useParams<{projectId: string}>();
  * ```
  */
-export function useParams<P extends Partial<Record<ParamKeys, string | undefined>>>(): P {
+export function useParams<P extends Params>(): P {
   // When running in test mode we still read from the legacy route context to
   // keep test compatability while we fully migrate to react router 6
   const testRouteContext = useTestRouteContext();
