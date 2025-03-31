@@ -142,11 +142,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
   const location = useLocation();
 
   // Performance issues have a Span Evidence section that contains the trace view
-  const isHiddenForPerformanceIssues =
-    group.issueCategory === IssueCategory.PERFORMANCE &&
-    organization.features.includes('issue-details-new-performance-trace-view');
-
-  if (!traceId || isHiddenForPerformanceIssues) {
+  if (!traceId || group.issueCategory === IssueCategory.PERFORMANCE) {
     return null;
   }
 
@@ -163,11 +159,7 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     TraceViewSources.ISSUE_DETAILS
   );
 
-  const hasProfilingFeature = organization.features.includes('profiling');
-  const hasTracePreviewFeature =
-    hasProfilingFeature &&
-    // Only display this for error or default events since performance events are handled elsewhere
-    group.issueCategory !== IssueCategory.PERFORMANCE;
+  const hasTracePreviewFeature = organization.features.includes('profiling');
 
   return (
     <InterimSection
