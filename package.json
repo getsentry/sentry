@@ -207,7 +207,6 @@
     "eslint-plugin-unicorn": "^57.0.0",
     "globals": "^15.14.0",
     "html-webpack-plugin": "^5.6.0",
-    "knip": "^5.46.4",
     "jest": "29.7.0",
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "29.7.0",
@@ -264,9 +263,7 @@
     "validate-api-examples": "yarn --cwd api-docs openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
     "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install",
     "https-proxy": "caddy run --config - <<< '{\"apps\":{\"http\":{\"servers\":{\"srv0\":{\"listen\":[\":8003\"],\"routes\":[{\"handle\":[{\"handler\":\"reverse_proxy\",\"upstreams\":[{\"dial\":\"localhost:8000\"}]}]}],\"tls_connection_policies\":[{\"certificate_selection\":{\"any_tag\":[\"cert0\"]}}]}}},\"tls\":{\"certificates\":{\"load_files\":[{\"certificate\":\"./config/localhost.pem\",\"key\":\"./config/localhost-key.pem\",\"tags\":[\"cert0\"]}]}}}}'",
-    "extract-ios-device-names": "ts-node scripts/extract-ios-device-names.ts",
-    "knip": "knip",
-    "knip:prod": "yarn run knip --production"
+    "extract-ios-device-names": "ts-node scripts/extract-ios-device-names.ts"
   },
   "browserslist": {
     "production": [
