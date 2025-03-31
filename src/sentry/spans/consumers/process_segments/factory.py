@@ -72,6 +72,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
                 producer=self.producer,
                 topic=self.output_topic,
                 next_step=commit_step,
+                max_buffer_size=40000,
             )
         else:
             produce_step = commit_step
