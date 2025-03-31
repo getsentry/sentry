@@ -8,6 +8,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.sentry_apps.external_requests.issue_link_requester import (
     FAILURE_REASON_BASE,
     IssueLinkRequester,
+    IssueRequestActionType,
 )
 from sentry.sentry_apps.metrics import SentryAppEventType, SentryAppExternalRequestHaltReason
 from sentry.sentry_apps.services.app import app_service
@@ -66,7 +67,7 @@ class TestIssueLinkRequester(TestCase):
             uri="/link-issue",
             fields=fields,
             user=self.rpc_user,
-            action="create",
+            action=IssueRequestActionType("create"),
         ).run()
         assert result == {
             "project": "ProjectName",
@@ -128,7 +129,7 @@ class TestIssueLinkRequester(TestCase):
                 uri="/link-issue",
                 fields={},
                 user=self.rpc_user,
-                action="create",
+                action=IssueRequestActionType("create"),
             ).run()
 
         assert exception_info.value.webhook_context == {
@@ -177,7 +178,7 @@ class TestIssueLinkRequester(TestCase):
                 uri="/link-issue",
                 fields={},
                 user=self.rpc_user,
-                action="create",
+                action=IssueRequestActionType("create"),
             ).run()
 
         assert exception_info.value.webhook_context == {
@@ -228,7 +229,7 @@ class TestIssueLinkRequester(TestCase):
                 uri="/link-issue",
                 fields={},
                 user=self.rpc_user,
-                action="create",
+                action=IssueRequestActionType("create"),
             ).run()
 
         assert exception_info.value.webhook_context == {

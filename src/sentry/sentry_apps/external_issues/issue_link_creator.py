@@ -21,7 +21,7 @@ VALID_ACTIONS = ["link", "create"]
 class IssueLinkCreator:
     install: RpcSentryAppInstallation
     group: Group
-    action: IssueRequestActionType
+    action: str
     fields: dict[str, Any]
     uri: str
     user: RpcUser
