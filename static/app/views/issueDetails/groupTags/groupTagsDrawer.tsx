@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -47,19 +47,12 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
     DrawerTab.TAGS
   );
 
-  const setTabCallback = useCallback(
-    (newTab: DrawerTab) => {
-      setTabParam(newTab);
-    },
-    [setTabParam]
-  );
-
   if (!enabled) {
     return {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
   }
   return {
     tab: enabled ? (getTabParam() as DrawerTab) : DrawerTab.TAGS,
-    setTab: setTabCallback,
+    setTab: setTabParam,
   };
 }
 
