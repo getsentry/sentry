@@ -1,6 +1,7 @@
 import {useLocation} from 'react-router-dom';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {unreachable} from 'sentry/utils/unreachable';
 import {PRIMARY_NAV_GROUP_PATHS} from 'sentry/views/nav/constants';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
@@ -18,7 +19,13 @@ const getPrimaryRoutePath = (path: string) => {
 export function useActiveNavGroup(): PrimaryNavGroup {
   const location = useLocation();
 
-  const primaryPath = getPrimaryRoutePath(location.pathname);
+  const primaryPath = getPrimaryRoutePath(location.pathname) as
+    | (typeof PRIMARY_NAV_GROUP_PATHS)[keyof typeof PRIMARY_NAV_GROUP_PATHS]
+    | undefined;
+
+  if (!primaryPath) {
+    return PrimaryNavGroup.ISSUES;
+  }
 
   switch (primaryPath) {
     case PRIMARY_NAV_GROUP_PATHS.issues:
@@ -34,6 +41,7 @@ export function useActiveNavGroup(): PrimaryNavGroup {
     case PRIMARY_NAV_GROUP_PATHS.pipeline:
       return PrimaryNavGroup.PIPELINE;
     default:
+      unreachable(primaryPath);
       return PrimaryNavGroup.ISSUES;
   }
 }

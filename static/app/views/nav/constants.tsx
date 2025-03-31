@@ -12,14 +12,14 @@ export const NAV_GROUP_LABELS: Record<PrimaryNavGroup, string> = {
   [PrimaryNavGroup.PIPELINE]: t('Pipeline'),
 };
 
-export const PRIMARY_NAV_GROUP_PATHS: Record<PrimaryNavGroup, string> = {
-  [PrimaryNavGroup.ISSUES]: 'issues',
-  [PrimaryNavGroup.EXPLORE]: 'explore',
-  [PrimaryNavGroup.DASHBOARDS]: 'dashboards',
-  [PrimaryNavGroup.INSIGHTS]: 'insights',
-  [PrimaryNavGroup.SETTINGS]: 'settings',
-  [PrimaryNavGroup.PIPELINE]: 'pipeline',
-};
+export const PRIMARY_NAV_GROUP_PATHS = {
+  [PrimaryNavGroup.ISSUES]: 'issues' as const,
+  [PrimaryNavGroup.EXPLORE]: 'explore' as const,
+  [PrimaryNavGroup.DASHBOARDS]: 'dashboards' as const,
+  [PrimaryNavGroup.INSIGHTS]: 'insights' as const,
+  [PrimaryNavGroup.SETTINGS]: 'settings' as const,
+  [PrimaryNavGroup.PIPELINE]: 'pipeline' as const,
+} satisfies Record<PrimaryNavGroup, string>;
 
 export const PRIMARY_SIDEBAR_WIDTH = 66;
 export const SECONDARY_SIDEBAR_WIDTH = 190;
