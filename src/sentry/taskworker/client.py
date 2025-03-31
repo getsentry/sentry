@@ -19,7 +19,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
 
@@ -55,8 +55,8 @@ else:
 
 
 class RequestSignatureInterceptor(InterceptorBase):
-    def __init__(self, shared_secret: str):
-        self._secret = shared_secret.encode("utf-8")
+    def __init__(self, shared_secret: list[str]):
+        self._secret = shared_secret[0].encode("utf-8")
 
     def intercept_unary_unary(
         self,
@@ -118,9 +118,8 @@ class TaskworkerClient:
         logger.info("Connecting to %s with options %s", host, self._grpc_options)
         channel = grpc.insecure_channel(host, options=self._grpc_options)
         if settings.TASKWORKER_SHARED_SECRET:
-            channel = grpc.intercept_channel(
-                channel, RequestSignatureInterceptor(settings.TASKWORKER_SHARED_SECRET)
-            )
+            secrets = json.loads(settings.TASKWORKER_SHARED_SECRET)
+            channel = grpc.intercept_channel(channel, RequestSignatureInterceptor(secrets))
         return ConsumerServiceStub(channel)
 
     def _get_all_hosts(self, pattern: str, num_brokers: int) -> list[str]:
