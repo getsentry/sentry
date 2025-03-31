@@ -23,7 +23,7 @@ type ProjectTeamsProps = {
   project: Project;
 };
 
-export function ProjectTeams({organization, project}: ProjectTeamsProps) {
+function ProjectTeams({organization, project}: ProjectTeamsProps) {
   const {
     data: projectTeams,
     isPending,

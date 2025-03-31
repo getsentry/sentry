@@ -23,7 +23,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   PRIMARY_RELEASE_ALIAS,

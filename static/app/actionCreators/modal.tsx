@@ -236,10 +236,14 @@ export async function openInviteMissingMembersModal({
   onClose,
   ...args
 }: InviteMissingMembersModalOptions) {
-  const mod = await import('sentry/components/modals/inviteMissingMembersModal');
-  const {default: Modal, modalCss} = mod;
+  const {InviteMissingMembersModal, modalCss} = await import(
+    'sentry/components/modals/inviteMissingMembersModal'
+  );
 
-  openModal(deps => <Modal {...deps} {...args} />, {modalCss, onClose});
+  openModal(deps => <InviteMissingMembersModal {...deps} {...args} />, {
+    modalCss,
+    onClose,
+  });
 }
 
 export async function openWidgetBuilderOverwriteModal(
@@ -370,10 +374,14 @@ export async function openProjectCreationModal(options: {defaultCategory: Catego
 }
 
 export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOptions) {
-  const mod = await import('sentry/components/modals/bulkEditMonitorsModal');
-  const {default: Modal, modalCss} = mod;
+  const {BulkEditMonitorsModal, modalCss} = await import(
+    'sentry/components/modals/bulkEditMonitorsModal'
+  );
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
+  openModal(deps => <BulkEditMonitorsModal {...deps} {...options} />, {
+    modalCss,
+    onClose,
+  });
 }
 
 export async function openInsightChartModal(options: InsightChartModalOptions) {
