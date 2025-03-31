@@ -37,6 +37,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
@@ -319,6 +320,29 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     );
   }
 
+  renderEstimationDisclaimer() {
+    if (
+      this.dataCategory === DATA_CATEGORY_INFO.profileDuration.plural ||
+      this.dataCategory === DATA_CATEGORY_INFO.profileDurationUI.plural
+    ) {
+      return (
+        <EstimationText data-test-id="estimation-text">
+          {tct(
+            '*This is an estimation, and may not be 100% accurate. [estimateLink: How we calculate estimated usage]',
+            {
+              estimateLink: (
+                <ExternalLink
+                  href={getDocsLinkForEventType(DataCategoryExact.PROFILE_DURATION)} // TODO(continuous profiling): update link when docs are ready
+                />
+              ),
+            }
+          )}
+        </EstimationText>
+      );
+    }
+    return null;
+  }
+
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
@@ -349,7 +373,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
             <Body>
               <Layout.Main fullWidth>
                 <HookHeader organization={organization} />
-                {this.renderProjectPageControl()}
+                <ControlsWrapper>
+                  {this.renderProjectPageControl()}
+                  {this.renderEstimationDisclaimer()}
+                </ControlsWrapper>
                 <div>
                   <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
                 </div>
@@ -425,12 +452,26 @@ const HeadingSubtitle = styled('p')`
   margin-bottom: 0;
 `;
 
+const ControlsWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  margin-bottom: ${space(2)};
+  justify-content: space-between;
+`;
+
 const PageControl = styled('div')`
   display: grid;
-  width: 100%;
-  margin-bottom: ${space(2)};
+
+  margin-bottom: 0;
   grid-template-columns: minmax(0, max-content);
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const EstimationText = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: ${p => p.theme.text.lineHeightBody};
 `;

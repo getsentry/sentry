@@ -1,8 +1,9 @@
+import type {Theme} from '@emotion/react';
+
 import Grid from 'sentry/components/charts/components/grid';
 import Legend from 'sentry/components/charts/components/legend';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
-import {lightTheme as theme} from 'sentry/utils/theme';
 
 export const DEFAULT_FONT_FAMILY = 'sans-serif';
 
@@ -23,7 +24,7 @@ export const slackGeoChartSize = {
  * Default echarts option config for slack charts
  */
 
-export const slackChartDefaults = {
+export const makeSlackChartDefaults = (theme: Theme) => ({
   grid: Grid({left: 5, right: 5, bottom: 5}),
   backgroundColor: theme.background,
   legend: Legend({
@@ -44,4 +45,4 @@ export const slackChartDefaults = {
     isGroupedByDate: true,
     axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
   }),
-};
+});

@@ -5,7 +5,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
 import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
-import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 type Props = {

@@ -18,7 +18,7 @@ import {
 import Nav from 'sentry/views/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import {SecondaryNav} from 'sentry/views/nav/secondary';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 const ALL_AVAILABLE_FEATURES = [
@@ -90,11 +90,9 @@ describe('Nav', function () {
       ).getAllByRole('link');
       expect(links).toHaveLength(5);
 
-      ['Issues', 'Explore', 'Dashboards', 'Insights', 'Settings'].forEach(
-        (title, index) => {
-          expect(links[index]).toHaveAccessibleName(title);
-        }
-      );
+      ['Issues', 'Explore', 'Dash', 'Insights', 'Settings'].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
     });
 
     it('displays the current primary route as active', function () {

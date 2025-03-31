@@ -17,7 +17,7 @@ import {useUpdateGroupSearchViews} from 'sentry/views/issueList/mutations/useUpd
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {useNavContext} from 'sentry/views/nav/context';
-import useDefaultProject from 'sentry/views/nav/issueViews/useDefaultProject';
+import useDefaultProject from 'sentry/views/nav/secondary/sections/issues/issueViews/useDefaultProject';
 import type {NavLayout} from 'sentry/views/nav/types';
 
 export function IssueViewAddViewButton({baseUrl}: {baseUrl: string}) {

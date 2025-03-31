@@ -727,6 +727,13 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function}")
 
+        if function_definition.check_if_enabled is not None:
+            enabled, reason = function_definition.check_if_enabled(self.params)
+            if not enabled:
+                raise InvalidSearchQuery(
+                    f"{function} is not enabled for this request. Reason: {reason}"
+                )
+
         parsed_args: list[ResolvedAttribute | Any] = []
 
         # Parse the arguments
