@@ -211,9 +211,8 @@ const docs: Docs = {
 
 export default docs;
 
-const CONTENT_SPACING = space(2);
 const SpacedOnboardingCodeSnippet = styled(OnboardingCodeSnippet)`
   pre {
-    margin-bottom: ${CONTENT_SPACING};
+    margin-bottom: ${space(2)};
   }
 `;
