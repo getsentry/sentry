@@ -17,10 +17,8 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.endpoints.organization_member.index import (
-    ROLE_CHOICES,
-    OrganizationMemberRequestSerializer,
-)
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
+from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (

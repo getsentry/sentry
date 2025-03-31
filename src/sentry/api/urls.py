@@ -16,6 +16,9 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
+from sentry.api.endpoints.organization_member_invite.index import (
+    OrganizationMemberInviteIndexEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
@@ -1691,6 +1694,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/members/$",
         OrganizationMemberIndexEndpoint.as_view(),
         name="sentry-api-0-organization-member-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/invited-members/$",
+        OrganizationMemberInviteIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-member-invite-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/external-users/$",
