@@ -32,9 +32,5 @@ export default function LastKnownRouteContextProvider({children}: Props) {
 
   const lastKnownRoute = getRouteStringFromRoutes(prevRoute.current);
 
-  return (
-    <LastKnownRouteContext.Provider value={lastKnownRoute}>
-      {children}
-    </LastKnownRouteContext.Provider>
-  );
+  return <LastKnownRouteContext value={lastKnownRoute}>{children}</LastKnownRouteContext>;
 }
