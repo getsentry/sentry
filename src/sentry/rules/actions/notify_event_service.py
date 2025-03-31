@@ -180,6 +180,8 @@ class NotifyEventServiceAction(EventAction):
                 return
 
         if plugin:
+            extra["plugin"] = service
+
             if not plugin.is_enabled(self.project):
                 extra["project_id"] = self.project.id
                 self.logger.info("rules.fail.is_enabled", extra=extra)
@@ -192,7 +194,6 @@ class NotifyEventServiceAction(EventAction):
                 self.logger.info("rule.fail.should_notify", extra=extra)
                 return
 
-            extra["plugin"] = service
             extra["organization_id"] = self.project.organization_id
             extra["project_id"] = self.project.id
             self.logger.info("rules.plugin_notification_sent", extra=extra)
