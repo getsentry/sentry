@@ -18,7 +18,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition_group_action import DataConditionGroupAction
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import DataConditionHandler, DataSourceTypeHandler
+from sentry.workflow_engine.types import ActionHandler, DataConditionHandler, DataSourceTypeHandler
 
 
 class ActionSerializerResponse(TypedDict):
@@ -39,6 +39,66 @@ class ActionSerializer(Serializer):
             "data": json.dumps(obj.data),
             "config": json.dumps(obj.config),
         }
+
+
+class SentryAppContext(TypedDict):
+    id: str
+    name: str
+    installationUuid: str
+    status: int
+    settings: NotRequired[dict[str, Any]]
+
+
+class ActionHandlerSerializerResponse(TypedDict):
+    type: str
+    handlerGroup: str
+    configSchema: dict
+    dataSchema: NotRequired[dict]
+    sentryApp: NotRequired[SentryAppContext]
+    installations: NotRequired[list]
+
+
+@register(ActionHandler)
+class ActionHandlerSerializer(Serializer):
+    def serialize(
+        self,
+        obj: ActionHandler,
+        attrs: Mapping[str, Any],
+        user: Any,
+        **kwargs: Any,
+    ) -> ActionHandlerSerializerResponse:
+        action_type = kwargs.get("action_type")
+        if action_type is None:
+            raise ValueError("action_type is required")
+
+        result: ActionHandlerSerializerResponse = {
+            "type": action_type,
+            "handlerGroup": obj.group.value,
+            "configSchema": obj.config_schema,
+            "dataSchema": obj.data_schema,
+        }
+
+        integrations = kwargs.get("integrations")
+        if integrations is not None:
+            result["integrations"] = [
+                {"id": str(integration.id), "name": integration.name}
+                for integration in integrations
+            ]
+
+        sentry_app_context = kwargs.get("sentry_app_context")
+        if sentry_app_context:
+            installation = sentry_app_context.installation
+            sentry_app = {
+                "id": str(installation.sentry_app.id),
+                "name": installation.sentry_app.name,
+                "installationId": str(installation.id),
+                "status": installation.sentry_app.status,
+            }
+            if sentry_app_context.component:
+                sentry_app["settings"] = sentry_app_context.component.app_schema.get("settings", {})
+            result["sentryApp"] = sentry_app
+
+        return result
 
 
 @register(DataSource)
