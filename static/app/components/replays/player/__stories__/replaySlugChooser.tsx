@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 
 import Providers from 'sentry/components/replays/player/__stories__/providers';
 import ReplayLoadingState from 'sentry/components/replays/player/replayLoadingState';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 type Props =
@@ -14,33 +16,50 @@ export default function ReplaySlugChooser(props: Props) {
 
   const [replaySlug, setReplaySlug] = useSessionStorage('stories:replaySlug', '');
 
-  let content = null;
-  if (replaySlug) {
-    if (children) {
-      content = (
-        <ReplayLoadingState replaySlug={replaySlug}>
+  const input = (
+    <input
+      defaultValue={replaySlug}
+      onChange={event => {
+        setReplaySlug(event.target.value);
+      }}
+      placeholder="Paste a replaySlug"
+      css={css`
+        font-variant-numeric: tabular-nums;
+      `}
+      size={34}
+    />
+  );
+
+  if (replaySlug && children) {
+    function Content() {
+      const organization = useOrganization();
+      const readerResult = useLoadReplayReader({
+        orgSlug: organization.slug,
+        replaySlug,
+        clipWindow: undefined,
+      });
+      return (
+        <ReplayLoadingState readerResult={readerResult}>
           {({replay}) => <Providers replay={replay}>{children}</Providers>}
         </ReplayLoadingState>
       );
-    } else if (render) {
-      content = render(replaySlug);
     }
+    return (
+      <Fragment>
+        {input}
+        <Content />
+      </Fragment>
+    );
   }
 
-  return (
-    <Fragment>
-      <input
-        defaultValue={replaySlug}
-        onChange={event => {
-          setReplaySlug(event.target.value);
-        }}
-        placeholder="Paste a replaySlug"
-        css={css`
-          font-variant-numeric: tabular-nums;
-        `}
-        size={34}
-      />
-      {content}
-    </Fragment>
-  );
+  if (replaySlug && render) {
+    return (
+      <Fragment>
+        {input}
+        {render(replaySlug)}
+      </Fragment>
+    );
+  }
+
+  return null;
 }

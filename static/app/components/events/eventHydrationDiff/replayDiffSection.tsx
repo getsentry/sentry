@@ -54,7 +54,7 @@ export function ReplayDiffSection({event, group, replayId}: Props) {
   );
 }
 
-export const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;
