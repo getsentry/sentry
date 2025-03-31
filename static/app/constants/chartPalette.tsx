@@ -3,6 +3,9 @@
  */
 
 // palette generated via: https://gka.github.io/palettes/#colors=444674,69519A,E1567C,FB7D46,F2B712|steps=20|bez=1|coL=1
+/**
+ * @deprecated Use `theme.chart.getColorPalette` instead
+ */
 export const CHART_PALETTE = [
   ['#444674'],
   ['#444674', '#f2b712'],
@@ -211,6 +214,8 @@ type Next<R extends ValidLengthArgument> = NextMap[R];
  * @TODO(jonasbadalic) Clarify why we return length+1. For a given length of 1, we should
  * return a single color, not two colors. It smells like either a bug or off by one error.
  * @param length - The number of series to return a color palette for?
+ *
+ * @deprecated Use `theme.chart.getColorPalette` instead
  */
 export function getChartColorPalette<Length extends ValidLengthArgument>(
   length: Length | number

@@ -12,7 +12,6 @@ import {HeaderTitleLegend, HeaderValue} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
@@ -145,28 +144,28 @@ class ReleaseSessionsChart extends Component<Props> {
     }
   }
 
-  getColors() {
+  getColors(): string[] | undefined {
     const {theme, chartType} = this.props;
-    const colors = getChartColorPalette(14);
+    const colors = theme.chart.getColorPalette(14);
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
-        return [colors[0]];
+        return [colors[0]!];
       case ReleaseComparisonChartType.HEALTHY_SESSIONS:
         return [theme.green300];
       case ReleaseComparisonChartType.ABNORMAL_SESSIONS:
-        return [colors[15]];
+        return [colors[15]!];
       case ReleaseComparisonChartType.ERRORED_SESSIONS:
-        return [colors[12]];
+        return [colors[12]!];
       case ReleaseComparisonChartType.CRASHED_SESSIONS:
         return [theme.red300];
       case ReleaseComparisonChartType.CRASH_FREE_USERS:
-        return [colors[6]];
+        return [colors[6]!];
       case ReleaseComparisonChartType.HEALTHY_USERS:
         return [theme.green300];
       case ReleaseComparisonChartType.ABNORMAL_USERS:
-        return [colors[15]];
+        return [colors[15]!];
       case ReleaseComparisonChartType.ERRORED_USERS:
-        return [colors[12]];
+        return [colors[12]!];
       case ReleaseComparisonChartType.CRASHED_USERS:
         return [theme.red300];
       case ReleaseComparisonChartType.SESSION_COUNT:

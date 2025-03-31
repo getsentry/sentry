@@ -3,6 +3,7 @@ import {EventsStatsFixture} from 'sentry-fixture/events';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {lightTheme} from 'sentry/utils/theme';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   AlertRuleComparisonType,
@@ -44,6 +45,7 @@ describe('Incident Rules Create', () => {
         anomalies={[]}
         location={router.location}
         organization={organization}
+        theme={lightTheme}
         projects={[project]}
         query="event.type:error"
         timeWindow={1}
@@ -96,6 +98,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={lightTheme}
         api={api}
         location={router.location}
         organization={organization}
@@ -152,6 +155,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={lightTheme}
         api={api}
         location={router.location}
         organization={organization}
@@ -211,6 +215,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={lightTheme}
         api={api}
         location={router.location}
         organization={organization}

@@ -1,7 +1,7 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
@@ -49,7 +49,8 @@ export function PerformanceScoreBreakdownChart({
   browserTypes,
   subregions,
 }: Props) {
-  const segmentColors = getChartColorPalette(3).slice(0, 5);
+  const theme = useTheme();
+  const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
 
   const pageFilters = usePageFilters();
 

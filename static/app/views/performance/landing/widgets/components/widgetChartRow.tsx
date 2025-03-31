@@ -1,9 +1,9 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type EventView from 'sentry/utils/discover/eventView';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -37,9 +37,10 @@ function getInitialChartSettings(
 }
 
 function ChartRow(props: ChartRowProps) {
+  const theme = useTheme();
   const {chartCount, chartHeight, allowedCharts} = props;
   const performanceType = usePerformanceDisplayType();
-  const palette = getChartColorPalette(chartCount);
+  const palette = theme.chart.getColorPalette(chartCount);
 
   const [chartSettings, setChartSettings] = useState(
     getInitialChartSettings(chartCount, chartHeight, performanceType, allowedCharts)

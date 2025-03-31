@@ -1,7 +1,5 @@
 import styled from '@emotion/styled';
 
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
-
 type TopResultsIndicatorProps = {
   count: number;
   index: number;
@@ -20,7 +18,7 @@ export const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
     // app/components/charts/eventsChart so that the ordering matches
 
     // the color pallete contains n + 2 colors, so we subtract 2 here
-    return getChartColorPalette(p.count - 2)?.[p.index];
+    return p.theme.chart.getColorPalette(p.count - 2)?.[p.index];
   }};
 `;
 

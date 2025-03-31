@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -26,6 +26,7 @@ export function WidgetLibrary({
   onWidgetSelect,
   selectedWidgetId,
 }: Props) {
+  const theme = useTheme();
   const organization = useOrganization();
   const defaultWidgets = getTopNConvertedDefaultWidgets(organization);
 
@@ -52,7 +53,9 @@ export function WidgetLibrary({
       <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
         {defaultWidgets.map((widget, index) => {
-          const iconColor = getChartColorPalette(defaultWidgets.length - 2)?.[index]!;
+          const iconColor = theme.chart.getColorPalette(defaultWidgets.length - 2)?.[
+            index
+          ]!;
 
           const displayType =
             widget.displayType === DisplayType.TOP_N

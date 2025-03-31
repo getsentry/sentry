@@ -7,6 +7,7 @@ import styled, {
 import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
+import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
 import commonTheme, {
   type ColorMapping,
   darkTheme,
@@ -798,6 +799,9 @@ interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
   space: typeof space;
 }
 
+// Redeclare as we dont want to use the deprecation
+const getColorPalette = getChartColorPalette;
+
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
 
@@ -826,6 +830,11 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   button: generateButtonTheme(chonkLightColorMapping, lightAliases),
   tag: generateTagTheme(chonkLightColorMapping),
   level: generateLevelTheme(chonkLightColorMapping),
+
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette,
+  },
 
   prismVariables: generateThemePrismVariables(
     prismLight,
@@ -880,6 +889,11 @@ export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   button: generateButtonTheme(chonkDarkColorMapping, darkAliases),
   tag: generateTagTheme(chonkDarkColorMapping),
   level: generateLevelTheme(chonkDarkColorMapping),
+
+  chart: {
+    colors: CHART_PALETTE,
+    getColorPalette: getChartColorPalette,
+  },
 
   prismVariables: generateThemePrismVariables(prismDark, darkAliases.backgroundSecondary),
   prismDarkVariables: generateThemePrismVariables(

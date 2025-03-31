@@ -11,7 +11,6 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
@@ -124,7 +123,7 @@ function VitalChart({
                 }
 
                 const colors =
-                  (results && getChartColorPalette(results.length - 2)) || [];
+                  (results && theme.chart.getColorPalette(results.length - 2)) || [];
 
                 const {smoothedResults} = transformEventStatsSmoothed(results);
 
