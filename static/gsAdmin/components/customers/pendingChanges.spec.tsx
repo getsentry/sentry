@@ -169,6 +169,7 @@ describe('PendingChanges', function () {
           contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: ['errors', 'transactions', 'attachments'],
+          budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
           enabled: true,
@@ -218,6 +219,7 @@ describe('PendingChanges', function () {
           contractInterval: 'annual',
           billingInterval: 'annual',
           onDemandCategories: ['errors', 'transactions', 'attachments'],
+          budgetTerm: 'on-demand',
         }),
         onDemandBudgets: {
           enabled: true,

@@ -9,7 +9,10 @@ import withApi from 'sentry/utils/withApi';
 import {sendAddEventsRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import StartTrialButton from 'getsentry/components/startTrialButton';
 import type {Subscription} from 'getsentry/types';
-import {getBestActionToIncreaseEventLimits} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  getBestActionToIncreaseEventLimits,
+} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
@@ -107,7 +110,7 @@ function AddEventsCTA(props: Props) {
         <Button to={subscriptionUrl} onClick={() => manageOnDemand()} {...commonProps}>
           {tct('[action] [budgetTerm]', {
             action: subscription.onDemandBudgets?.enabled ? 'Increase' : 'Setup',
-            budgetTerm: subscription.planDetails.budgetTerm,
+            budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
           })}
         </Button>
       );

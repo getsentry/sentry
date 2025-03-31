@@ -83,14 +83,14 @@ class PendingChanges extends Component<Props> {
             tct(
               '[budgetType] budget change from [currentOnDemandBudgets] to [nextOnDemandBudgets]',
               {
-                budgetType: subscription.planDetails.budgetTerm,
+                budgetType: displayBudgetName(pendingChanges.planDetails, {title: true}),
                 currentOnDemandBudgets: formatOnDemandBudget(
                   subscription.planDetails,
                   currentOnDemandBudgets,
                   subscription.planDetails.onDemandCategories
                 ),
                 nextOnDemandBudgets: formatOnDemandBudget(
-                  subscription.planDetails,
+                  pendingChanges.planDetails,
                   nextOnDemandBudgets,
                   pendingChanges.planDetails.onDemandCategories
                 ),

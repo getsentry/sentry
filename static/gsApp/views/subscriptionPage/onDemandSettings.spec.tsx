@@ -177,7 +177,7 @@ describe('edit on-demand budget', () => {
 
     await userEvent.click(screen.getByText('Edit'));
 
-    expect(await screen.findByText('Edit On-Demand Budgets')).toBeInTheDocument();
+    expect(await screen.findByText('Edit On-Demand Budget')).toBeInTheDocument();
     expect(screen.getByTestId('shared-budget-radio')).toBeChecked();
     expect(screen.getByRole('textbox', {name: 'Shared max budget'})).toHaveValue('45');
 
@@ -310,7 +310,7 @@ describe('edit on-demand budget', () => {
 
     await userEvent.click(screen.getByText('Edit'));
 
-    expect(await screen.findByText('Edit On-Demand Budgets')).toBeInTheDocument();
+    expect(await screen.findByText('Edit On-Demand Budget')).toBeInTheDocument();
     expect(screen.getByTestId('shared-budget-radio')).toBeChecked();
     expect(screen.getByRole('textbox', {name: 'Shared max budget'})).toHaveValue('0.76');
 
@@ -421,7 +421,7 @@ describe('edit on-demand budget', () => {
 
     await userEvent.click(screen.getByText('Edit'));
 
-    expect(await screen.findByText('Edit On-Demand Budgets')).toBeInTheDocument();
+    expect(await screen.findByText('Edit On-Demand Budget')).toBeInTheDocument();
     expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
     expect(screen.getByRole('textbox', {name: 'Errors budget'})).toHaveValue('10');
     expect(screen.getByRole('textbox', {name: 'Transactions budget'})).toHaveValue('20');
@@ -525,7 +525,7 @@ describe('edit on-demand budget', () => {
 
     await userEvent.click(screen.getByText('Edit'));
 
-    expect(await screen.findByText('Edit On-Demand Budgets')).toBeInTheDocument();
+    expect(await screen.findByText('Edit On-Demand Budget')).toBeInTheDocument();
     expect(screen.getByTestId('shared-budget-radio')).toBeChecked();
     expect(screen.getByRole('textbox', {name: 'Shared max budget'})).toHaveValue('42');
 
@@ -622,7 +622,7 @@ describe('edit on-demand budget', () => {
 
     await userEvent.click(screen.getByText('Edit'));
 
-    expect(await screen.findByText('Edit On-Demand Budgets')).toBeInTheDocument();
+    expect(await screen.findByText('Edit On-Demand Budget')).toBeInTheDocument();
     expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
     expect(screen.getByRole('textbox', {name: 'Errors budget'})).toHaveValue('10');
     expect(screen.getByRole('textbox', {name: 'Transactions budget'})).toHaveValue('20');

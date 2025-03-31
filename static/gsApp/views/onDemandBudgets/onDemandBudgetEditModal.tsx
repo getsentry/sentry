@@ -16,6 +16,7 @@ import withApi from 'sentry/utils/withApi';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {OnDemandBudgets, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 
 import OnDemandBudgetEdit from './onDemandBudgetEdit';
 import {
@@ -312,7 +313,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
           <h4>
             {tct('[action] [budgetType] Budget', {
               action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
-              budgetType: subscription.planDetails.budgetTerm,
+              budgetType: displayBudgetName(subscription.planDetails, {title: true}),
             })}
           </h4>
         </Header>
