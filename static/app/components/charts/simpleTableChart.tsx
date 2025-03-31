@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -64,6 +64,7 @@ function SimpleTableChart({
 }: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const theme = useTheme();
   function renderRow(
     index: number,
     row: TableDataRow,
@@ -76,7 +77,7 @@ function SimpleTableChart({
         getFieldRenderer(column.key, tableMeta);
 
       const unit = tableMeta.units?.[column.key];
-      let cell = fieldRenderer(row, {organization, location, eventView, unit});
+      let cell = fieldRenderer(row, {organization, location, eventView, unit, theme});
 
       if (column.key === 'transaction' && row.transaction) {
         cell = (

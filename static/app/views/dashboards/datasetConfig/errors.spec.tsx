@@ -11,6 +11,7 @@ import type {Client} from 'sentry/api';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {lightTheme} from 'sentry/utils/theme';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 
 describe('ErrorsConfig', function () {
@@ -43,6 +44,7 @@ describe('ErrorsConfig', function () {
           {
             organization,
             location: router.location,
+            theme: lightTheme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'trace'}],
@@ -71,6 +73,7 @@ describe('ErrorsConfig', function () {
           {
             organization,
             location: router.location,
+            theme: lightTheme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'id'}],
