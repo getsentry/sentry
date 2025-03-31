@@ -1,15 +1,23 @@
-from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 
 
+class InCommitResult(TypedDict):
+    commit: str
+    repository: str
+
+
+@extend_schema_serializer()
 class InCommitValidator(serializers.Serializer):
-    commit = serializers.CharField(required=True)
-    repository = serializers.CharField(required=True)
+    commit = serializers.CharField(required=True, help_text="The SHA of the resolving commit.")
+    repository = serializers.CharField(
+        required=True, help_text="The name of the repository (as it appears in Sentry)."
+    )
 
     def validate_repository(self, value: str) -> Repository:
         project = self.context["project"]
@@ -18,7 +26,7 @@ class InCommitValidator(serializers.Serializer):
         except Repository.DoesNotExist:
             raise serializers.ValidationError("Unable to find the given repository.")
 
-    def validate(self, attrs: Mapping[str, Any]) -> Commit:
+    def validate(self, attrs: dict[str, Any]) -> Commit:
         attrs = super().validate(attrs)
         repository = attrs.get("repository")
         commit = attrs.get("commit")
