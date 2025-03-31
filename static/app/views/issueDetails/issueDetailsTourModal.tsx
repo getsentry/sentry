@@ -29,13 +29,17 @@ export function IssueDetailsTourModal({
         <Header prefersDarkMode={prefersDarkMode}>
           {t('Welcome to the new Issue Details')}
         </Header>
-        <Description>{t('Make the most out of the redesigned experience.')}</Description>
+        <Description>
+          {t(
+            "Have 30 seconds? Tour the redesigned experience - we promise you'll be less confused."
+          )}
+        </Description>
         <Footer>
           <TextTourAction size="sm" onClick={handleDismissTour} borderless>
-            {t('Got it')}
+            {t('Maybe later')}
           </TextTourAction>
           <TourAction size="sm" onClick={handleStartTour} borderless autoFocus>
-            {t('Take a tour')}
+            {t('Take tour')}
           </TourAction>
         </Footer>
       </TextContainer>

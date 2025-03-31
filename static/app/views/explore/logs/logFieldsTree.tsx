@@ -207,7 +207,9 @@ function LogFieldsTreeColumns({
     }
 
     // Convert attributes record to the format expected by addToAttributeTree
-    const visibleAttributes = Object.keys(attributes)
+    const visibleAttributes = (
+      Array.isArray(attributes) ? attributes : Object.keys(attributes)
+    )
       .map(key => getAttribute(attributes, key, hiddenAttributes))
       .filter(defined);
 
@@ -357,18 +359,20 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
   const [isVisible, setIsVisible] = useState(false);
   const originalAttribute = content.originalAttribute;
-
-  const addFilter = useCallback(() => {
-    if (!originalAttribute) {
-      return;
-    }
-    const newSearch = search.copy();
-    newSearch.addFilterValue(
-      originalAttribute.original_attribute_key,
-      String(content.value)
-    );
-    setLogsSearch(newSearch);
-  }, [originalAttribute, content.value, setLogsSearch, search]);
+  const addSearchFilter = useCallback(
+    ({negated}: {negated?: boolean} = {}) => {
+      if (!originalAttribute) {
+        return;
+      }
+      const newSearch = search.copy();
+      newSearch.addFilterValue(
+        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
+        String(content.value)
+      );
+      setLogsSearch(newSearch);
+    },
+    [originalAttribute, content.value, setLogsSearch, search]
+  );
 
   const addColumn = useCallback(() => {
     if (!originalAttribute) {
@@ -376,7 +380,7 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
     }
     const newFields = [...fields];
     if (newFields[newFields.length - 1] === OurLogKnownFieldKey.TIMESTAMP) {
-      newFields.splice(newFields.length - 1, 0, originalAttribute.original_attribute_key);
+      newFields.splice(-1, 0, originalAttribute.original_attribute_key);
     } else {
       newFields.push(originalAttribute.original_attribute_key);
     }
@@ -392,7 +396,14 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
       key: 'search-for-value',
       label: t('Search for this value'),
       onAction: () => {
-        addFilter();
+        addSearchFilter();
+      },
+    },
+    {
+      key: 'search-for-negated-value',
+      label: t('Exclude this value'),
+      onAction: () => {
+        addSearchFilter({negated: true});
       },
     },
     {
@@ -499,16 +510,47 @@ function LogFieldsTreeValue({
  */
 function getAttribute(
   attributes: TraceItemAttributes,
-  attributeKey: string,
+  attributeKey: string | Record<string, any>,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
+  if (typeof attributeKey === 'object') {
+    return getAttributeFromObject(attributes, attributeKey, hiddenAttributes);
+  }
+
   // Filter out hidden attributes
-  if (hiddenAttributes.includes(attributeKey as OurLogFieldKey)) {
+  if (hiddenAttributes.includes(attributeKey)) {
     return undefined;
   }
 
   const attribute = attributes[attributeKey];
   if (!attribute) {
+    return undefined;
+  }
+
+  // Replace the key name with the new key name
+  const newKeyName = removeSentryPrefix(attributeKey);
+
+  const attributeValue =
+    attribute.type === 'bool' ? String(attribute.value) : attribute.value;
+  if (!defined(attributeValue)) {
+    return undefined;
+  }
+
+  return {
+    attribute_key: newKeyName,
+    attribute_value: attributeValue,
+    original_attribute_key: attributeKey,
+  };
+}
+
+function getAttributeFromObject(
+  _: TraceItemAttributes,
+  attribute: Record<string, any>,
+  hiddenAttributes: OurLogFieldKey[]
+): Attribute | undefined {
+  const attributeKey = attribute.name;
+  // Filter out hidden attributes
+  if (hiddenAttributes.includes(attributeKey)) {
     return undefined;
   }
 

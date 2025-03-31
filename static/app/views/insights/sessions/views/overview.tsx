@@ -19,6 +19,8 @@ import {
 } from 'sentry/views/insights/pages/useFilters';
 import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
 import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
+import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
+import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
 import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
 import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
 import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
@@ -26,13 +28,13 @@ import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessio
 import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function SessionsOverview() {
   const {view = ''} = useDomainViewFilters();
-
   const [filters, setFilters] = useState<string[]>(['']);
 
   // only show onboarding if the project does not have session data
@@ -104,23 +106,37 @@ function ViewSpecificCharts({
             <UserHealthCountChart />
           </ModuleLayout.Third>
 
-          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <UserHealthRateChart />
           </ModuleLayout.Third>
+
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <GiveFeedbackSection />
+          </ModuleLayout.Third>
         </Fragment>
       );
+
     case MOBILE_LANDING_SUB_PATH:
       return (
         <Fragment>
           <ModuleLayout.Third>
             <CrashFreeSessionsChart />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New issues over time</ModuleLayout.Third>
-          <ModuleLayout.Third>Coming soon: New issues per release</ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="issue" />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <ReleaseNewIssuesChart />
+          </ModuleLayout.Third>
 
           <ModuleLayout.Third>
             <ReleaseSessionCountChart />
@@ -142,6 +158,13 @@ function ViewSpecificCharts({
             <UserHealthRateChart />
           </ModuleLayout.Third>
 
+          <ModuleLayout.Third>
+            <NewAndResolvedIssueChart type="feedback" />
+          </ModuleLayout.Third>
+          <ModuleLayout.Third>
+            <GiveFeedbackSection />
+          </ModuleLayout.Third>
+
           <ModuleLayout.Full>
             <FilterWrapper>
               <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
@@ -157,10 +180,7 @@ function ViewSpecificCharts({
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="http"
-      analyticEventName="insight.page_loads.sessions"
-    >
+    <ModulePageProviders moduleName="sessions">
       <SessionsOverview />
     </ModulePageProviders>
   );

@@ -1,10 +1,14 @@
-import {Fragment, memo, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
+import useDrawer from 'sentry/components/globalDrawer';
 import {DrawerBody, DrawerHeader} from 'sentry/components/globalDrawer/components';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,26 +17,43 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {prettifyTagKey} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import {
-  useExploreQuery,
-  useSetExploreQuery,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+import type {SchemaHintsPageParams} from 'sentry/views/explore/components/schemaHintsList';
+import {addFilterToQuery} from 'sentry/views/explore/components/schemaHintsList';
 
-type SchemaHintsDrawerProps = {
+type SchemaHintsDrawerProps = SchemaHintsPageParams & {
   hints: Tag[];
 };
 
-function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
-  const exploreQuery = useExploreQuery();
-  const setExploreQuery = useSetExploreQuery();
+function SchemaHintsDrawer({
+  hints,
+  exploreQuery,
+  setExploreQuery,
+}: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [currentQuery, setCurrentQuery] = useState(exploreQuery);
+
+  const handleQueryChange = useCallback(
+    (newQuery: string) => {
+      setCurrentQuery(newQuery);
+      setExploreQuery(newQuery);
+    },
+    [setExploreQuery]
+  );
 
   const selectedFilterKeys = useMemo(() => {
-    const filterQuery = new MutableSearch(exploreQuery);
-    return filterQuery.getFilterKeys();
-  }, [exploreQuery]);
+    const filterQuery = new MutableSearch(currentQuery);
+    const allKeys = filterQuery.getFilterKeys();
+    // When there is a filter with a negation, it stores the negation in the key.
+    // To ensure all the keys are represented correctly in the drawer, we must
+    // take these into account.
+    const keysWithoutNegation = allKeys.map(key => key.replace('!', ''));
+    return [...new Set(keysWithoutNegation)];
+  }, [currentQuery]);
 
   const sortedSelectedHints = useMemo(() => {
     const sortedKeys = selectedFilterKeys.toSorted((a, b) => {
@@ -48,7 +69,6 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
       ...new Set([
         ...sortedSelectedHints,
         ...hints.toSorted((a, b) => {
-          // may need to fix this if we don't want to ignore the prefix
           const aWithoutPrefix = prettifyTagKey(a.key).replace(/^_/, '');
           const bWithoutPrefix = prettifyTagKey(b.key).replace(/^_/, '');
           return aWithoutPrefix.localeCompare(bWithoutPrefix);
@@ -69,30 +89,42 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
     );
   }, [sortedHints, searchQuery]);
 
+  const virtualizer = useVirtualizer({
+    count: sortedAndFilteredHints.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 35,
+    overscan: 5,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
-      const filterQuery = new MutableSearch(exploreQuery);
-      if (filterQuery.getFilterKeys().includes(hint.key)) {
+      const filterQuery = new MutableSearch(currentQuery);
+      if (
+        filterQuery
+          .getFilterKeys()
+          .some(key => key === hint.key || key === `!${hint.key}`)
+      ) {
+        // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(hint.key);
+        filterQuery.removeFilter(`!${hint.key}`);
       } else {
         const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
-        filterQuery.addFilterValue(
-          hint.key,
+        addFilterToQuery(
+          filterQuery,
+          hint,
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-            ? 'True'
-            : hint.kind === FieldKind.MEASUREMENT
-              ? '>0'
-              : ''
         );
       }
-      setExploreQuery(filterQuery.formatString());
+      handleQueryChange(filterQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'drawer',
         organization,
       });
     },
-    [exploreQuery, organization, setExploreQuery]
+    [currentQuery, handleQueryChange, organization]
   );
 
   const noAttributesMessage = (
@@ -101,44 +133,40 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
     </NoAttributesMessage>
   );
 
-  const HintItem = memo(
-    ({hint}: {hint: Tag}) => {
-      const hintFieldDefinition = useMemo(
-        () => getFieldDefinition(hint.key, 'span', hint.kind),
-        [hint.key, hint.kind]
+  function HintItem({hint, index}: {hint: Tag; index: number}) {
+    const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+
+    const hintType =
+      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ? (
+        <Badge type="default">{t('boolean')}</Badge>
+      ) : hint.kind === FieldKind.MEASUREMENT ? (
+        <Badge type="success">{t('number')}</Badge>
+      ) : (
+        <Badge type="highlight">{t('string')}</Badge>
       );
 
-      const hintType = useMemo(
-        () =>
-          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-            ? t('boolean')
-            : hint.kind === FieldKind.MEASUREMENT
-              ? t('number')
-              : t('string'),
-        [hintFieldDefinition?.valueType, hint.kind]
-      );
-      return (
+    return (
+      <div ref={virtualizer.measureElement} data-index={index}>
         <StyledMultipleCheckboxItem
           key={hint.key}
           value={hint.key}
           onChange={() => handleCheckboxChange(hint)}
         >
           <CheckboxLabelContainer>
-            <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
-            <Badge>{hintType}</Badge>
+            <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
+              <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
+            </Tooltip>
+            {hintType}
           </CheckboxLabelContainer>
         </StyledMultipleCheckboxItem>
-      );
-    },
-    (prevProps, nextProps) => {
-      return prevProps.hint.key === nextProps.hint.key;
-    }
-  );
+      </div>
+    );
+  }
 
   return (
     <Fragment>
       <DrawerHeader hideBar />
-      <DrawerBody>
+      <StyledDrawerBody>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
@@ -154,19 +182,51 @@ function SchemaHintsDrawer({hints}: SchemaHintsDrawerProps) {
           </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
-          {sortedAndFilteredHints.length === 0
-            ? noAttributesMessage
-            : sortedAndFilteredHints.map(hint => <HintItem key={hint.key} hint={hint} />)}
+          <ScrollContainer ref={scrollContainerRef}>
+            <AllItemsContainer height={virtualizer.getTotalSize()}>
+              {sortedAndFilteredHints.length === 0
+                ? noAttributesMessage
+                : virtualItems.map(item => (
+                    <VirtualOffset offset={item.start} key={item.key}>
+                      <HintItem
+                        key={item.key}
+                        hint={sortedAndFilteredHints[item.index]!}
+                        index={item.index}
+                      />
+                    </VirtualOffset>
+                  ))}
+            </AllItemsContainer>
+          </ScrollContainer>
         </StyledMultipleCheckbox>
-      </DrawerBody>
+      </StyledDrawerBody>
     </Fragment>
   );
 }
 
 export default SchemaHintsDrawer;
 
+/**
+ * Used to determine if the schema hints drawer should be rendered (only applicable on
+ * large screens)
+ */
+export const useSchemaHintsOnLargeScreen = () => {
+  const organization = useOrganization();
+  const {isDrawerOpen: isSchemaHintsDrawerOpen} = useDrawer();
+  const theme = useTheme();
+  const isLargeScreen = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
+  const isSchemaHintsDrawerOpenOnLargeScreen =
+    isSchemaHintsDrawerOpen &&
+    isLargeScreen &&
+    organization.features.includes('traces-schema-hints');
+  return isSchemaHintsDrawerOpenOnLargeScreen;
+};
+
 const SchemaHintsHeader = styled('h4')`
   margin: 0;
+`;
+
+const StyledDrawerBody = styled(DrawerBody)`
+  height: 100%;
 `;
 
 const HeaderContainer = styled('div')`
@@ -193,7 +253,9 @@ const CheckboxLabel = styled('span')`
 `;
 
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
-  flex-direction: column;
+  display: block;
+  height: 100%;
+  overflow: auto;
 `;
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
@@ -213,10 +275,6 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
     background-color: ${p => p.theme.gray100};
   }
 
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-
   & > label {
     width: 100%;
     margin: 0;
@@ -227,6 +285,25 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
     width: 100%;
     ${p => p.theme.overflowEllipsis};
   }
+`;
+
+const ScrollContainer = styled('div')`
+  height: 100%;
+  overflow: auto;
+`;
+
+const AllItemsContainer = styled('div')<{height: number}>`
+  position: relative;
+  width: 100%;
+  height: ${p => p.height}px;
+`;
+
+const VirtualOffset = styled('div')<{offset: number}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(${p => p.offset}px);
 `;
 
 const SearchInput = styled(InputGroup.Input)`

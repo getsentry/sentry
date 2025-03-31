@@ -1,4 +1,5 @@
 import {FieldKey} from 'sentry/utils/fields';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const FRONTEND_HINT_KEYS = [SpanIndexedField.BROWSER_NAME, SpanIndexedField.USER];
@@ -20,6 +21,37 @@ const COMMON_HINT_KEYS = [
   'url',
 ];
 
-export const SCHEMA_HINTS_LIST_ORDER_KEYS = [
+const LOGS_HINT_KEYS = [
+  OurLogKnownFieldKey.BODY,
+  OurLogKnownFieldKey.SEVERITY_TEXT,
+  OurLogKnownFieldKey.ORGANIZATION_ID,
+  OurLogKnownFieldKey.PROJECT_ID,
+  OurLogKnownFieldKey.PARENT_SPAN_ID,
+  OurLogKnownFieldKey.TIMESTAMP,
+];
+
+const SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS = [
+  ...new Set([
+    ...FRONTEND_HINT_KEYS,
+    ...MOBILE_HINT_KEYS,
+    ...LOGS_HINT_KEYS,
+    ...COMMON_HINT_KEYS,
+  ]),
+];
+
+const SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE = [
   ...new Set([...FRONTEND_HINT_KEYS, ...MOBILE_HINT_KEYS, ...COMMON_HINT_KEYS]),
 ];
+
+export enum SchemaHintsSources {
+  EXPLORE = 'explore',
+  LOGS = 'logs',
+}
+
+export const getSchemaHintsListOrder = (source: SchemaHintsSources) => {
+  if (source === SchemaHintsSources.LOGS) {
+    return SCHEMA_HINTS_LIST_ORDER_KEYS_LOGS;
+  }
+
+  return SCHEMA_HINTS_LIST_ORDER_KEYS_EXPLORE;
+};

@@ -191,6 +191,7 @@ export function AutofixOutputStream({
                 type="text"
                 value={message}
                 onChange={e => setMessage(e.target.value)}
+                maxLength={4096}
                 placeholder={
                   responseRequired ? 'Please answer to continue...' : 'Interrupt me...'
                 }
@@ -314,7 +315,6 @@ const StyledButton = styled(Button)`
   height: 24px;
   width: 24px;
   margin-right: 0;
-  z-index: 2;
 `;
 
 const SeerIconContainer = styled('div')`
@@ -324,11 +324,9 @@ const SeerIconContainer = styled('div')`
 
 const StyledAnimatedSeerIcon = styled(SeerLoadingIcon)`
   position: relative;
-  opacity: 0.9;
   transition: opacity 0.2s ease;
   top: 0;
   flex-shrink: 0;
-  color: ${p => p.theme.purple400};
-  filter: brightness(0.6);
+  color: ${p => p.theme.textColor};
   z-index: 10000;
 `;

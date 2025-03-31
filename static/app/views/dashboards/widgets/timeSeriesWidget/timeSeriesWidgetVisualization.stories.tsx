@@ -18,9 +18,11 @@ import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../comm
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
+import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -33,6 +35,17 @@ const sampleDurationTimeSeries2 = {
     return {
       ...datum,
       value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
+    };
+  }),
+};
+
+const sampleDurationTimeSeries3 = {
+  ...sampleDurationTimeSeries,
+  field: 'p75(span.duration)',
+  data: sampleDurationTimeSeries.data.map(datum => {
+    return {
+      ...datum,
+      value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
     };
   }),
 };
@@ -116,12 +129,14 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             stacked!
           </li>
           <li>
-            Bar charts are to your discretion, it's most an aesthetic choice. Generally,
-            bars communicate discrete buckets, and lines communicate continuous data. If
-            you are plotting something like duration, even if it's broken down by time
-            buckets, a line feels right. If you are plotting someting like throughput (a
-            naturally bucketed value) and the buckets are big, a bar chart might be
-            better. Bar charts are also great for comparing quantities.
+            Bar charts are to your discretion. Generally, bars communicate discrete
+            buckets, and lines communicate continuous data. If you are plotting something
+            like duration, even if it's broken down by time buckets, a line feels right.
+            If you are plotting someting like throughput (a naturally bucketed value) and
+            the buckets are big, a bar chart might be better. Generally, bar charts should
+            be bucketed by a pretty long interval, at least a day. Otherwise, there are
+            too many bars, they end up too skinny, and they're hard to understand and
+            interact with.
           </li>
           <li>Use line charts when in doubt! They are almost always the right choice</li>
         </ul>
@@ -293,6 +308,37 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               ]}
             />
           </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  field: 'custom_agg(duration)',
+                  meta: {
+                    type: 'number',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries2,
+                  field: 'custom_agg2(duration)',
+                  meta: {
+                    type: 'integer',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'custom_agg3(duration)',
+                  meta: {
+                    type: 'duration',
+                    unit: DurationUnit.MILLISECOND,
+                  },
+                }),
+              ]}
+            />
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -336,6 +382,34 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Samples', () => {
+    return (
+      <Fragment>
+        <p>
+          <code>Samples</code> plots discontinuous points. It's useful for placing markers
+          for individual events on top of a continuous aggregate series. In the example
+          below, we plot a set of span duration samples on top of an aggregate series of
+          the 99th percentile of those durations. Samples that are faster than a baseline
+          are green, samples that are slower are red.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Line(sampleDurationTimeSeries),
+              new Samples(spanSamplesWithDurations, {
+                alias: 'Span Samples',
+                attributeName: 'p99(span.duration)',
+                baselineValue: 175,
+                baselineLabel: 'Average',
+              }),
+            ]}
+          />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Stacking', () => {
     return (
       <Fragment>
@@ -365,6 +439,20 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           </MediumWidget>
           <SmallWidget />
         </SideBySide>
+        <p>
+          Since stacking is configured per plottable, you can combine stacked and
+          unstacked series. Be wary, this creates really high information density, so
+          don't do this on small charts.
+        </p>
+        <LargeWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Bars(sampleDurationTimeSeries, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeries2, {stack: 'all'}),
+              new Bars(sampleDurationTimeSeries3),
+            ]}
+          />
+        </LargeWidget>
       </Fragment>
     );
   });
@@ -407,8 +495,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(shiftedSampleDurationTimeSeries, {stack: 'all'}),
-                new Bars(shiftedSampleDurationTimeSeries2, {stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries, {delay, stack: 'all'}),
+                new Bars(shiftedSampleDurationTimeSeries2, {delay, stack: 'all'}),
               ]}
             />
           </MediumWidget>
@@ -596,6 +684,12 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 const FillParent = styled('div')`
   width: 100%;
   height: 100%;
+`;
+
+const LargeWidget = styled('div')`
+  position: relative;
+  width: 600px;
+  height: 300px;
 `;
 
 const MediumWidget = styled('div')`

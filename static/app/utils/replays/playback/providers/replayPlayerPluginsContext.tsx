@@ -28,8 +28,6 @@ export function useReplayPlayerPlugins() {
   return useContext(context);
 }
 
-function getPlugins(organization: Organization, events: eventWithTime[]) {
-  return organization.features.includes('session-replay-enable-canvas-replayer')
-    ? [CanvasReplayerPlugin(events)]
-    : [];
+function getPlugins(_organization: Organization, events: eventWithTime[]) {
+  return [CanvasReplayerPlugin(events)];
 }

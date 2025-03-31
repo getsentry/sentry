@@ -37,10 +37,9 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') === -1
-        ? InstallationMode.AUTO
-        : InstallationMode.MANUAL,
+    defaultValue: navigator.userAgent.includes('Win')
+      ? InstallationMode.MANUAL
+      : InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -124,8 +123,8 @@ const getReplaySetupSnippetXml = () => `
 <meta-data android:name="io.sentry.session-replay.session-sample-rate" android:value="1.0" />`;
 
 const getReplayConfigurationSnippet = () => `
-options.sessionReplay.redactAllText = true
-options.sessionReplay.redactAllImages = true`;
+options.sessionReplay.maskAllText = true
+options.sessionReplay.maskAllImages = true`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params =>

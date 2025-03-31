@@ -99,8 +99,8 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             replay_counts = get_replay_counts(
                 snuba_params,
                 query_params["query"],
-                query_params["returnIds"],
                 query_params["data_source"],
+                return_ids=query_params["returnIds"],
             )
         except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

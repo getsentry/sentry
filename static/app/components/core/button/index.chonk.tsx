@@ -117,7 +117,6 @@ export function getChonkButtonStyles(
     '> span:last-child': {
       position: 'relative',
       zIndex: 1,
-      height: 'auto',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -127,6 +126,8 @@ export function getChonkButtonStyles(
     },
 
     '&:hover': {
+      color: getChonkButtonTheme(type, p.theme).color,
+
       '&::after': {
         transform: `translateY(-${translate}px)`,
       },

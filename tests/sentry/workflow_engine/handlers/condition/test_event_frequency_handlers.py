@@ -52,8 +52,17 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
                 "interval": self.payload["interval"],
                 "value": self.payload["value"],
                 "filters": [
-                    {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
-                    {"match": MatchType.IS_SET, "key": "environment"},
+                    {
+                        "match": MatchType.EQUAL,
+                        "key": "LOGGER",
+                        "value": "sentry.example",
+                    },  # TaggedEvent
+                    {"match": MatchType.IS_SET, "key": "environment"},  # TaggedEvent
+                    {
+                        "match": MatchType.EQUAL,
+                        "attribute": "platform",
+                        "value": "python",
+                    },  # EventAttribute
                 ],
             },
             condition_result=True,
@@ -136,6 +145,18 @@ class TestEventFrequencyCountCondition(ConditionTestCase):
                 condition_result=True,
             )
 
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "comparison_interval": "asdf",
+                    "filters": [{"match": MatchType.EQUAL, "attribute": "platform"}],
+                },
+                condition_result=True,
+            )
+
 
 class TestEventFrequencyPercentCondition(ConditionTestCase):
     def setUp(self):
@@ -175,8 +196,17 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                 "value": self.payload["value"],
                 "comparison_interval": self.payload["comparisonInterval"],
                 "filters": [
-                    {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
-                    {"match": MatchType.IS_SET, "key": "environment"},
+                    {
+                        "match": MatchType.EQUAL,
+                        "key": "LOGGER",
+                        "value": "sentry.example",
+                    },  # TaggedEvent
+                    {"match": MatchType.IS_SET, "key": "environment"},  # TaggedEvent
+                    {
+                        "match": MatchType.EQUAL,
+                        "attribute": "platform",
+                        "value": "python",
+                    },  # EventAttribute
                 ],
             },
             condition_result=True,
@@ -255,6 +285,18 @@ class TestEventFrequencyPercentCondition(ConditionTestCase):
                     "value": 100,
                     "comparison_interval": "asdf",
                     "filters": [{"match": "asdf", "key": "LOGGER", "value": "sentry.example"}],
+                },
+                condition_result=True,
+            )
+
+        with pytest.raises(ValidationError):
+            self.create_data_condition(
+                type=self.condition,
+                comparison={
+                    "interval": "1d",
+                    "value": 100,
+                    "comparison_interval": "asdf",
+                    "filters": [{"match": MatchType.EQUAL, "attribute": "platform"}],
                 },
                 condition_result=True,
             )
@@ -378,7 +420,7 @@ class TestEventUniqueUserFrequencyConditionWithConditions(ConditionTestCase):
             {"match": MatchType.IS_SET, "key": self.conditions[1]["key"]},
             {
                 "match": MatchType.EQUAL,
-                "key": self.conditions[2]["attribute"],
+                "attribute": self.conditions[2]["attribute"],
                 "value": self.conditions[2]["value"],
             },
         ]

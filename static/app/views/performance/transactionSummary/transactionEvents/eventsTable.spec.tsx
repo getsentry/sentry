@@ -241,12 +241,12 @@ describe('Performance GridEditable Table', function () {
 
     expect(await screen.findByRole('link', {name: 'deadbeef'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/undefined:deadbeef/?project=1&tab=events&transaction=transactionName&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/insights/backend/undefined:deadbeef/?project=1&tab=events&transaction=transactionName&transactionCursor=1%3A0%3A0'
     );
 
     expect(screen.getByRole('link', {name: '1234'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/insights/summary/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
   });
 

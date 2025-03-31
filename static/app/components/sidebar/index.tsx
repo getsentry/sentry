@@ -9,7 +9,6 @@ import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
-import {OptInBanner} from 'sentry/components/nav/optInBanner';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -75,6 +74,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
+import {OptInBanner} from 'sentry/views/nav/optInBanner';
 
 import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -244,10 +244,6 @@ function Sidebar() {
     </Feature>
   );
 
-  const hasPerfLandingRemovalFlag = organization?.features.includes(
-    'insights-performance-landing-removal'
-  );
-
   const releases = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
@@ -384,11 +380,7 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
-        active={
-          hasPerfLandingRemovalFlag
-            ? location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)
-            : undefined
-        }
+        active={location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)}
         exact={!shouldAccordionFloat}
       >
         <SidebarItem

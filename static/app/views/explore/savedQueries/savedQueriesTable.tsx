@@ -14,10 +14,12 @@ import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuer
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeSorts} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {getExploreUrl} from 'sentry/views/explore/utils';
+import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
+import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 import {useDeleteQuery} from '../hooks/useDeleteQuery';
 import {type SavedQuery, useGetSavedQueries} from '../hooks/useGetSavedQueries';
@@ -49,26 +51,59 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     exclude: mode === 'owned' ? 'shared' : 'owned', // Inverse because this is an exclusion
     perPage,
   });
+  const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
   const {deleteQuery} = useDeleteQuery();
   const renderBodyCell = (col: Column, row: SavedQuery) => {
+    const query = row.query[0];
     if (col.key === 'name') {
-      return (
-        <NoOverflow>
-          <Link
-            to={getExploreUrl({
+      const link =
+        row.query.length > 1
+          ? getExploreMultiQueryUrl({
               organization,
               ...row,
+              queries: row.query.map(q => ({
+                ...q,
+                chartType: q.visualize[0]?.chartType as ChartType, // Multi Query View only supports a single visualize per query
+                yAxes: q.visualize[0]?.yAxes ?? [],
+                groupBys: q.groupby,
+                sortBys: decodeSorts(q.orderby),
+              })),
               title: row.name,
-              mode: row.mode as Mode,
+              mode: query.mode as Mode,
               selection: {
-                datetime: {end: row.end, period: row.range, start: row.start, utc: null},
+                datetime: {
+                  end: row.end,
+                  period: row.range,
+                  start: row.start,
+                  utc: null,
+                },
                 environments: row.environment,
                 projects: row.projects,
               },
-            })}
-          >
-            {row.name}
-          </Link>
+            })
+          : getExploreUrl({
+              organization,
+              ...row,
+              ...query,
+              groupBy: query.groupby.length === 0 ? [''] : query.groupby,
+              query: query.query,
+              title: row.name,
+              mode: query.mode as Mode,
+              selection: {
+                datetime: {
+                  end: row.end,
+                  period: row.range,
+                  start: row.start,
+                  utc: null,
+                },
+                environments: row.environment,
+                projects: row.projects,
+              },
+            });
+
+      return (
+        <NoOverflow>
+          <Link to={link}>{row.name}</Link>
         </NoOverflow>
       );
     }
@@ -122,7 +157,7 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     if (col.key === 'query') {
       return (
         <FormattedQueryWrapper>
-          <FormattedQuery query={row.query} />
+          <FormattedQuery query={query.query} />
         </FormattedQueryWrapper>
       );
     }
@@ -165,10 +200,6 @@ export function SavedQueriesTable({mode, perPage}: Props) {
     if (col.key === 'access') {
       return <Center>{NO_VALUE}</Center>;
     }
-    // We don't actually use this column, but we return null here to prevent typescript from complaining
-    if (col.key === 'visualize') {
-      return null;
-    }
     return <div>{row[col.key]}</div>;
   };
 
@@ -182,10 +213,11 @@ export function SavedQueriesTable({mode, perPage}: Props) {
   return (
     <GridEditable
       isLoading={isLoading}
-      data={data ?? []}
+      data={filteredData}
       grid={{renderBodyCell, renderHeadCell}}
       columnOrder={ORDER}
       columnSortBy={[]}
+      bodyStyle={{overflow: 'visible', zIndex: 'unset'}}
     />
   );
 }

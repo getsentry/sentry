@@ -1,15 +1,9 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LogsPageParamsProvider,
   type LogsPageParamsProviderProps,
-  useLogsSearch,
-  useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {
@@ -25,7 +19,7 @@ export function LogsIssuesSection({
   limitToTraceId,
 }: {
   initialCollapse: boolean;
-} & Omit<LogsPageParamsProviderProps, 'children'>) {
+} & Omit<LogsPageParamsProviderProps, 'children' | 'analyticsPageSource'>) {
   const organization = useOrganization();
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useExploreLogsTable({enabled: feature, limit: 10});
@@ -50,6 +44,7 @@ export function LogsIssuesSection({
       initialCollapse={initialCollapse}
     >
       <LogsPageParamsProvider
+        analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         isOnEmbeddedView={isOnEmbeddedView}
         limitToTraceId={limitToTraceId}
       >
@@ -60,25 +55,5 @@ export function LogsIssuesSection({
 }
 
 function LogsSectionContent({tableData}: {tableData: UseExploreLogsTableResult}) {
-  const setLogsQuery = useSetLogsQuery();
-  const logsSearch = useLogsSearch();
-  return (
-    <Fragment>
-      <SearchQueryBuilder
-        placeholder={t('Search logs for this event')}
-        filterKeys={{}}
-        getTagValues={() => new Promise<string[]>(() => [])}
-        initialQuery={logsSearch.formatString()}
-        searchSource="ourlogs"
-        onSearch={setLogsQuery}
-      />
-      <TableContainer>
-        <LogsTable tableData={tableData} />
-      </TableContainer>
-    </Fragment>
-  );
+  return <LogsTable showHeader={false} tableData={tableData} />;
 }
-
-const TableContainer = styled('div')`
-  margin-top: ${space(2)};
-`;

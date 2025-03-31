@@ -9,6 +9,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
@@ -53,7 +54,7 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
 )
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -668,7 +669,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.create_data_condition_group_action(
@@ -682,6 +683,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             config={
                 "target_identifier": "channel789",
                 "target_display": "#general",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
         self.create_data_condition_group_action(
@@ -768,11 +770,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
 
         assert mock_trigger.call_count == 2
         assert mock_trigger.call_args_list[0][0] == (
-            {"event": self.event1.for_group(self.group1)},
+            WorkflowEventData(event=self.event1.for_group(self.group1)),
             self.detector,
         )
         assert mock_trigger.call_args_list[1][0] == (
-            {"event": self.event2.for_group(self.group2)},
+            WorkflowEventData(event=self.event2.for_group(self.group2)),
             self.detector,
         )
 

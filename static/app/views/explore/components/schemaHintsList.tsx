@@ -24,21 +24,25 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
-import {SCHEMA_HINTS_LIST_ORDER_KEYS} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {
-  PageParamsProvider,
-  useExploreQuery,
-  useSetExploreQuery,
-} from 'sentry/views/explore/contexts/pageParamsContext';
+  getSchemaHintsListOrder,
+  SchemaHintsSources,
+} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
-export const SCHEMA_HINTS_DRAWER_WIDTH = '35vw';
+export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
 
-interface SchemaHintsListProps {
+interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
   isLoading?: boolean;
+  source?: SchemaHintsSources;
+}
+
+export interface SchemaHintsPageParams {
+  exploreQuery: string;
+  setExploreQuery: (query: string) => void;
 }
 
 const seeFullListTag: Tag = {
@@ -57,15 +61,27 @@ function getTagsFromKeys(keys: string[], tags: TagCollection): Tag[] {
   return keys.map(key => tags[key]).filter(tag => !!tag);
 }
 
+export function addFilterToQuery(
+  filterQuery: MutableSearch,
+  tag: Tag,
+  isBoolean: boolean
+) {
+  filterQuery.addFilterValue(
+    isBoolean || tag.kind === FieldKind.MEASUREMENT ? tag.key : `!${tag.key}`,
+    isBoolean ? 'True' : tag.kind === FieldKind.MEASUREMENT ? '>0' : ''
+  );
+}
+
 function SchemaHintsList({
   supportedAggregates,
   numberTags,
   stringTags,
   isLoading,
+  exploreQuery,
+  setExploreQuery,
+  source = SchemaHintsSources.EXPLORE,
 }: SchemaHintsListProps) {
   const schemaHintsContainerRef = useRef<HTMLDivElement>(null);
-  const exploreQuery = useExploreQuery();
-  const setExploreQuery = useSetExploreQuery();
   const location = useLocation();
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, closeDrawer} = useDrawer();
@@ -79,23 +95,22 @@ function SchemaHintsList({
     const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
     filterTags.has = getHasTag({...stringTags});
 
-    const schemaHintsPresetTags = getTagsFromKeys(
-      SCHEMA_HINTS_LIST_ORDER_KEYS,
-      filterTags
-    );
+    const schemaHintsListOrder = getSchemaHintsListOrder(source);
+
+    const schemaHintsPresetTags = getTagsFromKeys(schemaHintsListOrder, filterTags);
 
     const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(
       section => section.children
-    ).filter(key => !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key));
+    ).filter(key => !schemaHintsListOrder.includes(key));
     const sectionSortedTags = getTagsFromKeys(sectionKeys, filterTags);
 
     const otherKeys = Object.keys(filterTags).filter(
-      key => !sectionKeys.includes(key) && !SCHEMA_HINTS_LIST_ORDER_KEYS.includes(key)
+      key => !sectionKeys.includes(key) && !schemaHintsListOrder.includes(key)
     );
     const otherTags = getTagsFromKeys(otherKeys, filterTags);
 
     return [...schemaHintsPresetTags, ...sectionSortedTags, ...otherTags];
-  }, [numberTags, stringTags, functionTags]);
+  }, [functionTags, numberTags, stringTags, source]);
 
   const [visibleHints, setVisibleHints] = useState([seeFullListTag]);
 
@@ -172,9 +187,11 @@ function SchemaHintsList({
         if (!isDrawerOpen) {
           openDrawer(
             () => (
-              <PageParamsProvider>
-                <SchemaHintsDrawer hints={filterTagsSorted} />
-              </PageParamsProvider>
+              <SchemaHintsDrawer
+                hints={filterTagsSorted}
+                exploreQuery={exploreQuery}
+                setExploreQuery={setExploreQuery}
+              />
             ),
             {
               ariaLabel: t('Schema Hints Drawer'),
@@ -225,10 +242,7 @@ function SchemaHintsList({
       const isBoolean =
         getFieldDefinition(hint.key, 'span', hint.kind)?.valueType ===
         FieldValueType.BOOLEAN;
-      newSearchQuery.addFilterValue(
-        hint.key,
-        isBoolean ? 'True' : hint.kind === FieldKind.MEASUREMENT ? '>0' : ''
-      );
+      addFilterToQuery(newSearchQuery, hint, isBoolean);
       setExploreQuery(newSearchQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
@@ -257,6 +271,20 @@ function SchemaHintsList({
     return `${prettifyTagKey(hint.name)} ${hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'} ...`;
   };
 
+  const getHintElement = (hint: Tag) => {
+    if (hint.key === seeFullListTag.key || hint.key === hideListTag.key) {
+      return hint.name;
+    }
+
+    return (
+      <HintTextContainer>
+        <HintName>{prettifyTagKey(hint.name)}</HintName>
+        <HintOperator>{hint.kind === FieldKind.MEASUREMENT ? '>' : 'is'}</HintOperator>
+        <HintValue>...</HintValue>
+      </HintTextContainer>
+    );
+  };
+
   if (isLoading) {
     return (
       <SchemaHintsLoadingContainer>
@@ -266,14 +294,17 @@ function SchemaHintsList({
   }
 
   return (
-    <SchemaHintsContainer ref={schemaHintsContainerRef}>
+    <SchemaHintsContainer
+      ref={schemaHintsContainerRef}
+      aria-label={t('Schema Hints List')}
+    >
       {visibleHints.map(hint => (
         <SchemaHintOption
           key={hint.key}
           data-type={hint.key}
           onClick={() => onHintClick(hint)}
         >
-          {getHintText(hint)}
+          {getHintElement(hint)}
         </SchemaHintOption>
       ))}
     </SchemaHintsContainer>
@@ -319,4 +350,41 @@ const SchemaHintOption = styled(Button)`
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};
   }
+`;
+
+export const SchemaHintsSection = styled('div')<{withSchemaHintsDrawer: boolean}>`
+  display: grid;
+  /* This is to ensure the hints section spans all the columns */
+  grid-column: 1/-1;
+  margin-bottom: ${space(2)};
+  margin-top: -4px;
+  height: fit-content;
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr ${p =>
+        p.withSchemaHintsDrawer ? SCHEMA_HINTS_DRAWER_WIDTH : '0px'};
+    margin-bottom: 0;
+    margin-top: 0;
+  }
+`;
+
+const HintTextContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(0.5)};
+`;
+
+const HintName = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.textColor};
+`;
+
+const HintOperator = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.subText};
+`;
+
+const HintValue = styled('span')`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  color: ${p => p.theme.purple400};
 `;

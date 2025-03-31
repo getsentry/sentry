@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -11,6 +12,12 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {useSchemaHintsOnLargeScreen} from 'sentry/views/explore/components/schemaHintsDrawer';
+import SchemaHintsList, {
+  SchemaHintsSection,
+} from 'sentry/views/explore/components/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {
   useLogsFields,
@@ -19,6 +26,7 @@ import {
   useSetLogsQuery,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useTraceItemAttributes} from 'sentry/views/explore/contexts/traceItemAttributeContext';
+import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {useExploreLogsTable} from 'sentry/views/explore/logs/useLogsQuery';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -41,9 +49,17 @@ export function LogsTabContent({
   const fields = useLogsFields();
   const setFields = useSetLogsFields();
   const tableData = useExploreLogsTable({});
+  const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 
-  const {attributes: stringTags} = useTraceItemAttributes('string');
-  const {attributes: numberTags} = useTraceItemAttributes('number');
+  const {attributes: stringTags, isLoading: stringTagsLoading} =
+    useTraceItemAttributes('string');
+  const {attributes: numberTags, isLoading: numberTagsLoading} =
+    useTraceItemAttributes('number');
+
+  useLogAnalytics({
+    logsTableResult: tableData,
+    source: LogsAnalyticsPageSource.EXPLORE_LOGS,
+  });
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -60,7 +76,7 @@ export function LogsTabContent({
     );
   }, [fields, setFields, stringTags, numberTags]);
   return (
-    <Layout.Body>
+    <Layout.Body noRowGap>
       <Layout.Main fullWidth>
         <FilterBarContainer>
           <PageFilterBar condensed>
@@ -88,6 +104,21 @@ export function LogsTabContent({
             {t('Edit Table')}
           </Button>
         </FilterBarContainer>
+        <Feature features="organizations:traces-schema-hints">
+          <SchemaHintsSection
+            withSchemaHintsDrawer={isSchemaHintsDrawerOpenOnLargeScreen}
+          >
+            <SchemaHintsList
+              supportedAggregates={[]}
+              numberTags={numberTags}
+              stringTags={stringTags}
+              isLoading={numberTagsLoading || stringTagsLoading}
+              exploreQuery={logsSearch.formatString()}
+              setExploreQuery={setLogsQuery}
+              source={SchemaHintsSources.LOGS}
+            />
+          </SchemaHintsSection>
+        </Feature>
       </Layout.Main>
 
       <LogsTableContainer fullWidth>
@@ -100,8 +131,9 @@ export function LogsTabContent({
 const FilterBarContainer = styled('div')`
   display: flex;
   gap: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const LogsTableContainer = styled(Layout.Main)`
-  margin-top: ${space(2)};
+  margin-top: ${space(1)};
 `;

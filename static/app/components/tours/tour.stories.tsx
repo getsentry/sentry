@@ -165,8 +165,8 @@ export const MY_TOUR_KEY = 'tour.my_tour';
       </CodeSnippet>
 
       <p>
-        Then, whenever you'd like to start your tour, just import your context and
-        dispatch the <code>START_TOUR</code> action.
+        Then, whenever you'd like to start your tour, just import your context and call
+        `startTour()`.
       </p>
       <Alert type="warning">
         <strong>Note:</strong> The tour will not start until all of the steps are present
@@ -177,10 +177,10 @@ export const MY_TOUR_KEY = 'tour.my_tour';
       <br />
       <CodeSnippet language="tsx">
         {`function StartMyTourButton() {
-  const {dispatch, isRegistered} = useMyTour();
+  const {startTour, isRegistered} = useMyTour();
   return (
     <Button
-      onClick={() => dispatch({type: 'START_TOUR'})}
+      onClick={() => startTour()}
       disabled={!isRegistered}
     >
       Start Tour
@@ -254,16 +254,66 @@ export const MY_TOUR_KEY = 'tour.my_tour';
       </TourProvider>
     </Fragment>
   ));
+
+  story('Multiple highlighted elements', () => (
+    <Fragment>
+      <p>
+        Most of the time you'll want to highlight a single element. But if you need to
+        highlight multiple elements, you can do so by using the same step ID for each
+        element. Any that you do not want a tooltip for should pass null for the
+        title/description.
+      </p>
+      <TourProvider>
+        <TourElement<MyTour>
+          id={MyTour.NAME}
+          title={null}
+          description={null}
+          tourContext={MyTourContext}
+        >
+          <Input placeholder="Step 1: First Name" />
+        </TourElement>
+        <TourElement<MyTour>
+          id={MyTour.NAME}
+          title={'Name Time!'}
+          description={'Look at all these name inputs!'}
+          tourContext={MyTourContext}
+          position="right"
+        >
+          <Input placeholder="Step 1: Middle Name" />
+        </TourElement>
+        <TourElement<MyTour>
+          id={MyTour.NAME}
+          title={null}
+          description={null}
+          tourContext={MyTourContext}
+        >
+          <Input placeholder="Step 1: Last Name" />
+        </TourElement>
+        <TourElement<MyTour>
+          id={MyTour.EMAIL}
+          title={'Email Time!'}
+          description={'This is the description of the email tour step.'}
+          tourContext={MyTourContext}
+        >
+          <Input placeholder="Step 2: Email" type="email" />
+        </TourElement>
+        <TourElement<MyTour>
+          id={MyTour.PASSWORD}
+          title={'Password Time!'}
+          description={'This is the description of the password tour step.'}
+          tourContext={MyTourContext}
+        >
+          <Input placeholder="Step 3: Password" type="password" />
+        </TourElement>
+      </TourProvider>
+    </Fragment>
+  ));
 });
 
 function StartTourButton() {
-  const {dispatch, isRegistered} = useMyTour();
+  const {startTour, isRegistered} = useMyTour();
   return (
-    <Button
-      icon={<IconStar />}
-      onClick={() => dispatch({type: 'START_TOUR'})}
-      disabled={!isRegistered}
-    >
+    <Button icon={<IconStar />} onClick={() => startTour()} disabled={!isRegistered}>
       Start Tour
     </Button>
   );
@@ -280,7 +330,6 @@ function TourProvider({
     <SizingWindow>
       <BlurBoundary>
         <TourContextProvider<MyTour>
-          isAvailable
           isCompleted={false}
           orderedStepIds={ORDERED_MY_TOUR}
           tourContext={MyTourContext}

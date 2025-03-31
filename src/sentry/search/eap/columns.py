@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias, TypedDict
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -24,6 +24,11 @@ from sentry.search.events.types import SnubaParams
 
 ResolvedArgument: TypeAlias = AttributeKey | str | int
 ResolvedArguments: TypeAlias = list[ResolvedArgument]
+
+
+class ResolverSettings(TypedDict):
+    extrapolation_mode: ExtrapolationMode.ValueType
+    snuba_params: SnubaParams
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -80,16 +85,25 @@ class ResolvedAttribute(ResolvedColumn):
 
 
 @dataclass
-class ArgumentDefinition:
-    argument_types: set[constants.SearchType] | None = None
+class BaseArgumentDefinition:
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
-    # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
-    is_attribute: bool = True
     # Validator to check if the value is allowed for this argument
     validator: Callable[[str], bool] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
+
+
+@dataclass
+class ValueArgumentDefinition(BaseArgumentDefinition):
+    # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid conversion errors
+    argument_types: set[Literal["integer", "string"]] | None = None
+
+
+@dataclass
+class AttributeArgumentDefinition(BaseArgumentDefinition):
+    # the allowed types of data stored in the attribute
+    attribute_types: set[constants.SearchType] | None = None
 
 
 @dataclass
@@ -210,7 +224,7 @@ class FunctionDefinition:
     """
 
     # The list of arguments for this function
-    arguments: list[ArgumentDefinition]
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition]
     # The search_type the argument should be the default type for this column
     default_search_type: constants.SearchType
     # Try to infer the search type from the function arguments
@@ -223,7 +237,7 @@ class FunctionDefinition:
     processor: Callable[[Any], Any] | None = None
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -231,6 +245,7 @@ class FunctionDefinition:
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
@@ -249,6 +264,7 @@ class AggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedAggregate:
         if len(resolved_arguments) > 1:
             raise InvalidSearchQuery(
@@ -294,6 +310,7 @@ class ConditionalAggregateDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedConditionalAggregate:
         key, filter = self.aggregate_resolver(resolved_arguments)
         return ResolvedConditionalAggregate(
@@ -311,11 +328,11 @@ class ConditionalAggregateDefinition(FunctionDefinition):
 @dataclass(kw_only=True)
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
-    formula_resolver: Callable[..., Column.BinaryFormula]
+    formula_resolver: Callable[[ResolvedArguments, ResolverSettings], Column.BinaryFormula]
     is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
@@ -323,11 +340,21 @@ class FormulaDefinition(FunctionDefinition):
         alias: str,
         search_type: constants.SearchType,
         resolved_arguments: list[AttributeKey | Any],
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula:
+        resolver_settings = ResolverSettings(
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+            snuba_params=snuba_params,
+        )
+
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_arguments),
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
             is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,

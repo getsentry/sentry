@@ -275,6 +275,21 @@ export default typescript.config([
           paths: restrictedImportPaths,
         },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+      ],
       'no-return-assign': 'error',
       'no-script-url': 'error',
       'no-self-compare': 'error',
@@ -589,18 +604,18 @@ export default typescript.config([
       'unicorn/no-useless-length-check': 'error',
       'unicorn/no-useless-undefined': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-zero-fractions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-array-find': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-array-find': 'error',
       'unicorn/prefer-array-flat-map': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-index-of': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-array-some': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-date-now': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-date-now': 'error',
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-export-from': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-includes': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-includes': 'error',
       'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-native-coercion-functions': 'off', // TODO(ryan953): Fix violations and enable this rule
-      'unicorn/prefer-negative-index': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/prefer-negative-index': 'error',
       'unicorn/prefer-node-protocol': 'error',
       'unicorn/prefer-object-from-entries': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-prototype-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule

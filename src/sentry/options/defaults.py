@@ -672,6 +672,13 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Add consent prompt for Azure DevOps Integration
+register(
+    "vsts.consent-prompt",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # PagerDuty Integration
 register("pagerduty.app-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -2773,6 +2780,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for Postgres query timeout error handling
+register(
+    "api.postgres-query-timeout-error-handling.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO: remove once removed from options
 register(
     "issue_platform.use_kafka_partition_key",
@@ -3134,6 +3149,16 @@ register(
 
 register(
     "taskworker.route.overrides",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.deletions.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.deletions.control.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

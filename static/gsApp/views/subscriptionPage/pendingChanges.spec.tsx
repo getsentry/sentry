@@ -400,7 +400,7 @@ describe('Subscription > PendingChanges', function () {
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(
       screen.getByText(
-        'Pay-as-you-go budget change from per-category on-demand (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, profile hours at $0, and uptime monitors at $0) to shared pay-as-you-go of $50'
+        'Pay-as-you-go budget change from per-category on-demand (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, continuous profile hours at $0, UI profile hours at $0, and uptime monitors at $0) to shared pay-as-you-go of $50'
       )
     ).toBeInTheDocument();
   });
@@ -571,7 +571,7 @@ describe('Subscription > PendingChanges', function () {
     expect(
       screen.getByText('Reserved budget updated to $50,000 for spans')
     ).toBeInTheDocument();
-    expect(screen.getByText('Plan change to Business')).toBeInTheDocument();
+    expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 
   it('renders reserved budgets to reserved volume', function () {
@@ -594,6 +594,6 @@ describe('Subscription > PendingChanges', function () {
     expect(screen.queryByText('cost-per-event')).not.toBeInTheDocument();
     expect(screen.queryByText('Reserved budget')).not.toBeInTheDocument();
     expect(screen.getByText('Reserved spans change to 10,000,000')).toBeInTheDocument();
-    expect(screen.getByText('Plan change to Business')).toBeInTheDocument();
+    expect(screen.getByText('Plan change to Enterprise (Business)')).toBeInTheDocument();
   });
 });

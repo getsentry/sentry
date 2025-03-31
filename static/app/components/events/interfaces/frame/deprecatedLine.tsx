@@ -26,6 +26,7 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -47,6 +48,7 @@ import {
   hasContextSource,
   hasContextVars,
   isExpandable,
+  isPotentiallyThirdPartyFrame,
 } from './utils';
 
 const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
@@ -61,42 +63,38 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
 
 export interface DeprecatedLineProps {
   data: Frame;
+  emptySourceNotation: boolean;
   event: Event;
-  registers: Record<string, string>;
-  emptySourceNotation?: boolean;
-  frameMeta?: Record<any, any>;
-  frameSourceResolutionResults?: FrameSourceMapDebuggerData;
-  hiddenFrameCount?: number;
-  hideSourceMapDebugger?: boolean;
-  image?: React.ComponentProps<typeof DebugImage>['image'];
-  includeSystemFrames?: boolean;
-  isANR?: boolean;
-  isExpanded?: boolean;
-  isFrameAfterLastNonApp?: boolean;
+  frameMeta: Record<any, any>;
+  frameSourceResolutionResults: FrameSourceMapDebuggerData | undefined;
+  hiddenFrameCount: number | undefined;
+  hideSourceMapDebugger: boolean;
+  image: React.ComponentProps<typeof DebugImage>['image'] | null;
+  includeSystemFrames: boolean;
+  isANR: boolean;
+  isExpanded: boolean;
   /**
    * Is the stack trace being previewed in a hovercard?
    */
-  isHoverPreviewed?: boolean;
+  isHoverPreviewed: boolean;
+  lockAddress: string | undefined;
+  nextFrame: Frame | undefined;
+  organization: Organization;
+  platform: PlatformKey;
+  prevFrame: Frame | undefined;
+  registers: StacktraceType['registers'];
+  threadId: number | undefined;
+  timesRepeated: number;
   isOnlyFrame?: boolean;
   isShowFramesToggleExpanded?: boolean;
   /**
    * Frames that are hidden under the most recent non-InApp frame
    */
   isSubFrame?: boolean;
-  lockAddress?: string;
-  maxLengthOfRelativeAddress?: number;
-  nextFrame?: Frame;
-  onAddressToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onFunctionNameToggle?: (event: React.MouseEvent<SVGElement>) => void;
   onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
-  organization?: Organization;
-  platform?: PlatformKey;
-  prevFrame?: Frame;
   registersMeta?: Record<any, any>;
   showCompleteFunctionName?: boolean;
-  showingAbsoluteAddress?: boolean;
-  threadId?: number;
-  timesRepeated?: number;
 }
 
 interface Props extends DeprecatedLineProps {
@@ -111,7 +109,7 @@ type State = {
 function makeFilter(
   addr: string,
   addrMode: string | undefined,
-  image?: React.ComponentProps<typeof DebugImage>['image']
+  image?: React.ComponentProps<typeof DebugImage>['image'] | null
 ): string {
   if (!(!addrMode || addrMode === 'abs') && image) {
     return `${image.debug_id}!${addr}`;
@@ -371,6 +369,7 @@ export class DeprecatedLine extends Component<Props, State> {
                   platform={this.props.platform ?? 'other'}
                   isHoverPreviewed={isHoverPreviewed}
                   meta={this.props.frameMeta}
+                  isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
                 />
               </div>
             </LeftLineTitle>

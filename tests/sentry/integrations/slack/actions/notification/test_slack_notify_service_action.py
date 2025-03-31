@@ -16,7 +16,6 @@ from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
-from sentry.workflow_engine.models import Action
 
 
 class TestInit(RuleTestCase):
@@ -64,9 +63,7 @@ class TestInit(RuleTestCase):
             notification_uuid=self.notification_uuid,
         )
 
-        self.action = self.create_action(
-            type=Action.Type.SLACK, config={"target_identifier": "C0123456789"}
-        )
+        self.action = self.create_action()
 
     def test_when_rule_fire_history_is_passed_in(self) -> None:
         instance = SlackNotifyServiceAction(
@@ -305,7 +302,7 @@ class TestInit(RuleTestCase):
             SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": False, "status": 200}
         )
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -343,7 +340,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -379,7 +376,7 @@ class TestInit(RuleTestCase):
         assert send_notification_start.args[0] == EventLifecycleOutcome.STARTED
         assert send_notification_success.args[0] == EventLifecycleOutcome.SUCCESS
 
-    @with_feature("organizations:workflow-engine-notification-action")
+    @with_feature("organizations:workflow-engine-trigger-actions")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")

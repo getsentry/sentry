@@ -53,7 +53,7 @@ type Segment = {
 const bgColor = (index: number) =>
   Color(CHART_PALETTE[4].at(index)).alpha(0.8).toString();
 const getRoundedPercentage = (percentage: number) =>
-  percentage < 1 ? '<1%' : `${Math.floor(percentage)}%`;
+  percentage < 0.5 ? '<1%' : `${Math.round(percentage)}%`;
 
 function SegmentedBar({segments}: {segments: Segment[]}) {
   return (
@@ -104,9 +104,8 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
   const topPercentageString = getRoundedPercentage(topSegment.percentage);
   const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
   const hasOther = totalVisible < tag.totalValues;
-  const otherPercentage = Math.floor(
-    percent(tag.totalValues - totalVisible, tag.totalValues)
-  );
+  const otherPercentage =
+    100 - segments.reduce((sum, seg) => sum + Math.round(seg.percentage), 0);
   const otherPercentageString = getRoundedPercentage(otherPercentage);
 
   const tooltipContent = (
@@ -139,7 +138,7 @@ function TagPreviewProgressBar({tag, groupId}: {groupId: string; tag: GroupTag})
     <Tooltip title={tooltipContent} skipWrapper maxWidth={420}>
       <TagPreviewGrid
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}${tag.key}/`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}${tag.key}/`,
           query: location.query,
         }}
         onMouseEnter={() => {
@@ -182,7 +181,7 @@ function IssueTagButton({
         aria-label={t('View issue tag distributions')}
         size="xs"
         to={{
-          pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+          pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
           query: location.query,
         }}
         replace
@@ -196,7 +195,7 @@ function IssueTagButton({
   return (
     <IssueTagsLink
       to={{
-        pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+        pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
         query: location.query,
       }}
       onClick={() => {
@@ -252,11 +251,11 @@ export default function IssueTagsPreview({
       .filter(tag => highlightTagKeys.includes(tag.key))
       .sort((a, b) => highlightTagKeys.indexOf(a.key) - highlightTagKeys.indexOf(b.key));
 
-    const priorityTags = isMobilePlatform(project?.platform)
+    const priorityTags = isMobilePlatform(project.platform)
       ? MOBILE_TAGS
-      : frontend.some(val => val === project?.platform)
+      : frontend.includes(project.platform ?? 'other')
         ? FRONTEND_TAGS
-        : backend.some(val => val === project?.platform)
+        : backend.includes(project.platform ?? 'other')
           ? BACKEND_TAGS
           : DEFAULT_TAGS;
     // Sort tags based on priority order defined in priorityTags array
@@ -268,7 +267,21 @@ export default function IssueTagsPreview({
     const orderedTags = [...highlightTags, ...sortedTags, ...remainingTagKeys];
     const uniqueTags = [...new Set(orderedTags)];
     return uniqueTags.slice(0, 4);
-  }, [tags, project?.platform, highlightTagKeys]);
+  }, [tags, project.platform, highlightTagKeys]);
+
+  if (
+    searchQuery ||
+    isScreenSmall ||
+    (!isPending && !isHighlightPending && tagsToPreview.length === 0)
+  ) {
+    return (
+      <IssueTagButton
+        tags={tagsToPreview}
+        searchQuery={searchQuery}
+        isScreenSmall={isScreenSmall}
+      />
+    );
+  }
 
   if (isPending || isHighlightPending) {
     return (
@@ -283,16 +296,6 @@ export default function IssueTagsPreview({
 
   if (isError) {
     return null;
-  }
-
-  if (tagsToPreview.length === 0 || searchQuery || isScreenSmall) {
-    return (
-      <IssueTagButton
-        tags={tagsToPreview}
-        searchQuery={searchQuery}
-        isScreenSmall={isScreenSmall}
-      />
-    );
   }
 
   return (
