@@ -3162,3 +3162,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.tempest.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
