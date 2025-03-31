@@ -33,6 +33,7 @@ interface BaseExploreTablesProps {
 
 interface ExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }
@@ -50,6 +51,7 @@ export function ExploreTables(props: ExploreTablesProps) {
 
 interface AggregatesExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
 }
 
 function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
@@ -57,6 +59,7 @@ function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
 }
 
 interface SamplesExploreTablesProps extends BaseExploreTablesProps {
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }

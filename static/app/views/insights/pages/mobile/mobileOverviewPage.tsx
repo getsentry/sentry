@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -82,6 +83,7 @@ const REACT_NATIVE_COLUMN_TITLES = [
 function MobileOverviewPage() {
   useOverviewPageTrackPageload();
 
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -264,6 +266,7 @@ function MobileOverviewPage() {
                       projects={projects}
                       columnTitles={columnTitles}
                       setError={setPageError}
+                      theme={theme}
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>

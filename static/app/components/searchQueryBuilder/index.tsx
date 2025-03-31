@@ -304,7 +304,7 @@ export function SearchQueryBuilder({
   ]);
 
   return (
-    <SearchQueryBuilderContext.Provider value={contextValue}>
+    <SearchQueryBuilderContext value={contextValue}>
       <Wrapper
         className={className}
         onBlur={() =>
@@ -329,7 +329,7 @@ export function SearchQueryBuilder({
           )}
         </PanelProvider>
       </Wrapper>
-    </SearchQueryBuilderContext.Provider>
+    </SearchQueryBuilderContext>
   );
 }
 

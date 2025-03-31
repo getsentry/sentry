@@ -12,7 +12,7 @@ import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import DrawerComponents from 'sentry/components/globalDrawer/components';
+import {DrawerComponents} from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -175,7 +175,7 @@ export function GlobalDrawer({children}: any) {
     : null;
 
   return (
-    <DrawerContext.Provider value={{closeDrawer, isDrawerOpen, openDrawer}}>
+    <DrawerContext value={{closeDrawer, isDrawerOpen, openDrawer}}>
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
@@ -193,7 +193,7 @@ export function GlobalDrawer({children}: any) {
         </AnimatePresence>
       </ErrorBoundary>
       {children}
-    </DrawerContext.Provider>
+    </DrawerContext>
   );
 }
 

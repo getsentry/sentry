@@ -63,7 +63,7 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
     # This emulates the behavior we have with celery.
     with TaskRunner():
         task.delay("arg", org_id=1)
-        task.apply_async("arg2", org_id=2)
+        task.apply_async(args=["arg2"], kwargs={"org_id": 2})
 
     assert len(calls) == 2
     assert calls[0] == {"args": ("arg",), "kwargs": {"org_id": 1}}

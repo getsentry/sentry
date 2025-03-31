@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -70,6 +71,7 @@ export function ScreenLoadSpansTable({
     ? `${moduleURL}/details/`
     : `${moduleURL}/spans/`;
 
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const {selection} = usePageFilters();
@@ -278,6 +280,7 @@ export function ScreenLoadSpansTable({
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     return rendered;
   }

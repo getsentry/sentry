@@ -1,4 +1,4 @@
-import type {MouseEventHandler} from 'react';
+import {Fragment, type MouseEventHandler} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,7 +24,6 @@ interface SidebarItemLinkProps {
   to: string;
   activeTo?: string;
   children?: React.ReactNode;
-  forceLabel?: boolean;
   onClick?: MouseEventHandler<HTMLElement>;
 }
 
@@ -63,7 +62,7 @@ export function SidebarItem({
 } & React.HTMLAttributes<HTMLElement>) {
   const {layout} = useNavContext();
   return (
-    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '16px'}>
+    <IconDefaultsProvider legacySize={layout === NavLayout.MOBILE ? '14px' : '19px'}>
       <Tooltip title={label} disabled={showLabel} position="right" skipWrapper delay={0}>
         <li {...props}>{children}</li>
       </Tooltip>
@@ -117,7 +116,6 @@ export function SidebarLink({
   activeTo = to,
   analyticsKey,
   label,
-  forceLabel = false,
 }: SidebarItemLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -125,21 +123,28 @@ export function SidebarLink({
   const linkProps = makeLinkPropsFromTo(to);
 
   const {layout} = useNavContext();
-  const showLabel = forceLabel || layout === NavLayout.MOBILE;
 
   return (
-    <SidebarItem label={label} showLabel={showLabel}>
+    <SidebarItem label={label} showLabel>
       <NavLink
         {...linkProps}
         onClick={() => recordPrimaryItemClick(analyticsKey, organization)}
         aria-selected={isActive}
         aria-current={isActive ? 'page' : undefined}
-        aria-label={showLabel ? undefined : label}
         isMobile={layout === NavLayout.MOBILE}
       >
-        <InteractionStateLayer hasSelectedBackground={isActive} />
-        {children}
-        {showLabel ? label : null}
+        {layout === NavLayout.MOBILE ? (
+          <Fragment>
+            <InteractionStateLayer />
+            {children}
+            {label}
+          </Fragment>
+        ) : (
+          <Fragment>
+            <NavLinkIconContainer>{children}</NavLinkIconContainer>
+            <NavLinkLabel>{label}</NavLinkLabel>
+          </Fragment>
+        )}
       </NavLink>
     </SidebarItem>
   );
@@ -204,9 +209,9 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
     pointer-events: none;
   }
 
-  &[aria-selected='true'] {
-    color: ${p.theme.purple400};
-    box-shadow: inset 0 0 0 1px ${p.theme.purple100};
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${p.theme.button.default.focusBorder};
+    color: currentColor;
   }
 
   ${!p.isMobile &&
@@ -224,12 +229,77 @@ const baseNavItemStyles = (p: {isMobile: boolean; theme: Theme}) => css`
   `}
 `;
 
+const NavLinkIconContainer = styled('span')`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: currentColor;
+    opacity: 0;
+  }
+`;
+
 export const NavLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'isMobile',
 })<{isMobile: boolean}>`
+  ${baseNavItemStyles}
   position: relative;
 
-  ${baseNavItemStyles}
+  ${p =>
+    !p.isMobile &&
+    css`
+      width: 56px;
+      padding-top: ${space(0.75)};
+      padding-bottom: ${space(1.5)};
+
+      &:hover {
+        ${NavLinkIconContainer} {
+          &::before {
+            opacity: 0.06;
+          }
+        }
+      }
+
+      &:active {
+        ${NavLinkIconContainer} {
+          &::before {
+            opacity: 0.12;
+          }
+        }
+      }
+
+      &[aria-selected='true'] {
+        color: ${p.theme.purple400};
+
+        ${NavLinkIconContainer} {
+          box-shadow: inset 0 0 0 1px ${p.theme.purple100};
+
+          &::before {
+            opacity: 0.09;
+          }
+        }
+      }
+    `}
+`;
+
+const NavLinkLabel = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  margin-top: ${space(0.25)};
 `;
 
 export const NavButton = styled('button', {

@@ -19,14 +19,14 @@ export function OpBreakdownFilterProvider({
 }) {
   const [opBreakdownFilter, setOpBreakdownFilter] = useState(filter);
   return (
-    <OpBreakdownFilterContext.Provider
+    <OpBreakdownFilterContext
       value={{
         opBreakdownFilter: opBreakdownFilter ?? SpanOperationBreakdownFilter.NONE,
         setOpBreakdownFilter,
       }}
     >
       {children}
-    </OpBreakdownFilterContext.Provider>
+    </OpBreakdownFilterContext>
   );
 }
 

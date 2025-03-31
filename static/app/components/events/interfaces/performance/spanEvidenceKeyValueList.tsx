@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
@@ -35,10 +36,8 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import KeyValueList from '../keyValueList';
-import type {ProcessedSpanType, RawSpanType} from '../spans/types';
+import type {ProcessedSpanType, RawSpanType, TraceContextSpanProxy} from '../spans/types';
 import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
-
-import type {TraceContextSpanProxy} from './spanEvidence';
 
 const formatter = new SQLishFormatter();
 
@@ -55,6 +54,7 @@ type SpanEvidenceKeyValueListProps = {
   offendingSpans: Span[];
   organization: Organization;
   parentSpan: Span | null;
+  theme: Theme;
   issueType?: IssueType;
   projectSlug?: string;
 };
@@ -143,6 +143,7 @@ function HTTPOverheadSpanEvidence({
   organization,
   projectSlug,
   location,
+  theme,
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
@@ -150,7 +151,7 @@ function HTTPOverheadSpanEvidence({
         [
           makeTransactionNameRow(event, organization, location, projectSlug),
 
-          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans)),
+          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -314,6 +315,7 @@ export function SpanEvidenceKeyValueList({
   event: EventTransaction;
   projectSlug?: string;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const spanInfo = getSpanInfoFromTransactionEvent(event);
@@ -326,6 +328,7 @@ export function SpanEvidenceKeyValueList({
   if (!issueType || (requiresSpanInfo && !spanInfo)) {
     return (
       <DefaultSpanEvidence
+        theme={theme}
         event={event}
         offendingSpans={[]}
         location={location}
@@ -573,9 +576,10 @@ const getConsecutiveDbTimeSaved = (
   );
 };
 
-const getHTTPOverheadMaxTime = (offendingSpans: Span[]): string | null => {
+const getHTTPOverheadMaxTime = (offendingSpans: Span[], theme: Theme): string | null => {
   const slowestSpanTimings = getSpanSubTimings(
-    offendingSpans[offendingSpans.length - 1] as ProcessedSpanType
+    offendingSpans[offendingSpans.length - 1] as ProcessedSpanType,
+    theme
   );
   if (!slowestSpanTimings) {
     return null;
