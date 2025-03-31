@@ -24,22 +24,18 @@ export function Slider({
 }: SliderProps & {ref: React.Ref<HTMLInputElement>}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const refs = mergeRefs(ref, inputRef);
-  const step =
-    (typeof props.step === 'string' ? Number.parseInt(props.step, 10) : props.step) ?? -1;
-  const [label, setLabel] = useState((props.value ?? props.defaultValue) || 50);
-  const initialProgress = getProgress(
-    (props.value ?? props.defaultValue) || 50,
-    props.min ?? 0,
-    props.max ?? 100
-  );
+  const step = toNumber(props.step ?? -1);
+  const {value, min, max} = resolveMinMaxValue(props);
+  const [label, setLabel] = useState(value);
+  const initialProgress = getProgress(value, min, max);
   const filledSteps = useMemo(() => (step === -1 ? -1 : label / step), [step, label]);
 
   const handleChange = useCallback(
     (event: Event) => {
       const input = event.target as HTMLInputElement;
-      const {valueAsNumber, min, max} = input;
+      const {valueAsNumber, min: nativeMin, max: nativeMax} = input;
       setLabel(valueAsNumber);
-      const progress = getProgress(valueAsNumber, min || 0, max || 100);
+      const progress = getProgress(valueAsNumber, nativeMin || 0, nativeMax || 100);
       input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
     },
     [setLabel]
@@ -123,10 +119,17 @@ function toNumber(value: number | string) {
   if (typeof value === 'number') {
     return value;
   }
-  return Number(value);
+  return Number.parseInt(value, 10);
 }
 function getProgress(n: number, min: number | string, max: number | string) {
   return ((n - toNumber(min)) / toNumber(max)) * 100;
+}
+function resolveMinMaxValue(props: SliderProps) {
+  const min = toNumber(props.min ?? 0);
+  const max = toNumber(props.min ?? 100);
+  const _value = props.value ?? props.defaultValue;
+  const value = _value === '' ? 50 : toNumber(_value ?? 50);
+  return {value, min, max};
 }
 
 const StyledSlider = styled('input')`
