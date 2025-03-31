@@ -188,16 +188,16 @@ function ReleasesDetail({children, releaseMeta}: Props) {
           organization={organization}
           release={releaseQuery.data}
           project={project}
-          refetchData={refetchData}
           releaseMeta={releaseMeta}
+          refetchData={refetchData}
         />
-        <ReleaseContext.Provider
+        <ReleaseContext
           value={{
-            refetchData,
             release: releaseQuery.data,
             project,
             deploys: deploysQuery.data || [],
             releaseMeta,
+            refetchData,
             hasHealthData:
               getCount(sessionsQuery.data?.groups, SessionFieldWithOperation.SESSIONS) >
               0,
@@ -205,7 +205,7 @@ function ReleasesDetail({children, releaseMeta}: Props) {
           }}
         >
           {children}
-        </ReleaseContext.Provider>
+        </ReleaseContext>
       </NoProjectMessage>
     </Layout.Page>
   );
