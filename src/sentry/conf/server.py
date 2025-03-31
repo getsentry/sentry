@@ -785,7 +785,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_auth",
+    "sentry.tasks.auth.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
@@ -1016,7 +1016,7 @@ from celery.schedules import crontab
 # are run in control silo.
 CELERYBEAT_SCHEDULE_CONTROL = {
     "check-auth": {
-        "task": "sentry.tasks.check_auth",
+        "task": "sentry.tasks.auth.check_auth",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth.control"},
