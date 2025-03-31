@@ -6,4 +6,5 @@ export type {
   FormSize,
   IconSize,
   StrictCSSObject,
+  Theme,
 } from './theme';

@@ -8,10 +8,10 @@ import type {StyledOptions} from '@emotion/styled/dist/declarations/src/types';
 import color from 'color';
 
 import {CHART_PALETTE, getChartColorPalette} from 'sentry/constants/chartPalette';
+
+import type {ColorMapping, FormTheme, Theme as SentryTheme} from './theme';
 import commonTheme, {
-  type ColorMapping,
   darkTheme,
-  type FormTheme,
   generateAlertTheme,
   generateButtonTheme,
   generateLevelTheme,
@@ -19,7 +19,7 @@ import commonTheme, {
   generateThemePrismVariables,
   generateThemeUtils,
   lightTheme,
-} from 'sentry/utils/theme';
+} from './theme';
 
 const formTheme: FormTheme = {
   /**
@@ -783,7 +783,7 @@ const chonkDarkColorMapping: ColorMapping = {
 const lightAliases = generateAliases(generateChonkTokens(lightColors), lightColors);
 const darkAliases = generateAliases(generateChonkTokens(darkColors), darkColors);
 
-interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
+interface ChonkTheme extends Omit<SentryTheme, 'isChonk'> {
   colors: typeof lightColors & {
     background: ReturnType<typeof generateChonkTokens>['background'];
     border: ReturnType<typeof generateChonkTokens>['border'];
@@ -802,6 +802,9 @@ interface ChonkTheme extends Omit<typeof lightTheme, 'isChonk'> {
 // Redeclare as we dont want to use the deprecation
 const getColorPalette = getChartColorPalette;
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme.
+ */
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
 
@@ -861,6 +864,9 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   },
 };
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme.
+ */
 export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
 
@@ -927,7 +933,6 @@ declare module '@emotion/react' {
   /**
    * Configure Emotion to use our theme
    */
-  type SentryTheme = typeof lightTheme;
   export interface Theme extends SentryTheme {
     isChonk: boolean;
   }

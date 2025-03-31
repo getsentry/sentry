@@ -8,7 +8,7 @@
  * into the configuration file loaded by the service.
  */
 
-import {lightTheme} from 'sentry/utils/theme';
+import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {makeDiscoverCharts} from './discover';
 import {makeMetricAlertCharts} from './metricAlert';

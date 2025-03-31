@@ -1074,6 +1074,9 @@ const getColorPalette = getChartColorPalette;
 const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme.
+ */
 export const lightTheme = {
   isChonk: false,
   ...commonTheme,
@@ -1115,6 +1118,9 @@ export const lightTheme = {
   },
 };
 
+/**
+ * @deprecated use useTheme hook instead of directly importing the theme.
+ */
 export const darkTheme: typeof lightTheme = {
   isChonk: false,
   ...commonTheme,
@@ -1158,6 +1164,7 @@ export type Color = keyof typeof lightColors;
 export type IconSize = Size;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
+export type Theme = typeof lightTheme;
 
 export type StrictCSSObject = {
   [K in keyof CSSProperties]?: CSSProperties[K]; // Enforce standard CSS properties
@@ -1173,4 +1180,7 @@ export type StrictCSSObject = {
  * @deprecated use useTheme hook instead.
  */
 const commonThemeExport = {...commonTheme};
+/**
+ * @deprecated Do not import the theme directly, use useTheme hook instead.
+ */
 export default commonThemeExport;
