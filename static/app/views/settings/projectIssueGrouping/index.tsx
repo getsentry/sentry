@@ -100,6 +100,12 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
           title={t('Stack Trace Rules')}
           fields={[fields.groupingEnhancements]}
         />
+
+        <JsonForm
+          {...jsonFormProps}
+          title={t('Derived Grouping Enhancements')}
+          fields={[fields.derivedGroupingEnhancements!]}
+        />
       </Form>
     </SentryDocumentTitle>
   );
