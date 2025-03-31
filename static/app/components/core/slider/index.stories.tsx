@@ -49,14 +49,27 @@ export default storyBook('Slider', (story, APIReference) => {
           <JSXProperty name="formatLabel" value={(n: number) => n} /> callback prop.
         </p>
         <Label>
-          Disabled slider
-          <Slider
-            formatLabel={(v: number | '') => `${v}%`}
-            min={0}
-            max={100}
-            step={10}
-            defaultValue={10}
-          />
+          Formatted label slider
+          <Slider formatLabel={(v: number | '') => `${v}%`} defaultValue={10} />
+        </Label>
+      </Fragment>
+    );
+  });
+
+  story('Steps', () => {
+    return (
+      <Fragment>
+        <p>
+          Use the <JSXProperty name="step" value={10} /> property to restrict which values
+          can be selected.
+        </p>
+        <Label>
+          Every 10th value
+          <Slider defaultValue={0} step={10} />
+        </Label>
+        <Label>
+          Disabled with step
+          <Slider disabled step={10} />
         </Label>
       </Fragment>
     );
