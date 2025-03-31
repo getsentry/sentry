@@ -11,6 +11,7 @@ import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import type {Params} from 'sentry/utils/useParams';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -20,16 +21,15 @@ import {makeResolvedTs} from './utils';
 type Action = {
   action: () => void;
   description: string;
-  isVisible: boolean;
   requiresSuperuser: boolean;
   title: string;
+  isHidden?: () => boolean;
 };
 
 const ACTIONS: Action[] = [
   {
     title: t('Open Sudo Modal'),
     description: t('Open Sudo Modal to re-identify yourself.'),
-    isVisible: true,
     requiresSuperuser: false,
     action: () =>
       openSudo({
@@ -40,7 +40,6 @@ const ACTIONS: Action[] = [
   {
     title: t('Open Superuser Modal'),
     description: t('Open Superuser Modal to re-identify yourself.'),
-    isVisible: true,
     requiresSuperuser: true,
     action: () =>
       openSudo({
@@ -52,7 +51,6 @@ const ACTIONS: Action[] = [
   {
     title: t('Toggle dark mode'),
     description: t('Toggle dark mode (superuser only atm)'),
-    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       removeBodyTheme();
@@ -63,7 +61,6 @@ const ACTIONS: Action[] = [
   {
     title: t('Toggle Translation Markers'),
     description: t('Toggles translation markers on or off in the application'),
-    isVisible: true,
     requiresSuperuser: true,
     action: () => {
       toggleLocaleDebug();
@@ -74,7 +71,6 @@ const ACTIONS: Action[] = [
   {
     title: t('Search Documentation and FAQ'),
     description: t('Open the Documentation and FAQ search modal.'),
-    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       openHelpSearchModal();
@@ -93,7 +89,6 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   ACTIONS.push({
     title: t('Open in Production'),
     description: t('Open the current page in sentry.io'),
-    isVisible: true,
     requiresSuperuser: false,
     action: () => {
       const url = new URL(window.location.toString());
@@ -105,16 +100,16 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
-function createCopyDSNAction(orgId: string | undefined, projectId: string | undefined) {
+function createCopyDSNAction(params: Params) {
   return {
     title: t('Copy Project DSN to Clipboard'),
     description: t('Copies the Project DSN to the clipboard.'),
-    isVisible: !!orgId && !!projectId,
+    isHidden: () => !params.orgId || !params.projectId, // visible if both orgId and projectId are present
     requiresSuperuser: false,
     action: async () => {
       const api = new Client();
       const data: ProjectKey[] = await api.requestPromise(
-        `/projects/${orgId}/${projectId}/keys/`
+        `/projects/${params.orgId}/${params.projectId}/keys/`
       );
 
       if (data.length > 0 && data[0]?.dsn?.public) {
@@ -130,13 +125,6 @@ function createCopyDSNAction(orgId: string | undefined, projectId: string | unde
 type Props = {
   children: (props: ChildProps) => React.ReactElement;
   isSuperuser: boolean;
-  /**
-   * params obtained from the current route
-   */
-  params: {
-    orgId?: string;
-    projectId?: string;
-  };
   /**
    * search term
    */
@@ -156,14 +144,14 @@ function CommandSource({searchOptions, query, children}: Props) {
   const params = useParams();
 
   const createSearch = useCallback(async () => {
-    const copyDSNAction = createCopyDSNAction(params.orgId, params.projectId);
+    const copyDSNAction = createCopyDSNAction(params);
     setFuzzy(
       await createFuzzySearch<Action>([...ACTIONS, copyDSNAction], {
         ...searchOptions,
         keys: ['title', 'description'],
       })
     );
-  }, [searchOptions, params.orgId, params.projectId]);
+  }, [searchOptions, params]);
 
   useEffect(() => void createSearch(), [createSearch]);
 
@@ -173,7 +161,7 @@ function CommandSource({searchOptions, query, children}: Props) {
       fuzzy
         ?.search(query)
         .filter(({item}) => !item.requiresSuperuser || isSuperuser)
-        .filter(({item}) => item.isVisible)
+        .filter(({item}) => !item.isHidden?.())
         .map(({item, ...rest}) => ({
           item: {
             ...item,
