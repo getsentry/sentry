@@ -56,6 +56,9 @@ def _make_cache_value(key, value):
     return (value, now + key.ttl, now + key.ttl + key.grace)
 
 
+LOGGING_SAMPLE_RATE = 0.0001
+
+
 class OptionsStore:
     """
     Abstraction for the Option storage logic that should be driven
@@ -91,8 +94,22 @@ class OptionsStore:
         Fetches a value from the options store.
         """
         result = self.get_cache(key, silent=silent)
+        should_log = random() < LOGGING_SAMPLE_RATE
         if result is not None:
+            if should_log:
+                logger.info(
+                    "sentry_options_store.cache_hit",
+                    extra={"key": key.name, "cache_configured": self.cache is not None},
+                )
             return result
+
+        if should_log:
+            # Log 1% of our cache misses for option retrieval to help triage
+            # excessive queries against the store.
+            logger.info(
+                "sentry_options_store.cache_miss",
+                extra={"key": key.name, "cache_configured": self.cache is not None},
+            )
 
         result = self.get_store(key, silent=silent)
         if result is not None:
