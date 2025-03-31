@@ -14,12 +14,13 @@ import {
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {lightTheme} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
-  VITAL_GROUPS,
-  ZOOM_KEYS,
+  makeVitalGroups,
+  makeZoomKeys,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 jest.mock('sentry/utils/useLocation');
@@ -138,7 +139,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     const histogramData: Record<string, HistogramData[]> = {};
-    const webVitals = VITAL_GROUPS.reduce<string[]>(
+    const webVitals = makeVitalGroups(lightTheme).reduce<string[]>(
       (vs, group) => vs.concat(group.vitals),
       []
     );
@@ -320,7 +321,7 @@ describe('Performance > Web Vitals', function () {
 
       expect(mockNavigate).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
-          ZOOM_KEYS.reduce(
+          makeZoomKeys().reduce(
             (obj, key) => {
               obj[key] = expect.anything();
               return obj;
