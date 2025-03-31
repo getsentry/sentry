@@ -587,6 +587,8 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# Issue Summary on Alerts (timeout in seconds)
+register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
