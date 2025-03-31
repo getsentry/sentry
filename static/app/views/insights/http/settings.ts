@@ -21,6 +21,7 @@ export const FIELD_ALIASES = {
 };
 
 export const BASE_FILTERS = {
+  'span.module': ModuleName.HTTP,
   'span.op': 'http.client', // `span.module` alone isn't enough, since some SDKs create other `http.*` spans like `http.client.response_body`
 };
 
