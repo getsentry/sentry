@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {
   SIDEBAR_MOBILE_HEIGHT,
   TOPBAR_MOBILE_HEIGHT,
@@ -21,6 +20,7 @@ import {
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 import {EventMissingBanner} from 'sentry/views/issueDetails/streamline/eventMissingBanner';
 import {EventTitle} from 'sentry/views/issueDetails/streamline/eventTitle';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {

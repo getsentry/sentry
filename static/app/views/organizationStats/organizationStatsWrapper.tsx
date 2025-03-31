@@ -1,5 +1,5 @@
-import {useRedirectNavV2Routes} from 'sentry/components/nav/useRedirectNavV2Routes';
 import Redirect from 'sentry/components/redirect';
+import {useRedirectNavV2Routes} from 'sentry/views/nav/useRedirectNavV2Routes';
 
 type OrganizationStatsWrapperProps = {
   children: React.ReactNode;

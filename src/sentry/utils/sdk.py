@@ -257,6 +257,12 @@ def before_send(event: Event, _: Hint) -> Event | None:
     return event
 
 
+def before_emit_log(log: Any, _: Hint) -> Any:
+    if in_random_rollout("ourlogs.sentry-emit-rollout"):
+        return log
+    return None
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -287,6 +293,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
+        before_emit_log=before_emit_log,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -475,7 +482,7 @@ def configure_sdk():
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set
             # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None),
+            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),

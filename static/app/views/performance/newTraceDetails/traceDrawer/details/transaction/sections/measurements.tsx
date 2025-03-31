@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -37,6 +38,7 @@ export function hasMeasurements(event: EventTransaction) {
 }
 
 export function Measurements({event, location, organization}: MeasurementsProps) {
+  const theme = useTheme();
   const measurementNames = Object.keys(event.measurements ?? {})
     .filter(name => isCustomMeasurement(`measurements.${name}`))
     .filter(isNotMarkMeasurement)
@@ -58,7 +60,7 @@ export function Measurements({event, location, organization}: MeasurementsProps)
         ? FIELD_FORMATTERS[fieldType].renderFunc(
             name,
             {[name]: renderValue},
-            {location, organization, unit}
+            {location, organization, unit, theme}
           )
         : renderValue;
 
