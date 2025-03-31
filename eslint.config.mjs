@@ -730,6 +730,12 @@ export default typescript.config([
               group: ['getsentry/*'],
               message: 'Do not import gsApp into sentry',
             },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
           ],
           paths: [
             ...restrictedImportPaths,
@@ -768,6 +774,12 @@ export default typescript.config([
             {
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
+            },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
           ],
           paths: [
@@ -814,6 +826,12 @@ export default typescript.config([
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
             },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
           ],
           paths: restrictedImportPaths,
         },
@@ -831,6 +849,12 @@ export default typescript.config([
             {
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
+            },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
           ],
           paths: restrictedImportPaths,
