@@ -24,10 +24,8 @@ export function ExpandedContextProvider(props: any) {
   const shouldAccordionFloat = horizontal || !!preferences.collapsed;
 
   return (
-    <ExpandedContext.Provider
-      value={{expandedItemId, setExpandedItemId, shouldAccordionFloat}}
-    >
+    <ExpandedContext value={{expandedItemId, setExpandedItemId, shouldAccordionFloat}}>
       {props.children}
-    </ExpandedContext.Provider>
+    </ExpandedContext>
   );
 }
