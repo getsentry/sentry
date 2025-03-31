@@ -21,8 +21,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -255,12 +253,12 @@ function TourElementContent<T extends TourEnumType>({
     () => (
       <ButtonBar gap={1}>
         {hasPreviousStep && (
-          <TextTourAction size="xs" onClick={() => previousStep()}>
+          <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
           </TextTourAction>
         )}
         {hasNextStep ? (
-          <TourAction size="xs" onClick={() => nextStep()}>
+          <TourAction size="xs" onClick={nextStep}>
             {t('Next')}
           </TourAction>
         ) : (
@@ -408,9 +406,7 @@ export function TourGuide({
                       strokeWidth: 0,
                       className: css`
                         path.fill {
-                          fill: ${prefersDarkMode
-                            ? darkTheme.purple300
-                            : darkTheme.surface400};
+                          fill: ${theme.tour.background};
                         }
                         path.stroke {
                           stroke: transparent;
@@ -427,7 +423,7 @@ export function TourGuide({
                               onClick={e => {
                                 handleDismiss(e);
                               }}
-                              icon={<IconClose style={{color: darkTheme.textColor}} />}
+                              icon={<IconClose style={{color: theme.textColor}} />}
                               aria-label={t('Close')}
                               borderless
                               size="sm"
@@ -458,13 +454,13 @@ function scrollToElement(element: HTMLDivElement | null) {
 const TourBody = styled('div')<{prefersDarkMode: boolean}>`
   display: flex;
   flex-direction: column;
-  background: ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
+  background: ${p => p.theme.tour.background};
   padding: ${space(1.5)} ${space(2)};
-  color: ${darkTheme.textColor};
+  color: ${p => p.theme.tour.text};
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
   a {
-    color: ${darkTheme.textColor};
+    color: ${p => p.theme.tour.text};
     text-decoration: underline;
   }
 `;
@@ -486,14 +482,14 @@ const TopRow = styled('div')`
   grid-template-columns: 1fr 15px;
   align-items: start;
   height: 18px;
-  color: ${lightTheme.white};
+  color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   opacity: 0.6;
 `;
 
 const TitleRow = styled('div')`
-  color: ${darkTheme.headingColor};
+  color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.4;
@@ -501,7 +497,7 @@ const TitleRow = styled('div')`
 `;
 
 const DescriptionRow = styled('div')`
-  color: ${darkTheme.textColor};
+  color: ${p => p.theme.tour.text};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 1.4;
@@ -517,12 +513,13 @@ const ActionRow = styled('div')`
 
 export const TourAction = styled(Button)`
   border: 0;
-  background: ${lightTheme.white};
-  color: ${lightTheme.headingColor};
+  background: ${p => p.theme.white};
+  color: ${p => p.theme.tour.next};
+
   &:hover,
   &:active,
   &:focus {
-    color: ${lightTheme.headingColor};
+    color: ${p => p.theme.tour.next};
   }
 `;
 
@@ -530,11 +527,11 @@ export const TextTourAction = styled(Button)`
   border: 0;
   box-shadow: none;
   background: transparent;
-  color: ${lightTheme.white};
+  color: ${p => p.theme.tour.previous};
   &:hover,
   &:active,
   &:focus {
-    color: ${lightTheme.white};
+    color: ${p => p.theme.tour.previous};
   }
 `;
 
@@ -560,8 +557,7 @@ const TourTriggerWrapper = styled('div')<{prefersDarkMode: boolean}>`
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
-      box-shadow: inset 0 0 0 3px
-        ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tour.background};
     }
   }
 `;
