@@ -81,7 +81,7 @@ class CheckAuthTest(TestCase):
 
 @control_silo_test
 class CheckAuthIdentityTest(TestCase):
-    @patch("sentry.tasks.check_auth.check_auth_identity")
+    @patch("sentry.tasks.auth.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):
         organization = self.create_organization(name="Test")
         user = self.create_user(email="bar@example.com")

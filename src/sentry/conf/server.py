@@ -1016,7 +1016,7 @@ from celery.schedules import crontab
 # are run in control silo.
 CELERYBEAT_SCHEDULE_CONTROL = {
     "check-auth": {
-        "task": "sentry.tasks.auth.check_auth",
+        "task": "sentry.tasks.check_auth",
         # Run every 1 minute
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60, "queue": "auth.control"},
