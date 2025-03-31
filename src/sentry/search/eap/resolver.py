@@ -389,9 +389,6 @@ class SearchResolver:
     ) -> tuple[TraceItemFilter, VirtualColumnDefinition | None]:
         resolved_column, context_definition = self.resolve_column(term.key.name)
 
-        if not isinstance(resolved_column.proto_definition, AttributeKey):
-            raise ValueError(f"{term.key.name} is not valid search term")
-
         value = term.value.value
 
         # time series request do not support virtual column contexts, so we have to remap the value back to the original column
@@ -423,6 +420,9 @@ class SearchResolver:
                 value = final_value[0]
             else:
                 value = final_value
+
+        if not isinstance(resolved_column.proto_definition, AttributeKey):
+            raise ValueError(f"{term.key.name} is not valid search term")
 
         if context_definition:
             if term.value.is_wildcard():
