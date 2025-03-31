@@ -27,12 +27,12 @@ from sentry.search.eap.columns import (
     ValueArgumentDefinition,
 )
 from sentry.search.eap.constants import RESPONSE_CODE_MAP
-from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.spans.utils import (
     WEB_VITALS_MEASUREMENTS,
     operate_multiple_columns,
     transform_vital_score_to_ratio,
 )
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 from sentry.snuba import spans_rpc
