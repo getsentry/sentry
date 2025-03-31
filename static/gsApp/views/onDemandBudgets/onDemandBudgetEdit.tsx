@@ -18,8 +18,8 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {CronsOnDemandStepWarning} from 'getsentry/components/cronsOnDemandStepWarning';
 import type {OnDemandBudgets, Plan, Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
-import titleCase from 'getsentry/utils/titleCase';
 
 function coerceValue(value: number): number {
   return value / 100;
@@ -48,7 +48,7 @@ class OnDemandBudgetEdit extends Component<Props> {
   onDemandUnsupportedCopy = () => {
     const {subscription} = this.props;
     return tct('[budgetType] is not supported for your account.', {
-      budgetType: titleCase(subscription.planDetails.budgetTerm),
+      budgetType: displayBudgetName(subscription.planDetails, {title: true}),
     });
   };
   renderInputFields = (displayBudgetMode: OnDemandBudgetMode) => {

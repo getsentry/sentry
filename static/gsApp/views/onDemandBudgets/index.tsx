@@ -15,9 +15,9 @@ import {openEditCreditCard} from 'getsentry/actionCreators/modal';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import titleCase from 'getsentry/utils/titleCase';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 
 type Props = {
@@ -33,7 +33,7 @@ class OnDemandBudgets extends Component<Props> {
     return (
       <Label>
         {tct('[budgetType] Budget', {
-          budgetType: titleCase(subscription.planDetails.budgetTerm),
+          budgetType: displayBudgetName(subscription.planDetails, {title: true}),
         })}
         <Tooltip
           title={t(
@@ -42,7 +42,7 @@ class OnDemandBudgets extends Component<Props> {
             subscription.planDetails.budgetTerm === 'pay-as-you-go'
               ? 'Pay-as-you-go allows'
               : 'On-Demand budgets allow',
-            titleCase(subscription.planDetails.budgetTerm)
+            displayBudgetName(subscription.planDetails, {title: true})
           )}
           skipWrapper
         >
@@ -68,7 +68,7 @@ class OnDemandBudgets extends Component<Props> {
       <FieldGroup
         label={this.renderLabel()}
         help={tct('[budgetType] is not supported for your account.', {
-          budgetType: titleCase(subscription.planDetails.budgetTerm),
+          budgetType: displayBudgetName(subscription.planDetails, {title: true}),
         })}
       >
         <div>
@@ -180,7 +180,7 @@ class OnDemandBudgets extends Component<Props> {
             }}
           >
             {tct('Set Up [budgetType]', {
-              budgetType: titleCase(subscription.planDetails.budgetTerm),
+              budgetType: displayBudgetName(subscription.planDetails, {title: true}),
             })}
           </Button>
         </InlineButtonGroup>

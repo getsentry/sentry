@@ -47,10 +47,13 @@ import type {
   ReservedBudgetForCategory,
   Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  formatReservedWithUnits,
+  isUnlimitedReserved,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import titleCase from 'getsentry/utils/titleCase';
 import {
   calculateCategoryOnDemandUsage,
   calculateCategoryPrepaidUsage,
@@ -689,7 +692,7 @@ function ReservedUsageChart({
                 color: CHART_PALETTE[5][0],
               }),
               barSeries({
-                name: titleCase(subscription.planDetails.budgetTerm),
+                name: displayBudgetName(subscription.planDetails, {title: true}),
                 data: chartData.onDemand,
                 barMinHeight: 1,
                 stack: 'usage',
@@ -731,13 +734,12 @@ function ReservedUsageChart({
             ? t('Current Usage Period')
             : t(
                 'Estimated %s Spend This Period',
-                titleCase(
-                  getPlanCategoryName({
-                    plan: subscription.planDetails,
-                    category,
-                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-                  })
-                )
+                getPlanCategoryName({
+                  plan: subscription.planDetails,
+                  category,
+                  hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                  title: true,
+                })
               )}
         </Title>
       }

@@ -14,8 +14,7 @@ import useApi from 'sentry/utils/useApi';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types/index';
-import {isTrialPlan} from 'getsentry/utils/billing';
-import titleCase from 'getsentry/utils/titleCase';
+import {displayBudgetName, isTrialPlan} from 'getsentry/utils/billing';
 import OnDemandBudgets from 'getsentry/views/onDemandBudgets';
 import {EditOnDemandButton} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
@@ -88,7 +87,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
               `[budgetType] allows you to pay for additional data beyond your subscription's
 									reserved quotas. [budgetType] is billed monthly at the end of each usage period. [link:Learn more]`,
               {
-                budgetType: titleCase(subscription.planDetails.budgetTerm),
+                budgetType: displayBudgetName(subscription.planDetails, {title: true}),
                 link: (
                   <ExternalLink
                     href={

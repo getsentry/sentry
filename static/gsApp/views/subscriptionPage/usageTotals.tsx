@@ -26,6 +26,7 @@ import {
 } from 'getsentry/types';
 import {
   addBillingStatTotals,
+  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -741,7 +742,7 @@ function UsageTotals({
                   {isDisplayingSpend ? (
                     <div>
                       <LegendTitle>
-                        {titleCase(subscription.planDetails.budgetTerm)}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatCurrency(onDemandCategorySpend)} of{' '}
@@ -757,7 +758,7 @@ function UsageTotals({
                   ) : (
                     <div>
                       <LegendTitle>
-                        {titleCase(subscription.planDetails.budgetTerm)}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatUsageWithUnits(onDemandUsage, category, usageOptions)}
@@ -782,7 +783,7 @@ function UsageTotals({
                   {showOnDemand && (
                     <Fragment>
                       {formatCurrency(onDemandCategorySpend)}{' '}
-                      {titleCase(subscription.planDetails.budgetTerm)}
+                      {displayBudgetName(subscription.planDetails, {title: true})}
                     </Fragment>
                   )}
                 </TotalSpendLabel>

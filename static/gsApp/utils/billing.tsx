@@ -340,6 +340,20 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
   return subscription.isTrial && subscription.isTrialStarted;
 }
 
+export const displayBudgetName = (
+  plan?: Plan | null,
+  options: {title?: boolean} = {}
+) => {
+  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  if (options.title) {
+    if (budgetTerm === 'on-demand') {
+      return 'On-Demand';
+    }
+    return titleCase(budgetTerm);
+  }
+  return budgetTerm;
+};
+
 export const displayPlanName = (plan?: Plan | null) => {
   return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };

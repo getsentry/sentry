@@ -10,9 +10,9 @@ import type {Organization} from 'sentry/types/organization';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import {PlanTier, type Subscription} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
-import titleCase from 'getsentry/utils/titleCase';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -107,12 +107,12 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
             <SummaryTitleWrapper>
               <SummaryTitle>
                 {tct('[budgetType] Spent', {
-                  budgetType: titleCase(subscription.planDetails.budgetTerm),
+                  budgetType: displayBudgetName(subscription.planDetails, {title: true}),
                 })}
               </SummaryTitle>
               <Tooltip
                 title={tct('[budgetType] budget consumed', {
-                  budgetType: titleCase(subscription.planDetails.budgetTerm),
+                  budgetType: displayBudgetName(subscription.planDetails, {title: true}),
                 })}
                 skipWrapper
               >
@@ -203,7 +203,9 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
           <LegendContainer>
             <LegendDot style={{backgroundColor: COLORS.ondemand}} />
             <div>
-              <LegendTitle>{titleCase(subscription.planDetails.budgetTerm)}</LegendTitle>
+              <LegendTitle>
+                {displayBudgetName(subscription.planDetails, {title: true})}
+              </LegendTitle>
               <LegendPrice>
                 {formatCurrency(onDemandTotalSpent)} of{' '}
                 {formatCurrency(onDemandTotalBudget)}

@@ -27,7 +27,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
-import titleCase from 'getsentry/utils/titleCase';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
 import SubscriptionHeader from './subscriptionHeader';
@@ -150,10 +150,13 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           />
           {onDemandEnabled && (
             <GenericConsumptionGroup
-              label={t('%s Consumption', titleCase(subscription.planDetails.budgetTerm))}
+              label={t(
+                '%s Consumption',
+                displayBudgetName(subscription.planDetails, {title: true})
+              )}
               help={t(
                 "Receive notifications when your organization's usage exceeds a threshold (%% of monthly %s budget)",
-                titleCase(subscription.planDetails.budgetTerm)
+                displayBudgetName(subscription.planDetails, {title: true})
               )}
               thresholds={notificationThresholds.perProductOndemandPercent}
               removeThreshold={indexToRemove => {

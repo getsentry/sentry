@@ -13,6 +13,7 @@ import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {PendingOnDemandBudgets, Subscription} from 'getsentry/types';
 import {
+  displayBudgetName,
   formatReservedWithUnits,
   hasPerformance,
   isAm3DsPlan,
@@ -22,7 +23,6 @@ import {
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import titleCase from 'getsentry/utils/titleCase';
 import {
   formatOnDemandBudget,
   hasOnDemandBudgetsFeature,
@@ -106,7 +106,7 @@ class PendingChanges extends Component<Props> {
         this.getNestedValue<number>(subscription, 'onDemandMaxSpend') ?? 0;
       results.push(
         tct('[budgetType] spend change from [currentAmount] to [newAmount]', {
-          budgetType: titleCase(subscription.planDetails.budgetTerm),
+          budgetType: displayBudgetName(subscription.planDetails, {title: true}),
           newAmount: formatCurrency(nextOnDemandMaxSpend),
           currentAmount: formatCurrency(currentOnDemandMaxSpend),
         })
