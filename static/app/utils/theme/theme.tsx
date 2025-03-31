@@ -1075,7 +1075,7 @@ const lightAliases = generateThemeAliases(lightColors);
 const darkAliases = generateThemeAliases(darkColors);
 
 /**
- * @deprecated use useTheme hook instead of directly importing the theme.
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const lightTheme = {
   isChonk: false,
@@ -1119,7 +1119,7 @@ export const lightTheme = {
 };
 
 /**
- * @deprecated use useTheme hook instead of directly importing the theme.
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const darkTheme: typeof lightTheme = {
   isChonk: false,

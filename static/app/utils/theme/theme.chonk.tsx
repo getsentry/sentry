@@ -803,7 +803,7 @@ interface ChonkTheme extends Omit<SentryTheme, 'isChonk'> {
 const getColorPalette = getChartColorPalette;
 
 /**
- * @deprecated use useTheme hook instead of directly importing the theme.
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
   isChonk: true,
@@ -865,7 +865,7 @@ export const DO_NOT_USE_lightChonkTheme: ChonkTheme = {
 };
 
 /**
- * @deprecated use useTheme hook instead of directly importing the theme.
+ * @deprecated use useTheme hook instead of directly importing the theme. If you require a theme for your tests, use ThemeFixture.
  */
 export const DO_NOT_USE_darkChonkTheme: ChonkTheme = {
   isChonk: true,
