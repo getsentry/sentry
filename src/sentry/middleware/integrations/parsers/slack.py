@@ -17,7 +17,6 @@ from sentry.integrations.middleware.hybrid_cloud.parser import (
     create_async_request_payload,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_MIDDLE_PARSERS_FAILURE_DATADOG_METRIC,
     SLACK_MIDDLE_PARSERS_SUCCESS_DATADOG_METRIC,
@@ -253,11 +252,12 @@ class SlackRequestParser(BaseRequestParser):
             # Alert, as there may be a misconfiguration issue
             sentry_sdk.capture_exception()
             return self.get_default_missing_integration_response()
-        except OrganizationIntegration.DoesNotExist:
+
+        if len(regions) == 0:
             # Swallow this exception, as this is likely due to a user removing
             # their org's slack integration, and slack will continue to retry
             # this request until it succeeds.
-            return HttpResponse(status=202)
+            return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
         if self.view_class == SlackActionEndpoint:
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
