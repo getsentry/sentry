@@ -522,7 +522,7 @@ function UsageTotals({
                   </MarginSpan>
                 )}
               </UsageSummaryTitle>
-              {hasReservedQuota && (
+              {(hasReservedQuota || displayGifts) && (
                 <SubText data-test-id={reservedTestId}>
                   {productTrial?.isStarted &&
                   getDaysSinceDate(productTrial.endDate ?? '') <= 0
