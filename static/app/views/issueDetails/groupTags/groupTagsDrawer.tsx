@@ -57,7 +57,10 @@ function useDrawerTab({enabled}: {enabled: boolean}) {
   if (!enabled) {
     return {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
   }
-  return {tab: enabled ? getTabParam() : DrawerTab.TAGS, setTab: setTabCallback};
+  return {
+    tab: enabled ? (getTabParam() as DrawerTab) : DrawerTab.TAGS,
+    setTab: setTabCallback,
+  };
 }
 
 function getHeaderTitle(
