@@ -398,13 +398,31 @@ class SearchResolver:
         if self.params.is_timeseries_request and context_definition:
             context = context_definition.constructor(self.params)
             resolved_column, context_definition = self.resolve_column(context.from_column_name)
-            inverse_map = {v: k for k, v in context.value_map.items()}
-            if value in inverse_map:
-                value = inverse_map[value]
-            elif context.default_value:
-                value = context.default_value
+            inverse_value_map: dict[str, list[str]] = {}
+            for k, v in context.value_map.items():
+                inverse_value_map[v] = inverse_value_map.get(v, []) + [k]
+
+            def remap_value(old_value: str) -> list[str]:
+                if old_value in inverse_value_map:
+                    return inverse_value_map[old_value]
+
+                elif context.default_value:
+                    return [context.default_value]
+                else:
+                    return [""]
+
+            final_value = []
+            if isinstance(value, list):
+                for v in value:
+                    for mapped_values in remap_value(v):
+                        final_value.append(mapped_values)
             else:
-                value = ""
+                final_value = remap_value(value)
+
+            if len(final_value) == 1:
+                value = final_value[0]
+            else:
+                value = final_value
 
         if context_definition:
             if term.value.is_wildcard():
