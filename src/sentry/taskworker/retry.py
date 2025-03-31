@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from multiprocessing.context import TimeoutError
 
+from celery.exceptions import Retry as CeleryRetry
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DEADLETTER,
     ON_ATTEMPTS_EXCEEDED_DISCARD,
@@ -55,6 +56,10 @@ class Retry:
 
         # Explicit RetryError with attempts left.
         if isinstance(exc, RetryError):
+            return True
+
+        # Handle celery retry exceptions
+        if isinstance(exc, CeleryRetry):
             return True
 
         # No retries for types on the ignore list
