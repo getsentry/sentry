@@ -15,7 +15,6 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -687,7 +686,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5][0],
+                color: theme.chart.colors[5][0],
               }),
               barSeries({
                 name:
@@ -696,7 +695,7 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5][1],
+                color: theme.chart.colors[5][1],
               }),
             ]
           : []),

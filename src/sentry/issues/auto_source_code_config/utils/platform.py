@@ -3,7 +3,7 @@ from typing import Any
 from sentry import features
 from sentry.models.organization import Organization
 
-from .constants import PLATFORMS_CONFIG
+from ..constants import PLATFORMS_CONFIG
 
 
 def supported_platform(platform: str) -> bool:

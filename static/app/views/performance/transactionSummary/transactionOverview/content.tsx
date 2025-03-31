@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -44,8 +45,8 @@ import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntry
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
@@ -100,6 +101,7 @@ function OTelSummaryContentInner({
   projectId,
   transactionName,
 }: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
   const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
@@ -155,7 +157,7 @@ function OTelSummaryContentInner({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      VITAL_GROUPS.some(group =>
+      makeVitalGroups(theme).some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
@@ -373,6 +375,7 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const theme = useTheme();
   const routes = useRoutes();
   const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
@@ -484,7 +487,7 @@ function SummaryContent({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      VITAL_GROUPS.some(group =>
+      makeVitalGroups(theme).some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;

@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -71,8 +72,8 @@ function getSummaryConditions(query: string) {
 }
 
 function VitalDetailContent(props: Props) {
+  const theme = useTheme();
   const [error, setError] = useState<string | undefined>(undefined);
-
   function handleSearch(query: string) {
     const {location} = props;
 
@@ -241,6 +242,7 @@ function VitalDetailContent(props: Props) {
                 selectedProjects={project.map(String)}
               >
                 <Table
+                  theme={theme}
                   eventView={eventView}
                   projects={projects}
                   organization={organization}

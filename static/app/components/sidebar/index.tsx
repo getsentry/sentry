@@ -556,20 +556,24 @@ function Sidebar() {
                 hidePanel={hidePanel}
                 organization={organization}
               />
-              <Broadcasts
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
-                hidePanel={hidePanel}
-              />
-              <ServiceIncidents
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
-                hidePanel={hidePanel}
-              />
+              {!isDemoModeActive() && (
+                <Fragment>
+                  <Broadcasts
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                    hidePanel={hidePanel}
+                  />
+                  <ServiceIncidents
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                    hidePanel={hidePanel}
+                  />
+                </Fragment>
+              )}
             </SidebarSection>
 
             {!horizontal && (

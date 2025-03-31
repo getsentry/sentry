@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
 import Card from 'sentry/components/card';
 import {Button} from 'sentry/components/core/button';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -67,12 +67,6 @@ const EMPTY_STAT_TOTAL = {
   filtered: 0,
   projected: 0,
 };
-
-const COLORS = {
-  reserved: CHART_PALETTE[5][0],
-  ondemand: CHART_PALETTE[5][1],
-  secondary_reserved: CHART_PALETTE[5][2],
-} as const;
 
 function getPercentage(quantity: number, total: number | null) {
   if (typeof total === 'number' && total > 0) {
@@ -356,6 +350,13 @@ function UsageTotals({
   allTotalsByCategory,
 }: UsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
+  const theme = useTheme();
+
+  const COLORS = {
+    reserved: theme.chart.colors[5][0],
+    ondemand: theme.chart.colors[5][1],
+    secondary_reserved: theme.chart.colors[5][2],
+  } as const;
 
   const usageOptions = {useUnitScaling: true};
   const reservedOptions = {

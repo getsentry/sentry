@@ -11,6 +11,7 @@ import {
   IconSearch,
   IconSettings,
 } from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
@@ -46,6 +47,7 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
 
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
+  const {layout} = useNavContext();
   const prefix = `organizations/${organization.slug}`;
 
   return (
@@ -94,7 +96,11 @@ export function PrimaryNavigationItems() {
               to={`/${prefix}/dashboards/`}
               activeTo={`/${prefix}/dashboard`}
               analyticsKey="dashboards"
-              label={NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]}
+              label={
+                layout === NavLayout.MOBILE
+                  ? NAV_GROUP_LABELS[PrimaryNavGroup.DASHBOARDS]
+                  : t('Dash')
+              }
             >
               <IconDashboard />
             </SidebarLink>
