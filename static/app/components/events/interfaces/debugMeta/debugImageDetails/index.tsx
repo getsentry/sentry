@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
@@ -364,7 +364,7 @@ const StyledButtonBar = styled(ButtonBar)`
   white-space: nowrap;
 `;
 
-export const modalCss = css`
+export const modalCss = (theme: Theme) => css`
   [role='document'] {
     overflow: initial;
   }

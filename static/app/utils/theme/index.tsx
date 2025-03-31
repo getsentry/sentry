@@ -1,10 +1,15 @@
 export type {
+  Aliases,
   Color,
-  ColorOrAlias,
   ColorMapping,
-  FormTheme,
+  ColorOrAlias,
   FormSize,
+  FormTheme,
   IconSize,
   StrictCSSObject,
   Theme,
 } from './theme';
+
+import {darkTheme, lightTheme} from './theme';
+
+export {lightTheme, darkTheme};

@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 
 import type {
   EditOwnershipRulesModalOptions,
@@ -23,7 +23,7 @@ function EditOwnershipRulesModal({Body, Header, onSave, closeModal, ...props}: P
   );
 }
 
-export const modalCss = css`
+export const modalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.small}) {
     width: 80%;
   }
