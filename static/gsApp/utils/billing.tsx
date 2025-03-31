@@ -139,6 +139,13 @@ export function formatReservedWithUnits(
   },
   isReservedBudget = false
 ): string {
+  if (
+    dataCategory === DataCategory.PROFILE_DURATION ||
+    dataCategory === DataCategory.PROFILE_DURATION_UI
+  ) {
+    const hours = reservedQuantity ? reservedQuantity / 3_600_000 : 0;
+    return `${hours}`;
+  }
   if (isReservedBudget) {
     return displayPriceWithCents({cents: reservedQuantity ?? 0});
   }
