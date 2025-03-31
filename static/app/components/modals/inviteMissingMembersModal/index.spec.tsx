@@ -9,7 +9,7 @@ import selectEvent from 'sentry-test/selectEvent';
 
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import type {InviteMissingMembersModalProps} from 'sentry/components/modals/inviteMissingMembersModal';
-import InviteMissingMembersModal from 'sentry/components/modals/inviteMissingMembersModal';
+import {InviteMissingMembersModal} from 'sentry/components/modals/inviteMissingMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
 import type {OrgRole} from 'sentry/types/organization';
 

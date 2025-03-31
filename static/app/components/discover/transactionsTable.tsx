@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
@@ -65,6 +66,7 @@ function TransactionsTable(props: Props) {
     isLoading,
     referrer,
   } = props;
+  const theme = useTheme();
 
   const getTitles = () => {
     return titles ?? eventView.getFields();
@@ -144,7 +146,7 @@ function TransactionsTable(props: Props) {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {organization, location});
+      let rendered = fieldRenderer(row, {organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, row, location);
 
@@ -218,7 +220,7 @@ function TransactionsTable(props: Props) {
         return;
       }
       // @ts-expect-error TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
-      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta));
+      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta, theme));
     });
     return cells;
   };
