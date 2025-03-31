@@ -34,17 +34,8 @@ export function SvgIcon(props: IconProps) {
   } = useIconDefaults(props);
 
   const theme = useTheme();
-
-  // Chonk changes the color of the icon to gray300 to differ. We will remap
-  // the color to subText for the time being and remove this when the old theme
-  // aliases are removed.
-
-  let normalizedColor = providedColor;
-  if (theme.isChonk && providedColor === 'gray300') {
-    normalizedColor = 'subText';
-  }
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const color = theme[normalizedColor] ?? normalizedColor;
+  const color = theme[providedColor] ?? providedColor;
   const size = legacySize ?? theme.iconSizes[providedSize];
 
   // Stroke based icons are only available in Chonk
