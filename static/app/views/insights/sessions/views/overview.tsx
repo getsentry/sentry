@@ -29,6 +29,7 @@ import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHeal
 import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
 import GiveFeedbackSection from 'sentry/views/insights/sessions/components/giveFeedbackSection';
+import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -96,26 +97,26 @@ function ViewSpecificCharts({
     case FRONTEND_LANDING_SUB_PATH:
       return (
         <Fragment>
-          <ModuleLayout.Third>
+          <ModuleLayout.Half>
             <ErrorFreeSessionsChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <SessionHealthCountChart />
-          </ModuleLayout.Third>
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <UserHealthRateChart />
+          </ModuleLayout.Half>
+
           <ModuleLayout.Third>
             <UserHealthCountChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <UserHealthRateChart />
-          </ModuleLayout.Third>
 
+          <ModuleLayout.Third>
+            <SessionHealthCountChart />
+          </ModuleLayout.Third>
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
@@ -128,36 +129,36 @@ function ViewSpecificCharts({
     case MOBILE_LANDING_SUB_PATH:
       return (
         <Fragment>
-          <ModuleLayout.Third>
+          <ModuleLayout.Half>
             <CrashFreeSessionsChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="issue" />
-          </ModuleLayout.Third>
+          </ModuleLayout.Half>
+          <ModuleLayout.Half>
+            <ReleaseSessionPercentageChart />
+          </ModuleLayout.Half>
+
           <ModuleLayout.Third>
             <ReleaseNewIssuesChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
             <ReleaseSessionCountChart />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthCountChart />
           </ModuleLayout.Third>
+
           <ModuleLayout.Third>
             <UserHealthCountChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
-            <ReleaseSessionPercentageChart />
+            <NewAndResolvedIssueChart type="issue" />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
             <SessionHealthRateChart />
           </ModuleLayout.Third>
+
           <ModuleLayout.Third>
             <UserHealthRateChart />
           </ModuleLayout.Third>
-
           <ModuleLayout.Third>
             <NewAndResolvedIssueChart type="feedback" />
           </ModuleLayout.Third>
@@ -168,6 +169,7 @@ function ViewSpecificCharts({
           <ModuleLayout.Full>
             <FilterWrapper>
               <FilterReleaseDropdown filters={filters} setFilters={setFilters} />
+              <ReleaseTableSearch />
             </FilterWrapper>
             <ReleaseHealth filters={filters} />
           </ModuleLayout.Full>
@@ -189,6 +191,11 @@ function PageWithProviders() {
 export default PageWithProviders;
 
 const FilterWrapper = styled('div')`
-  display: flex;
   margin: ${space(2)} 0;
+  gap: ${space(1)};
+  display: grid;
+  grid-template-columns: auto 1fr;
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-rows: auto auto;
+  }
 `;
