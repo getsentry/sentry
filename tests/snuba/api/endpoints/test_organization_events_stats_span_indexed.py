@@ -1534,3 +1534,42 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
             "Time_Spent_Percentage Is Not Enabled For This Request. Reason: Not Supported For Timeseries Requests"
             in response.data["detail"].title()
         )
+
+    def test_module_alias(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "http.client",
+                        "description": "GET /app/index",
+                        "sentry_tags": {
+                            "description": "GET /app/index",
+                            "category": "http",
+                            "op": "http.client",
+                            "transaction": "my-transaction",
+                        },
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "query": "span.module:http",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 1.0
+        assert data[2][1][0]["count"] == 0.0
+        assert response.data["meta"]["dataset"] == self.dataset

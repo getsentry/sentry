@@ -394,6 +394,18 @@ class SearchResolver:
 
         value = term.value.value
 
+        # time series request do not support virtual column contexts, so we have to remap the value back to the original column
+        if self.params.is_timeseries_request and context_definition:
+            context = context_definition.constructor(self.params)
+            resolved_column, context_definition = self.resolve_column(context.from_column_name)
+            inverse_map = {v: k for k, v in context.value_map.items()}
+            if value in inverse_map:
+                value = inverse_map[value]
+            elif context.default_value:
+                value = context.default_value
+            else:
+                value = ""
+
         if context_definition:
             if term.value.is_wildcard():
                 # Avoiding this for now, but we could theoretically do a wildcard search on the resolved contexts
