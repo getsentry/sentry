@@ -25,7 +25,7 @@ class IssueLinkCreator:
     fields: dict[str, Any]
     uri: str
     user: RpcUser
-    verified_action: IssueRequestActionType
+    verified_action: IssueRequestActionType | None
 
     def run(self) -> PlatformExternalIssue:
         with transaction.atomic(using=router.db_for_write(PlatformExternalIssue)):
