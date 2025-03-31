@@ -35,6 +35,7 @@ interface SpanSearchQueryBuilderProps {
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
   projects?: PageFilters['projects'];
+  updateOnFilterDelete?: boolean;
 }
 
 export const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -67,6 +68,7 @@ export function SpanSearchQueryBuilder({
   onBlur,
   placeholder,
   projects,
+  updateOnFilterDelete,
 }: SpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -148,6 +150,7 @@ export function SpanSearchQueryBuilder({
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
       showUnsubmittedIndicator
+      updateOnFilterDelete={updateOnFilterDelete}
     />
   );
 }
@@ -172,6 +175,7 @@ export function EAPSpanSearchQueryBuilder({
   supportedAggregates = [],
   projects,
   portalTarget,
+  updateOnFilterDelete,
 }: EAPSpanSearchQueryBuilderProps) {
   const api = useApi();
   const organization = useOrganization();
@@ -250,6 +254,7 @@ export function EAPSpanSearchQueryBuilder({
       recentSearches={SavedSearchType.SPAN}
       showUnsubmittedIndicator
       portalTarget={portalTarget}
+      updateOnFilterDelete={updateOnFilterDelete}
     />
   );
 }

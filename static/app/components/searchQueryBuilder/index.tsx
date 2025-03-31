@@ -124,6 +124,10 @@ export interface SearchQueryBuilderProps {
    * to the left of the clear button.
    */
   trailingItems?: React.ReactNode;
+  /**
+   * When true, the filter will be updated when a filter's delete button is clicked.
+   */
+  updateOnFilterDelete?: boolean;
 }
 
 function SearchIndicator({
@@ -208,6 +212,7 @@ export function SearchQueryBuilder({
   trailingItems,
   getFilterTokenWarning,
   portalTarget,
+  updateOnFilterDelete,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -322,7 +327,11 @@ export function SearchQueryBuilder({
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
-            <TokenizedQueryGrid label={label} actionBarWidth={actionBarWidth} />
+            <TokenizedQueryGrid
+              label={label}
+              actionBarWidth={actionBarWidth}
+              updateOnFilterDelete={updateOnFilterDelete}
+            />
           )}
           {size !== 'small' && (
             <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />

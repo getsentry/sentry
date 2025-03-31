@@ -31,6 +31,7 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -162,14 +163,28 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   );
 }
 
-function FilterDelete({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch, disabled} = useSearchQueryBuilder();
+function FilterDelete({
+  token,
+  state,
+  item,
+  updateOnFilterDelete,
+}: SearchQueryTokenProps & {updateOnFilterDelete?: boolean}) {
+  const {dispatch, disabled, handleSearch, query} = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
-      onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      onClick={() => {
+        dispatch({type: 'DELETE_TOKEN', token});
+        if (updateOnFilterDelete) {
+          const mutableQuery = new MutableSearch(query);
+          mutableQuery.removeFilter(
+            token.negated ? `!${token.key.text}` : token.key.text
+          );
+          handleSearch(mutableQuery.formatString());
+        }
+      }}
       disabled={disabled}
       {...filterButtonProps}
     >
@@ -179,7 +194,12 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   );
 }
 
-export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenProps) {
+export function SearchQueryBuilderFilter({
+  item,
+  state,
+  token,
+  updateOnFilterDelete = false,
+}: SearchQueryTokenProps & {updateOnFilterDelete?: boolean}) {
   const ref = useRef<HTMLDivElement>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
 
@@ -263,7 +283,12 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
           />
         </FilterValueGridCell>
         <BaseGridCell {...gridCellProps}>
-          <FilterDelete token={token} state={state} item={item} />
+          <FilterDelete
+            token={token}
+            state={state}
+            item={item}
+            updateOnFilterDelete={updateOnFilterDelete}
+          />
         </BaseGridCell>
       </GridInvalidTokenTooltip>
     </FilterWrapper>

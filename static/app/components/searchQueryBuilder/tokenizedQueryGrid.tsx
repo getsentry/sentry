@@ -24,12 +24,14 @@ import {space} from 'sentry/styles/space';
 interface TokenizedQueryGridProps {
   actionBarWidth: number;
   label?: string;
+  updateOnFilterDelete?: boolean;
 }
 
 interface GridProps extends AriaGridListOptions<ParseResultToken> {
   actionBarWidth: number;
   children: CollectionChildren<ParseResultToken>;
   items: ParseResultToken[];
+  updateOnFilterDelete?: boolean;
 }
 
 function useApplyFocusOverride(state: ListState<ParseResultToken>) {
@@ -95,6 +97,7 @@ function Grid(props: GridProps) {
                 token={token}
                 item={item}
                 state={state}
+                updateOnFilterDelete={props.updateOnFilterDelete}
               />
             );
           case Token.FREE_TEXT:
@@ -134,7 +137,11 @@ function Grid(props: GridProps) {
   );
 }
 
-export function TokenizedQueryGrid({label, actionBarWidth}: TokenizedQueryGridProps) {
+export function TokenizedQueryGrid({
+  label,
+  actionBarWidth,
+  updateOnFilterDelete,
+}: TokenizedQueryGridProps) {
   const {parsedQuery} = useSearchQueryBuilder();
 
   // Shouldn't ever get here since we will render the plain text input instead
@@ -149,6 +156,7 @@ export function TokenizedQueryGrid({label, actionBarWidth}: TokenizedQueryGridPr
         items={parsedQuery}
         selectionMode="multiple"
         actionBarWidth={actionBarWidth}
+        updateOnFilterDelete={updateOnFilterDelete}
       >
         {item => (
           <Item key={makeTokenKey(item, parsedQuery)}>
