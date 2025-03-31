@@ -408,7 +408,7 @@ class SearchResolver:
                 else:
                     return [""]
 
-            value_set = []
+            final_value = []
             if isinstance(value, list):
                 value_set = set()
                 for v in value:
