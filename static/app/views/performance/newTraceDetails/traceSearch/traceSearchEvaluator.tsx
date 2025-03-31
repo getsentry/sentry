@@ -26,7 +26,7 @@ export type TraceSearchResult = {
   value: TraceTreeNode<TraceTree.NodeValue>;
 };
 
-const {info, fmt} = Sentry._experiment_log;
+const {info, fmt} = Sentry.logger;
 
 /**
  * Evaluates the infix token representation against the token list. The logic is the same as

@@ -20,6 +20,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   Table,
   TableBody,
@@ -46,9 +47,13 @@ import {FieldRenderer} from './fieldRenderer';
 
 interface AggregatesTableProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
 }
 
-export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
+export function AggregatesTable({
+  aggregatesTableResult,
+  isProgressivelyLoading,
+}: AggregatesTableProps) {
   const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
@@ -85,7 +90,9 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
         <TableHead>
           <TableRow>
             <TableHeadCell isFirst={false}>
-              <TableHeadCellContent />
+              <TableHeadCellContent>
+                {getProgressiveLoadingIndicator(isProgressivelyLoading)}
+              </TableHeadCellContent>
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined

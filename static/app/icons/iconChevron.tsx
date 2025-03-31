@@ -57,13 +57,12 @@ function getChevronPath({
   return CHEVRON_PATH;
 }
 
-function IconChevron({ref, isDouble, isCircled, direction = 'up', ...props}: Props) {
+function IconChevron({isDouble, isCircled, direction = 'up', ...props}: Props) {
   const theme = useTheme();
 
   return (
     <SvgIcon
       {...props}
-      ref={ref}
       kind={theme.isChonk ? 'stroke' : 'path'}
       css={
         direction

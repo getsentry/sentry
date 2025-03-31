@@ -59,6 +59,14 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   onStartTour?: (stepId?: T) => void;
   /**
+   * Called when the tour step changes.
+   */
+  onStepChange?: (stepId: T) => void;
+  /**
+   * Whether to require all steps to be registered in the DOM before the tour can start.
+   */
+  requireAllStepsRegistered?: boolean;
+  /**
    * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
    */
   tourKey?: string;
@@ -73,9 +81,20 @@ export function TourContextProvider<T extends TourEnumType>({
   orderedStepIds,
   onEndTour,
   onStartTour,
+  onStepChange,
+  requireAllStepsRegistered,
 }: TourContextProviderProps<T>) {
   const organization = useOrganization();
   const {mutate} = useMutateAssistant();
+  const options = useMemo(
+    () => ({
+      onStartTour,
+      onEndTour,
+      onStepChange,
+      requireAllStepsRegistered,
+    }),
+    [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
+  );
   const tourContextValue = useTourReducer<T>(
     {
       isCompleted,
@@ -84,10 +103,7 @@ export function TourContextProvider<T extends TourEnumType>({
       currentStepId: null,
       tourKey,
     },
-    {
-      onStartTour,
-      onEndTour,
-    }
+    options
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
@@ -527,7 +543,6 @@ const BlurWindow = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.tour.blur};
   user-select: none;
-  pointer-events: none;
   backdrop-filter: blur(3px);
 `;
 

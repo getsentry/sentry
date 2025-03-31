@@ -16,7 +16,6 @@ import type {
   LegendComponentOption,
   LineSeriesOption,
   SeriesOption,
-  TooltipComponentFormatterCallback,
   TooltipComponentFormatterCallbackParams,
   TooltipComponentOption,
   VisualMapComponentOption,
@@ -44,7 +43,6 @@ import type {
   EChartMouseOverHandler,
   EChartRenderedHandler,
   EChartRestoreHandler,
-  ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -108,10 +106,7 @@ interface TooltipOption
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
   markerFormatter?: (marker: string, label?: string) => string;
-  nameFormatter?: (
-    name: string,
-    seriesParams?: TooltipComponentFormatterCallback<any>
-  ) => string;
+  nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
    * If true does not display sublabels with a value of 0.
    */
@@ -174,10 +169,6 @@ export interface BaseChartProps {
    * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
    */
   end?: Date;
-  /**
-   * Forwarded Ref
-   */
-  forwardedRef?: React.Ref<ReactEchartsCore>;
   /**
    * Graphic options
    */
@@ -242,6 +233,7 @@ export interface BaseChartProps {
    * Display previous period as a LineSeries
    */
   previousPeriod?: Series[];
+  ref?: React.Ref<ReactEchartsCore>;
   /**
    * Use `canvas` when dealing with large datasets
    * See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
@@ -334,7 +326,7 @@ const DEFAULT_ADDITIONAL_SERIES: LineSeriesOption[] = [];
 const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
-function BaseChartUnwrapped({
+function BaseChart({
   brush,
   colors,
   grid,
@@ -360,7 +352,7 @@ function BaseChartUnwrapped({
   xAxes,
 
   style,
-  forwardedRef,
+  ref,
 
   onClick,
   onLegendSelectChanged,
@@ -673,7 +665,7 @@ function BaseChartUnwrapped({
     <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
-        ref={forwardedRef}
+        ref={ref}
         echarts={echarts}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
@@ -849,16 +841,5 @@ const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
     ${getTooltipStyles(p)};
   }
 `;
-
-function BaseChart({
-  ref,
-  ...props
-}: BaseChartProps & {
-  ref?: React.Ref<ReactEchartsRef>;
-}) {
-  return <BaseChartUnwrapped forwardedRef={ref} {...props} />;
-}
-
-BaseChart.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChart;

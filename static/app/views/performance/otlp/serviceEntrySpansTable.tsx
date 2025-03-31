@@ -28,9 +28,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {useEAPSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {type EAPSpanResponse, ModuleName} from 'sentry/views/insights/types';
+import {
+  type EAPSpanResponse,
+  ModuleName,
+  SpanIndexedField,
+} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {useServiceEntrySpansQuery} from 'sentry/views/performance/otlp/useServiceEntrySpansQuery';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
 // TODO: When supported, also add span operation breakdown as a field
 type Row = Pick<
@@ -100,7 +104,6 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const LIMIT = 5;
 const PAGINATION_CURSOR_SIZE = 'xs';
 const CURSOR_NAME = 'serviceEntrySpansCursor';
 
@@ -129,7 +132,8 @@ export function ServiceEntrySpansTable({
 
   const projectSlug = projects.find(p => p.id === `${eventView.project}`)?.slug;
   const cursor = decodeScalar(location.query?.[CURSOR_NAME]);
-  const {selected, options} = getOTelTransactionsListSort(location);
+  const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
+  const {selected, options} = getOTelTransactionsListSort(location, spanCategory);
 
   const p95 = totalValues?.['p95()'] ?? 0;
   const eventViewQuery = new MutableSearch(eventView.query);
@@ -143,32 +147,13 @@ export function ServiceEntrySpansTable({
     pageLinks,
     meta,
     error,
-  } = useEAPSpans(
-    {
-      search: eventViewQuery.formatString(),
-      fields: [
-        'span_id',
-        'user.id',
-        'user.email',
-        'user.username',
-        'user.ip',
-        'span.duration',
-        'trace',
-        'timestamp',
-        'replayId',
-        'profile.id',
-        'profiler.id',
-        'thread.id',
-        'precise.start_ts',
-        'precise.finish_ts',
-      ],
-      sorts: [selected.sort],
-      limit: LIMIT,
-      cursor,
-    },
-    'api.performance.service-entry-spans-table',
-    true
-  );
+  } = useServiceEntrySpansQuery({
+    query: eventViewQuery.formatString(),
+    sort: selected.sort,
+    transactionName,
+    p95,
+    selected,
+  });
 
   const consolidatedData = tableData?.map(row => {
     const user =
@@ -367,38 +352,46 @@ function CustomPagination({
   );
 }
 
-// TODO: The span ops breakdown filter will not work here due to OTLP changes.
-// this may need to be adjusted in the future to handle the new breakdown filter that will replace it.
-function getOTelFilterOptions(): DropdownOption[] {
+function getOTelFilterOptions(spanCategory?: string): DropdownOption[] {
   return [
     {
       sort: {kind: 'asc', field: 'span.duration'},
       value: TransactionFilterOptions.FASTEST,
-      label: t('Fastest Service Entry Spans'),
+      label: spanCategory
+        ? t('Fastest %s Service Entry Spans', spanCategory)
+        : t('Fastest Service Entry Spans'),
     },
     {
       sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.SLOW,
-      label: t('Slow Service Entry Spans (p95)'),
+      label: spanCategory
+        ? t('Slow %s Service Entry Spans (p95)', spanCategory)
+        : t('Slow Service Entry Spans (p95)'),
     },
     {
       sort: {kind: 'desc', field: 'span.duration'},
       value: TransactionFilterOptions.OUTLIER,
-      label: t('Outlier Service Entry Spans (p100)'),
+      label: spanCategory
+        ? t('Outlier %s Service Entry Spans (p100)', spanCategory)
+        : t('Outlier Service Entry Spans (p100)'),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
       value: TransactionFilterOptions.RECENT,
+      // The category does not apply to this option
       label: t('Recent Service Entry Spans'),
     },
   ];
 }
 
-function getOTelTransactionsListSort(location: Location): {
+function getOTelTransactionsListSort(
+  location: Location,
+  spanCategory?: string
+): {
   options: DropdownOption[];
   selected: DropdownOption;
 } {
-  const sortOptions = getOTelFilterOptions();
+  const sortOptions = getOTelFilterOptions(spanCategory);
   const urlParam = decodeScalar(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW

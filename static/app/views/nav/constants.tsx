@@ -1,0 +1,16 @@
+import {t} from 'sentry/locale';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
+
+export const NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY = 'navigation-sidebar-is-collapsed';
+
+export const NAV_GROUP_LABELS: Record<PrimaryNavGroup, string> = {
+  [PrimaryNavGroup.ISSUES]: t('Issues'),
+  [PrimaryNavGroup.EXPLORE]: t('Explore'),
+  [PrimaryNavGroup.DASHBOARDS]: t('Dashboards'),
+  [PrimaryNavGroup.INSIGHTS]: t('Insights'),
+  [PrimaryNavGroup.SETTINGS]: t('Settings'),
+  [PrimaryNavGroup.PIPELINE]: t('Pipeline'),
+};
+
+export const PRIMARY_SIDEBAR_WIDTH = 66;
+export const SECONDARY_SIDEBAR_WIDTH = 190;

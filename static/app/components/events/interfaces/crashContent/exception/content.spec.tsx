@@ -202,6 +202,7 @@ describe('Exception Content', function () {
         event={event}
         values={event.entries[0]!.data.values}
         projectSlug={project.slug}
+        newestFirst
       />
     );
 

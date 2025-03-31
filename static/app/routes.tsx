@@ -29,7 +29,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
-import {IssueNavigation} from 'sentry/views/issues/navigation';
+import {IssueNavigation} from 'sentry/views/nav/secondary/sections/issues/issuesSecondaryNav';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
@@ -1109,7 +1109,12 @@ function buildRoutes() {
   );
 
   const dashboardRoutes = (
-    <Route component={make(() => import('sentry/views/dashboards/navigation'))}>
+    <Route
+      component={make(
+        () =>
+          import('sentry/views/nav/secondary/sections/dashboards/dashboardsSecondaryNav')
+      )}
+    >
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
           <Route
@@ -1824,7 +1829,9 @@ function buildRoutes() {
     <Route
       path={`/${DOMAIN_VIEW_BASE_URL}/`}
       withOrgPath
-      component={make(() => import('sentry/views/insights/navigation'))}
+      component={make(
+        () => import('sentry/views/nav/secondary/sections/insights/insightsSecondaryNav')
+      )}
     >
       {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
@@ -1980,7 +1987,9 @@ function buildRoutes() {
   const exploreRoutes = (
     <Route
       path="/explore/"
-      component={make(() => import('sentry/views/explore/navigation'))}
+      component={make(
+        () => import('sentry/views/nav/secondary/sections/explore/exploreSecondaryNav')
+      )}
       withOrgPath
     >
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
