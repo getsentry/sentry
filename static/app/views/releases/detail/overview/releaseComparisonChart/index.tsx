@@ -1,6 +1,5 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
@@ -34,6 +33,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {useApiQueries, useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import type {Color} from 'sentry/utils/theme';
@@ -77,20 +77,6 @@ type Props = {
   reloading: boolean;
 };
 
-type EventsTotals = {
-  allErrorCount: number;
-  allFailureRate: number;
-  allTransactionCount: number;
-  releaseErrorCount: number;
-  releaseFailureRate: number;
-  releaseTransactionCount: number;
-} | null;
-
-type IssuesTotals = {
-  handled: number;
-  unhandled: number;
-} | null;
-
 function ReleaseComparisonChart({
   release,
   project,
@@ -101,14 +87,10 @@ function ReleaseComparisonChart({
   loading,
   reloading,
   errored,
-  api,
   organization,
   hasHealthData,
 }: Props) {
   const navigate = useNavigate();
-  const [issuesTotals, setIssuesTotals] = useState<IssuesTotals>(null);
-  const [eventsTotals, setEventsTotals] = useState<EventsTotals>(null);
-  const [eventsLoading, setEventsLoading] = useState(false);
   const [expanded, setExpanded] = useState(new Set());
   const [isOtherExpanded, setIsOtherExpanded] = useState(false);
   const charts: ReleaseComparisonRow[] = [];
@@ -168,26 +150,22 @@ function ReleaseComparisonChart({
     }
   }, [location.query.chart]);
 
-  const fetchEventsTotals = useCallback(async () => {
-    const url = `/organizations/${organization.slug}/events/`;
-    const commonQuery = {
-      environment: decodeList(location.query.environment),
-      project: decodeList(location.query.project),
-      start,
-      end,
-      ...(period ? {statsPeriod: period} : {}),
-    };
+  const commonQuery = {
+    environment: decodeList(location.query.environment),
+    project: decodeList(location.query.project),
+    start,
+    end,
+    ...(period ? {statsPeriod: period} : {}),
+  };
 
-    setEventsLoading(true);
-
-    try {
-      const [
-        releaseTransactionTotals,
-        allTransactionTotals,
-        releaseErrorTotals,
-        allErrorTotals,
-      ] = await Promise.all([
-        api.requestPromise(url, {
+  const url = `/organizations/${organization.slug}/events/`;
+  const UNHANDLED_QUERY = `release:"${release.version}" error.handled:0`;
+  const HANDLED_QUERY = `release:"${release.version}" error.handled:1`;
+  const eventsQueries = useApiQueries<{data: Array<Record<string, number>>}>(
+    [
+      [
+        url,
+        {
           query: {
             field: ['failure_rate()', 'count()'],
             query: new MutableSearch([
@@ -197,16 +175,22 @@ function ReleaseComparisonChart({
             dataset: DiscoverDatasets.METRICS_ENHANCED,
             ...commonQuery,
           },
-        }),
-        api.requestPromise(url, {
+        },
+      ],
+      [
+        url,
+        {
           query: {
             field: ['failure_rate()', 'count()'],
             query: new MutableSearch(['event.type:transaction']).formatString(),
             dataset: DiscoverDatasets.METRICS_ENHANCED,
             ...commonQuery,
           },
-        }),
-        api.requestPromise(url, {
+        },
+      ],
+      [
+        url,
+        {
           query: {
             field: ['count()'],
             query: new MutableSearch([
@@ -215,85 +199,63 @@ function ReleaseComparisonChart({
             ]).formatString(),
             ...commonQuery,
           },
-        }),
-        api.requestPromise(url, {
+        },
+      ],
+      [
+        url,
+        {
           query: {
             field: ['count()'],
             query: new MutableSearch(['event.type:error']).formatString(),
             ...commonQuery,
           },
-        }),
-      ]);
-
-      setEventsTotals({
-        allErrorCount: allErrorTotals.data[0]['count()'],
-        releaseErrorCount: releaseErrorTotals.data[0]['count()'],
-        allTransactionCount: allTransactionTotals.data[0]['count()'],
-        releaseTransactionCount: releaseTransactionTotals.data[0]['count()'],
-        releaseFailureRate: releaseTransactionTotals.data[0]['failure_rate()'],
-        allFailureRate: allTransactionTotals.data[0]['failure_rate()'],
-      });
-      setEventsLoading(false);
-    } catch (err) {
-      setEventsTotals(null);
-      setEventsLoading(false);
-      Sentry.captureException(err);
+        },
+      ],
+    ],
+    {
+      staleTime: Infinity,
+      enabled: hasDiscover || hasPerformance,
     }
-  }, [
-    api,
-    end,
-    location.query.environment,
-    location.query.project,
-    organization.slug,
-    period,
-    release.version,
-    start,
-  ]);
-
-  const fetchIssuesTotals = useCallback(async () => {
-    const UNHANDLED_QUERY = `release:"${release.version}" error.handled:0`;
-    const HANDLED_QUERY = `release:"${release.version}" error.handled:1`;
-
-    try {
-      const response = await api.requestPromise(
-        `/organizations/${organization.slug}/issues-count/`,
-        {
-          query: {
-            project: project.id,
-            environment: decodeList(location.query.environment),
-            start,
-            end,
-            ...(period ? {statsPeriod: period} : {}),
-            query: [UNHANDLED_QUERY, HANDLED_QUERY],
-          },
-        }
-      );
-
-      setIssuesTotals({
-        handled: response[HANDLED_QUERY] ?? 0,
-        unhandled: response[UNHANDLED_QUERY] ?? 0,
-      });
-    } catch (err) {
-      setIssuesTotals(null);
-      Sentry.captureException(err);
+  );
+  const issuesQuery = useApiQuery<Record<string, number>>(
+    [
+      `/organizations/${organization.slug}/issues-count/`,
+      {
+        query: {
+          project: project.id,
+          environment: decodeList(location.query.environment),
+          start,
+          end,
+          ...(period ? {statsPeriod: period} : {}),
+          query: [UNHANDLED_QUERY, HANDLED_QUERY],
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: hasDiscover || hasPerformance,
     }
-  }, [
-    api,
-    end,
-    location.query.environment,
-    organization.slug,
-    period,
-    project.id,
-    release.version,
-    start,
-  ]);
+  );
 
-  useEffect(() => {
-    if (hasDiscover || hasPerformance) {
-      fetchEventsTotals();
-      fetchIssuesTotals();
-    }
-  }, [fetchEventsTotals, fetchIssuesTotals, hasDiscover, hasPerformance]);
+  const eventsLoading = eventsQueries.some(q => q.isPending);
+  const [releaseTransactionQuery, allTransactionQuery, releaseErrorQuery, allErrorQuery] =
+    eventsQueries;
+  const eventsTotals = eventsLoading
+    ? null
+    : {
+        allErrorCount: allErrorQuery?.data?.data[0]?.['count()'],
+        releaseErrorCount: releaseErrorQuery?.data?.data[0]?.['count()'],
+        allTransactionCount: allTransactionQuery?.data?.data[0]?.['count()'],
+        releaseTransactionCount: releaseTransactionQuery?.data?.data[0]?.['count()'],
+        releaseFailureRate: releaseTransactionQuery?.data?.data[0]?.['failure_rate()'],
+        allFailureRate: allTransactionQuery?.data?.data[0]?.['failure_rate()'],
+      };
+  const issuesTotals = issuesQuery.isPending
+    ? null
+    : {
+        unhandled: issuesQuery.data?.[UNHANDLED_QUERY] ?? 0,
+        handled: issuesQuery.data?.[HANDLED_QUERY] ?? 0,
+      };
 
   const releaseCrashFreeSessions = getCrashFreeRate(
     releaseSessions?.groups,
