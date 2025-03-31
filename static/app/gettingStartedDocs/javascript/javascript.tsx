@@ -812,6 +812,12 @@ export const featureFlagOnboarding: OnboardingConfig = {
             language: 'bash',
             code: `yarn add @sentry/browser ${packageName}`,
           },
+          {
+            label: 'pnpm',
+            value: 'pnpm',
+            language: 'bash',
+            code: `pnpm add @sentry/browser ${packageName}`,
+          },
         ],
       },
     ];

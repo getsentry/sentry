@@ -237,7 +237,7 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]. You need a minimum version 7.27.0 of [code:@sentry/react] in order to use Session Replay. You do not need to install any additional packages.',
         {code: <code />}
       ),
       configurations: getInstallConfig(),
