@@ -318,6 +318,93 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_build_group_block_noa(self):
+        release = self.create_release(project=self.project)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"escape": "`room`", "foo": "bar"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+                "release": release.version,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
+        assert group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
+        notes = "hey @colleen fix it"
+
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+        )
+        # add extra tag to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo", "escape", "release"}
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            event=event,
+        )
+
+        # add notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            notes=notes,
+            event=event,
+        )
+        # add extra tag and notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo", "escape", "release"}, notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            notes=notes,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group)
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), link_to_event=True
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            link_to_event=True,
+        )
+
+        test_message = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+        )
+
+        assert SlackIssuesMessageBuilder(group).build() == test_message
+
     def test_build_group_block_with_message(self):
         event_data = {
             "event_id": "a" * 32,
