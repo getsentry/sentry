@@ -39,6 +39,7 @@ type Props = {
 
 function ColumnEditModal(props: Props) {
   const theme = useTheme();
+
   const {
     Header,
     Body,

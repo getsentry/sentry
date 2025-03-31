@@ -1,6 +1,6 @@
 import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css, type Theme} from '@emotion/react';
+import {css, type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
@@ -789,4 +789,5 @@ const DragAndReorderButton = styled(Button)`
   height: ${p => p.theme.form.md.height};
 `;
 
-export {ColumnEditCollection};
+const ColumnEditCollectionWithTheme = withTheme(ColumnEditCollection);
+export {ColumnEditCollectionWithTheme as ColumnEditCollection};
