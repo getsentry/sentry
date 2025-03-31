@@ -19,7 +19,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2_grpc import ConsumerServiceStub
 
 from sentry import options
 from sentry.taskworker.constants import DEFAULT_REBALANCE_AFTER
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger("sentry.taskworker.client")
 
@@ -55,8 +55,8 @@ else:
 
 
 class RequestSignatureInterceptor(InterceptorBase):
-    def __init__(self, shared_secret: str):
-        self._secret = shared_secret.encode("utf-8")
+    def __init__(self, shared_secret: list[str]):
+        self._secret = shared_secret[0].encode("utf-8")
 
     def intercept_unary_unary(
         self,
@@ -105,21 +105,21 @@ class TaskworkerClient:
         if grpc_config:
             self._grpc_options = [("grpc.service_config", grpc_config)]
 
-        self._cur_stub_idx = random.randint(0, len(self._hosts) - 1)
-        self._stubs: dict[int, ConsumerServiceStub] = {
-            self._cur_stub_idx: self._connect_to_host(self._hosts[self._cur_stub_idx])
+        self._cur_host = random.choice(self._hosts)
+        self._host_to_stubs: dict[str, ConsumerServiceStub] = {
+            self._cur_host: self._connect_to_host(self._cur_host)
         }
+        self._task_id_to_host: dict[str, str] = {}
+
         self._max_tasks_before_rebalance = max_tasks_before_rebalance
         self._num_tasks_before_rebalance = max_tasks_before_rebalance
-        self._task_id_to_stub_idx: dict[str, int] = {}
 
     def _connect_to_host(self, host: str) -> ConsumerServiceStub:
         logger.info("Connecting to %s with options %s", host, self._grpc_options)
         channel = grpc.insecure_channel(host, options=self._grpc_options)
         if settings.TASKWORKER_SHARED_SECRET:
-            channel = grpc.intercept_channel(
-                channel, RequestSignatureInterceptor(settings.TASKWORKER_SHARED_SECRET)
-            )
+            secrets = json.loads(settings.TASKWORKER_SHARED_SECRET)
+            channel = grpc.intercept_channel(channel, RequestSignatureInterceptor(secrets))
         return ConsumerServiceStub(channel)
 
     def _get_all_hosts(self, pattern: str, num_brokers: int) -> list[str]:
@@ -133,18 +133,16 @@ class TaskworkerClient:
         domain, port = pattern.split(":")
         return [f"{domain}-{i}:{port}" for i in range(0, num_brokers)]
 
-    def _get_cur_stub(self) -> tuple[int, ConsumerServiceStub]:
+    def _get_cur_stub(self) -> tuple[str, ConsumerServiceStub]:
         if self._num_tasks_before_rebalance == 0:
-            new_stub_idx = random.randint(0, len(self._stubs) - 1)
-            if new_stub_idx != self._cur_stub_idx:
-                self._cur_stub_idx = new_stub_idx
-                self._stubs[self._cur_stub_idx] = self._stubs.get(
-                    self._cur_stub_idx, self._connect_to_host(self._hosts[self._cur_stub_idx])
-                )
+            self._cur_host = random.choice(self._hosts)
             self._num_tasks_before_rebalance = self._max_tasks_before_rebalance
 
+        if self._cur_host not in self._host_to_stubs:
+            self._host_to_stubs[self._cur_host] = self._connect_to_host(self._cur_host)
+
         self._num_tasks_before_rebalance -= 1
-        return self._cur_stub_idx, self._stubs[self._cur_stub_idx]
+        return self._cur_host, self._host_to_stubs[self._cur_host]
 
     def get_task(self, namespace: str | None = None) -> TaskActivation | None:
         """
@@ -156,7 +154,7 @@ class TaskworkerClient:
         request = GetTaskRequest(namespace=namespace)
         try:
             with metrics.timer("taskworker.get_task.rpc"):
-                stub_idx, stub = self._get_cur_stub()
+                host, stub = self._get_cur_stub()
                 response = stub.GetTask(request)
         except grpc.RpcError as err:
             metrics.incr(
@@ -170,7 +168,7 @@ class TaskworkerClient:
                 "taskworker.client.get_task",
                 tags={"namespace": response.task.namespace},
             )
-            self._task_id_to_stub_idx[response.task.id] = stub_idx
+            self._task_id_to_host[response.task.id] = host
             return response.task
         return None
 
@@ -193,11 +191,11 @@ class TaskworkerClient:
         )
         try:
             with metrics.timer("taskworker.update_task.rpc"):
-                if task_id not in self._task_id_to_stub_idx:
+                if task_id not in self._task_id_to_host:
                     metrics.incr("taskworker.client.task_id_not_in_client")
                     return None
-                stub_idx = self._task_id_to_stub_idx.pop(task_id)
-                response = self._stubs[stub_idx].SetTaskStatus(request)
+                host = self._task_id_to_host.pop(task_id)
+                response = self._host_to_stubs[host].SetTaskStatus(request)
         except grpc.RpcError as err:
             metrics.incr(
                 "taskworker.client.rpc_error",
@@ -207,6 +205,6 @@ class TaskworkerClient:
                 return None
             raise
         if response.HasField("task"):
-            self._task_id_to_stub_idx[response.task.id] = stub_idx
+            self._task_id_to_host[response.task.id] = host
             return response.task
         return None

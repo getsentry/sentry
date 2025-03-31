@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
@@ -42,21 +42,18 @@ export enum DrawerTab {
 }
 
 function useDrawerTab({enabled}: {enabled: boolean}) {
-  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams('tab');
-  const [tab, setTab] = useState<DrawerTab>(
-    getTabParam() === DrawerTab.FEATURE_FLAGS ? DrawerTab.FEATURE_FLAGS : DrawerTab.TAGS
+  const {getParamValue: getTabParam, setParamValue: setTabParam} = useUrlParams(
+    'tab',
+    DrawerTab.TAGS
   );
-
-  useEffect(() => {
-    if (enabled) {
-      setTabParam(tab);
-    }
-  }, [tab, setTabParam, enabled]);
 
   if (!enabled) {
     return {tab: DrawerTab.TAGS, setTab: (_tab: string) => {}};
   }
-  return {tab, setTab};
+  return {
+    tab: enabled ? (getTabParam() as DrawerTab) : DrawerTab.TAGS,
+    setTab: setTabParam,
+  };
 }
 
 function getHeaderTitle(
@@ -123,7 +120,7 @@ export function GroupTagsDrawer({
           // TODO(issues): Dropdown menu doesn't support hrefs yet
           onAction: () => {
             window.open(
-              `/${organization.slug}/${project.slug}/issues/${group.id}/${TabPaths[Tab.DISTRIBUTIONS]}${tagKey}/export/`,
+              `/${organization.slug}/${project.slug}/issues/${group.id}/tags/${tagKey}/export/`,
               '_blank'
             );
           },
