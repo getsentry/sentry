@@ -15,7 +15,12 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
-import {GIGABYTE, RESERVED_BUDGET_QUOTA, UNLIMITED} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_RESERVED,
+} from 'getsentry/constants';
 import {
   type BillingMetricHistory,
   type BillingStatTotal,
@@ -183,17 +188,14 @@ export function calculateCategoryPrepaidUsage(
     prepaidTotal = prepaid;
   } else {
     // Convert prepaid limits to the appropriate unit based on category
-    switch (category) {
-      case DataCategory.ATTACHMENTS:
-        prepaidTotal = prepaid * GIGABYTE;
-        break;
-      case DataCategory.PROFILE_DURATION:
-      case DataCategory.PROFILE_DURATION_UI:
-        prepaidTotal = prepaid * MILLISECONDS_IN_HOUR;
-        break;
-      default:
-        prepaidTotal = prepaid;
-    }
+    prepaidTotal =
+      prepaid *
+      (category === DataCategory.ATTACHMENTS
+        ? GIGABYTE
+        : category === DataCategory.PROFILE_DURATION ||
+            category === DataCategory.PROFILE_DURATION_UI
+          ? MILLISECONDS_IN_HOUR
+          : 1);
   }
   const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
@@ -498,6 +500,9 @@ function UsageTotals({
       }
     : totals;
 
+  const hasReservedQuota: boolean =
+    reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
+
   return (
     <SubscriptionCard data-test-id={`usage-card-${category}`}>
       <CardBody>
@@ -517,12 +522,14 @@ function UsageTotals({
                   </MarginSpan>
                 )}
               </UsageSummaryTitle>
-              <SubText data-test-id={reservedTestId}>
-                {productTrial?.isStarted &&
-                getDaysSinceDate(productTrial.endDate ?? '') <= 0
-                  ? UNLIMITED
-                  : getReservedInfo()}
-              </SubText>
+              {(hasReservedQuota || displayGifts) && (
+                <SubText data-test-id={reservedTestId}>
+                  {productTrial?.isStarted &&
+                  getDaysSinceDate(productTrial.endDate ?? '') <= 0
+                    ? UNLIMITED
+                    : getReservedInfo()}
+                </SubText>
+              )}
             </div>
             <AcceptedSummary>
               {productTrial && !productTrial.isStarted && (
@@ -632,110 +639,112 @@ function UsageTotals({
 
           <LegendFooterWrapper>
             <LegendPriceWrapper>
-              <LegendContainer>
-                {!hasReservedBudget && (
-                  <LegendDot style={{backgroundColor: COLORS.reserved}} />
-                )}
-                {isDisplayingSpend ? (
-                  prepaidPrice === 0 ? (
+              {hasReservedQuota && (
+                <LegendContainer>
+                  {!hasReservedBudget && (
+                    <LegendDot style={{backgroundColor: COLORS.reserved}} />
+                  )}
+                  {isDisplayingSpend ? (
+                    prepaidPrice === 0 ? (
+                      <div>
+                        <LegendTitle>{t('Included in Subscription')}</LegendTitle>
+                        <LegendPriceSubText>
+                          <ReservedUsage
+                            prepaidUsage={prepaidUsage}
+                            reserved={reserved}
+                            category={category}
+                            productTrial={productTrial}
+                          />
+                        </LegendPriceSubText>
+                      </div>
+                    ) : // Show reserved budget breakdown by category with the spans category first if DS was active
+                    // Otherwise we show a combined table for both accepted and stored spans
+                    subscription?.reservedBudgets &&
+                      subscription.hadCustomDynamicSampling ? (
+                      subscription.reservedBudgets.map(rb =>
+                        Object.entries(rb.categories)
+                          .sort(([cat1], [cat2]) =>
+                            // Sort to put the matching category first
+                            cat1 === category ? -1 : cat2 === category ? 1 : 0
+                          )
+                          .map(([categoryKey]) => (
+                            <Fragment key={categoryKey}>
+                              <LegendBudgetContainer>
+                                <LegendDot
+                                  style={{
+                                    backgroundColor:
+                                      categoryKey === category
+                                        ? COLORS.reserved
+                                        : COLORS.secondary_reserved,
+                                  }}
+                                />
+                                <LegendTitle>
+                                  {getPlanCategoryName({
+                                    plan: subscription.planDetails,
+                                    category: categoryKey,
+                                    hadCustomDynamicSampling:
+                                      subscription.hadCustomDynamicSampling,
+                                    title: true,
+                                    capitalize: false,
+                                  })}
+                                  {t(' Included in Subscription')}
+                                </LegendTitle>
+                              </LegendBudgetContainer>
+
+                              <LegendPriceSubText>
+                                <div>
+                                  <LegendPrice>
+                                    {formatPercentage(
+                                      Math.round(
+                                        ((subscription.reservedBudgets?.[0]?.categories?.[
+                                          categoryKey as keyof (typeof subscription.reservedBudgets)[0]['categories']
+                                        ]?.reservedSpend ?? 0) /
+                                          (subscription.reservedBudgets?.[0]
+                                            ?.reservedBudget ?? 1)) *
+                                          100
+                                      ) / 100
+                                    )}{' '}
+                                    of{' '}
+                                    {prepaidPrice === 0
+                                      ? reserved
+                                      : formatCurrency(
+                                          roundUpToNearestDollar(prepaidPrice)
+                                        )}
+                                  </LegendPrice>
+                                </div>
+                              </LegendPriceSubText>
+                            </Fragment>
+                          ))
+                      )
+                    ) : (
+                      <LegendContainer>
+                        <LegendDot style={{backgroundColor: COLORS.reserved}} />
+                        <div>
+                          <LegendTitle>{t('Included in Subscription')}</LegendTitle>
+                          <LegendPrice>
+                            {formatPercentage(prepaidPercentUsed / 100)} of{' '}
+                            {prepaidPrice === 0
+                              ? reserved
+                              : formatCurrency(roundUpToNearestDollar(prepaidPrice))}
+                          </LegendPrice>
+                        </div>
+                      </LegendContainer>
+                    )
+                  ) : hasReservedQuota ? (
                     <div>
                       <LegendTitle>{t('Included in Subscription')}</LegendTitle>
-                      <LegendPriceSubText>
+                      <LegendPrice>
                         <ReservedUsage
                           prepaidUsage={prepaidUsage}
                           reserved={reserved}
                           category={category}
                           productTrial={productTrial}
                         />
-                      </LegendPriceSubText>
+                      </LegendPrice>
                     </div>
-                  ) : // Show reserved budget breakdown by category with the spans category first if DS was active
-                  // Otherwise we show a combined table for both accepted and stored spans
-                  subscription?.reservedBudgets &&
-                    subscription.hadCustomDynamicSampling ? (
-                    subscription.reservedBudgets.map(rb =>
-                      Object.entries(rb.categories)
-                        .sort(([cat1], [cat2]) =>
-                          // Sort to put the matching category first
-                          cat1 === category ? -1 : cat2 === category ? 1 : 0
-                        )
-                        .map(([categoryKey]) => (
-                          <Fragment key={categoryKey}>
-                            <LegendBudgetContainer>
-                              <LegendDot
-                                style={{
-                                  backgroundColor:
-                                    categoryKey === category
-                                      ? COLORS.reserved
-                                      : COLORS.secondary_reserved,
-                                }}
-                              />
-                              <LegendTitle>
-                                {getPlanCategoryName({
-                                  plan: subscription.planDetails,
-                                  category: categoryKey,
-                                  hadCustomDynamicSampling:
-                                    subscription.hadCustomDynamicSampling,
-                                  title: true,
-                                  capitalize: false,
-                                })}
-                                {t(' Included in Subscription')}
-                              </LegendTitle>
-                            </LegendBudgetContainer>
-
-                            <LegendPriceSubText>
-                              <div>
-                                <LegendPrice>
-                                  {formatPercentage(
-                                    Math.round(
-                                      ((subscription.reservedBudgets?.[0]?.categories?.[
-                                        categoryKey as keyof (typeof subscription.reservedBudgets)[0]['categories']
-                                      ]?.reservedSpend ?? 0) /
-                                        (subscription.reservedBudgets?.[0]
-                                          ?.reservedBudget ?? 1)) *
-                                        100
-                                    ) / 100
-                                  )}{' '}
-                                  of{' '}
-                                  {prepaidPrice === 0
-                                    ? reserved
-                                    : formatCurrency(
-                                        roundUpToNearestDollar(prepaidPrice)
-                                      )}
-                                </LegendPrice>
-                              </div>
-                            </LegendPriceSubText>
-                          </Fragment>
-                        ))
-                    )
-                  ) : (
-                    <LegendContainer>
-                      <LegendDot style={{backgroundColor: COLORS.reserved}} />
-                      <div>
-                        <LegendTitle>{t('Included in Subscription')}</LegendTitle>
-                        <LegendPrice>
-                          {formatPercentage(prepaidPercentUsed / 100)} of{' '}
-                          {prepaidPrice === 0
-                            ? reserved
-                            : formatCurrency(roundUpToNearestDollar(prepaidPrice))}
-                        </LegendPrice>
-                      </div>
-                    </LegendContainer>
-                  )
-                ) : (
-                  <div>
-                    <LegendTitle>{t('Included in Subscription')}</LegendTitle>
-                    <LegendPrice>
-                      <ReservedUsage
-                        prepaidUsage={prepaidUsage}
-                        reserved={reserved}
-                        category={category}
-                        productTrial={productTrial}
-                      />
-                    </LegendPrice>
-                  </div>
-                )}
-              </LegendContainer>
+                  ) : null}
+                </LegendContainer>
+              )}
               {showOnDemand && (
                 <LegendContainer>
                   <LegendDot style={{backgroundColor: COLORS.ondemand}} />

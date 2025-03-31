@@ -1000,6 +1000,40 @@ describe('Subscription > UsageTotals', function () {
     );
     expect(usageBars).toHaveLength(2);
   });
+
+  it('renders gifted hours for profile duration when gifted present', function () {
+    render(
+      <UsageTotals
+        category="profileDuration"
+        totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
+        reservedUnits={null}
+        freeUnits={50}
+        prepaidUnits={150}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('gifted-profileDuration')).toHaveTextContent('50 Gifted');
+  });
+
+  it('renders gifted hours for profile duration ui when gifted present', function () {
+    render(
+      <UsageTotals
+        category="profileDurationUI"
+        totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
+        reservedUnits={null}
+        freeUnits={50}
+        prepaidUnits={150}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('gifted-profileDurationUI')).toHaveTextContent('50 Gifted');
+  });
 });
 
 describe('calculateCategoryPrepaidUsage', () => {
@@ -1320,5 +1354,145 @@ describe('calculateCategoryOnDemandUsage', () => {
       onDemandCategorySpend: 0,
       ondemandPercentUsed: 0,
     });
+  });
+});
+
+describe('hasReservedQuotaFunctionality', function () {
+  const organization = OrganizationFixture();
+  let subscription!: Subscription;
+
+  beforeEach(() => {
+    subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+  });
+
+  afterEach(() => {
+    SubscriptionStore.init();
+  });
+
+  it('does not render reserved quota section when reserved is null', function () {
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={null}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.queryByTestId('reserved-errors')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('gifted-errors')).not.toBeInTheDocument();
+  });
+
+  it('renders reserved quota section when reserved is UNLIMITED_RESERVED', function () {
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={UNLIMITED_RESERVED}
+        prepaidUnits={UNLIMITED_RESERVED}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('reserved-errors')).toHaveTextContent('∞ Reserved');
+  });
+
+  it('renders reserved quota section when reserved is greater than 0', function () {
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={100_000}
+        prepaidUnits={100_000}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('reserved-errors')).toHaveTextContent('100K Reserved');
+  });
+
+  it('does not render reserved quota section when reserved is 0', function () {
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={0}
+        prepaidUnits={0}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.queryByTestId('reserved-errors')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('gifted-errors')).not.toBeInTheDocument();
+  });
+
+  it('renders reserved quota with gifted amount when both present', function () {
+    render(
+      <UsageTotals
+        category="errors"
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={100_000}
+        freeUnits={50_000}
+        prepaidUnits={150_000}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('gifted-errors')).toHaveTextContent(
+      '100K Reserved + 50K Gifted'
+    );
+  });
+
+  it('renders reserved budget quota when using budget-based reserved', function () {
+    render(
+      <UsageTotals
+        category="spans"
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={RESERVED_BUDGET_QUOTA}
+        prepaidUnits={RESERVED_BUDGET_QUOTA}
+        reservedBudget={100_000_00}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('reserved-spans')).toHaveTextContent(
+      '$100,000.00 Reserved'
+    );
+  });
+
+  it('renders reserved budget quota with gifted budget when both present', function () {
+    render(
+      <UsageTotals
+        category="spans"
+        totals={UsageTotalFixture({accepted: 100})}
+        reservedUnits={RESERVED_BUDGET_QUOTA}
+        prepaidUnits={RESERVED_BUDGET_QUOTA}
+        reservedBudget={100_000_00}
+        freeBudget={10_000_00}
+        subscription={subscription}
+        organization={organization}
+        displayMode="usage"
+      />
+    );
+
+    expect(screen.getByTestId('gifted-spans')).toHaveTextContent(
+      '$100,000.00 Reserved + $10,000.00 Gifted'
+    );
   });
 });
