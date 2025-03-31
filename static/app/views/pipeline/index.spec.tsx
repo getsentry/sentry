@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import PipelinePage from 'sentry/views/pipeline';
 
-const COVERAGE_FEATURE = ['codecov-ui'];
+const COVERAGE_FEATURE = 'codecov-ui';
 
 describe('PipelinePage', () => {
   describe('when the user has access to the feature', () => {
@@ -13,9 +13,7 @@ describe('PipelinePage', () => {
         <PipelinePage>
           <p>Test content</p>
         </PipelinePage>,
-        {
-          organization: OrganizationFixture({features: COVERAGE_FEATURE}),
-        }
+        {organization: OrganizationFixture({features: [COVERAGE_FEATURE]})}
       );
 
       const testContent = screen.getByText('Test content');
