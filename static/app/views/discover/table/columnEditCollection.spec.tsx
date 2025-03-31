@@ -4,7 +4,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import ColumnEditCollection from 'sentry/views/discover/table/columnEditCollection';
+import {ColumnEditCollection} from 'sentry/views/discover/table/columnEditCollection';
 
 describe('ColumnEditCollection', () => {
   let organization: Organization;

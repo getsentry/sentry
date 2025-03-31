@@ -789,4 +789,4 @@ const DragAndReorderButton = styled(Button)`
   height: ${p => p.theme.form.md.height};
 `;
 
-export default ColumnEditCollection;
+export {ColumnEditCollection};

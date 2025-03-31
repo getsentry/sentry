@@ -24,7 +24,7 @@ import {AggregationKey, FieldKey} from 'sentry/utils/fields';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
-import ColumnEditCollection from './columnEditCollection';
+import {ColumnEditCollection} from './columnEditCollection';
 
 type Props = {
   columns: Column[];

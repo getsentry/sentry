@@ -8,7 +8,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import ColumnEditCollection from 'sentry/views/discover/table/columnEditCollection';
+import {ColumnEditCollection} from 'sentry/views/discover/table/columnEditCollection';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
@@ -41,6 +41,7 @@ export function ColumnFields({
 }: Props) {
   const theme = useTheme();
   const datasetConfig = getDatasetConfig(widgetType);
+
   return (
     <FieldGroup
       inline={false}
