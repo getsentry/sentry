@@ -19,6 +19,21 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
+from arroyo.processing.strategies.abstract import MessageRejected
+
+
+def x(self) -> None:
+    while self._Unfold__pending:
+        try:
+            message = self._Unfold__pending[0]
+            self._Unfold__next_step.submit(message)
+            self._Unfold__pending.popleft()
+        except MessageRejected:
+            break
+
+
+Unfold._Unfold__flush = x
+
 
 class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
