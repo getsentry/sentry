@@ -49,7 +49,6 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
         if member_queryset.exists():
             raise MemberConflictValidationError("The user %s is already a member" % email)
 
-        # IDEA: check context to see if we're updating an existing invite
         # check for existing invites
         invite_queryset = OrganizationMemberInvite.objects.filter(
             Q(email=email),
@@ -69,6 +68,13 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
         return email
 
     def validate_orgRole(self, role):
+        # if the user is making a PUT request and updating the org role to one that can't have teams
+        # assignments, but the existing invite has team assignments, raise an error
+        if self.context.get("teams", []) and not organization_roles.get(role).is_team_roles_allowed:
+            raise serializers.ValidationError(
+                f"The '{role}' role cannot be set on an invited user with team assignments."
+            )
+
         if role == "billing" and features.has(
             "organizations:invite-billing", self.context["organization"]
         ):
@@ -134,12 +140,15 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
                     "You cannot assign members to teams you are not a member of."
                 )
 
-        if (
-            has_teams
-            and not organization_roles.get(self.initial_data.get("orgRole")).is_team_roles_allowed
-        ):
+        # if we're making a PUT request and not changing the org role, then orgRole will be None in the initial data
+        org_role = (
+            self.initial_data.get("orgRole")
+            if self.initial_data.get("orgRole") is not None
+            else self.context["org_role"]
+        )
+        if has_teams and not organization_roles.get(org_role).is_team_roles_allowed:
             raise serializers.ValidationError(
-                f"The user with a '{self.initial_data.get("orgRole")}' role cannot have team-level permissions."
+                f"The user with a '{org_role}' role cannot have team-level permissions."
             )
 
         return valid_teams

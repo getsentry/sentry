@@ -114,7 +114,10 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         return Response(serialize(invited_member, request.user))
 
     def put(
-        self, request: Request, organization: Organization, invited_member: OrganizationMemberInvite
+        self,
+        request: Request,
+        organization: Organization,
+        invited_member: OrganizationMemberInvite,
     ) -> Response:
         """
         Update an invite request to Organization
@@ -138,6 +141,8 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             context={
                 "organization": organization,
                 "allowed_roles": allowed_roles,
+                "org_role": invited_member.role,
+                "teams": invited_member.organization_member_team_data,
             },
         )
         if not validator.is_valid():
