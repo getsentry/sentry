@@ -6,6 +6,7 @@ from sentry.api.endpoints.organization_member.utils import (
     ROLE_CHOICES,
     MemberConflictValidationError,
 )
+from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
@@ -26,6 +27,13 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
     )
     teams = serializers.ListField(required=False, allow_null=False, default=[])
 
+    reinvite = serializers.BooleanField(
+        required=False,
+        help_text="Whether or not to re-invite a user who has already been invited to the organization. Defaults to True.",
+    )
+
+    regenerate = serializers.BooleanField(required=False)
+
     def validate_email(self, email):
         users = user_service.get_many_by_email(
             emails=[email],
@@ -41,6 +49,7 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
         if member_queryset.exists():
             raise MemberConflictValidationError("The user %s is already a member" % email)
 
+        # IDEA: check context to see if we're updating an existing invite
         # check for existing invites
         invite_queryset = OrganizationMemberInvite.objects.filter(
             Q(email=email),
@@ -134,3 +143,18 @@ class OrganizationMemberInviteRequestValidator(serializers.Serializer):
             )
 
         return valid_teams
+
+
+class ApproveInviteRequestValidator(serializers.Serializer):
+    approve = serializers.BooleanField(required=True, write_only=True)
+
+    def validate_approve(self, approve):
+        request = self.context["request"]
+        invited_member = self.context["member"]
+
+        try:
+            invited_member.validate_invitation(request.user)
+        except UnableToAcceptMemberInvitationException as err:
+            raise serializers.ValidationError(str(err))
+
+        return approve
