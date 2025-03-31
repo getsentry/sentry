@@ -74,13 +74,7 @@ export function Slider({
   );
 }
 
-function SliderTicks({
-  n,
-  filledSteps,
-}: {
-  filledSteps: number;
-  n: number;
-}) {
+function SliderTicks({n, filledSteps}: {filledSteps: number; n: number}) {
   return (
     <StepsContainer role="presentation">
       {Array.from({length: n}, (_, i) => {
