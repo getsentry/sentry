@@ -16,7 +16,7 @@ from django.db.models import Model
 from sentry.utils import metrics
 
 
-def incr_rollback_metrics(model: Model | None = None, name: str = "unknown") -> None:
+def incr_rollback_metrics(model: type[Model] | None = None, name: str = "unknown") -> None:
     metrics.incr(
         "db.models.transaction_rollback",
         tags={"rollback_source": model.__name__ if model else name},
