@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_member.utils import RelaxedMemberPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -13,6 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 
 
+@region_silo_endpoint
 class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.EXPERIMENTAL,

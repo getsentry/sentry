@@ -32,4 +32,4 @@ class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         assert response.data["inviteStatus"] == "requested_to_be_invited"
 
     def test_get_by_garbage(self):
-        self.get_error_response(self.organization.slug, "trash", status_code=404)
+        self.get_error_response(self.organization.slug, "-1", status_code=404)
