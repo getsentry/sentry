@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
-import {Alert} from 'sentry/components/core/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
@@ -154,8 +153,10 @@ const onboarding: OnboardingConfig = {
                   ),
                 }
               )}
-              <CodeSnippet dark language="python">
-                {`import sentry_sdk
+            </li>
+          </ul>
+          <SpacedOnboardingCodeSnippet dark language="python">
+            {`import sentry_sdk
 from celery import Celery, signals
 
 app = Celery("myapp")
@@ -163,11 +164,8 @@ app = Celery("myapp")
 #@signals.worker_init.connect
 @signals.celeryd_init.connect
 def init_sentry(**_kwargs):
-    sentry_sdk.init(...)  # same as above
-                `}
-              </CodeSnippet>
-            </li>
-          </ul>
+    sentry_sdk.init(...)  # same as above`}
+          </SpacedOnboardingCodeSnippet>
           <h5>{t('Setup With Django')}</h5>
           <p>
             {tct(
@@ -192,26 +190,13 @@ def init_sentry(**_kwargs):
       description: (
         <Fragment>
           <p>
-            {t(
-              "To verify if your SDK is initialized on worker start, you can pass `debug=True` to `sentry_sdk.init()` to see extra output when the SDK is initialized. If the output appears during worker startup and not only after a task has started, then it's working properly."
-            )}
-          </p>
-          <StyledAlert type="info">
             {tct(
-              `Sentry uses custom message headers for distributed tracing. For Celery versions 4.x, with [celeryDocLink: message protocol of version 1], this functionality is broken, and Celery fails to propagate custom headers to the worker. Protocol version 2, which is the default since Celery version 4.0, is not affected.
-
-              The fix for the custom headers propagation issue was introduced to Celery project ([celeryPRLink: PR]) starting with version 5.0.1. However, the fix was not backported to versions 4.x.
-              `,
+              "To verify if your SDK is initialized on worker start, you can pass [code:debug=True] to [code:sentry_sdk.init()] to see extra output when the SDK is initialized. If the output appears during worker startup and not only after a task has started, then it's working properly.",
               {
-                celeryDocLink: (
-                  <ExternalLink href="https://docs.celeryq.dev/en/stable/internals/protocol.html#version-1" />
-                ),
-                celeryPRLink: (
-                  <ExternalLink href="https://github.com/celery/celery/pull/6374" />
-                ),
+                code: <code />,
               }
             )}
-          </StyledAlert>
+          </p>
         </Fragment>
       ),
     },
@@ -226,6 +211,9 @@ const docs: Docs = {
 
 export default docs;
 
-const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
+const CONTENT_SPACING = space(2);
+const SpacedOnboardingCodeSnippet = styled(OnboardingCodeSnippet)`
+  pre {
+    margin-bottom: ${CONTENT_SPACING};
+  }
 `;
