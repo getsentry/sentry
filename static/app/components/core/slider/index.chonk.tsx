@@ -19,7 +19,7 @@ export function Slider({
   formatLabel = passthrough,
   ref,
   ...props
-}: SliderProps & {ref: React.Ref<HTMLInputElement>}) {
+}: SliderProps & {ref?: React.Ref<HTMLInputElement>}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const refs = mergeRefs(ref, inputRef);
   const step = toNumber(props.step ?? -1);
