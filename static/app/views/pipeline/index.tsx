@@ -2,7 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import {NoAccess} from 'sentry/components/noAccess';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import useOrganization from 'sentry/utils/useOrganization';
-import PipelineSecondaryNav from 'sentry/views/pipeline/navigation';
+import PipelineSecondaryNav from 'sentry/views/nav/secondary/sections/pipeline/pipelineSecondaryNav';
 
 interface Props {
   children: React.ReactNode;
