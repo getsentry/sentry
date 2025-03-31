@@ -69,7 +69,7 @@ import {ContextType} from './quickContext/utils';
 import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
-import TopResultsIndicator from './topResultsIndicator';
+import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
 
 export type TableViewProps = {

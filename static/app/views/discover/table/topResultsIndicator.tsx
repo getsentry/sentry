@@ -23,5 +23,3 @@ export const TopResultsIndicator = styled('div')<TopResultsIndicatorProps>`
     return getChartColorPalette(p.count - 2)?.[p.index];
   }};
 `;
-
-export default TopResultsIndicator;
