@@ -391,7 +391,7 @@ class SearchResolver:
 
         value = term.value.value
 
-        # time series request do not support virtual column contexts, so we have to remap the value back to the original column
+        # time series request do not support virtual column contexts, so we have to remap the value back to the original column. (see https://github.com/getsentry/eap-planning/issues/236)
         if self.params.is_timeseries_request and context_definition:
             context = context_definition.constructor(self.params)
             resolved_column, context_definition = self.resolve_column(context.from_column_name)
