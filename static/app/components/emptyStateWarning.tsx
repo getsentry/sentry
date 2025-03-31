@@ -41,7 +41,6 @@ export const EmptyStreamWrapper = styled('div')`
   }
 
   > svg {
-    fill: ${p => p.theme.gray300};
     margin-bottom: ${space(2)};
   }
 `;
