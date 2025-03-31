@@ -154,8 +154,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '18.2.0',
-        defaultVersion: '18.2',
+        version: '19.0.0',
+        defaultVersion: '19.0',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -192,6 +192,7 @@ export default typescript.config([
     'src/sentry/static/sentry/js/**/*',
     'src/sentry/templates/sentry/**/*',
     'stylelint.config.js',
+    '.artifacts/**/*',
   ]),
   /**
    * Rules are grouped by plugin. If you want to override a specific rule inside
