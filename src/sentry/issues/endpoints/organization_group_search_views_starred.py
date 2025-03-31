@@ -6,17 +6,12 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewStarredSerializer
-from sentry.issues.endpoints.organization_group_search_view_details import (
-    GroupSearchViewValidatorResponse,
-)
-from sentry.issues.endpoints.organization_group_search_views import (
-    MemberPermission,
-    pick_default_project,
-)
+from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
+from sentry.issues.endpoints.organization_group_search_views import pick_default_project
 from sentry.models.groupsearchview import DEFAULT_TIME_FILTER
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
@@ -36,6 +31,12 @@ DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
         "dateUpdated": None,
     }
 ]
+
+
+class MemberPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["member:read", "member:write"],
+    }
 
 
 @region_silo_endpoint
