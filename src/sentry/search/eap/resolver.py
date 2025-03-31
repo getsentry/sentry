@@ -408,11 +408,15 @@ class SearchResolver:
                 else:
                     return [""]
 
-            final_value = []
+            value_set = []
             if isinstance(value, list):
+                value_set = set()
                 for v in value:
                     for mapped_values in remap_value(v):
-                        final_value.append(mapped_values)
+                        value_set.add(mapped_values)
+
+                final_value = list(value_set)
+
             else:
                 final_value = remap_value(value)
 
