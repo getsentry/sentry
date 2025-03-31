@@ -2,6 +2,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategoryInfo} from 'sentry/types/core';
+import {DataCategory} from 'sentry/types/core';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
@@ -44,7 +45,8 @@ export function formatUsageWithUnits(
   }
 
   if (
-    dataCategory === DATA_CATEGORY_INFO.profileDuration.plural &&
+    (dataCategory === DATA_CATEGORY_INFO.profileDuration.plural ||
+      dataCategory === DATA_CATEGORY_INFO.profileDurationUI.plural) &&
     Number.isFinite(usageQuantity)
   ) {
     // Profile duration is in milliseconds, convert to hours
@@ -146,4 +148,11 @@ export function getPaginationPageLink({
   )}:1", <link>; rel="next"; results="${
     nextOffset < numRows
   }"; cursor="0:${nextOffset}:0"`;
+}
+
+export function isContinuousProfiling(dataCategory: DataCategory | string) {
+  return (
+    dataCategory === DataCategory.PROFILE_DURATION ||
+    dataCategory === DataCategory.PROFILE_DURATION_UI
+  );
 }

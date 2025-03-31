@@ -36,6 +36,7 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
     FeedbackGroup,
+    GroupCategory,
     MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
@@ -56,6 +57,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -825,6 +827,80 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "color": LEVEL_TO_COLOR["fatal"],
             "text": f"<{link}|*{title}*>",
         }
+
+    @override_options({"alerts.issue_summary_timeout": 5})
+    def test_build_group_block_with_ai_summary(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+        assert group.issue_category == GroupCategory.ERROR
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        mock_summary = {
+            "headline": "Custom AI Title",
+            "whatsWrong": "This is what's wrong with the issue",
+            "trace": "This is trace information",
+            "possibleCause": "This is a possible cause",
+        }
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+        features_path = "sentry.integrations.utils.issue_summary_for_alerts.features.has"
+        serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
+        serializer_mock = Mock(return_value={})
+
+        with (
+            patch(patch_path) as mock_get_summary,
+            patch(features_path) as mock_features,
+            patch(serializer_path, serializer_mock),
+        ):
+            mock_get_summary.return_value = (mock_summary, 200)
+            mock_features.return_value = True
+
+            blocks = SlackIssuesMessageBuilder(group).build()
+
+            mock_get_summary.assert_called_once_with(group)
+
+            # Verify that the AI title is used
+            assert "Custom AI Title" in blocks["blocks"][0]["text"]["text"]
+            # Verify that the original title is not present
+            assert "IntegrationError" not in blocks["blocks"][0]["text"]["text"]
+
+            # Verify that the AI content is used in the context block
+            content_block = blocks["blocks"][1]["elements"][0]["text"]
+            assert ":skull:" in content_block
+            assert "This is what's wrong with the issue" in content_block
+            assert ":link:" in content_block
+            assert "This is trace information" in content_block
+            assert ":dart:" in content_block
+            assert "This is a possible cause" in content_block
+            # Check that the original text is not present
+            assert "Identity not found" not in content_block
+
+        # Test with feature flag disabled
+        with patch(patch_path) as mock_get_summary, patch(features_path) as mock_features:
+            mock_features.return_value = False
+            mock_get_summary.assert_not_called()
+            blocks = SlackIssuesMessageBuilder(group).build()
+            assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
 
 
 class BuildGroupAttachmentReplaysTest(TestCase):
