@@ -1,5 +1,3 @@
-import {useState} from 'react';
-import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -7,45 +5,22 @@ import GlobalModal from 'sentry/components/globalModal';
 import Indicators from 'sentry/components/indicators';
 import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
+import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {IconSentry, IconSliders} from 'sentry/icons';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import localStorage from 'sentry/utils/localStorage';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import SystemAlerts from 'sentry/views/app/systemAlerts';
-
-import GlobalStyles from 'admin/globalStyles';
-
-const themes = {darkTheme, lightTheme};
-
-type ThemeName = keyof typeof themes;
-
-const useToggleTheme = () => {
-  const current = localStorage.getItem('getsentryAdminTheme') ?? 'lightTheme';
-  const [themeName, setThemeName] = useState<ThemeName>(current as ThemeName);
-
-  const toggleTheme = () => {
-    const newThemeName = themeName === 'darkTheme' ? 'lightTheme' : 'darkTheme';
-    setThemeName(newThemeName);
-    localStorage.setItem('getsentryAdminTheme', newThemeName);
-  };
-
-  return [
-    themeName === 'darkTheme',
-    themes[themeName] ?? lightTheme,
-    toggleTheme,
-  ] as const;
-};
 
 type Props = {
   children: React.ReactNode;
 };
 
 function Layout({children}: Props) {
-  const [isDark, theme, toggleTheme] = useToggleTheme();
+  const config = useLegacyStore(ConfigStore);
 
   return (
-    <ThemeProvider theme={theme}>
-      <GlobalStyles theme={theme} />
+    <ThemeAndStyleProvider>
       <GlobalModal />
       <SystemAlerts className="messages-container" />
       <Indicators className="indicators-container" />
@@ -82,21 +57,23 @@ function Layout({children}: Props) {
             <ThemeToggle
               borderless
               size="zero"
-              onClick={toggleTheme}
+              onClick={() =>
+                ConfigStore.set('theme', config.theme === 'dark' ? 'light' : 'dark')
+              }
               icon={
                 <IconSliders
                   size="sm"
-                  style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
+                  style={{transform: config.theme === 'dark' ? 'scaleX(-1)' : 'none'}}
                 />
               }
             >
-              {isDark ? 'Light mode' : 'Dark mode'}
+              {config.theme === 'dark' ? 'Light mode' : 'Dark mode'}
             </ThemeToggle>
           </div>
         </Sidebar>
         <Content>{children}</Content>
       </AppContainer>
-    </ThemeProvider>
+    </ThemeAndStyleProvider>
   );
 }
 
