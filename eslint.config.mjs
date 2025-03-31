@@ -74,12 +74,6 @@ const restrictedImportPaths = [
       'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
   },
   {
-    name: 'sentry/utils/theme',
-    importNames: ['lightColors', 'darkColors'],
-    message:
-      "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
-  },
-  {
     name: 'react-router',
     importNames: ['withRouter'],
     message:
@@ -270,6 +264,12 @@ export default typescript.config([
             {
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
+            },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
           ],
           paths: restrictedImportPaths,
