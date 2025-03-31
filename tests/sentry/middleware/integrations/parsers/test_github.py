@@ -3,6 +3,7 @@ from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
+from rest_framework import status
 
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.integration import Integration
@@ -46,7 +47,7 @@ class GithubRequestParserTest(TestCase):
         )
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         response = parser.get_response()
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
@@ -64,7 +65,7 @@ class GithubRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
@@ -78,7 +79,7 @@ class GithubRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
@@ -100,7 +101,7 @@ class GithubRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
@@ -126,7 +127,7 @@ class GithubRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert_webhook_payloads_for_mailbox(
             request=request,
@@ -148,7 +149,7 @@ class GithubRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
@@ -163,7 +164,7 @@ class GithubRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()

@@ -62,7 +62,7 @@ class JiraRequestParser(BaseRequestParser):
 
         if len(regions) == 0:
             logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+            return self.get_default_missing_integration_response()
 
         if len(regions) > 1:
             # Since Jira is region_restricted (see JiraIntegrationProvider) we can just pick the
