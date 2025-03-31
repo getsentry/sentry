@@ -16,36 +16,15 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
-from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.models.organization import Organization
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.sentry_apps.services.app import app_service
 from sentry.workflow_engine.endpoints.serializers import (
     ActionHandlerSerializer,
     ActionHandlerSerializerResponse,
 )
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.processors.action import get_available_action_integrations_for_org
 from sentry.workflow_engine.registry import action_handler_registry
-
-
-def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
-    """
-    Returns a list of integrations that the organization has installed. Integrations are
-    filtered by the list of registered providers.
-    :param organization:
-    """
-
-    providers = [
-        handler.provider_slug
-        for handler in action_handler_registry.registrations.values()
-        if hasattr(handler, "provider_slug")
-    ]
-    return integration_service.get_integrations(
-        status=ObjectStatus.ACTIVE,
-        org_integration_status=ObjectStatus.ACTIVE,
-        organization_id=organization.id,
-        providers=providers,
-    )
 
 
 @region_silo_endpoint
@@ -124,6 +103,15 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                         handler, request.user, ActionHandlerSerializer(), action_type=action_type
                     )
                 )
+
+        actions.sort(
+            key=lambda x: (
+                x["handlerGroup"],
+                (0 if x["type"] == Action.Type.EMAIL else 1),
+                x["type"],
+                (x["sentryApp"].get("name", "") if x.get("sentryApp") else ""),
+            )
+        )
 
         return self.paginate(
             request=request,

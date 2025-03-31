@@ -5,14 +5,18 @@ from django.db.models.fields.json import KeyTextTransform
 from django.db.models.functions import Cast, Coalesce
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.workflow_engine.models import (
     Action,
     ActionGroupStatus,
     DataCondition,
     DataConditionGroup,
 )
+from sentry.workflow_engine.registry import action_handler_registry
 
 EnqueuedAction = tuple[DataConditionGroup, list[DataCondition]]
 
@@ -85,3 +89,17 @@ def filter_recently_fired_workflow_actions(
     filtered_actions = actions.filter(id__in=actions_to_include | actions_without_statuses_ids)
 
     return filtered_actions
+
+
+def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
+    providers = [
+        handler.provider_slug
+        for handler in action_handler_registry.registrations.values()
+        if hasattr(handler, "provider_slug")
+    ]
+    return integration_service.get_integrations(
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        organization_id=organization.id,
+        providers=providers,
+    )
