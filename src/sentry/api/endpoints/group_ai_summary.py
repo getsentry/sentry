@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.seer.issue_summary import get_issue_summary
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class GroupAiSummaryEndpoint(GroupEndpoint):
+class GroupAiSummaryEndpoint(GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }

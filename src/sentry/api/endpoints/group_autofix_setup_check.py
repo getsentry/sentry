@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.group import GroupAiEndpoint
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -94,7 +94,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
 
 
 @region_silo_endpoint
-class GroupAutofixSetupCheck(GroupEndpoint):
+class GroupAutofixSetupCheck(GroupAiEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
