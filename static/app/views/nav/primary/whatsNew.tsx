@@ -7,7 +7,6 @@ import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Broadcast} from 'sentry/types/system';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   type ApiQueryKey,
   setApiQueryData,
@@ -125,10 +124,6 @@ export function PrimaryNavigationWhatsNew() {
     triggerProps: overlayTriggerProps,
     overlayProps,
   } = usePrimaryButtonOverlay();
-
-  if (isDemoModeActive()) {
-    return null;
-  }
 
   return (
     <Fragment>
