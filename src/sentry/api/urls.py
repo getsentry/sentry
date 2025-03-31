@@ -304,6 +304,9 @@ from sentry.sentry_apps.api.endpoints.installation_external_issues import (
 from sentry.sentry_apps.api.endpoints.installation_external_requests import (
     SentryAppInstallationExternalRequestsEndpoint,
 )
+from sentry.sentry_apps.api.endpoints.installation_service_hook_projects import (
+    SentryAppInstallationServiceHookProjectsEndpoint,
+)
 from sentry.sentry_apps.api.endpoints.organization_sentry_apps import OrganizationSentryAppsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_authorizations import (
     SentryAppAuthorizationsEndpoint,
@@ -2972,6 +2975,11 @@ SENTRY_APP_INSTALLATION_URLS = [
         r"^(?P<uuid>[^\/]+)/external-issues/(?P<external_issue_id>[^\/]+)/$",
         SentryAppInstallationExternalIssueDetailsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-external-issue-details",
+    ),
+    re_path(
+        r"^(?P<uuid>[^\/]+)/service-hook-projects/$",
+        SentryAppInstallationServiceHookProjectsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-service-hook-projects",
     ),
 ]
 
