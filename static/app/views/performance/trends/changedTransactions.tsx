@@ -42,7 +42,7 @@ import {
 import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
-import Chart from './chart';
+import {Chart} from './chart';
 import type {
   NormalizedTrendsTransaction,
   TrendFunctionField,
