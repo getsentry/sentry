@@ -57,6 +57,9 @@ function CombinedBreadcrumbsAndLogsSectionContent({
         initialCollapse={shouldCollapseLogs}
         isOnEmbeddedView
         limitToTraceId={event.contexts?.trace?.trace_id}
+        event={event}
+        group={group}
+        project={project}
       />
     </Fragment>
   );
