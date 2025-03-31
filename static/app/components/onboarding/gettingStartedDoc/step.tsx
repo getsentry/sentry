@@ -299,10 +299,6 @@ const Configuration = styled('div')`
 `;
 
 const Description = styled('div')`
-  code {
-    color: ${p => p.theme.pink400};
-  }
-
   :not(:last-child) {
     margin-bottom: ${CONTENT_SPACING};
   }

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   type Docs,
@@ -14,6 +15,7 @@ import {
   crashReportOnboardingPython,
 } from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 type Params = DocsParams;
 
@@ -152,8 +154,9 @@ const onboarding: OnboardingConfig = {
                 }
               )}
             </li>
-            <CodeSnippet dark language="python">
-              {`import sentry_sdk
+          </ul>
+          <SpacedOnboardingCodeSnippet dark language="python">
+            {`import sentry_sdk
 from celery import Celery, signals
 
 app = Celery("myapp")
@@ -161,10 +164,8 @@ app = Celery("myapp")
 #@signals.worker_init.connect
 @signals.celeryd_init.connect
 def init_sentry(**_kwargs):
-    sentry_sdk.init(...)  # same as above
-                `}
-            </CodeSnippet>
-          </ul>
+    sentry_sdk.init(...)  # same as above`}
+          </SpacedOnboardingCodeSnippet>
           <h5>{t('Setup With Django')}</h5>
           <p>
             {tct(
@@ -209,3 +210,10 @@ const docs: Docs = {
 };
 
 export default docs;
+
+const CONTENT_SPACING = space(2);
+const SpacedOnboardingCodeSnippet = styled(OnboardingCodeSnippet)`
+  pre {
+    margin-bottom: ${CONTENT_SPACING};
+  }
+`;
