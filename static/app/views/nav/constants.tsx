@@ -12,5 +12,14 @@ export const NAV_GROUP_LABELS: Record<PrimaryNavGroup, string> = {
   [PrimaryNavGroup.PIPELINE]: t('Pipeline'),
 };
 
+export const PRIMARY_NAV_GROUP_PATHS: Record<PrimaryNavGroup, string> = {
+  [PrimaryNavGroup.ISSUES]: 'issues',
+  [PrimaryNavGroup.EXPLORE]: 'explore',
+  [PrimaryNavGroup.DASHBOARDS]: 'dashboards',
+  [PrimaryNavGroup.INSIGHTS]: 'insights',
+  [PrimaryNavGroup.SETTINGS]: 'settings',
+  [PrimaryNavGroup.PIPELINE]: 'pipeline',
+};
+
 export const PRIMARY_SIDEBAR_WIDTH = 66;
 export const SECONDARY_SIDEBAR_WIDTH = 190;
