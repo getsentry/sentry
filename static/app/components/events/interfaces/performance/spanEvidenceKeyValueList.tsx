@@ -36,10 +36,8 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import KeyValueList from '../keyValueList';
-import type {ProcessedSpanType, RawSpanType} from '../spans/types';
+import type {ProcessedSpanType, RawSpanType, TraceContextSpanProxy} from '../spans/types';
 import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
-
-import type {TraceContextSpanProxy} from './spanEvidence';
 
 const formatter = new SQLishFormatter();
 

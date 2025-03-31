@@ -228,6 +228,10 @@ export type TraceContextType = {
   type?: 'trace';
 };
 
+export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
+  span_id: string; // TODO: Remove this temporary type.
+};
+
 type SpanTreeDepth = number;
 
 export type OrphanTreeDepth = {

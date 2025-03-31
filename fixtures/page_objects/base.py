@@ -1,10 +1,12 @@
 from selenium.webdriver.common.by import By
 
+from sentry.testutils.pytest.selenium import Browser
+
 
 class BasePage:
     """Base class for PageObjects"""
 
-    def __init__(self, browser):
+    def __init__(self, browser: Browser):
         self.browser = browser
 
     @property

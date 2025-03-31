@@ -1,94 +1,90 @@
 import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {
-  MockSpan,
-  ProblemSpan,
-  TransactionEventBuilder,
-} from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {IssueTitle, IssueType} from 'sentry/types/group';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
+import {
+  makeTraceError,
+  makeTransaction,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 import {SpanEvidenceSection} from './spanEvidence';
 
 const {organization, project} = initializeData();
 
 describe('spanEvidence', () => {
-  it('renders and highlights the correct data in the span evidence section', () => {
-    const builder = new TransactionEventBuilder();
-    builder.addSpan(
-      new MockSpan({
-        startTimestamp: 0,
-        endTimestamp: 100,
-        op: 'http',
-        description: 'do a thing',
-      })
-    );
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
 
-    builder.addSpan(
-      new MockSpan({
-        startTimestamp: 100,
-        endTimestamp: 200,
-        op: 'db',
-        description: 'SELECT col FROM table',
-      })
-    );
-
-    builder.addSpan(
-      new MockSpan({
-        startTimestamp: 200,
-        endTimestamp: 300,
-        op: 'db',
-        description: 'SELECT col2 FROM table',
-      })
-    );
-
-    builder.addSpan(
-      new MockSpan({
-        startTimestamp: 200,
-        endTimestamp: 300,
-        op: 'db',
-        description: 'SELECT col3 FROM table',
-      })
-    );
-
-    const parentProblemSpan = new MockSpan({
-      startTimestamp: 300,
-      endTimestamp: 600,
-      op: 'db',
-      description: 'connect',
-      problemSpan: ProblemSpan.PARENT,
-    });
-    parentProblemSpan.addChild(
-      {
-        startTimestamp: 300,
-        endTimestamp: 600,
-        op: 'db',
-        description: 'group me',
-        problemSpan: ProblemSpan.OFFENDER,
+  it('renders and attempts to render the trace preview', async () => {
+    const traceId = 'trace-id';
+    const event = EventFixture({
+      contexts: {
+        trace: {
+          trace_id: traceId,
+        },
       },
-      9
-    );
+    });
 
-    builder.addSpan(parentProblemSpan);
+    MockApiClient.addMockResponse({
+      url: '/subscriptions/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
+      body: {
+        errors: 1,
+        performance_issues: 1,
+        projects: 1,
+        transactions: 1,
+        transaction_child_count_map: new Array(20)
+          .fill(0)
+          .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
+        span_count: 0,
+        span_count_map: {},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events-trace/${traceId}/`,
+      method: 'GET',
+      body: {
+        transactions: Array.from({length: 20}, (_, i) =>
+          makeTransaction({
+            'transaction.op': `transaction-op-${i + 1}`,
+            project_slug: `project-slug-${i + 1}`,
+            event_id: `event-id-${i + 1}`,
+            errors: i === 0 ? [makeTraceError({event_id: 'issue-5'})] : [],
+          })
+        ),
+        orphan_errors: [makeTraceError()],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/project-slug-1:event-id-1/`,
+      method: 'GET',
+      body: {
+        entries: [{type: EntryType.SPANS, data: []}],
+      },
+    });
 
     render(
       <SpanEvidenceSection
-        event={builder.getEventFixture()}
+        event={event as EventTransaction}
         organization={organization}
         projectSlug={project.slug}
       />,
       {organization}
     );
 
-    // Verify that the correct spans are hi-lighted on the span tree as affected spans
-    const affectedSpan = screen.getByTestId('row-title-content-affected');
-    expect(affectedSpan).toBeInTheDocument();
-    expect(affectedSpan).toHaveTextContent('db — connect');
+    // Verify that the trace preview is rendered
+    expect(await screen.findByTestId('trace-virtualized-list')).toBeInTheDocument();
   });
 
   it('renders settings button for issue with configurable thresholds', () => {
