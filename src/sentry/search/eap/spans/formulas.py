@@ -32,6 +32,7 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 from sentry.snuba import spans_rpc
+from sentry.snuba.referrer import Referrer
 
 
 def get_total_span_count(settings: ResolverSettings) -> Column:
@@ -381,17 +382,15 @@ def time_spent_percentage(
     rpc_res = spans_rpc.run_table_query(
         snuba_params,
         query_string="",
-        referrer="totalvitalcount",
-        selected_columns=[column],
+        referrer=Referrer.INSIGHTS_TIME_SPENT_TOTAL_TIME.value,
+        selected_columns=[f"sum({column})"],
         orderby=None,
         offset=0,
         limit=1,
-        config=SearchResolverConfig(
-            auto_fields=True,
-        ),
+        config=SearchResolverConfig(),
     )
 
-    total_time = rpc_res["data"][0]["count"]
+    total_time = rpc_res["data"][0][f"sum({column})"]
 
     return Column.BinaryFormula(
         left=Column(
@@ -554,8 +553,8 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
-        is_enabled=lambda params: (
-            params.is_timeseries_request is None,
+        check_if_enabled=lambda params: (
+            params.is_timeseries_request is False,
             "not supported for timeseries requests",
         ),
     ),
