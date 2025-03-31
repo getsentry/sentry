@@ -94,6 +94,14 @@ class OptionsStore:
         if result is not None:
             return result
 
+        if random() < 0.01:
+            # Log 1% of our cache misses for option retrieval to help triage
+            # excessive queries against the store.
+            logger.info(
+                "sentry_options_store.cache_miss",
+                extra={"key": key.name, "ttl": key.ttl, "grace": key.grace},
+            )
+
         result = self.get_store(key, silent=silent)
         if result is not None:
             return result
