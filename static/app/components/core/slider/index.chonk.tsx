@@ -53,6 +53,7 @@ export function Slider({
 
   return (
     <SliderContainer
+      aria-disabled={props.disabled}
       style={
         {'--p': `${initialProgress.toFixed(0)}%`, '--steps': `${label}`} as CSSProperties
       }
@@ -75,7 +76,14 @@ export function Slider({
   );
 }
 
-function SliderTicks({n, filledSteps}: {filledSteps: number; n: number}) {
+function SliderTicks({
+  n,
+  filledSteps,
+}: {
+  filledSteps: number;
+  n: number;
+  disabled?: boolean;
+}) {
   return (
     <StepsContainer role="presentation">
       {Array.from({length: n}, (_, i) => {
@@ -163,7 +171,6 @@ export function chonkSliderStyles(p: {theme: DO_NOT_USE_ChonkTheme}) {
 
     &[disabled] {
       cursor: not-allowed;
-      opacity: 0.6;
 
       &::-webkit-slider-runnable-track {
         cursor: not-allowed;
@@ -291,5 +298,10 @@ const SliderContainer = styled('div')`
   &:active {
     --label-opacity: 1;
     --label-ty: 0;
+  }
+
+  &[aria-disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
