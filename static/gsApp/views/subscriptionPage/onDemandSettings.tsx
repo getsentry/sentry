@@ -15,6 +15,7 @@ import useApi from 'sentry/utils/useApi';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier, type Subscription} from 'getsentry/types/index';
 import {isTrialPlan} from 'getsentry/utils/billing';
+import titleCase from 'getsentry/utils/titleCase';
 import OnDemandBudgets from 'getsentry/views/onDemandBudgets';
 import {EditOnDemandButton} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
 import {hasOnDemandBudgetsFeature} from 'getsentry/views/onDemandBudgets/utils';
@@ -54,12 +55,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
       },
       success: data => {
         SubscriptionStore.set(data.slug, data);
-        addSuccessMessage(
-          t(
-            '%s max spend updated',
-            subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'On-Demand'
-          )
-        );
+        addSuccessMessage(t('%s max spend updated', subscription.planDetails.budgetTerm));
       },
     });
   }
@@ -83,7 +79,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
         }
       >
         <PanelTitleWrapper>
-          {subscription.planTier === PlanTier.AM3
+          {subscription.planDetails.budgetTerm === 'pay-as-you-go'
             ? t('Pay-as-you-go Budget')
             : t('On-Demand Budgets')}{' '}
           <QuestionTooltip
@@ -92,10 +88,7 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
               `[budgetType] allows you to pay for additional data beyond your subscription's
 									reserved quotas. [budgetType] is billed monthly at the end of each usage period. [link:Learn more]`,
               {
-                budgetType:
-                  subscription.planTier === PlanTier.AM3
-                    ? t('Pay-as-you-go')
-                    : t('On-Demand'),
+                budgetType: titleCase(subscription.planDetails.budgetTerm),
                 link: (
                   <ExternalLink
                     href={

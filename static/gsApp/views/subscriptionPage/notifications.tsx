@@ -26,7 +26,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import withSubscription from 'getsentry/components/withSubscription';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
+import titleCase from 'getsentry/utils/titleCase';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
 import SubscriptionHeader from './subscriptionHeader';
@@ -149,16 +150,10 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
           />
           {onDemandEnabled && (
             <GenericConsumptionGroup
-              label={
-                subscription.planTier === PlanTier.AM3
-                  ? t('Pay-as-you-go Consumption')
-                  : t('On-Demand Consumption')
-              }
+              label={t('%s Consumption', titleCase(subscription.planDetails.budgetTerm))}
               help={t(
                 "Receive notifications when your organization's usage exceeds a threshold (%% of monthly %s budget)",
-                subscription.planTier === PlanTier.AM3
-                  ? t('Pay-as-you-go')
-                  : t('On-Demand')
+                titleCase(subscription.planDetails.budgetTerm)
               )}
               thresholds={notificationThresholds.perProductOndemandPercent}
               removeThreshold={indexToRemove => {

@@ -2,13 +2,13 @@ import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
 import {sendAddEventsRequest, sendUpgradeRequest} from 'getsentry/actionCreators/upsell';
 import StartTrialButton from 'getsentry/components/startTrialButton';
-import {PlanTier, type Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
 import {getBestActionToIncreaseEventLimits} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -101,21 +101,14 @@ function AddEventsCTA(props: Props) {
   const checkoutUrl = `/settings/${organization.slug}/billing/checkout/?referrer=${referrer}`;
   const subscriptionUrl = `/settings/${organization.slug}/billing/overview/`;
 
-  // Make an exception for when only crons has an overage to change the language to be more fitting
-  const strictlyCronsOverage =
-    eventTypes?.length === 1 && eventTypes[0] === 'monitorSeat';
-
   switch (action) {
     case 'add_events':
       return (
         <Button to={subscriptionUrl} onClick={() => manageOnDemand()} {...commonProps}>
-          {subscription.planTier === PlanTier.AM3
-            ? subscription?.onDemandBudgets?.enabled
-              ? t('Increase Pay-as-you-go')
-              : t('Setup Pay-as-you-go')
-            : strictlyCronsOverage
-              ? t('Update Plan')
-              : t('Increase Reserved Limits')}
+          {tct('[action] [budgetTerm]', {
+            action: subscription.onDemandBudgets?.enabled ? 'Increase' : 'Setup',
+            budgetTerm: subscription.planDetails.budgetTerm,
+          })}
         </Button>
       );
     case 'request_add_events':

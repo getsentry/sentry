@@ -11,10 +11,9 @@ import type {Organization} from 'sentry/types/organization';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import {type PendingOnDemandBudgets, PlanTier, type Subscription} from 'getsentry/types';
+import type {PendingOnDemandBudgets, Subscription} from 'getsentry/types';
 import {
   formatReservedWithUnits,
-  getAmPlanTier,
   hasPerformance,
   isAm3DsPlan,
 } from 'getsentry/utils/billing';
@@ -23,6 +22,7 @@ import {
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
+import titleCase from 'getsentry/utils/titleCase';
 import {
   formatOnDemandBudget,
   hasOnDemandBudgetsFeature,
@@ -77,23 +77,20 @@ class PendingChanges extends Component<Props> {
       if (nextOnDemandBudgets) {
         const pendingOnDemandBudgets = parseOnDemandBudgets(nextOnDemandBudgets);
         const currentOnDemandBudgets = parseOnDemandBudgetsFromSubscription(subscription);
-        const planTier = getAmPlanTier(pendingChanges.plan);
 
         if (!isOnDemandBudgetsEqual(pendingOnDemandBudgets, currentOnDemandBudgets)) {
           results.push(
             tct(
               '[budgetType] budget change from [currentOnDemandBudgets] to [nextOnDemandBudgets]',
               {
-                budgetType: planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-demand',
+                budgetType: subscription.planDetails.budgetTerm,
                 currentOnDemandBudgets: formatOnDemandBudget(
                   subscription.planDetails,
-                  subscription.planTier,
                   currentOnDemandBudgets,
                   subscription.planDetails.onDemandCategories
                 ),
                 nextOnDemandBudgets: formatOnDemandBudget(
                   subscription.planDetails,
-                  planTier?.toString() || subscription.planTier,
                   nextOnDemandBudgets,
                   pendingChanges.planDetails.onDemandCategories
                 ),
@@ -109,8 +106,7 @@ class PendingChanges extends Component<Props> {
         this.getNestedValue<number>(subscription, 'onDemandMaxSpend') ?? 0;
       results.push(
         tct('[budgetType] spend change from [currentAmount] to [newAmount]', {
-          budgetType:
-            subscription.planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-demand',
+          budgetType: titleCase(subscription.planDetails.budgetTerm),
           newAmount: formatCurrency(nextOnDemandMaxSpend),
           currentAmount: formatCurrency(currentOnDemandMaxSpend),
         })

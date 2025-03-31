@@ -741,9 +741,7 @@ function UsageTotals({
                   {isDisplayingSpend ? (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {titleCase(subscription.planDetails.budgetTerm)}
                       </LegendTitle>
                       <LegendPrice>
                         {formatCurrency(onDemandCategorySpend)} of{' '}
@@ -759,9 +757,7 @@ function UsageTotals({
                   ) : (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {titleCase(subscription.planDetails.budgetTerm)}
                       </LegendTitle>
                       <LegendPrice>
                         {formatUsageWithUnits(onDemandUsage, category, usageOptions)}
@@ -786,9 +782,7 @@ function UsageTotals({
                   {showOnDemand && (
                     <Fragment>
                       {formatCurrency(onDemandCategorySpend)}{' '}
-                      {subscription.planTier === PlanTier.AM3
-                        ? t('Pay-as-you-go')
-                        : t('On-Demand')}
+                      {titleCase(subscription.planDetails.budgetTerm)}
                     </Fragment>
                   )}
                 </TotalSpendLabel>

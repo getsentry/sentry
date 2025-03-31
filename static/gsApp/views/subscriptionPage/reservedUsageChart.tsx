@@ -38,15 +38,14 @@ import {
 } from 'sentry/views/organizationStats/usageChart/utils';
 
 import {GIGABYTE} from 'getsentry/constants';
-import {
-  type BillingMetricHistory,
-  type BillingStat,
-  type BillingStats,
-  type CustomerUsage,
-  type Plan,
-  PlanTier,
-  type ReservedBudgetForCategory,
-  type Subscription,
+import type {
+  BillingMetricHistory,
+  BillingStat,
+  BillingStats,
+  CustomerUsage,
+  Plan,
+  ReservedBudgetForCategory,
+  Subscription,
 } from 'getsentry/types';
 import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
 import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
@@ -690,8 +689,7 @@ function ReservedUsageChart({
                 color: CHART_PALETTE[5][0],
               }),
               barSeries({
-                name:
-                  subscription.planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-Demand',
+                name: titleCase(subscription.planDetails.budgetTerm),
                 data: chartData.onDemand,
                 barMinHeight: 1,
                 stack: 'usage',
