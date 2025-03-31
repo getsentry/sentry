@@ -13,7 +13,7 @@ export function useTraceRootEvent(trace: TraceTree.Trace | null) {
       : trace[0]
     : null;
   const organization = useOrganization();
-  const [traceFormat] = useSyncedLocalStorageState(
+  const [storedTraceFormat] = useSyncedLocalStorageState(
     TRACE_FORMAT_PREFERENCE_KEY,
     'non-eap'
   );
@@ -30,7 +30,10 @@ export function useTraceRootEvent(trace: TraceTree.Trace | null) {
     {
       staleTime: 0,
       enabled:
-        !!trace && !!root?.project_slug && !!root?.event_id && traceFormat === 'non-eap',
+        !!trace &&
+        !!root?.project_slug &&
+        !!root?.event_id &&
+        storedTraceFormat === 'non-eap',
     }
   );
 }

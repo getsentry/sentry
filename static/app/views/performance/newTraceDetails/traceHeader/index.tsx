@@ -81,7 +81,7 @@ export function ToggleTraceFormatButton({
   location: Location;
   organization: Organization;
 }) {
-  const [traceFormat, setTraceFormat] = useSyncedLocalStorageState(
+  const [storedTraceFormat, setStoredTraceFormat] = useSyncedLocalStorageState(
     TRACE_FORMAT_PREFERENCE_KEY,
     'non-eap'
   );
@@ -92,10 +92,12 @@ export function ToggleTraceFormatButton({
         size="xs"
         aria-label="toggle-trace-format-btn"
         onClick={() => {
-          setTraceFormat(traceFormat === 'eap' ? 'non-eap' : 'eap');
+          setStoredTraceFormat(storedTraceFormat === 'eap' ? 'non-eap' : 'eap');
         }}
       >
-        {traceFormat === 'eap' ? t('Switch to Non-EAP Trace') : t('Switch to EAP Trace')}
+        {storedTraceFormat === 'eap'
+          ? t('Switch to Non-EAP Trace')
+          : t('Switch to EAP Trace')}
       </Button>
     </Feature>
   );
