@@ -93,7 +93,7 @@ function SliderTicks({
   );
 }
 
-const StepsContainer = styled('div')`
+const StepsContainer = styled('div')<{theme?: DO_NOT_USE_ChonkTheme}>`
   pointer-events: none;
   position: absolute;
   bottom: 0;
@@ -104,6 +104,16 @@ const StepsContainer = styled('div')`
   height: 14px;
   width: calc(100% - 16px);
   margin-inline: auto;
+
+  &::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    height: 12px;
+    width: 2px;
+    border-radius: ${p => p.theme.radius.xl};
+    background: ${p => p.theme.colors.surface100};
+  }
 `;
 
 const StepMark = styled('span')<{filled?: boolean; theme?: DO_NOT_USE_ChonkTheme}>`
