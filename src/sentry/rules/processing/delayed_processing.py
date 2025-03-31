@@ -579,9 +579,7 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
                     "rules_to_slow_conditions": {
                         rule.id: conditions for rule, conditions in rules_to_slow_conditions.items()
                     },
-                    "rules_to_groups": {
-                        rule.id: groups for rule, groups in rules_to_groups.items()
-                    },
+                    "rules_to_groups": rules_to_groups,
                 },
             )
         if random.random() < 0.01:
