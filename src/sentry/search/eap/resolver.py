@@ -480,6 +480,10 @@ class SearchResolver:
             if is_number_column
             else context.from_column_name
         )
+
+        if public_alias is None:
+            raise InvalidSearchQuery(f"Cannot map {context.from_column_name} to a public alias")
+
         value = term.value.value
         resolved_column, _ = self.resolve_column(public_alias)
         if not isinstance(resolved_column.proto_definition, AttributeKey):
