@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -38,6 +39,7 @@ export function ColumnFields({
   noFieldsMessage,
   isOnDemandWidget,
 }: Props) {
+  const theme = useTheme();
   const datasetConfig = getDatasetConfig(widgetType);
   return (
     <FieldGroup
@@ -48,6 +50,7 @@ export function ColumnFields({
     >
       {displayType === DisplayType.TABLE ? (
         <ColumnCollectionEdit
+          theme={theme}
           columns={fields}
           onChange={onChange}
           fieldOptions={fieldOptions}
@@ -65,6 +68,7 @@ export function ColumnFields({
         // renders for is TOP_N, where the n - 1 fields
         // are columns and the nth field is the y-axis
         <ColumnCollectionEdit
+          theme={theme}
           columns={fields.slice(0, -1)}
           onChange={newColumns => {
             onChange([...newColumns, fields[fields.length - 1]!]);

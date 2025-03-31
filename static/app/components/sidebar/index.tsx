@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
@@ -597,7 +597,7 @@ function Sidebar() {
 
 export default Sidebar;
 
-const responsiveFlex = css`
+const responsiveFlex = (theme: Theme) => css`
   display: flex;
   flex-direction: column;
 
@@ -625,7 +625,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebar.border};
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     top: 0;
@@ -642,14 +642,14 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
 `;
 
 const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
   ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
   min-width: 0;

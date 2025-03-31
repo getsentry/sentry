@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -166,7 +166,7 @@ const Instruction = styled('div')`
   margin-bottom: ${space(4)};
 `;
 
-const modalCss = css`
+const modalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.medium}) {
     width: auto;
     max-width: 900px;
