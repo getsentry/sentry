@@ -352,7 +352,9 @@ const hasUnsavedChanges = (
 
 // Reorder.Item does handle lifting an item being dragged above other items out of the box,
 // but we need to ensure the item is relatively positioned and has a background color for it to work
-const StyledReorderItem = styled(Reorder.Item)<{grabbing: boolean}>`
+const StyledReorderItem = styled(Reorder.Item, {
+  shouldForwardProp: prop => prop !== 'grabbing',
+})<{grabbing: boolean}>`
   position: relative;
   background-color: ${p => (p.grabbing ? p.theme.translucentSurface200 : 'transparent')};
   border-radius: ${p => p.theme.borderRadius};
