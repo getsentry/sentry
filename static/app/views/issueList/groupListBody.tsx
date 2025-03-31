@@ -137,7 +137,6 @@ function GroupList({
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             canSelect={canSelect}
-            narrowGroups={isSavedSearchesOpen}
             onPriorityChange={priority => onActionTaken([id], {priority})}
             withColumns={columns}
           />

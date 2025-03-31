@@ -89,17 +89,23 @@ describe('IssueListOverview (actions)', function () {
   describe('status', function () {
     const group1 = GroupFixture({
       id: '1',
-      culprit: 'Group 1',
+      metadata: {
+        title: 'Group 1',
+      },
       shortId: 'JAVASCRIPT-1',
     });
     const group2 = GroupFixture({
       id: '2',
-      culprit: 'Group 2',
+      metadata: {
+        title: 'Group 2',
+      },
       shortId: 'JAVASCRIPT-2',
     });
     const group3 = GroupFixture({
       id: '3',
-      culprit: 'Group 3',
+      metadata: {
+        title: 'Group 3',
+      },
       shortId: 'JAVASCRIPT-3',
     });
 
@@ -276,13 +282,17 @@ describe('IssueListOverview (actions)', function () {
   describe('mark reviewed', function () {
     const group1 = GroupFixture({
       id: '1',
-      culprit: 'Group 1',
+      metadata: {
+        title: 'Group 1',
+      },
       shortId: 'JAVASCRIPT-1',
       inbox: {},
     });
     const group2 = GroupFixture({
       id: '2',
-      culprit: 'Group 2',
+      metadata: {
+        title: 'Group 2',
+      },
       shortId: 'JAVASCRIPT-2',
       inbox: {},
     });
@@ -351,12 +361,16 @@ describe('IssueListOverview (actions)', function () {
     const medPriorityGroup = GroupFixture({
       id: '1',
       priority: PriorityLevel.MEDIUM,
-      culprit: 'Medium priority issue',
+      metadata: {
+        title: 'Medium priority issue',
+      },
     });
     const highPriorityGroup = GroupFixture({
       id: '2',
       priority: PriorityLevel.HIGH,
-      culprit: 'High priority issue',
+      metadata: {
+        title: 'High priority issue',
+      },
     });
 
     beforeEach(() => {

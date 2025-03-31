@@ -38,7 +38,6 @@ const defaultProps = {
   withPagination: true,
   useFilteredStats: true,
   useTintRow: true,
-  narrowGroups: false,
 };
 
 export type GroupListColumn =
@@ -262,7 +261,6 @@ class GroupList extends Component<Props, State> {
       customStatsPeriod,
       queryParams,
       queryFilterDescription,
-      narrowGroups,
       source,
       query,
     } = this.props;
@@ -306,11 +304,7 @@ class GroupList extends Component<Props, State> {
     return (
       <Fragment>
         <PanelContainer>
-          <GroupListHeader
-            withChart={!!withChart}
-            narrowGroups={narrowGroups}
-            withColumns={columns}
-          />
+          <GroupListHeader withChart={!!withChart} withColumns={columns} />
           <PanelBody>
             {loading
               ? [
@@ -340,7 +334,6 @@ class GroupList extends Component<Props, State> {
                       customStatsPeriod={customStatsPeriod}
                       statsPeriod={statsPeriod}
                       queryFilterDescription={queryFilterDescription}
-                      narrowGroups={narrowGroups}
                       source={source}
                       query={query}
                     />
