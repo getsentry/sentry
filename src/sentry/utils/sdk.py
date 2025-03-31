@@ -294,6 +294,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
         before_emit_log=before_emit_log,
+        enable_sentry_logs=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
