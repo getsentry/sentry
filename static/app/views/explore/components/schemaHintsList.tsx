@@ -9,6 +9,7 @@ import {getHasTag} from 'sentry/components/events/searchBar';
 import useDrawer from 'sentry/components/globalDrawer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {getFunctionTags} from 'sentry/components/performance/spanSearchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -26,8 +27,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SchemaHintsDrawer from 'sentry/views/explore/components/schemaHintsDrawer';
 import {
   getSchemaHintsListOrder,
+  removeHiddenKeys,
   SchemaHintsSources,
 } from 'sentry/views/explore/components/schemaHintsUtils/schemaHintsListOrder';
+import {LOGS_FILTER_KEY_SECTIONS} from 'sentry/views/explore/logs/constants';
 import {SPANS_FILTER_KEY_SECTIONS} from 'sentry/views/insights/constants';
 
 export const SCHEMA_HINTS_DRAWER_WIDTH = '350px';
@@ -36,6 +39,7 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
+  filterKeySections?: FilterKeySection[];
   isLoading?: boolean;
   source?: SchemaHintsSources;
 }
@@ -72,6 +76,15 @@ export function addFilterToQuery(
   );
 }
 
+const FILTER_KEY_SECTIONS: Record<SchemaHintsSources, FilterKeySection[]> = {
+  [SchemaHintsSources.EXPLORE]: SPANS_FILTER_KEY_SECTIONS,
+  [SchemaHintsSources.LOGS]: LOGS_FILTER_KEY_SECTIONS,
+};
+
+function getFilterKeySections(source: SchemaHintsSources) {
+  return FILTER_KEY_SECTIONS[source];
+}
+
 function SchemaHintsList({
   supportedAggregates,
   numberTags,
@@ -92,16 +105,21 @@ function SchemaHintsList({
 
   // sort tags by the order they show up in the query builder
   const filterTagsSorted = useMemo(() => {
-    const filterTags: TagCollection = {...functionTags, ...numberTags, ...stringTags};
+    const filterTags = removeHiddenKeys({
+      ...functionTags,
+      ...numberTags,
+      ...stringTags,
+    });
     filterTags.has = getHasTag({...stringTags});
 
     const schemaHintsListOrder = getSchemaHintsListOrder(source);
+    const filterKeySections = getFilterKeySections(source);
 
     const schemaHintsPresetTags = getTagsFromKeys(schemaHintsListOrder, filterTags);
 
-    const sectionKeys = SPANS_FILTER_KEY_SECTIONS.flatMap(
-      section => section.children
-    ).filter(key => !schemaHintsListOrder.includes(key));
+    const sectionKeys = filterKeySections
+      .flatMap(section => section.children)
+      .filter(key => !schemaHintsListOrder.includes(key));
     const sectionSortedTags = getTagsFromKeys(sectionKeys, filterTags);
 
     const otherKeys = Object.keys(filterTags).filter(
