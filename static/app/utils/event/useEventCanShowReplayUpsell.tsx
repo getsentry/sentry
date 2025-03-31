@@ -56,10 +56,14 @@ export default function useEventCanShowReplayUpsell({
     ? getConfigForIssueType(group, group?.project).pages.replays.enabled
     : true;
 
+  // Only show the upsell if the issue & project supports replays,
+  // the org has never sent replays, and
+  // the project platform is not a backend platform.
   const canShowUpsell =
     groupHasReplays &&
     projectCanUpsellReplay(project) &&
-    (!hasOrgSentReplays || replayBackendPlatforms.includes(upsellPlatform));
+    !hasOrgSentReplays &&
+    !replayBackendPlatforms.includes(upsellPlatform);
 
   return {
     canShowUpsell,
