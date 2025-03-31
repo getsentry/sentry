@@ -260,7 +260,8 @@ export const NavLink = styled(Link, {
   ${p =>
     !p.isMobile &&
     css`
-      padding-top: ${space(0.5)};
+      width: 56px;
+      padding-top: ${space(0.75)};
       padding-bottom: ${space(1.5)};
 
       &:hover {
