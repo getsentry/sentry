@@ -400,15 +400,24 @@ function UsageTotals({
       reservedInfo = tct('[reservedInfo] (True Forward)', {reservedInfo});
     }
     if (displayGifts) {
-      reservedInfo = tct('[reservedInfo] + [giftedAmount] Gifted', {
-        reservedInfo,
-        giftedAmount: formatReservedWithUnits(
-          free,
-          category,
-          reservedOptions,
-          hasReservedBudget
-        ),
-      });
+      reservedInfo = hasReservedQuota
+        ? tct('[reservedInfo] + [giftedAmount] Gifted', {
+            reservedInfo,
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          })
+        : tct('[giftedAmount] Gifted', {
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          });
     }
     return reservedInfo;
   }
