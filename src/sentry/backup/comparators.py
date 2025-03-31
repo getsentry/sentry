@@ -837,6 +837,7 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 HashObfuscatingComparator("public_key", "secret_key"),
                 SecretHexComparator(16, "public_key", "secret_key"),
             ],
+            "sentry.projectsdk": [DateUpdatedComparator("date_added", "date_updated")],
             "sentry.projecttemplate": [DateUpdatedComparator("date_updated")],
             "sentry.querysubscription": [
                 DateUpdatedComparator("date_updated"),
