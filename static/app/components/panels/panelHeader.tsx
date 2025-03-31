@@ -28,7 +28,7 @@ const PanelHeader = styled('div')<Props>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.lightText ? p.theme.gray300 : p.theme.gray400)};
+  color: ${p => (p.lightText ? p.theme.subText : p.theme.textColor)};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
