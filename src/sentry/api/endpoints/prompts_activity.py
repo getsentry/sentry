@@ -119,4 +119,5 @@ class PromptsActivityEndpoint(Endpoint):
                 )
         except IntegrityError:
             incr_rollback_metrics(PromptsActivity)
+            pass
         return HttpResponse(status=201)
