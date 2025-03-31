@@ -80,7 +80,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             data={"tags": "environment,user,my_tag"},
         )
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
+        self.event_data = WorkflowEventData(event=self.group_event, workflow_env=self.environment)
 
         class TestHandler(BaseIssueAlertHandler):
             @classmethod
@@ -101,11 +101,13 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         handler = TestHandler()
         with pytest.raises(ValueError):
-            handler.create_rule_instance_from_action(self.action, self.detector, self.job)
+            handler.create_rule_instance_from_action(self.action, self.detector, self.event_data)
 
     def test_create_rule_instance_from_action(self):
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
-        rule = self.handler.create_rule_instance_from_action(self.action, self.detector, self.job)
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data
+        )
 
         assert isinstance(rule, Rule)
         assert rule.id == self.action.id
@@ -165,15 +167,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         mock_futures = [mock.Mock()]
         mock_activate_downstream_actions.return_value = {"some_key": (mock_callback, mock_futures)}
 
-        self.handler.invoke_legacy_registry(self.job, self.action, self.detector)
+        self.handler.invoke_legacy_registry(self.event_data, self.action, self.detector)
 
         # Verify activate_downstream_actions called with correct args
         mock_activate_downstream_actions.assert_called_once_with(
-            mock.ANY, self.job.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
+            mock.ANY, self.event_data.event, "12345678-1234-5678-1234-567812345678"  # Rule instance
         )
 
         # Verify callback execution
-        mock_safe_execute.assert_called_once_with(mock_callback, self.job.event, mock_futures)
+        mock_safe_execute.assert_called_once_with(
+            mock_callback, self.event_data.event, mock_futures
+        )
 
 
 class TestDiscordIssueAlertHandler(BaseWorkflowTest):

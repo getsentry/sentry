@@ -11,8 +11,8 @@ class ReappearedEventConditionHandler(DataConditionHandler[WorkflowEventData]):
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
-        has_reappeared = job.has_reappeared
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        has_reappeared = event_data.has_reappeared
         if has_reappeared is None:
             return False
 

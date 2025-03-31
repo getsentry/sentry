@@ -58,17 +58,19 @@ def enqueue_workflow(
     )
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowEventData) -> set[Workflow]:
+def evaluate_workflow_triggers(
+    workflows: set[Workflow], event_data: WorkflowEventData
+) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
 
     for workflow in workflows:
-        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(job)
+        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
         if remaining_conditions:
             enqueue_workflow(
                 workflow,
                 remaining_conditions,
-                job.event,
+                event_data.event,
                 WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
             )
         else:
@@ -80,7 +82,7 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowEventData)
 
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
-    job: WorkflowEventData,
+    event_data: WorkflowEventData,
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
@@ -96,18 +98,18 @@ def evaluate_workflows_action_filters(
     )
 
     for action_condition in action_conditions:
-        workflow_job = job
+        workflow_event_data = event_data
 
         workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
 
         # Populate the workflow_env in the job for the action_condition evaluation
         if workflow_data_condition_group:
-            workflow_job = replace(
-                job, workflow_env=workflow_data_condition_group.workflow.environment
+            workflow_event_data = replace(
+                workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
             )
 
         (evaluation, result), remaining_conditions = process_data_condition_group(
-            action_condition.id, workflow_job
+            action_condition.id, workflow_event_data
         )
 
         if remaining_conditions:
@@ -117,14 +119,14 @@ def evaluate_workflows_action_filters(
                 enqueue_workflow(
                     workflow_data_condition_group.workflow,
                     remaining_conditions,
-                    job.event,
+                    event_data.event,
                     WorkflowDataConditionGroupType.ACTION_FILTER,
                 )
         else:
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
-    return filter_recently_fired_workflow_actions(filtered_action_groups, job.event.group)
+    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data.event.group)
 
 
 def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowEventData) -> None:

@@ -13,8 +13,8 @@ from sentry.workflow_engine.types import DetectorGroupKey, WorkflowEventData
 logger = logging.getLogger(__name__)
 
 
-def get_detector_by_event(job: WorkflowEventData) -> Detector:
-    evt = job.event
+def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
+    evt = event_data.event
     issue_occurrence = evt.occurrence
 
     if issue_occurrence is None:

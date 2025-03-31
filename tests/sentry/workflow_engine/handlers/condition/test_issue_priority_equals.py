@@ -14,7 +14,7 @@ class TestIssuePriorityCondition(ConditionTestCase):
 
     def setUp(self):
         super().setUp()
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.metric_alert = self.create_alert_rule()
         self.alert_rule_trigger_warning = self.create_alert_rule_trigger(
             alert_rule=self.metric_alert, label="warning"
@@ -38,9 +38,9 @@ class TestIssuePriorityCondition(ConditionTestCase):
         data_condition_critical = data_condition_critical_tuple[1]
 
         self.group.update(priority=PriorityLevel.MEDIUM)
-        self.assert_passes(data_condition_warning, self.job)
-        self.assert_does_not_pass(data_condition_critical, self.job)
+        self.assert_passes(data_condition_warning, self.event_data)
+        self.assert_does_not_pass(data_condition_critical, self.event_data)
 
         self.group.update(priority=PriorityLevel.HIGH)
-        self.assert_passes(data_condition_critical, self.job)
-        self.assert_does_not_pass(data_condition_warning, self.job)
+        self.assert_passes(data_condition_critical, self.event_data)
+        self.assert_does_not_pass(data_condition_warning, self.event_data)

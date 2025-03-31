@@ -15,12 +15,12 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         self.detector = self.create_detector(project=self.project)
         self.action = Action(type=Action.Type.DISCORD)
         self.group, self.event, self.group_event = self.create_group_event()
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
 
     def test_execute_without_group_type(self):
         """Test that execute does nothing when detector has no group_type"""
         self.detector.type = ""
-        self.action.trigger(self.job, self.detector)
+        self.action.trigger(self.event_data, self.detector)
         # Test passes if no exception is raised
 
     @mock.patch(
@@ -34,11 +34,11 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         mock_handler = mock.Mock()
         mock_registry_get.return_value = mock_handler
 
-        self.action.trigger(self.job, self.detector)
+        self.action.trigger(self.event_data, self.detector)
 
         mock_registry_get.assert_called_once_with(ErrorGroupType.slug)
         mock_handler.handle_workflow_action.assert_called_once_with(
-            self.job, self.action, self.detector
+            self.event_data, self.action, self.detector
         )
 
     @mock.patch(
@@ -52,11 +52,11 @@ class TestNotificationActionHandler(BaseWorkflowTest):
         mock_handler = mock.Mock()
         mock_registry_get.return_value = mock_handler
 
-        self.action.trigger(self.job, self.detector)
+        self.action.trigger(self.event_data, self.detector)
 
         mock_registry_get.assert_called_once_with(MetricIssuePOC.slug)
         mock_handler.handle_workflow_action.assert_called_once_with(
-            self.job, self.action, self.detector
+            self.event_data, self.action, self.detector
         )
 
     @mock.patch(
@@ -66,7 +66,7 @@ class TestNotificationActionHandler(BaseWorkflowTest):
     @mock.patch("sentry.notifications.notification_action.utils.logger")
     def test_execute_unknown_group_type(self, mock_logger, mock_registry_get):
         """Test that execute does nothing when detector has no group_type"""
-        self.action.trigger(self.job, self.detector)
+        self.action.trigger(self.event_data, self.detector)
 
         mock_logger.exception.assert_called_once_with(
             "No notification handler found for detector type: %s",
