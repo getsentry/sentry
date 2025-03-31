@@ -118,6 +118,7 @@ type AutofixSolutionProps = {
   customSolution?: string;
   description?: string;
   feedback?: AutofixFeedback;
+  isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -647,7 +648,7 @@ function AutofixSolutionDisplay({
 export function AutofixSolution(props: AutofixSolutionProps) {
   if (props.solution.length === 0) {
     return (
-      <AnimatePresence initial>
+      <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
             <Alert type="warning">{t('No solution found.')}</Alert>
@@ -660,7 +661,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
   const changesDisabled = props.repos.every(repo => repo.is_readable === false);
 
   return (
-    <AnimatePresence initial>
+    <AnimatePresence initial={props.isSolutionFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <AutofixSolutionDisplay {...props} changesDisabled={changesDisabled} />
       </AnimationWrapper>
