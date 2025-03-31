@@ -69,6 +69,7 @@ EXPOSABLE_FEATURES = [
     "organizations:ourlogs-ingestion",
     "organizations:view-hierarchy-scrubbing",
     "projects:ourlogs-breadcrumb-extraction",
+    "projects:ourlogs-ingestion",
 ]
 
 EXTRACT_METRICS_VERSION = 1
