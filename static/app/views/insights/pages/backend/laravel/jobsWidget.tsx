@@ -106,6 +106,7 @@ export function JobsWidget({query}: {query?: string}) {
       emptyMessage={<QueuesWidgetEmptyStateWarning />}
       VisualizationType={TimeSeriesWidgetVisualization}
       visualizationProps={{
+        showLegend: false,
         plottables,
       }}
     />
