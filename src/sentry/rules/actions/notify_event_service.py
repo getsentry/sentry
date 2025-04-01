@@ -171,7 +171,7 @@ class NotifyEventServiceAction(EventAction):
                 instance=app.slug,
                 tags={
                     "issue_category": event.group.issue_category,
-                    "issue_type": event.group.get_issue_type_slug(),
+                    "issue_type": event.group.issue_type.slug,
                 },
                 skip_internal=False,
             )
@@ -211,7 +211,7 @@ class NotifyEventServiceAction(EventAction):
                 instance=plugin.slug,
                 tags={
                     "issue_category": event.group.issue_category,
-                    "issue_type": event.group.get_issue_type_slug(),
+                    "issue_type": event.group.issue_type.slug,
                 },
                 skip_internal=False,
             )

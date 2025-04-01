@@ -1030,12 +1030,6 @@ class Group(Model):
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
 
-    def get_issue_type_slug(self) -> str | None:
-        try:
-            return self.issue_type.slug
-        except ValueError:
-            return None
-
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
 def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
