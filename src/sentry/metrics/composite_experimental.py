@@ -36,7 +36,7 @@ class CompositeExperimentalMetricsBackend(MetricsBackend):
         # Previously bound to options.get("delightful_metrics.minimetrics_sample_rate")
         # but this option check was resulting in excessive cache misses somehow.
 
-        return 0.0
+        return 1.0
 
     def incr(
         self,
