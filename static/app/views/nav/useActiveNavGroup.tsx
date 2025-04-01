@@ -1,7 +1,6 @@
-import {useLocation} from 'react-router-dom';
-
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {unreachable} from 'sentry/utils/unreachable';
+import {useLocation} from 'sentry/utils/useLocation';
 import {PRIMARY_NAV_GROUP_PATHS} from 'sentry/views/nav/constants';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
