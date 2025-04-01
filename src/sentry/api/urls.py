@@ -75,6 +75,10 @@ from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryDetailEndpoint,
     ExploreSavedQueryVisitEndpoint,
 )
+from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQueryStarredEndpoint
+from sentry.explore.endpoints.explore_saved_query_starred_order import (
+    ExploreSavedQueryStarredOrderEndpoint,
+)
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
@@ -1308,6 +1312,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/(?P<id>\d+)/visit/$",
         ExploreSavedQueryVisitEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-visit",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/(?P<id>\d+)/starred/$",
+        ExploreSavedQueryStarredEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-query-starred",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/explore/saved/starred/order/$",
+        ExploreSavedQueryStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-explore-saved-query-starred-order",
     ),
     # Dashboards
     re_path(

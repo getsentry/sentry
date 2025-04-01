@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db.models import Case, IntegerField, When
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -28,7 +29,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
-from sentry.explore.models import ExploreSavedQuery
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.search.utils import tokenize_query
 
 
@@ -135,6 +136,15 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         elif exclude == "owned":
             queryset = queryset.exclude(created_by_id=request.user.id)
 
+        starred_queries = request.query_params.get("starred")
+
+        if starred_queries == "1":
+            queryset = queryset.filter(
+                id__in=ExploreSavedQueryStarred.objects.filter(
+                    organization=organization, user_id=request.user.id
+                ).values_list("explore_saved_query_id", flat=True)
+            )
+
         queryset = queryset.order_by(*order_by)
 
         def data_fn(offset, limit):
@@ -192,5 +202,13 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
         model.set_projects(data["project_ids"])
+
+        try:
+            if "starred" in request.data and request.data["starred"]:
+                ExploreSavedQueryStarred.objects.insert_starred_query(
+                    organization, request.user.id, model
+                )
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
 
         return Response(serialize(model), status=201)

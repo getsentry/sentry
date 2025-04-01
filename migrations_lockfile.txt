@@ -5,7 +5,7 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-explore: 0001_add_explore_saved_query_model
+explore: 0002_add_starred_explore_query_model
 
 feedback: 0004_index_together
 
