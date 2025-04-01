@@ -81,6 +81,7 @@ from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryDetailEndpoint,
     ExploreSavedQueryVisitEndpoint,
 )
+from sentry.flags.endpoints.group_suspect_flags import GroupSuspectFlagsEndpoint
 from sentry.flags.endpoints.hooks import OrganizationFlagsHooksEndpoint
 from sentry.flags.endpoints.logs import (
     OrganizationFlagLogDetailsEndpoint,
@@ -773,6 +774,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$",
             GroupTagKeyValuesEndpoint.as_view(),
             name=f"{name_prefix}-group-tag-key-values",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^\/]+)/suspect/flags/$",
+            GroupSuspectFlagsEndpoint.as_view(),
+            name=f"{name_prefix}-group-suspect-flags",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
