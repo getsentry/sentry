@@ -16,6 +16,7 @@ from sentry.db.models import FlexibleForeignKey, region_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.team import Team
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
 
@@ -142,14 +143,14 @@ class OrganizationMemberInvite(DefaultFieldsModel):
         self.role = orgRole
         self.save()
 
-    def set_teams(self, teams: list[str]):
+    def set_teams(self, teams: list[Team]):
         team_data = []
         for team in teams:
             team_data.append({"id": team.id, "slug": team.slug, "role": None})
         self.organization_member_team_data = team_data
         self.save()
 
-    def validate_invitation(self, approving_user):
+    def validate_invitation(self, approving_user, allowed_roles):
         """
         Validates whether an org has the options to invite members, handle join requests,
         and that the member role doesn't exceed the allowed roles to invite.
@@ -164,6 +165,11 @@ class OrganizationMemberInvite(DefaultFieldsModel):
         ):
             raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
 
+        # members cannot invite roles higher than their own
+        if not {self.role} & {r.id for r in allowed_roles}:
+            raise UnableToAcceptMemberInvitationException(
+                f"You do not have permission to approve a member invitation with the role {self.role}."
+            )
         return True
 
     def approve_invite_request(self, approving_user, api_key=None, ip_address=None, referrer=None):

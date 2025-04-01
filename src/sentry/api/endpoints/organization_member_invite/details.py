@@ -6,20 +6,18 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
-from sentry import ratelimits
+from sentry import audit_log, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_member import get_allowed_org_roles
 from sentry.api.endpoints.organization_member.utils import RelaxedMemberPermission
-from sentry.api.endpoints.organization_member_invite.index import (
-    OrganizationMemberInviteRequestValidator,
-)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.organizationmemberinvite import (
     ApproveInviteRequestValidator,
+    OrganizationMemberInviteRequestValidator,
 )
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
@@ -34,6 +32,7 @@ ERR_EDIT_WHEN_REINVITING = (
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
 ERR_WRONG_METHOD = "You cannot reject an invite request via this method."
+ERR_INVITE_UNAPPROVED = "You cannot resend an invitation that has not been approved."
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -71,8 +70,10 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         request: Request,
         organization: Organization,
         invited_member: OrganizationMemberInvite,
-        regengerate: bool,
-    ) -> None:
+        regenerate: bool,
+    ) -> Response:
+        if not invited_member.invite_approved:
+            return Response({"detail": ERR_INVITE_UNAPPROVED}, status=400)
         if ratelimits.for_organization_member_invite(
             organization=organization,
             email=invited_member.email,
@@ -86,8 +87,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
                 sample_rate=1.0,
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
-
-        if regengerate:
+        if regenerate:
             if request.access.has_scope("member:admin"):
                 with transaction.atomic(router.db_for_write(OrganizationMemberInvite)):
                     invited_member.regenerate_token()
@@ -97,6 +97,15 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         if invited_member.token_expired:
             return Response({"detail": ERR_EXPIRED}, status=400)
         invited_member.send_invite_email()
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=invited_member.id,
+            event=audit_log.get_event_id("MEMBER_REINVITE"),
+            data=invited_member.get_audit_log_data(),
+        )
+        return Response(serialize(invited_member, request.user), status=200)
 
     def get(
         self,
@@ -155,7 +164,10 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         )
         members_can_invite = not organization.flags.disable_member_invite
         # Members can only resend invites
-        is_reinvite_request_only = set(result.keys()).issubset({"reinvite"})
+        is_reinvite_request_only = (
+            set(result.keys()).issubset({"reinvite", "regenerate"})
+            and "approve" not in request.data
+        )
 
         # Members can only resend invites that they sent
         is_invite_from_user = invited_member.inviter_id == request.user.id
@@ -170,7 +182,7 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         if result.get("reinvite"):
             if not is_reinvite_request_only:
                 return Response({"detail": ERR_EDIT_WHEN_REINVITING}, status=403)
-            self._reinvite(request, organization, invited_member, result.get("regenerate"))
+            return self._reinvite(request, organization, invited_member, result.get("regenerate"))
 
         if result.get("orgRole"):
             invited_member.set_org_role(result["orgRole"])
@@ -185,9 +197,10 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             approval_validator = ApproveInviteRequestValidator(
                 data=request.data,
                 context={
-                    "request": request,
+                    "actor": request.user,
                     "organization": organization,
                     "invited_member": invited_member,
+                    "allowed_roles": allowed_roles,
                 },
             )
 
