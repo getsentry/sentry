@@ -84,7 +84,7 @@ export function PerformanceAtScaleContextProvider({children}: ProviderProps) {
   ]);
 
   return (
-    <PerformanceAtScaleContext.Provider
+    <PerformanceAtScaleContext
       value={{
         metricsSeriesDataEmpty,
         setMetricsSeriesDataEmpty,
@@ -93,6 +93,6 @@ export function PerformanceAtScaleContextProvider({children}: ProviderProps) {
       }}
     >
       {children}
-    </PerformanceAtScaleContext.Provider>
+    </PerformanceAtScaleContext>
   );
 }

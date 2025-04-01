@@ -69,9 +69,7 @@ export function UrlParamBatchProvider({children}: {children: React.ReactNode}) {
   }, [updateURL]);
 
   return (
-    <BatchContext.Provider value={{batchUrlParamUpdates, flushUpdates}}>
-      {children}
-    </BatchContext.Provider>
+    <BatchContext value={{batchUrlParamUpdates, flushUpdates}}>{children}</BatchContext>
   );
 }
 

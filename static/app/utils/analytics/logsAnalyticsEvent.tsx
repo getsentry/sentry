@@ -1,3 +1,5 @@
+import type {Organization} from 'sentry/types/organization';
+
 export enum LogsAnalyticsPageSource {
   EXPLORE_LOGS = 'explore',
   ISSUE_DETAILS = 'issue details',
@@ -17,6 +19,9 @@ export type LogsAnalyticsEventParameters = {
     user_queries: string;
     user_queries_count: number;
   };
+  'logs.issue_details.drawer_opened': {
+    organization: Organization;
+  };
   'logs.table.row_expanded': {
     log_id: string;
     page_source: LogsAnalyticsPageSource;
@@ -28,4 +33,5 @@ export type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
   'logs.table.row_expanded': 'Expanded Log Row Details',
+  'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
 };

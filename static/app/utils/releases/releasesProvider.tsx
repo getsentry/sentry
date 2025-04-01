@@ -88,9 +88,9 @@ function ReleasesProvider({
   }, [skipLoad, api, organization.slug, JSON.stringify(selection), searchTerm]);
 
   return (
-    <ReleasesContext.Provider value={{releases, loading, onSearch: handleSearch}}>
+    <ReleasesContext value={{releases, loading, onSearch: handleSearch}}>
       {children}
-    </ReleasesContext.Provider>
+    </ReleasesContext>
   );
 }
 

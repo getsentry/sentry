@@ -15,7 +15,7 @@ export function DocIntegrationAvatar({
 }) {
   if (!docIntegration?.avatar) {
     // @TODO(jonasbadalic): This is not passing a ref!
-    return <PluginIcon size={props.size} pluginId={docIntegration?.slug} />;
+    return <PluginIcon size={props.size} pluginId={docIntegration?.slug ?? ''} />;
   }
 
   return (

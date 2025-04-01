@@ -46,7 +46,7 @@ export function GroupDetailsLayout({
   const hasFilterBar = issueTypeConfig.header.filterBar.enabled;
 
   return (
-    <IssueDetailsContext.Provider value={{...issueDetails, dispatch}}>
+    <IssueDetailsContext value={{...issueDetails, dispatch}}>
       <StreamlinedGroupHeader
         group={group}
         event={event ?? null}
@@ -92,7 +92,7 @@ export function GroupDetailsLayout({
           <StreamlinedSidebar group={group} event={event} project={project} />
         ) : null}
       </StyledLayoutBody>
-    </IssueDetailsContext.Provider>
+    </IssueDetailsContext>
   );
 }
 

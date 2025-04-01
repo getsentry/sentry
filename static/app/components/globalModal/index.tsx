@@ -224,7 +224,7 @@ function GlobalModal({onClose}: Props) {
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
       >
-        <TooltipContext.Provider
+        <TooltipContext
           value={{
             // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
             // they need to be rendered inside the modal's DOM node.
@@ -250,7 +250,7 @@ function GlobalModal({onClose}: Props) {
               </Modal>
             )}
           </AnimatePresence>
-        </TooltipContext.Provider>
+        </TooltipContext>
       </Container>
     </Fragment>,
     portal

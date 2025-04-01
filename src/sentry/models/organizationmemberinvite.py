@@ -163,3 +163,13 @@ class OrganizationMemberInvite(DefaultFieldsModel):
             return (self.pk, ImportKind.Existing)
 
         return super().write_relocation_import(scope, flags)
+
+    def get_audit_log_data(self):
+        teams = self.organization_member_team_data
+        return {
+            "email": self.email,
+            "teams": [t["id"] for t in teams],
+            "teams_slugs": [t["slug"] for t in teams],
+            "role": self.role,
+            "invite_status": (invite_status_names[self.invite_status]),
+        }

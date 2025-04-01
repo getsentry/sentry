@@ -21,9 +21,7 @@ describe('useSpanMetricsTopNSeries', () => {
   function Wrapper({children}: {children?: ReactNode}) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={organization}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
       </QueryClientProvider>
     );
   }

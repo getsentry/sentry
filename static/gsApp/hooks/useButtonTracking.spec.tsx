@@ -34,9 +34,9 @@ describe('buttonTracking', function () {
   };
 
   const wrapper = ({children}: ButtonProps) => (
-    <OrganizationContext.Provider value={organization}>
-      <TestRouteContext.Provider value={router}>{children}</TestRouteContext.Provider>
-    </OrganizationContext.Provider>
+    <OrganizationContext value={organization}>
+      <TestRouteContext value={router}>{children}</TestRouteContext>
+    </OrganizationContext>
   );
 
   afterEach(function () {

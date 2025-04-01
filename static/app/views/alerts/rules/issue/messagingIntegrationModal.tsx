@@ -38,7 +38,7 @@ function MessagingIntegrationModal({
         <IntegrationsWrapper>
           {providers.map(provider => {
             return (
-              <IntegrationContext.Provider
+              <IntegrationContext
                 key={provider.key}
                 value={{
                   provider,
@@ -53,7 +53,7 @@ function MessagingIntegrationModal({
                 }}
               >
                 <AddIntegrationRow onClick={closeModal} />
-              </IntegrationContext.Provider>
+              </IntegrationContext>
             );
           })}
         </IntegrationsWrapper>

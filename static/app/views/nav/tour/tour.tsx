@@ -181,7 +181,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
       tourKey={STACKED_NAVIGATION_TOUR_GUIDE_KEY}
       isCompleted={isStackedNavigationTourCompleted}
       orderedStepIds={ORDERED_STACKED_NAVIGATION_TOUR}
-      tourContext={StackedNavigationTourContext}
+      TourContext={StackedNavigationTourContext}
       onStartTour={onStartTour}
       onEndTour={onEndTour}
       onStepChange={onStepChange}

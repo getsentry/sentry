@@ -145,8 +145,6 @@ def pytest_configure(config: pytest.Config) -> None:
     # override a few things with our test specifics
     install_plugin_apps("sentry.apps", settings)
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
-    # Need a predictable key for tests that involve checking signatures
-    settings.SENTRY_PUBLIC = False
 
     if not settings.SENTRY_CACHE:
         settings.SENTRY_CACHE = "sentry.cache.django.DjangoCache"

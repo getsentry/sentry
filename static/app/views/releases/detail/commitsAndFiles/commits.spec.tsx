@@ -22,7 +22,7 @@ describe('Commits', () => {
 
   function renderComponent() {
     return render(
-      <ReleaseContext.Provider
+      <ReleaseContext
         value={{
           release,
           project,
@@ -34,7 +34,7 @@ describe('Commits', () => {
         }}
       >
         <Commits />
-      </ReleaseContext.Provider>,
+      </ReleaseContext>,
       {router}
     );
   }
@@ -161,7 +161,7 @@ describe('Commits', () => {
       ],
     });
     render(
-      <ReleaseContext.Provider
+      <ReleaseContext
         value={{
           release,
           project,
@@ -173,7 +173,7 @@ describe('Commits', () => {
         }}
       >
         <Commits />
-      </ReleaseContext.Provider>,
+      </ReleaseContext>,
       {router: newRouterContext}
     );
     expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);

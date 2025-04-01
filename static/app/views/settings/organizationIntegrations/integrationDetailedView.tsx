@@ -281,7 +281,7 @@ export default function IntegrationDetailedView() {
       }
 
       return (
-        <IntegrationContext.Provider
+        <IntegrationContext
           value={{
             provider,
             type: integrationType,
@@ -307,7 +307,7 @@ export default function IntegrationDetailedView() {
             }}
             buttonProps={buttonProps}
           />
-        </IntegrationContext.Provider>
+        </IntegrationContext>
       );
     },
     [

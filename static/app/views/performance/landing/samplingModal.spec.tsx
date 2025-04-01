@@ -23,7 +23,7 @@ function WrappedComponent({data}: any) {
   const eventView = EventView.fromLocation(data.router.location);
 
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MEPSettingProvider>
         <SamplingModal
           Header={stubEl}
@@ -38,7 +38,7 @@ function WrappedComponent({data}: any) {
           isMEPEnabled={data.isMEPEnabled}
         />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

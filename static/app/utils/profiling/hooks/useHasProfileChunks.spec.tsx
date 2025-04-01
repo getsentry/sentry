@@ -12,9 +12,9 @@ function createWrapper() {
   return function Wrapper({children}: any) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={OrganizationFixture()}>
+        <OrganizationContext value={OrganizationFixture()}>
           {children}
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       </QueryClientProvider>
     );
   };

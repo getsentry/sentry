@@ -6,7 +6,7 @@ import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -228,6 +228,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('XX')).toBeInTheDocument();
     expect(screen.getByText('XX (active)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.getByText('Deactivate Partner')).toBeInTheDocument();
   });
 
   it('render partner details for inactive partner account', function () {
@@ -258,6 +259,50 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('XX')).not.toBeInTheDocument();
     expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+  });
+
+  it('deactivates partner account with right data', async function () {
+    const organization = OrganizationFixture();
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'XX',
+          displayName: 'XX',
+          supportNote: '',
+        },
+        isActive: true,
+      },
+      sponsoredType: 'XX',
+    });
+    const mockApi = MockApiClient.addMockResponse({
+      url: `/customers/${organization.id}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    render(
+      <CustomerOverview
+        customer={partnerSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+    await userEvent.click(screen.getByText('Deactivate Partner'));
+
+    expect(mockApi).toHaveBeenCalledWith(
+      `/customers/${organization.id}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          deactivatePartnerAccount: true,
+        },
+      })
+    );
   });
 
   it('renders reserved budget data', function () {

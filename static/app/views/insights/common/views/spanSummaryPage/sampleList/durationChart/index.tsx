@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import type {
   EChartClickHandler,
@@ -55,6 +57,7 @@ function DurationChart({
   additionalFilters,
 }: Props) {
   const {setPageError} = usePageAlert();
+  const theme = useTheme();
   const pageFilter = usePageFilters();
 
   const filters: SpanMetricsQueryFilters = {
@@ -204,7 +207,7 @@ function DurationChart({
               ? undefined
               : sampledSpanDataSeries
           }
-          chartColors={[AVG_COLOR, 'black']}
+          chartColors={[AVG_COLOR(theme), 'black']}
           type={ChartType.LINE}
           definedAxisTicks={4}
         />

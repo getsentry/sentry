@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {useTheme} from '@emotion/react';
 
 import type {
   EChartHighlightHandler,
@@ -30,6 +31,7 @@ export function DurationChartWithSamples({
   error,
   onHighlight,
 }: Props) {
+  const theme = useTheme();
   // TODO: This is duplicated from `DurationChart` in `SampleList`. Resolve the duplication
   const handleChartHighlight: EChartHighlightHandler = function (event) {
     // ignore mouse hovering over the chart legend
@@ -70,7 +72,7 @@ export function DurationChartWithSamples({
         scatterPlot={scatterPlot}
         loading={isLoading}
         error={error}
-        chartColors={[AVG_COLOR]}
+        chartColors={[AVG_COLOR(theme)]}
         type={ChartType.LINE}
         aggregateOutputFormat="duration"
       />

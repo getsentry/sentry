@@ -12,6 +12,7 @@ export default function useUserHealthBreakdown({type}: {type: 'count' | 'rate'})
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },

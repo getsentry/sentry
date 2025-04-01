@@ -273,7 +273,7 @@ describe('Dashboards > Dashboard', () => {
     const mockHandleUpdateWidgetList = jest.fn();
 
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <MEPSettingProvider forceTransactions={false}>
           <Dashboard
             theme={ThemeFixture()}
@@ -291,7 +291,7 @@ describe('Dashboards > Dashboard', () => {
             widgetLegendState={widgetLegendState}
           />
         </MEPSettingProvider>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     await userEvent.hover(screen.getByLabelText('Widget warnings'));
@@ -328,7 +328,7 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <MEPSettingProvider forceTransactions={false}>
           <Dashboard
             theme={ThemeFixture()}
@@ -346,7 +346,7 @@ describe('Dashboards > Dashboard', () => {
             widgetLegendState={widgetLegendState}
           />
         </MEPSettingProvider>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -381,7 +381,7 @@ describe('Dashboards > Dashboard', () => {
 
     const mount = (dashboard: DashboardDetails, mockedOrg = initialData.organization) => {
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
             <Dashboard
               theme={ThemeFixture()}
@@ -398,7 +398,7 @@ describe('Dashboards > Dashboard', () => {
               widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       );
     };
 
@@ -443,7 +443,7 @@ describe('Dashboards > Dashboard', () => {
       isPreview = false,
     }: any) => {
       const getDashboardComponent = () => (
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
             <Dashboard
               theme={ThemeFixture()}
@@ -463,7 +463,7 @@ describe('Dashboards > Dashboard', () => {
               widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       );
       const {rerender} = render(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};

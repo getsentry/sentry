@@ -12,7 +12,7 @@ export function ActionsProvider({
   actions: React.ReactNode;
   children: React.ReactNode;
 }) {
-  return <ActionContext.Provider value={actions}>{children}</ActionContext.Provider>;
+  return <ActionContext value={actions}>{children}</ActionContext>;
 }
 
 /**

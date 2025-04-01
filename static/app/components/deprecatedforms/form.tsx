@@ -131,7 +131,7 @@ class Form<
     const nonFieldErrors = this.state.errors?.non_field_errors;
 
     return (
-      <FormContext.Provider value={this.getContext()}>
+      <FormContext value={this.getContext()}>
         <StyledForm
           onSubmit={this.onSubmit}
           className={this.props.className}
@@ -181,7 +181,7 @@ class Form<
             {this.props.extraButton}
           </div>
         </StyledForm>
-      </FormContext.Provider>
+      </FormContext>
     );
   }
 }

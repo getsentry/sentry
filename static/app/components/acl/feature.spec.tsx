@@ -19,9 +19,9 @@ describe('Feature', function () {
 
   function WrappedFeature(props: React.ComponentProps<typeof Feature>) {
     return (
-      <ProjectContext.Provider value={project}>
+      <ProjectContext value={project}>
         <Feature {...props} />
-      </ProjectContext.Provider>
+      </ProjectContext>
     );
   }
 

@@ -1,6 +1,6 @@
 import {createContext, useContext, useState} from 'react';
 
-const context = createContext<[scale: number, setScale: (scale: number) => void]>([
+const Context = createContext<[scale: number, setScale: (scale: number) => void]>([
   1,
   (_scale: number) => {},
 ]);
@@ -8,9 +8,9 @@ const context = createContext<[scale: number, setScale: (scale: number) => void]
 export function TimelineScaleContextProvider({children}: {children: React.ReactNode}) {
   const state = useState(1);
 
-  return <context.Provider value={state}>{children}</context.Provider>;
+  return <Context value={state}>{children}</Context>;
 }
 
 export default function useTimelineScale() {
-  return useContext(context);
+  return useContext(Context);
 }

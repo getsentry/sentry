@@ -24,7 +24,7 @@ describe('AddIntegrationButton', function () {
   });
 
   const getComponent = () => (
-    <IntegrationContext.Provider
+    <IntegrationContext
       value={{
         provider,
         type: 'first_party',
@@ -43,7 +43,7 @@ describe('AddIntegrationButton', function () {
         externalInstallText={externalInstallText}
         buttonProps={null}
       />
-    </IntegrationContext.Provider>
+    </IntegrationContext>
   );
 
   it('Opens the setup dialog on click', async function () {

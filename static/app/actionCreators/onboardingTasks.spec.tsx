@@ -36,11 +36,11 @@ describe('actionCreators/onboardingTasks', function () {
 
       const {result} = renderHook(() => useUpdateOnboardingTasks(), {
         wrapper: ({children}) => (
-          <OrganizationContext.Provider value={organization}>
+          <OrganizationContext value={organization}>
             <QueryClientProvider client={makeTestQueryClient()}>
               {children}
             </QueryClientProvider>
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         ),
       });
 

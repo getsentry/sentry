@@ -755,7 +755,7 @@ describe('Dashboards > WidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     renderWithProviders(
-      <DashboardsMEPContext.Provider
+      <DashboardsMEPContext
         value={{
           isMetricsData: undefined,
           setIsMetricsData: setIsMetricsMock,
@@ -772,7 +772,7 @@ describe('Dashboards > WidgetQueries', function () {
         >
           {children}
         </WidgetQueries>
-      </DashboardsMEPContext.Provider>
+      </DashboardsMEPContext>
     );
 
     expect(mock).toHaveBeenCalledWith(
@@ -801,7 +801,7 @@ describe('Dashboards > WidgetQueries', function () {
     const children = jest.fn(() => <div />);
 
     renderWithProviders(
-      <DashboardsMEPContext.Provider
+      <DashboardsMEPContext
         value={{
           isMetricsData: undefined,
           setIsMetricsData: setIsMetricsMock,
@@ -818,7 +818,7 @@ describe('Dashboards > WidgetQueries', function () {
         >
           {children}
         </WidgetQueries>
-      </DashboardsMEPContext.Provider>
+      </DashboardsMEPContext>
     );
 
     expect(mock).toHaveBeenCalledWith(

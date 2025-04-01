@@ -46,7 +46,7 @@ export function ArithmeticBuilder({
 
   return (
     <PanelProvider>
-      <ArithmeticBuilderContext.Provider value={contextValue}>
+      <ArithmeticBuilderContext value={contextValue}>
         <Wrapper
           className={className}
           aria-disabled={disabled}
@@ -55,7 +55,7 @@ export function ArithmeticBuilder({
         >
           <TokenGrid tokens={state.expression.tokens} />
         </Wrapper>
-      </ArithmeticBuilderContext.Provider>
+      </ArithmeticBuilderContext>
     </PanelProvider>
   );
 }

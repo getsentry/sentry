@@ -55,11 +55,7 @@ export class Provider extends Component<Props> {
       isSpanExpanded: this.isSpanExpanded,
     };
 
-    return (
-      <SpanContext.Provider value={childrenProps}>
-        {this.props.children}
-      </SpanContext.Provider>
-    );
+    return <SpanContext value={childrenProps}>{this.props.children}</SpanContext>;
   }
 }
 

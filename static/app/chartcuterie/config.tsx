@@ -8,6 +8,7 @@
  * into the configuration file loaded by the service.
  */
 
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {lightTheme} from 'sentry/utils/theme/theme';
 
 import {makeDiscoverCharts} from './discover';

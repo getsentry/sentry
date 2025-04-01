@@ -179,7 +179,7 @@ describe('OrganizationStats', function () {
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
-    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('renders with just errors category for errors-only self-hosted', async () => {
@@ -384,6 +384,8 @@ describe('OrganizationStats', function () {
       router: newOrg.router,
       organization: newOrg.organization,
     });
+
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('proj-1'));
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getAllByText('proj-1')).toHaveLength(2);

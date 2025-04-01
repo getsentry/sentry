@@ -195,9 +195,9 @@ const PromotionModal = withPromotions(
 function PromotionModalWrapper(props: Omit<PromotionModalProps, 'promotionData'>) {
   // provide org context so we can use withPromotions
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <PromotionModal {...props} />
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

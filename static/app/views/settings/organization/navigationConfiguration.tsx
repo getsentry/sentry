@@ -144,8 +144,6 @@ export function getOrganizationNavigationConfiguration({
               }}
             />
           ),
-          show: ({organization}) =>
-            !!organization && organization.features.includes('feature-flag-ui'),
         },
         {
           path: `${organizationSettingsPathPrefix}/stats/`,

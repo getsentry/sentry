@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, cast, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -415,11 +415,15 @@ def _is_wildcard(raw_value: object) -> TypeIs[str]:
 
 class SearchValue(NamedTuple):
     raw_value: str | float | datetime | Sequence[float] | Sequence[str]
+    # Used for top events where we don't want to modify the raw value at all
+    use_raw_value: bool = False
 
     @property
     def value(self) -> Any:
-        if _is_wildcard(self.raw_value):
-            return translate_wildcard(self.raw_value)
+        if self.use_raw_value:
+            return self.raw_value
+        elif self.is_wildcard():
+            return translate_wildcard(cast(str, self.raw_value))
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value
@@ -438,6 +442,9 @@ class SearchValue(NamedTuple):
             return str(self.value)
 
     def is_wildcard(self) -> bool:
+        # If we're using the raw value only it'll never be a wildcard
+        if self.use_raw_value:
+            return False
         return _is_wildcard(self.raw_value)
 
     def classify_and_format_wildcard(

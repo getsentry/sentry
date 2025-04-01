@@ -206,9 +206,9 @@ export function GuidedSteps({className, children, onStepChange}: GuidedStepsProp
   const value = useGuidedStepsContentValue({onStepChange});
 
   return (
-    <GuidedStepsContext.Provider value={value}>
+    <GuidedStepsContext value={value}>
       <StepsWrapper className={className}>{children}</StepsWrapper>
-    </GuidedStepsContext.Provider>
+    </GuidedStepsContext>
   );
 }
 

@@ -505,7 +505,7 @@ export function Control({
 
   const theme = useTheme();
   return (
-    <SelectContext.Provider value={contextValue}>
+    <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
           trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
@@ -580,7 +580,7 @@ export function Control({
           </StyledOverlay>
         </StyledPositionWrapper>
       </ControlWrap>
-    </SelectContext.Provider>
+    </SelectContext>
   );
 }
 

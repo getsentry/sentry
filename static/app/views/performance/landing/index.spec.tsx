@@ -36,7 +36,7 @@ function WrappedComponent({data, withStaticFilters = false}: any) {
 
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={data.organization}>
+      <OrganizationContext value={data.organization}>
         <MetricsCardinalityProvider
           location={data.router.location}
           organization={data.organization}
@@ -55,7 +55,7 @@ function WrappedComponent({data, withStaticFilters = false}: any) {
             withStaticFilters={withStaticFilters}
           />
         </MetricsCardinalityProvider>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     </QueryClientProvider>
   );
 }

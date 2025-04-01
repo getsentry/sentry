@@ -239,7 +239,11 @@ function TransactionsTable(props: Props) {
       <PanelTable
         data-test-id="transactions-table"
         isEmpty={!hasResults}
-        emptyMessage={t('No transactions found')}
+        emptyMessage={
+          eventView.query
+            ? t('No transactions found for this filter.')
+            : t('No transactions found.')
+        }
         headers={renderHeader()}
         isLoading={isLoading}
         disablePadding

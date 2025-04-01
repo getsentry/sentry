@@ -14,7 +14,6 @@ from arroyo.types import Commit, FilteredPayload, Message, Partition
 from sentry.spans.buffer import Span, SpansBuffer
 from sentry.spans.consumers.process.flusher import SpanFlusher
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -134,12 +133,7 @@ def process_batch(
             parent_span_id=val.get("parent_span_id"),
             project_id=val["project_id"],
             payload=payload.value,
-            # TODO: validate, this logic may not be complete.
-            is_segment_span=(
-                val.get("parent_span_id") is None
-                or get_path(val, "sentry_tags", "op") == "http.server"
-                or val.get("is_remote")
-            ),
+            is_segment_span=(val.get("parent_span_id") is None or val.get("is_remote")),
         )
         spans.append(span)
 

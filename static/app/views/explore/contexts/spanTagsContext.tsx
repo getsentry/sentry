@@ -80,9 +80,7 @@ export function SpanTagsProvider({children, dataset, enabled}: SpanTagsProviderP
     };
   }, [allNumberTags, allStringTags, numberTagsLoading, stringTagsLoading]);
 
-  return (
-    <SpanTagsContext.Provider value={tagsResult}>{children}</SpanTagsContext.Provider>
-  );
+  return <SpanTagsContext value={tagsResult}>{children}</SpanTagsContext>;
 }
 
 export function useSpanTags(type?: 'number' | 'string') {

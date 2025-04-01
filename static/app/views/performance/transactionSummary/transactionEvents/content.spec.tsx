@@ -193,7 +193,7 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', async function () {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -207,7 +207,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router: initialData.router}
     );
 
@@ -233,7 +233,7 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', async function () {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -248,7 +248,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router: initialData.router}
     );
 
@@ -279,7 +279,7 @@ describe('Performance Transaction Events Content', function () {
       initialData.router.location
     );
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={_eventView}
           organization={initialData.organization}
@@ -294,7 +294,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="1"
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
-      </OrganizationContext.Provider>,
+      </OrganizationContext>,
       {router: initialData.router}
     );
 

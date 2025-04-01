@@ -74,7 +74,7 @@ function SharedGroupDetails({params}: Props) {
 
   return (
     <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>
-      <OrganizationContext.Provider value={org}>
+      <OrganizationContext value={org}>
         <div className="app">
           <div className="pattern-bg" />
           <div className="container">
@@ -105,7 +105,7 @@ function SharedGroupDetails({params}: Props) {
             </div>
           </div>
         </div>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     </SentryDocumentTitle>
   );
 }

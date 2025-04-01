@@ -84,6 +84,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
+    sampling_mode: str | None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
@@ -94,6 +95,7 @@ def run_table_query(
         offset,
         limit,
         referrer,
+        sampling_mode,
         search_resolver or get_resolver(params, config),
         debug,
     )
@@ -249,7 +251,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="=",
-                    value=SearchValue(raw_value=value),
+                    value=SearchValue(raw_value=value, use_raw_value=True),
                 )
             )
             if resolved_term is not None:
@@ -258,7 +260,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="!=",
-                    value=SearchValue(raw_value=value),
+                    value=SearchValue(raw_value=value, use_raw_value=True),
                 )
             )
             if other_term is not None:
@@ -298,6 +300,7 @@ def run_top_events_timeseries_query(
         limit,
         referrer,
         config,
+        None,
         search_resolver,
     )
     if len(top_events["data"]) == 0:

@@ -932,6 +932,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
     groupingConfig: str
+    derivedGroupingEnhancements: str
     groupingEnhancements: str
     groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
@@ -1061,6 +1062,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "groupingEnhancementsBase": self.get_value_with_default(
                 attrs, "sentry:grouping_enhancements_base"
+            ),
+            "derivedGroupingEnhancements": self.get_value_with_default(
+                attrs, "sentry:derived_grouping_enhancements"
             ),
             "secondaryGroupingExpiry": self.get_value_with_default(
                 attrs, "sentry:secondary_grouping_expiry"

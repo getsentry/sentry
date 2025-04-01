@@ -10,9 +10,7 @@ const VisibilityContext = createContext<[State, Dispatch<SetStateAction<State>>]
 
 export function VisibilityContextProvider({children}: {children: ReactNode}) {
   const state = useState<State>('visible');
-  return (
-    <VisibilityContext.Provider value={state}>{children}</VisibilityContext.Provider>
-  );
+  return <VisibilityContext value={state}>{children}</VisibilityContext>;
 }
 
 export default function useVisibility() {
