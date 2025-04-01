@@ -76,6 +76,7 @@ export const getChonkStylesConfig = ({
         background: theme.background,
         color: theme.disabled,
         cursor: 'not-allowed',
+        opacity: '60%',
       }),
       ...omit(theme.form[size], 'height'),
       ...(state.isMulti && {
