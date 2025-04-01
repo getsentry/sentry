@@ -14,7 +14,7 @@ import TagDetailsLink from 'sentry/views/issueDetails/groupTags/tagDetailsLink';
 import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export default function GroupTagsDrawerContent({
+export default function TagDrawerContent({
   group,
   organization,
   project,

@@ -9,22 +9,22 @@ import useProjects from 'sentry/utils/useProjects';
 import FlagDetailsLink from 'sentry/views/issueDetails/groupFeatureFlags/flagDetailsLink';
 import FlagDrawerCTA from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerCTA';
 import useGroupFeatureFlags from 'sentry/views/issueDetails/groupFeatureFlags/useGroupFeatureFlags';
+import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {
   Container,
   StyledEmptyStateWarning,
-} from 'sentry/views/issueDetails/groupTags/groupTagsDrawerContent';
-import {TagDistribution} from 'sentry/views/issueDetails/groupTags/tagDistribution';
+} from 'sentry/views/issueDetails/groupTags/tagDrawerContent';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
 /**
- * Ordering for tags in the drawer.
+ * Ordering for flags in the drawer.
  */
 function getSortedTags(tags: GroupTag[]) {
   // Alphabetical by key.
   return tags.toSorted((t1, t2) => t1.key.localeCompare(t2.key));
 }
 
-export default function GroupFeatureFlagsDrawerContent({
+export default function FlagDrawerContent({
   group,
   environments,
   search,
