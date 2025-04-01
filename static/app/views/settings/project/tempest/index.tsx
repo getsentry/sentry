@@ -4,13 +4,17 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -25,6 +29,7 @@ import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
+import EmptyState from './EmptyState';
 
 interface Props {
   organization: Organization;
@@ -67,6 +72,10 @@ export default function TempestSettings({organization, project}: Props) {
     return tempestCredentials?.filter(
       credential => credential.messageType === MessageType.ERROR && credential.message
     );
+  }, [tempestCredentials]);
+
+  const isEmpty = useMemo(() => {
+    return !tempestCredentials?.length;
   }, [tempestCredentials]);
 
   if (!hasTempestAccess(organization)) {
@@ -133,20 +142,26 @@ export default function TempestSettings({organization, project}: Props) {
         />
       </Form>
 
-      <PanelTable
-        headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
-        isLoading={isLoading}
-        isEmpty={!tempestCredentials?.length}
-      >
-        {tempestCredentials?.map(credential => (
-          <CredentialRow
-            key={credential.id}
-            credential={credential}
-            isRemoving={isRemoving}
-            removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-          />
-        ))}
-      </PanelTable>
+      {!isLoading && isEmpty ? (
+        <Panel>
+          <EmptyState />
+        </Panel>
+      ) : (
+        <PanelTable
+          headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
+          isLoading={isLoading}
+          isEmpty={isEmpty}
+        >
+          {tempestCredentials?.map(credential => (
+            <CredentialRow
+              key={credential.id}
+              credential={credential}
+              isRemoving={isRemoving}
+              removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+            />
+          ))}
+        </PanelTable>
+      )}
     </Fragment>
   );
 }
@@ -156,18 +171,24 @@ const addNewCredentials = (
   organization: Organization,
   project: Project
 ) => (
-  <Tooltip
-    title={t('You must be an organization admin to add new credentials.')}
-    disabled={hasWriteAccess}
-  >
-    <Button
-      priority="primary"
-      size="sm"
-      data-test-id="create-new-credentials"
-      disabled={!hasWriteAccess}
-      onClick={() => openAddTempestCredentialsModal({organization, project})}
-    >
-      {t('Add Credentials')}
-    </Button>
-  </Tooltip>
+  <Fragment>
+    <ButtonBar gap={1.5}>
+      <FeedbackWidgetButton />
+      <Tooltip
+        title={t('You must be an organization admin to add new credentials.')}
+        disabled={hasWriteAccess}
+      >
+        <Button
+          priority="primary"
+          size="sm"
+          data-test-id="create-new-credentials"
+          disabled={!hasWriteAccess}
+          icon={<IconAdd isCircled />}
+          onClick={() => openAddTempestCredentialsModal({organization, project})}
+        >
+          {t('Add Credentials')}
+        </Button>
+      </Tooltip>
+    </ButtonBar>
+  </Fragment>
 );
