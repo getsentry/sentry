@@ -36,7 +36,7 @@ export function Slider({
       const progress = getProgress(valueAsNumber, nativeMin || 0, nativeMax || 100);
       input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
     },
-    [setLabel]
+    []
   );
 
   useEffect(() => {
