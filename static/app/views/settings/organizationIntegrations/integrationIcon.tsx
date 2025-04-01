@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'sentry/plugins/components/pluginIcon';
@@ -17,15 +18,18 @@ const StyledIcon = styled('img')<IconProps>`
   display: block;
 `;
 
-function Icon(props: Props) {
+function Icon({integration, size}: Props) {
+  const [imgSrc, setImgSrc] = useState<string | undefined>(integration.icon || undefined);
+  
+  const handleError = () => {
+    setImgSrc(ICON_PATHS[integration.provider.key] || DEFAULT_ICON);
+  };
+
   return (
     <StyledIcon
-      size={props.size}
-      src={props.integration.icon || undefined}
-      onError={() => {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
-      }}
+      size={size}
+      src={imgSrc}
+      onError={handleError}
     />
   );
 }
