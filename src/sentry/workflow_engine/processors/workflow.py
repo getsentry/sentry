@@ -1,5 +1,4 @@
 import logging
-from collections.abc import Sequence
 from dataclasses import asdict, replace
 from enum import StrEnum
 
@@ -38,7 +37,7 @@ class WorkflowDataConditionGroupType(StrEnum):
 
 
 def create_workflow_fire_histories(
-    actions_to_fire: Sequence[Action], event_data: WorkflowEventData
+    actions_to_fire: list[Action], event_data: WorkflowEventData
 ) -> None:
     condition_actions = DataConditionGroupAction.objects.filter(
         action_id__in=[action.id for action in actions_to_fire]
@@ -286,7 +285,7 @@ def process_workflows(event_data: WorkflowEventData) -> set[Workflow]:
     with sentry_sdk.start_span(
         op="workflow_engine.process_workflows.create_workflow_fire_histories"
     ):
-        create_workflow_fire_histories(actions, event_data)
+        create_workflow_fire_histories(list(actions), event_data)
 
     with sentry_sdk.start_span(op="workflow_engine.process_workflows.trigger_actions"):
         if features.has(
