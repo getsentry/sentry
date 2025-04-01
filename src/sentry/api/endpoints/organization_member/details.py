@@ -16,9 +16,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationMemberEndpoint
-from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
-from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES
+from sentry.api.endpoints.organization_member.utils import ROLE_CHOICES, RelaxedMemberPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.apidocs.constants import (
@@ -72,22 +71,6 @@ Configures the team role of the member. The two roles are:
 }
 ```
 """
-
-
-class RelaxedMemberPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PUT": ["member:invite", "member:write", "member:admin"],
-        # DELETE checks for role comparison as you can either remove a member
-        # with a lower access role, or yourself, without having the req. scope
-        "DELETE": ["member:read", "member:write", "member:admin"],
-    }
-
-    # Allow deletions to happen for disabled members so they can remove themselves
-    # allowing other methods should be fine as well even if we don't strictly need to allow them
-    def is_member_disabled_from_limit(self, request: Request, organization):
-        return False
 
 
 @extend_schema(tags=["Organizations"])
