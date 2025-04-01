@@ -352,6 +352,7 @@ function FormField(props: FormFieldProps) {
               {() => {
                 const error = model.getError(name);
                 const value = model.getValue(name);
+
                 return (
                   <Fragment>
                     {props.children({
