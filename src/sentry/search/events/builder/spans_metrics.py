@@ -29,6 +29,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         # text search use case so that it searches the `span.description`
         # when the user performs a free text search
         "message": "span.description",
+        "sentry.normalized_description": "span.description",
     }
 
     @property
