@@ -1,13 +1,12 @@
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
-import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
-import {PRIMARY_NAV_GROUP_PATHS} from 'sentry/views/nav/constants';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 const CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/([^\/]+)/;
 const NON_CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX = /^\/organizations\/[^\/]+\/([^\/]+)/;
 
-const getPrimaryRoutePath = (path: string) => {
+const getPrimaryRoutePath = (path: string): string | undefined => {
   if (USING_CUSTOMER_DOMAIN) {
     return path.match(CUSTOMER_DOMAIN_PRIMARY_PATH_REGEX)?.[1];
   }
@@ -18,29 +17,17 @@ const getPrimaryRoutePath = (path: string) => {
 export function useActiveNavGroup(): PrimaryNavGroup {
   const location = useLocation();
 
-  const primaryPath = getPrimaryRoutePath(location.pathname) as
-    | (typeof PRIMARY_NAV_GROUP_PATHS)[keyof typeof PRIMARY_NAV_GROUP_PATHS]
-    | undefined;
+  const primaryPath = getPrimaryRoutePath(location.pathname);
 
   if (!primaryPath) {
     return PrimaryNavGroup.ISSUES;
   }
 
-  switch (primaryPath) {
-    case PRIMARY_NAV_GROUP_PATHS.issues:
-      return PrimaryNavGroup.ISSUES;
-    case PRIMARY_NAV_GROUP_PATHS.explore:
-      return PrimaryNavGroup.EXPLORE;
-    case PRIMARY_NAV_GROUP_PATHS.dashboards:
-      return PrimaryNavGroup.DASHBOARDS;
-    case PRIMARY_NAV_GROUP_PATHS.insights:
-      return PrimaryNavGroup.INSIGHTS;
-    case PRIMARY_NAV_GROUP_PATHS.settings:
-      return PrimaryNavGroup.SETTINGS;
-    case PRIMARY_NAV_GROUP_PATHS.pipeline:
-      return PrimaryNavGroup.PIPELINE;
-    default:
-      unreachable(primaryPath);
-      return PrimaryNavGroup.ISSUES;
+  for (const [navGroup, config] of Object.entries(PRIMARY_NAV_GROUP_CONFIG)) {
+    if (config.basePaths.includes(primaryPath)) {
+      return navGroup as PrimaryNavGroup;
+    }
   }
+
+  return PrimaryNavGroup.ISSUES;
 }
