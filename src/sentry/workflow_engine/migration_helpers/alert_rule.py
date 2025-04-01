@@ -171,7 +171,7 @@ def get_detector_trigger(
     """
     alert_rule = alert_rule_trigger.alert_rule
     try:
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
     except AlertRuleDetector.DoesNotExist:
         # We attempted to dual delete a trigger that was not dual migrated
         logger.info(
@@ -204,7 +204,7 @@ def get_action_filter(
     Raises an exception if the action filter cannot be found.
     """
     alert_rule = alert_rule_trigger.alert_rule
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
     workflow = alert_rule_workflow.workflow
     workflow_dcgs = DataConditionGroup.objects.filter(workflowdataconditiongroup__workflow=workflow)
     action_filter = DataCondition.objects.get(
@@ -266,7 +266,7 @@ def migrate_metric_data_conditions(
     # threshold and associated priority level
     alert_rule_detector = AlertRuleDetector.objects.select_related(
         "detector__workflow_condition_group"
-    ).get(alert_rule=alert_rule)
+    ).get(alert_rule_id=alert_rule.id)
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
@@ -295,7 +295,7 @@ def migrate_metric_data_conditions(
         organization_id=alert_rule.organization_id
     )
     alert_rule_workflow = AlertRuleWorkflow.objects.select_related("workflow").get(
-        alert_rule=alert_rule
+        alert_rule_id=alert_rule.id
     )
     WorkflowDataConditionGroup.objects.create(
         condition_group=data_condition_group,
@@ -347,7 +347,7 @@ def migrate_resolve_threshold_data_conditions(
     """
     alert_rule_detector = AlertRuleDetector.objects.select_related(
         "detector__workflow_condition_group"
-    ).get(alert_rule=alert_rule)
+    ).get(alert_rule_id=alert_rule.id)
     detector = alert_rule_detector.detector
     detector_data_condition_group = detector.workflow_condition_group
     if detector_data_condition_group is None:
@@ -381,7 +381,7 @@ def migrate_resolve_threshold_data_conditions(
     data_condition_group = DataConditionGroup.objects.create(
         organization_id=alert_rule.organization_id
     )
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
     WorkflowDataConditionGroup.objects.create(
         condition_group=data_condition_group,
         workflow=alert_rule_workflow.workflow,
@@ -401,8 +401,12 @@ def create_metric_alert_lookup_tables(
     detector: Detector,
     workflow: Workflow,
 ) -> tuple[AlertRuleDetector, AlertRuleWorkflow, DetectorWorkflow]:
-    alert_rule_detector = AlertRuleDetector.objects.create(alert_rule=alert_rule, detector=detector)
-    alert_rule_workflow = AlertRuleWorkflow.objects.create(alert_rule=alert_rule, workflow=workflow)
+    alert_rule_detector = AlertRuleDetector.objects.create(
+        alert_rule_id=alert_rule.id, detector=detector
+    )
+    alert_rule_workflow = AlertRuleWorkflow.objects.create(
+        alert_rule_id=alert_rule.id, workflow=workflow
+    )
     detector_workflow = DetectorWorkflow.objects.create(detector=detector, workflow=workflow)
     return (
         alert_rule_detector,
@@ -590,7 +594,7 @@ def dual_update_alert_rule(alert_rule: AlertRule) -> None:
     the corresponding ACI objects.
     """
     try:
-        AlertRuleDetector.objects.get(alert_rule=alert_rule)
+        AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
     except AlertRuleDetector.DoesNotExist:
         logger.info(
             "alert rule was not dual written, returning early",
@@ -616,7 +620,7 @@ def dual_update_alert_rule(alert_rule: AlertRule) -> None:
             for trigger_action in trigger_actions:
                 try:
                     ActionAlertRuleTriggerAction.objects.get(
-                        alert_rule_trigger_action=trigger_action
+                        alert_rule_trigger_action_id=trigger_action.id
                     )
                 except ActionAlertRuleTriggerAction.DoesNotExist:
                     # we need to migrate this action
@@ -633,7 +637,7 @@ def dual_update_migrated_alert_rule(alert_rule: AlertRule) -> (
     ]
     | None
 ):
-    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+    alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
     detector: Detector = alert_rule_detector.detector
     detector_state = DetectorState.objects.get(detector=detector)
 
@@ -694,7 +698,7 @@ def dual_update_resolve_condition(alert_rule: AlertRule) -> DataCondition | None
     if alert_rule.resolve_threshold is not None:
         return None
     try:
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
     except AlertRuleDetector.DoesNotExist:
         # We attempted to dual delete a trigger that was not dual migrated
         return None
@@ -754,7 +758,7 @@ def dual_update_migrated_alert_rule_trigger(
 def dual_update_migrated_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
 ) -> Action | None:
-    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action_id=trigger_action.id)
     action = aarta.action
 
     action_type = get_action_type(trigger_action)
@@ -806,7 +810,7 @@ def get_data_source(alert_rule: AlertRule) -> DataSource | None:
 
 def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
     try:
-        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=alert_rule)
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id)
     except AlertRuleDetector.DoesNotExist:
         # NOTE: we run the dual delete even if the user isn't flagged into dual write
         logger.info(
@@ -814,7 +818,7 @@ def dual_delete_migrated_alert_rule(alert_rule: AlertRule) -> None:
             extra={"alert_rule_id": alert_rule.id},
         )
         return
-    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule)
+    alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id)
 
     workflow: Workflow = alert_rule_workflow.workflow
     detector: Detector = alert_rule_detector.detector
@@ -876,7 +880,7 @@ def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger
     action_filter_dcg = action_filter.condition_group
     # also dual delete the ACI objects for the trigger's associated trigger actions
     actions_to_dual_delete = AlertRuleTriggerAction.objects.filter(
-        alert_rule_trigger=alert_rule_trigger
+        alert_rule_trigger_id=alert_rule_trigger.id
     )
     for trigger_action in actions_to_dual_delete:
         aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
@@ -901,7 +905,7 @@ def dual_delete_migrated_alert_rule_trigger_action(trigger_action: AlertRuleTrig
             extra={"alert_rule": alert_rule_trigger.alert_rule},
         )
         return None
-    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+    aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action_id=trigger_action.id)
     action = aarta.action
     action.delete()
     return None
