@@ -52,10 +52,8 @@ export interface UseTraceItemDetailsProps {
   enabled?: boolean;
 }
 
-export type TraceItemAttributes = Record<string, TraceItemResponseAttribute>;
-
 interface TraceItemDetailsResponse {
-  attributes: TraceItemAttributes;
+  attributes: TraceItemResponseAttribute[];
   itemId: string;
   timestamp: string;
 }

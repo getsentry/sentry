@@ -8,13 +8,19 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {TableRow} from 'sentry/views/explore/components/table';
 import {
   useLogsAnalyticsPageSource,
   useLogsFields,
+  useLogsSearch,
+  useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
 import {
@@ -53,6 +59,8 @@ type LogsRowProps = {
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 };
 
+export const ALLOWED_CELL_ACTIONS: Actions[] = [Actions.ADD, Actions.EXCLUDE];
+
 export function LogRowContent({
   dataRow,
   highlightTerms,
@@ -62,6 +70,9 @@ export function LogRowContent({
   const location = useLocation();
   const organization = useOrganization();
   const fields = useLogsFields();
+  const search = useLogsSearch();
+  const setLogsSearch = useSetLogsSearch();
+
   const analyticsPageSource = useLogsAnalyticsPageSource();
   const [expanded, setExpanded] = useState<boolean>(false);
   const onClickExpand = useCallback(() => {
@@ -72,6 +83,22 @@ export function LogRowContent({
       organization,
     });
   }, [dataRow, organization, analyticsPageSource]);
+  const addSearchFilter = useCallback(
+    ({
+      key,
+      value,
+      negated,
+    }: {
+      key: string;
+      value: string | number | boolean;
+      negated?: boolean;
+    }) => {
+      const newSearch = search.copy();
+      newSearch.addFilterValue(`${negated ? '!' : ''}${key}`, String(value));
+      setLogsSearch(newSearch);
+    },
+    [setLogsSearch, search]
+  );
   const theme = useTheme();
 
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -133,13 +160,51 @@ export function LogRowContent({
             );
           }
 
+          const discoverColumn: TableColumn<keyof TableDataRow> = {
+            column: {
+              field,
+              kind: 'field',
+            },
+            name: field,
+            key: field,
+            isSortable: true,
+            type: FieldValueType.STRING,
+          };
+
           return (
             <LogTableBodyCell key={field}>
-              <LogFieldRenderer
-                item={getLogRowItem(field, dataRow, meta)}
-                meta={meta}
-                extra={rendererExtra}
-              />
+              <CellAction
+                column={discoverColumn}
+                dataRow={dataRow as unknown as TableDataRow}
+                handleCellAction={(actions, cellValue) => {
+                  switch (actions) {
+                    case Actions.ADD:
+                      addSearchFilter({
+                        key: field,
+                        value: cellValue,
+                      });
+                      break;
+                    case Actions.EXCLUDE:
+                      addSearchFilter({
+                        key: field,
+                        value: cellValue,
+                        negated: true,
+                      });
+                      break;
+                    default:
+                      break;
+                  }
+                }}
+                allowActions={
+                  field === OurLogKnownFieldKey.BODY ? ALLOWED_CELL_ACTIONS : []
+                }
+              >
+                <LogFieldRenderer
+                  item={getLogRowItem(field, dataRow, meta)}
+                  meta={meta}
+                  extra={rendererExtra}
+                />
+              </CellAction>
             </LogTableBodyCell>
           );
         })}
