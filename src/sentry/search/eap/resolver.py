@@ -75,7 +75,7 @@ class SearchResolver:
         ],
     ] = field(default_factory=dict)
 
-    def get_function_definition(self, function_name: str) -> FormulaDefinition:
+    def get_function_definition(self, function_name: str) -> type[FormulaDefinition]:
         if function_name in self.definitions.aggregates:
             return self.definitions.aggregates[function_name]
         elif function_name in self.definitions.formulas:
