@@ -1,6 +1,7 @@
 import type {Client} from 'sentry/api';
 import type {Organization} from 'sentry/types/organization';
 import {
+  isEAPSpanNode,
   isTraceErrorNode,
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/traceGuards';
@@ -65,7 +66,7 @@ export class IssuesTraceTree extends TraceTree {
       if (isTraceErrorNode(n)) {
         return n.value.event_id === eventId;
       }
-      if (isTransactionNode(n)) {
+      if (isTransactionNode(n) || isEAPSpanNode(n)) {
         if (n.value.event_id === eventId) {
           return true;
         }
@@ -85,8 +86,14 @@ export class IssuesTraceTree extends TraceTree {
       return false;
     });
 
-    if (node && isTransactionNode(node)) {
-      return tree.zoom(node, true, options).then(() => {});
+    if (node) {
+      if (isTransactionNode(node)) {
+        return tree.zoom(node, true, options).then(() => {});
+      }
+
+      if (isEAPSpanNode(node)) {
+        tree.expand(node, true);
+      }
     }
 
     return Promise.resolve();
@@ -106,7 +113,9 @@ export class IssuesTraceTree extends TraceTree {
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
-      const parentTransaction = TraceTree.ParentTransaction(node);
+      const parentTransaction = isEAPSpanNode(node)
+        ? TraceTree.ParentEAPTransaction(node)
+        : TraceTree.ParentTransaction(node);
       if (parentTransaction) {
         preserveNodes.add(parentTransaction);
       }

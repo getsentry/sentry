@@ -598,6 +598,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
@@ -618,6 +619,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": target_id,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
@@ -644,6 +646,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": self.sentry_app_installation.uuid,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.organization.id)
@@ -664,6 +667,7 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
             config={
                 "target_identifier": self.sentry_app_installation2.uuid,
                 "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_INSTALLATION_UUID,
+                "target_type": ActionTarget.SENTRY_APP.value,
             },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
@@ -684,7 +688,11 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            config={"target_identifier": target_id},
+            config={
+                "target_identifier": target_id,
+                "target_type": ActionTarget.SENTRY_APP.value,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            },
         )
 
         # sentry app with no settings
@@ -699,7 +707,11 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         action = self.create_action(
             type=Action.Type.SENTRY_APP,
-            config={"target_identifier": target_id},
+            config={
+                "target_identifier": target_id,
+                "target_type": ActionTarget.SENTRY_APP.value,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            },
         )
         blob = self.handler.build_rule_action_blob(action, self.org2.id)
 
