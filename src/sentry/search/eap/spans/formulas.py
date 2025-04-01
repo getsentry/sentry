@@ -39,7 +39,6 @@ from sentry.snuba import spans_rpc
 from sentry.snuba.referrer import Referrer
 
 
-
 def get_total_span_count(settings: ResolverSettings) -> Column:
     """
     This column represents a count of the all of spans.
