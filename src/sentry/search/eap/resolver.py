@@ -35,8 +35,10 @@ from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
+    AggregateDefinition,
     AttributeArgumentDefinition,
     ColumnDefinitions,
+    ConditionalAggregateDefinition,
     FormulaDefinition,
     ResolvedAggregate,
     ResolvedAttribute,
@@ -75,7 +77,9 @@ class SearchResolver:
         ],
     ] = field(default_factory=dict)
 
-    def get_function_definition(self, function_name: str) -> FormulaDefinition:
+    def get_function_definition(
+        self, function_name: str
+    ) -> ConditionalAggregateDefinition | FormulaDefinition | AggregateDefinition:
         if function_name in self.definitions.aggregates:
             return self.definitions.aggregates[function_name]
         elif function_name in self.definitions.formulas:
