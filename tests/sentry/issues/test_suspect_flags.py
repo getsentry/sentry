@@ -89,7 +89,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             ],
         )
 
-        results = query_flag_rows(1, 1, before, later, primary_hash=None)
+        results = query_flag_rows(1, 1, before, later, group_id=None)
         assert results == [("key", "false", 1), ("key", "true", 1), ("other", "false", 2)]
 
     def test_get_suspect_flag_scores(self):
@@ -99,7 +99,7 @@ class SnubaTest(TestCase, SnubaTestCase):
 
         self.mock_event(
             today,
-            hash="a" * 32,
+            group_id=1,
             flags=[
                 {"flag": "key", "result": True},
                 {"flag": "other", "result": False},
@@ -107,12 +107,12 @@ class SnubaTest(TestCase, SnubaTestCase):
         )
         self.mock_event(
             today,
-            hash="b" * 32,
+            group_id=2,
             flags=[
                 {"flag": "key", "result": False},
                 {"flag": "other", "result": False},
             ],
         )
 
-        results = get_suspect_flag_scores(1, 1, before, later, primary_hash="a" * 32)
+        results = get_suspect_flag_scores(1, 1, before, later, group_id=1)
         assert results == [("key", 2.7622287114272543), ("other", 0.0)]

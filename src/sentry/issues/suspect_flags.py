@@ -13,16 +13,16 @@ Score = tuple[str, float]
 
 
 def get_suspect_flag_scores(
-    org_id: int, project_id: int, start: datetime, end: datetime, primary_hash: str
+    org_id: int, project_id: int, start: datetime, end: datetime, group_id: int
 ) -> list[Score]:
     """
     Queries the baseline and outliers sets. Computes the KL scores of each and returns a sorted
     list of key, score values.
     """
-    baseline_rows = query_flag_rows(org_id, project_id, start, end, primary_hash=None)
+    baseline_rows = query_flag_rows(org_id, project_id, start, end, group_id=None)
     baseline = as_attribute_dict(baseline_rows)
 
-    outliers_rows = query_flag_rows(org_id, project_id, start, end, primary_hash=primary_hash)
+    outliers_rows = query_flag_rows(org_id, project_id, start, end, group_id=group_id)
     outliers = as_attribute_dict(outliers_rows)
 
     return kl_score(baseline, outliers)
@@ -33,7 +33,7 @@ def query_flag_rows(
     project_id: int,
     start: datetime,
     end: datetime,
-    primary_hash: str | None,
+    group_id: int | None,
 ) -> list[AttributesRow]:
     """
     Query for the count of unique flag-key, flag-value pairings. Specifying a primary-hash will
@@ -51,8 +51,8 @@ def query_flag_rows(
         GROUP BY variants
     """
     where = []
-    if primary_hash is not None:
-        where.append(Condition(Column("primary_hash"), Op.EQ, primary_hash))
+    if group_id is not None:
+        where.append(Condition(Column("group_id"), Op.EQ, group_id))
 
     query = Query(
         match=Entity("events"),
