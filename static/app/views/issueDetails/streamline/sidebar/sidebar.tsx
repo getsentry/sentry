@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -63,9 +62,7 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
-        <GuideAnchor target="issue_sidebar_releases" position="left">
-          <FirstLastSeenSection group={group} />
-        </GuideAnchor>
+        <FirstLastSeenSection group={group} />
         <StyledBreak />
         {((organization.features.includes('gen-ai-features') &&
           issueTypeConfig.issueSummary.enabled &&

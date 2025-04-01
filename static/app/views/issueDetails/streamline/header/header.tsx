@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import Color from 'color';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Flex} from 'sentry/components/container/flex';
 import {LinkButton} from 'sentry/components/core/button';
@@ -156,9 +155,7 @@ export default function StreamlinedGroupHeader({
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
               <StatCount value={eventCount} aria-label={t('Event count')} />
-              <GuideAnchor target="issue_header_stats">
-                <StatCount value={userCount} aria-label={t('User count')} />
-              </GuideAnchor>
+              <StatCount value={userCount} aria-label={t('User count')} />
             </Fragment>
           )}
           <Flex gap={space(1)} align="center">
@@ -212,16 +209,14 @@ export default function StreamlinedGroupHeader({
               {t('Priority')}
               <GroupPriority group={group} />
             </Workflow>
-            <GuideAnchor target="issue_sidebar_owners" position="left">
-              <Workflow>
-                {t('Assignee')}
-                <GroupHeaderAssigneeSelector
-                  group={group}
-                  project={project}
-                  event={event}
-                />
-              </Workflow>
-            </GuideAnchor>
+            <Workflow>
+              {t('Assignee')}
+              <GroupHeaderAssigneeSelector
+                group={group}
+                project={project}
+                event={event}
+              />
+            </Workflow>
           </WorkflowActions>
         </ActionBar>
       </TourElement>
