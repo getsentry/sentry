@@ -92,7 +92,7 @@ function formatColumnOptions(
           option.value.meta.name,
           option.value.kind !== FieldValueKind.FUNCTION &&
             option.value.kind !== FieldValueKind.EQUATION
-            ? option.value.meta.dataType!
+            ? option.value.meta.dataType
             : undefined
         ),
         disabled: !supported,
@@ -491,7 +491,7 @@ function Visualize({error, setError}: VisualizeProps) {
                             option.value.meta.name,
                             option.value.kind !== FieldValueKind.FUNCTION &&
                               option.value.kind !== FieldValueKind.EQUATION
-                              ? option.value.meta.dataType!
+                              ? option.value.meta.dataType
                               : undefined
                           ),
                         }))

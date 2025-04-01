@@ -473,9 +473,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             },
             skip_internal=False,
         )
-        if features.has(
-            "organizations:workflow-engine-notification-action", self.project.organization
-        ):
+        if features.has("organizations:workflow-engine-trigger-actions", self.project.organization):
             yield self.future(send_notification_noa, key=key)
         else:
             yield self.future(send_notification, key=key)

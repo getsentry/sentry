@@ -17,7 +17,6 @@ import type {IssueConfigField} from 'sentry/types/integrations';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/actionCreators/onboardingTasks');
 
 const defaultIssueConfig = [
   {

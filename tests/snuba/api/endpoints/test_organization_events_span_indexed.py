@@ -8,6 +8,11 @@ import urllib3
 from sentry.testutils.helpers import parse_link_header
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
+# Downsampling is deterministic, so unless the algorithm changes we can find a known id that will appear in the
+# preflight and it will always show up
+# If we need to get a new ID just query for event ids after loading 100s of events and use any of the ids that come back
+KNOWN_PREFLIGHT_ID = "ca056dd858a24299"
+
 
 class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBase):
     is_eap = False
@@ -3071,9 +3076,6 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         assert data[0]["count_scores(measurements.score.total)"] == 3
         assert meta["dataset"] == self.dataset
 
-    @pytest.mark.xfail(
-        reason="RPC does not support static number operations (https://github.com/getsentry/eap-planning/issues/202) which is required by this function"
-    )
     def test_time_spent_percentage(self):
         spans = []
         for _ in range(4):
@@ -3237,6 +3239,123 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         self.assertAlmostEqual(data[0]["opportunity_score(measurements.score.lcp)"], 0.27)
         assert data[0]["opportunity_score(measurements.score.total)"] == 1.57
         assert meta["dataset"] == self.dataset
+
+    def test_total_opportunity_score_simple(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {
+                            "score.ratio.fcp": {"value": 0.0},
+                            "score.ratio.cls": {"value": 0.0},
+                            "score.ratio.ttfb": {"value": 0.0},
+                            "score.ratio.lcp": {"value": 0.0},
+                            "score.ratio.inp": {"value": 0.0},
+                        },
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "total_opportunity_score()",
+                ],
+                "orderby": "transaction",
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["total_opportunity_score()"] == 1.0
+        assert data[1]["total_opportunity_score()"] == 1.0
+
+    @pytest.mark.xfail(reason="RPC returns None if a value is missing instead of 0")
+    def test_total_opportunity_score_missing_data(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {"score.ratio.inp": {"value": 0.5}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"score.ratio.inp": {"value": 0.2}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"score.ratio.inp": {"value": 0.4}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"score.ratio.lcp": {"value": 0.1 / 0.3}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"score.ratio.inp": {"value": 0.4}},
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"score.total": {"value": 0.5}},
+                        "sentry_tags": {"transaction": "foo_transaction"},
+                    }
+                ),
+                self.create_span(
+                    {
+                        "measurements": {"score.total": {"value": 0.5}},
+                        "sentry_tags": {"transaction": "bar_transaction"},
+                    }
+                ),
+            ],
+            is_eap=True,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "total_opportunity_score()",
+                ],
+                "orderby": "transaction",
+                "dataset": self.dataset,
+                "project": self.project.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["total_opportunity_score()"] == 0.09999999999999999
+        assert data[1]["total_opportunity_score()"] == 0.6
 
     def test_count_starts(self):
         self.store_spans(
@@ -3408,3 +3527,66 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
             },
         ]
         assert meta["dataset"] == self.dataset
+
+    def test_preflight_request(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+                "sampling": "PREFLIGHT",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
+
+    def test_best_effort_request(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "success"}},
+            start_ts=self.ten_mins_ago,
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=self.is_eap,
+        )
+        response = self.do_request(
+            {
+                "field": ["id", "description", "count()"],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "statsPeriod": "1h",
+                "sampling": "BEST_EFFORT",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        assert response.data["data"][0]["id"] == KNOWN_PREFLIGHT_ID
+        assert response.data["data"][1]["id"] == "b" * 16

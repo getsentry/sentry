@@ -1,4 +1,4 @@
-from concurrent import futures
+import threading
 from datetime import datetime
 
 import rapidjson
@@ -8,11 +8,22 @@ from arroyo.types import Message, Partition, Topic, Value
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
 
 
+class FakeProcess(threading.Thread):
+    """
+    Pretend this is multiprocessing.Process
+    """
+
+    def terminate(self):
+        pass
+
+
 def test_basic(monkeypatch, request):
-    monkeypatch.setattr(futures, "wait", lambda _: None)
+    # Flush very aggressively to make test pass instantly
     monkeypatch.setattr("time.sleep", lambda _: None)
 
     topic = Topic("test")
+    messages: list[KafkaPayload] = []
+
     fac = ProcessSpansStrategyFactory(
         max_batch_size=10,
         max_batch_time=10,
@@ -20,17 +31,8 @@ def test_basic(monkeypatch, request):
         max_flush_segments=10,
         input_block_size=None,
         output_block_size=None,
+        produce_to_pipe=messages.append,
     )
-
-    produced_messages = []
-
-    def produce(produce_topic, message):
-        produced_messages.append(message)
-        # The real produce would return a future here, but it doesn't matter
-        # because we also patched futures.wait
-        return None
-
-    fac.producer.produce = produce  # type:ignore[method-assign]
 
     commits = []
 
@@ -65,11 +67,12 @@ def test_basic(monkeypatch, request):
         fac.shutdown()
 
     step.poll()
-    fac._flusher.current_drift = 9000  # "advance" our "clock"
+    fac._flusher.current_drift.value = 9000  # "advance" our "clock"
 
     step.join()
 
-    (msg,) = produced_messages
+    (msg,) = messages
+
     assert rapidjson.loads(msg.value) == {
         "spans": [
             {

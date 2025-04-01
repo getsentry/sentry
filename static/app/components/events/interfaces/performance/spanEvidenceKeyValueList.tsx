@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import kebabCase from 'lodash/kebabCase';
@@ -35,10 +36,8 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import KeyValueList from '../keyValueList';
-import type {ProcessedSpanType, RawSpanType} from '../spans/types';
+import type {ProcessedSpanType, RawSpanType, TraceContextSpanProxy} from '../spans/types';
 import {getSpanSubTimings, SpanSubTimingName} from '../spans/utils';
-
-import type {TraceContextSpanProxy} from './spanEvidence';
 
 const formatter = new SQLishFormatter();
 
@@ -55,6 +54,7 @@ type SpanEvidenceKeyValueListProps = {
   offendingSpans: Span[];
   organization: Organization;
   parentSpan: Span | null;
+  theme: Theme;
   issueType?: IssueType;
   projectSlug?: string;
 };
@@ -143,6 +143,7 @@ function HTTPOverheadSpanEvidence({
   organization,
   projectSlug,
   location,
+  theme,
 }: SpanEvidenceKeyValueListProps) {
   return (
     <PresortedKeyValueList
@@ -150,7 +151,7 @@ function HTTPOverheadSpanEvidence({
         [
           makeTransactionNameRow(event, organization, location, projectSlug),
 
-          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans)),
+          makeRow(t('Max Queue Time'), getHTTPOverheadMaxTime(offendingSpans, theme)),
         ].filter(Boolean) as KeyValueListData
       }
     />
@@ -285,7 +286,9 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
-const PREVIEW_COMPONENTS = {
+const PREVIEW_COMPONENTS: Partial<
+  Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
+> = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
   [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
   [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
@@ -314,6 +317,7 @@ export function SpanEvidenceKeyValueList({
   event: EventTransaction;
   projectSlug?: string;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const spanInfo = getSpanInfoFromTransactionEvent(event);
@@ -326,6 +330,7 @@ export function SpanEvidenceKeyValueList({
   if (!issueType || (requiresSpanInfo && !spanInfo)) {
     return (
       <DefaultSpanEvidence
+        theme={theme}
         event={event}
         offendingSpans={[]}
         location={location}
@@ -337,17 +342,20 @@ export function SpanEvidenceKeyValueList({
     );
   }
 
-  const Component = (PREVIEW_COMPONENTS as any)[issueType] ?? DefaultSpanEvidence;
+  const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (
     <ClippedBox clipHeight={300}>
       <Component
+        theme={theme}
         event={event}
         issueType={issueType}
         organization={organization}
         location={location}
         projectSlug={projectSlug}
-        {...spanInfo}
+        parentSpan={spanInfo?.parentSpan ?? null}
+        offendingSpans={spanInfo?.offendingSpans ?? []}
+        causeSpans={spanInfo?.causeSpans ?? []}
       />
     </ClippedBox>
   );
@@ -573,9 +581,10 @@ const getConsecutiveDbTimeSaved = (
   );
 };
 
-const getHTTPOverheadMaxTime = (offendingSpans: Span[]): string | null => {
+const getHTTPOverheadMaxTime = (offendingSpans: Span[], theme: Theme): string | null => {
   const slowestSpanTimings = getSpanSubTimings(
-    offendingSpans[offendingSpans.length - 1] as ProcessedSpanType
+    offendingSpans[offendingSpans.length - 1] as ProcessedSpanType,
+    theme
   );
   if (!slowestSpanTimings) {
     return null;
