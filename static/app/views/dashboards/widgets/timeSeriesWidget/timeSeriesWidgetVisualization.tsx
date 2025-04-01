@@ -2,6 +2,7 @@ import {useCallback, useRef} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 import type {SeriesOption, YAXisComponentOption} from 'echarts';
 import type {
@@ -18,7 +19,6 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -41,7 +41,7 @@ import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE, FALLBACK_UNIT_FOR_FIELD_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
 
-const {error, warn, info} = Sentry._experiment_log;
+const {error, warn, info} = Sentry.logger;
 
 export interface TimeSeriesWidgetVisualizationProps {
   /**
@@ -66,10 +66,14 @@ export interface TimeSeriesWidgetVisualizationProps {
    * Callback that returns an updated ECharts zoom selection. If omitted, the default behavior is to update the URL with updated `start` and `end` query parameters.
    */
   onZoom?: EChartDataZoomHandler;
+
+  ref?: React.Ref<ReactEchartsRef>;
+
   /**
    * Array of `Release` objects. If provided, they are plotted on line and area visualizations as vertical lines
    */
   releases?: Release[];
+
   /**
    * Show releases as either lines per release or a bubble for a group of releases.
    */
@@ -112,16 +116,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releaseBubbleXAxis,
     releaseBubbleGrid,
   } = useReleaseBubbles({
-    chartRenderer: ({start: trimStart, end: trimEnd}) => {
+    chartRenderer: ({start: trimStart, end: trimEnd, ref: chartRendererRef}) => {
       return (
-        <TimeSeriesWidgetVisualization
-          {...props}
-          disableReleaseNavigation
-          plottables={props.plottables.map(plottable =>
-            plottable.constrain(trimStart, trimEnd)
-          )}
-          showReleaseAs="line"
-        />
+        <DrawerWidgetWrapper>
+          <TimeSeriesWidgetVisualization
+            {...props}
+            ref={chartRendererRef}
+            disableReleaseNavigation
+            plottables={props.plottables.map(plottable =>
+              plottable.constrain(trimStart, trimEnd)
+            )}
+            showReleaseAs="line"
+          />
+        </DrawerWidgetWrapper>
       );
     },
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
@@ -155,9 +162,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
 
   const handleChartRef = useCallback(
-    (e: ReactEchartsRef) => {
-      chartRef.current = e;
-
+    (e: ReactEchartsRef | null) => {
       if (!e?.getEchartsInstance) {
         return;
       }
@@ -295,7 +300,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const palette =
     paletteSize > 0
-      ? getChartColorPalette(paletteSize - 2)! // -2 because getColorPalette artificially adds 1, I'm not sure why
+      ? theme.chart.getColorPalette(paletteSize - 2) // -2 because getColorPalette artificially adds 1, I'm not sure why
       : [];
 
   // Create tooltip formatter
@@ -339,6 +344,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     return getFormatter({
       isGroupedByDate: true,
       showTimeInTooltip: true,
+      nameFormatter: function (name, nameFormatterParams) {
+        if (!nameFormatterParams) {
+          return name;
+        }
+
+        if (
+          nameFormatterParams.seriesType === 'scatter' &&
+          Array.isArray(nameFormatterParams.data)
+        ) {
+          // For scatter series, the third point in the `data` array should be the sample's ID
+          const sampleId = nameFormatterParams.data.at(2);
+          return defined(sampleId) ? sampleId.toString() : name;
+        }
+
+        return name;
+      },
       valueFormatter: function (value, _field, valueFormatterParams) {
         // Use the series to figure out the corresponding `Plottable`, and get the field type. From that, use whichever unit we chose for that field type.
 
@@ -429,6 +450,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition,
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+      theme,
     });
 
     seriesIndexToPlottableMapRanges.push({
@@ -447,7 +469,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   return (
     <BaseChart
-      ref={handleChartRef}
+      ref={mergeRefs(props.ref, chartRef, handleChartRef)}
       {...releaseBubbleEventHandlers}
       autoHeightResize
       series={[...series, releaseSeries].filter(defined)}
@@ -543,6 +565,10 @@ const LoadingPlaceholder = styled('div')`
 
 const LoadingMask = styled(TransparentLoadingMask)`
   background: ${p => p.theme.background};
+`;
+
+const DrawerWidgetWrapper = styled('div')`
+  height: 220px;
 `;
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = LoadingPanel;

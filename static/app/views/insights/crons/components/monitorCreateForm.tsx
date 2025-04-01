@@ -1,5 +1,5 @@
 import {Fragment, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -19,7 +19,6 @@ import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import commonTheme from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -45,6 +44,7 @@ const DEFAULT_SCHEDULE_CONFIG = {
 };
 
 export default function MonitorCreateForm() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
@@ -154,7 +154,7 @@ export default function MonitorCreateForm() {
                           defaultValue={DEFAULT_SCHEDULE_CONFIG.cronSchedule}
                           css={css`
                             input {
-                              font-family: ${commonTheme.text.familyMono};
+                              font-family: ${theme.text.familyMono};
                             }
                           `}
                           required={selectedCrontab}

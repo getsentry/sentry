@@ -67,6 +67,7 @@ x-sentry-service-config:
     default: [snuba, postgres, relay, spotlight]
     migrations: [postgres, redis]
     acceptance-ci: [postgres, snuba, chartcuterie]
+    chartcuterie: [postgres, snuba, chartcuterie, spotlight]
     taskbroker: [snuba, postgres, relay, taskbroker, spotlight]
     backend-ci: [snuba, postgres, redis, bigtable, redis-cluster, symbolicator]
     rabbitmq: [postgres, snuba, rabbitmq, spotlight]

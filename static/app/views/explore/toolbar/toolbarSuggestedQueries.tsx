@@ -213,11 +213,8 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
       groupBys: ['span.description'],
       mode: Mode.AGGREGATE,
       query: 'span.op:[pageload,navigation]',
-      sortBys: [{field: 'avg(span.duration)', kind: 'desc'}],
-      visualizes: [
-        {chartType: ChartType.LINE, yAxes: ['avg(span.duration)']},
-        {chartType: ChartType.LINE, yAxes: ['p50(span.duration)']},
-      ],
+      sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
+      visualizes: [{chartType: ChartType.LINE, yAxes: ['count(span.duration)']}],
     },
   ];
 
@@ -240,6 +237,22 @@ function getSuggestedQueries(platforms: PlatformCategory[], maxQueries = 5) {
         {chartType: ChartType.LINE, yAxes: ['p75(span.duration)']},
         {chartType: ChartType.LINE, yAxes: ['p90(span.duration)']},
       ],
+    },
+    {
+      title: t('Top Server Calls'),
+      fields: [
+        'id',
+        'project',
+        'span.op',
+        'span.description',
+        'span.duration',
+        'timestamp',
+      ],
+      groupBys: ['span.description'],
+      mode: Mode.AGGREGATE,
+      query: 'span.op:http.server',
+      sortBys: [{field: 'count(span.duration)', kind: 'desc'}],
+      visualizes: [{chartType: ChartType.BAR, yAxes: ['count(span.duration)']}],
     },
   ];
 

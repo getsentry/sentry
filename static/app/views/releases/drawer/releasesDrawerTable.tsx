@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -35,7 +36,11 @@ type ReleaseHealthItem = {
 
 interface Props {
   end: string;
+  environments: readonly string[];
+  onMouseOutRelease: (release: string) => void;
+  onMouseOverRelease: (release: string) => void;
   onSelectRelease: (release: string, projectId: string) => void;
+  projects: readonly number[];
   start: string;
 }
 
@@ -54,7 +59,16 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthGridItem>> = [
  * can't re-use because this will eventually be a bit different,
  * especially with the in-drawer navigation.
  */
-export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
+export function ReleaseDrawerTable({
+  end,
+  environments,
+  projects,
+  start,
+  onMouseOverRelease,
+  onMouseOutRelease,
+  onSelectRelease,
+}: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -63,6 +77,8 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
+          project: projects,
+          environment: environments,
           ...Object.fromEntries(
             Object.entries(location.query).filter(([key]) =>
               ['project', 'environment'].includes(key)
@@ -123,6 +139,12 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
         return (
           <ReleaseLink
             to="#"
+            onMouseOver={() => {
+              onMouseOverRelease(dataRow.release);
+            }}
+            onMouseOut={() => {
+              onMouseOutRelease(dataRow.release);
+            }}
             onClick={e => {
               e.preventDefault();
               onSelectRelease(String(value), String(dataRow.project_id));
@@ -164,11 +186,19 @@ export function ReleaseDrawerTable({start, onSelectRelease, end}: Props) {
             location,
             organization,
             unit: meta.units[column.key],
+            theme,
           })}
         </CellWrapper>
       );
     },
-    [organization, location, onSelectRelease]
+    [
+      organization,
+      location,
+      onSelectRelease,
+      onMouseOutRelease,
+      onMouseOverRelease,
+      theme,
+    ]
   );
 
   const tableEmptyMessage = (

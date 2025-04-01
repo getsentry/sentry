@@ -66,12 +66,10 @@ class ProcessedTimeseries:
 def get_resolver(
     params: SnubaParams,
     config: SearchResolverConfig,
-    granularity_secs: int | None = None,
 ) -> SearchResolver:
     return SearchResolver(
         params=params,
         config=config,
-        granularity_secs=granularity_secs,
         definitions=SPAN_DEFINITIONS,
     )
 
@@ -86,6 +84,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
+    sampling_mode: str | None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
@@ -96,6 +95,7 @@ def run_table_query(
         offset,
         limit,
         referrer,
+        sampling_mode,
         search_resolver or get_resolver(params, config),
         debug,
     )
@@ -108,14 +108,13 @@ def get_timeseries_query(
     groupby: list[str],
     referrer: str,
     config: SearchResolverConfig,
-    granularity_secs: int,
     extra_conditions: TraceItemFilter | None = None,
 ) -> tuple[
     TimeSeriesRequest,
     list[ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate],
     list[ResolvedAttribute],
 ]:
-    resolver = get_resolver(params=params, config=config, granularity_secs=granularity_secs)
+    resolver = get_resolver(params=params, config=config)
     meta = resolver.resolve_meta(referrer=referrer)
     query, _, query_contexts = resolver.resolve_query(query_string)
     (functions, _) = resolver.resolve_functions(y_axes)
@@ -136,7 +135,7 @@ def get_timeseries_query(
                 for groupby in groupbys
                 if isinstance(groupby.proto_definition, AttributeKey)
             ],
-            granularity_secs=granularity_secs,
+            granularity_secs=params.timeseries_granularity_secs,
         ),
         functions,
         groupbys,
@@ -145,15 +144,14 @@ def get_timeseries_query(
 
 def validate_granularity(
     params: SnubaParams,
-    granularity_secs: int,
 ) -> None:
     """The granularity has already been somewhat validated by src/sentry/utils/dates.py:validate_granularity
     but the RPC adds additional rules on validation so those are checked here"""
-    if params.date_range.total_seconds() / granularity_secs > MAX_ROLLUP_POINTS:
+    if params.date_range.total_seconds() / params.timeseries_granularity_secs > MAX_ROLLUP_POINTS:
         raise InvalidSearchQuery(
             "Selected interval would create too many buckets for the timeseries"
         )
-    if granularity_secs not in VALID_GRANULARITIES:
+    if params.timeseries_granularity_secs not in VALID_GRANULARITIES:
         raise InvalidSearchQuery(
             f"Selected interval is not allowed, allowed intervals are: {sorted(VALID_GRANULARITIES)}"
         )
@@ -165,14 +163,13 @@ def run_timeseries_query(
     query_string: str,
     y_axes: list[str],
     referrer: str,
-    granularity_secs: int,
     config: SearchResolverConfig,
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
-    validate_granularity(params, granularity_secs)
+    validate_granularity(params)
     rpc_request, aggregates, groupbys = get_timeseries_query(
-        params, query_string, y_axes, [], referrer, config, granularity_secs
+        params, query_string, y_axes, [], referrer, config
     )
 
     """Run the query"""
@@ -185,7 +182,7 @@ def run_timeseries_query(
         final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
     for timeseries in rpc_response.result_timeseries:
-        processed = _process_all_timeseries([timeseries], params, granularity_secs)
+        processed = _process_all_timeseries([timeseries], params, params.granularity_secs)
         if len(result.timeseries) == 0:
             result = processed
         else:
@@ -198,7 +195,7 @@ def run_timeseries_query(
             [],
             params.start_date,
             params.end_date,
-            granularity_secs,
+            params.timeseries_granularity_secs,
             ["time"],
         )
 
@@ -213,13 +210,13 @@ def run_timeseries_query(
         comp_query_params.end = comp_query_params.end_date - comparison_delta
 
         comp_rpc_request, aggregates, groupbys = get_timeseries_query(
-            comp_query_params, query_string, y_axes, [], referrer, config, granularity_secs
+            comp_query_params, query_string, y_axes, [], referrer, config
         )
         comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
         if comp_rpc_response.result_timeseries:
             timeseries = comp_rpc_response.result_timeseries[0]
-            processed = _process_all_timeseries([timeseries], params, granularity_secs)
+            processed = _process_all_timeseries([timeseries], params, params.granularity_secs)
             for existing, new in zip(result.timeseries, processed.timeseries):
                 existing["comparisonCount"] = new[timeseries.label]
         else:
@@ -230,7 +227,7 @@ def run_timeseries_query(
         {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
         params.start,
         params.end,
-        granularity_secs,
+        params.granularity_secs,
     )
 
 
@@ -254,7 +251,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="=",
-                    value=SearchValue(raw_value=value),
+                    value=SearchValue(raw_value=value, use_raw_value=True),
                 )
             )
             if resolved_term is not None:
@@ -263,7 +260,7 @@ def build_top_event_conditions(
                 SearchFilter(
                     key=SearchKey(name=key),
                     operator="!=",
-                    value=SearchValue(raw_value=value),
+                    value=SearchValue(raw_value=value, use_raw_value=True),
                 )
             )
             if other_term is not None:
@@ -285,7 +282,6 @@ def run_top_events_timeseries_query(
     orderby: list[str] | None,
     limit: int,
     referrer: str,
-    granularity_secs: int,
     config: SearchResolverConfig,
 ) -> Any:
     """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
@@ -293,8 +289,8 @@ def run_top_events_timeseries_query(
     This is because at time of writing, the query construction is very straightforward, if that changes perhaps we can
     change this"""
     """Make a table query first to get what we need to filter by"""
-    validate_granularity(params, granularity_secs)
-    search_resolver = get_resolver(params=params, config=config, granularity_secs=granularity_secs)
+    validate_granularity(params)
+    search_resolver = get_resolver(params=params, config=config)
     top_events = run_table_query(
         params,
         query_string,
@@ -304,6 +300,7 @@ def run_top_events_timeseries_query(
         limit,
         referrer,
         config,
+        None,
         search_resolver,
     )
     if len(top_events["data"]) == 0:
@@ -324,7 +321,6 @@ def run_top_events_timeseries_query(
         groupby_columns_without_project,
         referrer,
         config,
-        granularity_secs,
         extra_conditions=top_conditions,
     )
     other_request, other_aggregates, other_groupbys = get_timeseries_query(
@@ -334,7 +330,6 @@ def run_top_events_timeseries_query(
         [],  # in the other series, we want eveything in a single group, so the group by
         referrer,
         config,
-        granularity_secs,
         extra_conditions=other_conditions,
     )
 
@@ -371,7 +366,7 @@ def run_top_events_timeseries_query(
         result = _process_all_timeseries(
             map_result_key_to_timeseries[result_key],
             params,
-            granularity_secs,
+            params.granularity_secs,
         )
         final_result[result_key] = SnubaTSResult(
             {
@@ -384,13 +379,13 @@ def run_top_events_timeseries_query(
             },
             params.start,
             params.end,
-            granularity_secs,
+            params.granularity_secs,
         )
     if other_response.result_timeseries:
         result = _process_all_timeseries(
             [timeseries for timeseries in other_response.result_timeseries],
             params,
-            granularity_secs,
+            params.granularity_secs,
         )
         final_result[OTHER_KEY] = SnubaTSResult(
             {
@@ -403,7 +398,7 @@ def run_top_events_timeseries_query(
             },
             params.start,
             params.end,
-            granularity_secs,
+            params.granularity_secs,
         )
     return final_result
 
@@ -411,7 +406,6 @@ def run_top_events_timeseries_query(
 def _process_all_timeseries(
     all_timeseries: list[TimeSeries],
     params: SnubaParams,
-    granularity_secs: int,
     order: int | None = None,
 ) -> ProcessedTimeseries:
     result = ProcessedTimeseries()

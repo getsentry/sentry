@@ -113,7 +113,7 @@ class EventLifecycle:
         """
         self._extra[name] = value
 
-    def add_extras(self, extras: Mapping[str, int | str]) -> None:
+    def add_extras(self, extras: Mapping[str, Any]) -> None:
         """Add multiple values to logged "extra" data."""
         self._extra.update(extras)
 

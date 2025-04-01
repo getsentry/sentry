@@ -52,7 +52,6 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
@@ -68,6 +67,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/useGroupDistributionsDrawer';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -647,7 +647,7 @@ function GroupDetailsContent({
   const hasFlagsDistributions = organization.features.includes(
     'feature-flag-distribution-flyout'
   );
-  const {openTagsDrawer} = useGroupTagsDrawer({
+  const {openDistributionsDrawer} = useGroupDistributionsDrawer({
     group,
     includeFeatureFlagsTab: hasFlagsDistributions,
   });
@@ -665,8 +665,9 @@ function GroupDetailsContent({
       return;
     }
 
-    if (currentTab === Tab.TAGS) {
-      openTagsDrawer();
+    if (currentTab === Tab.DISTRIBUTIONS) {
+      // Tag and feature flag distributions.
+      openDistributionsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
@@ -678,7 +679,7 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
-    openTagsDrawer,
+    openDistributionsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
     openIssueActivityDrawer,
@@ -688,7 +689,7 @@ function GroupDetailsContent({
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
-    Tab.TAGS,
+    Tab.DISTRIBUTIONS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
     Tab.ACTIVITY,
@@ -824,7 +825,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      tourContext={IssueDetailsTourContext}
+      TourContext={IssueDetailsTourContext}
     >
       <GroupDetailsContent
         {...props}

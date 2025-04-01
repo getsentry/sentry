@@ -18,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
@@ -34,12 +35,12 @@ type SeriesMap = {
 
 interface Options<Fields> {
   enabled?: boolean;
-  fidelity?: 'low' | 'auto';
   fields?: string[];
   interval?: string;
   orderby?: string | string[];
   overriddenRoute?: string;
   referrer?: string;
+  samplingMode?: SamplingMode;
   search?: MutableSearch;
   topEvents?: number;
   yAxis?: Fields;
@@ -63,7 +64,7 @@ export const useSortedTimeSeries = <
     orderby,
     overriddenRoute,
     enabled,
-    fidelity,
+    samplingMode,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -98,7 +99,7 @@ export const useSortedTimeSeries = <
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
-      fidelity,
+      sampling: samplingMode,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
