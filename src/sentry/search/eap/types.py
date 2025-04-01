@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal, TypedDict
 
@@ -16,6 +16,8 @@ class SearchResolverConfig:
     # TODO: do we need parser_config_overrides? it looks like its just for alerts
     # Whether to process the results from snuba
     process_results: bool = True
+    # If a `FunctionDefinition` is private, it will only be available if it is in the `functions_acl`
+    functions_acl: set[str] = field(default_factory=set)
 
 
 CONFIDENCES: dict[Reliability.ValueType, Literal["low", "high"]] = {
