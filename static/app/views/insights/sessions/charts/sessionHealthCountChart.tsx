@@ -15,6 +15,7 @@ export default function SessionHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
+      height={400}
       title={t('Session Counts')}
       description={tct(
         'The count of sessions with each health status. See [link:session status].',

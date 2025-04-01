@@ -16,6 +16,7 @@ export default function UserHealthRateChart() {
   return (
     <InsightsAreaChartWidget
       title={t('User Health')}
+      height={400}
       description={tct(
         'The percent of [linkUsers:users] with each [linkStatus:health status].',
         {

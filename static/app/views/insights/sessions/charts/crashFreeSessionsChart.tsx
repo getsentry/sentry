@@ -17,6 +17,7 @@ export default function CrashFreeSessionsChart() {
   return (
     <InsightsLineChartWidget
       title={t('Crash Free Sessions')}
+      height={400}
       description={tct(
         'The percent of sessions terminating without a crash. See [link:session status].',
         {

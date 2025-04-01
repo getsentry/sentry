@@ -15,6 +15,7 @@ export default function UserHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
+      height={400}
       title={t('User Counts')}
       description={tct(
         'Breakdown of total [linkUsers:users], grouped by [linkStatus:health status].',

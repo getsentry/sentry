@@ -16,6 +16,7 @@ export default function SessionHealthRateChart() {
   return (
     <InsightsAreaChartWidget
       title={t('Session Health')}
+      height={400}
       description={tct(
         'The percent of sessions with each health status. See [link:session status].',
         {

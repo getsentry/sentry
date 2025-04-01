@@ -13,6 +13,7 @@ export default function ErrorFreeSessionsChart() {
   return (
     <InsightsLineChartWidget
       title={t('Error Free Sessions')}
+      height={400}
       description={tct(
         'The percent of sessions terminating without a single error occurring. See [link:session status].',
         {

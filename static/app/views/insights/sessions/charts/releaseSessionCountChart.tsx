@@ -14,6 +14,7 @@ export default function ReleaseSessionCountChart() {
   return (
     <InsightsLineChartWidget
       title={t('Total Sessions by Release')}
+      height={400}
       description={t(
         'The total number of sessions per release. The 5 most recent releases are shown.'
       )}
