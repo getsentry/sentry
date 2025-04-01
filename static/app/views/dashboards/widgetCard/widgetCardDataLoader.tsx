@@ -23,6 +23,7 @@ type Results = {
   isSampled?: boolean | null;
   pageLinks?: string;
   sampleCount?: number;
+  isProgressivelyLoading?: boolean;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -104,7 +105,6 @@ export function WidgetCardDataLoader({
     return (
       <SpansWidgetQueries
         api={api}
-        organization={organization}
         widget={widget}
         selection={selection}
         limit={tableItemLimit}

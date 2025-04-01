@@ -32,6 +32,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 type Options = {
   organization: OrganizationSummary;
@@ -59,6 +60,7 @@ type Options = {
   useRpc?: boolean;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
+  sampling?: SamplingMode;
 };
 
 export type EventsStatsOptions<T extends boolean> = {includeAllArgs: T} & Options;
@@ -111,6 +113,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
     includeAllArgs,
     dataset,
     useRpc,
+    sampling,
   }: EventsStatsOptions<IncludeAllArgsType>
 ): IncludeAllArgsType extends true
   ? Promise<ApiResult<EventsStats | MultiSeriesEventsStats>>
@@ -138,6 +141,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
       excludeOther: excludeOther ? '1' : undefined,
       dataset,
       useRpc: useRpc ? '1' : undefined,
+      sampling,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

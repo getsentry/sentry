@@ -28,6 +28,7 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
+import {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 export type WidgetBuilderSearchBarProps = {
   getFilterWarning: SearchBarProps['getFilterWarning'];
@@ -160,7 +161,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters,
     onDemandControlContext?: OnDemandControlContext,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Get the result type of the series. ie duration, size, percentage, etc

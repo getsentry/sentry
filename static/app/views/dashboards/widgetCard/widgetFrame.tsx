@@ -14,6 +14,7 @@ import type {WidgetDescriptionProps} from '../widgets/widget/widgetDescription';
 
 import {TooltipIconTrigger} from './tooltipIconTrigger';
 import {WarningsList} from './warningsList';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 
 export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   actions?: MenuItemProps[];
@@ -28,6 +29,7 @@ export interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   revealTooltip?: 'always' | 'hover';
   title?: string;
   warnings?: string[];
+  isProgressivelyLoading?: boolean;
 }
 
 export function WidgetFrame(props: WidgetFrameProps) {
@@ -78,6 +80,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             )}
         </Fragment>
       }
+      TitleBadges={getProgressiveLoadingIndicator(props.isProgressivelyLoading)}
       revealActions={
         props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
       }

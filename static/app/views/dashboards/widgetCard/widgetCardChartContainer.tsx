@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Dispatch, SetStateAction, Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
@@ -59,6 +59,7 @@ type Props = {
   showConfidenceWarning?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
+  onProgressivelyLoading?: Dispatch<SetStateAction<boolean>>;
 };
 
 export function WidgetCardChartContainer({
@@ -82,6 +83,7 @@ export function WidgetCardChartContainer({
   widgetLegendState,
   showConfidenceWarning,
   minTableColumnWidth,
+  onProgressivelyLoading,
 }: Props) {
   const location = useLocation();
 
@@ -111,6 +113,7 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         confidence,
         sampleCount,
+        isProgressivelyLoading,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -130,6 +133,8 @@ export function WidgetCardChartContainer({
             </Fragment>
           );
         }
+
+        onProgressivelyLoading?.(isProgressivelyLoading ?? false);
 
         // Bind timeseries to widget for ability to control each widget's legend individually
         const modifiedTimeseriesResults =

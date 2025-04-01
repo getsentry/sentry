@@ -42,6 +42,7 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import {transformEventsResponseToSeries} from '../utils/transformEventsResponseToSeries';
+import {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -269,7 +270,8 @@ function getSeriesRequest(
   pageFilters: PageFilters,
   _onDemandControlContext?: OnDemandControlContext,
   referrer?: string,
-  _mepSetting?: MEPState | null
+  _mepSetting?: MEPState | null,
+  samplingMode?: SamplingMode
 ) {
   const requestData = getSeriesRequestData(
     widget,
@@ -286,6 +288,10 @@ function getSeriesRequest(
   // embedded under transactions. The trace view does not support rendering
   // such spans yet.
   requestData.query = `${requestData.query} !transaction.span_id:00`;
+
+  if (samplingMode) {
+    requestData.sampling = samplingMode;
+  }
 
   return doEventsRequest<true>(api, requestData);
 }

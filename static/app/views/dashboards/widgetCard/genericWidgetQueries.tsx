@@ -18,6 +18,7 @@ import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 import type {DatasetConfig} from '../datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from '../types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
+import {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 function getReferrer(displayType: DisplayType) {
   let referrer = '';
@@ -55,6 +56,7 @@ export type GenericWidgetQueriesChildrenProps = {
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   totalCount?: string;
+  isProgressivelyLoading?: boolean;
 };
 
 export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
@@ -90,6 +92,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
+  samplingMode?: SamplingMode;
 };
 
 type State<SeriesResponse> = {
@@ -294,18 +297,20 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     });
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      onDataFetched?.({
-        tableResults: transformedTableResults,
-        pageLinks: responsePageLinks,
-        ...afterTableFetchData,
-      });
-      this.setState({
-        tableResults: transformedTableResults,
-        pageLinks: responsePageLinks,
-      });
+      this.setState(
+        {
+          tableResults: transformedTableResults,
+          pageLinks: responsePageLinks,
+        },
+        () =>
+          onDataFetched?.({
+            tableResults: transformedTableResults,
+            pageLinks: responsePageLinks,
+            ...afterTableFetchData,
+          })
+      );
     }
   }
-
   async fetchSeriesData(queryFetchID: symbol) {
     const {
       widget: originalWidget,
@@ -317,6 +322,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched,
       mepSetting,
       onDemandControlContext,
+      samplingMode,
     } = this.props;
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
@@ -330,7 +336,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           selection,
           onDemandControlContext,
           getReferrer(widget.displayType),
-          mepSetting
+          mepSetting,
+          samplingMode
         );
       })
     );
@@ -364,15 +371,18 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
-      onDataFetched?.({
-        timeseriesResults: transformedTimeseriesResults,
-        timeseriesResultsTypes,
-      });
-      this.setState({
-        timeseriesResults: transformedTimeseriesResults,
-        rawResults: rawResultsClone,
-        timeseriesResultsTypes,
-      });
+      this.setState(
+        {
+          timeseriesResults: transformedTimeseriesResults,
+          rawResults: rawResultsClone,
+          timeseriesResultsTypes,
+        },
+        () =>
+          onDataFetched?.({
+            timeseriesResults: transformedTimeseriesResults,
+            timeseriesResultsTypes,
+          })
+      );
     }
   }
 
