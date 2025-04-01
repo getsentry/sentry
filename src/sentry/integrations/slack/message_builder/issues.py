@@ -504,24 +504,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         parts = []
 
-        if whats_wrong := self.issue_summary.get("whatsWrong"):
-            parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("whatsWrong", "*What's Wrong:*")
-                + " "
-                + escape_slack_markdown_asterisks(whats_wrong)
-            )
-        if trace := self.issue_summary.get("trace"):
-            parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("trace", "*In the Trace:*")
-                + " "
-                + escape_slack_markdown_asterisks(trace)
-            )
         if possible_cause := self.issue_summary.get("possibleCause"):
-            parts.append(
-                ISSUE_SUMMARY_TO_EMOJI.get("possibleCause", "*Possible Cause:*")
-                + " "
-                + escape_slack_markdown_asterisks(possible_cause)
-            )
+            parts.append(escape_slack_markdown_asterisks(possible_cause))
 
         if not parts:
             return None
@@ -641,7 +625,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # Use issue summary if available, otherwise use the default text
         if summary_text := self.get_issue_summary_text():
+            original_title = build_attachment_title(event_or_group)
+            original_message = text.lstrip(" ")
+
+            blocks.append(self.get_divider())
+            blocks.append(
+                self.get_text_block(f"*{original_title}*: `{original_message}`", small=True)
+            )
             blocks.append(self.get_text_block(summary_text, small=True))
+            blocks.append(self.get_divider())
         else:
             text = text.lstrip(" ")
             # XXX(CEO): sometimes text is " " and slack will error if we pass an empty string (now "")
