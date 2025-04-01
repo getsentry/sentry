@@ -15,9 +15,9 @@ const {SPAN_SELF_TIME} = SpanMetricsField;
 export type SpanTransactionMetrics = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
+  'epm()': number;
   'http_error_count()': number;
   'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
-  'spm()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
   transaction: string;
@@ -73,7 +73,7 @@ function getEventView(
       fields: [
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         `sum(${SPAN_SELF_TIME})`,
         `avg(${SPAN_SELF_TIME})`,
         'time_spent_percentage()',

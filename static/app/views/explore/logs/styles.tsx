@@ -64,9 +64,14 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
-export const LogTableBody = styled(TableBody)`
-  padding-top: ${space(1)};
-  padding-bottom: ${space(1)};
+export const LogTableBody = styled(TableBody)<{showHeader?: boolean}>`
+  ${p =>
+    p.showHeader
+      ? ''
+      : `
+    padding-top: ${space(1)};
+    padding-bottom: ${space(1)};
+    `}
 `;
 
 export const LogDetailTableBodyCell = styled(TableBodyCell)`

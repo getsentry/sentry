@@ -64,6 +64,10 @@ describe('PageOverview', function () {
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
   });
 
   afterEach(function () {

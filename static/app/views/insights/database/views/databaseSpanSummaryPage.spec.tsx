@@ -86,7 +86,7 @@ describe('DatabaseSpanSummaryPage', function () {
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        'spm()': {
+        'epm()': {
           data: [],
         },
         'avg(span.self_time)': {
@@ -127,7 +127,7 @@ describe('DatabaseSpanSummaryPage', function () {
             transaction: '/api/users',
             'transaction.method': 'GET',
             'span.op': 'db',
-            'spm()': 17.88,
+            'epm()': 17.88,
             'avg(span.self_time)': 204.5,
             'sum(span.self_time)': 177238,
             'time_spent_percentage()': 0.00341,
@@ -135,7 +135,7 @@ describe('DatabaseSpanSummaryPage', function () {
         ],
         meta: {
           fields: {
-            'spm()': 'rate',
+            'epm()': 'rate',
             'avg(span.self_time)': 'duration',
             'sum(span.self_time)': 'duration',
             'time_spent_percentage()': 'percentage',
@@ -182,7 +182,7 @@ describe('DatabaseSpanSummaryPage', function () {
             'span.action',
             'span.domain',
             'count()',
-            'spm()',
+            'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
             'time_spent_percentage()',
@@ -216,7 +216,7 @@ describe('DatabaseSpanSummaryPage', function () {
       })
     );
 
-    // SPM Chart
+    // EPM Chart
     expect(eventsStatsRequestMock).toHaveBeenNthCalledWith(
       1,
       `/organizations/${organization.slug}/events-stats/`,
@@ -237,7 +237,7 @@ describe('DatabaseSpanSummaryPage', function () {
           referrer: 'api.starfish.span-summary-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -282,7 +282,7 @@ describe('DatabaseSpanSummaryPage', function () {
           field: [
             'transaction',
             'transaction.method',
-            'spm()',
+            'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
             'time_spent_percentage()',

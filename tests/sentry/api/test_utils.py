@@ -2,7 +2,6 @@ import datetime
 import unittest
 from unittest.mock import MagicMock, patch
 
-import psycopg2
 import pytest
 from django.db import OperationalError
 from django.utils import timezone
@@ -202,8 +201,6 @@ class HandleQueryErrorsTest(APITestCase):
 
     def test_handle_postgres_timeout(self):
         class TimeoutError(OperationalError):
-            pgcode = psycopg2.errorcodes.QUERY_CANCELED
-
             def __str__(self):
                 return "canceling statement due to statement timeout"
 
@@ -228,8 +225,6 @@ class HandleQueryErrorsTest(APITestCase):
 
     def test_handle_postgres_user_cancel(self):
         class UserCancelError(OperationalError):
-            pgcode = psycopg2.errorcodes.QUERY_CANCELED
-
             def __str__(self):
                 return "canceling statement due to user request"
 
@@ -244,7 +239,6 @@ class HandleQueryErrorsTest(APITestCase):
     @patch("sentry.api.utils.ParseError")
     def test_handle_other_operational_error(self, mock_parse_error):
         class OtherError(OperationalError):
-            # No pgcode attribute
             pass
 
         try:

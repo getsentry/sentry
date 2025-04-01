@@ -298,8 +298,8 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  margin-top: ${space(0.25)};
+  font-size: 10px;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export const NavButton = styled('button', {

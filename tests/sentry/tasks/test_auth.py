@@ -3,7 +3,7 @@ from django.core import mail
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
-from sentry.tasks.auth import (
+from sentry.tasks.auth.auth import (
     email_missing_links,
     email_missing_links_control,
     email_unlink_notifications,

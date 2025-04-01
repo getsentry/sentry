@@ -39,14 +39,14 @@ type DataRow = {
   [SpanMetricsField.SPAN_DESCRIPTION]: string;
   [SpanMetricsField.SPAN_GROUP]: string;
   'avg(span.duration)': number;
-  'spm()': number;
+  'epm()': number;
   'sum(span.duration)': number;
 };
 
 type ColumnKeys =
   | SpanMetricsField.SPAN_OP
   | SpanMetricsField.SPAN_DESCRIPTION
-  | 'spm()'
+  | 'epm()'
   | `avg(${SpanMetricsField.SPAN_DURATION})`
   | `sum(${SpanMetricsField.SPAN_DURATION})`;
 
@@ -64,7 +64,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: t('Throughput'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -83,7 +83,7 @@ const COLUMN_ORDER: Column[] = [
 const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
   [SpanMetricsField.SPAN_OP]: 'string',
   [SpanMetricsField.SPAN_DESCRIPTION]: 'string',
-  ['spm()']: 'rate',
+  ['epm()']: 'rate',
   [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
   [`sum(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
 };
@@ -136,7 +136,7 @@ export default function SpanMetricsTable(props: Props) {
         SpanMetricsField.SPAN_OP,
         SpanMetricsField.SPAN_DESCRIPTION,
         SpanMetricsField.SPAN_GROUP,
-        `spm()`,
+        `epm()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
         `sum(${SpanMetricsField.SPAN_DURATION})`,
       ],

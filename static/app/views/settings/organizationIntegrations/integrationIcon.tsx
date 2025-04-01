@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Integration} from 'sentry/types/integrations';
 
 type IconProps = {
@@ -9,7 +9,7 @@ type IconProps = {
   size?: number;
 };
 
-function Icon(props: IconProps) {
+function ImageIcon(props: IconProps) {
   const [renderFallback, setRenderFallback] = useState(false);
 
   if (renderFallback) {
@@ -27,9 +27,9 @@ function Icon(props: IconProps) {
   );
 }
 
-export default function IntegrationIcon({integration, size = 32}: IconProps) {
+export function IntegrationIcon({integration, size = 32}: IconProps) {
   return integration.icon ? (
-    <Icon size={size} integration={integration} />
+    <ImageIcon size={size} integration={integration} />
   ) : (
     <PluginIcon size={size} pluginId={integration.provider.key} />
   );

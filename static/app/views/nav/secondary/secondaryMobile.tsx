@@ -6,13 +6,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
 type Props = {
   handleClickBack: () => void;
 };
 
 export function SecondaryMobile({handleClickBack}: Props) {
-  const {setSecondaryNavEl, activeGroup} = useNavContext();
+  const {setSecondaryNavEl} = useNavContext();
+  const activeGroup = useActiveNavGroup();
 
   return (
     <SecondaryMobileWrapper>

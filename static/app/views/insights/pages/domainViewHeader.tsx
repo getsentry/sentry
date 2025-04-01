@@ -28,7 +28,8 @@ import {
   isModuleEnabled,
   isModuleVisible,
 } from 'sentry/views/insights/pages/utils';
-import type {ModuleName} from 'sentry/views/insights/types';
+import FeedbackButtonTour from 'sentry/views/insights/sessions/components/tour/feedbackButtonTour';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export type Props = {
   domainBaseUrl: string;
@@ -122,18 +123,22 @@ export function DomainViewHeader({
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            <FeedbackWidgetButton
-              optionOverrides={
-                isLaravelInsightsEnabled
-                  ? {
-                      tags: {
-                        ['feedback.source']: 'laravel-insights',
-                        ['feedback.owner']: 'telemetry-experience',
-                      },
-                    }
-                  : undefined
-              }
-            />
+            {selectedModule === ModuleName.SESSIONS ? (
+              <FeedbackButtonTour />
+            ) : (
+              <FeedbackWidgetButton
+                optionOverrides={
+                  isLaravelInsightsEnabled
+                    ? {
+                        tags: {
+                          ['feedback.source']: 'laravel-insights',
+                          ['feedback.owner']: 'telemetry-experience',
+                        },
+                      }
+                    : undefined
+                }
+              />
+            )}
             {additonalHeaderActions}
             {hasEapFlag && (
               <Fragment>

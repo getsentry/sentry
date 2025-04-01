@@ -8,14 +8,15 @@ import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {OnDemandBudgets, Subscription} from 'getsentry/types';
-import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {OnDemandBudgetMode} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 
 import OnDemandBudgetEdit from './onDemandBudgetEdit';
 import {
@@ -132,7 +133,7 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
 
     if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
       const message =
-        subscription.planTier === PlanTier.AM3
+        subscription.planDetails.budgetTerm === 'pay-as-you-go'
           ? PAYG_BUDGET_EXCEEDS_INVOICED_LIMIT
           : ONDEMAND_BUDGET_EXCEEDS_INVOICED_LIMIT;
       this.setState({
@@ -178,14 +179,15 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       return true;
     } catch (response) {
       const updateError =
-        (response?.responseJSON ?? subscription.planTier === PlanTier.AM3)
+        (response?.responseJSON ??
+        subscription.planDetails.budgetTerm === 'pay-as-you-go')
           ? PAYG_BUDGET_SAVE_ERROR
           : ONDEMAND_BUDGET_SAVE_ERROR;
       this.setState({
         updateError,
       });
       addErrorMessage(
-        subscription.planTier === PlanTier.AM3
+        subscription.planDetails.budgetTerm === 'pay-as-you-go'
           ? PAYG_BUDGET_SAVE_ERROR
           : ONDEMAND_BUDGET_SAVE_ERROR
       );
@@ -309,13 +311,14 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       <Fragment>
         <Header closeButton>
           <h4>
-            {subscription.planTier === PlanTier.AM3
-              ? onDemandBudgets.enabled
-                ? t('Edit Pay-as-you-go Budget')
-                : t('Set Up pay-as-you-go')
-              : onDemandBudgets.enabled
-                ? t('Edit On-Demand Budgets')
-                : t('Set Up On-Demand')}
+            {tct('[action] [budgetType]', {
+              action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
+              budgetType: displayBudgetName(subscription.planDetails, {
+                title: true,
+                withBudget: true,
+                pluralOndemand: true,
+              }),
+            })}
           </h4>
         </Header>
         <OffsetBody>

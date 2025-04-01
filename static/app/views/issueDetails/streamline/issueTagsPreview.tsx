@@ -11,7 +11,7 @@ import Placeholder from 'sentry/components/placeholder';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend} from 'sentry/data/platformCategories';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
@@ -187,7 +187,13 @@ function IssueTagButton({
         replace
         disabled={tags.length === 0}
       >
-        {hasFlagsDistributions ? t('View All Tags And Flags') : t('View All Tags')}
+        {hasFlagsDistributions
+          ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
+              nbsp: '\u00A0', // non-breaking space unicode character.
+            })
+          : tct('View All[nbsp]Tags', {
+              nbsp: '\u00A0', // non-breaking space unicode character.
+            })}
       </VerticalIssueTagsButton>
     );
   }
@@ -431,8 +437,8 @@ const VerticalIssueTagsButton = styled(LinkButton)`
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
   padding: ${space(1)} ${space(1.5)};
   text-align: center;
-  width: 58px;
   height: unset;
+  align-self: center;
   span {
     white-space: unset;
   }

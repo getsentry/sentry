@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -10,6 +10,7 @@ import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegra
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -112,18 +113,20 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
+  const [showSidePanel, setShowSidePanel] = useState(true);
+
   return (
-    <TransactionProfilesContentContainer>
-      <ProfileVisualizationContainer>
-        <ProfileGroupProvider
-          traceID=""
-          type="flamegraph"
-          input={data ?? null}
-          frameFilter={flamegraphFrameFilter}
-        >
-          <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
-            <FlamegraphThemeProvider>
-              <FlamegraphProvider>
+    <ProfileGroupProvider
+      traceID=""
+      type="flamegraph"
+      input={data ?? null}
+      frameFilter={flamegraphFrameFilter}
+    >
+      <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
+        <FlamegraphThemeProvider>
+          <FlamegraphProvider>
+            <TransactionProfilesContentContainer>
+              <ProfileVisualizationContainer>
                 <AggregateFlamegraphToolbar
                   scheduler={scheduler}
                   canvasPoolManager={canvasPoolManager}
@@ -133,19 +136,18 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                   onFrameFilterChange={onFrameFilterChange}
                   hideSystemFrames={false}
                   setHideSystemFrames={noop}
+                  expanded={showSidePanel}
+                  setExpanded={setShowSidePanel}
                 />
                 <FlamegraphContainer>
                   {visualization === 'flamegraph' ? (
-                    <AggregateFlamegraphCanvasContainer>
-                      <AggregateFlamegraph
-                        status={status}
-                        filter={frameFilter}
-                        onResetFilter={onResetFrameFilter}
-                        canvasPoolManager={canvasPoolManager}
-                        scheduler={scheduler}
-                      />
-                      <AggregateFlamegraphSidePanel scheduler={scheduler} />
-                    </AggregateFlamegraphCanvasContainer>
+                    <AggregateFlamegraph
+                      status={status}
+                      filter={frameFilter}
+                      onResetFilter={onResetFrameFilter}
+                      canvasPoolManager={canvasPoolManager}
+                      scheduler={scheduler}
+                    />
                   ) : (
                     <AggregateFlamegraphTreeTable
                       recursion={null}
@@ -169,22 +171,25 @@ export function TransactionProfilesContent(props: TransactionProfilesContentProp
                     {t('No profiling data found')}
                   </RequestStateMessageContainer>
                 ) : null}
-              </FlamegraphProvider>
-            </FlamegraphThemeProvider>
-          </FlamegraphStateProvider>
-        </ProfileGroupProvider>
-      </ProfileVisualizationContainer>
-    </TransactionProfilesContentContainer>
+              </ProfileVisualizationContainer>
+              {showSidePanel && <AggregateFlamegraphSidePanel scheduler={scheduler} />}
+            </TransactionProfilesContentContainer>
+          </FlamegraphProvider>
+        </FlamegraphThemeProvider>
+      </FlamegraphStateProvider>
+    </ProfileGroupProvider>
   );
 }
 
 interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
+  expanded: boolean;
   frameFilter: 'system' | 'application' | 'all';
   hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
   onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
   scheduler: CanvasScheduler;
+  setExpanded: (expanded: boolean) => void;
   setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
@@ -243,9 +248,42 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         size="xs"
         options={frameSelectOptions}
       />
+      <CollapseExpandButtonContainer>
+        <CollapseExpandButton
+          aria-label={props.expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+          size="xs"
+          icon={<IconDoubleChevron direction={props.expanded ? 'right' : 'left'} />}
+          onClick={() => props.setExpanded(!props.expanded)}
+        />
+      </CollapseExpandButtonContainer>
     </AggregateFlamegraphToolbarContainer>
   );
 }
+
+const CollapseExpandButtonContainer = styled('div')`
+  width: 28px;
+`;
+
+const CollapseExpandButton = styled(Button)`
+  width: 28px;
+  margin-right: -9px;
+  border-right: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+`;
+
+function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
+  return (
+    <DoubleChevronWrapper>
+      <IconChevron style={{marginRight: `-3px`}} {...props} />
+      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+    </DoubleChevronWrapper>
+  );
+}
+
+const DoubleChevronWrapper = styled('div')`
+  display: flex;
+`;
 
 const TransactionProfilesContentContainer = styled('div')`
   display: grid;
@@ -303,11 +341,4 @@ const ViewSelectContainer = styled('div')`
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
   max-width: 300px;
-`;
-
-const AggregateFlamegraphCanvasContainer = styled('div')`
-  display: grid;
-  width: 100%;
-  height: 100%;
-  grid-template-columns: 1fr min-content;
 `;

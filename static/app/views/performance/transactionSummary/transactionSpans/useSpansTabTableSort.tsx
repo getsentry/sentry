@@ -10,7 +10,7 @@ type Query = {
 
 const SORTABLE_FIELDS = [
   `sum(${SpanMetricsField.SPAN_DURATION})`,
-  'spm()',
+  'epm()',
   `avg(${SpanMetricsField.SPAN_DURATION})`,
 ] as const;
 
