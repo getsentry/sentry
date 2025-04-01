@@ -11,6 +11,6 @@ class AnomalyDetectionHandler(DataConditionHandler[WorkflowEventData]):
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         # this is a placeholder
         return False

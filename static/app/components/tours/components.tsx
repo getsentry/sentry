@@ -21,6 +21,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -28,6 +29,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
+  /**
+   * The React context (from React.createContext) containing the provider for the tour.
+   */
+  TourContext: React.Context<TourContextType<T> | null>;
   /**
    * The children of the tour context provider.
    * All children of this component will be blurred when the tour is active.
@@ -42,10 +47,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    * The ordered list of Step IDs
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
-  /**
-   * The React context (from React.createContext) containing the provider for the tour.
-   */
-  tourContext: React.Context<TourContextType<T> | null>;
   /**
    * Whether to omit the blurring window.
    */
@@ -76,7 +77,7 @@ export function TourContextProvider<T extends TourEnumType>({
   children,
   isCompleted,
   tourKey,
-  tourContext,
+  TourContext,
   omitBlur,
   orderedStepIds,
   onEndTour,
@@ -147,10 +148,10 @@ export function TourContextProvider<T extends TourEnumType>({
   }, [isTourActive, mutate, tourKey]);
 
   return (
-    <tourContext.Provider value={tourContextValue}>
+    <TourContext value={tourContextValue}>
       {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
-    </tourContext.Provider>
+    </TourContext>
   );
 }
 
