@@ -13,6 +13,7 @@ from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.spans.consumers.process_segments.message import process_segment
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
@@ -53,29 +54,22 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.skip_produce = skip_produce
         self.pool = MultiprocessingPool(num_processes)
 
-        topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
-        producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
-        self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
-        self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
+        # topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
+        # producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
+        # self.producer = KafkaProducer(build_kafka_configuration(default_config=producer_config))
+        # self.output_topic = ArroyoTopic(topic_definition["real_topic_name"])
 
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        commit_step = CommitOffsets(commit)
-
         produce_step: ProcessingStrategy[FilteredPayload | KafkaPayload]
 
         if not self.skip_produce:
-            produce_step = Produce(
-                producer=self.producer,
-                topic=self.output_topic,
-                next_step=commit_step,
-                max_buffer_size=40000,
-            )
+            produce_step = SimpleProduceStep(output_topic=Topic.SNUBA_SPANS, commit_function=commit)
         else:
-            produce_step = commit_step
+            produce_step = CommitOffsets(commit)
 
         unfold_step = Unfold(generator=_unfold_segment, next_step=produce_step)
 
