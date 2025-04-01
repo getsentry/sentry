@@ -90,7 +90,7 @@ def query_flag_rows(
 
     response = raw_snql_query(
         snuba_request,
-        referrer="issues.distribution.flags",
+        referrer="issues.distribution.suspect_flags_ranking",
         use_cache=True,
     )
 
