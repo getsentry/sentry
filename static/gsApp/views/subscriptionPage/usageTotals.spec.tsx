@@ -1007,7 +1007,7 @@ describe('Subscription > UsageTotals', function () {
         category="profileDuration"
         totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
         reservedUnits={null}
-        freeUnits={3_600_000}
+        freeUnits={50}
         prepaidUnits={150}
         subscription={subscription}
         organization={organization}
@@ -1015,7 +1015,7 @@ describe('Subscription > UsageTotals', function () {
       />
     );
 
-    expect(screen.getByTestId('gifted-profileDuration')).toHaveTextContent('1 Gifted');
+    expect(screen.getByTestId('gifted-profileDuration')).toHaveTextContent('50 Gifted');
     expect(screen.getByTestId('gifted-profileDuration')).not.toHaveTextContent(
       '0 Reserved'
     );
@@ -1027,7 +1027,7 @@ describe('Subscription > UsageTotals', function () {
         category="profileDurationUI"
         totals={UsageTotalFixture({accepted: 15 * MILLISECONDS_IN_HOUR})}
         reservedUnits={null}
-        freeUnits={7_200_000}
+        freeUnits={50}
         prepaidUnits={150}
         subscription={subscription}
         organization={organization}
@@ -1035,7 +1035,7 @@ describe('Subscription > UsageTotals', function () {
       />
     );
 
-    expect(screen.getByTestId('gifted-profileDurationUI')).toHaveTextContent('2 Gifted');
+    expect(screen.getByTestId('gifted-profileDurationUI')).toHaveTextContent('50 Gifted');
     expect(screen.getByTestId('gifted-profileDurationUI')).not.toHaveTextContent(
       '0 Reserved'
     );
