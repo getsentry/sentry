@@ -42,7 +42,7 @@ const IDENTITY_ICONS = {
   vsts,
 } satisfies Record<string, string>;
 
-interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
+export interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
   /**
    * @default 'placeholder'
    */
