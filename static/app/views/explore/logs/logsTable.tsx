@@ -55,6 +55,7 @@ export function LogsTable({
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(fields, tableRef, {
     minimumColumnWidth: 50,
+    prefixColumnWidth: 'min-content',
   });
 
   const isEmpty = !isPending && !isError && (data?.length ?? 0) === 0;
