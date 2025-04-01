@@ -3,6 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {MetricHistoryFixture} from 'getsentry-test/fixtures/metricHistory';
+import {PlanDetailsLookupFixture} from 'getsentry-test/fixtures/planDetailsLookup';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {
   renderGlobalModal,
@@ -28,10 +29,6 @@ describe('ChangePlanAction', () => {
     plan: 'am3_business',
     billingInterval: 'monthly',
     contractInterval: 'monthly',
-    planDetails: PlanFixture({
-      id: 'am3_business',
-      name: 'Business',
-    }),
     categories: {
       errors: MetricHistoryFixture({
         category: 'errors',
@@ -117,6 +114,22 @@ describe('ChangePlanAction', () => {
 
     // Verify at least one plan option is displayed
     expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+    // Verify checkout categories are displayed
+    expect(screen.getAllByRole('textbox')).toHaveLength(
+      subscription.planDetails.checkoutCategories.length + 2 // +2 for audit fields
+    );
+    expect(screen.getByRole('textbox', {name: 'Spans'})).toBeInTheDocument();
+
+    // Does not display non-checkout categories or non-existent categories
+    expect(
+      screen.queryByRole('textbox', {name: 'Continuous profile hours'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Performance units'})
+    ).not.toBeInTheDocument();
 
     // Test basic interaction - click on AM2 tier
     const am2Tab = screen.getByRole('tab', {name: 'AM2'});
@@ -124,6 +137,18 @@ describe('ChangePlanAction', () => {
 
     // Verify tab change changes plan options displayed
     expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+    // Verify tab change changes categories displayed
+    expect(screen.getAllByRole('textbox')).toHaveLength(
+      PlanDetailsLookupFixture('am2_business')!.checkoutCategories.length + 2 // +2 for audit fields
+    );
+    expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Continuous profile hours'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Spans'})).not.toBeInTheDocument();
   });
 
   it('only displays current plan for NT customers', async () => {
