@@ -39,8 +39,5 @@ ACTIONED_CATEGORY_TO_EMOJI = {
 }
 
 ISSUE_SUMMARY_TO_EMOJI = {
-    "whatsWrong": ":skull:",
-    "trace": ":link:",
-    "possibleCause": ":dart:",
     "seer": ":eye:",
 }
