@@ -25,8 +25,9 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry_task
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
+from sentry.taskworker.retry import NoRetriesRemainingError, retry_task
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
@@ -234,7 +235,7 @@ def process_commit_context(
             )
     except UnableToAcquireLock:
         pass
-    except MaxRetriesExceededError:
+    except (MaxRetriesExceededError, NoRetriesRemainingError):
         metrics.incr("tasks.process_commit_context.max_retries_exceeded")
         logger.info(
             "process_commit_context.max_retries_exceeded",

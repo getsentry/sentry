@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import Any, ParamSpec, TypeVar
 
-from celery import Task, current_task
+from celery import Task
 from django.conf import settings
 from django.db.models import Model
 from kombu import Producer
@@ -16,7 +16,7 @@ from sentry import options
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.retry import RetryError
+from sentry.taskworker.retry import retry_task
 from sentry.taskworker.task import Task as TaskworkerTask
 from sentry.utils import metrics
 from sentry.utils.memory import track_memory_usage
@@ -256,18 +256,6 @@ def retry(
         return wrapped
 
     return inner
-
-
-def retry_task(exc: Exception | None = None):
-    """
-    Shim function to bridge between celery retry API
-    and Taskworker retry API.
-    """
-    celery_retry = getattr(current_task, "retry", None)
-    if celery_retry:
-        current_task.retry(exc=exc)
-    else:
-        raise RetryError()
 
 
 def track_group_async_operation(function):
