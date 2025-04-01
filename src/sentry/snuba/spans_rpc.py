@@ -109,6 +109,7 @@ def get_timeseries_query(
     groupby: list[str],
     referrer: str,
     config: SearchResolverConfig,
+    sampling_mode: str | None,
     extra_conditions: TraceItemFilter | None = None,
 ) -> tuple[
     TimeSeriesRequest,
@@ -116,7 +117,7 @@ def get_timeseries_query(
     list[ResolvedAttribute],
 ]:
     resolver = get_resolver(params=params, config=config)
-    meta = resolver.resolve_meta(referrer=referrer)
+    meta = resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     query, _, query_contexts = resolver.resolve_query(query_string)
     (functions, _) = resolver.resolve_functions(y_axes)
     (groupbys, _) = resolver.resolve_attributes(groupby)
@@ -165,12 +166,13 @@ def run_timeseries_query(
     y_axes: list[str],
     referrer: str,
     config: SearchResolverConfig,
+    sampling_mode: str | None,
     comparison_delta: timedelta | None = None,
 ) -> SnubaTSResult:
     """Make the query"""
     validate_granularity(params)
     rpc_request, aggregates, groupbys = get_timeseries_query(
-        params, query_string, y_axes, [], referrer, config
+        params, query_string, y_axes, [], referrer, config, sampling_mode
     )
 
     """Run the query"""
@@ -211,7 +213,13 @@ def run_timeseries_query(
         comp_query_params.end = comp_query_params.end_date - comparison_delta
 
         comp_rpc_request, aggregates, groupbys = get_timeseries_query(
-            comp_query_params, query_string, y_axes, [], referrer, config
+            comp_query_params,
+            query_string,
+            y_axes,
+            [],
+            referrer,
+            config,
+            sampling_mode=sampling_mode,
         )
         comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
@@ -284,6 +292,7 @@ def run_top_events_timeseries_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
+    sampling_mode: str | None,
 ) -> Any:
     """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
     functions that both would call
@@ -301,7 +310,7 @@ def run_top_events_timeseries_query(
         limit,
         referrer,
         config,
-        None,
+        sampling_mode,
         search_resolver,
     )
     if len(top_events["data"]) == 0:
@@ -322,6 +331,7 @@ def run_top_events_timeseries_query(
         groupby_columns_without_project,
         referrer,
         config,
+        sampling_mode=sampling_mode,
         extra_conditions=top_conditions,
     )
     other_request, other_aggregates, other_groupbys = get_timeseries_query(
@@ -331,6 +341,7 @@ def run_top_events_timeseries_query(
         [],  # in the other series, we want eveything in a single group, so the group by
         referrer,
         config,
+        sampling_mode=sampling_mode,
         extra_conditions=other_conditions,
     )
 
