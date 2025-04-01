@@ -35,10 +35,8 @@ from sentry.api import event_search
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.columns import (
-    AggregateDefinition,
     AttributeArgumentDefinition,
     ColumnDefinitions,
-    ConditionalAggregateDefinition,
     FormulaDefinition,
     ResolvedAggregate,
     ResolvedAttribute,
@@ -76,6 +74,26 @@ class SearchResolver:
             VirtualColumnDefinition | None,
         ],
     ] = field(default_factory=dict)
+
+    def get_function_definition(self, function_name: str) -> FormulaDefinition:
+        if function_name in self.definitions.aggregates:
+            return self.definitions.aggregates[function_name]
+        elif function_name in self.definitions.formulas:
+            return self.definitions.formulas[function_name]
+        elif function_name in self.definitions.conditional_aggregates:
+            return self.definitions.conditional_aggregates[function_name]
+        else:
+            raise InvalidSearchQuery(f"Unknown function {function_name}")
+
+    def check_if_function_is_enabled(self, function_name: str) -> bool:
+        function_definition = self.get_function_definition(function_name)
+        if not function_definition.private:
+            return True
+
+        if function_name in self.config.functions_acl:
+            return True
+
+        return False
 
     @sentry_sdk.trace
     def resolve_meta(self, referrer: str, sampling_mode: str | None = None) -> RequestMeta:
@@ -773,38 +791,23 @@ class SearchResolver:
             if match is None:
                 raise InvalidSearchQuery(f"{column} is not a function")
 
-        function = match.group("function")
+        function_name = match.group("function")
         columns = match.group("columns")
         # Alias defaults to the name of the function
         alias = match.group("alias") or column
 
-        # Get the function definition
-        function_definition: (
-            AggregateDefinition | FormulaDefinition | ConditionalAggregateDefinition
-        )
-        if function in self.definitions.aggregates:
-            function_definition = self.definitions.aggregates[function]
-        elif function in self.definitions.formulas:
-            function_definition = self.definitions.formulas[function]
-        elif function in self.definitions.conditional_aggregates:
-            function_definition = self.definitions.conditional_aggregates[function]
-        else:
-            raise InvalidSearchQuery(f"Unknown function {function}")
+        if not self.check_if_function_is_enabled(function_name):
+            raise InvalidSearchQuery(f"The function {function_name} is not allowed for this query")
 
-        if function_definition.check_if_enabled is not None:
-            enabled, reason = function_definition.check_if_enabled(self.params)
-            if not enabled:
-                raise InvalidSearchQuery(
-                    f"{function} is not enabled for this request. Reason: {reason}"
-                )
+        function_definition = self.get_function_definition(function_name)
 
         parsed_args: list[ResolvedAttribute | Any] = []
 
         # Parse the arguments
-        arguments = fields.parse_arguments(function, columns)
+        arguments = fields.parse_arguments(function_name, columns)
         if len(arguments) < len(function_definition.required_arguments):
             raise InvalidSearchQuery(
-                f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
+                f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
             )
 
         for index, argument_definition in enumerate(function_definition.arguments):
@@ -816,7 +819,7 @@ class SearchResolver:
                 if argument_definition.validator is not None:
                     if not argument_definition.validator(argument):
                         raise InvalidSearchQuery(
-                            f"{argument} is not a valid argument for {function}"
+                            f"{argument} is not a valid argument for {function_name}"
                         )
                 if isinstance(argument_definition, AttributeArgumentDefinition):
                     parsed_argument, _ = self.resolve_attribute(argument)
@@ -836,7 +839,7 @@ class SearchResolver:
                 parsed_argument, _ = self.resolve_attribute(argument_definition.default_arg)
             else:
                 raise InvalidSearchQuery(
-                    f"Invalid number of arguments for {function}, was expecting {len(function_definition.required_arguments)} arguments"
+                    f"Invalid number of arguments for {function_name}, was expecting {len(function_definition.required_arguments)} arguments"
                 )
 
             if (
@@ -845,7 +848,7 @@ class SearchResolver:
                 and parsed_argument.search_type not in argument_definition.attribute_types
             ):
                 raise InvalidSearchQuery(
-                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
+                    f"{parsed_argument.public_alias} is invalid for parameter {index+1} in {function_name}. Its a {parsed_argument.search_type} type field, but it must be one of these types: {argument_definition.attribute_types}"
                 )
             parsed_args.append(parsed_argument)
 
