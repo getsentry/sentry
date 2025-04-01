@@ -270,15 +270,17 @@ function OTelSummaryContentInner({
           </EAPChartsWidgetContainer>
         )}
         <PerformanceAtScaleContextProvider>
-          <TransactionSummaryCharts
-            organization={organization}
-            location={location}
-            eventView={eventView}
-            totalValue={totalCount}
-            currentFilter={spanOperationBreakdownFilter}
-            withoutZerofill={hasPerformanceChartInterpolation}
-            project={project}
-          />
+          {!hasNewSpansUIFlag && (
+            <TransactionSummaryCharts
+              organization={organization}
+              location={location}
+              eventView={eventView}
+              totalValue={totalCount}
+              currentFilter={spanOperationBreakdownFilter}
+              withoutZerofill={hasPerformanceChartInterpolation}
+              project={project}
+            />
+          )}
           <ServiceEntrySpansTable
             eventView={transactionsListEventView}
             handleDropdownChange={handleTransactionsListSortChange}
@@ -883,6 +885,7 @@ const StyledIconWarning = styled(IconWarning)`
 `;
 
 const EAPChartsWidgetContainer = styled('div')`
+  height: 300px;
   margin-bottom: ${space(2)};
 `;
 
