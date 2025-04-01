@@ -1,11 +1,4 @@
-import {
-  type CSSProperties,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {type CSSProperties, useCallback, useState} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 
 import {space} from 'sentry/styles/space';
@@ -20,31 +13,29 @@ export function Slider({
   ref,
   ...props
 }: SliderProps & {ref?: React.Ref<HTMLInputElement>}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const refs = mergeRefs(ref, inputRef);
   const step = toNumber(props.step ?? -1);
   const {value, min, max} = resolveMinMaxValue(props);
   const [label, setLabel] = useState(value);
   const initialProgress = getProgress(value, min, max);
   const filledSteps = step === -1 ? -1 : label / step;
 
-  const handleChange = useCallback((event: Event) => {
-    const input = event.target as HTMLInputElement;
-    const {valueAsNumber, min: nativeMin, max: nativeMax} = input;
-    setLabel(valueAsNumber);
-    const progress = getProgress(valueAsNumber, nativeMin || 0, nativeMax || 100);
-    input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
-  }, []);
-
-  useEffect(() => {
-    const input: HTMLInputElement | null = inputRef.current;
+  const inputRef = useCallback((input: HTMLInputElement | null) => {
     if (!input) {
-      return;
+      return undefined;
     }
+
+    const handleChange = () => {
+      const {valueAsNumber, min: nativeMin = 0, max: nativeMax = 100} = input;
+      setLabel(valueAsNumber);
+      const progress = getProgress(valueAsNumber, nativeMin, nativeMax);
+      input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
+    };
+
     input.addEventListener('input', handleChange);
-    // eslint-disable-next-line consistent-return
+
     return () => input.removeEventListener('input', handleChange);
-  });
+  }, []);
+  const refs = mergeRefs(ref, inputRef);
 
   return (
     <SliderContainer
@@ -134,7 +125,7 @@ function resolveMinMaxValue(props: SliderProps) {
   const min = toNumber(props.min ?? 0);
   const max = toNumber(props.min ?? 100);
   const _value = props.value ?? props.defaultValue;
-  const value = _value === '' ? 50 : toNumber(_value ?? 50);
+  const value = _value === '' ? 50 : toNumber(_value ?? (max - min) / 2);
   return {value, min, max};
 }
 
