@@ -1,6 +1,7 @@
 import {useLayoutEffect, useMemo} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -55,6 +56,9 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       includeInputs: true,
       callback: () => {
         removeBodyTheme();
+        if (chonkTheme.theme) {
+          addMessage(`Using default theme`, 'success');
+        }
         ConfigStore.set(
           'theme',
           chonkTheme.theme === null
@@ -78,6 +82,9 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       includeInputs: true,
       callback: () => {
         removeBodyTheme();
+        if (!chonkTheme.theme) {
+          addMessage(`Previewing new theme`, 'success');
+        }
         setChonkTheme({
           theme:
             // A bit of extra logic to ensure that toggling from chonk to legacy and
