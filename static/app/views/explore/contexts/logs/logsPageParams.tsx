@@ -94,7 +94,7 @@ export function LogsPageParamsProvider({
   const cursor = getLogCursorFromLocation(location);
 
   return (
-    <LogsPageParamsContext.Provider
+    <LogsPageParamsContext
       value={{
         fields,
         search,
@@ -107,7 +107,7 @@ export function LogsPageParamsProvider({
       }}
     >
       {children}
-    </LogsPageParamsContext.Provider>
+    </LogsPageParamsContext>
   );
 }
 

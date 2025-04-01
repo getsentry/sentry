@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import PluginIcon, {DEFAULT_ICON, ICON_PATHS} from 'sentry/plugins/components/pluginIcon';
@@ -7,10 +7,6 @@ import type {Integration} from 'sentry/types/integrations';
 type Props = {
   integration: Integration;
   size?: number;
-};
-
-type State = {
-  imgSrc: Integration['icon'];
 };
 
 type IconProps = Pick<Props, 'size'>;
@@ -22,25 +18,17 @@ const StyledIcon = styled('img')<IconProps>`
   display: block;
 `;
 
-class Icon extends Component<Props, State> {
-  state: State = {
-    imgSrc: this.props.integration.icon,
+function Icon(props: Props) {
+  const [imgSrc, setImgSrc] = useState(props.integration.icon || undefined);
+
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const fallbackIcon = ICON_PATHS[props.integration.provider.key] || DEFAULT_ICON;
+
+  const handleError = () => {
+    setImgSrc(fallbackIcon);
   };
 
-  render() {
-    const {integration, size} = this.props;
-
-    return (
-      <StyledIcon
-        size={size}
-        src={this.state.imgSrc || undefined}
-        onError={() => {
-          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-          this.setState({imgSrc: ICON_PATHS[integration.provider.key] || DEFAULT_ICON});
-        }}
-      />
-    );
-  }
+  return <StyledIcon size={props.size} src={imgSrc} onError={handleError} />;
 }
 
 function IntegrationIcon({integration, size = 32}: Props) {

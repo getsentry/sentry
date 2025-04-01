@@ -1,4 +1,6 @@
 import {cloneElement, Component, Fragment, isValidElement} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -125,6 +127,7 @@ type Props = RouteComponentProps<RouteParams> & {
   projects: Project[];
   route: PlainRoute;
   selection: PageFilters;
+  theme: Theme;
   children?: React.ReactNode;
   newWidget?: Widget;
   onDashboardUpdate?: (updatedDashboard: DashboardDetails) => void;
@@ -1102,6 +1105,7 @@ class DashboardDetail extends Component<Props, State> {
                         forceTransactions={metricsDataSide.forceTransactionsOnly}
                       >
                         <Dashboard
+                          theme={this.props.theme}
                           paramDashboardId={dashboardId}
                           dashboard={modifiedDashboard ?? dashboard}
                           organization={organization}
@@ -1340,9 +1344,10 @@ class DashboardDetail extends Component<Props, State> {
                                 }}
                               />
 
-                              <WidgetViewerContext.Provider value={{seriesData, setData}}>
+                              <WidgetViewerContext value={{seriesData, setData}}>
                                 <Fragment>
                                   <Dashboard
+                                    theme={this.props.theme}
                                     paramDashboardId={dashboardId}
                                     dashboard={modifiedDashboard ?? dashboard}
                                     organization={organization}
@@ -1381,7 +1386,7 @@ class DashboardDetail extends Component<Props, State> {
                                     onSave={this.handleSaveWidget}
                                   />
                                 </Fragment>
-                              </WidgetViewerContext.Provider>
+                              </WidgetViewerContext>
                             </MEPSettingProvider>
                           )}
                         </MetricsDataSwitcher>
@@ -1426,4 +1431,10 @@ const StyledPageHeader = styled('div')`
   }
 `;
 
-export default withPageFilters(withProjects(withApi(withOrganization(DashboardDetail))));
+function DashboardDetailWithTheme(props: Props) {
+  const theme = useTheme();
+  return <DashboardDetail {...props} theme={theme} />;
+}
+export default withPageFilters(
+  withProjects(withApi(withOrganization(DashboardDetailWithTheme)))
+);
