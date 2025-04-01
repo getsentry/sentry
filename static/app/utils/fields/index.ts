@@ -2431,9 +2431,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.MESSAGE]: {
-    desc: t(
-      'Message written by the user providing feedback. Wildcards ("*") are supported.'
-    ),
+    desc: t('Message written by the user providing feedback.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: true,
