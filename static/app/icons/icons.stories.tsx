@@ -1433,44 +1433,44 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
   );
 }
 
-const PLUGIN_ICON_KEYS: {[key in PluginIconProps['pluginId']]: ''} = {
-  placeholder: '',
-  sentry: '',
-  browsers: '',
-  device: '',
-  interface_types: '',
-  os: '',
-  urls: '',
-  webhooks: '',
-  'amazon-sqs': '',
-  aws_lambda: '',
-  asana: '',
-  bitbucket: '',
-  bitbucket_pipelines: '',
-  bitbucket_server: '',
-  discord: '',
-  github: '',
-  github_enterprise: '',
-  gitlab: '',
-  heroku: '',
-  jira: '',
-  jira_server: '',
-  jumpcloud: '',
-  msteams: '',
-  opsgenie: '',
-  pagerduty: '',
-  pivotal: '',
-  pushover: '',
-  redmine: '',
-  segment: '',
-  slack: '',
-  trello: '',
-  twilio: '',
-  visualstudio: '',
-  vsts: '',
-  vercel: '',
-  victorops: '',
-};
+const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
+  'placeholder',
+  'sentry',
+  'browsers',
+  'device',
+  'interface_types',
+  'os',
+  'urls',
+  'webhooks',
+  'amazon-sqs',
+  'aws_lambda',
+  'asana',
+  'bitbucket',
+  'bitbucket_pipelines',
+  'bitbucket_server',
+  'discord',
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'heroku',
+  'jira',
+  'jira_server',
+  'jumpcloud',
+  'msteams',
+  'opsgenie',
+  'pagerduty',
+  'pivotal',
+  'pushover',
+  'redmine',
+  'segment',
+  'slack',
+  'trello',
+  'twilio',
+  'visualstudio',
+  'vsts',
+  'vercel',
+  'victorops',
+];
 
 const PLUGIN_ICONS = Object.keys(PLUGIN_ICON_KEYS).map(key => ({
   id: key,
@@ -1486,7 +1486,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
     <section>
       <SectionHeader>PluginIcons</SectionHeader>
       <p>
-        <code>{"import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"}</code>
+        <code>{"import PluginIcon from 'sentry/plugins/components/pluginIcon';"}</code>
       </p>
       <Grid
         style={{
@@ -1515,28 +1515,28 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
   );
 }
 
-const IDENTITY_ICON_KEYS: {[key in IdentityIconProps['providerId']]: ''} = {
-  placeholder: '',
-  'active-directory': '',
-  asana: '',
-  auth0: '',
-  bitbucket: '',
-  bitbucket_server: '',
-  github: '',
-  github_enterprise: '',
-  gitlab: '',
-  google: '',
-  jira_server: '',
-  jumpcloud: '',
-  msteams: '',
-  okta: '',
-  onelogin: '',
-  rippling: '',
-  saml2: '',
-  slack: '',
-  visualstudio: '',
-  vsts: '',
-};
+const IDENTITY_ICON_KEYS: Array<IdentityIconProps['providerId']> = [
+  'placeholder',
+  'active-directory',
+  'asana',
+  'auth0',
+  'bitbucket',
+  'bitbucket_server',
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'google',
+  'jira_server',
+  'jumpcloud',
+  'msteams',
+  'okta',
+  'onelogin',
+  'rippling',
+  'saml2',
+  'slack',
+  'visualstudio',
+  'vsts',
+];
 
 const IDENTITY_ICONS = Object.keys(IDENTITY_ICON_KEYS).map(key => ({
   id: key,
@@ -1553,7 +1553,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
       <SectionHeader>IdentityIcons</SectionHeader>
       <p>
         <code>
-          {"import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';"}
+          {"import IdentityIcon from 'sentry/views/settings/components/identityIcon';"}
         </code>
       </p>
       <Grid
