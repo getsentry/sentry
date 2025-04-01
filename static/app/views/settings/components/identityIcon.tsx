@@ -43,9 +43,6 @@ const IDENTITY_ICONS = {
 } satisfies Record<string, string>;
 
 export interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
-  /**
-   * @default 'placeholder'
-   */
   providerId: string | keyof typeof IDENTITY_ICONS;
   /**
    * @default 36
