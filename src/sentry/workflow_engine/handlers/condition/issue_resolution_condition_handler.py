@@ -10,6 +10,6 @@ class IssueResolutionConditionHandler(DataConditionHandler[WorkflowEventData]):
     group = DataConditionHandler.Group.WORKFLOW_TRIGGER
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
-        group = job.event.group
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        group = event_data.event.group
         return group.status == comparison

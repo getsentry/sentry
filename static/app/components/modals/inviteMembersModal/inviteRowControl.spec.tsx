@@ -35,7 +35,7 @@ describe('InviteRowControlNew', function () {
   };
 
   const getComponent = (props: InviteMembersContextValue) => (
-    <InviteMembersContext.Provider value={props}>
+    <InviteMembersContext value={props}>
       <InviteRowControlNew
         roleDisabledUnallowed={false}
         roleOptions={[
@@ -55,7 +55,7 @@ describe('InviteRowControlNew', function () {
           },
         ]}
       />
-    </InviteMembersContext.Provider>
+    </InviteMembersContext>
   );
 
   beforeEach(function () {

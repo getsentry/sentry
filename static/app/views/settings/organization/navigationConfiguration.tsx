@@ -1,8 +1,8 @@
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -144,8 +144,6 @@ export function getOrganizationNavigationConfiguration({
               }}
             />
           ),
-          show: ({organization}) =>
-            !!organization && organization.features.includes('feature-flag-ui'),
         },
         {
           path: `${organizationSettingsPathPrefix}/stats/`,

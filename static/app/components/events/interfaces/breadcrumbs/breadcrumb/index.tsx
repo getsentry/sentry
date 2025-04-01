@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import type {CellMeasurerCache, List} from 'react-virtualized';
+import type {CellMeasurerCache, ListRowProps} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import Category from './category';
 import {Data} from './data';
-import Level from './level';
+import {Level} from './level';
 import Time from './time';
 import Type from './type';
 
@@ -23,7 +23,7 @@ export interface BreadcrumbProps {
   index: number;
   isLastItem: boolean;
   organization: Organization;
-  parent: List;
+  parent: ListRowProps['parent'];
   relativeTime: string;
   searchTerm: string;
   style: React.CSSProperties;
@@ -77,7 +77,7 @@ export function Breadcrumb({
         cache.set(index, 0, cache.getWidth(index, 0), height);
         // pass row and column index so that react virtualized can only update the
         // cells after the one that has changed and avoid recomputing the entire grid
-        parent.recomputeGridSize({rowIndex: index, columnIndex: 0});
+        parent.recomputeGridSize?.({rowIndex: index, columnIndex: 0});
       }
     };
 

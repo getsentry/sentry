@@ -6,7 +6,7 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 
 type HasMeasurementsProps = {

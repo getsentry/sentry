@@ -29,10 +29,8 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
-import {IssueNavigation} from 'sentry/views/issues/navigation';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
-import OrganizationRoot from 'sentry/views/organizationRoot';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
@@ -1109,7 +1107,7 @@ function buildRoutes() {
   );
 
   const dashboardRoutes = (
-    <Route component={make(() => import('sentry/views/dashboards/navigation'))}>
+    <Route>
       <Fragment>
         {USING_CUSTOMER_DOMAIN && (
           <Route
@@ -1821,11 +1819,7 @@ function buildRoutes() {
   );
 
   const domainViewRoutes = (
-    <Route
-      path={`/${DOMAIN_VIEW_BASE_URL}/`}
-      withOrgPath
-      component={make(() => import('sentry/views/insights/navigation'))}
-    >
+    <Route path={`/${DOMAIN_VIEW_BASE_URL}/`} withOrgPath>
       {transactionSummaryRoutes}
       <Route path={`${FRONTEND_LANDING_SUB_PATH}/`}>
         <IndexRoute
@@ -1978,11 +1972,7 @@ function buildRoutes() {
   );
 
   const exploreRoutes = (
-    <Route
-      path="/explore/"
-      component={make(() => import('sentry/views/explore/navigation'))}
-      withOrgPath
-    >
+    <Route path="/explore/" withOrgPath>
       <Route path="profiling/" component={make(() => import('sentry/views/profiling'))}>
         {profilingChildRoutes}
       </Route>
@@ -2068,12 +2058,14 @@ function buildRoutes() {
         component={make(() => import('sentry/views/issueDetails/groupCheckIns'))}
       />
       <Route
-        path={TabPaths[Tab.TAGS]}
+        path={TabPaths[Tab.DISTRIBUTIONS]}
         component={make(() => import('sentry/views/issueDetails/groupTags/groupTagsTab'))}
       />
       <Route
-        path={`${TabPaths[Tab.TAGS]}:tagKey/`}
-        component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
+        path={`${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
+        component={make(
+          () => import('sentry/views/issueDetails/groupTags/groupTagValues')
+        )}
       />
       <Route
         path={TabPaths[Tab.USER_FEEDBACK]}
@@ -2100,10 +2092,35 @@ function buildRoutes() {
   );
 
   const issueRoutes = (
-    <Route path="/issues/" component={errorHandler(IssueNavigation)} withOrgPath>
+    <Route path="/issues/" withOrgPath>
       <IndexRoute component={errorHandler(OverviewWrapper)} />
+      <Route
+        path="views/"
+        component={make(
+          () => import('sentry/views/issueList/issueViews/issueViewsList/issueViewsList')
+        )}
+      />
       <Route path="views/:viewId/" component={errorHandler(OverviewWrapper)} />
       <Route path="searches/:searchId/" component={errorHandler(OverviewWrapper)} />
+
+      {/* Redirects for legacy tags route. */}
+      <Redirect
+        from=":groupId/tags/"
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}`}
+      />
+      <Redirect
+        from=":groupId/tags/:tagKey/"
+        to={`/issues/:groupId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}`}
+      />
+      <Redirect
+        from={`:groupId/${TabPaths[Tab.EVENTS]}:eventId/tags/:tagKey/`}
+        to={`/issues/:groupId/${TabPaths[Tab.EVENTS]}:eventId/${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
+      />
+
       <Route
         path=":groupId/"
         component={make(() => import('sentry/views/issueDetails/groupDetails'))}
@@ -2122,6 +2139,8 @@ function buildRoutes() {
         {alertChildRoutes({forCustomerDomain: true})}
       </Route>
       {traceViewRoute}
+      {automationRoutes}
+      {detectorRoutes}
     </Route>
   );
 
@@ -2187,10 +2206,8 @@ function buildRoutes() {
     </Route>
   );
 
-  // XXX(epurkhiser): This should probably go away. It's not totally clear to
-  // me why we need the OrganizationRoot root container.
   const legacyOrganizationRootRoutes = (
-    <Route component={errorHandler(OrganizationRoot)}>
+    <Fragment>
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:legacy-organization-redirects')}
@@ -2219,7 +2236,7 @@ function buildRoutes() {
         <Redirect from="rate-limits/" to="/settings/:orgId/rate-limits/" />
         <Redirect from="repos/" to="/settings/:orgId/repos/" />
       </Route>
-    </Route>
+    </Fragment>
   );
 
   const gettingStartedRoutes = (
@@ -2378,8 +2395,6 @@ function buildRoutes() {
 
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationLayout)}>
-      {automationRoutes}
-      {detectorRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}

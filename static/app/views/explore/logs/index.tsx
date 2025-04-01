@@ -2,7 +2,6 @@ import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMegaphone} from 'sentry/icons';
@@ -15,6 +14,7 @@ import {TraceItemAttributeProvider} from 'sentry/views/explore/contexts/traceIte
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 function FeedbackButton() {
   const openForm = useFeedbackForm();
@@ -57,7 +57,15 @@ export default function LogsPage() {
             <Layout.HeaderContent unified={prefersStackedNav}>
               <Layout.Title>
                 {t('Logs')}
-                <FeatureBadge type="experimental" />
+                <FeatureBadge
+                  type="beta"
+                  tooltipProps={{
+                    title: t(
+                      "This feature is currently in beta and we're actively working on it"
+                    ),
+                    isHoverable: true,
+                  }}
+                />
               </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>

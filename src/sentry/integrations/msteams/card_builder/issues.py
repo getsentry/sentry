@@ -129,7 +129,12 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
 
         image_column = create_footer_logo_block()
 
-        text = build_footer(self.group, project, self.rules, MSTEAMS_URL_FORMAT)
+        text = build_footer(
+            group=self.group,
+            project=project,
+            url_format=MSTEAMS_URL_FORMAT,
+            rules=self.rules,
+        )
 
         text_column = create_footer_column_block(create_footer_text_block(text))
 

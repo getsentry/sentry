@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
@@ -68,6 +68,7 @@ interface ListBoxProps
    * Used to determine whether to render the list box items or not
    */
   overlayIsOpen?: boolean;
+  ref?: React.Ref<HTMLUListElement>;
   /**
    * When false, hides option details.
    */
@@ -98,26 +99,24 @@ const EMPTY_SET = new Set<never>();
  * If interactive children are necessary, consider using grid lists instead (by setting
  * the `grid` prop on CompactSelect to true).
  */
-const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
-  {
-    listState,
-    size = 'md',
-    shouldFocusWrap = true,
-    shouldFocusOnHover = true,
-    onSectionToggle,
-    sizeLimitMessage,
-    keyDownHandler,
-    label,
-    hiddenOptions = EMPTY_SET,
-    hasSearch,
-    overlayIsOpen,
-    showSectionHeaders = true,
-    showDetails = true,
-    ...props
-  }: ListBoxProps,
-  forwarderdRef
-) {
-  const ref = useRef<HTMLUListElement>(null);
+export function ListBox({
+  ref,
+  listState,
+  size = 'md',
+  shouldFocusWrap = true,
+  shouldFocusOnHover = true,
+  onSectionToggle,
+  sizeLimitMessage,
+  keyDownHandler,
+  label,
+  hiddenOptions = EMPTY_SET,
+  hasSearch,
+  overlayIsOpen,
+  showSectionHeaders = true,
+  showDetails = true,
+  ...props
+}: ListBoxProps) {
+  const listElementRef = useRef<HTMLUListElement>(null);
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
@@ -127,7 +126,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
       shouldSelectOnPressUp: true,
     },
     listState,
-    ref
+    listElementRef
   );
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLUListElement>) => {
@@ -157,7 +156,7 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
       <ListWrap
         {...mergeProps(listBoxProps, props)}
         onKeyDown={onKeyDown}
-        ref={mergeRefs(ref, forwarderdRef)}
+        ref={mergeRefs(listElementRef, ref)}
       >
         {overlayIsOpen &&
           listItems.map(item => {
@@ -195,6 +194,4 @@ const ListBox = forwardRef<HTMLUListElement, ListBoxProps>(function ListBox(
       </ListWrap>
     </Fragment>
   );
-});
-
-export {ListBox};
+}

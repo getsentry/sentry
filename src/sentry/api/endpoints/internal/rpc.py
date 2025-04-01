@@ -1,5 +1,3 @@
-from typing import Any
-
 import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
@@ -39,13 +37,13 @@ class InternalRpcServiceEndpoint(Endpoint):
             raise PermissionDenied
 
         try:
-            arguments: dict[str, Any] = request.data["args"]
+            arguments = request.data["args"]
         except KeyError as e:
             raise ParseError from e
         if not isinstance(arguments, dict):
             raise ParseError
 
-        auth_context: AuthenticationContext = AuthenticationContext()
+        auth_context = AuthenticationContext()
         if auth_context_json := arguments.get("auth_context"):
             try:
                 # Note -- generally, this is NOT set, but only in cases where an RPC needs to invoke code

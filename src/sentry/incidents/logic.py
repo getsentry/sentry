@@ -161,7 +161,7 @@ def create_incident(
             IncidentProject.objects.bulk_create(incident_projects)
             # `bulk_create` doesn't send `post_save` signals, so we manually fire them here.
             for incident_project in incident_projects:
-                post_save.send(
+                post_save.send_robust(
                     sender=type(incident_project), instance=incident_project, created=True
                 )
 
@@ -404,6 +404,7 @@ def get_metric_issue_aggregates(
                 offset=0,
                 limit=1,
                 referrer=Referrer.API_ALERTS_ALERT_RULE_CHART.value,
+                sampling_mode=None,
                 config=SearchResolverConfig(
                     auto_fields=True,
                 ),

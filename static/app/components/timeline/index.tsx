@@ -1,5 +1,4 @@
 import type {CSSProperties} from 'react';
-import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -22,23 +21,22 @@ export interface TimelineItemProps {
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  ref?: React.Ref<HTMLDivElement>;
   showLastLine?: boolean;
   style?: CSSProperties;
   timestamp?: React.ReactNode;
 }
 
-export const Item = forwardRef(function ItemInner(
-  {
-    title,
-    children,
-    icon,
-    colorConfig = {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'},
-    timestamp,
-    isActive = false,
-    ...props
-  }: TimelineItemProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+export function Item({
+  title,
+  children,
+  icon,
+  colorConfig = {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'},
+  timestamp,
+  isActive = false,
+  ref,
+  ...props
+}: TimelineItemProps) {
   const theme = useTheme();
   return (
     <Row ref={ref} {...props}>
@@ -57,7 +55,7 @@ export const Item = forwardRef(function ItemInner(
       <Content>{children}</Content>
     </Row>
   );
-});
+}
 
 const Row = styled('div')<{showLastLine?: boolean}>`
   position: relative;
@@ -154,5 +152,3 @@ export const Timeline = {
   Item,
   Container,
 };
-
-export default Timeline;

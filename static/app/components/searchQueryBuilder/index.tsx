@@ -1,4 +1,4 @@
-import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
+import {useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -151,33 +151,36 @@ function SearchIndicator({
   );
 }
 
-const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
-  ({trailingItems = null}, ref) => {
-    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+function ActionButtons({
+  ref,
+  trailingItems = null,
+}: {trailingItems?: React.ReactNode} & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
-    if (disabled) {
-      return null;
-    }
-
-    return (
-      <ButtonsWrapper ref={ref}>
-        {trailingItems}
-        {query === '' ? null : (
-          <ActionButton
-            aria-label={t('Clear search query')}
-            size="zero"
-            icon={<IconClose />}
-            borderless
-            onClick={() => {
-              dispatch({type: 'CLEAR'});
-              handleSearch('');
-            }}
-          />
-        )}
-      </ButtonsWrapper>
-    );
+  if (disabled) {
+    return null;
   }
-);
+
+  return (
+    <ButtonsWrapper ref={ref}>
+      {trailingItems}
+      {query === '' ? null : (
+        <ActionButton
+          aria-label={t('Clear search query')}
+          size="zero"
+          icon={<IconClose />}
+          borderless
+          onClick={() => {
+            dispatch({type: 'CLEAR'});
+            handleSearch('');
+          }}
+        />
+      )}
+    </ButtonsWrapper>
+  );
+}
 
 export function SearchQueryBuilder({
   className,
@@ -301,7 +304,7 @@ export function SearchQueryBuilder({
   ]);
 
   return (
-    <SearchQueryBuilderContext.Provider value={contextValue}>
+    <SearchQueryBuilderContext value={contextValue}>
       <Wrapper
         className={className}
         onBlur={() =>
@@ -326,7 +329,7 @@ export function SearchQueryBuilder({
           )}
         </PanelProvider>
       </Wrapper>
-    </SearchQueryBuilderContext.Provider>
+    </SearchQueryBuilderContext>
   );
 }
 
