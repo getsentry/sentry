@@ -40,7 +40,6 @@ class NotifyEmailAction(EventAction):
             "group_id": group.id,
             "notification_uuid": notification_uuid,
         }
-        group = event.group
 
         target_type = ActionTargetType(self.data["targetType"])
         target_identifier = self.data.get("targetIdentifier", None)
@@ -62,7 +61,10 @@ class NotifyEmailAction(EventAction):
         metrics.incr(
             "notifications.sent",
             instance=self.metrics_slug,
-            tags={"group_category": group.issue_category},
+            tags={
+                "issue_category": group.issue_category,
+                "issue_type": group.get_issue_type_slug(),
+            },
             skip_internal=False,
         )
         yield self.future(

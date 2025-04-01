@@ -467,7 +467,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         metrics.incr(
             "notifications.sent",
             instance="slack.notification",
-            tags={"group_category": event.group.issue_category},
+            tags={
+                "issue_category": event.group.issue_category,
+                "issue_type": event.group.get_issue_type_slug(),
+            },
             skip_internal=False,
         )
         if features.has(

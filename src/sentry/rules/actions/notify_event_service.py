@@ -169,7 +169,10 @@ class NotifyEventServiceAction(EventAction):
             metrics.incr(
                 "notifications.sent",
                 instance=app.slug,
-                tags={"group_category": event.group.issue_category},
+                tags={
+                    "issue_category": event.group.issue_category,
+                    "issue_type": event.group.get_issue_type_slug(),
+                },
                 skip_internal=False,
             )
             yield self.future(notify_sentry_app, sentry_app=app)
@@ -200,7 +203,10 @@ class NotifyEventServiceAction(EventAction):
             metrics.incr(
                 "notifications.sent",
                 instance=plugin.slug,
-                tags={"group_category": event.group.issue_category},
+                tags={
+                    "issue_category": event.group.issue_category,
+                    "issue_type": event.group.get_issue_type_slug(),
+                },
                 skip_internal=False,
             )
             yield self.future(plugin.rule_notify)

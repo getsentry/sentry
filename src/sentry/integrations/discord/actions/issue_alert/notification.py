@@ -84,7 +84,10 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
         metrics.incr(
             "notifications.sent",
             instance="discord.notifications",
-            tags={"group_category": event.group.issue_category},
+            tags={
+                "issue_category": event.group.issue_category,
+                "issue_type": event.group.get_issue_type_slug(),
+            },
             skip_internal=False,
         )
         yield self.future(send_notification, key=key)
