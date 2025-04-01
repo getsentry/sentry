@@ -5,11 +5,14 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {GroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/groupTagsDrawer';
+import {GroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributionsDrawer';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-export function useGroupTagsDrawer({
+/**
+ * Shared tags and feature flags distributions drawer, used by streamlined issue details UI.
+ */
+export function useGroupDistributionsDrawer({
   group,
   includeFeatureFlagsTab,
 }: {
@@ -21,13 +24,16 @@ export function useGroupTagsDrawer({
   const {openDrawer} = useDrawer();
   const {baseUrl} = useGroupDetailsRoute();
 
-  const openTagsDrawer = useCallback(() => {
+  const openDistributionsDrawer = useCallback(() => {
     openDrawer(
       () => (
-        <GroupTagsDrawer group={group} includeFeatureFlagsTab={includeFeatureFlagsTab} />
+        <GroupDistributionsDrawer
+          group={group}
+          includeFeatureFlagsTab={includeFeatureFlagsTab}
+        />
       ),
       {
-        ariaLabel: t('Tags Drawer'),
+        ariaLabel: t('Distributions Drawer'),
         onClose: () => {
           navigate(
             {
@@ -49,5 +55,5 @@ export function useGroupTagsDrawer({
     );
   }, [location, navigate, openDrawer, group, baseUrl, includeFeatureFlagsTab]);
 
-  return {openTagsDrawer};
+  return {openDistributionsDrawer};
 }

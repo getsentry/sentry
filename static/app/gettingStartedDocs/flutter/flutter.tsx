@@ -38,9 +38,7 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue: navigator.userAgent.includes('Win')
-      ? InstallationMode.MANUAL
-      : InstallationMode.AUTO,
+    defaultValue: InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
