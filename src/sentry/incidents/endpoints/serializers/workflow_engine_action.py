@@ -28,8 +28,11 @@ class WorkflowEngineActionSerializer(Serializer):
         target_identifier = obj.config.get("target_identifier")
         target_display = obj.config.get("target_display")
 
-        sentry_app_id = obj.data.get("sentry_app_id")
-        sentry_app_config = obj.data.get("sentry_app_config")
+        sentry_app_id = None
+        sentry_app_config = None
+        if obj.type == Action.Type.SENTRY_APP.value:
+            sentry_app_id = int(obj.config.get("target_identifier"))
+            sentry_app_config = obj.data.get("settings")
 
         result = {
             "id": str(aarta.alert_rule_trigger_action.id),
