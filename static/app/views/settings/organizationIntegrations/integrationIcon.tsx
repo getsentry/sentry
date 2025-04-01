@@ -9,7 +9,7 @@ type IconProps = {
   size?: number;
 };
 
-function Icon(props: IconProps) {
+function ImageIcon(props: IconProps) {
   const [renderFallback, setRenderFallback] = useState(false);
 
   if (renderFallback) {
