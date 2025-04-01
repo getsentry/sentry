@@ -8,11 +8,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import InputField from 'sentry/components/forms/fields/inputField';
-import RadioField from 'sentry/components/forms/fields/radioField';
-import SelectField from 'sentry/components/forms/fields/selectField';
-import TextField from 'sentry/components/forms/fields/textField';
-import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import LoadingError from 'sentry/components/loadingError';
@@ -20,16 +15,14 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {DataCategory} from 'sentry/types/core';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 
+import PlanList from 'admin/components/planList';
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
-import type {BillingConfig, DataCategories, Plan, Subscription} from 'getsentry/types';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {CheckoutType, PlanTier} from 'getsentry/types';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
-import formatCurrency from 'getsentry/utils/formatCurrency';
 
 const ALLOWED_TIERS = [PlanTier.MM2, PlanTier.AM1, PlanTier.AM2, PlanTier.AM3];
 
@@ -311,50 +304,15 @@ function ChangePlanAction({
     </React.Fragment>
   );
 
-  /**
-   * Helper to get current value display for a category
-   */
-  const getCurrentValueDisplay = (category: DataCategory) => {
-    // Check if categories exist
-    if (subscription.categories) {
-      // Get the category data using type assertion to allow string indexing
-      const categories = subscription.categories as Record<string, {reserved?: number}>;
-
-      if (categories[category] && categories[category].reserved !== undefined) {
-        const reservedValue = categories[category].reserved;
-
-        return (
-          <CurrentValueText>
-            Current: {reservedValue.toLocaleString()}{' '}
-            {category === DataCategory.ATTACHMENTS ? 'GB' : ''}
-          </CurrentValueText>
-        );
-      }
-    }
-
-    return <CurrentValueText>Current: None</CurrentValueText>;
-  };
-
-  // for legacy errors-only plans
-  const formattedReservedMinimum = {
-    6000000: '6M',
-    5000000: '5M',
-    4000000: '4M',
-    3000000: '3M',
-    1500000: '1.5M',
-    500000: '500k',
-    100000: '100K',
-  };
-
   return (
     <Fragment>
       {header}
-      <Form
+      <PlanList
+        formModel={formModel}
+        activePlan={activePlan}
+        subscription={subscription}
         onSubmit={handleSubmit}
         onCancel={closeModal}
-        submitLabel="Change Plan"
-        submitPriority="danger"
-        model={formModel}
         onSubmitSuccess={(data: Data) => {
           addSuccessMessage(
             `Customer account has been updated with ${JSON.stringify(data)}.`
@@ -362,156 +320,15 @@ function ChangePlanAction({
           closeModal();
           onSuccess();
         }}
-        onSubmitError={error => addErrorMessage(error?.responseJSON?.detail ?? error)}
-      >
-        <StyledFormSection>
-          <RadioField
-            name="plan"
-            required
-            choices={getPlanListForTier().map(plan => [
-              plan.id,
-              <PlanLabel key={plan.id} data-test-id={`change-plan-label-${plan.id}`}>
-                <div>
-                  <strong>
-                    {plan.name}{' '}
-                    {formattedReservedMinimum[
-                      plan.reservedMinimum as keyof typeof formattedReservedMinimum
-                    ] ?? ''}
-                  </strong>{' '}
-                  <SubText>— {plan.id}</SubText>
-                  <br />
-                  <small>
-                    {formatCurrency(plan.price)} /{' '}
-                    {plan.billingInterval === ANNUAL ? 'annually' : 'monthly'}
-                  </small>
-                </div>
-              </PlanLabel>,
-            ])}
-            onChange={value => {
-              const plan = getPlanListForTier().find(p => p.id === value);
-              if (plan) {
-                handlePlanChange(plan);
-              }
-            }}
-            value={activePlan?.id ?? null}
-          />
-        </StyledFormSection>
-        {activePlan &&
-          (
-            activePlan?.planCategories.transactions ||
-            activePlan?.planCategories.spans ||
-            []
-          ).length > 1 && (
-            <StyledFormSection>
-              <h4>Reserved Volumes</h4>
-              {activePlan.checkoutCategories.map(category => {
-                const titleCategory = getPlanCategoryName({plan: activePlan, category});
-                const reservedKey = `reserved${toTitleCase(category, {
-                  allowInnerUpperCase: true,
-                })}`;
-                const label =
-                  category === DataCategory.ATTACHMENTS
-                    ? `${titleCategory} (GB)`
-                    : titleCategory;
-                const currentReserved =
-                  subscription.categories[category as DataCategories]?.reserved ?? null;
-                const fieldValue =
-                  currentReserved === null
-                    ? null
-                    : (findClosestTier(activePlan, category, currentReserved) ?? null);
-                const currentValueDisplay = getCurrentValueDisplay(
-                  category as DataCategory
-                );
-                return (
-                  <SelectFieldWrapper key={`test-${category}`}>
-                    <SelectField
-                      inline={false}
-                      stacked
-                      name={reservedKey}
-                      label={label}
-                      value={fieldValue}
-                      options={(
-                        activePlan.planCategories[category as DataCategories] || []
-                      ).map((level: {events: {toLocaleString: () => any}}) => ({
-                        label: level.events.toLocaleString(),
-                        value: level.events,
-                      }))}
-                      required
-                    />
-                    {currentValueDisplay}
-                  </SelectFieldWrapper>
-                );
-              })}
-            </StyledFormSection>
-          )}
-        <AuditFields>
-          <InputField
-            data-test-id="url-field"
-            name="ticket-url"
-            type="url"
-            label="TicketUrl"
-            inline={false}
-            stacked
-            flexibleControlStateSize
-          />
-          <TextField
-            data-test-id="notes-field"
-            name="notes"
-            label="Notes"
-            inline={false}
-            stacked
-            flexibleControlStateSize
-            maxLength={500}
-          />
-        </AuditFields>
-      </Form>
+        onSubmitError={(error: any) => {
+          addErrorMessage(error?.responseJSON?.detail ?? error);
+        }}
+        onPlanChange={handlePlanChange}
+        tierPlans={getPlanListForTier()}
+      />
     </Fragment>
   );
 }
-
-const TabsContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const StyledFormSection = styled('div')`
-  margin: ${space(1)} 0;
-
-  & > h4 {
-    margin: ${space(2)} 0;
-  }
-`;
-
-const PlanLabel = styled('label')`
-  margin-bottom: 0;
-
-  display: flex;
-  align-items: flex-start;
-
-  & > div {
-    margin-right: ${space(3)};
-  }
-`;
-
-const SubText = styled('small')`
-  font-weight: normal;
-  color: #999;
-`;
-
-const SelectFieldWrapper = styled('div')`
-  position: relative;
-`;
-
-const CurrentValueText = styled('div')`
-  color: #666;
-  font-size: 0.9em;
-  margin-top: -${space(1)};
-  margin-bottom: ${space(1.5)};
-  font-style: italic;
-`;
-
-const AuditFields = styled('div')`
-  margin-top: ${space(2)};
-`;
 
 type Options = {
   onSuccess: () => void;
@@ -522,5 +339,9 @@ type Options = {
 
 const triggerChangePlanAction = (opts: Options) =>
   openModal(deps => <ChangePlanAction {...deps} {...opts} />);
+
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default triggerChangePlanAction;
