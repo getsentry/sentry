@@ -7,7 +7,7 @@ import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
-import PluginIcon, {type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import IdentityIcon, {
   type IdentityIconProps,
