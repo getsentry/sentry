@@ -1,22 +1,24 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
 import {promptsUpdate, usePromptsCheck} from 'sentry/actionCreators/prompts';
-import {Client} from 'sentry/api';
-import {Button, LinkButton} from 'sentry/components/core/button';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import {SidebarButton} from 'sentry/components/nav/primary/components';
-import {
-  PrimaryButtonOverlay,
-  usePrimaryButtonOverlay,
-} from 'sentry/components/nav/primary/primaryButtonOverlay';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {lightTheme as theme} from 'sentry/utils/theme';
+import useApi from 'sentry/utils/useApi';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {SidebarButton} from 'sentry/views/nav/primary/components';
+import {
+  PrimaryButtonOverlay,
+  usePrimaryButtonOverlay,
+} from 'sentry/views/nav/primary/primaryButtonOverlay';
 
+import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import withSubscription from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/billing';
@@ -29,13 +31,22 @@ type Props = {
 
 function QuotaExceededDetails({
   subscription,
+  organization,
   exceededCategories,
+  isDismissed,
   onDismiss,
 }: {
   exceededCategories: string[];
+  isDismissed: boolean;
   onDismiss: () => void;
+  organization: Organization;
   subscription: Subscription;
 }) {
+  const api = useApi();
+  const eventTypes: EventType[] = exceededCategories.map(category => {
+    const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+    return (categoryInfo?.plural ?? category) as EventType;
+  });
   return (
     <Container>
       <Header>
@@ -55,99 +66,73 @@ function QuotaExceededDetails({
             }
           )}
         </Description>
-        <ReviewSubscriptionButton to={`/settings/billing/`}>
-          {t('Review Subscription')}
-        </ReviewSubscriptionButton>
-        <Button onClick={onDismiss} aria-label={t('Dismiss')}>
-          {t('Dismiss')}
-        </Button>
+        <ActionContainer>
+          <AddEventsCTA
+            api={api}
+            organization={organization}
+            subscription={subscription}
+            buttonProps={{
+              size: 'xs',
+            }}
+            eventTypes={eventTypes}
+            notificationType="overage_critical"
+            referrer={`overage-alert-sidebar-${eventTypes.join('-')}`}
+            source="quota-overage"
+            handleRequestSent={onDismiss}
+          />
+          <DismissContainer>
+            <Checkbox
+              name="dismiss"
+              checked={isDismissed}
+              disabled={isDismissed}
+              onChange={onDismiss}
+            />
+            <CheckboxLabel>{t("Don't annoy me again")}</CheckboxLabel>
+          </DismissContainer>
+        </ActionContainer>
       </Body>
     </Container>
   );
 }
 
-function QuotaExceededSidebarItem({subscription, organization}: Props) {
+function QuotaExceededSidebarButton({
+  subscription,
+  organization,
+  exceededCategories,
+  promptsToCheck,
+  prompts,
+}: {
+  exceededCategories: string[];
+  organization: Organization;
+  prompts: {
+    [key: string]: {dismissed_ts?: number; snoozed_ts?: number};
+  };
+  promptsToCheck: string[];
+  subscription: Subscription;
+}) {
+  // const promptIsDismissedForBillingPeriod = (prompt: {
+  //   dismissed_ts?: number;
+  //   snoozed_ts?: number;
+  // }) => {
+  //   const {snoozed_ts, dismissed_ts} = prompt || {};
+  //   // TODO: dismissed prompt should always return false
+  //   const time = snoozed_ts || dismissed_ts;
+  //   if (!time) {
+  //     return false;
+  //   }
+  //   const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
+  //   onDemandPeriodEnd.setHours(23, 59, 59);
+  //   return time <= onDemandPeriodEnd.getTime() / 1000;
+  // };
+  const [hasDismissed, setHasDismissed] = useState(false);
+  const theme = useTheme();
+  const api = useApi();
+
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
   } = usePrimaryButtonOverlay();
-
-  const exceededMetricHistories = useMemo(() => {
-    return sortCategories(subscription?.categories ?? {}).filter(
-      ({usageExceeded}) => usageExceeded
-    );
-  }, [subscription?.categories]);
-
-  const promptsToCheck = useMemo(
-    () =>
-      exceededMetricHistories
-        .map(metricHistory => {
-          const categoryInfo = getCategoryInfoFromPlural(
-            metricHistory.category as DataCategory
-          );
-          if (categoryInfo) {
-            return `${categoryInfo.snakeCasePlural ?? categoryInfo.plural}_overage_alert`;
-          }
-          return null;
-        })
-        .filter(Boolean) as string[],
-    [exceededMetricHistories]
-  );
-
-  const {data, isPending, isError} = usePromptsCheck(
-    {
-      feature: promptsToCheck,
-      organization,
-    },
-    {staleTime: 0}
-  );
-  const prompts = useMemo(
-    () =>
-      (data?.features ?? {}) as {
-        [key: string]: {dismissed_ts?: number; snoozed_ts?: number};
-      },
-    [data]
-  );
-
-  const promptIsDismissedForBillingPeriod = useCallback(
-    (prompt: {dismissed_ts?: number; snoozed_ts?: number}) => {
-      const {snoozed_ts, dismissed_ts} = prompt || {};
-      // TODO: dismissed prompt should always return false
-      const time = snoozed_ts || dismissed_ts;
-      if (!time) {
-        return false;
-      }
-      const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
-      onDemandPeriodEnd.setHours(23, 59, 59);
-      return time <= onDemandPeriodEnd.getTime() / 1000;
-    },
-    [subscription.onDemandPeriodEnd]
-  );
-
-  const everyPromptIsDismissedForBillingPeriod = useMemo(
-    () =>
-      Object.keys(prompts).length > 0 &&
-      Object.values(prompts).every(prompt => promptIsDismissedForBillingPeriod(prompt)),
-    [prompts, promptIsDismissedForBillingPeriod]
-  );
-
-  const hasBillingPerms = organization.access?.includes('org:billing');
-  const shouldForceOpen = useMemo(
-    () => hasBillingPerms && !everyPromptIsDismissedForBillingPeriod,
-    [hasBillingPerms, everyPromptIsDismissedForBillingPeriod]
-  );
-
-  const [hasDismissed, setHasDismissed] = useState(false);
-
-  if (
-    isPending ||
-    isError ||
-    !prefersStackedNav() ||
-    exceededMetricHistories.length === 0
-  ) {
-    return null;
-  }
 
   return (
     <Fragment>
@@ -159,18 +144,21 @@ function QuotaExceededSidebarItem({subscription, organization}: Props) {
           style: {backgroundColor: theme.warning},
         }}
       >
-        <IconWarning />
+        <motion.div animate={{rotate: 360}}>
+          <IconWarning />
+        </motion.div>
       </StyledSidebarButton>
-      {((shouldForceOpen && !hasDismissed) || isOpen) && (
+      {isOpen && (
         <PrimaryButtonOverlay overlayProps={overlayProps}>
           <QuotaExceededDetails
+            organization={organization}
             subscription={subscription}
-            exceededCategories={exceededMetricHistories.map(({category}) => category)}
+            exceededCategories={exceededCategories}
             onDismiss={() => {
               promptsToCheck
                 .filter(feature => !prompts[feature])
                 .forEach(feature =>
-                  promptsUpdate(new Client(), {
+                  promptsUpdate(api, {
                     organization,
                     feature,
                     status: 'snoozed',
@@ -178,6 +166,7 @@ function QuotaExceededSidebarItem({subscription, organization}: Props) {
                 );
               setHasDismissed(true);
             }}
+            isDismissed={hasDismissed}
           />
         </PrimaryButtonOverlay>
       )}
@@ -185,7 +174,53 @@ function QuotaExceededSidebarItem({subscription, organization}: Props) {
   );
 }
 
-export default withSubscription(QuotaExceededSidebarItem);
+function QuotaExceededSidebarItem({subscription, organization}: Props) {
+  const sortedCategories = sortCategories(subscription.categories ?? {});
+  const exceededCategories = sortedCategories
+    .filter(({usageExceeded}) => usageExceeded)
+    .map(({category}) => category);
+
+  const promptsToCheck =
+    exceededCategories.length > 0
+      ? (exceededCategories
+          .map(category => {
+            const categoryInfo = getCategoryInfoFromPlural(category as DataCategory);
+            if (categoryInfo) {
+              return `${categoryInfo.snakeCasePlural ?? categoryInfo.plural}_overage_alert`;
+            }
+            return null;
+          })
+          .filter(Boolean) as string[])
+      : ['errors_overage_alert'];
+
+  const {data, isPending, isError} = usePromptsCheck(
+    {
+      feature: promptsToCheck,
+      organization,
+    }
+    // {staleTime: 0}
+  );
+
+  if (isPending || isError || !prefersStackedNav() || exceededCategories.length === 0) {
+    return null;
+  }
+
+  const prompts = (data?.features ?? {}) as {
+    [key: string]: {dismissed_ts?: number; snoozed_ts?: number};
+  };
+
+  return (
+    <QuotaExceededSidebarButton
+      subscription={subscription}
+      organization={organization}
+      exceededCategories={exceededCategories}
+      prompts={prompts}
+      promptsToCheck={promptsToCheck}
+    />
+  );
+}
+
+export default withSubscription(QuotaExceededSidebarItem, {noLoader: true});
 
 const StyledSidebarButton = styled(SidebarButton)`
   background: ${p => p.theme.warning};
@@ -222,6 +257,18 @@ const Description = styled('div')`
   text-wrap: pretty;
 `;
 
-const ReviewSubscriptionButton = styled(LinkButton)`
-  width: min-content;
+const ActionContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const DismissContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+`;
+
+const CheckboxLabel = styled('span')`
+  margin-left: ${space(1)};
 `;
