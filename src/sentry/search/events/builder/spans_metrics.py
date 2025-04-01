@@ -29,6 +29,8 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         # text search use case so that it searches the `span.description`
         # when the user performs a free text search
         "message": "span.description",
+        # This is to assist in the eap migration,
+        # span.description in span metrics is sentry.normalized_description in eap
         "sentry.normalized_description": "span.description",
     }
 
