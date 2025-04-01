@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import GridEditable, {
@@ -84,6 +85,7 @@ interface Props {
 export function PipelineSpansTable({groupId, useEAP}: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
   const {view} = useDomainViewFilters();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
@@ -169,7 +171,16 @@ export function PipelineSpansTable({groupId, useEAP}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, groupId, view),
+            renderBodyCell(
+              column,
+              row,
+              meta,
+              location,
+              organization,
+              groupId,
+              view,
+              theme
+            ),
         }}
       />
     </VisuallyCompleteWithData>
@@ -183,7 +194,8 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   groupId: string,
-  view: DomainView | undefined
+  view: DomainView | undefined,
+  theme: Theme
 ) {
   if (column.key === SpanIndexedField.SPAN_ID) {
     if (!row[SpanIndexedField.SPAN_ID]) {
@@ -228,6 +240,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 
   return rendered;

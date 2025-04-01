@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {LinkButton} from 'sentry/components/core/button';
 import DiscoverButton from 'sentry/components/discoverButton';
-import * as SpanEntryContext from 'sentry/components/events/interfaces/spans/context';
+import {SpanEntryContext} from 'sentry/components/events/interfaces/spans/context';
 import {
   getTraceDateTimeRange,
   scrollToSpan,

@@ -799,6 +799,9 @@ def prepare_response(
             sender=update_groups,
         )
 
+    # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
+    # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this
+    # cannot be enforced currently. If changing fields, please update that type.
     return Response(result)
 
 
