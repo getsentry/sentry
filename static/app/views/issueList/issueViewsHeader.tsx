@@ -498,6 +498,8 @@ export const normalizeProjectsEnvironments = (
     if (!isNaN(parsed)) {
       queryProjects = [parsed];
     }
+  } else if (project === undefined) {
+    queryProjects = [];
   }
 
   let queryEnvs: string[] | undefined = undefined;
@@ -505,6 +507,8 @@ export const normalizeProjectsEnvironments = (
     queryEnvs = env;
   } else if (env) {
     queryEnvs = [env];
+  } else if (env === undefined) {
+    queryEnvs = [];
   }
 
   return {queryEnvs, queryProjects};
