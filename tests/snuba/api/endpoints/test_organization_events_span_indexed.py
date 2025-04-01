@@ -1157,6 +1157,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
                 "field": ["precise.start_ts", "precise.finish_ts"],
                 "project": self.project.id,
                 "dataset": self.dataset,
+                "statsPeriod": "1h",
             }
         )
         start = self.ten_mins_ago.timestamp()
@@ -3462,7 +3463,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["description", "precise.start_ts"],
+                "field": ["description"],
                 "query": f"trace:[{'1' * 32}, {'2' * 32}]",
                 "orderby": "description",
                 "project": self.project.id,
