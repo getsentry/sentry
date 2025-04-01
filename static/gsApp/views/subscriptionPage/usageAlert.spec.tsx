@@ -200,7 +200,7 @@ describe('Subscription > UsageAlert', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/errors and attachments capacity/))
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Increase Reserved Limits')).toBeInTheDocument();
+    expect(screen.getByText('Setup On-Demand')).toBeInTheDocument();
 
     expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
     expect(screen.queryByTestId('projected-overage-alert')).not.toBeInTheDocument();
