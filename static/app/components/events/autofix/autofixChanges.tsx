@@ -24,6 +24,7 @@ import {
   useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
+import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ScrollCarousel} from 'sentry/components/scrollCarousel';
 import {IconCode, IconCopy, IconOpen} from 'sentry/icons';
@@ -331,14 +332,12 @@ function SetupAndCreateBranchButton({
   onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
-  const {data: setupData} = useAutofixSetup({groupId, checkWriteAccess: true});
+  const {codebases} = useAutofixRepos(groupId);
 
   if (
     !changes.every(
       change =>
-        setupData?.githubWriteIntegration?.repos?.find(
-          repo => `${repo.owner}/${repo.name}` === change.repo_name
-        )?.ok
+        change.repo_external_id && codebases[change.repo_external_id]?.is_writeable
     )
   ) {
     return (
