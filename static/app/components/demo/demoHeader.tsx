@@ -62,13 +62,13 @@ export default function DemoHeader() {
             extraQueryParameterWithEmail()
           );
 
-          // Using window.open instead of href={} because we need to read `email`
-          // from localStorage when the user clicks the button.
-          window.open(url, '_blank');
-
           trackAnalytics('growth.demo_click_get_started', {
             organization: null,
           });
+
+          // Using window.open instead of href={} because we need to read `email`
+          // from localStorage when the user clicks the button.
+          window.open(url, '_blank');
         }}
       >
         <FreeTrialTextLong>{t('Start Free Trial')}</FreeTrialTextLong>
