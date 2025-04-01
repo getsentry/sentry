@@ -186,8 +186,7 @@ describe('OrganizationStats', function () {
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
-    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
-    expect(screen.getByTestId('empty-message')).toBeInTheDocument();
+    expect(await screen.findByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('renders with just errors category for errors-only self-hosted', async () => {
