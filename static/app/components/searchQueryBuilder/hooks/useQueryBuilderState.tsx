@@ -43,7 +43,6 @@ type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 type DeleteTokenAction = {
   token: ParseResultToken;
   type: 'DELETE_TOKEN';
-  handleSearch?: (query: string) => void;
 };
 
 type DeleteTokensAction = {
@@ -64,48 +63,41 @@ type ReplaceTokensWithTextAction = {
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT';
   focusOverride?: FocusOverride;
-  handleSearch?: (query: string) => void;
 };
 
 type UpdateFilterKeyAction = {
   key: string;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_KEY';
-  handleSearch?: (query: string) => void;
 };
 
 type UpdateFilterOpAction = {
   op: TermOperator;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
-  handleSearch?: (query: string) => void;
 };
 
 type UpdateTokenValueAction = {
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_TOKEN_VALUE';
   value: string;
-  handleSearch?: (query: string) => void;
 };
 
 type MultiSelectFilterValueAction = {
   token: TokenResult<Token.FILTER>;
   type: 'TOGGLE_FILTER_VALUE';
   value: string;
-  handleSearch?: (query: string) => void;
 };
 
 type DeleteLastMultiSelectFilterValueAction = {
   token: TokenResult<Token.FILTER>;
   type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE';
-  handleSearch?: (query: string) => void;
 };
 
 type UpdateAggregateArgsAction = {
   token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
-  handleSearch?: (query: string) => void;
 };
 
 export type QueryBuilderActions =
@@ -483,12 +475,10 @@ export function useQueryBuilderState({
   initialQuery,
   getFieldDefinition,
   disabled,
-  submitOnChange = false,
 }: {
   disabled: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
-  submitOnChange?: boolean;
 }) {
   const initialState: QueryBuilderState = {query: initialQuery, focusOverride: null};
 
@@ -498,80 +488,69 @@ export function useQueryBuilderState({
         return state;
       }
 
-      const newState = (() => {
-        switch (action.type) {
-          case 'CLEAR':
-            return {
-              ...state,
-              query: '',
-              focusOverride: {
-                itemKey: `${Token.FREE_TEXT}:0`,
-              },
-            };
-          case 'UPDATE_QUERY':
-            return {
-              ...state,
-              query: action.query,
-              focusOverride: action.focusOverride ?? null,
-            };
-          case 'RESET_FOCUS_OVERRIDE':
-            return {
-              ...state,
-              focusOverride: null,
-            };
-          case 'DELETE_TOKEN':
-            return replaceTokensWithText(state, {
-              tokens: [action.token],
-              text: '',
-              getFieldDefinition,
-            });
-          case 'DELETE_TOKENS':
-            return deleteQueryTokens(state, action);
-          case 'UPDATE_FREE_TEXT':
-            return updateFreeText(state, action);
-          case 'REPLACE_TOKENS_WITH_TEXT':
-            return replaceTokensWithText(state, {
-              tokens: action.tokens,
-              text: action.text,
-              focusOverride: action.focusOverride,
-              getFieldDefinition,
-            });
-          case 'UPDATE_FILTER_KEY':
-            if (submitOnChange) {
-              action.handleSearch?.(state.query);
-            }
-            return {
-              ...state,
-              query: replaceQueryToken(state.query, action.token.key, action.key),
-            };
-          case 'UPDATE_FILTER_OP':
-            return {
-              ...state,
-              query: modifyFilterOperator(state.query, action.token, action.op),
-            };
-          case 'UPDATE_TOKEN_VALUE':
-            return {
-              ...state,
-              query: modifyFilterValue(state.query, action.token, action.value),
-            };
-          case 'UPDATE_AGGREGATE_ARGS':
-            return updateAggregateArgs(state, action, {getFieldDefinition});
-          case 'TOGGLE_FILTER_VALUE':
-            return multiSelectTokenValue(state, action);
-          case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
-            return deleteLastMultiSelectTokenValue(state, action);
-          default:
-            return state;
-        }
-      })();
-
-      if (submitOnChange && 'handleSearch' in action) {
-        action.handleSearch?.(newState.query);
+      switch (action.type) {
+        case 'CLEAR':
+          return {
+            ...state,
+            query: '',
+            focusOverride: {
+              itemKey: `${Token.FREE_TEXT}:0`,
+            },
+          };
+        case 'UPDATE_QUERY':
+          return {
+            ...state,
+            query: action.query,
+            focusOverride: action.focusOverride ?? null,
+          };
+        case 'RESET_FOCUS_OVERRIDE':
+          return {
+            ...state,
+            focusOverride: null,
+          };
+        case 'DELETE_TOKEN':
+          return replaceTokensWithText(state, {
+            tokens: [action.token],
+            text: '',
+            getFieldDefinition,
+          });
+        case 'DELETE_TOKENS':
+          return deleteQueryTokens(state, action);
+        case 'UPDATE_FREE_TEXT':
+          return updateFreeText(state, action);
+        case 'REPLACE_TOKENS_WITH_TEXT':
+          return replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+          });
+        case 'UPDATE_FILTER_KEY':
+          return {
+            ...state,
+            query: replaceQueryToken(state.query, action.token.key, action.key),
+          };
+        case 'UPDATE_FILTER_OP':
+          return {
+            ...state,
+            query: modifyFilterOperator(state.query, action.token, action.op),
+          };
+        case 'UPDATE_TOKEN_VALUE':
+          return {
+            ...state,
+            query: modifyFilterValue(state.query, action.token, action.value),
+          };
+        case 'UPDATE_AGGREGATE_ARGS':
+          return updateAggregateArgs(state, action, {getFieldDefinition});
+        case 'TOGGLE_FILTER_VALUE':
+          return multiSelectTokenValue(state, action);
+        case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
+          return deleteLastMultiSelectTokenValue(state, action);
+        default:
+          return state;
       }
-
-      return newState;
     },
-    [disabled, getFieldDefinition, submitOnChange]
+    [disabled, getFieldDefinition]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

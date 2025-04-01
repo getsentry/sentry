@@ -163,14 +163,14 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
 }
 
 function FilterDelete({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch, disabled, handleSearch} = useSearchQueryBuilder();
+  const {dispatch, disabled} = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
       onClick={() => {
-        dispatch({type: 'DELETE_TOKEN', token, handleSearch});
+        dispatch({type: 'DELETE_TOKEN', token});
       }}
       disabled={disabled}
       {...filterButtonProps}
@@ -187,7 +187,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -197,7 +197,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
 
       // Only delete if full filter token is focused, otherwise focus it
       if (ref.current === document.activeElement) {
-        dispatch({type: 'DELETE_TOKEN', token, handleSearch});
+        dispatch({type: 'DELETE_TOKEN', token});
       } else {
         ref.current?.focus();
       }

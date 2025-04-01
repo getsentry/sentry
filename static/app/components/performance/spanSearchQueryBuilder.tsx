@@ -144,13 +144,13 @@ export function SpanSearchQueryBuilder({
       fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
+      onChange={submitOnFilterChange ? onSearch : undefined}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
       getTagValues={getSpanFilterTagValues}
       disallowUnsupportedFilters
       recentSearches={SavedSearchType.SPAN}
       showUnsubmittedIndicator
-      submitOnFilterChange={submitOnFilterChange}
     />
   );
 }
@@ -246,6 +246,7 @@ export function EAPSpanSearchQueryBuilder({
       fieldDefinitionGetter={getSpanFieldDefinitionFunction(filterTags)}
       onSearch={onSearch}
       onBlur={onBlur}
+      onChange={submitOnFilterChange ? onSearch : undefined}
       getFilterTokenWarning={getFilterTokenWarning}
       searchSource={searchSource}
       filterKeySections={filterKeySections}
@@ -254,7 +255,6 @@ export function EAPSpanSearchQueryBuilder({
       recentSearches={SavedSearchType.SPAN}
       showUnsubmittedIndicator
       portalTarget={portalTarget}
-      submitOnFilterChange={submitOnFilterChange}
     />
   );
 }

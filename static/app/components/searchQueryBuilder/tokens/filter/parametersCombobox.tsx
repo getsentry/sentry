@@ -176,7 +176,7 @@ export function SearchQueryBuilderParametersCombobox({
   onDelete,
 }: ParametersComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilder();
   const initialValue = getInitialInputValue(token);
   const [inputValue, setInputValue] = useState('');
   const [inputChanged, setInputChanged] = useState(false);
@@ -215,13 +215,12 @@ export function SearchQueryBuilderParametersCombobox({
           type: 'UPDATE_AGGREGATE_ARGS',
           token,
           value,
-          handleSearch,
         });
 
         onCommit();
       }
     },
-    [inputChanged, dispatch, token, handleSearch, onCommit]
+    [inputChanged, dispatch, token, onCommit]
   );
 
   const handleOptionSelected = useCallback(
@@ -236,7 +235,6 @@ export function SearchQueryBuilderParametersCombobox({
         type: 'UPDATE_AGGREGATE_ARGS',
         token,
         value: newValue,
-        handleSearch,
       });
       updateInputValue(newValue);
       const newCursorPosition = getCursorPositionAtEndOfParameter(
@@ -248,7 +246,7 @@ export function SearchQueryBuilderParametersCombobox({
         inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
       }
     },
-    [dispatch, handleSearch, inputValue, parameterIndex, selectionIndex, token]
+    [dispatch, inputValue, parameterIndex, selectionIndex, token]
   );
 
   return (

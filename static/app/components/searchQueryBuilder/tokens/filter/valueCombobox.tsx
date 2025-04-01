@@ -436,7 +436,7 @@ function ItemCheckbox({
   token: TokenResult<Token.FILTER>;
   value: string;
 }) {
-  const {dispatch, handleSearch} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilder();
 
   return (
     <TrailingWrap
@@ -454,7 +454,6 @@ function ItemCheckbox({
               type: 'TOGGLE_FILTER_VALUE',
               token,
               value: escapeTagValue(value),
-              handleSearch,
             });
           }}
           aria-label={t('Toggle %s', value)}
@@ -495,7 +494,6 @@ export function SearchQueryBuilderValueCombobox({
     recentSearches,
     disallowWildcard,
     wrapperRef: topLevelWrapperRef,
-    handleSearch,
   } = useSearchQueryBuilder();
   const keyName = getKeyName(token.key);
   const fieldDefinition = getFieldDefinition(keyName);
@@ -605,7 +603,6 @@ export function SearchQueryBuilderValueCombobox({
             type: 'UPDATE_TOKEN_VALUE',
             token,
             value: newValue,
-            handleSearch,
           });
 
           if (newValue && newValue !== '""' && !ctrlKeyPressed) {
@@ -622,7 +619,6 @@ export function SearchQueryBuilderValueCombobox({
             getFilterValueType(token, fieldDefinition),
             replaceCommaSeparatedValue(inputValue, selectionIndex, escapeTagValue(value))
           ),
-          handleSearch,
         });
 
         if (!ctrlKeyPressed) {
@@ -633,7 +629,6 @@ export function SearchQueryBuilderValueCombobox({
           type: 'UPDATE_TOKEN_VALUE',
           token,
           value: cleanedValue,
-          handleSearch,
         });
         onCommit();
       }
@@ -649,7 +644,6 @@ export function SearchQueryBuilderValueCombobox({
       dispatch,
       inputValue,
       selectionIndex,
-      handleSearch,
       ctrlKeyPressed,
       onCommit,
     ]
@@ -694,7 +688,6 @@ export function SearchQueryBuilderValueCombobox({
           type: 'UPDATE_TOKEN_VALUE',
           token,
           value: getDefaultFilterValue({fieldDefinition}),
-          handleSearch,
         });
         onCommit();
         return;
@@ -713,7 +706,6 @@ export function SearchQueryBuilderValueCombobox({
             getFilterValueType(token, fieldDefinition),
             value
           ),
-          handleSearch,
         });
         onCommit();
         if (!isUnchanged) {
@@ -738,7 +730,6 @@ export function SearchQueryBuilderValueCombobox({
       canSelectMultipleValues,
       dispatch,
       fieldDefinition,
-      handleSearch,
       onCommit,
       token,
       updateFilterValue,
@@ -813,7 +804,6 @@ export function SearchQueryBuilderValueCombobox({
                 type: 'UPDATE_TOKEN_VALUE',
                 token,
                 value: newDateTimeValue,
-                handleSearch,
               });
               onCommit();
             }}
@@ -830,7 +820,6 @@ export function SearchQueryBuilderValueCombobox({
       token,
       analyticsData,
       dispatch,
-      handleSearch,
       onCommit,
     ]);
 

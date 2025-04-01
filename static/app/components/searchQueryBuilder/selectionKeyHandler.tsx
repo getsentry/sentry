@@ -29,7 +29,7 @@ export function SelectionKeyHandler({
 }: SelectionKeyHandlerProps & {
   ref?: React.Ref<HTMLInputElement>;
 }) {
-  const {dispatch, disabled, handleSearch} = useSearchQueryBuilder();
+  const {dispatch, disabled} = useSearchQueryBuilder();
   const {selectInDirection} = useKeyboardSelection();
 
   const selectedTokens: ParseResultToken[] = [...state.collection.getKeys()]
@@ -48,10 +48,9 @@ export function SelectionKeyHandler({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: selectedTokens,
         text,
-        handleSearch,
       });
     },
-    [dispatch, selectedTokens, handleSearch]
+    [dispatch, selectedTokens]
   );
 
   const onKeyDown = useCallback(
@@ -65,7 +64,6 @@ export function SelectionKeyHandler({
             type: 'REPLACE_TOKENS_WITH_TEXT',
             tokens: selectedTokens,
             text: '',
-            handleSearch,
           });
           state.selectionManager.setFocusedKey(
             findNearestFreeTextKey(state, state.selectionManager.firstSelectedKey, 'left')
@@ -127,7 +125,6 @@ export function SelectionKeyHandler({
                 type: 'REPLACE_TOKENS_WITH_TEXT',
                 tokens: selectedTokens,
                 text: '',
-                handleSearch,
               });
               e.stopPropagation();
               e.preventDefault();
@@ -145,7 +142,6 @@ export function SelectionKeyHandler({
               type: 'REPLACE_TOKENS_WITH_TEXT',
               text: e.key,
               tokens: selectedTokens,
-              handleSearch,
             });
             e.preventDefault();
             e.stopPropagation();
@@ -154,7 +150,7 @@ export function SelectionKeyHandler({
           return;
       }
     },
-    [dispatch, handleSearch, selectInDirection, selectedTokens, state, undo]
+    [dispatch, selectInDirection, selectedTokens, state, undo]
   );
 
   // Using VisuallyHidden because display: none will not allow the input to be focused

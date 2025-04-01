@@ -33,7 +33,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     inputValue,
     includeSuggestions: false,
   });
-  const {dispatch, getFieldDefinition, handleSearch} = useSearchQueryBuilder();
+  const {dispatch, getFieldDefinition} = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
     token,
@@ -61,7 +61,6 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
           type: 'UPDATE_FILTER_KEY',
           token,
           key: keyName,
-          handleSearch,
         });
         onCommit();
         return;
@@ -79,15 +78,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
       onCommit();
     },
-    [
-      currentFilterValueType,
-      dispatch,
-      getFieldDefinition,
-      handleSearch,
-      item.key,
-      onCommit,
-      token,
-    ]
+    [currentFilterValueType, dispatch, getFieldDefinition, item.key, onCommit, token]
   );
 
   const onOptionSelected = useCallback(
