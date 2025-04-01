@@ -186,7 +186,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const {onDataZoom, ...chartZoomProps} = useChartZoom({
-    saveOnZoom: false,
+    saveOnZoom: true,
   });
 
   const plottablesByType = groupBy(props.plottables, plottable => plottable.dataType);
