@@ -297,6 +297,10 @@ export function ExploreCharts({
                       stack: 'all',
                     });
                   })}
+                  legendSelection={{
+                    // disable the 'Other' series by default since its large values can cause the other lines to be insignificant
+                    Other: false,
+                  }}
                 />
               }
               Footer={
