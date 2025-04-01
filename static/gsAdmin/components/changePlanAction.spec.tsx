@@ -10,6 +10,7 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
 
@@ -43,7 +44,7 @@ describe('ChangePlanAction', () => {
   SubscriptionStore.set(mockOrg.slug, subscription);
   const BILLING_CONFIG = BillingConfigFixture(PlanTier.ALL);
   const testPlan = PlanFixture({
-    id: 'am3_test_monthly',
+    id: 'test_test_monthly',
     name: 'TEST Tier Test Plan',
     price: 5000,
     basePrice: 5000,
@@ -51,9 +52,16 @@ describe('ChangePlanAction', () => {
     contractInterval: 'monthly',
     reservedMinimum: 500000,
     categories: ['errors', 'transactions'],
+    checkoutCategories: ['errors', 'transactions'],
     planCategories: {
-      errors: [{events: 50000, price: 1000}],
-      transactions: [{events: 10000, price: 2500}],
+      errors: [
+        {events: 50000, price: 1000},
+        {events: 100000, price: 2000},
+      ],
+      transactions: [
+        {events: 10000, price: 2500},
+        {events: 25000, price: 5000},
+      ],
     },
     userSelectable: true,
     isTestPlan: true,
@@ -83,9 +91,9 @@ describe('ChangePlanAction', () => {
     const testSubscription = {
       ...subscription,
       planTier: PlanTier.TEST,
-      plan: 'am3_test_monthly',
+      plan: 'test_test_monthly',
       planDetails: {
-        id: 'am3_test_monthly',
+        id: 'test_test_monthly',
         name: 'TEST Tier Test Plan',
         isTestPlan: true,
       },
@@ -128,7 +136,7 @@ describe('ChangePlanAction', () => {
     expect(screen.getByRole('tab', {name: 'MM2'})).toBeInTheDocument();
 
     // Verify at least one plan option is displayed
-    expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
+    expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
 
     // Test basic interaction - click on AM2 tier
     const am2Tab = screen.getByRole('tab', {name: 'AM2'});
@@ -151,17 +159,18 @@ describe('ChangePlanAction', () => {
     });
 
     // Select a plan
-    const planRadio = screen.getByTestId('change-plan-radio-btn-am3_business');
-    await userEvent.click(planRadio);
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
 
     // Select reserved volumes
-    await userEvent.type(screen.getByRole('textbox', {name: 'Errors'}), '100000\n');
-    expect(screen.getByRole('textbox', {name: 'Errors'})).toHaveValue('100,000');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Replays'}), '50\n');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Spans'}), '10000000\n');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Cron monitors'}), '1\n');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1\n');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Attachments (GB)'}), '1\n');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+      '1'
+    );
 
     expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
     await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
@@ -181,7 +190,7 @@ describe('ChangePlanAction', () => {
     });
 
     // Verify AM3 tier plans are displayed
-    expect(screen.getByTestId('change-plan-radio-btn-am3_business')).toBeInTheDocument();
+    expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
 
     // Switch to AM2 tier
     const am2Tab = screen.getByRole('tab', {name: 'AM2'});
@@ -219,7 +228,7 @@ describe('ChangePlanAction', () => {
 
     // Verify TEST tier plans are shown after clicking the TEST tier tab
     await waitFor(() => {
-      const testPlans = screen.queryAllByTestId('change-plan-radio-btn-am3_test_monthly');
+      const testPlans = screen.queryAllByTestId('change-plan-label-test_test_monthly');
       expect(testPlans.length).toBeGreaterThan(0);
     });
   });
@@ -242,28 +251,27 @@ describe('ChangePlanAction', () => {
     // Click on the TEST tier tab (if not already active)
     const testTierTab = screen.getByRole('tab', {name: 'TEST'});
     await userEvent.click(testTierTab);
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeDisabled();
+    expect(screen.getByTestId('change-plan-label-test_test_monthly')).toBeInTheDocument();
 
-    // Find test plan radio button and select it
-    await waitFor(
-      () => {
-        const testPlans = screen.queryAllByTestId(
-          'change-plan-radio-btn-am3_test_monthly'
-        );
-        expect(testPlans.length).toBeGreaterThan(0);
-        return testPlans;
-      },
-      {timeout: 2000}
-    ).then(async testPlans => {
-      if (testPlans && testPlans.length > 0) {
-        await userEvent.click(testPlans[0] as HTMLElement);
-      }
-    });
+    // Select a plan
+    await userEvent.click(screen.getAllByRole('radio')[0] as HTMLElement);
+
+    // Select reserved volumes
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '50,000');
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Transactions'}),
+      '25,000'
+    );
+
+    expect(screen.getByRole('button', {name: 'Change Plan'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Change Plan'}));
 
     // Verify the PUT API was called
     expect(putMock).toHaveBeenCalled();
     const requestData = putMock.mock.calls[0][1].data;
-    expect(requestData).toHaveProperty('plan', 'am3_test_monthly');
+    expect(requestData).toHaveProperty('plan', 'test_test_monthly');
     expect(requestData).toHaveProperty('reservedErrors', 50000);
-    expect(requestData).toHaveProperty('reservedTransactions', 10000);
+    expect(requestData).toHaveProperty('reservedTransactions', 25000);
   });
 });
