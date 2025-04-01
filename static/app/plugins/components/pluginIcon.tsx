@@ -29,9 +29,8 @@ import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
 // Map of plugin id -> logo filename
-export const DEFAULT_ICON = placeholder;
-export const ICON_PATHS = {
-  _default: DEFAULT_ICON,
+const PLUGIN_ICONS = {
+  placeholder,
   sentry,
   browsers: sentry,
   device: sentry,
@@ -67,20 +66,20 @@ export const ICON_PATHS = {
   vsts,
   vercel,
   victorops,
-};
+} satisfies Record<string, string>;
 
-type Props = {
+type PluginIconProps = {
   /**
-   * @default '_default'
+   * @default 'Placeholder'
    */
-  pluginId?: string;
+  pluginId?: string | keyof typeof PLUGIN_ICONS;
   /**
    * @default 20
    */
   size?: number;
 };
 
-const PluginIcon = styled('div')<Props>`
+const PluginIcon = styled('div')<PluginIconProps>`
   position: relative;
   height: ${p => p.size ?? 20}px;
   width: ${p => p.size ?? 20}px;
@@ -91,9 +90,19 @@ const PluginIcon = styled('div')<Props>`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({pluginId = '_default'}) =>
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
+  background-image: url(${getPluginIcon});
 `;
+
+function getPluginIcon(props: Pick<PluginIconProps, 'pluginId'>) {
+  if (!props.pluginId) {
+    return PLUGIN_ICONS.placeholder;
+  }
+
+  if (props.pluginId in PLUGIN_ICONS) {
+    return PLUGIN_ICONS[props.pluginId as keyof typeof PLUGIN_ICONS];
+  }
+
+  return PLUGIN_ICONS.placeholder;
+}
 
 export default PluginIcon;

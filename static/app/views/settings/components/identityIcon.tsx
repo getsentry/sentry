@@ -19,12 +19,8 @@ import saml2 from 'sentry-logos/logo-saml2.svg';
 import slack from 'sentry-logos/logo-slack.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
-// Map of plugin id -> logo filename
-export const DEFAULT_ICON = placeholder;
-
-export const ICON_PATHS: Record<string, string> = {
-  _default: DEFAULT_ICON,
-
+const IDENTITY_ICONS: Record<string, string> = {
+  placeholder,
   'active-directory': vsts,
   asana,
   auth0,
@@ -46,18 +42,18 @@ export const ICON_PATHS: Record<string, string> = {
   vsts,
 };
 
-type Props = {
+type IdentityIconProps = {
   /**
-   * @default '_default'
+   * @default 'placeholder'
    */
-  providerId?: string;
+  providerId?: string | keyof typeof IDENTITY_ICONS;
   /**
    * @default 36
    */
   size?: number;
 };
 
-const IdentityIcon = styled('div')<Props>`
+const IdentityIcon = styled('div')<IdentityIconProps>`
   position: relative;
   height: ${p => p.size ?? 36}px;
   width: ${p => p.size ?? 36}px;
@@ -67,8 +63,19 @@ const IdentityIcon = styled('div')<Props>`
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({providerId = '_default'}) =>
-    (providerId !== undefined && ICON_PATHS[providerId]) || DEFAULT_ICON});
+  background-image: url(${getIdentityIcon});
 `;
+
+function getIdentityIcon(props: Pick<IdentityIconProps, 'providerId'>) {
+  if (!props.providerId) {
+    return IDENTITY_ICONS.placeholder;
+  }
+
+  if (props.providerId in IDENTITY_ICONS) {
+    return IDENTITY_ICONS[props.providerId as keyof typeof IDENTITY_ICONS];
+  }
+
+  return IDENTITY_ICONS.placeholder;
+}
 
 export default IdentityIcon;
