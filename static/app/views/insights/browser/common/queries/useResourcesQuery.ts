@@ -39,7 +39,9 @@ type Props = {
   query?: string;
 };
 
-export const DEFAULT_RESOURCE_FILTERS = ['!span.description:"browser-extension://*"'];
+export const DEFAULT_RESOURCE_FILTERS = [
+  '!sentry.noramlized_description:"browser-extension://*"',
+];
 
 export const getResourcesEventViewQuery = (
   resourceFilters: Partial<ModuleFilters>,

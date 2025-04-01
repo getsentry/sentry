@@ -7,7 +7,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
-const {SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN} = SpanIndexedField;
+const {NORMALIZED_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN} =
+  SpanIndexedField;
 
 type Options = {
   enabled?: boolean;
@@ -36,7 +37,7 @@ export const useIndexedResourcesQuery = ({
         'project',
         'span.group',
         RAW_DOMAIN,
-        SPAN_DESCRIPTION,
+        NORMALIZED_DESCRIPTION,
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`,
       ],
       name: 'Indexed Resource Query',
@@ -67,7 +68,7 @@ export const useIndexedResourcesQuery = ({
     result?.data?.data.map(row => ({
       project: row.project as string,
       'transaction.id': row['transaction.id'] as string,
-      [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]?.toString(),
+      [NORMALIZED_DESCRIPTION]: row[NORMALIZED_DESCRIPTION]?.toString(),
       [RAW_DOMAIN]: row[RAW_DOMAIN]?.toString(),
       'measurements.http.response_content_length': row[
         `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`
