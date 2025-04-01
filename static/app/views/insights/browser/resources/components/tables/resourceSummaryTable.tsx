@@ -44,8 +44,8 @@ const {
 type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
+  'epm()': number;
   'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
-  'spm()': number;
   transaction: string;
 };
 
@@ -68,7 +68,7 @@ function ResourceSummaryTable() {
   const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
-      key: 'spm()',
+      key: 'epm()',
       width: COL_WIDTH_UNDEFINED,
       name: getThroughputTitle('http'),
     },
@@ -91,7 +91,7 @@ function ResourceSummaryTable() {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    if (key === 'spm()') {
+    if (key === 'epm()') {
       return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(span.self_time)') {

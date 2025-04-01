@@ -89,7 +89,7 @@ export const useResourcesQuery = ({
         SPAN_OP,
         'count()',
         `avg(${SPAN_SELF_TIME})`,
-        'spm()',
+        'epm()',
         SPAN_GROUP,
         `avg(${HTTP_RESPONSE_CONTENT_LENGTH})`,
         'project.id',
@@ -126,7 +126,7 @@ export const useResourcesQuery = ({
     [SPAN_DESCRIPTION]: row[SPAN_DESCRIPTION]!.toString(),
     ['avg(span.self_time)']: row[`avg(${SPAN_SELF_TIME})`] as number,
     'count()': row['count()'] as number,
-    'spm()': row['spm()'] as number,
+    'epm()': row['epm()'] as number,
     [SPAN_GROUP]: row[SPAN_GROUP]!.toString(),
     [PROJECT_ID]: row[PROJECT_ID] as number,
     [`avg(http.response_content_length)`]: row[

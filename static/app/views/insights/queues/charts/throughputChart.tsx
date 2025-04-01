@@ -41,17 +41,17 @@ export function ThroughputChart({error, destination, referrer}: Props) {
       series={[
         renameDiscoverSeries(
           {
-            ...publishData['spm()'],
+            ...publishData['epm()'],
             color: theme.chart.colors[2][1],
           },
-          'spm() span.op:queue.publish'
+          'epm() span.op:queue.publish'
         ),
         renameDiscoverSeries(
           {
-            ...processData['spm()'],
+            ...processData['epm()'],
             color: theme.chart.colors[2][2],
           },
-          'spm() span.op:queue.process'
+          'epm() span.op:queue.process'
         ),
       ]}
       aliases={FIELD_ALIASES}

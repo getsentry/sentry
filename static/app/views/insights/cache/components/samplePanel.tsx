@@ -113,7 +113,7 @@ export function CacheSamplePanel() {
       {
         search: MutableSearch.fromQueryObject(filters),
         fields: [
-          `${SpanFunction.SPM}()`,
+          `${SpanFunction.EPM}()`,
           `${SpanFunction.CACHE_MISS_RATE}()`,
           `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
           `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
@@ -255,7 +255,7 @@ export function CacheSamplePanel() {
               />
               <MetricReadout
                 title={getThroughputTitle('cache')}
-                value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                value={cacheTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                 unit={RateUnit.PER_MINUTE}
                 isLoading={areCacheTransactionMetricsFetching}
               />

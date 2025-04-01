@@ -40,7 +40,7 @@ describe('throughputChart', () => {
           yAxis: [
             'avg(span.duration)',
             'avg(messaging.message.receive.latency)',
-            'spm()',
+            'epm()',
           ],
           query: 'span.op:queue.process',
         }),
@@ -50,7 +50,7 @@ describe('throughputChart', () => {
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
         query: expect.objectContaining({
-          yAxis: ['avg(span.duration)', 'spm()'],
+          yAxis: ['avg(span.duration)', 'epm()'],
           query: 'span.op:queue.publish',
         }),
       })

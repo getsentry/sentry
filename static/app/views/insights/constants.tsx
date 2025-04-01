@@ -20,12 +20,6 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.SPM]: {
-    desc: t('Spans per minute'),
-    kind: FieldKind.FUNCTION,
-    defaultOutputType: 'number',
-    valueType: FieldValueType.NUMBER,
-  },
   [SpanFunction.TIME_SPENT_PERCENTAGE]: {
     desc: t('Span time spent percentage'),
     defaultOutputType: 'percentage',

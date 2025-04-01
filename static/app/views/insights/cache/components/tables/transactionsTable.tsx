@@ -30,7 +30,7 @@ import {
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 
-const {CACHE_MISS_RATE, SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {CACHE_MISS_RATE, EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 const {TRANSACTION_DURATION} = MetricsFields;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
 
@@ -39,7 +39,7 @@ type Row = Pick<
   | 'project'
   | 'project.id'
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'cache_miss_rate()'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
@@ -49,7 +49,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'transaction'
-  | 'spm()'
+  | 'epm()'
   | 'cache_miss_rate()'
   | 'time_spent_percentage()'
   | 'project'
@@ -74,7 +74,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `${SPM}()`,
+    key: `${EPM}()`,
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -96,7 +96,7 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  `${SPM}()`,
+  `${EPM}()`,
   `${CACHE_MISS_RATE}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
   `avg(${CACHE_ITEM_SIZE})`,
