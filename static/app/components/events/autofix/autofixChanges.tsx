@@ -4,9 +4,9 @@ import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
@@ -39,6 +39,7 @@ type AutofixChangesProps = {
   runId: string;
   step: AutofixChangesStep;
   agentCommentThread?: CommentThread;
+  isChangesFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -426,6 +427,7 @@ export function AutofixChanges({
   previousDefaultStepIndex,
   previousInsightCount,
   agentCommentThread,
+  isChangesFirstAppearance,
 }: AutofixChangesProps) {
   const {data} = useAutofixData({groupId});
   const [isBusy, setIsBusy] = useState(false);
@@ -469,7 +471,7 @@ export function AutofixChanges({
     step.changes.every(change => change.branch_name);
 
   return (
-    <AnimatePresence initial>
+    <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
           <ClippedBox clipHeight={408}>

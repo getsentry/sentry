@@ -1,14 +1,16 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
+import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -38,10 +40,14 @@ export interface InsightsTimeSeriesWidgetProps {
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  height?: string | number;
+  legendSelection?: LegendSelection | undefined;
+  onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   stacked?: boolean;
 }
 
 export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {releases: releasesWithDate} = useReleaseStats(pageFilters.selection);
@@ -62,7 +68,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             : Bars;
 
       return new PlottableDataConstructor(timeSeries, {
-        color: serie.color ?? COMMON_COLORS[timeSeries.field],
+        color: serie.color ?? COMMON_COLORS(theme)[timeSeries.field],
         delay: INGESTION_DELAY,
         stack: props.stacked && props.visualizationType === 'bar' ? 'all' : undefined,
         alias: props.aliases?.[timeSeries.field],
@@ -75,7 +81,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   // TODO: Instead of using `ChartContainer`, enforce the height from the parent layout
   if (props.isLoading) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
@@ -86,7 +92,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
   if (props.error) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<Widget.WidgetError error={props.error} />}
@@ -97,7 +103,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
   if (props.series.filter(Boolean).length === 0) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<Widget.WidgetError error={MISSING_DATA_MESSAGE} />}
@@ -107,7 +113,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   }
 
   return (
-    <ChartContainer>
+    <ChartContainer height={props.height}>
       <Widget
         Title={Title}
         Visualization={
@@ -115,6 +121,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
             {...(organization.features.includes('release-bubbles-ui')
               ? {releases, showReleaseAs: 'bubble'}
               : {})}
+            legendSelection={props.legendSelection}
+            onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
           />
         }
@@ -135,6 +143,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
                         {...visualizationProps}
+                        legendSelection={props.legendSelection}
+                        onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
                       />
                     </ModalChartContainer>
@@ -149,19 +159,21 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   );
 }
 
-const COMMON_COLORS: Record<string, string> = {
-  'spm()': THROUGHPUT_COLOR,
-  'count()': COUNT_COLOR,
-  'avg(span.self_time)': AVG_COLOR,
+const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
+  'epm()': THROUGHPUT_COLOR(theme),
+  'count()': COUNT_COLOR(theme),
+  'avg(span.self_time)': AVG_COLOR(theme),
   'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
   'http_response_rate(4)': HTTP_RESPONSE_4XX_COLOR,
   'http_response_rate(5)': HTTP_RESPONSE_5XX_COLOR,
-  'avg(messaging.message.receive.latency)': CHART_PALETTE[2][1],
-  'avg(span.duration)': CHART_PALETTE[2][2],
-};
+  'avg(messaging.message.receive.latency)': theme.chart.colors[2][1],
+  'avg(span.duration)': theme.chart.colors[2][2],
+});
 
-const ChartContainer = styled('div')`
-  height: 220px;
+const ChartContainer = styled('div')<{height?: string | number}>`
+  min-height: 220px;
+  height: ${p =>
+    p.height ? (typeof p.height === 'string' ? p.height : `${p.height}px`) : '220px'};
 `;
 
 const ModalChartContainer = styled('div')`

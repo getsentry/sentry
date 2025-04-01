@@ -416,6 +416,7 @@ class _ClientConfig:
         return True
 
     def get_context(self) -> Mapping[str, Any]:
+
         return {
             "initialTrace": self.tracing_data,
             "customerDomain": self.customer_domain,

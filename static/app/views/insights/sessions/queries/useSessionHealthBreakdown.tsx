@@ -8,10 +8,11 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
@@ -26,7 +27,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },
@@ -45,10 +46,10 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
 
   // Create a map of status to their data
   const statusData = {
-    healthy: getSessionStatusSeries('healthy', sessionData.groups),
     crashed: getSessionStatusSeries('crashed', sessionData.groups),
     errored: getSessionStatusSeries('errored', sessionData.groups),
     abnormal: getSessionStatusSeries('abnormal', sessionData.groups),
+    healthy: getSessionStatusSeries('healthy', sessionData.groups),
   };
 
   const createDatapoints = (data: number[]) =>

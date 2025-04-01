@@ -26,7 +26,7 @@ import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalD
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
-import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventFeatureFlagList} from 'sentry/components/events/featureFlags/eventFeatureFlagList';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
@@ -73,6 +73,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MetricIssuesSection} from 'sentry/views/issueDetails/metricIssues/metricIssuesSection';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {EventDetails} from 'sentry/views/issueDetails/streamline/eventDetails';
+import {useCopyIssueDetails} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {TraceDataSection} from 'sentry/views/issueDetails/traceDataSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -127,6 +128,8 @@ export function EventDetailsContent({
     organization,
     projectId: project.id,
   });
+
+  useCopyIssueDetails(group, event);
 
   // default to show on error or isPromptDismissed === undefined
   const showFeedback = !isPromptDismissed || promptError || hasStreamlinedUI;
@@ -212,7 +215,6 @@ export function EventDetailsContent({
           organization={organization}
         />
       ) : null}
-
       {!hasStreamlinedUI && group.issueCategory === IssueCategory.UPTIME && (
         <UptimeDataSection event={event} project={project} group={group} />
       )}
@@ -230,7 +232,6 @@ export function EventDetailsContent({
           project={project}
         />
       )}
-
       <EventEvidence event={event} group={group} project={project} />
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
@@ -247,7 +248,8 @@ export function EventDetailsContent({
               !(
                 defined(eventEntries[EntryType.EXCEPTION]) ||
                 defined(eventEntries[EntryType.STACKTRACE]) ||
-                defined(eventEntries[EntryType.THREADS])
+                defined(eventEntries[EntryType.THREADS]) ||
+                hasStreamlinedUI
               )
             }
             // Prevent the container span from shrinking the content
@@ -314,9 +316,9 @@ export function EventDetailsContent({
         >
           {results => {
             return (
-              <QuickTraceContext.Provider value={results}>
+              <QuickTraceContext value={results}>
                 <AnrRootCause event={event} organization={organization} />
-              </QuickTraceContext.Provider>
+              </QuickTraceContext>
             );
           }}
         </QuickTraceQuery>
@@ -405,9 +407,11 @@ export function EventDetailsContent({
         </EntryErrorBoundary>
       )}
       <CombinedBreadcrumbsAndLogsSection event={event} group={group} project={project} />
-      {hasStreamlinedUI && event.contexts.trace?.trace_id && (
-        <EventTraceView group={group} event={event} organization={organization} />
-      )}
+      {hasStreamlinedUI &&
+        event.contexts.trace?.trace_id &&
+        organization.features.includes('performance-view') && (
+          <EventTraceView group={group} event={event} organization={organization} />
+        )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />

@@ -28,6 +28,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.notifications.models.notificationaction import (
@@ -38,8 +39,6 @@ from sentry.notifications.models.notificationaction import (
 from sentry.seer.anomaly_detection.delete_rule import delete_rule_in_seer
 from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
-from sentry.users.services.user import RpcUser
-from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -468,17 +467,25 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         db_table = "sentry_alertruletriggeraction"
 
     @property
-    def target(self) -> RpcUser | Team | str | None:
+    def target(self) -> OrganizationMember | Team | str | None:
         if self.target_identifier is None:
             return None
 
         if self.target_type == self.TargetType.USER.value:
-            return user_service.get_user(user_id=int(self.target_identifier))
+            try:
+                return OrganizationMember.objects.get(
+                    user_id=int(self.target_identifier),
+                    organization=self.alert_rule_trigger.alert_rule.organization_id,
+                )
+            except OrganizationMember.DoesNotExist:
+                pass
+
         elif self.target_type == self.TargetType.TEAM.value:
             try:
                 return Team.objects.get(id=int(self.target_identifier))
             except Team.DoesNotExist:
                 pass
+
         elif self.target_type == self.TargetType.SPECIFIC.value:
             # TODO: This is only for email. We should have a way of validating that it's
             # ok to contact this email.

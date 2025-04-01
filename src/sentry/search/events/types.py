@@ -71,6 +71,8 @@ class EventsMeta(TypedDict):
     isMetricsData: NotRequired[bool]
     isMetricsExtractedData: NotRequired[bool]
     discoverSplitDecision: NotRequired[str]
+    # only returned when debug=True
+    query: NotRequired[dict[str, Any] | str]
 
 
 class EventsResponse(TypedDict):
@@ -83,6 +85,8 @@ class SnubaParams:
     start: datetime | None = None
     end: datetime | None = None
     stats_period: str | None = None
+    # granularity is used with timeseries requests to specifiy bucket size
+    granularity_secs: int | None = None
     # The None value in this sequence is because the filter params could include that
     environments: Sequence[Environment | None] = field(default_factory=list)
     projects: Sequence[Project] = field(default_factory=list)
@@ -139,6 +143,16 @@ class SnubaParams:
         return timestamp
 
     @property
+    def timeseries_granularity_secs(self) -> int:
+        if self.granularity_secs is None:
+            raise InvalidSearchQuery("granularity is required")
+        return self.granularity_secs
+
+    @property
+    def is_timeseries_request(self) -> bool:
+        return self.granularity_secs is not None
+
+    @property
     def date_range(self) -> timedelta:
         return self.end_date - self.start_date
 
@@ -176,10 +190,8 @@ class SnubaParams:
         return [team.id for team in self.teams]
 
     @property
-    def interval(self) -> float | None:
-        if self.start and self.end:
-            return (self.end - self.start).total_seconds()
-        return None
+    def interval(self) -> float:
+        return (self.end_date - self.start_date).total_seconds()
 
     @property
     def organization_id(self) -> int | None:

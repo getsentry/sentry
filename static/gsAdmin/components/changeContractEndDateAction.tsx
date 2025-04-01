@@ -3,14 +3,17 @@ import moment from 'moment-timezone';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
-import DateTimeField from 'sentry/components/deprecatedforms/dateTimeField';
+import {DateTimeField} from 'sentry/components/deprecatedforms/dateTimeField';
 import Form from 'sentry/components/deprecatedforms/form';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 
-class DateField extends DateTimeField {
+class DateFieldNoContext extends DateTimeField {
   getType() {
     return 'date';
   }
 }
+
+const DateField = withFormContext(DateFieldNoContext);
 
 type Props = {
   contractPeriodEnd: string;

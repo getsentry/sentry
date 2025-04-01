@@ -4,11 +4,11 @@ import {space} from 'sentry/styles/space';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/types';
 import {
   getDurationChartTitle,
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsField;
@@ -28,7 +28,7 @@ export function ResourceLandingPageCharts({appliedFilters, extraQuery}: Props) {
   const {data, isPending, error} = useSpanMetricsSeries(
     {
       search: new MutableSearch(query),
-      yAxis: ['spm()', `avg(${SPAN_SELF_TIME})`],
+      yAxis: ['epm()', `avg(${SPAN_SELF_TIME})`],
       transformAliasToInputFormat: true,
     },
     'api.starfish.span-time-charts'
@@ -39,7 +39,7 @@ export function ResourceLandingPageCharts({appliedFilters, extraQuery}: Props) {
       <ChartsContainerItem>
         <InsightsLineChartWidget
           title={getThroughputChartTitle('resource')}
-          series={[data['spm()']]}
+          series={[data['epm()']]}
           isLoading={isPending}
           error={error}
         />

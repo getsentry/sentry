@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -26,14 +25,10 @@ import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sid
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
+import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
-import SolutionsSection from 'sentry/views/issueDetails/streamline/sidebar/solutionsSection';
 
-type Props = {
-  group: Group;
-  project: Project;
-  event?: Event;
-};
+type Props = {group: Group; project: Project; event?: Event};
 
 export default function StreamlinedSidebar({group, event, project}: Props) {
   const theme = useTheme();
@@ -67,15 +62,13 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
       position={isBottomSidebar ? 'top' : 'left-start'}
     >
       <Side>
-        <GuideAnchor target="issue_sidebar_releases" position="left">
-          <FirstLastSeenSection group={group} />
-        </GuideAnchor>
+        <FirstLastSeenSection group={group} />
         <StyledBreak />
         {((organization.features.includes('gen-ai-features') &&
           issueTypeConfig.issueSummary.enabled &&
           !organization.hideAiFeatures) ||
           issueTypeConfig.resources) && (
-          <SolutionsSection group={group} project={project} event={event} />
+          <SeerSection group={group} project={project} event={event} />
         )}
         {event && (
           <ErrorBoundary mini>

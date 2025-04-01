@@ -8,13 +8,13 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector import DetectorEvaluationResult
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.types import DetectorGroupKey, WorkflowJob
+from sentry.workflow_engine.types import DetectorGroupKey, WorkflowEventData
 
 logger = logging.getLogger(__name__)
 
 
-def get_detector_by_event(job: WorkflowJob) -> Detector:
-    evt = job["event"]
+def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
+    evt = event_data.event
     issue_occurrence = evt.occurrence
 
     if issue_occurrence is None:

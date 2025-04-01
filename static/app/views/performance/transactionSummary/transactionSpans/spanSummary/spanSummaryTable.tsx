@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -272,7 +273,8 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   spanOp = '',
-  isTxnDurationDataLoading: boolean
+  isTxnDurationDataLoading: boolean,
+  theme: Theme
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
     const {timestamp, span_id, trace, project} = dataRow;
@@ -334,7 +336,7 @@ function renderBodyCell(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    const rendered = fieldRenderer(dataRow, {location, organization});
+    const rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     return rendered;
   };
@@ -350,7 +352,7 @@ const EmptySpanDurationBar = styled('div')`
   background-color: ${p => p.theme.gray100};
   padding-left: ${space(1)};
 
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-variant-numeric: tabular-nums;
   line-height: 1;

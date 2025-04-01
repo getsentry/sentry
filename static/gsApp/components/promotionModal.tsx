@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -195,9 +195,9 @@ const PromotionModal = withPromotions(
 function PromotionModalWrapper(props: Omit<PromotionModalProps, 'promotionData'>) {
   // provide org context so we can use withPromotions
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <PromotionModal {...props} />
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

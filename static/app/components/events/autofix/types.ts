@@ -75,6 +75,7 @@ export type AutofixData = {
   };
   completed_at?: string | null;
   error_message?: string;
+  feedback?: AutofixFeedback;
   options?: AutofixOptions;
   steps?: AutofixStep[];
   users?: Record<number, User>;
@@ -212,6 +213,13 @@ export type GroupWithAutofix = Group & {
   metadata?: EventMetadataWithAutofix;
 };
 
+export type AutofixFeedback = {
+  root_cause_thumbs_down?: boolean;
+  root_cause_thumbs_up?: boolean;
+  solution_thumbs_down?: boolean;
+  solution_thumbs_up?: boolean;
+};
+
 export type FilePatch = {
   added: number;
   hunks: Hunk[];
@@ -243,4 +251,34 @@ export interface AutofixRepoDefinition {
   name: string;
   owner: string;
   provider: string;
+}
+
+export interface Repository {
+  externalId: string;
+  id: string;
+  name: string;
+  provider?: {
+    id?: string;
+    name?: string;
+  };
+}
+
+export interface RepoSettings {
+  branch: string;
+  instructions: string;
+}
+
+export interface SeerRepoDefinition {
+  external_id: string;
+  name: string;
+  owner: string;
+  provider: string;
+  base_commit_sha?: string;
+  branch_name?: string;
+  instructions?: string;
+  provider_raw?: string;
+}
+
+export interface ProjectPreferences {
+  repositories: SeerRepoDefinition[];
 }

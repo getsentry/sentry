@@ -51,6 +51,15 @@ trace root
 "
 `;
 
+exports[`TraceTree FromTrace swaps only pageload transaction child with parent http.server transaction 1`] = `
+"
+trace root
+  / - pageload
+    /api-1/ - http.server
+    /api-2/ - http.server
+"
+`;
+
 exports[`TraceTree appendTree appends tree to end of current tree 1`] = `
 "
 trace root
@@ -69,19 +78,30 @@ eap trace root
 "
 `;
 
-exports[`TraceTree eap trace correctly renders eap-transactions collapsed state 1`] = `
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 1`] = `
 "
 eap trace root
   span.op - span.description (eap-transaction)
     span.op - span.description (eap-transaction)
+      span.op - span.description (eap-transaction)
 "
 `;
 
-exports[`TraceTree eap trace correctly renders eap-transactions expanded state 1`] = `
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 2`] = `
 "
 eap trace root
   span.op - span.description (eap-transaction)
     span.op - span.description
+      span.op - span.description (eap-transaction)
+        span.op - span.description (eap-transaction)
+"
+`;
+
+exports[`TraceTree eap trace correctly renders eap-transactions toggle state 3`] = `
+"
+eap trace root
+  span.op - span.description (eap-transaction)
+    span.op - span.description (eap-transaction)
       span.op - span.description (eap-transaction)
 "
 `;

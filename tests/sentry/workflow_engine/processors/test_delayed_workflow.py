@@ -9,6 +9,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
@@ -53,7 +54,7 @@ from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     WorkflowDataConditionGroupType,
 )
-from sentry.workflow_engine.types import DataConditionHandler
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -83,10 +84,10 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
 
         self.workflow_group_dcg_mapping = {
-            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[0].id}:{DataConditionHandler.Type.WORKFLOW_TRIGGER}",
-            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[1].id}:{DataConditionHandler.Type.ACTION_FILTER}",
-            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[0].id}:{DataConditionHandler.Type.WORKFLOW_TRIGGER}",
-            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[1].id}:{DataConditionHandler.Type.ACTION_FILTER}",
+            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow1.id}:{self.group1.id}:{self.workflow1_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
+            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow2.id}:{self.group2.id}:{self.workflow2_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
         }
 
         self.event3, self.group3 = self.setup_event(self.project2, self.environment2, "group-3")
@@ -99,41 +100,41 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self._make_sessions(60, project=self.project2)
 
         self.workflow_group_dcg_mapping2 = {
-            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[0].id}:{DataConditionHandler.Type.WORKFLOW_TRIGGER}",
-            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[1].id}:{DataConditionHandler.Type.ACTION_FILTER}",
-            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[0].id}:{DataConditionHandler.Type.WORKFLOW_TRIGGER}",
-            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[1].id}:{DataConditionHandler.Type.ACTION_FILTER}",
+            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow3.id}:{self.group3.id}:{self.workflow3_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
+            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[0].id}:{DataConditionHandler.Group.WORKFLOW_TRIGGER}",
+            f"{self.workflow4.id}:{self.group4.id}:{self.workflow4_dcgs[1].id}:{DataConditionHandler.Group.ACTION_FILTER}",
         }
 
         self.dcg_to_groups: DataConditionGroupGroups = {
             dcg.id: {self.group1.id} for dcg in self.workflow1_dcgs
         } | {dcg.id: {self.group2.id} for dcg in self.workflow2_dcgs}
-        self.trigger_type_to_dcg_model: dict[DataConditionHandler.Type, dict[int, int]] = (
+        self.trigger_group_to_dcg_model: dict[DataConditionHandler.Group, dict[int, int]] = (
             defaultdict(dict)
         )
 
         self.workflow_dcgs = self.workflow1_dcgs + self.workflow2_dcgs
         for i, dcg in enumerate(self.workflow_dcgs):
             handler_type = (
-                DataConditionHandler.Type.WORKFLOW_TRIGGER
+                DataConditionHandler.Group.WORKFLOW_TRIGGER
                 if i % 2 == 0
-                else DataConditionHandler.Type.ACTION_FILTER
+                else DataConditionHandler.Group.ACTION_FILTER
             )
             workflow_id = self.workflow1.id if i < len(self.workflow1_dcgs) else self.workflow2.id
-            self.trigger_type_to_dcg_model[handler_type][dcg.id] = workflow_id
+            self.trigger_group_to_dcg_model[handler_type][dcg.id] = workflow_id
 
         self.detector = Detector.objects.get(project_id=self.project.id, type=ErrorGroupType.slug)
         self.detector_dcg = self.create_data_condition_group()
         self.detector.update(workflow_condition_group=self.detector_dcg)
-        self.trigger_type_to_dcg_model[DataConditionHandler.Type.DETECTOR_TRIGGER][
+        self.trigger_group_to_dcg_model[DataConditionHandler.Group.DETECTOR_TRIGGER][
             self.detector_dcg.id
         ] = self.detector.id
 
-        self.dcg_to_workflow = self.trigger_type_to_dcg_model[
-            DataConditionHandler.Type.WORKFLOW_TRIGGER
+        self.dcg_to_workflow = self.trigger_group_to_dcg_model[
+            DataConditionHandler.Group.WORKFLOW_TRIGGER
         ].copy()
         self.dcg_to_workflow.update(
-            self.trigger_type_to_dcg_model[DataConditionHandler.Type.ACTION_FILTER]
+            self.trigger_group_to_dcg_model[DataConditionHandler.Group.ACTION_FILTER]
         )
 
         self.mock_redis_buffer = mock_redis_buffer()
@@ -207,10 +208,10 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         dcg_ids: list[int],
         event_id: str | None = None,
         occurrence_id: str | None = None,
-        dcg_type: DataConditionHandler.Type = DataConditionHandler.Type.WORKFLOW_TRIGGER,
+        dcg_group: DataConditionHandler.Group = DataConditionHandler.Group.WORKFLOW_TRIGGER,
     ) -> None:
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
-        field = f"{workflow_id}:{group_id}:{','.join(map(str, dcg_ids))}:{dcg_type}"
+        field = f"{workflow_id}:{group_id}:{','.join(map(str, dcg_ids))}:{dcg_group}"
         buffer.backend.push_to_hash(
             model=Workflow,
             filters={"project_id": project_id},
@@ -225,9 +226,9 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
             self.workflow3: (self.project2, self.workflow3_dcgs, self.event3, self.group3),
             self.workflow4: (self.project2, self.workflow4_dcgs, self.event4, self.group4),
         }
-        dcg_type = [
-            DataConditionHandler.Type.WORKFLOW_TRIGGER,
-            DataConditionHandler.Type.ACTION_FILTER,
+        dcg_group = [
+            DataConditionHandler.Group.WORKFLOW_TRIGGER,
+            DataConditionHandler.Group.ACTION_FILTER,
         ]
 
         for workflow, (project, dcgs, event, group) in workflow_to_data.items():
@@ -238,7 +239,7 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
                     group_id=group.id,
                     dcg_ids=[dcg.id],
                     event_id=event.event_id,
-                    dcg_type=dcg_type[i],
+                    dcg_group=dcg_group[i],
                 )
 
 
@@ -269,15 +270,17 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
             self.group1.id,
             [self.detector_dcg.id],
             self.event1.event_id,
-            dcg_type=DataConditionHandler.Type.DETECTOR_TRIGGER,
+            dcg_group=DataConditionHandler.Group.DETECTOR_TRIGGER,
         )
         self.dcg_to_groups[self.detector_dcg.id] = {self.group1.id}
 
         buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
-        dcg_to_groups, trigger_type_to_dcg_model = get_dcg_group_workflow_detector_data(buffer_data)
+        dcg_to_groups, trigger_group_to_dcg_model = get_dcg_group_workflow_detector_data(
+            buffer_data
+        )
 
         assert dcg_to_groups == self.dcg_to_groups
-        assert trigger_type_to_dcg_model == self.trigger_type_to_dcg_model
+        assert trigger_group_to_dcg_model == self.trigger_group_to_dcg_model
 
     def test_fetch_workflows_envs(self):
         workflow_ids_to_workflows, workflows_to_envs = fetch_workflows_envs(
@@ -666,7 +669,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         action1 = self.create_action(
             type=Action.Type.DISCORD,
             integration_id="1234567890",
-            config={"target_identifier": "channel456"},
+            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
             data={"tags": "environment,user,my_tag"},
         )
         self.create_data_condition_group_action(
@@ -680,6 +683,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             config={
                 "target_identifier": "channel789",
                 "target_display": "#general",
+                "target_type": ActionTarget.SPECIFIC,
             },
         )
         self.create_data_condition_group_action(
@@ -720,6 +724,26 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert event_ids == {self.event1.event_id, self.event2.event_id}
         assert occurrence_ids == set()
 
+    def test_parse_dcg_group_event_data__triggered_groups_only(self):
+        # buffer data represents all the data from the buffer
+        # groups_to_dcgs represents that groups that triggered DCGs --> fire actions
+        # the groups in the buffer may not be fired.
+
+        del self.groups_to_dcgs[self.group1.id]
+
+        self._push_base_events()
+        buffer_data = fetch_group_to_event_data(self.project.id, Workflow)
+        dcg_group_to_event_data, event_ids, occurrence_ids = parse_dcg_group_event_data(
+            buffer_data, self.groups_to_dcgs
+        )
+
+        del self.dcg_group_to_event_data[(self.workflow1_dcgs[0].id, self.group1.id)]
+        del self.dcg_group_to_event_data[(self.workflow1_dcgs[1].id, self.group1.id)]
+
+        assert dcg_group_to_event_data == self.dcg_group_to_event_data
+        assert event_ids == {self.event2.event_id}
+        assert occurrence_ids == set()
+
     def test_bulk_fetch_events(self):
         event_ids = [self.event1.event_id, self.event2.event_id]
         events = bulk_fetch_events(event_ids, self.project.id)
@@ -741,16 +765,16 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger):
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent
+            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
         )
 
         assert mock_trigger.call_count == 2
         assert mock_trigger.call_args_list[0][0] == (
-            {"event": self.event1.for_group(self.group1)},
+            WorkflowEventData(event=self.event1.for_group(self.group1)),
             self.detector,
         )
         assert mock_trigger.call_args_list[1][0] == (
-            {"event": self.event2.for_group(self.group2)},
+            WorkflowEventData(event=self.event2.for_group(self.group2)),
             self.detector,
         )
 
@@ -759,7 +783,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         # enqueue the IF DCGs with slow conditions!
 
         fire_actions_for_groups(
-            self.groups_to_dcgs, self.trigger_type_to_dcg_model, self.group_to_groupevent
+            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
         )
 
         assert mock_enqueue.call_count == 2

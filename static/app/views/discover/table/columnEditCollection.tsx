@@ -1,12 +1,12 @@
 import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css} from '@emotion/react';
+import {css, type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -22,7 +22,6 @@ import {
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
-import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
 import type {UserSelectValues} from 'sentry/utils/userselect';
 import {setBodyUserSelect} from 'sentry/utils/userselect';
@@ -45,6 +44,7 @@ type Props = {
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
   organization: Organization;
+  theme: Theme;
   className?: string;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
@@ -92,7 +92,7 @@ class ColumnEditCollection extends Component<Props, State> {
       portal.style.position = 'absolute';
       portal.style.top = '0';
       portal.style.left = '0';
-      portal.style.zIndex = String(theme.zIndex.modal);
+      portal.style.zIndex = String(this.props.theme.zIndex.modal);
 
       this.portal = portal;
 
@@ -789,4 +789,5 @@ const DragAndReorderButton = styled(Button)`
   height: ${p => p.theme.form.md.height};
 `;
 
-export default ColumnEditCollection;
+const ColumnEditCollectionWithTheme = withTheme(ColumnEditCollection);
+export {ColumnEditCollectionWithTheme as ColumnEditCollection};

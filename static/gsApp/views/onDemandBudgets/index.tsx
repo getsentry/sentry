@@ -7,7 +7,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 
@@ -15,6 +15,7 @@ import {openEditCreditCard} from 'getsentry/actionCreators/modal';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {openOnDemandBudgetEditModal} from 'getsentry/views/onDemandBudgets/editOnDemandButton';
@@ -31,17 +32,21 @@ class OnDemandBudgets extends Component<Props> {
     const {subscription} = this.props;
     return (
       <Label>
-        {subscription.planTier === PlanTier.AM3
-          ? t('Pay-as-you-go Budget')
-          : t('On-Demand Budgets')}
+        {tct('[budgetType]', {
+          budgetType: displayBudgetName(subscription.planDetails, {
+            title: true,
+            withBudget: true,
+            pluralOndemand: true,
+          }),
+        })}
         <Tooltip
           title={t(
             `%s you to pay for additional data beyond your subscription's
                 reserved quotas. %s is billed monthly at the end of each usage period.`,
-            subscription.planTier === PlanTier.AM3
+            subscription.planDetails.budgetTerm === 'pay-as-you-go'
               ? 'Pay-as-you-go allows'
               : 'On-Demand budgets allow',
-            subscription.planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-Demand'
+            displayBudgetName(subscription.planDetails, {title: true})
           )}
           skipWrapper
         >
@@ -66,11 +71,9 @@ class OnDemandBudgets extends Component<Props> {
     return (
       <FieldGroup
         label={this.renderLabel()}
-        help={
-          subscription.planTier === PlanTier.AM3
-            ? t('Pay-as-you-go is not supported for your account.')
-            : t('On-Demand is not supported for your account.')
-        }
+        help={tct('[budgetType] is not supported for your account.', {
+          budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+        })}
       >
         <div>
           <LinkButton to={`/settings/${organization.slug}/support/`}>
@@ -84,13 +87,13 @@ class OnDemandBudgets extends Component<Props> {
   renderNeedsPaymentSource() {
     const {organization, subscription} = this.props;
 
-    // Determine the appropriate terminology based on plan tier
-    const preAM3Tiers = [PlanTier.AM1, PlanTier.AM2];
-    const isPreAM3Tier = preAM3Tiers.includes(subscription.planTier as PlanTier);
+    const budgetTerm = subscription.planDetails.budgetTerm;
+    const budgetString =
+      budgetTerm === 'pay-as-you-go' ? 'a pay-as-you-go budget' : 'on-demand budgets';
 
-    const label = isPreAM3Tier
-      ? t("To use on-demand budgets, you'll need a valid credit card on file.")
-      : t("To set a pay-as-you-go budget, you'll need a valid credit card on file.");
+    const label = tct("To set [budgetType], you'll need a valid credit card on file.", {
+      budgetType: budgetString,
+    });
     const action = (
       <div>
         <Button
@@ -179,9 +182,9 @@ class OnDemandBudgets extends Component<Props> {
               openOnDemandBudgetEditModal(this.props);
             }}
           >
-            {subscription.planTier === PlanTier.AM3
-              ? t('Set Up Pay-as-you-go')
-              : t('Set Up On-Demand')}
+            {tct('Set Up [budgetType]', {
+              budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+            })}
           </Button>
         </InlineButtonGroup>
       );
@@ -212,8 +215,9 @@ class OnDemandBudgets extends Component<Props> {
       onDemandBudgets.budgetMode === OnDemandBudgetMode.SHARED &&
       onDemandBudgets.sharedMaxBudget > 0
     ) {
+      const budgetType = subscription.planDetails.budgetTerm;
       description =
-        this.props.subscription.planTier === PlanTier.AM3
+        budgetType === 'pay-as-you-go'
           ? t(
               'Your pay-as-you-go budget is shared among all categories on a first come, first serve basis. There are no restrictions for any single category consuming the entire budget.'
             )
@@ -257,7 +261,7 @@ const Label = styled('div')`
 const DetailTitle = styled('div')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-bottom: ${space(1)};
   white-space: nowrap;
 `;

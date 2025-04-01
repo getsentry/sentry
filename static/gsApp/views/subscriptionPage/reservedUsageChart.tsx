@@ -15,7 +15,6 @@ import {
   SectionValue,
 } from 'sentry/components/charts/styles';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -38,20 +37,22 @@ import {
 } from 'sentry/views/organizationStats/usageChart/utils';
 
 import {GIGABYTE} from 'getsentry/constants';
-import {
-  type BillingMetricHistory,
-  type BillingStat,
-  type BillingStats,
-  type CustomerUsage,
-  type Plan,
-  PlanTier,
-  type ReservedBudgetForCategory,
-  type Subscription,
+import type {
+  BillingMetricHistory,
+  BillingStat,
+  BillingStats,
+  CustomerUsage,
+  Plan,
+  ReservedBudgetForCategory,
+  Subscription,
 } from 'getsentry/types';
-import {formatReservedWithUnits, isUnlimitedReserved} from 'getsentry/utils/billing';
+import {
+  displayBudgetName,
+  formatReservedWithUnits,
+  isUnlimitedReserved,
+} from 'getsentry/utils/billing';
 import {getPlanCategoryName, hasCategoryFeature} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
-import titleCase from 'getsentry/utils/titleCase';
 import {
   calculateCategoryOnDemandUsage,
   calculateCategoryPrepaidUsage,
@@ -76,7 +77,7 @@ export function getCategoryOptions({
 }): CategoryOption[] {
   return USAGE_CHART_OPTIONS_DATACATEGORY.filter(
     opt =>
-      plan.categories.includes(opt.value as DataCategory) &&
+      plan.checkoutCategories.includes(opt.value as DataCategory) &&
       (opt.value === DataCategory.SPANS_INDEXED ? hadCustomDynamicSampling : true)
   );
 }
@@ -100,10 +101,10 @@ interface ReservedUsageChartProps {
 
 function getCategoryColors(theme: Theme) {
   return [
-    theme.outcome.accepted!,
-    theme.outcome.filtered!,
-    theme.outcome.dropped!,
-    theme.chartOther!, // Projected
+    theme.outcome.accepted,
+    theme.outcome.filtered,
+    theme.outcome.dropped,
+    theme.chartOther, // Projected
   ];
 }
 
@@ -361,6 +362,8 @@ export function mapReservedBudgetStatsToChart({
     return chartData;
   }
 
+  let previousReservedForDate = 0;
+  let previousOnDemandForDate = 0;
   Object.entries(statsByDateAndCategory).forEach(([date, statsByCategory]) => {
     let reservedForDate = 0;
     let onDemandForDate = 0;
@@ -408,13 +411,26 @@ export function mapReservedBudgetStatsToChart({
         }
       });
     });
+    // if cumulative and there was no new spend on this date, use the previous date's spend
+    if (
+      reservedForDate === 0 &&
+      isCumulative &&
+      moment(date).isSameOrBefore(moment().toDate())
+    ) {
+      reservedForDate = previousReservedForDate;
+    }
+    if (onDemandForDate === 0 && isCumulative) {
+      onDemandForDate = previousOnDemandForDate;
+    }
     const dateKey = getDateFromMoment(moment(date));
     chartData.reserved!.push({
       value: [dateKey, reservedForDate],
     });
+    previousReservedForDate = reservedForDate;
     chartData.onDemand!.push({
       value: [dateKey, onDemandForDate],
     });
+    previousOnDemandForDate = onDemandForDate;
   });
 
   return chartData;
@@ -672,16 +688,15 @@ function ReservedUsageChart({
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5]![0]!,
+                color: theme.chart.colors[5][0],
               }),
               barSeries({
-                name:
-                  subscription.planTier === PlanTier.AM3 ? 'Pay-as-you-go' : 'On-Demand',
+                name: displayBudgetName(subscription.planDetails, {title: true}),
                 data: chartData.onDemand,
                 barMinHeight: 1,
                 stack: 'usage',
                 legendHoverLink: false,
-                color: CHART_PALETTE[5]![1]!,
+                color: theme.chart.colors[5][1],
               }),
             ]
           : []),
@@ -718,13 +733,12 @@ function ReservedUsageChart({
             ? t('Current Usage Period')
             : t(
                 'Estimated %s Spend This Period',
-                titleCase(
-                  getPlanCategoryName({
-                    plan: subscription.planDetails,
-                    category,
-                    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-                  })
-                )
+                getPlanCategoryName({
+                  plan: subscription.planDetails,
+                  category,
+                  hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                  title: true,
+                })
               )}
         </Title>
       }

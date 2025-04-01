@@ -39,6 +39,10 @@ export interface UseTraceItemDetailsProps {
    */
   referrer: string;
   /**
+   * Every trace item belongs to a trace.
+   */
+  traceId: string;
+  /**
    * The trace item ID representing an EAP trace item.
    */
   traceItemId: string;
@@ -48,10 +52,8 @@ export interface UseTraceItemDetailsProps {
   enabled?: boolean;
 }
 
-export type TraceItemAttributes = Record<string, TraceItemResponseAttribute>;
-
 interface TraceItemDetailsResponse {
-  attributes: TraceItemAttributes;
+  attributes: TraceItemResponseAttribute[];
   itemId: string;
   timestamp: string;
 }
@@ -65,6 +67,7 @@ type TraceItemDetailsUrlParams = {
 type TraceItemDetailsQueryParams = {
   dataset: EAPDataset;
   referrer: string;
+  traceId: string;
 };
 
 export type TraceItemResponseAttribute =
@@ -91,6 +94,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   const queryParams: TraceItemDetailsQueryParams = {
     referrer: props.referrer,
     dataset: props.dataset,
+    traceId: props.traceId,
   };
 
   const result = useApiQuery<TraceItemDetailsResponse>(
@@ -123,6 +127,7 @@ function traceItemDetailsQueryKey({
   const query: Record<string, string | string[]> = {
     dataset: queryParams.dataset,
     referrer: queryParams.referrer,
+    trace_id: queryParams.traceId,
   };
 
   return [
@@ -134,6 +139,7 @@ function traceItemDetailsQueryKey({
 export function usePrefetchTraceItemDetailsOnHover({
   traceItemId,
   projectId,
+  traceId,
   dataset,
   referrer,
   hoverPrefetchDisabled,
@@ -169,6 +175,7 @@ export function usePrefetchTraceItemDetailsOnHover({
             queryParams: {
               dataset,
               referrer,
+              traceId,
             },
           }),
           queryFn: fetchDataQuery,

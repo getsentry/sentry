@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
 import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {
   CrumbContainer,
@@ -23,7 +23,8 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useFocusControl from 'sentry/components/events/useFocusControl';
-import KeyValueData, {
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconSearch} from 'sentry/icons';

@@ -56,7 +56,7 @@ import testVercelApiEndpoint from 'admin/components/testVCApiEndpoints';
 import toggleSpendAllocationModal from 'admin/components/toggleSpendAllocationModal';
 import TrialSubscriptionAction from 'admin/components/trialSubscriptionAction';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import type {Subscription} from 'getsentry/types';
+import type {BillingConfig, Subscription} from 'getsentry/types';
 import {
   hasActiveVCFeature,
   isBizPlanFamily,
@@ -70,6 +70,7 @@ type Props = DeprecatedAsyncComponent['props'] &
   RouteComponentProps<{orgId: string}, unknown>;
 
 type State = DeprecatedAsyncComponent['state'] & {
+  billingConfig: BillingConfig | null;
   data: Subscription | null;
   organization: Organization | null;
 };
@@ -93,6 +94,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
         `/organizations/${this.props.params.orgId}/`,
         {query: {detailed: 0, include_feature_flags: 1}},
       ],
+      ['billingConfig', `/customers/${this.props.params.orgId}/billing-config/?tier=all`],
     ];
   }
 
@@ -123,7 +125,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   get giftCategories() {
     const {data} = this.state;
 
-    if (data === null) {
+    if (data === null || !data.planDetails) {
       return {};
     }
     // Can only gift for checkout categories
@@ -133,13 +135,21 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
         const reserved = data.categories?.[category]?.reserved;
         const isUnlimited = isUnlimitedReserved(reserved);
         const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
+
+        // Check why categories are disabled
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        const categoryNotExists = !data.categories?.[category];
+        const notInCheckoutCategories =
+          !data.planDetails?.checkoutCategories?.includes(category);
+        const notInOnDemandCategories =
+          !data.planDetails?.onDemandCategories?.includes(category);
+
         return [
           category,
           {
             disabled:
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              !data.categories?.[category] ||
-              !data.planDetails.checkoutCategories.includes(category) ||
+              categoryNotExists ||
+              (notInCheckoutCategories && notInOnDemandCategories) ||
               isUnlimited ||
               isReservedBudgetQuota,
             displayName: getPlanCategoryName({
@@ -257,7 +267,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   };
 
   renderBody() {
-    const {data, organization} = this.state;
+    const {data, organization, billingConfig} = this.state;
     const {orgId} = this.props.params;
     const regionMap = ConfigStore.get('regions').reduce(
       (acc: any, region: any) => {
@@ -641,6 +651,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
                 triggerProvisionSubscription({
                   orgId,
                   subscription: data,
+                  billingConfig,
                   canProvisionDsPlan: hasAdminTestFeatures,
                   onSuccess: () => this.reloadData(),
                 }),
@@ -768,9 +779,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             {
               visible: !!data.pendingChanges,
               content: (
-                <OrganizationContext.Provider value={organization}>
+                <OrganizationContext value={organization}>
                   <PendingChanges subscription={data} />
-                </OrganizationContext.Provider>
+                </OrganizationContext>
               ),
             },
             {

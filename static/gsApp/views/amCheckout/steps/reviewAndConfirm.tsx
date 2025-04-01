@@ -219,15 +219,16 @@ function ReviewAndConfirmHeader({
   }
 
   const {effectiveAt} = previewData;
-  const effectiveNow = new Date(effectiveAt).getTime() <= new Date().getTime() + 3600;
+  const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
   let subText;
   if (subscription.isSelfServePartner) {
     subText = tct(
-      'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred pay-as-you-go fees.',
+      'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',
       {
         applyDate: effectiveNow ? 'immediately' : 'on the date above',
         partnerName: subscription.partner?.partnership.displayName,
+        budgetType: subscription.planDetails.budgetTerm,
       }
     );
   } else {

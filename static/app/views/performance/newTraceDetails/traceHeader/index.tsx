@@ -1,11 +1,11 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -23,7 +23,7 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -73,33 +73,31 @@ function FeedbackButton() {
   ) : null;
 }
 
-export function SwitchToNonEAPTraceButton({
-  location,
+export const TRACE_FORMAT_PREFERENCE_KEY = 'trace_format_preference';
+
+export function ToggleTraceFormatButton({
   organization,
 }: {
   location: Location;
   organization: Organization;
 }) {
-  const navigate = useNavigate();
-  const switchToNonEAPTrace = useCallback(() => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        trace_format: 'non-eap',
-      },
-    });
-  }, [location, navigate]);
+  const [storedTraceFormat, setStoredTraceFormat] = useSyncedLocalStorageState(
+    TRACE_FORMAT_PREFERENCE_KEY,
+    'non-eap'
+  );
 
   return (
-    <Feature organization={organization} features="visibility-explore-admin">
+    <Feature organization={organization} features="trace-spans-format">
       <Button
-        disabled={location.query.trace_format === 'non-eap'}
         size="xs"
-        aria-label="non-eap-trace-btn"
-        onClick={switchToNonEAPTrace}
+        aria-label="toggle-trace-format-btn"
+        onClick={() => {
+          setStoredTraceFormat(storedTraceFormat === 'eap' ? 'non-eap' : 'eap');
+        }}
       >
-        {t('Switch to Non-EAP Trace')}
+        {storedTraceFormat === 'eap'
+          ? t('Switch to Non-EAP Trace')
+          : t('Switch to EAP Trace')}
       </Button>
     </Feature>
   );
@@ -123,7 +121,7 @@ function PlaceHolder({organization}: {organization: Organization}) {
             )}
           />
           <ButtonBar gap={1}>
-            <SwitchToNonEAPTraceButton location={location} organization={organization} />
+            <ToggleTraceFormatButton location={location} organization={organization} />
             <FeedbackButton />
           </ButtonBar>
         </HeaderRow>
@@ -286,7 +284,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   const isLoading =
     props.metaResults.status === 'pending' ||
-    props.rootEventResults.isPending ||
+    props.rootEventResults.isLoading ||
     props.tree.type === 'loading';
 
   if (isLoading) {
@@ -308,7 +306,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             )}
           />
           <ButtonBar gap={1}>
-            <SwitchToNonEAPTraceButton
+            <ToggleTraceFormatButton
               location={location}
               organization={props.organization}
             />
@@ -329,22 +327,24 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             representativeTransaction={representativeTransaction}
           />
         </HeaderRow>
-        <StyledBreak />
         {props.rootEventResults.data ? (
-          <HeaderRow>
-            <StyledWrapper>
-              <HighlightsIconSummary event={props.rootEventResults.data} />
-            </StyledWrapper>
-            <ProjectsRendererWrapper>
-              <ProjectsRenderer
-                disableLink
-                onProjectClick={onProjectClick}
-                projectSlugs={projectSlugs}
-                visibleAvatarSize={24}
-                maxVisibleProjects={3}
-              />
-            </ProjectsRendererWrapper>
-          </HeaderRow>
+          <Fragment>
+            <StyledBreak />
+            <HeaderRow>
+              <StyledWrapper>
+                <HighlightsIconSummary event={props.rootEventResults.data} />
+              </StyledWrapper>
+              <ProjectsRendererWrapper>
+                <ProjectsRenderer
+                  disableLink
+                  onProjectClick={onProjectClick}
+                  projectSlugs={projectSlugs}
+                  visibleAvatarSize={24}
+                  maxVisibleProjects={3}
+                />
+              </ProjectsRendererWrapper>
+            </HeaderRow>
+          </Fragment>
         ) : null}
       </HeaderContent>
     </HeaderLayout>

@@ -40,7 +40,6 @@ export function AttachmentsBadge({group}: {group: Group}) {
       <AttachmentButton
         type="button"
         priority="link"
-        size="zero"
         icon={<IconAttachment size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
@@ -58,7 +57,7 @@ export function AttachmentsBadge({group}: {group: Group}) {
 }
 
 const AttachmentButton = styled(LinkButton)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

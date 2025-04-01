@@ -6,7 +6,7 @@ import {
   InvoicedSubscriptionFixture,
   SubscriptionFixture,
 } from 'getsentry-test/fixtures/subscription';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -115,31 +115,31 @@ describe('CustomerOverview', function () {
       categories: {
         errors: MetricHistoryFixture({
           customPrice: 300_000_00,
-          onDemandCpe: 12.345678,
+          paygCpe: 12.345678,
           order: 1,
         }),
         transactions: MetricHistoryFixture({
           category: DataCategory.TRANSACTIONS,
           customPrice: 400_000_00,
-          onDemandCpe: 100,
+          paygCpe: 100,
           order: 2,
         }),
         replays: MetricHistoryFixture({
           category: DataCategory.REPLAYS,
           customPrice: 100_000_00,
-          onDemandCpe: 50,
+          paygCpe: 50,
           order: 4,
         }),
         monitorSeats: MetricHistoryFixture({
           category: DataCategory.MONITOR_SEATS,
           customPrice: 10_000_00,
-          onDemandCpe: 7.55,
+          paygCpe: 7.55,
           order: 7,
         }),
         attachments: MetricHistoryFixture({
           category: DataCategory.ATTACHMENTS,
           customPrice: 150_000_00,
-          onDemandCpe: 20.3,
+          paygCpe: 20.3,
           order: 8,
         }),
       },
@@ -228,6 +228,7 @@ describe('CustomerOverview', function () {
     expect(screen.getByText('XX')).toBeInTheDocument();
     expect(screen.getByText('XX (active)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.getByText('Deactivate Partner')).toBeInTheDocument();
   });
 
   it('render partner details for inactive partner account', function () {
@@ -258,6 +259,50 @@ describe('CustomerOverview', function () {
     expect(screen.queryByText('XX')).not.toBeInTheDocument();
     expect(screen.getByText('XX (migrated)')).toBeInTheDocument();
     expect(screen.getByText('ID: 123')).toBeInTheDocument();
+    expect(screen.queryByText('Deactivate Partner')).not.toBeInTheDocument();
+  });
+
+  it('deactivates partner account with right data', async function () {
+    const organization = OrganizationFixture();
+    const partnerSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am2_business',
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'XX',
+          displayName: 'XX',
+          supportNote: '',
+        },
+        isActive: true,
+      },
+      sponsoredType: 'XX',
+    });
+    const mockApi = MockApiClient.addMockResponse({
+      url: `/customers/${organization.id}/`,
+      method: 'PUT',
+      body: {},
+    });
+
+    render(
+      <CustomerOverview
+        customer={partnerSubscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+    await userEvent.click(screen.getByText('Deactivate Partner'));
+
+    expect(mockApi).toHaveBeenCalledWith(
+      `/customers/${organization.id}/`,
+      expect.objectContaining({
+        method: 'PUT',
+        data: {
+          deactivatePartnerAccount: true,
+        },
+      })
+    );
   });
 
   it('renders reserved budget data', function () {

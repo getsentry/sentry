@@ -213,9 +213,9 @@ function ReservedData({customer}: ReservedDataProps) {
               </DetailLabel>
               {customer.onDemandInvoicedManual && (
                 <DetailLabel title={`Pay-as-you-go Cost-Per-Event ${categoryName}`}>
-                  {typeof categoryHistory.onDemandCpe === 'number'
+                  {typeof categoryHistory.paygCpe === 'number'
                     ? displayPriceWithCents({
-                        cents: categoryHistory.onDemandCpe,
+                        cents: categoryHistory.paygCpe,
                         minimumFractionDigits: 8,
                         maximumFractionDigits: 8,
                       })
@@ -451,11 +451,11 @@ function CustomerOverview({customer, onAction, organization}: Props) {
       )
     : [];
 
-  function updateProductTrialStatus(action: string, category: DataCategory) {
-    const key = action + upperFirst(category);
+  function updateCustomerStatus(action: string, type: string) {
     const data = {
-      [key]: true,
+      [action]: true,
     };
+
     api.request(`/customers/${organization.id}/`, {
       method: 'PUT',
       data,
@@ -463,9 +463,7 @@ function CustomerOverview({customer, onAction, organization}: Props) {
         addSuccessMessage(`${resp.message}`);
       },
       error: (resp: ResponseMeta) => {
-        addErrorMessage(
-          `Error updating product trial status: ${resp.responseJSON?.message}`
-        );
+        addErrorMessage(`Error updating ${type} status: ${resp.responseJSON?.message}`);
       },
     });
   }
@@ -581,7 +579,22 @@ function CustomerOverview({customer, onAction, organization}: Props) {
             {customer.partner ? (
               <Fragment>
                 {customer.partner.partnership.displayName}{' '}
-                {`(${customer.partner.isActive ? 'active' : 'migrated'})`}
+                {customer.partner.isActive ? (
+                  <Fragment>
+                    (active)
+                    <br />
+                    <Button
+                      priority="link"
+                      onClick={() =>
+                        updateCustomerStatus('deactivatePartnerAccount', 'partner')
+                      }
+                    >
+                      Deactivate Partner
+                    </Button>
+                  </Fragment>
+                ) : (
+                  <Fragment>(migrated)</Fragment>
+                )}
                 <br />
                 <small>ID: {customer.partner.externalId}</small>
                 {customer.partner.partnership.id === 'HK' && (
@@ -647,21 +660,36 @@ function CustomerOverview({customer, onAction, organization}: Props) {
                   <DetailLabel key={category} title={categoryName}>
                     <Button
                       priority="link"
-                      onClick={() => updateProductTrialStatus('allowTrial', category)}
+                      onClick={() =>
+                        updateCustomerStatus(
+                          'allowTrial' + upperFirst(category),
+                          'product trial'
+                        )
+                      }
                     >
                       {tct('Allow [categoryName] Trial', {categoryName})}
                     </Button>
                     {' |'}
                     <Button
                       priority="link"
-                      onClick={() => updateProductTrialStatus('startTrial', category)}
+                      onClick={() =>
+                        updateCustomerStatus(
+                          'startTrial' + upperFirst(category),
+                          'product trial'
+                        )
+                      }
                     >
                       {tct('Start [categoryName] Trial', {categoryName})}
                     </Button>
                     {' | '}
                     <Button
                       priority="link"
-                      onClick={() => updateProductTrialStatus('stopTrial', category)}
+                      onClick={() =>
+                        updateCustomerStatus(
+                          'stopTrial' + upperFirst(category),
+                          'product trial'
+                        )
+                      }
                     >
                       {tct('Stop [categoryName] Trial', {categoryName})}
                     </Button>

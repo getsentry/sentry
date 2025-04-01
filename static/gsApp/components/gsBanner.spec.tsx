@@ -312,9 +312,7 @@ describe('GSBanner', function () {
       )
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', {name: /increase reserved limits/i})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /setup on-demand/i})).toBeInTheDocument();
   });
 
   it('shows add quota button for paid plans without active product trial', async function () {
@@ -331,6 +329,7 @@ describe('GSBanner', function () {
         attachments: MetricHistoryFixture({usageExceeded: false}),
         monitorSeats: MetricHistoryFixture({usageExceeded: false}),
         profileDuration: MetricHistoryFixture({usageExceeded: false}),
+        profileDurationUI: MetricHistoryFixture({usageExceeded: false}),
       },
       canSelfServe: true,
       productTrials: [
@@ -349,7 +348,7 @@ describe('GSBanner', function () {
     render(<GSBanner organization={organization} />, {organization});
 
     expect(
-      await screen.findByRole('button', {name: /increase reserved limits/i})
+      await screen.findByRole('button', {name: /setup pay-as-you-go/i})
     ).toBeInTheDocument();
   });
 
@@ -367,6 +366,7 @@ describe('GSBanner', function () {
         attachments: MetricHistoryFixture({usageExceeded: false}),
         monitorSeats: MetricHistoryFixture({usageExceeded: false}),
         profileDuration: MetricHistoryFixture({usageExceeded: false}),
+        profileDurationUI: MetricHistoryFixture({usageExceeded: false}),
       },
       canSelfServe: true,
       productTrials: [
@@ -385,7 +385,7 @@ describe('GSBanner', function () {
     render(<GSBanner organization={organization} />, {organization});
     await act(tick);
     expect(
-      screen.queryByRole('button', {name: /increase reserved limits/i})
+      screen.queryByRole('button', {name: /setup pay-as-you-go/i})
     ).not.toBeInTheDocument();
   });
 
@@ -509,7 +509,7 @@ describe('GSBanner', function () {
     render(<GSBanner organization={organization} />, {organization});
 
     expect(
-      await screen.findByRole('button', {name: /increase reserved limits/i})
+      await screen.findByRole('button', {name: /setup on-demand/i})
     ).toBeInTheDocument();
   });
 
@@ -528,6 +528,7 @@ describe('GSBanner', function () {
         attachments: MetricHistoryFixture({sentUsageWarning: false}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
         profileDuration: MetricHistoryFixture({sentUsageWarning: false}),
+        profileDurationUI: MetricHistoryFixture({sentUsageWarning: false}),
       },
       canSelfServe: true,
       productTrials: [
@@ -546,7 +547,7 @@ describe('GSBanner', function () {
     render(<GSBanner organization={organization} />, {organization});
 
     expect(
-      await screen.findByRole('button', {name: /increase reserved limits/i})
+      await screen.findByRole('button', {name: /setup pay-as-you-go/i})
     ).toBeInTheDocument();
   });
 
@@ -582,7 +583,7 @@ describe('GSBanner', function () {
     render(<GSBanner organization={organization} />, {organization});
     await act(tick);
     expect(
-      screen.queryByRole('button', {name: /increase reserved limits/i})
+      screen.queryByRole('button', {name: /setup pay-as-you-go/i})
     ).not.toBeInTheDocument();
   });
 
@@ -604,7 +605,7 @@ describe('GSBanner', function () {
 
     await act(tick);
     expect(
-      screen.queryByRole('button', {name: /increase reserved limits/i})
+      screen.queryByRole('button', {name: /setup on-demand/i})
     ).not.toBeInTheDocument();
   });
 
@@ -691,7 +692,7 @@ describe('GSBanner', function () {
 
     await act(tick);
     expect(
-      screen.queryByRole('button', {name: /increase reserved limits/i})
+      screen.queryByRole('button', {name: /setup on-demand/i})
     ).not.toBeInTheDocument();
   });
 
@@ -719,7 +720,7 @@ describe('GSBanner', function () {
 
     await act(tick);
     expect(
-      screen.queryByRole('button', {name: /increase reserved limits/i})
+      screen.queryByRole('button', {name: /setup on-demand/i})
     ).not.toBeInTheDocument();
   });
 
@@ -1867,7 +1868,9 @@ describe('GSBanner', function () {
       )
     ).toBeInTheDocument();
 
-    expect(await screen.findByRole('button', {name: 'Update Plan'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Setup On-Demand'})
+    ).toBeInTheDocument();
   });
 
   it('shows specific banner text just for uptime overages', async function () {
@@ -1897,7 +1900,7 @@ describe('GSBanner', function () {
     ).toBeInTheDocument();
 
     expect(
-      await screen.findByRole('button', {name: 'Increase Reserved Limits'})
+      await screen.findByRole('button', {name: 'Setup On-Demand'})
     ).toBeInTheDocument();
   });
 
@@ -2000,7 +2003,7 @@ describe('GSBanner', function () {
 
     await act(tick);
     expect(
-      screen.queryByRole('button', {name: /increase reserved limits/i})
+      screen.queryByRole('button', {name: /setup on-demand/i})
     ).not.toBeInTheDocument();
   });
 
@@ -2026,7 +2029,7 @@ describe('GSBanner', function () {
     render(<GSBanner organization={organization} />, {organization});
 
     expect(
-      await screen.findByRole('button', {name: /increase reserved limits/i})
+      await screen.findByRole('button', {name: /setup on-demand/i})
     ).toBeInTheDocument();
   });
 
@@ -2048,7 +2051,7 @@ describe('GSBanner', function () {
 
     await act(tick);
     expect(
-      screen.queryByRole('button', {name: /increase reserved limits/i})
+      screen.queryByRole('button', {name: /setup on-demand/i})
     ).not.toBeInTheDocument();
   });
 
@@ -2112,11 +2115,12 @@ describe('GSBanner', function () {
     });
     const subscription = SubscriptionFixture({
       organization,
-      plan: 'am1_team',
+      plan: 'am3_team',
       categories: {
         errors: MetricHistoryFixture({sentUsageWarning: false}),
         spans: MetricHistoryFixture({sentUsageWarning: false}),
         profileDuration: MetricHistoryFixture({sentUsageWarning: true}), // Warning sent
+        profileDurationUI: MetricHistoryFixture({sentUsageWarning: false}),
         replays: MetricHistoryFixture({usageExceeded: false}),
         attachments: MetricHistoryFixture({sentUsageWarning: false}),
         monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
@@ -2128,7 +2132,35 @@ describe('GSBanner', function () {
     render(<GSBanner organization={organization} />, {organization});
 
     expect(
-      await screen.findByRole('button', {name: /increase reserved limits/i})
+      await screen.findByRole('button', {name: /setup pay-as-you-go/i})
+    ).toBeInTheDocument();
+  });
+
+  it('shows overage warning banner for profileDurationUI', async function () {
+    const organization = OrganizationFixture({
+      access: ['org:billing'],
+      slug: 'another-slug-1',
+    });
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      categories: {
+        errors: MetricHistoryFixture({sentUsageWarning: false}),
+        spans: MetricHistoryFixture({sentUsageWarning: false}),
+        profileDuration: MetricHistoryFixture({sentUsageWarning: false}),
+        profileDurationUI: MetricHistoryFixture({sentUsageWarning: true}),
+        replays: MetricHistoryFixture({usageExceeded: false}),
+        attachments: MetricHistoryFixture({sentUsageWarning: false}),
+        monitorSeats: MetricHistoryFixture({sentUsageWarning: false}),
+      },
+      canSelfServe: true,
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<GSBanner organization={organization} />, {organization});
+
+    expect(
+      await screen.findByRole('button', {name: /setup pay-as-you-go/i})
     ).toBeInTheDocument();
   });
 });

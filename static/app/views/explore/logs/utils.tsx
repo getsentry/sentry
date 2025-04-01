@@ -22,7 +22,7 @@ import {
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 
-const {warn, fmt} = Sentry._experiment_log;
+const {warn, fmt} = Sentry.logger;
 
 export function getLogSeverityLevel(
   severityNumber: number | null,
@@ -131,12 +131,21 @@ export function logsFieldAlignment(...args: Parameters<typeof fieldAlignment>) {
   return fieldAlignment(...args);
 }
 
-export function removeSentryPrefix(key: string) {
-  return key.replace('sentry.', '');
+export function removePrefixes(key: string) {
+  return key.replace('log.', '').replace('sentry.', '');
+}
+
+export function adjustAliases(key: string) {
+  switch (key) {
+    case OurLogKnownFieldKey.SENTRY_PROJECT_ID:
+      return OurLogKnownFieldKey.PROJECT_ID; // Public alias since int<->string alias reversing is broken. Should be removed in the future.
+    default:
+      return key;
+  }
 }
 
 export function getTableHeaderLabel(field: OurLogFieldKey) {
-  return LogAttributesHumanLabel[field] ?? removeSentryPrefix(field);
+  return LogAttributesHumanLabel[field] ?? removePrefixes(field);
 }
 
 export function isLogAttributeUnit(unit: string | null): unit is LogAttributeUnits {

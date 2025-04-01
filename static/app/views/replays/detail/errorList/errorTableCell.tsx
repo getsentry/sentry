@@ -1,5 +1,5 @@
 import type {ComponentProps, CSSProperties} from 'react';
-import {forwardRef, useMemo} from 'react';
+import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import classNames from 'classnames';
 
@@ -33,120 +33,91 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
   startTimestampMs: number;
   style: CSSProperties;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
-  (
-    {
-      columnIndex,
-      currentHoverTime,
-      currentTime,
-      frame,
-      onMouseEnter,
-      onMouseLeave,
-      onClickTimestamp,
-      sortConfig,
-      startTimestampMs,
-      style,
-    }: Props,
-    ref
-  ) => {
-    const organization = useOrganization();
+const ErrorTableCell = ({
+  columnIndex,
+  currentHoverTime,
+  currentTime,
+  frame,
+  onMouseEnter,
+  onMouseLeave,
+  onClickTimestamp,
+  sortConfig,
+  startTimestampMs,
+  style,
+  ref,
+}: Props) => {
+  const organization = useOrganization();
 
-    const {eventId, groupId, groupShortId, projectSlug} = frame.data;
-    const title = frame.message;
-    const {projects} = useProjects();
-    const project = useMemo(
-      () => projects.find(p => p.slug === projectSlug),
-      [projects, projectSlug]
-    );
+  const {eventId, groupId, groupShortId, projectSlug} = frame.data;
+  const title = frame.message;
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.slug === projectSlug),
+    [projects, projectSlug]
+  );
 
-    const eventUrl =
-      groupId && eventId
-        ? {
-            pathname: normalizeUrl(
-              `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
-            ),
-            query: {
-              referrer: 'replay-errors',
-            },
-          }
-        : null;
+  const eventUrl =
+    groupId && eventId
+      ? {
+          pathname: normalizeUrl(
+            `/organizations/${organization.slug}/issues/${groupId}/events/${eventId}/`
+          ),
+          query: {
+            referrer: 'replay-errors',
+          },
+        }
+      : null;
 
-    const hasOccurred = currentTime >= frame.offsetMs;
-    const isBeforeHover =
-      currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
+  const hasOccurred = currentTime >= frame.offsetMs;
+  const isBeforeHover =
+    currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
-    const isByTimestamp = sortConfig.by === 'timestamp';
-    const isAsc = isByTimestamp ? sortConfig.asc : undefined;
-    const columnProps = {
-      className: classNames({
-        beforeCurrentTime: isByTimestamp
+  const isByTimestamp = sortConfig.by === 'timestamp';
+  const isAsc = isByTimestamp ? sortConfig.asc : undefined;
+  const columnProps = {
+    className: classNames({
+      beforeCurrentTime: isByTimestamp ? (isAsc ? hasOccurred : !hasOccurred) : undefined,
+      afterCurrentTime: isByTimestamp ? (isAsc ? !hasOccurred : hasOccurred) : undefined,
+      beforeHoverTime:
+        isByTimestamp && currentHoverTime !== undefined
           ? isAsc
-            ? hasOccurred
-            : !hasOccurred
+            ? isBeforeHover
+            : !isBeforeHover
           : undefined,
-        afterCurrentTime: isByTimestamp
+      afterHoverTime:
+        isByTimestamp && currentHoverTime !== undefined
           ? isAsc
-            ? !hasOccurred
-            : hasOccurred
+            ? !isBeforeHover
+            : isBeforeHover
           : undefined,
-        beforeHoverTime:
-          isByTimestamp && currentHoverTime !== undefined
-            ? isAsc
-              ? isBeforeHover
-              : !isBeforeHover
-            : undefined,
-        afterHoverTime:
-          isByTimestamp && currentHoverTime !== undefined
-            ? isAsc
-              ? !isBeforeHover
-              : isBeforeHover
-            : undefined,
-      }),
-      hasOccurred: isByTimestamp ? hasOccurred : undefined,
-      onMouseEnter: () => onMouseEnter(frame),
-      onMouseLeave: () => onMouseLeave(frame),
-      ref,
-      style,
-    } as ComponentProps<typeof Cell>;
+    }),
+    hasOccurred: isByTimestamp ? hasOccurred : undefined,
+    onMouseEnter: () => onMouseEnter(frame),
+    onMouseLeave: () => onMouseLeave(frame),
+    ref,
+    style,
+  } as ComponentProps<typeof Cell>;
 
-    const renderFns = [
-      () => (
-        <Cell {...columnProps} numeric align="flex-start">
+  const renderFns = [
+    () => (
+      <Cell {...columnProps} numeric align="flex-start">
+        {eventUrl ? (
+          <Link to={eventUrl}>
+            <Text>{getShortEventId(eventId || '')}</Text>
+          </Link>
+        ) : (
+          <Text>{getShortEventId(eventId || '')}</Text>
+        )}
+      </Cell>
+    ),
+    () => (
+      <Cell {...columnProps}>
+        <Text>
           {eventUrl ? (
             <Link to={eventUrl}>
-              <Text>{getShortEventId(eventId || '')}</Text>
-            </Link>
-          ) : (
-            <Text>{getShortEventId(eventId || '')}</Text>
-          )}
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps}>
-          <Text>
-            {eventUrl ? (
-              <Link to={eventUrl}>
-                <ClassNames>
-                  {({css}) => (
-                    <QuickContextHovercard
-                      dataRow={{
-                        id: eventId,
-                        'project.name': projectSlug,
-                      }}
-                      contextType={ContextType.EVENT}
-                      organization={organization}
-                      containerClassName={css`
-                        display: inline;
-                      `}
-                    >
-                      {title ?? EMPTY_CELL}
-                    </QuickContextHovercard>
-                  )}
-                </ClassNames>
-              </Link>
-            ) : (
               <ClassNames>
                 {({css}) => (
                   <QuickContextHovercard
@@ -164,30 +135,37 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
                   </QuickContextHovercard>
                 )}
               </ClassNames>
-            )}
-          </Text>
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps}>
-          <Text>
-            <AvatarWrapper>
-              <ProjectAvatar project={project!} size={16} />
-            </AvatarWrapper>
-            {eventUrl ? (
-              <Link to={eventUrl}>
+            </Link>
+          ) : (
+            <ClassNames>
+              {({css}) => (
                 <QuickContextHovercard
                   dataRow={{
-                    'issue.id': groupId,
-                    issue: groupShortId,
+                    id: eventId,
+                    'project.name': projectSlug,
                   }}
-                  contextType={ContextType.ISSUE}
+                  contextType={ContextType.EVENT}
                   organization={organization}
+                  containerClassName={css`
+                    display: inline;
+                  `}
                 >
-                  <span>{groupShortId}</span>
+                  {title ?? EMPTY_CELL}
                 </QuickContextHovercard>
-              </Link>
-            ) : (
+              )}
+            </ClassNames>
+          )}
+        </Text>
+      </Cell>
+    ),
+    () => (
+      <Cell {...columnProps}>
+        <Text>
+          <AvatarWrapper>
+            <ProjectAvatar project={project!} size={16} />
+          </AvatarWrapper>
+          {eventUrl ? (
+            <Link to={eventUrl}>
               <QuickContextHovercard
                 dataRow={{
                   'issue.id': groupId,
@@ -198,29 +176,40 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
               >
                 <span>{groupShortId}</span>
               </QuickContextHovercard>
-            )}
-          </Text>
-        </Cell>
-      ),
-      () => (
-        <Cell {...columnProps} numeric>
-          <ButtonWrapper>
-            <TimestampButton
-              precision="sec"
-              onClick={event => {
-                event.stopPropagation();
-                onClickTimestamp(frame);
+            </Link>
+          ) : (
+            <QuickContextHovercard
+              dataRow={{
+                'issue.id': groupId,
+                issue: groupShortId,
               }}
-              startTimestampMs={startTimestampMs}
-              timestampMs={frame.timestampMs}
-            />
-          </ButtonWrapper>
-        </Cell>
-      ),
-    ];
+              contextType={ContextType.ISSUE}
+              organization={organization}
+            >
+              <span>{groupShortId}</span>
+            </QuickContextHovercard>
+          )}
+        </Text>
+      </Cell>
+    ),
+    () => (
+      <Cell {...columnProps} numeric>
+        <ButtonWrapper>
+          <TimestampButton
+            precision="sec"
+            onClick={event => {
+              event.stopPropagation();
+              onClickTimestamp(frame);
+            }}
+            startTimestampMs={startTimestampMs}
+            timestampMs={frame.timestampMs}
+          />
+        </ButtonWrapper>
+      </Cell>
+    ),
+  ];
 
-    return renderFns[columnIndex]!();
-  }
-);
+  return renderFns[columnIndex]!();
+};
 
 export default ErrorTableCell;

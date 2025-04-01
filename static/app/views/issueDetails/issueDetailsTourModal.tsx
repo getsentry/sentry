@@ -1,15 +1,16 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import issueDetailsPreviewImage from 'sentry-images/spot/issue-details-preview.svg';
+import issueDetailsPreviewDark from 'sentry-images/spot/issue-details-preview-dark.png';
+import issueDetailsPreviewLight from 'sentry-images/spot/issue-details-preview-light.png';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {darkTheme} from 'sentry/utils/theme';
 
-interface IssueDetailsTourModalProps extends ModalRenderProps {
+interface IssueDetailsTourModalProps {
   handleDismissTour: () => void;
   handleStartTour: () => void;
 }
@@ -18,18 +19,27 @@ export function IssueDetailsTourModal({
   handleDismissTour,
   handleStartTour,
 }: IssueDetailsTourModalProps) {
+  const config = useLegacyStore(ConfigStore);
+  const prefersDarkMode = config.theme === 'dark';
+
   return (
-    <TourContainer>
-      <ImageContainer />
+    <TourContainer prefersDarkMode={prefersDarkMode}>
+      <ImageContainer prefersDarkMode={prefersDarkMode} />
       <TextContainer>
-        <Header>{t('Welcome to the new Issue Details')}</Header>
-        <Description>{t('Make the most out of the redesigned experience.')}</Description>
+        <Header prefersDarkMode={prefersDarkMode}>
+          {t('Welcome to the new Issue Details')}
+        </Header>
+        <Description>
+          {t(
+            "Have 30 seconds? Tour the redesigned experience - we promise you'll be less confused."
+          )}
+        </Description>
         <Footer>
           <TextTourAction size="sm" onClick={handleDismissTour} borderless>
-            {t('Got it')}
+            {t('Maybe later')}
           </TextTourAction>
           <TourAction size="sm" onClick={handleStartTour} borderless autoFocus>
-            {t('Take a tour')}
+            {t('Take tour')}
           </TourAction>
         </Footer>
       </TextContainer>
@@ -37,22 +47,30 @@ export function IssueDetailsTourModal({
   );
 }
 
-const ImageContainer = styled('div')`
-  width: 100%;
-  height: 226px;
-  background-image: url(${issueDetailsPreviewImage});
+// XXX: The modal is inverted so we use the opposite asset
+const ImageContainer = styled('div')<{prefersDarkMode: boolean}>`
+  width: calc(100% - ${space(1.5)} - ${space(1.5)});
+  margin: ${space(1.5)} auto 0;
+  height: 272px;
+  background-image: ${p =>
+    p.prefersDarkMode
+      ? `url(${issueDetailsPreviewLight})`
+      : `url(${issueDetailsPreviewDark})`};
   background-size: cover;
   background-position: center;
+  border: 1px solid ${p => p.theme.inverted.translucentBorder};
+  border-radius: ${p => p.theme.borderRadius};
+  overflow: hidden;
 `;
 
 // XXX: The negative margin is to undo the global modal styling
-const TourContainer = styled('div')`
+const TourContainer = styled('div')<{prefersDarkMode: boolean}>`
   margin: -${space(4)} -${space(3)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${darkTheme.backgroundElevated};
+  background: ${p => p.theme.tour.background};
   overflow: hidden;
 `;
 
@@ -60,15 +78,16 @@ const TextContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 `;
 
-const Header = styled('div')`
-  color: ${darkTheme.headingColor};
+const Header = styled('div')<{prefersDarkMode: boolean}>`
+  color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${darkTheme.subText};
+  color: ${p => p.theme.tour.text};
+  opacity: 0.8;
 `;
 
 const Footer = styled('div')`
@@ -79,5 +98,5 @@ const Footer = styled('div')`
 `;
 
 export const IssueDetailsTourModalCss = css`
-  width: 436px;
+  width: 545px;
 `;

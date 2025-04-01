@@ -87,6 +87,7 @@ export type Plan = {
   availableCategories: string[];
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
+  budgetTerm: 'pay-as-you-go' | 'on-demand';
   /**
    * Data categories on the plan (errors, transactions, etc.)
    */
@@ -95,9 +96,10 @@ export type Plan = {
   contractInterval: 'monthly' | 'annual';
   description: string;
   features: string[];
-  hasOnDemandModes: boolean;
 
+  hasOnDemandModes: boolean;
   id: string;
+  isTestPlan: boolean;
   maxMembers: number | null;
   name: string;
   onDemandCategories: string[];
@@ -106,8 +108,8 @@ export type Plan = {
     [categoryKey in DataCategories]?: EventBucket[];
   };
   price: number;
-  reservedMinimum: number;
 
+  reservedMinimum: number;
   retentionDays: number;
   totalPrice: number;
   trialPlan: string | null;
@@ -184,7 +186,7 @@ export enum OnDemandBudgetMode {
   PER_CATEGORY = 'per_category',
 }
 
-type SharedOnDemandBudget = {
+export type SharedOnDemandBudget = {
   budgetMode: OnDemandBudgetMode.SHARED;
   sharedMaxBudget: number;
 };
@@ -202,6 +204,8 @@ export type PerCategoryOnDemandBudget = {
   replaysBudget: number;
   transactionsBudget: number;
   monitorSeatsBudget?: number;
+  profileDurationBudget?: number;
+  profileDurationUIBudget?: number;
   uptimeBudget?: number;
 };
 
@@ -638,13 +642,13 @@ export type BillingMetricHistory = {
   customPrice: number | null;
   free: number;
   onDemandBudget: number;
-  onDemandCpe: number | null;
   onDemandQuantity: number;
   onDemandSpendUsed: number;
   /**
    * List order for billing metrics
    */
   order: number;
+  paygCpe: number | null;
   prepaid: number;
   reserved: number | null;
   sentUsageWarning: boolean;
@@ -708,6 +712,7 @@ export enum CreditType {
   SPAN = 'span',
   SPAN_INDEXED = 'spanIndexed',
   PROFILE_DURATION = 'profileDuration',
+  PROFILE_DURATION_UI = 'profileDurationUI',
   ATTACHMENT = 'attachment',
   REPLAY = 'replay',
   MONITOR_SEAT = 'monitorSeat',
@@ -741,6 +746,7 @@ interface RecurringEventCredit extends BaseRecurringCredit {
     | CreditType.TRANSACTION
     | CreditType.SPAN
     | CreditType.PROFILE_DURATION
+    | CreditType.PROFILE_DURATION_UI
     | CreditType.ATTACHMENT
     | CreditType.REPLAY;
 }
@@ -827,6 +833,14 @@ export enum PlanTier {
    * Features and data volumes are tightly coupled.
    */
   MM1 = 'mm1',
+  /**
+   * No specified tier
+   */
+  ALL = 'all',
+  /**
+   * Test plans
+   */
+  TEST = 'test',
 }
 
 // Response from /organizations/:orgSlug/payments/:invoiceId/new/

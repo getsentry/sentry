@@ -38,10 +38,7 @@ const platformOptions = {
         value: InstallationMode.MANUAL,
       },
     ],
-    defaultValue:
-      navigator.userAgent.indexOf('Win') === -1
-        ? InstallationMode.AUTO
-        : InstallationMode.MANUAL,
+    defaultValue: InstallationMode.AUTO,
   },
 } satisfies BasePlatformOptions;
 
@@ -102,7 +99,7 @@ const configureAdditionalInfo = tct(
 const getVerifySnippet = () => `
 child: ElevatedButton(
   onPressed: () {
-    throw Exception('This is test exception');
+    throw StateError('This is test exception');
   },
   child: const Text('Verify Sentry Setup'),
 )

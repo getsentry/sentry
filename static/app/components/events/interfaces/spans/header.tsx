@@ -390,7 +390,6 @@ class TraceViewHeader extends Component<PropType, State> {
                 {({virtualScrollbarRef, scrollBarAreaRef, onDragStart, onScroll}) => {
                   return (
                     <ScrollbarContainer
-                      // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                       ref={this.props.virtualScrollBarContainerRef}
                       style={{
                         // the width of this component is shrunk to compensate for half of the width of the divider line
@@ -403,12 +402,10 @@ class TraceViewHeader extends Component<PropType, State> {
                           width: 0,
                           height: '1px',
                         }}
-                        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                         ref={scrollBarAreaRef}
                       />
                       <VirtualScrollbar
                         data-type="virtual-scrollbar"
-                        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                         ref={virtualScrollbarRef}
                         onMouseDown={onDragStart}
                       >
@@ -473,7 +470,6 @@ class TraceViewHeader extends Component<PropType, State> {
 
           return (
             <HeaderContainer
-              // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
               ref={this.props.traceViewHeaderRef}
               hasProfileMeasurementsChart={hasProfileMeasurementsChart}
               isEmbedded={this.props.isEmbedded}
@@ -520,7 +516,6 @@ class TraceViewHeader extends Component<PropType, State> {
                           showCursorGuide,
                         }) => (
                           <RightSidePane
-                            // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
                             ref={this.props.minimapInteractiveRef}
                             style={{
                               width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
@@ -600,7 +595,10 @@ class ActualMinimap extends PureComponent<{
         case 'span_group_chain': {
           const {span} = payload;
 
-          const spanBarColor: string = pickBarColor(getSpanOperation(span));
+          const spanBarColor: string = pickBarColor(
+            getSpanOperation(span),
+            this.props.theme
+          );
 
           const bounds = generateBounds({
             startTimestamp: span.start_timestamp,
@@ -722,7 +720,7 @@ const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: 10px;
   ${p => p.theme.fontWeightNormal};
   font-variant-numeric: tabular-nums;

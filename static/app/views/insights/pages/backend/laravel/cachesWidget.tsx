@@ -1,19 +1,18 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
+import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
 import {convertSeriesToTimeseries} from 'sentry/views/insights/common/utils/convertSeriesToTimeseries';
 import {
   ModalChartContainer,
@@ -32,6 +31,7 @@ function isCacheHitError(error: RequestError | null) {
   );
 }
 export function CachesWidget({query}: {query?: string}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams();
 
@@ -48,10 +48,11 @@ export function CachesWidget({query}: {query?: string}) {
       {
         query: {
           ...pageFilterChartParams,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
           field: ['transaction', 'project.id', 'cache_miss_rate()', 'count()'],
           query: `span.op:[cache.get_item,cache.get] ${query}`,
           sort: '-cache_miss_rate()',
+          useRpc: 1,
           per_page: 4,
         },
       },
@@ -67,29 +68,32 @@ export function CachesWidget({query}: {query?: string}) {
     }
   );
 
-  const timeSeriesRequest = useSpanMetricsTopNSeries({
-    search: new MutableSearch(
-      // Cannot use transaction:[value1, value2] syntax as
-      // MutableSearch might escape it to transactions:"[value1, value2]" for some values
-      cachesRequest.data?.data
-        .map(item => `transaction:"${item.transaction}"`)
-        .join(' OR ') || ''
-    ),
-    fields: ['transaction', 'cache_miss_rate()'],
-    yAxis: ['cache_miss_rate()'],
-    sorts: [
+  const timeSeriesRequest = useApiQuery<MultiSeriesEventsStats>(
+    [
+      `/organizations/${organization.slug}/events-stats/`,
       {
-        field: 'cache_miss_rate()',
-        kind: 'desc',
+        query: {
+          ...pageFilterChartParams,
+          dataset: 'spans',
+          field: ['transaction', 'cache_miss_rate()'],
+          yAxis: 'cache_miss_rate()',
+          query:
+            cachesRequest.data &&
+            `transaction:[${cachesRequest.data.data
+              .map(item => `"${item.transaction}"`)
+              .join(', ')}]`,
+          sort: '-cache_miss_rate()',
+          useRpc: 1,
+          topEvents: 4,
+        },
       },
     ],
-    topEvents: 4,
-    enabled: !!cachesRequest.data?.data,
-  });
+    {staleTime: 0}
+  );
 
   const timeSeries = useMemo<DiscoverSeries[]>(() => {
     if (
-      (!timeSeriesRequest.data && timeSeriesRequest.meta) ||
+      !timeSeriesRequest.data ||
       // There are no-data cases, for which the endpoint returns a single empty series with meta containing an explanation
       'data' in timeSeriesRequest.data
     ) {
@@ -99,19 +103,23 @@ export function CachesWidget({query}: {query?: string}) {
     return Object.keys(timeSeriesRequest.data).map(key => {
       const seriesData = timeSeriesRequest.data[key]!;
       return {
-        ...seriesData,
+        data: seriesData.data.map(([time, value]) => ({
+          name: new Date(time * 1000).toISOString(),
+          value: value?.[0]?.count || 0,
+        })),
         // TODO(aknaus): useSpanMetricsTopNSeries does not return the meta for the series
+        seriesName: key,
         meta: {
           fields: {
-            [seriesData.seriesName]: 'percentage',
+            [key]: seriesData.meta?.fields['cache_miss_rate()']!,
           },
           units: {
-            [seriesData.seriesName]: '%',
+            [key]: seriesData.meta?.units['cache_miss_rate()']!,
           },
         },
-      };
+      } satisfies DiscoverSeries;
     });
-  }, [timeSeriesRequest.data, timeSeriesRequest.meta]);
+  }, [timeSeriesRequest.data]);
 
   const isLoading = timeSeriesRequest.isLoading || cachesRequest.isLoading;
   const isValidCachesError = !isCacheHitError(cachesRequest.error);
@@ -124,7 +132,7 @@ export function CachesWidget({query}: {query?: string}) {
     cachesRequest.data.data.length > 0 &&
     timeSeries.length > 0;
 
-  const colorPalette = getChartColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
 
   const visualization = (
     <WidgetVisualizationStates

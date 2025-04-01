@@ -14,7 +14,7 @@ export default function AutomationEdit() {
 
   return (
     <SentryDocumentTitle title={t('Edit Automation')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/automations'}}>
+      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
         <ActionsProvider actions={<Actions />}>
           <EditLayout>
             <h2>Edit Automation</h2>

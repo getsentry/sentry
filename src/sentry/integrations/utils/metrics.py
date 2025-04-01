@@ -113,7 +113,7 @@ class EventLifecycle:
         """
         self._extra[name] = value
 
-    def add_extras(self, extras: Mapping[str, int | str]) -> None:
+    def add_extras(self, extras: Mapping[str, Any]) -> None:
         """Add multiple values to logged "extra" data."""
         self._extra.update(extras)
 
@@ -260,7 +260,7 @@ class IntegrationPipelineViewType(StrEnum):
     TOKEN_EXCHANGE = "token_exchange"
 
     # GitHub
-    OAUTH_LOGIN = "oauth_loging"
+    OAUTH_LOGIN = "oauth_login"
     GITHUB_INSTALLATION = "github_installation"
 
     # Bitbucket
@@ -272,6 +272,20 @@ class IntegrationPipelineViewType(StrEnum):
 
     # Azure DevOps
     ACCOUNT_CONFIG = "account_config"
+
+
+class IntegrationPipelineErrorReason(StrEnum):
+    # OAuth identity
+    TOKEN_EXCHANGE_ERROR = "token_exchange_error"
+    TOKEN_EXCHANGE_MISMATCHED_STATE = "token_exchange_mismatched_state"
+
+
+class IntegrationPipelineHaltReason(StrEnum):
+    # OAuth identity
+    NO_CODE_PROVIDED = "no_code_provided"
+
+    # VSTS
+    NO_ACCOUNTS = "no_accounts"
 
 
 @dataclass

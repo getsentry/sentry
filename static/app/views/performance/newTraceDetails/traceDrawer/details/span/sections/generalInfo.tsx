@@ -246,7 +246,11 @@ export function GeneralInfo(props: GeneralnfoProps) {
   items = [...items, ...ancestryAndGroupingItems];
 
   return (
-    <InterimSection title={t('General')} initialCollapse type="trace_transaction_general">
+    <InterimSection
+      title={t('General')}
+      disableCollapsePersistence
+      type="trace_transaction_general"
+    >
       <ContentWrapper>
         {items.map(item => (
           <Content key={item.key} item={item} />
@@ -381,5 +385,5 @@ const DescriptionWrapper = styled('div')`
 `;
 
 const EmptyValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

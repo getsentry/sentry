@@ -23,7 +23,6 @@ import {
 } from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -38,6 +37,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {
+  getANRRateText,
   isPlatformANRCompatible,
   isPlatformForegroundANRCompatible,
 } from 'sentry/views/projectDetail/utils';
@@ -225,7 +225,7 @@ class ProjectCharts extends Component<Props, State> {
       const anrRateOptions = [
         {
           value: DisplayModes.ANR_RATE,
-          label: t('ANR Rate'),
+          label: getANRRateText(project?.platform),
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.ANR_RATE) || !hasSessions,
           tooltip: hasSessions ? undefined : noHealthTooltip,
@@ -353,7 +353,7 @@ class ProjectCharts extends Component<Props, State> {
                   router={router}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[CHART_PALETTE[0][0], theme.purple200]}
+                  colors={[theme.chart.colors[0][0], theme.purple200]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (
@@ -449,8 +449,11 @@ class ProjectCharts extends Component<Props, State> {
               )}
               {hasAnrRateFeature && displayMode === DisplayModes.ANR_RATE && (
                 <ProjectBaseSessionsChart
-                  title={t('ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
+                  title={getANRRateText(project?.platform)}
+                  help={getSessionTermDescription(
+                    SessionTerm.ANR_RATE,
+                    project?.platform || null
+                  )}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}

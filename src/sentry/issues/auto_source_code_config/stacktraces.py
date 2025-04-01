@@ -6,7 +6,7 @@ from typing import Any
 from sentry.db.models.fields.node import NodeData
 from sentry.utils.safe import get_path
 
-from .utils import PlatformConfig
+from .utils.platform import PlatformConfig
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +19,8 @@ def get_frames_to_process(data: NodeData | dict[str, Any], platform: str) -> lis
     for stacktrace in stacktraces:
         frames = stacktrace["frames"] or []
         for frame in frames:
+            if frame is None:
+                continue
 
             if platform_config.creates_in_app_stack_trace_rules():
                 frames_to_process.append(frame)

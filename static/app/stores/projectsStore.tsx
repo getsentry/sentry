@@ -5,7 +5,6 @@ import {Client} from 'sentry/api';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import LatestContextStore from './latestContextStore';
 import type {StrictStoreDefinition} from './types';
 
 type State = {
@@ -33,6 +32,7 @@ interface ProjectsStoreDefinition
   onAddTeam(team: Team, projectSlug: string): void;
   onChangeSlug(prevSlug: string, newSlug: string): void;
   onCreateSuccess(project: Project, orgSlug: string): void;
+  onDeleteProject(projectSlug: string): void;
   onDeleteTeam(slug: string): void;
   onRemoveTeam(teamSlug: string, projectSlug: string): void;
   onStatsLoadSuccess(data: StatsData): void;
@@ -112,8 +112,6 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set([data.id]));
-
-    LatestContextStore.onUpdateProject(newProject);
   },
 
   onStatsLoadSuccess(data) {
@@ -126,6 +124,16 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set(Object.keys(data)));
+  },
+
+  onDeleteProject(projectSlug: string) {
+    const project = this.getBySlug(projectSlug);
+    if (!project) {
+      return;
+    }
+    const newProjects = this.state.projects.filter(p => p.id !== project.id);
+    this.state = {...this.state, projects: newProjects};
+    this.trigger(new Set([project.id]));
   },
 
   /**

@@ -4,13 +4,13 @@ from sentry.constants import LOG_LEVELS_MAP
 from sentry.rules import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.LEVEL)
-class LevelConditionHandler(DataConditionHandler[WorkflowJob]):
-    type = DataConditionHandler.Type.ACTION_FILTER
-    filter_group = DataConditionHandler.FilterGroup.EVENT_ATTRIBUTES
+class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
 
     comparison_json_schema = {
         "type": "object",
@@ -23,8 +23,8 @@ class LevelConditionHandler(DataConditionHandler[WorkflowJob]):
     }
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        event = job["event"]
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        event = event_data.event
         level_name = event.get_tag("level")
         if level_name is None:
             return False

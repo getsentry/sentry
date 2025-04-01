@@ -63,7 +63,7 @@ export function CacheLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
 
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   useSamplesDrawer({
@@ -92,7 +92,7 @@ export function CacheLandingPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(BASE_FILTERS),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
     Referrer.LANDING_CACHE_THROUGHPUT_CHART
@@ -111,7 +111,7 @@ export function CacheLandingPage() {
         'project',
         'project.id',
         'transaction',
-        'spm()',
+        'epm()',
         `${CACHE_MISS_RATE}()`,
         'sum(span.self_time)',
         'time_spent_percentage()',
@@ -202,7 +202,7 @@ export function CacheLandingPage() {
                 <ModuleLayout.Half>
                   <InsightsLineChartWidget
                     title={getThroughputChartTitle('cache.get_item')}
-                    series={[throughputData['spm()']]}
+                    series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />

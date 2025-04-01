@@ -59,7 +59,7 @@ export function DatabaseLandingPage() {
 
   const system = systemQueryParam ?? selectedSystem;
 
-  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
     sort = DEFAULT_SORT;
   }
@@ -107,7 +107,7 @@ export function DatabaseLandingPage() {
         'span.group',
         'span.description',
         'span.action',
-        'spm()',
+        'epm()',
         'avg(span.self_time)',
         'sum(span.self_time)',
         'time_spent_percentage()',
@@ -126,7 +126,7 @@ export function DatabaseLandingPage() {
   } = useSpanMetricsSeries(
     {
       search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
       transformAliasToInputFormat: true,
     },
     'api.starfish.span-landing-page-metrics-chart'
@@ -153,7 +153,7 @@ export function DatabaseLandingPage() {
     durationData[`${selectedAggregate}(span.self_time)`].data?.some(
       ({value}) => value > 0
     ) ||
-    throughputData['spm()'].data?.some(({value}) => value > 0);
+    throughputData['epm()'].data?.some(({value}) => value > 0);
 
   return (
     <React.Fragment>
@@ -180,7 +180,7 @@ export function DatabaseLandingPage() {
                 <ModuleLayout.Half>
                   <InsightsLineChartWidget
                     title={getThroughputChartTitle('db')}
-                    series={[throughputData['spm()']]}
+                    series={[throughputData['epm()']]}
                     isLoading={isThroughputDataLoading}
                     error={throughputError}
                   />

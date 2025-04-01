@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -19,6 +18,11 @@ jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   useIssueDetailsTour: () => mockTour(),
 }));
 
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: () => true,
+}));
+
 describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
@@ -27,9 +31,7 @@ describe('StreamlinedGroupHeader', () => {
     teams: [TeamFixture()],
   });
   const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const router = RouterFixture({
-    location: LocationFixture({query: {streamline: '1'}}),
-  });
+  const router = RouterFixture();
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -93,18 +95,14 @@ describe('StreamlinedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
-
       expect(
-        screen.queryByRole('button', {name: 'Manage issue experience'})
-      ).not.toBeInTheDocument();
+        screen.getByRole('button', {name: 'Manage issue experience'})
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
     });
 
     it('displays new experience button if flag is set', async () => {
-      const flaggedOrganization = OrganizationFixture({
-        features: ['issue-details-streamline'],
-      });
       render(
         <StreamlinedGroupHeader
           {...defaultProps}
@@ -112,10 +110,7 @@ describe('StreamlinedGroupHeader', () => {
           project={project}
           event={null}
         />,
-        {
-          organization: flaggedOrganization,
-          router,
-        }
+        {organization, router}
       );
       expect(
         await screen.findByRole('button', {name: 'Manage issue experience'})

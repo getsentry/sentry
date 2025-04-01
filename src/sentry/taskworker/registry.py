@@ -3,9 +3,11 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
+from concurrent import futures
 from typing import Any
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
+from arroyo.types import BrokerValue
 from arroyo.types import Topic as ArroyoTopic
 from django.conf import settings
 from sentry_protos.taskbroker.v1.taskbroker_pb2 import TaskActivation
@@ -22,6 +24,8 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 
 logger = logging.getLogger(__name__)
 
+ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
+
 
 class TaskNamespace:
     """
@@ -33,25 +37,18 @@ class TaskNamespace:
     def __init__(
         self,
         name: str,
-        topic: Topic,
+        router: TaskRouter,
         retry: Retry | None,
         expires: int | datetime.timedelta | None = None,
         processing_deadline_duration: int = DEFAULT_PROCESSING_DEADLINE,
     ):
         self.name = name
-        self.topic = topic
+        self.router = router
         self.default_retry = retry
         self.default_expires = expires  # seconds
         self.default_processing_deadline_duration = processing_deadline_duration  # seconds
         self._registered_tasks: dict[str, Task[Any, Any]] = {}
-        self._producer: SingletonProducer = SingletonProducer(
-            self._basic_producer, max_futures=1000
-        )
-
-    def _basic_producer(self) -> KafkaProducer:
-        cluster_name = get_topic_definition(self.topic)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        return KafkaProducer(producer_config)
+        self._producers: dict[Topic, SingletonProducer] = {}
 
     def get(self, name: str) -> Task[Any, Any]:
         """
@@ -68,6 +65,10 @@ class TaskNamespace:
         Check if a task name has been registered
         """
         return name in self._registered_tasks
+
+    @property
+    def topic(self) -> Topic:
+        return self.router.route_namespace(self.name)
 
     def register(
         self,
@@ -128,18 +129,47 @@ class TaskNamespace:
 
         return wrapped
 
-    def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
-        metrics.incr("taskworker.registry.send_task", tags={"namespace": activation.namespace})
+    def _handle_produce_future(self, future: ProducerFuture, tags: dict[str, str]) -> None:
+        if future.cancelled():
+            metrics.incr("taskworker.registry.send_task.cancelled", tags=tags)
+        elif future.exception(1):
+            # this does not block since this callback only gets run when the future is finished and exception is set
+            metrics.incr("taskworker.registry.send_task.failed", tags=tags)
+        else:
+            metrics.incr("taskworker.registry.send_task.success", tags=tags)
 
-        produce_future = self._producer.produce(
-            ArroyoTopic(name=self.topic.value),
+    def send_task(self, activation: TaskActivation, wait_for_delivery: bool = False) -> None:
+        topic = self.router.route_namespace(self.name)
+        produce_future = self._producer(topic).produce(
+            ArroyoTopic(name=topic.value),
             KafkaPayload(key=None, value=activation.SerializeToString(), headers=[]),
+        )
+        produce_future.add_done_callback(
+            lambda future: self._handle_produce_future(
+                future=future,
+                tags={
+                    "namespace": activation.namespace,
+                    "taskname": activation.taskname,
+                    "topic": topic.value,
+                },
+            )
         )
         if wait_for_delivery:
             try:
                 produce_future.result(timeout=10)
             except Exception:
                 logger.exception("Failed to wait for delivery")
+
+    def _producer(self, topic: Topic) -> SingletonProducer:
+        if topic not in self._producers:
+
+            def factory() -> KafkaProducer:
+                cluster_name = get_topic_definition(topic)["cluster"]
+                producer_config = get_kafka_producer_cluster_options(cluster_name)
+                return KafkaProducer(producer_config)
+
+            self._producers[topic] = SingletonProducer(factory, max_futures=1000)
+        return self._producers[topic]
 
 
 class TaskRegistry:
@@ -191,10 +221,9 @@ class TaskRegistry:
 
         Namespaces can define default behavior for tasks defined within a namespace.
         """
-        topic = self._router.route_namespace(name)
         namespace = TaskNamespace(
             name=name,
-            topic=topic,
+            router=self._router,
             retry=retry,
             expires=expires,
             processing_deadline_duration=processing_deadline_duration,

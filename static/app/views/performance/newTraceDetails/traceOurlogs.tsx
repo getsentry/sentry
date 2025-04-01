@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {
   LogsPageDataProvider,
   useLogsPageData,
@@ -28,7 +29,11 @@ export function TraceViewLogsDataProvider({
   children,
 }: UseTraceViewLogsDataProps) {
   return (
-    <LogsPageParamsProvider isOnEmbeddedView limitToTraceId={traceSlug}>
+    <LogsPageParamsProvider
+      isOnEmbeddedView
+      limitToTraceId={traceSlug}
+      analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+    >
       <LogsPageDataProvider>{children}</LogsPageDataProvider>
     </LogsPageParamsProvider>
   );
@@ -66,7 +71,7 @@ function LogsSectionContent() {
         onSearch={setLogsQuery}
       />
       <TableContainer>
-        <LogsTable tableData={tableData.logsData} />
+        <LogsTable tableData={tableData.logsData} showHeader={false} />
       </TableContainer>
     </Fragment>
   );

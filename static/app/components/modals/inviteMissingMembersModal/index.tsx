@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Checkbox} from 'sentry/components/core/checkbox';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
@@ -331,8 +331,6 @@ export function InviteMissingMembersModal({
   );
 }
 
-export default InviteMissingMembersModal;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;
@@ -365,7 +363,7 @@ const MemberEmail = styled('div')`
   max-width: 150px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

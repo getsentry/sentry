@@ -8,9 +8,12 @@
  * into the configuration file loaded by the service.
  */
 
-import {discoverCharts} from './discover';
-import {metricAlertCharts} from './metricAlert';
-import {performanceCharts} from './performance';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
+import {lightTheme} from 'sentry/utils/theme/theme';
+
+import {makeDiscoverCharts} from './discover';
+import {makeMetricAlertCharts} from './metricAlert';
+import {makePerformanceCharts} from './performance';
 import type {
   ChartcuterieConfig,
   ChartType,
@@ -37,8 +40,8 @@ const config: ChartcuterieConfig = {
 const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
   renderConfig.set(renderDescriptor.key, renderDescriptor);
 
-discoverCharts.forEach(register);
-metricAlertCharts.forEach(register);
-performanceCharts.forEach(register);
+makeDiscoverCharts(lightTheme).forEach(register);
+makeMetricAlertCharts(lightTheme).forEach(register);
+makePerformanceCharts(lightTheme).forEach(register);
 
 export default config;

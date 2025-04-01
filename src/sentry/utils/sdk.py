@@ -257,6 +257,12 @@ def before_send(event: Event, _: Hint) -> Event | None:
     return event
 
 
+def before_emit_log(log: Any, _: Hint) -> Any:
+    if in_random_rollout("ourlogs.sentry-emit-rollout"):
+        return log
+    return None
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -287,6 +293,8 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
+        before_emit_log=before_emit_log,
+        enable_sentry_logs=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -303,6 +311,10 @@ def configure_sdk():
     Setup and initialize the Sentry SDK.
     """
     sdk_options, dsns = _get_sdk_options()
+    if settings.SPOTLIGHT:
+        sdk_options["spotlight"] = (
+            settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith("http") else True
+        )
 
     internal_project_key = get_project_key()
 
@@ -471,7 +483,7 @@ def configure_sdk():
             # but none are captured as events (that's handled by the `internal`
             # logger defined in `server.py`, which ignores the levels set
             # in the integration and goes straight to the underlying handler class).
-            LoggingIntegration(event_level=None),
+            LoggingIntegration(event_level=None, sentry_logs_level=logging.INFO),
             RustInfoIntegration(),
             RedisIntegration(),
             ThreadingIntegration(propagate_hub=True),
@@ -633,6 +645,9 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
                 )
 
 
+_AMBIGUOUS_ORG_CUTOFF = 50
+
+
 def bind_ambiguous_org_context(
     orgs: Sequence[Organization] | Sequence[RpcOrganization] | list[str], source: str | None = None
 ) -> None:
@@ -654,8 +669,10 @@ def bind_ambiguous_org_context(
     # Right now there is exactly one Integration instance shared by more than 30 orgs (the generic
     # GitLab integration, at the moment shared by ~500 orgs), so 50 should be plenty for all but
     # that one instance
-    if len(orgs) > 50:
-        org_slugs = org_slugs[:49] + [f"... ({len(orgs) - 49} more)"]
+    if len(orgs) > _AMBIGUOUS_ORG_CUTOFF:
+        org_slugs = org_slugs[: _AMBIGUOUS_ORG_CUTOFF - 1] + [
+            f"... ({len(orgs) - (_AMBIGUOUS_ORG_CUTOFF - 1)} more)"
+        ]
 
     scope = Scope.get_isolation_scope()
 

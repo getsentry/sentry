@@ -1,4 +1,5 @@
 import {Component, type ReactNode, useEffect} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -71,6 +72,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  theme: Theme;
   withStaticFilters: boolean;
   columnTitles?: ColumnTitle[];
   domainViewFilters?: DomainViewFilters;
@@ -85,8 +87,8 @@ type State = {
 };
 
 function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
-  const fourteen_days_ago = new Date(+new Date() - 12096e5);
-  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const fourteen_days_ago = new Date(Date.now() - 12096e5);
+  const thirty_days_ago = new Date(Date.now() - 25920e5);
   const firstEventDate = new Date(project?.firstEvent ?? '');
   if (firstEventDate > fourteen_days_ago) {
     return '14d';
@@ -267,6 +269,7 @@ class _Table extends Component<Props, State> {
     const rendered = fieldRenderer(dataRow, {
       organization,
       location,
+      theme: this.props.theme,
       unit: tableMeta.units?.[column.key],
     });
 

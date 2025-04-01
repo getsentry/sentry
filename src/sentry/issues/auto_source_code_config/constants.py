@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 METRIC_PREFIX = "auto_source_code_config"
+DERIVED_ENHANCEMENTS_OPTION_KEY = "sentry:derived_grouping_enhancements"
 SUPPORTED_INTEGRATIONS = ["github"]
 
 # Any new languages should also require updating the stacktraceLink.tsx

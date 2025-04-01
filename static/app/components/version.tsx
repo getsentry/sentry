@@ -5,16 +5,12 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import withOrganization from 'sentry/utils/withOrganization';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type Props = {
-  /**
-   *  Organization injected by withOrganization HOC
-   */
-  organization: Organization;
   /**
    * Raw version (canonical release identifier)
    */
@@ -53,7 +49,6 @@ type Props = {
 
 function Version({
   version,
-  organization,
   anchor = true,
   preservePageFilters,
   tooltipRawVersion,
@@ -64,6 +59,7 @@ function Version({
   className,
 }: Props) {
   const location = useLocation();
+  const organization = useOrganization();
   const versionToDisplay = formatVersion(version, withPackage);
   const theme = useTheme();
 
@@ -80,9 +76,10 @@ function Version({
     if (anchor && organization?.slug) {
       const props = {
         to: {
-          pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-            version
-          )}/`,
+          pathname: makeReleasesPathname({
+            path: `/${encodeURIComponent(version)}/`,
+            organization,
+          }),
           query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
         },
         className,
@@ -184,4 +181,4 @@ const TooltipVersionWrapper = styled('span')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-export default withOrganization(Version);
+export default Version;

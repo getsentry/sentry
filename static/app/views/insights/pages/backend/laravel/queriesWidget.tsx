@@ -1,8 +1,8 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openInsightChartModal} from 'sentry/actionCreators/modal';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {MultiSeriesEventsStats} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -45,6 +45,7 @@ function getSeriesName(item: {'span.group': string; transaction: string}) {
 }
 
 export function QueriesWidget({query}: {query?: string}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const pageFilterChartParams = usePageFilterChartParams({
     granularity: 'spans',
@@ -133,7 +134,7 @@ export function QueriesWidget({query}: {query?: string}) {
   const hasData =
     queriesRequest.data && queriesRequest.data.data.length > 0 && timeSeries.length > 0;
 
-  const colorPalette = getChartColorPalette(timeSeries.length - 2);
+  const colorPalette = theme.chart.getColorPalette(timeSeries.length - 2);
 
   const aliases = Object.fromEntries(
     queriesRequest.data?.data.map(item => [
@@ -228,7 +229,7 @@ export function QueriesWidget({query}: {query?: string}) {
 
 const ControllerText = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1;
   min-width: 0px;

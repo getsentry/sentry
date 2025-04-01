@@ -21,6 +21,7 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import type {CommonSidebarProps} from './types';
@@ -40,6 +41,7 @@ export function OnboardingStatus({
   const {mutate: mutateUserOptions} = useMutateUserOptions();
   const {activateSidebar} = useOnboardingSidebar();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,
@@ -138,7 +140,7 @@ export function OnboardingStatus({
   }
 
   return (
-    <GuideAnchor target="onboarding_sidebar" position="right">
+    <GuideAnchor target="onboarding_sidebar" position="right" disabled={hasStreamlinedUI}>
       <Container
         role="button"
         aria-label={label}
@@ -206,7 +208,7 @@ const Heading = styled('div')`
 const Remaining = styled('div')`
   transition: color 100ms;
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   display: grid;
   grid-template-columns: max-content max-content;
   gap: ${space(0.75)};

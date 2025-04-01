@@ -16,6 +16,7 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
+import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
@@ -31,7 +32,6 @@ from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
-from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -49,13 +49,13 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
+def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: Type | None = None,
+    type: env_types.Type | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -87,7 +87,7 @@ def env(
             rv = default
 
     if type is None:
-        type = type_from_value(default)
+        type = env_types.type_from_value(default)
 
     return type(rv)
 
@@ -97,6 +97,8 @@ _env_cache: dict[str, object] = {}
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
 IS_DEV = ENVIRONMENT == "development"
+SPOTLIGHT_ENV_VAR = os.environ.get("SENTRY_SPOTLIGHT", "")
+SPOTLIGHT = IS_DEV and SPOTLIGHT_ENV_VAR.lower() not in ("0", "false", "n", "no")
 
 DEBUG = IS_DEV
 # override the settings dumped in the debug view
@@ -778,12 +780,12 @@ CELERY_IMPORTS = (
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
-    "sentry.tasks.auth",
+    "sentry.tasks.auth.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_auth",
+    "sentry.tasks.auth.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
@@ -1378,9 +1380,19 @@ BGTASKS = {
     },
 }
 
+#######################
 # Taskworker settings #
-# Shared secret used to sign RPC requests to taskbrokers
-TASKWORKER_SHARED_SECRET: str | None = None
+#######################
+
+# Shared secrets used to sign RPC requests to taskbrokers
+# The first secret is used for signing.
+# Environment variable is expected to be a JSON encoded list
+TASKWORKER_SHARED_SECRET = os.getenv("TASKWORKER_SHARED_SECRET")
+
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+
+# Expected to be a JSON encoded dictionary of namespace:topic
+TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
@@ -1389,8 +1401,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
-TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
-TASKWORKER_ROUTES: dict[str, str] = {}
 
 # Schedules for taskworker tasks to be spawned on.
 TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
@@ -1573,9 +1583,6 @@ SENTRY_DEFAULT_LANGUAGE = "en"
 
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
-
-# Allow access to Sentry without authentication.
-SENTRY_PUBLIC = False
 
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
@@ -1869,7 +1876,6 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT: str | None = None
-SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
 # `organizations:org-ingest-subdomains` feature.
@@ -2641,7 +2647,7 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 #
 # This will allow us to have finer control over where we are running the
 # profiler. For example, only on the web server.
-SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 
 # To have finer control over which process will have continuous profiling enabled,
 # this environment variable will be required to enable continuous profiling.
@@ -3022,7 +3028,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "task-worker": "default",
+    "taskworker": "default",
     "snuba-ourlogs": "default",
 }
 

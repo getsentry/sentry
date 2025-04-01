@@ -67,7 +67,7 @@ function EventMessage({
 
 const LevelMessageContainer = styled('div')`
   display: flex;
-  gap: ${space(1)};
+  gap: ${space(0.5)};
   align-items: center;
   line-height: 1.2;
   overflow: hidden;
@@ -84,7 +84,7 @@ const NoMessage = styled(Message)`
 `;
 
 const ErrorLevelWithMargin = styled(ErrorLevel)<{hasDivider: boolean}>`
-  margin-right: ${p => (p.hasDivider ? 0 : space(0.5))};
+  margin-right: ${p => (p.hasDivider ? 0 : space(0.25))};
 `;
 
 export default EventMessage;
