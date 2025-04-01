@@ -14,7 +14,6 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.logging.handlers import SamplingFilter
@@ -114,72 +113,27 @@ def ingest_recording(message_bytes: bytes) -> None:
                 pass
 
 
-@sentry_sdk.trace
-def track_initial_segment_event(
-    org_id: int,
-    project_id: int,
-    replay_id,
-    key_id: int | None,
-    received: int,
-    is_replay_video: bool,
-) -> None:
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-        return _track_initial_segment_event(
-            org_id, project, replay_id, key_id, received, is_replay_video
-        )
-    except Project.DoesNotExist:
-        logger.warning(
-            "Recording segment was received for a project that does not exist.",
-            extra={
-                "project_id": project_id,
-                "replay_id": replay_id,
-            },
-        )
-        return None
-
-
 def _track_initial_segment_event(
     org_id: int,
     project: Project,
     replay_id,
     key_id: int | None,
     received: int,
-    is_replay_video: bool,
 ) -> None:
     if not project.flags.has_replays:
         first_replay_received.send_robust(project=project, sender=Project)
 
-    # Beta customers will have a 2 months grace period post GA.
-    if should_skip_billing(org_id, is_replay_video):
-        metrics.incr("replays.billing-outcome-skipped")
-        track_outcome(
-            org_id=org_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=datetime.fromtimestamp(received, timezone.utc),
-            event_id=replay_id,
-            category=DataCategory.REPLAY_VIDEO,
-            quantity=1,
-        )
-    else:
-        track_outcome(
-            org_id=org_id,
-            project_id=project.id,
-            key_id=key_id,
-            outcome=Outcome.ACCEPTED,
-            reason=None,
-            timestamp=datetime.fromtimestamp(received, timezone.utc),
-            event_id=replay_id,
-            category=DataCategory.REPLAY,
-            quantity=1,
-        )
-
-
-def should_skip_billing(org_id: int, is_replay_video: bool) -> bool:
-    return is_replay_video and org_id in options.get("replay.replay-video.billing-skip-org-ids")
+    track_outcome(
+        org_id=org_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.fromtimestamp(received, timezone.utc),
+        event_id=replay_id,
+        category=DataCategory.REPLAY,
+        quantity=1,
+    )
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
@@ -329,8 +283,21 @@ def emit_replay_events(
     retention_days: int,
     replay_event: dict[str, Any] | None,
 ) -> None:
+    environment = None
+    if replay_event and replay_event.get("payload"):
+        payload = replay_event["payload"]
+        if isinstance(payload, dict):
+            environment = payload.get("environment")
+        else:
+            environment = json.loads(bytes(payload)).get("environment")
+
     emit_click_events(
-        event_meta.click_events, project.id, replay_id, retention_days, start_time=time.time()
+        event_meta.click_events,
+        project.id,
+        replay_id,
+        retention_days,
+        start_time=time.time(),
+        environment=environment,
     )
     emit_request_response_metrics(event_meta)
     log_canvas_size(event_meta, org_id, project.id, replay_id)
@@ -360,7 +327,6 @@ class ProcessedRecordingMessage:
     actions_event: ParsedEventMeta | None
     filedata: bytes
     filename: str
-    is_replay_video: bool
     key_id: int | None
     org_id: int
     project_id: int
@@ -408,7 +374,6 @@ def process_recording_message(message: RecordingIngestMessage) -> ProcessedRecor
         replay_events,
         filedata,
         filename,
-        is_replay_video=message.replay_video is not None,
         key_id=message.key_id,
         org_id=message.org_id,
         project_id=message.project_id,
@@ -449,7 +414,6 @@ def commit_recording_message(recording: ProcessedRecordingMessage) -> None:
             recording.replay_id,
             recording.key_id,
             recording.received,
-            is_replay_video=recording.is_replay_video,
         )
 
     # Write to replay-event consumer.

@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -12,15 +13,20 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import EventView from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   useExploreDataset,
   useExploreVisualizes,
@@ -28,7 +34,6 @@ import {
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {showConfidence} from 'sentry/views/explore/utils';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -43,6 +48,7 @@ interface ExploreChartsProps {
   confidences: Confidence[];
   query: string;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  isProgressivelyLoading?: boolean;
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
@@ -67,7 +73,9 @@ export function ExploreCharts({
   confidences,
   query,
   timeseriesResult,
+  isProgressivelyLoading,
 }: ExploreChartsProps) {
+  const theme = useTheme();
   const dataset = useExploreDataset();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
@@ -136,10 +144,7 @@ export function ExploreCharts({
 
       const {data, error, loading} = getSeries(dedupedYAxes, formattedYAxes);
 
-      const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(
-        data,
-        isTopN
-      );
+      const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
 
       return {
         chartIcon: <IconGraph type={chartIcon} />,
@@ -152,7 +157,6 @@ export function ExploreCharts({
         loading,
         confidence: confidences[index],
         sampleCount,
-        isSampled,
       };
     });
   }, [confidences, getSeries, visualizes, isTopN]);
@@ -195,6 +199,7 @@ export function ExploreCharts({
                 Title={Title}
                 Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
                 revealActions="always"
+                TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               />
             );
           }
@@ -226,11 +231,19 @@ export function ExploreCharts({
             );
           }
 
+          const DataPlottableConstructor =
+            chartInfo.chartType === ChartType.LINE
+              ? Line
+              : chartInfo.chartType === ChartType.AREA
+                ? Area
+                : Bars;
+
           return (
             <Widget
               key={index}
               height={CHART_HEIGHT}
               Title={Title}
+              TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
               Actions={[
                 <Tooltip
                   key="visualization"
@@ -277,20 +290,21 @@ export function ExploreCharts({
               revealActions="always"
               Visualization={
                 <TimeSeriesWidgetVisualization
-                  dataCompletenessDelay={INGESTION_DELAY}
-                  visualizationType={
-                    chartInfo.chartType === ChartType.AREA
-                      ? 'area'
-                      : chartInfo.chartType === ChartType.LINE
-                        ? 'line'
-                        : 'bar'
-                  }
-                  timeSeries={chartInfo.data}
+                  plottables={chartInfo.data.map(timeSeries => {
+                    return new DataPlottableConstructor(timeSeries, {
+                      delay: INGESTION_DELAY,
+                      color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+                      stack: 'all',
+                    });
+                  })}
+                  legendSelection={{
+                    // disable the 'Other' series by default since its large values can cause the other lines to be insignificant
+                    Other: false,
+                  }}
                 />
               }
               Footer={
-                dataset === DiscoverDatasets.SPANS_EAP_RPC &&
-                showConfidence(chartInfo.isSampled) && (
+                dataset === DiscoverDatasets.SPANS_EAP_RPC && (
                   <ConfidenceFooter
                     sampleCount={chartInfo.sampleCount}
                     confidence={chartInfo.confidence}
@@ -353,7 +367,7 @@ export function useExtrapolationMeta({
 const ChartList = styled('div')`
   display: grid;
   row-gap: ${space(2)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChartLabel = styled('div')`

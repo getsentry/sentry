@@ -1,7 +1,7 @@
-import {forwardRef, useLayoutEffect, useMemo, useRef} from 'react';
+import {useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import {
   SearchQueryBuilderContext,
@@ -102,6 +102,13 @@ export interface SearchQueryBuilderProps {
    */
   onSearch?: (query: string, state: CallbackSearchState) => void;
   placeholder?: string;
+  /**
+   * If provided, will render the combobox popovers into the given element.
+   * This is useful when the search query builder is rendered as a child of an
+   * element that has CSS styling that prevents popovers from overflowing, e.g.
+   * a scrollable container.
+   */
+  portalTarget?: HTMLElement | null;
   queryInterface?: QueryInterfaceType;
   /**
    * If provided, saves and displays recent searches of the given type.
@@ -144,33 +151,36 @@ function SearchIndicator({
   );
 }
 
-const ActionButtons = forwardRef<HTMLDivElement, {trailingItems?: React.ReactNode}>(
-  ({trailingItems = null}, ref) => {
-    const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+function ActionButtons({
+  ref,
+  trailingItems = null,
+}: {trailingItems?: React.ReactNode} & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
 
-    if (disabled) {
-      return null;
-    }
-
-    return (
-      <ButtonsWrapper ref={ref}>
-        {trailingItems}
-        {query === '' ? null : (
-          <ActionButton
-            aria-label={t('Clear search query')}
-            size="zero"
-            icon={<IconClose />}
-            borderless
-            onClick={() => {
-              dispatch({type: 'CLEAR'});
-              handleSearch('');
-            }}
-          />
-        )}
-      </ButtonsWrapper>
-    );
+  if (disabled) {
+    return null;
   }
-);
+
+  return (
+    <ButtonsWrapper ref={ref}>
+      {trailingItems}
+      {query === '' ? null : (
+        <ActionButton
+          aria-label={t('Clear search query')}
+          size="zero"
+          icon={<IconClose />}
+          borderless
+          onClick={() => {
+            dispatch({type: 'CLEAR'});
+            handleSearch('');
+          }}
+        />
+      )}
+    </ButtonsWrapper>
+  );
+}
 
 export function SearchQueryBuilder({
   className,
@@ -197,6 +207,7 @@ export function SearchQueryBuilder({
   showUnsubmittedIndicator,
   trailingItems,
   getFilterTokenWarning,
+  portalTarget,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -270,6 +281,7 @@ export function SearchQueryBuilder({
       recentSearches,
       searchSource,
       size,
+      portalTarget,
     };
   }, [
     state,
@@ -288,10 +300,11 @@ export function SearchQueryBuilder({
     recentSearches,
     searchSource,
     size,
+    portalTarget,
   ]);
 
   return (
-    <SearchQueryBuilderContext.Provider value={contextValue}>
+    <SearchQueryBuilderContext value={contextValue}>
       <Wrapper
         className={className}
         onBlur={() =>
@@ -316,7 +329,7 @@ export function SearchQueryBuilder({
           )}
         </PanelProvider>
       </Wrapper>
-    </SearchQueryBuilderContext.Provider>
+    </SearchQueryBuilderContext>
   );
 }
 

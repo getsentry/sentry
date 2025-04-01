@@ -1,12 +1,11 @@
 import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
-import {css, useTheme} from '@emotion/react';
+import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
-import {useNavContext} from 'sentry/components/nav/context';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
@@ -27,7 +26,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useUser} from 'sentry/utils/useUser';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -53,6 +51,8 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {DashboardsMEPProvider} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {SpanTagsProvider} from 'sentry/views/explore/contexts/spanTagsContext';
+import {useNavContext} from 'sentry/views/nav/context';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
 
 export interface ThresholdMetaState {
@@ -65,7 +65,7 @@ type WidgetBuilderV2Props = {
   dashboardFilters: DashboardFilters;
   isOpen: boolean;
   onClose: () => void;
-  onSave: ({index, widget}: {index: number; widget: Widget}) => void;
+  onSave: ({index, widget}: {index: number | undefined; widget: Widget}) => void;
   openWidgetTemplates: boolean;
   setOpenWidgetTemplates: (openWidgetTemplates: boolean) => void;
 };
@@ -84,7 +84,6 @@ function WidgetBuilderV2({
 
   const [queryConditionsValid, setQueryConditionsValid] = useState<boolean>(true);
   const theme = useTheme();
-  const user = useUser();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
@@ -98,11 +97,9 @@ function WidgetBuilderV2({
   const {navParentRef} = useNavContext();
   // Check if we have a valid nav reference
   const hasValidNav = Boolean(navParentRef?.current);
+  const prefersStackedNav = usePrefersStackedNav();
 
-  const hasNewNav =
-    hasValidNav &&
-    organization.features.includes('navigation-sidebar-v2') &&
-    user.options.prefersStackedNavigation;
+  const hasNewNav = hasValidNav && prefersStackedNav;
 
   const dimensions = useDimensions({elementRef: navParentRef});
 
@@ -151,6 +148,13 @@ function WidgetBuilderV2({
     <Fragment>
       {isOpen && (
         <Fragment>
+          <Global
+            styles={css`
+              body {
+                overflow: hidden;
+              }
+            `}
+          />
           <Backdrop style={{opacity: 0.5, pointerEvents: 'auto'}} />
           <AnimatePresence>
             {isOpen && (
@@ -272,8 +276,8 @@ export function WidgetPreviewContainer({
     transform: isDragEnabled
       ? `translate3d(${isDragging ? translate?.x : 0}px, ${isDragging ? translate?.y : 0}px, 0)`
       : undefined,
-    top: isDragEnabled ? top ?? 0 : undefined,
-    left: isDragEnabled ? left ?? 0 : undefined,
+    top: isDragEnabled ? (top ?? 0) : undefined,
+    left: isDragEnabled ? (left ?? 0) : undefined,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragEnabled
       ? theme.zIndex.modal

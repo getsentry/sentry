@@ -7,9 +7,9 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     ON_ATTEMPTS_EXCEEDED_DISCARD,
 )
 
-from sentry.conf.types.kafka_definition import Topic
 from sentry.taskworker.registry import TaskNamespace
 from sentry.taskworker.retry import LastAction, Retry, RetryError
+from sentry.taskworker.router import DefaultRouter
 from sentry.taskworker.task import Task
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.utils import json
@@ -21,7 +21,7 @@ def do_things() -> None:
 
 @pytest.fixture
 def task_namespace() -> TaskNamespace:
-    return TaskNamespace(name="tests", topic=Topic.TASK_WORKER, retry=None)
+    return TaskNamespace(name="tests", router=DefaultRouter(), retry=None)
 
 
 def test_define_task_defaults(task_namespace: TaskNamespace) -> None:
@@ -63,7 +63,7 @@ def test_delay_taskrunner_immediate_mode(task_namespace: TaskNamespace) -> None:
     # This emulates the behavior we have with celery.
     with TaskRunner():
         task.delay("arg", org_id=1)
-        task.apply_async("arg2", org_id=2)
+        task.apply_async(args=["arg2"], kwargs={"org_id": 2})
 
     assert len(calls) == 2
     assert calls[0] == {"args": ("arg",), "kwargs": {"org_id": 1}}

@@ -1,10 +1,11 @@
 import {Fragment, useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
@@ -51,7 +52,7 @@ import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerforma
 
 import {OpsDot} from '../../opsBreakdown';
 
-import * as SpanEntryContext from './context';
+import {SpanEntryContext} from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
@@ -102,6 +103,7 @@ type Props = {
 };
 
 function SpanDetail(props: Props) {
+  const theme = useTheme();
   const [errorsOpened, setErrorsOpened] = useState(false);
   const location = useLocation();
   const profileId = props.event.contexts.profile?.profile_id;
@@ -435,7 +437,7 @@ function SpanDetail(props: Props) {
       value => value === 0
     );
 
-    const timingKeys = getSpanSubTimings(span) ?? [];
+    const timingKeys = getSpanSubTimings(span, theme) ?? [];
 
     return (
       <Fragment>
@@ -527,12 +529,12 @@ function SpanDetail(props: Props) {
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
               <Row title="Origin">
-                {span.origin !== undefined ? String(span.origin) : null}
+                {span.origin === undefined ? null : String(span.origin)}
               </Row>
               <Row title="Same Process as Parent">
-                {span.same_process_as_parent !== undefined
-                  ? String(span.same_process_as_parent)
-                  : null}
+                {span.same_process_as_parent === undefined
+                  ? null
+                  : String(span.same_process_as_parent)}
               </Row>
               <Row title="Span Group">
                 {defined(span.hash) ? String(span.hash) : null}
@@ -571,11 +573,11 @@ function SpanDetail(props: Props) {
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
-                !isHiddenDataKey(key) ? (
+                isHiddenDataKey(key) ? null : (
                   <Row title={key} key={key}>
                     {maybeStringify(value)}
                   </Row>
-                ) : null
+                )
               )}
               {unknownKeys.map(key => (
                 <Row title={key} key={key}>
@@ -679,10 +681,10 @@ export function Row({
   extra = null,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
 }) {
   if (!keep && !children) {
     return null;

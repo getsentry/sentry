@@ -1,6 +1,6 @@
+import type {Theme} from '@emotion/react';
 import Color from 'color';
 
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -44,7 +44,7 @@ export function transformReleaseEvents({
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedReleaseEvents[YAXIS_COLUMNS[val]][release] = {
         seriesName: release,
-        data: Array(topTransactions.length).fill(0),
+        data: new Array(topTransactions.length).fill(0),
       };
     });
   });
@@ -81,7 +81,9 @@ export function transformDeviceClassEvents({
   primaryRelease,
   secondaryRelease,
   data,
+  theme,
 }: {
+  theme: Theme;
   yAxes: YAxis[];
   data?: TableData;
   primaryRelease?: string;
@@ -103,14 +105,14 @@ export function transformDeviceClassEvents({
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedData[YAXIS_COLUMNS[val]][primaryRelease] = {
         seriesName: primaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
+        data: new Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
       };
     }
     if (secondaryRelease) {
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       transformedData[YAXIS_COLUMNS[val]][secondaryRelease] = {
         seriesName: secondaryRelease,
-        data: Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
+        data: new Array(['high', 'medium', 'low', 'Unknown'].length).fill(0),
       };
     }
   });
@@ -134,7 +136,7 @@ export function transformDeviceClassEvents({
             name: deviceClass,
             value: row[YAXIS_COLUMNS[val]],
             itemStyle: {
-              color: isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1],
+              color: isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1],
             },
           } as SeriesDataUnit;
         }

@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -49,7 +49,7 @@ import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles'
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import type {TraceInfo} from './types';
-import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
+import {getTraceInfo, hasTraceData, isRootEvent} from './utils';
 
 type IndexedFusedTransaction = {
   event: TraceFullDetailed | TraceError;
@@ -276,7 +276,7 @@ class TraceDetailsContent extends Component<Props, State> {
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
-        if (isRootTransaction(trace)) {
+        if (isRootEvent(trace)) {
           counts.roots++;
         } else {
           counts.orphans++;

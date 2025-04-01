@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -28,14 +29,14 @@ type Row = Pick<
   | 'span.description'
   | 'span.group'
   | 'span.action'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
   | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
-  'span.description' | 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
+  'span.description' | 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -45,7 +46,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Queries')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -61,10 +62,10 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const SORTABLE_FIELDS = ['avg(span.self_time)', 'spm()', 'time_spent_percentage()'];
+const SORTABLE_FIELDS = ['avg(span.self_time)', 'epm()', 'time_spent_percentage()'];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
+  field: 'epm()' | 'avg(span.self_time)' | 'time_spent_percentage()';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
@@ -88,6 +89,7 @@ export function QueriesTable({response, sort, system}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     navigate({
@@ -122,7 +124,7 @@ export function QueriesTable({response, sort, system}: Props) {
               sortParameterName: QueryParameterNames.SPANS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, system),
+            renderBodyCell(column, row, meta, location, organization, theme, system),
         }}
       />
       <Pagination
@@ -146,6 +148,7 @@ function renderBodyCell(
   meta: EventsMetaType | undefined,
   location: Location,
   organization: Organization,
+  theme: Theme,
   system?: string
 ) {
   if (column.key === 'span.description') {
@@ -171,6 +174,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 
   return rendered;

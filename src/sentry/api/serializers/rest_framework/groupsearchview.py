@@ -2,6 +2,10 @@ from typing import Any, NotRequired, TypedDict
 
 from rest_framework import serializers
 
+from sentry import features
+from sentry.api.serializers.rest_framework import ValidationError
+from sentry.models.groupsearchview import GroupSearchViewVisibility
+from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
 MAX_VIEWS = 50
@@ -13,10 +17,10 @@ class GroupSearchViewValidatorResponse(TypedDict):
     query: str
     querySort: SORT_LITERALS
     position: int
-    projects: NotRequired[list[int]]
+    projects: list[int]
     isAllProjects: NotRequired[bool]
-    environments: NotRequired[list[str]]
-    timeFilters: NotRequired[dict[str, Any]]
+    environments: list[str]
+    timeFilters: dict[str, Any]
     dateCreated: str | None
     dateUpdated: str | None
 
@@ -26,22 +30,40 @@ class ViewValidator(serializers.Serializer):
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, allow_blank=True)
     querySort = serializers.ChoiceField(
-        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+        required=False, choices=SortOptions.as_choices(), default=SortOptions.DATE
     )
-    # TODO(msun): Once frontend is updated, make these fields required
-    projects = serializers.ListField(required=False, allow_empty=True)
-    environments = serializers.ListField(required=False, allow_empty=True)
-    timeFilters = serializers.DictField(
-        required=False,
-        allow_empty=True,
-    )
-    isAllProjects = serializers.BooleanField(required=False)
 
-    def validate_timeFilters(self, value):
-        # Replace empty dict or None with default time filter
-        if not value:
-            return {"period": "14d"}
+    projects = serializers.ListField(required=True, allow_empty=True)
+    environments = serializers.ListField(required=True, allow_empty=True)
+    timeFilters = serializers.DictField(required=True, allow_empty=False)
+
+    def validate_projects(self, value):
+        if not features.has("organizations:global-views", self.context["organization"]) and (
+            value == [-1] or value == [] or len(value) > 1
+        ):
+            raise ValidationError(detail="You do not have the multi project stream feature enabled")
+
+        if value != [-1]:
+            project_ids = set(value)
+            existing_project_ids = set(
+                Project.objects.filter(
+                    id__in=project_ids,
+                    organization=self.context["organization"],
+                ).values_list("id", flat=True)
+            )
+
+            if project_ids != existing_project_ids:
+                raise ValidationError(detail="One or more projects do not exist")
+
         return value
+
+    def validate(self, data) -> GroupSearchViewValidatorResponse:
+        if data["projects"] == [-1]:
+            data["projects"] = []
+            data["isAllProjects"] = True
+        else:
+            data["isAllProjects"] = False
+        return data
 
 
 class GroupSearchViewValidator(serializers.Serializer):
@@ -51,3 +73,30 @@ class GroupSearchViewValidator(serializers.Serializer):
 
     def validate(self, data):
         return data
+
+
+class GroupSearchViewPostValidator(ViewValidator):
+    starred = serializers.BooleanField(required=False)
+
+    def validate(self, data):
+        return super().validate(data)
+
+
+class GroupSearchViewDetailsPutValidator(ViewValidator):
+    visibility = serializers.ChoiceField(
+        required=False, choices=GroupSearchViewVisibility.as_choices()
+    )
+
+    def validate_visibility(self, value):
+        has_share_access = (
+            self.context["access"].has_scope("team:admin")
+            or self.context["access"].has_scope("org:admin")
+            or self.context["access"].has_scope("org:owner")
+        )
+
+        if value == GroupSearchViewVisibility.ORGANIZATION and not has_share_access:
+            raise ValidationError(detail="You do not have permission to share this view")
+        return value
+
+    def validate(self, data):
+        return super().validate(data)

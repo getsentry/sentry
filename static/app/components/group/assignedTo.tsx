@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -6,9 +7,9 @@ import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import AssigneeSelectorDropdown from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import {
   type OnAssignCallback,
   useHandleAssigneeChange,
@@ -33,7 +34,6 @@ import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
-
 /**
  * example: codeowners:/issues -> [['codeowners', '/issues']]
  */
@@ -200,6 +200,7 @@ function AssignedTo({
   onAssign,
   disableDropdown = false,
 }: AssignedToProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const api = useApi();
   const {data: eventOwners} = useIssueEventOwners({
@@ -278,6 +279,7 @@ function AssignedTo({
                   organization,
                   issueId: group.id,
                   eventData: event!,
+                  theme,
                 });
               }}
               aria-label={t('Create Ownership Rule')}

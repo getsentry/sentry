@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -127,13 +127,13 @@ function ProjectStabilityScoreCard(props: Props) {
   const {crashFreeRate, previousCrashFreeRate, isLoading, error, refetch} =
     useCrashFreeRate(props);
 
-  const score = !crashFreeRate
-    ? undefined
-    : crashFreeRate?.groups[0]?.totals[props.field]! * 100;
+  const score = crashFreeRate
+    ? crashFreeRate?.groups[0]?.totals[props.field]! * 100
+    : undefined;
 
-  const previousScore = !previousCrashFreeRate
-    ? undefined
-    : previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100;
+  const previousScore = previousCrashFreeRate
+    ? previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100
+    : undefined;
 
   if (hasSessions === false) {
     return (
@@ -195,12 +195,8 @@ function ProjectStabilityScoreCard(props: Props) {
           value={score / 100}
           previousPeriodValue={previousScore ? previousScore / 100 : undefined}
           field={`${props.field}()`}
-          meta={{
-            fields: {
-              [`${props.field}()`]: 'percentage',
-            },
-            units: {},
-          }}
+          type="percentage"
+          unit={null}
           preferredPolarity="+"
         />
       }

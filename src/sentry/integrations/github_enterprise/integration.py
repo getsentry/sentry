@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 from urllib.parse import urlparse
 
@@ -14,6 +14,7 @@ from sentry import http
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatureNotImplementedError,
     IntegrationFeatures,
     IntegrationMetadata,
@@ -26,7 +27,7 @@ from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
@@ -174,7 +175,10 @@ class GitHubEnterpriseIntegration(
 
     def message_from_error(self, exc):
         if isinstance(exc, ApiError):
-            message = API_ERRORS.get(exc.code)
+            if exc.code is None:
+                message = None
+            else:
+                message = API_ERRORS.get(exc.code)
             if message is None:
                 message = exc.json.get("message", "unknown error") if exc.json else "unknown error"
             return f"Error Communicating with GitHub Enterprise (HTTP {exc.code}): {message}"
@@ -393,12 +397,13 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         pass
 
-    def get_installation_info(self, installation_data, access_token, installation_id):
+    def _get_ghe_installation_info(self, installation_data, access_token, installation_id):
         headers = {
             # TODO(jess): remove this whenever it's out of preview
             "Accept": "application/vnd.github.machine-man-preview+json",
@@ -438,16 +443,16 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
 
         return None
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         identity = state["identity"]["data"]
         installation_data = state["installation_data"]
         user = get_user_info(installation_data["url"], identity["access_token"])
-        installation = self.get_installation_info(
+        installation = self._get_ghe_installation_info(
             installation_data, identity["access_token"], state["installation_id"]
         )
 
         domain = urlparse(installation["account"]["html_url"]).netloc
-        integration = {
+        return {
             "name": installation["account"]["login"],
             # installation id is not enough to be unique for self-hosted GH
             "external_id": "{}:{}".format(domain, installation["id"]),
@@ -473,8 +478,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             },
             "idp_config": state["oauth_config_information"],
         }
-
-        return integration
 
     def setup(self):
         from sentry.plugins.base import bindings

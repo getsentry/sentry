@@ -150,23 +150,22 @@ describe('formatUsageWithUnits', function () {
     ).toBe('1.23 TB');
   });
 
-  it('should format profile duration correctly', function () {
+  it('should format continuous profiling correctly', function () {
     const hourInMs = 1000 * 60 * 60;
-    expect(formatUsageWithUnits(0, DATA_CATEGORY_INFO.profileDuration.plural)).toBe('0');
-    expect(
-      formatUsageWithUnits(7.6 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
-    ).toBe('7.6');
-    expect(
-      formatUsageWithUnits(hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
-    ).toBe('1');
-    expect(
-      formatUsageWithUnits(24 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
-    ).toBe('24');
+    [
+      DATA_CATEGORY_INFO.profileDuration.plural,
+      DATA_CATEGORY_INFO.profileDurationUI.plural,
+    ].forEach(dataCategory => {
+      expect(formatUsageWithUnits(0, dataCategory)).toBe('0');
+      expect(formatUsageWithUnits(7.6 * hourInMs, dataCategory)).toBe('7.6');
+      expect(formatUsageWithUnits(hourInMs, dataCategory)).toBe('1');
+      expect(formatUsageWithUnits(24 * hourInMs, dataCategory)).toBe('24');
+    });
   });
 
   it('Correctly groups invalid outcome reasons', function () {
     expect(getReasonGroupName('invalid', 'duplicate_item')).toBe('invalid_request');
-    expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large');
+    expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large_other');
     expect(getReasonGroupName('invalid', 'some_other_reason')).toBe('internal');
   });
 });

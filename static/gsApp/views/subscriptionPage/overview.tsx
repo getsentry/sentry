@@ -2,17 +2,15 @@ import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {openCodecovModal} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
@@ -46,9 +44,7 @@ import UsageTotals from './usageTotals';
 import {trackSubscriptionView} from './utils';
 
 type Props = {
-  api: Client;
   location: Location;
-  organization: Organization;
   promotionData: PromotionData;
   subscription: Subscription;
 };
@@ -56,7 +52,10 @@ type Props = {
 /**
  * Subscription overview page.
  */
-function Overview({api, location, subscription, organization, promotionData}: Props) {
+function Overview({location, subscription, promotionData}: Props) {
+  const api = useApi();
+  const organization = useOrganization();
+
   const displayMode = ['cost', 'usage'].includes(location.query.displayMode as string)
     ? (location.query.displayMode as 'cost' | 'usage')
     : 'usage';
@@ -190,13 +189,14 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
       nonPlanProductTrials?.filter(pt => pt.category === DataCategory.PROFILES).length >
         0 || false;
 
+    const showAllBudgetTotals = subscription.hadCustomDynamicSampling ? true : false;
     if (
       !subscription.hadCustomDynamicSampling &&
       isAm3DsPlan(subscription.plan) &&
       !subscription.isEnterpriseTrial
     ) {
-      // if the customer has not yet used custom DS in the current period, just show
-      // one spans card
+      // if the customer has not yet stated using custom DS in the current period,
+      // just show one spans UsageTotalsTable
       reservedBudgetCategoryInfo[DataCategory.SPANS]!.reservedSpend +=
         reservedBudgetCategoryInfo[DataCategory.SPANS_INDEXED]!.reservedSpend ?? 0;
     }
@@ -205,10 +205,8 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
       <TotalsWrapper>
         {sortCategories(subscription.categories).map(categoryHistory => {
           const category = categoryHistory.category;
-          if (
-            category === DATA_CATEGORY_INFO.spanIndexed.plural &&
-            !subscription.hadCustomDynamicSampling
-          ) {
+          // Stored spans are combined into the accepted spans category's table
+          if (category === DATA_CATEGORY_INFO.spanIndexed.plural) {
             return null;
           }
 
@@ -243,7 +241,8 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
 
           const showEventBreakdown =
             organization.features.includes('profiling-billing') &&
-            subscription.planTier === PlanTier.AM2;
+            subscription.planTier === PlanTier.AM2 &&
+            category === DataCategory.TRANSACTIONS;
 
           return (
             <UsageTotals
@@ -269,6 +268,9 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
               prepaidBudget={reservedBudgetCategoryInfo[category]?.prepaidBudget}
               reservedSpend={reservedBudgetCategoryInfo[category]?.reservedSpend}
               freeBudget={reservedBudgetCategoryInfo[category]?.freeBudget}
+              // If there are reserved budgets and all the budgets should have separate breakdowns
+              // we need to be able to access other categories' usageData.totals
+              allTotalsByCategory={showAllBudgetTotals ? usageData.totals : undefined}
             />
           );
         })}
@@ -364,7 +366,7 @@ function Overview({api, location, subscription, organization, promotionData}: Pr
   );
 }
 
-export default withApi(withOrganization(withSubscription(withPromotions(Overview))));
+export default withSubscription(withPromotions(Overview));
 
 const TotalsWrapper = styled('div')`
   margin-bottom: ${space(3)};

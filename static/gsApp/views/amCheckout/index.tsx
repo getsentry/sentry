@@ -6,8 +6,8 @@ import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,7 +27,12 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
-import {ANNUAL, MONTHLY} from 'getsentry/constants';
+import {
+  ANNUAL,
+  MONTHLY,
+  PAYG_BUSINESS_DEFAULT,
+  PAYG_TEAM_DEFAULT,
+} from 'getsentry/constants';
 import {
   type BillingConfig,
   CheckoutType,
@@ -46,6 +51,7 @@ import {
   hasPerformance,
   isAmPlan,
   isBizPlanFamily,
+  isNewPayingCustomer,
 } from 'getsentry/utils/billing';
 import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
@@ -62,7 +68,7 @@ import OnDemandBudgetsStep from 'getsentry/views/amCheckout/steps/onDemandBudget
 import OnDemandSpend from 'getsentry/views/amCheckout/steps/onDemandSpend';
 import PlanSelect from 'getsentry/views/amCheckout/steps/planSelect';
 import ReviewAndConfirm from 'getsentry/views/amCheckout/steps/reviewAndConfirm';
-import SetBudgetAndReserves from 'getsentry/views/amCheckout/steps/setBudgetAndReserves';
+import SetPayAsYouGo from 'getsentry/views/amCheckout/steps/setPayAsYouGo';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
@@ -141,10 +147,10 @@ class AMCheckout extends Component<Props, State> {
      */
     loadStripe();
 
-    if (!subscription.canSelfServe) {
-      this.handleRedirect();
-    } else {
+    if (subscription.canSelfServe) {
       this.fetchBillingConfig();
+    } else {
+      this.handleRedirect();
     }
 
     if (organization) {
@@ -158,10 +164,10 @@ class AMCheckout extends Component<Props, State> {
       return;
     }
 
-    if (!subscription.canSelfServe) {
-      this.handleRedirect();
-    } else {
+    if (subscription.canSelfServe) {
       this.fetchBillingConfig();
+    } else {
+      this.handleRedirect();
     }
   }
 
@@ -248,15 +254,16 @@ class AMCheckout extends Component<Props, State> {
     if (subscription.isSelfServePartner) {
       if (hasActiveVCFeature(organization)) {
         // Don't allow VC customers to choose Annual plans
-        return [PlanSelect, SetBudgetAndReserves, ReviewAndConfirm];
+        return [PlanSelect, SetPayAsYouGo, AddDataVolume, ReviewAndConfirm];
       }
-      return [PlanSelect, SetBudgetAndReserves, ContractSelect, ReviewAndConfirm];
+      return [PlanSelect, SetPayAsYouGo, AddDataVolume, ContractSelect, ReviewAndConfirm];
     }
 
     // Display for AM3 tiers and above
     return [
       PlanSelect,
-      SetBudgetAndReserves,
+      SetPayAsYouGo,
+      AddDataVolume,
       ContractSelect,
       AddPaymentMethod,
       AddBillingDetails,
@@ -371,7 +378,7 @@ class AMCheckout extends Component<Props, State> {
    * If not available on current tier, use the default plan.
    */
   getInitialData(billingConfig: BillingConfig): CheckoutFormData {
-    const {subscription} = this.props;
+    const {subscription, checkoutTier, organization} = this.props;
     const {onDemandMaxSpend, planDetails} = subscription;
 
     const initialPlan = this.getInitialPlan(billingConfig);
@@ -426,6 +433,20 @@ class AMCheckout extends Component<Props, State> {
       ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
       onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
     };
+
+    if (
+      isNewPayingCustomer(subscription, organization) &&
+      checkoutTier === PlanTier.AM3
+    ) {
+      // TODO(isabella): Test if this behavior works as expected on older tiers
+      data.onDemandMaxSpend = isBizPlanFamily(initialPlan)
+        ? PAYG_BUSINESS_DEFAULT
+        : PAYG_TEAM_DEFAULT;
+      data.onDemandBudget = {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: data.onDemandMaxSpend,
+      };
+    }
 
     return this.getValidData(initialPlan, data);
   }
@@ -507,10 +528,7 @@ class AMCheckout extends Component<Props, State> {
         ...analyticsParams,
         cents: validData.onDemandMaxSpend || 0,
       });
-    } else if (
-      (checkoutTier === PlanTier.AM3 && this.state.currentStep === 3) ||
-      (checkoutTier !== PlanTier.AM3 && this.state.currentStep === 4)
-    ) {
+    } else if (this.state.currentStep === 4) {
       trackGetsentryAnalytics('checkout.change_contract', analyticsParams);
     }
 
@@ -697,14 +715,14 @@ class AMCheckout extends Component<Props, State> {
 
             {subscription.canCancel && (
               <CancelSubscription>
-                <Button
+                <LinkButton
                   to={`/settings/${organization.slug}/billing/cancel/`}
                   disabled={subscription.cancelAtPeriodEnd}
                 >
                   {subscription.cancelAtPeriodEnd
                     ? t('Pending Cancellation')
                     : t('Cancel Subscription')}
-                </Button>
+                </LinkButton>
               </CancelSubscription>
             )}
             {showAnnualTerms && (

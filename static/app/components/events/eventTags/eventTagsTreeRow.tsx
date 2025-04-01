@@ -24,6 +24,7 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {
   getSearchInExploreTarget,
@@ -163,7 +164,7 @@ function EventTagsTreeRowDropdown({
             key: 'tag-details',
             label: t('Tag breakdown'),
             to: {
-              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/tags/${encodeURIComponent(originalTag.key)}/`,
+              pathname: `/organizations/${organization.slug}/issues/${event.groupID}/${TabPaths[Tab.DISTRIBUTIONS]}${encodeURIComponent(originalTag.key)}/`,
               query: location.query,
             },
           },
@@ -374,9 +375,7 @@ function EventTagsTreeValue({
       tagValue = defaultValue;
   }
 
-  return !isUrl(content.value) ? (
-    tagValue
-  ) : (
+  return isUrl(content.value) ? (
     <TagLinkText>
       <ExternalLink
         onClick={e => {
@@ -387,6 +386,8 @@ function EventTagsTreeValue({
         {content.value}
       </ExternalLink>
     </TagLinkText>
+  ) : (
+    tagValue
   );
 }
 

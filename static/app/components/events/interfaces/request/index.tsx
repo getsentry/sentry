@@ -7,7 +7,8 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
-import KeyValueData, {
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -264,6 +265,8 @@ function RequestDataCard({
       const valueMeta = meta ? meta[key] : undefined;
       contentItems.push({item: {key, subject: key, value}, meta: valueMeta});
     });
+  } else if (typeof data === 'string') {
+    contentItems.push({item: {key: 'data', subject: 'data', value: data}});
   }
 
   return (

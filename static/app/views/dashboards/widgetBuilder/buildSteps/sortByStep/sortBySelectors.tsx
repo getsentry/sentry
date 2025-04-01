@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,8 +21,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
-import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  type SortDirection,
+  sortDirections,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 
@@ -82,7 +84,7 @@ export function SortBySelectors({
         title={disableSortReason}
         disabled={!disableSortDirection || (disableSortDirection && disableSort)}
       >
-        <SelectControl
+        <Select
           name="sortDirection"
           aria-label={t('Sort direction')}
           menuPlacement="auto"
@@ -106,7 +108,7 @@ export function SortBySelectors({
         disabled={!disableSort || (disableSortDirection && disableSort)}
       >
         {displayType === DisplayType.TABLE ? (
-          <SelectControl
+          <Select
             name="sortBy"
             aria-label={t('Sort by')}
             menuPlacement="auto"
@@ -167,6 +169,9 @@ export function SortBySelectors({
                 sortDirection: values.sortDirection,
               });
             }}
+            useMenuPortal={organization.features.includes(
+              'dashboards-widget-builder-redesign'
+            )}
           />
         )}
       </Tooltip>
@@ -175,7 +180,6 @@ export function SortBySelectors({
           <ArithmeticInput
             name="arithmetic"
             type="text"
-            required
             placeholder={t('Enter Equation')}
             value={getEquation(customEquation.sortBy)}
             onUpdate={value => {

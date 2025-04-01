@@ -3,9 +3,9 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
+import {Button} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -18,7 +18,6 @@ import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -188,7 +187,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
                   breakdownFunction={breakdownFunction}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => {
-                    const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
+                    const nextIndex = expandedIndex === i ? (i + 1) % l.length : i;
                     setExpandedIndex(nextIndex);
                   }}
                   func={f}
@@ -225,12 +224,13 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
   stats,
   totalDuration,
 }: SlowestFunctionEntryProps<F>) {
+  const theme = useTheme();
   const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === String(func['project.id']));
 
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
-  const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
+  const palette = new Array(BARS).fill([theme.chart.colors[0][0]]);
 
   const frame = useMemo(() => {
     return new Frame(

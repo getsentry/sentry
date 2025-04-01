@@ -1,10 +1,11 @@
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
 
 describe('scaleTimeSeriesData', () => {
   describe('does not scale unscalable types', () => {
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       field: 'user',
       data: [
         {
@@ -13,12 +14,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          user: 'string',
-        },
-        units: {
-          user: null,
-        },
+        type: 'string',
+        unit: null,
       },
     };
 
@@ -31,7 +28,7 @@ describe('scaleTimeSeriesData', () => {
   });
 
   it('does not scale duration units from second to gigabyte', () => {
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       field: 'transaction.duration',
       data: [
         {
@@ -40,12 +37,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'transaction.duration': 'duration',
-        },
-        units: {
-          'transaction.duration': 'second',
-        },
+        type: 'duration',
+        unit: DurationUnit.SECOND,
       },
     };
 
@@ -53,7 +46,7 @@ describe('scaleTimeSeriesData', () => {
   });
 
   it('scales duration units from second to millisecond', () => {
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       field: 'transaction.duration',
       data: [
         {
@@ -62,12 +55,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'transaction.duration': 'duration',
-        },
-        units: {
-          'transaction.duration': 'second',
-        },
+        type: 'duration',
+        unit: DurationUnit.SECOND,
       },
     };
 
@@ -80,18 +69,14 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'transaction.duration': 'duration',
-        },
-        units: {
-          'transaction.duration': 'millisecond',
-        },
+        type: 'duration',
+        unit: DurationUnit.MILLISECOND,
       },
     });
   });
 
   it('scales size units from mebibyte to byte', () => {
-    const timeSeries = {
+    const timeSeries: TimeSeries = {
       field: 'file.size',
       data: [
         {
@@ -100,12 +85,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'file.size': 'size',
-        },
-        units: {
-          'file.size': 'mebibyte',
-        },
+        type: 'size',
+        unit: SizeUnit.MEBIBYTE,
       },
     };
 
@@ -118,12 +99,8 @@ describe('scaleTimeSeriesData', () => {
         },
       ],
       meta: {
-        fields: {
-          'file.size': 'size',
-        },
-        units: {
-          'file.size': 'byte',
-        },
+        type: 'size',
+        unit: SizeUnit.BYTE,
       },
     });
   });

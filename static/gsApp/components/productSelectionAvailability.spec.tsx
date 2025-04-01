@@ -348,6 +348,8 @@ describe('ProductSelectionAvailability', function () {
         reservedAttachments: 0,
         reservedMonitorSeats: 0,
         reservedUptime: 0,
+        reservedProfileDuration: 0,
+        reservedProfileDurationUI: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});
@@ -530,19 +532,10 @@ describe('ProductSelectionAvailability', function () {
       ).toBeInTheDocument();
     });
 
-    // TODO: This test does not play well with deselected products by default
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('enabling Profiling, shall check and "disabled" Tracing', async function () {
+    it('enabling Profiling, shall check and "disabled" Tracing', async function () {
       const {router, organization} = initializeOrg({
         organization: {
           features: ['performance-view', 'profiling-view'],
-        },
-        router: {
-          location: {
-            query: {
-              product: [ProductSolution.PROFILING],
-            },
-          },
         },
       });
 
@@ -558,14 +551,16 @@ describe('ProductSelectionAvailability', function () {
         }
       );
 
+      await userEvent.click(screen.getByRole('button', {name: 'Profiling'}));
+
       // Performance is added to the query string, so it will be checked
       await waitFor(() => {
         expect(router.replace).toHaveBeenCalledWith(
           expect.objectContaining({
             query: expect.objectContaining({
               product: [
-                ProductSolution.PERFORMANCE_MONITORING,
                 ProductSolution.PROFILING,
+                ProductSolution.PERFORMANCE_MONITORING,
               ],
             }),
           })

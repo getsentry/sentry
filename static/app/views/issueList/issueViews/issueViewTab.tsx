@@ -1,4 +1,4 @@
-import {useContext} from 'react';
+import {useContext, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -16,6 +16,7 @@ import {
   IssueViewsContext,
   TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
 
 interface IssueViewTabProps {
   editingTabKey: string | null;
@@ -37,6 +38,23 @@ export function IssueViewTab({
   const {cursor: _cursor, page: _page, ...queryParams} = router?.location?.query ?? {};
   const {tabListState, state, dispatch} = useContext(IssueViewsContext);
   const {views} = state;
+  const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
+
+  function updateViewLastVisitedIfExists() {
+    if (
+      initialTabKey !== TEMPORARY_TAB_KEY &&
+      !initialTabKey.startsWith('default') &&
+      !initialTabKey.startsWith('_') &&
+      view.id === initialTabKey
+    ) {
+      updateViewLastVisited({viewId: view.id});
+    }
+  }
+
+  useEffect(() => {
+    updateViewLastVisitedIfExists();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDuplicateView = () => {
     const newViewId = generateTempViewId();
@@ -125,7 +143,7 @@ export function IssueViewTab({
   };
 
   return (
-    <TabContentWrap>
+    <TabContentWrap onClick={() => updateViewLastVisitedIfExists()}>
       <EditableTabTitle
         label={view.label}
         isEditing={editingTabKey === view.key}

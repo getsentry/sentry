@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import {IconClose} from 'sentry/icons';
 import {IconMegaphone} from 'sentry/icons/iconMegaphone';

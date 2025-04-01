@@ -1,6 +1,6 @@
 import type {MouseEventHandler} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

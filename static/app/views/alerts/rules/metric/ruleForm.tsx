@@ -1,4 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -10,11 +11,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
@@ -111,6 +112,7 @@ type Props = {
   projects: Project[];
   routes: PlainRoute[];
   rule: MetricRule;
+  theme: Theme;
   userTeamIds: string[];
   disableProjectSelector?: boolean;
   eventView?: EventView;
@@ -176,11 +178,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      !['span_metrics', 'eap_metrics'].includes(alertType)
+      ['span_metrics', 'eap_metrics'].includes(alertType)
         ? query
+        : query
           ? `(${query}) AND (${eventTypeFilter})`
           : eventTypeFilter
-        : query
     ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
@@ -221,7 +223,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     // TODO(issues): Does this need to be smarter about where its inserting the new filter?
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
-      : rule.query ?? '';
+      : (rule.query ?? '');
 
     return {
       ...super.getDefaultState(),
@@ -400,14 +402,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const isBelow = thresholdType === AlertRuleThresholdType.BELOW;
     let errorMessage = '';
 
-    if (typeof resolveThreshold !== 'number') {
-      errorMessage = isBelow
-        ? t('Resolution threshold must be greater than alert')
-        : t('Resolution threshold must be less than alert');
-    } else {
+    if (typeof resolveThreshold === 'number') {
       errorMessage = isBelow
         ? t('Alert threshold must be less than resolution')
         : t('Alert threshold must be greater than resolution');
+    } else {
+      errorMessage = isBelow
+        ? t('Resolution threshold must be greater than alert')
+        : t('Resolution threshold must be less than alert');
     }
 
     errors.set(triggerIndex, {
@@ -605,7 +607,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
         return {
           [name]: value,
-          alertType: alertType !== newAlertType ? 'custom_transactions' : alertType,
+          alertType: alertType === newAlertType ? alertType : 'custom_transactions',
           dataset,
         };
       });
@@ -722,7 +724,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     await Sentry.withScope(async scope => {
       try {
         scope.setTag('type', AlertRuleType.METRIC);
-        scope.setTag('operation', !rule.id ? 'create' : 'edit');
+        scope.setTag('operation', rule.id ? 'edit' : 'create');
         for (const trigger of sanitizedTriggers) {
           for (const action of trigger.actions) {
             if (action.type === 'slack' || action.type === 'discord') {
@@ -884,7 +886,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     let updateState = {};
     switch (value) {
       case AlertRuleComparisonType.DYNAMIC:
-        this.fetchAnomalies();
         updateState = {
           comparisonType: value,
           comparisonDelta: undefined,
@@ -917,7 +918,9 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       default:
         break;
     }
-    this.setState({...updateState, chartError: false, chartErrorMessage: undefined});
+    this.setState({...updateState, chartError: false, chartErrorMessage: undefined}, () =>
+      this.fetchAnomalies()
+    );
   };
 
   handleDeleteRule = async () => {
@@ -1004,7 +1007,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   async fetchAnomalies() {
     const {comparisonType, historicalData, currentData} = this.state;
-
     if (
       comparisonType !== AlertRuleComparisonType.DYNAMIC ||
       !(Array.isArray(currentData) && Array.isArray(historicalData)) ||
@@ -1033,10 +1035,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       organization_id: organization.id,
       project_id: project.id,
       config: {
-        time_period: timeWindow,
-        sensitivity,
         direction,
-        expected_seasonality: seasonality,
+        time_period: timeWindow,
+        sensitivity: sensitivity ?? AlertRuleSeasonality.AUTO,
+        expected_seasonality: seasonality ?? AlertRuleSensitivity.MEDIUM,
       },
       // remove historical data that overlaps with current dataset
       historical_data: historicalData.filter(
@@ -1127,7 +1129,6 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       chartError,
       chartErrorMessage,
       confidence,
-      isSampled,
     } = this.state;
 
     if (chartError) {
@@ -1175,7 +1176,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onHistoricalDataLoaded: this.handleHistoricalTimeSeriesDataFetched,
       includeConfidence: alertType === 'eap_metrics',
       confidence,
-      isSampled,
+      theme: this.props.theme,
     };
 
     let formattedQuery = `event.type:${eventTypes?.join(',')}`;
@@ -1412,9 +1413,9 @@ function formatStatsToHistoricalDataset(
   data: EventsStats | MultiSeriesEventsStats | null
 ): Array<[number, {count: number}]> {
   return Array.isArray(data?.data)
-    ? data.data.flatMap(([timestamp, entries]) =>
+    ? (data.data.flatMap(([timestamp, entries]) =>
         entries.map(entry => [timestamp, entry] as [number, {count: number}])
-      ) ?? []
+      ) ?? [])
     : [];
 }
 

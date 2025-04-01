@@ -2,7 +2,7 @@ import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton, type LinkButtonProps} from 'sentry/components/button';
+import {Button, LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
@@ -58,7 +58,7 @@ export default function ReplayPreviewPlayer({
     useReplayContext();
   const eventView = EventView.fromLocation(location);
 
-  const fullscreenRef = useRef(null);
+  const fullscreenRef = useRef<HTMLDivElement | null>(null);
   const {toggle: toggleFullscreen} = useFullscreen({
     elementRef: fullscreenRef,
   });

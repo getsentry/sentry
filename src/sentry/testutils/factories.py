@@ -96,6 +96,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -423,6 +424,21 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
+    def create_member_invite(
+        organization: Organization | None = None,
+        email: str | None = None,
+        **kwargs,
+    ) -> OrganizationMemberInvite:
+        if organization is None:
+            organization = Factories.create_organization()
+        if email is None:
+            email = f"{petname.generate().title()}@email.com"
+        return OrganizationMemberInvite.objects.create(
+            organization=organization, email=email, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_team_membership(team, member=None, user=None, role=None):
         if member is None:
             member, created = OrganizationMember.objects.get_or_create(
@@ -540,7 +556,7 @@ class Factories:
         action_data=None,
         allow_no_action_data=False,
         condition_data=None,
-        name="",
+        name="Test Alert",
         action_match="all",
         filter_match="all",
         **kwargs,
@@ -2002,6 +2018,8 @@ class Factories:
         name: str | None,
         owner: Actor | None,
         uptime_status: UptimeStatus,
+        uptime_status_update_date: datetime,
+        id: int | None,
     ):
         if name is None:
             name = petname.generate().title()
@@ -2023,6 +2041,8 @@ class Factories:
             owner_team_id=owner_team_id,
             owner_user_id=owner_user_id,
             uptime_status=uptime_status,
+            uptime_status_update_date=uptime_status_update_date,
+            pk=id,
         )
 
     @staticmethod
@@ -2197,8 +2217,33 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_action(**kwargs) -> Action:
-        return Action.objects.create(**kwargs)
+    def create_action(
+        config: dict[str, Any] | None = None,
+        type: Action.Type | None = None,
+        data: dict[str, Any] | None = None,
+        **kwargs,
+    ) -> Action:
+        if config is None and type is None and data is None:
+            # Default to a slack action with nice defaults so someone can just do
+            # self.create_action() and have a sane default
+            config = {
+                "target_identifier": "1",
+                "target_display": "Sentry User",
+                "target_type": ActionTarget.SPECIFIC,
+            }
+
+            data = {"notes": "bufos are great", "tags": "bufo-bot"}
+
+        if config is None:
+            config = {}
+
+        if data is None:
+            data = {}
+
+        if type is None:
+            type = Action.Type.SLACK
+
+        return Action.objects.create(type=type, config=config, data=data, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)

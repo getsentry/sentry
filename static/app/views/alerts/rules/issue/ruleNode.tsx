@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import merge from 'lodash/merge';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {NumberInput} from 'sentry/components/core/input/numberInput';
+import {Select} from 'sentry/components/core/select';
+import TicketRuleModal from 'sentry/components/externalIssues/ticketRuleModal';
 import ExternalLink from 'sentry/components/links/externalLink';
-import NumberInput from 'sentry/components/numberInput';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconDelete, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -30,7 +31,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import MemberTeamFields from 'sentry/views/alerts/rules/issue/memberTeamFields';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
-import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 interface FieldProps {
   data: Props['data'];
@@ -378,13 +378,10 @@ function RuleNode({
             openModal(deps => (
               <TicketRuleModal
                 {...deps}
-                formFields={node.formFields || {}}
                 link={node.link}
                 ticketType={node.ticketType}
                 instance={data}
-                index={index}
                 onSubmitAction={updateParentFromTicketRule}
-                organization={organization}
               />
             ))
           }
@@ -593,7 +590,7 @@ const InlineNumberInput = styled(NumberInput)`
   min-height: 28px;
 `;
 
-const InlineSelectControl = styled(SelectControl)`
+const InlineSelectControl = styled(Select)`
   width: 180px;
 `;
 

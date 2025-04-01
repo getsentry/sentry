@@ -1,18 +1,20 @@
 import {useLayoutEffect, useMemo} from 'react';
 import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {
   DO_NOT_USE_darkChonkTheme,
   DO_NOT_USE_lightChonkTheme,
 } from 'sentry/utils/theme/theme.chonk';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePrevious from 'sentry/utils/usePrevious';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
   const config = useLegacyStore(ConfigStore);
@@ -20,10 +22,9 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
   // before release, as we may not always have an organization. When we release, chonk should
   // be the value that we receive from the server config - the theme should ultimately be toggled there
   const {organization} = useLegacyStore(OrganizationStore);
-  const [chonkTheme, setChonkTheme] = useSessionStorage<{theme: 'light' | 'dark' | null}>(
-    'chonk-theme',
-    {theme: null}
-  );
+  const [chonkTheme, setChonkTheme] = useLocalStorageState<{
+    theme: 'light' | 'dark' | null;
+  }>('chonk-theme', {theme: null});
 
   let theme = config.theme === 'dark' ? darkTheme : lightTheme;
   // Check feature access and if chonk theme is enabled
@@ -39,7 +40,10 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
   // likely redundant, but it gives us some extra safety and ensures we react to changes in the store
   const previousTheme = usePrevious(config.theme);
   useLayoutEffect(() => {
-    if (previousTheme !== config.theme || !organization?.features?.includes('chonk-ui')) {
+    if (
+      previousTheme !== config.theme ||
+      (organization && !organization?.features?.includes('chonk-ui'))
+    ) {
       removeBodyTheme();
       setChonkTheme({theme: null});
     }
@@ -52,6 +56,9 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       includeInputs: true,
       callback: () => {
         removeBodyTheme();
+        if (chonkTheme.theme) {
+          addMessage(`Using default theme`, 'success');
+        }
         ConfigStore.set(
           'theme',
           chonkTheme.theme === null
@@ -75,6 +82,9 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       includeInputs: true,
       callback: () => {
         removeBodyTheme();
+        if (!chonkTheme.theme) {
+          addMessage(`Previewing new theme`, 'success');
+        }
         setChonkTheme({
           theme:
             // A bit of extra logic to ensure that toggling from chonk to legacy and

@@ -1,10 +1,13 @@
 from datetime import timedelta
 
+import sentry_sdk
 from django.db import router
 from django.db.models import Q
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from sentry import options
+from sentry.demo_mode.utils import get_demo_org, is_demo_mode_enabled
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ProjectArtifactBundle,
@@ -14,13 +17,17 @@ from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.registry import TaskNamespace, taskregistry
 from sentry.utils.db import atomic_transaction
-from sentry.utils.demo_mode import get_demo_org, is_demo_mode_enabled
+
+demo_mode_tasks: TaskNamespace = taskregistry.create_namespace("demomode")
 
 
 @instrumented_task(
     name="sentry.demo_mode.tasks.sync_artifact_bundles",
     queue="demo_mode",
+    taskworker=TaskworkerConfig(namespace=demo_mode_tasks),
 )
 def sync_artifact_bundles():
 
@@ -63,33 +70,36 @@ def _sync_artifact_bundles(source_org: Organization, target_org: Organization, l
 
 
 def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Organization):
-    with atomic_transaction(
-        using=(
-            router.db_for_write(ArtifactBundle),
-            router.db_for_write(FileBlobOwner),
-            router.db_for_write(ProjectArtifactBundle),
-            router.db_for_write(ReleaseArtifactBundle),
-        )
-    ):
-        blobs = source_artifact_bundle.file.blobs.all()
-        for blob in blobs:
-            FileBlobOwner.objects.create(
+    try:
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundle),
+                router.db_for_write(FileBlobOwner),
+                router.db_for_write(ProjectArtifactBundle),
+                router.db_for_write(ReleaseArtifactBundle),
+            )
+        ):
+            blobs = source_artifact_bundle.file.blobs.all()
+            for blob in blobs:
+                FileBlobOwner.objects.get_or_create(
+                    organization_id=target_org.id,
+                    blob_id=blob.id,
+                )
+
+            target_artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=target_org.id,
-                blob_id=blob.id,
+                bundle_id=source_artifact_bundle.bundle_id,
+                artifact_count=source_artifact_bundle.artifact_count,
+                date_last_modified=source_artifact_bundle.date_last_modified,
+                date_uploaded=source_artifact_bundle.date_uploaded,
+                file=source_artifact_bundle.file,
+                indexing_state=source_artifact_bundle.indexing_state,
             )
 
-        target_artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=target_org.id,
-            bundle_id=source_artifact_bundle.bundle_id,
-            artifact_count=source_artifact_bundle.artifact_count,
-            date_last_modified=source_artifact_bundle.date_last_modified,
-            date_uploaded=source_artifact_bundle.date_uploaded,
-            file=source_artifact_bundle.file,
-            indexing_state=source_artifact_bundle.indexing_state,
-        )
-
-        _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
-        _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+            _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+            _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
+    except IntegrityError as e:
+        sentry_sdk.capture_exception(e)
 
 
 def _sync_project_artifact_bundle(
@@ -137,9 +147,14 @@ def _sync_release_artifact_bundle(
 
 
 def _find_matching_project(project_id, organization_id):
-    source_project = Project.objects.get(id=project_id)
+    try:
+        source_project = Project.objects.get(id=project_id)
 
-    return Project.objects.get(
-        organization_id=organization_id,
-        slug=source_project.slug,
-    )
+        return Project.objects.get(
+            organization_id=organization_id,
+            slug=source_project.slug,
+        )
+    except Project.DoesNotExist:
+        sentry_sdk.set_context("project_id", project_id)
+        sentry_sdk.set_context("organization_id", organization_id)
+        raise

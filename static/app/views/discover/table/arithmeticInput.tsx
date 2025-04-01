@@ -171,13 +171,13 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       }
 
       let newSelection: any;
-      if (!startedSelection) {
-        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
-      } else {
+      if (startedSelection) {
         newSelection =
           key === 'ArrowUp'
             ? (activeSelection - 1 + flattenedOptions.length) % flattenedOptions.length
             : (activeSelection + 1) % flattenedOptions.length;
+      } else {
+        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       }
       // This is modifying the `active` value of the references so make sure to
       // use `newOptionGroups` at the end.
@@ -329,9 +329,11 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
                       // prevent the blur event on the input from firing
                       onMouseDown={event => event.preventDefault()}
                       // scroll into view if it is the active element
-                      ref={element =>
-                        option.active && element?.scrollIntoView?.({block: 'nearest'})
-                      }
+                      ref={element => {
+                        if (option.active) {
+                          element?.scrollIntoView?.({block: 'nearest'});
+                        }
+                      }}
                       aria-label={option.value}
                     >
                       <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
@@ -437,7 +439,7 @@ const DropdownTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -474,7 +476,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};

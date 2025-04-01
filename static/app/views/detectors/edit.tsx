@@ -1,7 +1,7 @@
 /* eslint-disable no-alert */
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
@@ -14,7 +14,7 @@ export default function DetectorEdit() {
 
   return (
     <SentryDocumentTitle title={t('Edit Monitor')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/monitors'}}>
+      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
         <ActionsProvider actions={<Actions />}>
           <EditLayout>
             <h2>Edit Monitor</h2>

@@ -2,9 +2,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import Avatar from 'sentry/components/avatar';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration/duration';
 import Link from 'sentry/components/links/link';
@@ -13,7 +13,6 @@ import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButt
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {
   IconCalendar,
   IconCursorArrow,
@@ -353,7 +352,7 @@ export function ReplayCell({
           <div>
             <Row gap={0.5}>{t('Deleted Replay')}</Row>
             <Row gap={0.5}>
-              {project ? <Avatar size={12} project={project} /> : null}
+              {project ? <ProjectAvatar size={12} project={project} /> : null}
               <ArchivedId>{getShortEventId(replay.id)}</ArchivedId>
             </Row>
           </div>
@@ -367,7 +366,7 @@ export function ReplayCell({
       <Row gap={1}>
         <Row gap={0.5}>
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
-          {project ? <Avatar size={12} project={project} /> : null}
+          {project ? <ProjectAvatar size={12} project={project} /> : null}
           {project ? project.slug : null}
           <Link to={detailsTab()} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
@@ -442,7 +441,7 @@ const MainLink = styled(Link)`
 const SubText = styled('div')`
   font-size: 0.875em;
   line-height: normal;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
   display: flex;
   flex-direction: column;
@@ -454,6 +453,7 @@ export function TransactionCell({
   replay,
 }: Props & {organization: Organization}) {
   const location = useLocation();
+  const theme = useTheme();
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -466,7 +466,7 @@ export function TransactionCell({
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location},
+          {organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>
@@ -624,10 +624,11 @@ export function ErrorCountCell({replay, showDropdownFilters}: Props) {
 }
 
 export function ActivityCell({replay, showDropdownFilters}: Props) {
+  const theme = useTheme();
   if (replay.is_archived) {
     return <Item isArchived />;
   }
-  const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
+  const scoreBarPalette = new Array(10).fill([theme.chart.colors[0][0]]);
   return (
     <Item>
       <Container>

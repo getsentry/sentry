@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
-import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
@@ -169,7 +169,7 @@ const CardHeader = styled('div')`
 const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
 `;

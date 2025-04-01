@@ -24,10 +24,11 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.span_columns import SPAN_DEFINITIONS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 
 class SearchResolverQueryTest(TestCase):
@@ -127,6 +128,18 @@ class SearchResolverQueryTest(TestCase):
             )
         )
         assert having is None
+
+    def test_timestamp_relative_filter(self):
+        with freeze_time("2018-12-11 10:20:00"):
+            where, having, _ = self.resolver.resolve_query("timestamp:-24h")
+            assert where == TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_STRING),
+                    op=ComparisonFilter.OP_GREATER_THAN_OR_EQUALS,
+                    value=AttributeValue(val_str="2018-12-10 10:20:00+00:00"),
+                )
+            )
+            assert having is None
 
     def test_query_with_and(self):
         where, having, _ = self.resolver.resolve_query("span.description:foo span.op:bar")

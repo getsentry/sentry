@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -219,22 +219,22 @@ function ReviewAndConfirmHeader({
   }
 
   const {effectiveAt} = previewData;
-  const effectiveNow = new Date(effectiveAt).getTime() <= new Date().getTime() + 3600;
+  const effectiveNow = new Date(effectiveAt).getTime() <= Date.now() + 3600;
 
   let subText;
-  if (effectiveNow) {
+  if (subscription.isSelfServePartner) {
     subText = tct(
-      'These changes will apply immediately, and you will be billed today[partnerName].',
+      'These changes will apply [applyDate], and you will be billed by [partnerName] monthly for any recurring subscription fees and incurred [budgetType] fees.',
       {
-        partnerName: subscription.isSelfServePartner
-          ? ` through ${subscription.partner?.partnership.displayName}`
-          : '',
+        applyDate: effectiveNow ? 'immediately' : 'on the date above',
+        partnerName: subscription.partner?.partnership.displayName,
+        budgetType: subscription.planDetails.budgetTerm,
       }
     );
   } else {
-    subText = t(
-      'This change will take effect at the end of your current contract period.'
-    );
+    subText = effectiveNow
+      ? t('These changes will apply immediately, and you will be billed today.')
+      : t('This change will take effect at the end of your current contract period.');
   }
 
   return (

@@ -307,8 +307,8 @@ function WidgetBuilder({
   let tags: TagCollection = useTags();
 
   // HACK: Inject EAP dataset tags when selecting the Spans dataset
-  const numericSpanTags = useSpanTags('number');
-  const stringSpanTags = useSpanTags('string');
+  const {tags: numericSpanTags} = useSpanTags('number');
+  const {tags: stringSpanTags} = useSpanTags('string');
   if (state.dataSet === DataSet.SPANS) {
     tags = {...numericSpanTags, ...stringSpanTags};
   }
@@ -695,14 +695,8 @@ function WidgetBuilder({
 
       if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
-        newQuery.fields = [
-          ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
-          ...fieldStrings,
-        ];
-        newQuery.aggregates = [
-          ...newQuery.aggregates.slice(0, newQuery.aggregates.length - 1),
-          ...fieldStrings,
-        ];
+        newQuery.fields = [...(newQuery.fields?.slice(0, -1) ?? []), ...fieldStrings];
+        newQuery.aggregates = [...newQuery.aggregates.slice(0, -1), ...fieldStrings];
       } else {
         newQuery.fields = [...newQuery.columns, ...fieldStrings];
         newQuery.aggregates = fieldStrings;
@@ -763,11 +757,11 @@ function WidgetBuilder({
         });
         let orderOption: string;
         // If no orderby options are available because of DISABLED_SORTS
-        if (!orderOptions.length) {
-          newQuery.orderby = '';
-        } else {
+        if (orderOptions.length) {
           orderOption = orderOptions[0]!.value;
           newQuery.orderby = `-${orderOption}`;
+        } else {
+          newQuery.orderby = '';
         }
       }
       return newQuery;
@@ -876,27 +870,21 @@ function WidgetBuilder({
     if (widgetToBeUpdated) {
       let nextWidgetList = [...dashboard.widgets];
       const updateWidgetIndex = getUpdateWidgetIndex();
-      const nextWidgetData = {
-        ...widgetData,
-        id: widgetToBeUpdated.id,
-      };
+      const nextWidgetData = {...widgetData, id: widgetToBeUpdated.id};
 
       // Only modify and re-compact if the default height has changed
       if (
-        getDefaultWidgetHeight(widgetToBeUpdated.displayType) !==
+        getDefaultWidgetHeight(widgetToBeUpdated.displayType) ===
         getDefaultWidgetHeight(widgetData.displayType)
       ) {
+        nextWidgetList[updateWidgetIndex] = nextWidgetData;
+      } else {
         nextWidgetList[updateWidgetIndex] = enforceWidgetHeightValues(nextWidgetData);
         nextWidgetList = generateWidgetsAfterCompaction(nextWidgetList);
-      } else {
-        nextWidgetList[updateWidgetIndex] = nextWidgetData;
       }
 
       const unselectedSeriesParam = widgetLegendState.setMultipleWidgetSelectionStateURL(
-        {
-          ...dashboard,
-          widgets: [...nextWidgetList],
-        },
+        {...dashboard, widgets: [...nextWidgetList]},
         nextWidgetData
       );
       const query = {...location.query, unselectedSeries: unselectedSeriesParam};
@@ -979,10 +967,7 @@ function WidgetBuilder({
   function goToDashboards(id: string, query?: Record<string, any>) {
     const pathQuery =
       Object.keys(queryParamsWithoutSource).length > 0 || query
-        ? {
-            ...queryParamsWithoutSource,
-            ...query,
-          }
+        ? {...queryParamsWithoutSource, ...query}
         : {};
 
     const sanitizedQuery = omit(pathQuery, ['defaultWidgetQuery', 'defaultTitle']);

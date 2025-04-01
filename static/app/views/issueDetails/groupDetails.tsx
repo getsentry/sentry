@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -12,6 +12,8 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabPanels, Tabs} from 'sentry/components/tabs';
+import {TourContextProvider} from 'sentry/components/tours/components';
+import {useAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
@@ -50,8 +52,13 @@ import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
-import {useGroupTagsDrawer} from 'sentry/views/issueDetails/groupTags/useGroupTagsDrawer';
 import GroupHeader from 'sentry/views/issueDetails/header';
+import {
+  ISSUE_DETAILS_TOUR_GUIDE_KEY,
+  type IssueDetailsTour,
+  IssueDetailsTourContext,
+  ORDERED_ISSUE_DETAILS_TOUR,
+} from 'sentry/views/issueDetails/issueDetailsTour';
 import SampleEventAlert from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
@@ -60,6 +67,7 @@ import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks
 import {Tab} from 'sentry/views/issueDetails/types';
 import {makeFetchGroupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/useGroupDistributionsDrawer';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getGroupReprocessingStatus,
@@ -469,7 +477,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     loadingGroup,
     group,
     // Allow previous event to be displayed while new event is loading
-    event: (loadingEvent ? event ?? previousEvent : event) ?? null,
+    event: (loadingEvent ? (event ?? previousEvent) : event) ?? null,
     errorType,
     error: isGroupError,
     refetchData,
@@ -510,6 +518,7 @@ function useTrackView({
     location.query;
   const groupEventType = useLoadedEventType();
   const user = useUser();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
   useRouteAnalyticsEventNames('issue_details.viewed', 'Issue Details: Viewed');
   useRouteAnalyticsParams({
@@ -527,7 +536,11 @@ function useTrackView({
     ref_fallback,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
+    enforced_streamlined_ui:
+      organization.features.includes('issue-details-streamline-enforce') &&
+      user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
+    has_streamlined_ui: hasStreamlinedUI,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -631,7 +644,13 @@ function GroupDetailsContent({
   event,
 }: GroupDetailsContentProps) {
   const organization = useOrganization();
-  const {openTagsDrawer} = useGroupTagsDrawer({group});
+  const hasFlagsDistributions = organization.features.includes(
+    'feature-flag-distribution-flyout'
+  );
+  const {openDistributionsDrawer} = useGroupDistributionsDrawer({
+    group,
+    includeFeatureFlagsTab: hasFlagsDistributions,
+  });
   const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
   const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
   const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
@@ -646,8 +665,9 @@ function GroupDetailsContent({
       return;
     }
 
-    if (currentTab === Tab.TAGS) {
-      openTagsDrawer();
+    if (currentTab === Tab.DISTRIBUTIONS) {
+      // Tag and feature flag distributions.
+      openDistributionsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
     } else if (currentTab === Tab.MERGED) {
@@ -659,7 +679,7 @@ function GroupDetailsContent({
     currentTab,
     hasStreamlinedUI,
     isDrawerOpen,
-    openTagsDrawer,
+    openDistributionsDrawer,
     openSimilarIssuesDrawer,
     openMergedIssuesDrawer,
     openIssueActivityDrawer,
@@ -669,7 +689,7 @@ function GroupDetailsContent({
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
-    Tab.TAGS,
+    Tab.DISTRIBUTIONS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
     Tab.ACTIVITY,
@@ -723,6 +743,16 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
     },
     {enabled: !!projectSlug}
   );
+
+  const {data: assistantData} = useAssistant();
+  const isIssueDetailsTourCompleted = useMemo(() => {
+    const issueDetailsTourData = assistantData?.find(
+      item => item.guide === ISSUE_DETAILS_TOUR_GUIDE_KEY
+    );
+
+    // Prevent tour from showing until assistant data is loaded
+    return issueDetailsTourData?.seen ?? true;
+  }, [assistantData]);
 
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
@@ -791,12 +821,19 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
   }
 
   return (
-    <GroupDetailsContent
-      {...props}
-      project={projectWithFallback}
-      group={props.group}
-      event={props.event ?? injectedEvent}
-    />
+    <TourContextProvider<IssueDetailsTour>
+      tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
+      isCompleted={isIssueDetailsTourCompleted}
+      orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
+      TourContext={IssueDetailsTourContext}
+    >
+      <GroupDetailsContent
+        {...props}
+        project={projectWithFallback}
+        group={props.group}
+        event={props.event ?? injectedEvent}
+      />
+    </TourContextProvider>
   );
 }
 

@@ -6,7 +6,7 @@ import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -25,7 +25,7 @@ import {space} from 'sentry/styles/space';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
   type ApiQueryKey,
   setApiQueryData,
@@ -84,11 +84,11 @@ function OrganizationMembersList() {
   );
   const {data: currentMember} = useApiQuery<Member>(
     [`/organizations/${organization.slug}/members/me/`],
-    {staleTime: 0}
+    {staleTime: 30000}
   );
   const {
     data: members = [],
-    isLoading: isLoadingMembers,
+    isPending: isPendingMembers,
     refetch: refetchMembers,
     getResponseHeader,
   } = useApiQuery<Member[]>(
@@ -101,6 +101,19 @@ function OrganizationMembersList() {
     }),
     {staleTime: 0}
   );
+  const {data: activeOwnerMembers = [], isPending: isPendingOwners} = useApiQuery<
+    Member[]
+  >(
+    getMembersQueryKey({
+      orgSlug: organization.slug,
+      // Ignore search queries since this isn't displayed, it's okay not to paginate.
+      // This is only used to determine if the current user is the only owner.
+      // We also filter out active invites, so only active users are included.
+      query: {query: 'role:owner isInvited:false'},
+    }),
+    {staleTime: 30000}
+  );
+
   const [invited, setInvited] = useState<{
     [memberId: string]: 'loading' | 'success' | null;
   }>({});
@@ -175,15 +188,14 @@ function OrganizationMembersList() {
     setApiQueryData<Member[]>(
       queryClient,
       getInviteRequestsQueryKey({organization}),
-      curentInviteRequests => {
-        const newInviteRequests = curentInviteRequests.map(request => {
+      currentInviteRequests => {
+        return currentInviteRequests?.map(request => {
           if (request.id === id) {
             return {...request, ...data};
           }
 
           return request;
         });
-        return newInviteRequests;
       }
     );
   };
@@ -267,10 +279,7 @@ function OrganizationMembersList() {
   const currentUser = ConfigStore.get('user');
 
   // Find out if current user is the only owner
-  const isOnlyOwner = !members.find(
-    ({role, email, pending}) =>
-      role === 'owner' && email !== currentUser.email && !pending
-  );
+  const isOnlyOwner = !activeOwnerMembers.some(({email}) => email !== currentUser.email);
 
   // Only admins/owners can remove members
   const requireLink = !!authProvider && authProvider.require_link;
@@ -280,7 +289,7 @@ function OrganizationMembersList() {
   const membersPageLinks = getResponseHeader?.('Link');
 
   // hides other users in demo mode
-  const membersToShow = isDemoModeEnabled()
+  const membersToShow = isDemoModeActive()
     ? members.filter(({email}) => email === currentUser.email)
     : members;
 
@@ -360,7 +369,7 @@ function OrganizationMembersList() {
       <Panel data-test-id="org-member-list">
         <MemberListHeader members={membersToShow} organization={organization} />
         <PanelBody>
-          {isLoadingMembers ? (
+          {isPendingMembers || isPendingOwners ? (
             <LoadingIndicator />
           ) : (
             <Fragment>

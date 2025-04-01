@@ -10,14 +10,13 @@ export default function useCrashFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      query: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
@@ -30,7 +29,7 @@ export default function useCrashFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['sum(session)'],
           groupBy: ['session.status', 'release'],
         },
@@ -44,6 +43,30 @@ export default function useCrashFreeSessions() {
   if (isPending || !sessionData) {
     return {
       series: [],
+      isPending,
+      error,
+    };
+  }
+
+  // No data to report, just map the intervals to a value of 0
+  if (!sessionData.groups.length) {
+    return {
+      series: [
+        {
+          seriesName: 'crash_free_session_rate',
+          data: sessionData.intervals.map(interval => ({
+            name: interval,
+            value: 0,
+          })),
+          meta: {
+            fields: {
+              [`crash_free_session_rate`]: 'percentage' as const,
+              time: 'date' as const,
+            },
+            units: {},
+          },
+        },
+      ],
       isPending,
       error,
     };

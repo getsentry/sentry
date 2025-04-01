@@ -8,8 +8,8 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {LinkButton} from 'sentry/components/core/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';

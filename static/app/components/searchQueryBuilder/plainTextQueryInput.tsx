@@ -23,10 +23,10 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const [cursorPosition, setCursorPosition] = useState(0);
 
   const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {
-    if (event.currentTarget !== document.activeElement) {
-      setCursorPosition(-1);
-    } else {
+    if (event.currentTarget === document.activeElement) {
       setCursorPosition(event.currentTarget.selectionStart);
+    } else {
+      setCursorPosition(-1);
     }
   };
 

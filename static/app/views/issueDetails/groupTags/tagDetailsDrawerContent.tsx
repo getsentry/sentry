@@ -1,10 +1,11 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {useFetchIssueTag, useFetchIssueTagValues} from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
@@ -168,7 +169,7 @@ function TagDetailsRow({
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
     query,
   };
-  const percentage = Math.floor(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
+  const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
   const displayPercentage = percentage < 1 ? '<1%' : `${percentage.toFixed(0)}%`;
 
   return (
@@ -200,6 +201,7 @@ function TagDetailsValue({
   tagValue: TagValue;
   valueLocation: LocationDescriptor;
 }) {
+  const theme = useTheme();
   const userValues = getUserTagValue(tagValue);
   const valueComponent =
     tagKey === 'user' ? (
@@ -211,6 +213,7 @@ function TagDetailsValue({
           contextIconProps: {
             size: 'md',
           },
+          theme,
         })}
         <div>{userValues.title}</div>
         {userValues.subtitle && <UserSubtitle>{userValues.subtitle}</UserSubtitle>}
@@ -345,9 +348,6 @@ const Body = styled('div')`
 `;
 
 const Header = styled(Body)`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
   border-bottom: 1px solid ${p => p.theme.border};
   margin: 0 ${space(1)};
 `;

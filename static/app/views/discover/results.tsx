@@ -10,9 +10,9 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -423,7 +423,7 @@ export class Results extends Component<Props, State> {
     const {router, location} = this.props;
 
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 

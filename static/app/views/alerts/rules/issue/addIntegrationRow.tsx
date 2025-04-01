@@ -2,8 +2,8 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {LinkButton} from 'sentry/components/button';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {LinkButton} from 'sentry/components/core/button';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';

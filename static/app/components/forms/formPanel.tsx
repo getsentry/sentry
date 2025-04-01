@@ -6,6 +6,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
@@ -64,10 +65,21 @@ function FormPanel({
   return (
     <Panel id={typeof title === 'string' ? sanitizeQuerySelector(title) : undefined}>
       {title && (
-        <PanelHeader>
+        <PanelHeader
+          onClick={collapsible ? handleCollapseToggle : undefined}
+          style={collapsible ? {cursor: 'pointer'} : undefined}
+          role={collapsible ? 'button' : undefined}
+          aria-label={collapsible ? t('Expand Options') : t('Panel')}
+          aria-expanded={!collapsed}
+        >
           {title}
           {collapsible && (
-            <Collapse onClick={handleCollapseToggle}>
+            <Collapse
+              onClick={e => {
+                e.stopPropagation();
+                handleCollapseToggle();
+              }}
+            >
               <IconChevron
                 data-test-id="form-panel-collapse-chevron"
                 direction={collapsed ? 'down' : 'up'}

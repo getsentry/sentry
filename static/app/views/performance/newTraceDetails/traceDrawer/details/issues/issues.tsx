@@ -19,11 +19,7 @@ import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {
-  TraceError,
-  TraceErrorOrIssue,
-  TracePerformanceIssue,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TracePerformanceIssue} from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,7 +36,7 @@ import {TraceDrawerComponents} from '../styles';
 import {IssueSummary} from './issueSummary';
 
 type IssueProps = {
-  issue: TraceErrorOrIssue;
+  issue: TraceTree.TraceIssue;
   organization: Organization;
 };
 
@@ -63,7 +59,10 @@ const issueOrderPriority: Record<keyof Theme['level'], number> = {
   unknown: 6,
 };
 
-function sortIssuesByLevel(a: TraceError, b: TraceError): number {
+function sortIssuesByLevel(
+  a: TraceTree.TraceErrorIssue,
+  b: TraceTree.TraceErrorIssue
+): number {
   // If the level is not defined in the priority map, default to unknown
   const aPriority = issueOrderPriority[a.level] ?? issueOrderPriority.unknown;
   const bPriority = issueOrderPriority[b.level] ?? issueOrderPriority.unknown;
@@ -119,7 +118,7 @@ function Issue(props: IssueProps) {
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>
   ) : fetchedIssue ? (
-    <StyledPanelItem hasNewLayout={hasNewLayout}>
+    <StyledPanelItem>
       <IconWrapper className={iconClassName}>
         <IconBackground className={iconClassName}>
           <TraceIcons.Icon event={props.issue} />
@@ -127,11 +126,7 @@ function Issue(props: IssueProps) {
       </IconWrapper>
       {hasNewLayout ? (
         <NarrowSummaryWrapper>
-          <EventOrGroupHeader
-            data={fetchedIssue}
-            organization={organization}
-            eventId={props.issue.event_id}
-          />
+          <EventOrGroupHeader data={fetchedIssue} eventId={props.issue.event_id} />
           <EventOrGroupExtraDetails data={fetchedIssue} />
         </NarrowSummaryWrapper>
       ) : (
@@ -258,10 +253,10 @@ function LegacyIssue(
       <LoadingIndicator size={24} mini />
     </StyledLoadingIndicatorWrapper>
   ) : props.fetchedIssue ? (
-    <StyledLegacyPanelItem hasNewLayout={hasNewLayout}>
+    <StyledLegacyPanelItem>
       {hasNewLayout ? (
         <NarrowIssueSummaryWrapper>
-          <EventOrGroupHeader data={props.fetchedIssue} organization={organization} />
+          <EventOrGroupHeader data={props.fetchedIssue} />
           <EventOrGroupExtraDetails data={props.fetchedIssue} />
         </NarrowIssueSummaryWrapper>
       ) : (
@@ -356,7 +351,7 @@ function LegacyIssue(
   ) : null;
 }
 type IssueListProps = {
-  issues: TraceErrorOrIssue[];
+  issues: TraceTree.TraceIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
 };
@@ -364,7 +359,7 @@ type IssueListProps = {
 export function IssueList({issues, node, organization}: IssueListProps) {
   const hasTraceNewUi = useHasTraceNewUi();
   const uniqueErrorIssues = useMemo(() => {
-    const unique: TraceError[] = [];
+    const unique: TraceTree.TraceErrorIssue[] = [];
 
     const seenIssues: Set<number> = new Set();
 
@@ -455,7 +450,7 @@ function IssueListHeader({
   errorIssues,
   performanceIssues,
 }: {
-  errorIssues: TraceError[];
+  errorIssues: TraceTree.TraceErrorIssue[];
   node: TraceTreeNode<TraceTree.NodeValue>;
   performanceIssues: TracePerformanceIssue[];
 }) {
@@ -630,8 +625,7 @@ const IssuesWrapper = styled('div')`
   flex-direction: column;
   gap: ${space(0.75)};
   justify-content: left;
-  margin-bottom: ${space(1.5)};
-  margin-top: ${space(1)};
+  margin: ${space(1)} 0;
 
   ${StyledPanel} {
     margin-bottom: 0;
@@ -654,7 +648,7 @@ const StyledLoadingIndicatorWrapper = styled('div')`
   justify-content: center;
   width: 100%;
   padding: ${space(2)} 0;
-  height: 84px;
+  min-height: 76px;
 
   /* Add a border between two rows of loading issue states */
   & + & {
@@ -717,29 +711,19 @@ const ChartWrapper = styled('div')`
   }
 `;
 
-const StyledLegacyPanelItem = styled(PanelItem)<{hasNewLayout: boolean}>`
+const StyledLegacyPanelItem = styled(PanelItem)`
   justify-content: space-between;
   align-items: center;
-  padding-top: ${p => (p.hasNewLayout ? '0px' : space(1))};
-  padding-bottom: ${p => (p.hasNewLayout ? '0px' : space(1))};
-  ${p =>
-    p.hasNewLayout
-      ? css`
-          padding: ${space(1)} 0;
-          min-height: 66px;
-          line-height: 1.1;
-        `
-      : css`
-          height: 84px;
-        `}
+  padding: ${space(1)} 0;
+  line-height: 1.1;
 `;
 
 const StyledPanelItem = styled(StyledLegacyPanelItem)`
   justify-content: left;
-  align-items: center;
-  gap: ${space(1.5)};
+  align-items: flex-start;
+  gap: ${space(1)};
   height: fit-content;
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(2)} ${space(1.5)} ${space(1)};
 `;
 
 const StyledIssueStreamHeaderLabel = styled(IssueStreamHeaderLabel)`

@@ -184,6 +184,7 @@ def query(
     dataset: Dataset = Dataset.Discover,
     fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -256,6 +257,8 @@ def query(
     result = builder.process_results(
         builder.run_query(referrer=referrer, query_source=query_source)
     )
+    if debug:
+        result["meta"]["query"] = str(builder.get_snql_query().query)
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -394,15 +397,30 @@ def create_result_key(
     result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
 ) -> str:
     """Create the string key to be used in the top events result dictionary"""
+    groupby = create_groupby_dict(result_row, fields, issues)
+    groupby_values: list[str] = []
+    for value in groupby:
+        groupby_values.extend(value.values())
+    result = ",".join(groupby_values)
+    # If the result would be identical to the other key, include the field name
+    # only need the first field since this would only happen with a single field
+    if result == OTHER_KEY:
+        result = f"{result} ({fields[0]})"
+    return result
+
+
+def create_groupby_dict(
+    result_row: SnubaRow, fields: list[str], issues: Mapping[int, str | None]
+) -> list[dict[str, str]]:
     values = []
     for field in fields:
         if field == "issue.id":
             issue_id = issues.get(result_row["issue.id"], "unknown")
             if issue_id is None:
                 issue_id = "unknown"
-            values.append(issue_id)
+            values.append({field: issue_id})
         elif field == "transaction.status":
-            values.append(SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
+            values.append({field: SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown")})
         else:
             value = result_row.get(field)
             if isinstance(value, list):
@@ -410,13 +428,8 @@ def create_result_key(
                     value = value[-1]
                 else:
                     value = ""
-            values.append(str(value))
-    result = ",".join(values)
-    # If the result would be identical to the other key, include the field name
-    # only need the first field since this would only happen with a single field
-    if result == OTHER_KEY:
-        result = f"{result} ({fields[0]})"
-    return result
+            values.append({field: str(value)})
+    return values
 
 
 def top_events_timeseries(
@@ -558,18 +571,21 @@ def top_events_timeseries(
         translated_groupby = top_events_builder.translated_groupby
 
         results = (
-            {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+            {OTHER_KEY: {"order": limit, "data": other_result["data"], "is_other": True}}
             if len(other_result.get("data", []))
             else {}
         )
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
-            results[result_key] = {"order": index, "data": []}
+            results[result_key] = {"order": index, "data": [], "is_other": False}
         for row in result["data"]:
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
                 results[result_key]["data"].append(row)
+                results[result_key]["groupby"] = create_groupby_dict(
+                    row, translated_groupby, issues
+                )
             else:
                 logger.warning(
                     "discover.top-events.timeseries.key-mismatch",
@@ -591,8 +607,10 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
+                    "groupby": item.get("groupby", None),
                     "meta": result["meta"],
                     "order": item["order"],
+                    "is_other": item["is_other"],
                 },
                 snuba_params.start_date,
                 snuba_params.end_date,

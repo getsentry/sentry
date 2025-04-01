@@ -37,7 +37,7 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.workflow_engine.types import WorkflowJob
+from sentry.workflow_engine.types import WorkflowEventData
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event, GroupEvent
@@ -937,23 +937,32 @@ def process_workflow_engine(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
 
-    # TODO - Add a rollout flag check here, if it's not enabled, call process_rules
-    # If the flag is enabled, use the code below
+    # TODO: only fire one system. to test, fire from both systems and observe metrics
+    if not features.has(
+        "organizations:workflow-engine-process-workflows", job["event"].project.organization
+    ):
+        return
+
     from sentry.workflow_engine.processors.workflow import process_workflows
 
-    # PostProcessJob event is optional, WorkflowJob event is required
+    # PostProcessJob event is optional, WorkflowEventData event is required
     if "event" not in job:
-        logger.error("Missing event to create WorkflowJob", extra={"job": job})
+        logger.error("Missing event to create WorkflowEventData", extra={"job": job})
         return
 
     try:
-        workflow_job = WorkflowJob({**job})  # type: ignore[typeddict-item]
+        workflow_event_data = WorkflowEventData(
+            event=job["event"],
+            group_state=job.get("group_state"),
+            has_reappeared=job.get("has_reappeared"),
+            has_escalated=job.get("has_escalated"),
+        )
     except Exception:
-        logger.exception("Could not create WorkflowJob", extra={"job": job})
+        logger.exception("Could not create WorkflowEventData", extra={"job": job})
         return
 
     with sentry_sdk.start_span(op="tasks.post_process_group.workflow_engine.process_workflow"):
-        process_workflows(workflow_job)
+        process_workflows(workflow_event_data)
 
 
 def process_rules(job: PostProcessJob) -> None:
@@ -982,7 +991,10 @@ def process_rules(job: PostProcessJob) -> None:
     with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
         # TODO(dcramer): ideally this would fanout, but serializing giant
         # objects back and forth isn't super efficient
-        for callback, futures in rp.apply():
+        callback_and_futures = rp.apply()
+
+        # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
+        for callback, futures in callback_and_futures:
             has_alert = True
             safe_execute(callback, group_event, futures)
 
@@ -995,7 +1007,7 @@ def process_code_mappings(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.auto_source_code_config.stacktraces import get_frames_to_process
-    from sentry.issues.auto_source_code_config.utils import supported_platform
+    from sentry.issues.auto_source_code_config.utils.platform import supported_platform
     from sentry.tasks.auto_source_code_config import auto_source_code_config
 
     try:
@@ -1280,6 +1292,9 @@ def should_postprocess_feedback(job: PostProcessJob) -> bool:
         return False
 
     feedback_source = event.occurrence.evidence_data.get("source")
+    if feedback_source is None:
+        logger.error("Feedback source is missing, skipped alert processing")
+        return False
 
     if feedback_source in FeedbackCreationSource.new_feedback_category_values():
         return True
@@ -1507,6 +1522,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         handle_owner_assignment,
         handle_auto_assignment,
         process_rules,
+        process_workflow_engine,
         process_service_hooks,
         process_resource_change_bounds,
         process_plugins,

@@ -217,14 +217,16 @@ describe('EventFeatureFlagList', function () {
     ).toBe(document.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it('renders empty state', function () {
+  it('renders empty state if project has flags', function () {
     render(<EventFeatureFlagList {...EMPTY_STATE_SECTION_PROPS} />);
 
     const control = screen.queryByRole('button', {name: 'Sort Flags'});
     expect(control).not.toBeInTheDocument();
     const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
     expect(search).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Feature Flag Settings'})
+    ).toBeInTheDocument();
     expect(
       screen.getByText('No feature flags were found for this event')
     ).toBeInTheDocument();
@@ -264,7 +266,9 @@ describe('EventFeatureFlagList', function () {
     expect(control).not.toBeInTheDocument();
     const search = screen.queryByRole('button', {name: 'Open Feature Flag Search'});
     expect(search).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Set Up Integration'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Feature Flag Settings'})
+    ).toBeInTheDocument();
     expect(
       screen.getByText('No feature flags were found for this event')
     ).toBeInTheDocument();

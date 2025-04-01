@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';

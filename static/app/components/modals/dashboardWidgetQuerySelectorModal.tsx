@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import Link from 'sentry/components/links/link';
 import {IconChevron, IconSearch} from 'sentry/icons';
@@ -128,7 +128,7 @@ const SearchLabel = styled('label')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export const modalCss = css`

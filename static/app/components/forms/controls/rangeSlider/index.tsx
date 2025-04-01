@@ -1,11 +1,13 @@
-import {forwardRef as reactForwardRef, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
+import {Slider} from 'sentry/components/core/slider';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-import Slider from './slider';
 import SliderAndInputWrapper from './sliderAndInputWrapper';
 import SliderLabel from './sliderLabel';
 
@@ -40,8 +42,6 @@ type SliderProps = {
    */
   formatLabel?: (value: number | '') => React.ReactNode;
 
-  forwardRef?: React.Ref<HTMLDivElement>;
-
   /**
    * HTML id of the range input
    */
@@ -73,6 +73,7 @@ type SliderProps = {
    * Placeholder for custom input
    */
   placeholder?: string;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Show input control for custom values
    */
@@ -96,7 +97,7 @@ function RangeSlider({
   className,
   onBlur,
   onChange,
-  forwardRef,
+  ref,
   disabledReason,
   showLabel = true,
   ...props
@@ -184,12 +185,11 @@ function RangeSlider({
   const labelText = formatLabel?.(actualValue) ?? displayValue;
 
   return (
-    <div className={className} ref={forwardRef}>
+    <div className={className} ref={ref}>
       {!showCustomInput && showLabel && <SliderLabel>{labelText}</SliderLabel>}
       <Tooltip title={disabledReason} disabled={!disabled} skipWrapper isHoverable>
         <SliderAndInputWrapper showCustomInput={showCustomInput}>
-          <Slider
-            type="range"
+          <StyledSlider
             name={name}
             id={id}
             min={min}
@@ -201,16 +201,18 @@ function RangeSlider({
             onMouseUp={handleBlur}
             onKeyUp={handleBlur}
             value={sliderValue}
-            hasLabel={!showCustomInput}
             aria-valuetext={labelText}
             aria-label={props['aria-label']}
           />
           {showCustomInput && (
-            <Input
+            <StyledInput
+              hasLabel={!showCustomInput}
               placeholder={placeholder}
               value={sliderValue}
               onChange={handleCustomInputChange}
               onBlur={handleInput}
+              // Do not forward required to avoid default browser behavior
+              required={undefined}
             />
           )}
         </SliderAndInputWrapper>
@@ -219,13 +221,14 @@ function RangeSlider({
   );
 }
 
-const RangeSliderContainer = reactForwardRef(function RangeSliderContainer(
-  props: SliderProps,
-  ref: React.Ref<any>
-) {
-  return <RangeSlider {...props} forwardRef={ref} />;
-});
+const StyledSlider = styled(Slider)`
+  margin: ${space(1)} 0;
+`;
 
-export default RangeSliderContainer;
+const StyledInput = styled(Input)<{hasLabel: boolean}>`
+  margin-top: ${p => space(p.hasLabel ? 2 : 1)};
+`;
+
+export default RangeSlider;
 
 export type {SliderProps};

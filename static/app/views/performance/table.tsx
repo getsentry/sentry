@@ -1,4 +1,5 @@
 import {Component, type ReactNode, useEffect} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -71,6 +72,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  theme: Theme;
   withStaticFilters: boolean;
   columnTitles?: ColumnTitle[];
   domainViewFilters?: DomainViewFilters;
@@ -85,8 +87,8 @@ type State = {
 };
 
 function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
-  const fourteen_days_ago = new Date(+new Date() - 12096e5);
-  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const fourteen_days_ago = new Date(Date.now() - 12096e5);
+  const thirty_days_ago = new Date(Date.now() - 25920e5);
   const firstEventDate = new Date(project?.firstEvent ?? '');
   if (firstEventDate > fourteen_days_ago) {
     return '14d';
@@ -181,7 +183,7 @@ class _Table extends Component<Props, State> {
   }
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
-    return (action: Actions, value: React.ReactText) => {
+    return (action: Actions, value: string | number) => {
       const {eventView, location, organization, projects} = this.props;
 
       trackAnalytics('performance_views.overview.cellaction', {
@@ -267,6 +269,7 @@ class _Table extends Component<Props, State> {
     const rendered = fieldRenderer(dataRow, {
       organization,
       location,
+      theme: this.props.theme,
       unit: tableMeta.units?.[column.key],
     });
 
@@ -393,6 +396,11 @@ class _Table extends Component<Props, State> {
       );
     }
 
+    // Display a placeholder for empty http.method values instead of the default `(empty string)`, which is confusing
+    if (field === 'http.method' && (dataRow[field] === '' || dataRow[field] === null)) {
+      return <span>{'\u2014'}</span>;
+    }
+
     return (
       <CellAction
         column={column}
@@ -475,18 +483,10 @@ class _Table extends Component<Props, State> {
       />
     );
 
-    if (field.field.startsWith('transaction')) {
-      return (
-        <GuideAnchor target="performance_table" position="top">
-          {sortLink}
-        </GuideAnchor>
-      );
-    }
-
     if (field.field.startsWith('user_misery')) {
       if (title.tooltip) {
         return (
-          <GuideAnchor target="performance_table" position="top">
+          <GuideAnchor target="project_transaction_threshold" position="top">
             <Tooltip isHoverable title={title.tooltip} showUnderline>
               {sortLink}
             </Tooltip>
@@ -521,7 +521,7 @@ class _Table extends Component<Props, State> {
 
     const teamKeyTransactionColumn = eventView
       .getColumns()
-      .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
+      .find((col: TableColumn<string | number>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
@@ -581,12 +581,12 @@ class _Table extends Component<Props, State> {
       // remove team_key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter(
-        (col: TableColumn<React.ReactText>) =>
+        (col: TableColumn<string | number>) =>
           col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
           col.name !== 'project_threshold_config'
       )
-      .map((col: TableColumn<React.ReactText>, i: number) => {
+      .map((col: TableColumn<string | number>, i: number) => {
         if (typeof widths[i] === 'number') {
           return {...col, width: widths[i]};
         }
@@ -600,57 +600,63 @@ class _Table extends Component<Props, State> {
 
     return (
       <div data-test-id="performance-table">
-        <MEPConsumer>
-          {value => {
-            return (
-              <DiscoverQuery
-                eventView={sortedEventView}
-                orgSlug={organization.slug}
-                location={location}
-                setError={error => setError(error?.message)}
-                referrer="api.performance.landing-table"
-                transactionName={transaction}
-                transactionThreshold={transactionThreshold}
-                queryExtras={getMEPQueryParams(value)}
-              >
-                {({pageLinks, isLoading, tableData}) => (
-                  <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
-                    <VisuallyCompleteWithData
-                      id="PerformanceTable"
-                      hasData={
-                        !isLoading && !!tableData?.data && tableData.data.length > 0
-                      }
-                      isLoading={isLoading}
-                    >
-                      <GridEditable
+        <GuideAnchor
+          target="performance_table"
+          position="top-start"
+          wrapperComponent={TableWrapper}
+        >
+          <MEPConsumer>
+            {value => {
+              return (
+                <DiscoverQuery
+                  eventView={sortedEventView}
+                  orgSlug={organization.slug}
+                  location={location}
+                  setError={error => setError(error?.message)}
+                  referrer="api.performance.landing-table"
+                  transactionName={transaction}
+                  transactionThreshold={transactionThreshold}
+                  queryExtras={getMEPQueryParams(value)}
+                >
+                  {({pageLinks, isLoading, tableData}) => (
+                    <TrackHasDataAnalytics isLoading={isLoading} tableData={tableData}>
+                      <VisuallyCompleteWithData
+                        id="PerformanceTable"
+                        hasData={
+                          !isLoading && !!tableData?.data && tableData.data.length > 0
+                        }
                         isLoading={isLoading}
-                        data={tableData ? tableData.data : []}
-                        columnOrder={columnOrder}
-                        columnSortBy={columnSortBy}
-                        bodyStyle={{overflow: 'visible'}}
-                        grid={{
-                          onResizeColumn: this.handleResizeColumn,
-                          renderHeadCell: this.renderHeadCellWithMeta(
-                            tableData?.meta
-                          ) as any,
-                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                          renderPrependColumns: this.renderPrependCellWithData(
-                            tableData
-                          ) as any,
-                          prependColumnWidths,
-                        }}
+                      >
+                        <GridEditable
+                          isLoading={isLoading}
+                          data={tableData ? tableData.data : []}
+                          columnOrder={columnOrder}
+                          columnSortBy={columnSortBy}
+                          bodyStyle={{overflow: 'visible'}}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                            renderPrependColumns: this.renderPrependCellWithData(
+                              tableData
+                            ) as any,
+                            prependColumnWidths,
+                          }}
+                        />
+                      </VisuallyCompleteWithData>
+                      <Pagination
+                        pageLinks={pageLinks}
+                        paginationAnalyticsEvent={this.paginationAnalyticsEvent}
                       />
-                    </VisuallyCompleteWithData>
-                    <Pagination
-                      pageLinks={pageLinks}
-                      paginationAnalyticsEvent={this.paginationAnalyticsEvent}
-                    />
-                  </TrackHasDataAnalytics>
-                )}
-              </DiscoverQuery>
-            );
-          }}
-        </MEPConsumer>
+                    </TrackHasDataAnalytics>
+                  )}
+                </DiscoverQuery>
+              );
+            }}
+          </MEPConsumer>
+        </GuideAnchor>
       </div>
     );
   }
@@ -681,6 +687,10 @@ const UnparameterizedTooltipWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const TableWrapper = styled('span')`
+  display: block;
 `;
 
 export default Table;

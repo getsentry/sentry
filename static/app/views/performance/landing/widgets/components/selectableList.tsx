@@ -17,6 +17,7 @@ import {CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/http/settings';
+import {MODULE_DOC_LINK as QUEUE_MODULE_DOC_LINK} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
@@ -72,7 +73,7 @@ export const RightAlignedCell = styled('div')`
 `;
 
 export const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   display: inline-block;
 `;
@@ -117,6 +118,26 @@ export function TimeConsumingDomainsWidgetEmptyStateWarning() {
             link: (
               <ExternalLink href={MODULE_DOC_LINK}>
                 {t('Requests module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function QueuesWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Transactions may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href={QUEUE_MODULE_DOC_LINK}>
+                {t('Queues module documentation')}
               </ExternalLink>
             ),
           }
@@ -230,14 +251,14 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 
 const PrimaryMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0 auto ${space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   max-width: 300px;
 `;
 

@@ -15,6 +15,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {TRACE_FORMAT_PREFERENCE_KEY} from 'sentry/views/performance/newTraceDetails/traceHeader';
 
 import type {TraceTree} from '../traceModels/traceTree';
 
@@ -43,10 +45,10 @@ export function getTraceQueryParams(
   targetId: string | undefined;
   timestamp: string | undefined;
   useSpans: number;
-  demo?: string | undefined;
-  pageEnd?: string | undefined;
-  pageStart?: string | undefined;
-  statsPeriod?: string | undefined;
+  demo?: string;
+  pageEnd?: string;
+  pageStart?: string;
+  statsPeriod?: string;
 } {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
@@ -193,19 +195,33 @@ type UseTraceParams = {
 
 export function useTrace(
   options: UseTraceParams
-): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction>, RequestError> {
+): UseApiQueryResult<TraceTree.Trace, RequestError> {
   const filters = usePageFilters();
   const organization = useOrganization();
+  const query = qs.parse(location.search);
   const queryParams = useMemo(() => {
-    const query = qs.parse(location.search);
     return getTraceQueryParams(query, filters.selection, {
       limit: options.limit,
       timestamp: options.timestamp,
     });
+
+    // Only re-run this if the view query param changes, otherwise if we pass location.search
+    // as a dependency, the query will re-run every time we perform actions on the trace view; like
+    // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.limit, options.timestamp]);
-  const mode = queryParams.demo ? 'demo' : undefined;
+  }, [options.limit, options.timestamp, query.trace_format]);
+
+  const isDemoMode = Boolean(queryParams.demo);
+  const [storedTraceFormat] = useSyncedLocalStorageState(
+    TRACE_FORMAT_PREFERENCE_KEY,
+    'non-eap'
+  );
+  const isEAPEnabled =
+    organization.features.includes('trace-spans-format') && storedTraceFormat === 'eap';
+  const hasValidTrace = Boolean(options.traceSlug && organization.slug);
+
   const demoTrace = useDemoTrace(queryParams.demo, organization);
+
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
       `/organizations/${organization.slug}/events-trace/${options.traceSlug ?? ''}/`,
@@ -213,9 +229,20 @@ export function useTrace(
     ],
     {
       staleTime: Infinity,
-      enabled: !!options.traceSlug && !!organization.slug && mode !== 'demo',
+      enabled: hasValidTrace && !isDemoMode && !isEAPEnabled,
     }
   );
 
-  return mode === 'demo' ? demoTrace : traceQuery;
+  const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
+    [
+      `/organizations/${organization.slug}/trace/${options.traceSlug ?? ''}/`,
+      {query: {...queryParams, project: -1}},
+    ],
+    {
+      staleTime: Infinity,
+      enabled: hasValidTrace && !isDemoMode && isEAPEnabled,
+    }
+  );
+
+  return isDemoMode ? demoTrace : isEAPEnabled ? eapTraceQuery : traceQuery;
 }

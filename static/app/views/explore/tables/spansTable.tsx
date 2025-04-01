@@ -10,6 +10,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {fieldAlignment, prettifyTagKey} from 'sentry/utils/discover/fields';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {
   Table,
   TableBody,
@@ -32,10 +33,11 @@ import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansT
 import {FieldRenderer} from './fieldRenderer';
 
 interface SpansTableProps {
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
 }
 
-export function SpansTable({spansTableResult}: SpansTableProps) {
+export function SpansTable({spansTableResult, isProgressivelyLoading}: SpansTableProps) {
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
   const setSortBys = useSetExploreSortBys();
@@ -53,15 +55,13 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
   const {initialTableStyles, onResizeMouseDown} = useTableStyles(
     visibleFields,
     tableRef,
-    {
-      minimumColumnWidth: 50,
-    }
+    {minimumColumnWidth: 50}
   );
 
   const meta = result.meta ?? {};
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   return (
     <Fragment>
@@ -93,6 +93,7 @@ export function SpansTable({spansTableResult}: SpansTableProps) {
                     <Tooltip showOnlyOnOverflow title={label}>
                       {label}
                     </Tooltip>
+                    {i === 0 && getProgressiveLoadingIndicator(isProgressivelyLoading)}
                     {defined(direction) && (
                       <IconArrow
                         size="xs"

@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import type {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,10 +18,10 @@ export interface QueryFieldProps {
   canDelete?: boolean;
   canDrag?: boolean;
   fieldValidationError?: ReactNode;
-  forwardRef?: React.Ref<HTMLDivElement>;
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
   onDelete?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
   style?: React.CSSProperties;
 }
 
@@ -30,7 +30,7 @@ export function QueryField({
   onChange,
   fieldOptions,
   value,
-  forwardRef,
+  ref,
   listeners,
   attributes,
   canDelete,
@@ -40,7 +40,7 @@ export function QueryField({
   isDragging,
 }: QueryFieldProps) {
   return (
-    <QueryFieldWrapper ref={forwardRef} style={style}>
+    <QueryFieldWrapper ref={ref} style={style}>
       {isDragging ? null : (
         <Fragment>
           {canDrag && (
@@ -78,7 +78,7 @@ export function QueryField({
 }
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const QueryFieldWrapper = styled('div')`

@@ -7,7 +7,7 @@ import {Switch} from 'sentry/components/core/switch';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Plugin} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
@@ -32,7 +32,7 @@ class ProjectPluginRow extends PureComponent<Props> {
   handleChange = () => {
     const {onChange, id, enabled} = this.props;
     onChange(id, !enabled);
-    const eventKey = !enabled ? 'integrations.enabled' : 'integrations.disabled';
+    const eventKey = enabled ? 'integrations.disabled' : 'integrations.enabled';
     trackIntegrationAnalytics(eventKey, {
       integration: id,
       integration_type: 'plugin',

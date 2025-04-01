@@ -16,6 +16,10 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
@@ -37,7 +41,8 @@ function renderSpanSamples(
   aggSpan: AggregateSpanType,
   project: Project | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  view?: DomainView
 ) {
   if (!project) {
     return null;
@@ -61,6 +66,7 @@ function renderSpanSamples(
         },
         spanId: span,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+        view,
       })}
     >{`${span}${index < aggSpan.samples.length - 1 ? ', ' : ''}`}</Link>
   ));
@@ -69,6 +75,7 @@ function renderSpanSamples(
 function AggregateSpanDetail({span, organization}: Props) {
   const location = useLocation();
   const {projects} = useProjects();
+  const {view} = useDomainViewFilters();
 
   const project = projects.find(p => p.id === location.query.project);
 
@@ -89,7 +96,7 @@ function AggregateSpanDetail({span, organization}: Props) {
             <Row title={t('Avg Duration')}>{getDuration(avgDuration)}</Row>
             <Row title={t('Frequency')}>{frequency && formatPercentage(frequency)}</Row>
             <Row title={t('Span Samples')}>
-              {renderSpanSamples(span, project, location, organization)}
+              {renderSpanSamples(span, project, location, organization, view)}
             </Row>
           </tbody>
         </table>
@@ -108,10 +115,10 @@ export function Row({
   extra = null,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
 }) {
   if (!keep && !children) {
     return null;

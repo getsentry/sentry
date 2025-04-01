@@ -4,7 +4,7 @@ import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -127,9 +127,6 @@ class ProjectCard extends Component<Props> {
       transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const zeroTransactions = totalTransactions === 0;
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
-    const hasPerfLandingRemovalFlag = organization.features?.includes(
-      'insights-performance-landing-removal'
-    );
     const domainView: DomainView | undefined = project
       ? platformToDomainView([project], [parseInt(project.id, 10)])
       : 'backend';
@@ -169,11 +166,7 @@ class ProjectCard extends Component<Props> {
                       <em>|</em>
                       <TransactionsLink
                         data-test-id="project-transactions"
-                        to={`${
-                          hasPerfLandingRemovalFlag
-                            ? getPerformanceBaseUrl(organization.slug, domainView)
-                            : getPerformanceBaseUrl(organization.slug)
-                        }/?project=${project.id}`}
+                        to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${project.id}`}
                       >
                         {t(
                           'Transactions: %s',
@@ -210,30 +203,32 @@ class ProjectCard extends Component<Props> {
           </ChartContainer>
           <FooterWrapper>
             <ScoreCardWrapper>
-              {!stats ? (
+              {stats ? (
+                hasHealthData ? (
+                  <ScoreCard
+                    title={t('Crash Free Sessions')}
+                    score={
+                      defined(currentCrashFreeRate)
+                        ? displayCrashFreePercent(currentCrashFreeRate)
+                        : '\u2014'
+                    }
+                    trend={this.renderTrend()}
+                    trendStatus={
+                      this.crashFreeTrend
+                        ? this.crashFreeTrend > 0
+                          ? 'good'
+                          : 'bad'
+                        : undefined
+                    }
+                  />
+                ) : (
+                  this.renderMissingFeatureCard()
+                )
+              ) : (
                 <Fragment>
                   <ReleaseTitle>{t('Crash Free Sessions')}</ReleaseTitle>
                   <FooterPlaceholder />
                 </Fragment>
-              ) : hasHealthData ? (
-                <ScoreCard
-                  title={t('Crash Free Sessions')}
-                  score={
-                    defined(currentCrashFreeRate)
-                      ? displayCrashFreePercent(currentCrashFreeRate)
-                      : '\u2014'
-                  }
-                  trend={this.renderTrend()}
-                  trendStatus={
-                    this.crashFreeTrend
-                      ? this.crashFreeTrend > 0
-                        ? 'good'
-                        : 'bad'
-                      : undefined
-                  }
-                />
-              ) : (
-                this.renderMissingFeatureCard()
               )}
             </ScoreCardWrapper>
             <DeploysWrapper>
@@ -307,7 +302,7 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
         {...props}
         project={{
           ...project,
-          ...(projectDetails || {}),
+          ...projectDetails,
         }}
       />
     );
@@ -372,7 +367,7 @@ const ScoreCardWrapper = styled('div')`
     min-height: auto;
   }
   ${Title} {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
   ${ScoreWrapper} {
     flex-direction: column;
@@ -417,7 +412,7 @@ const DeploysWrapper = styled('div')`
 `;
 
 const ReleaseTitle = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 

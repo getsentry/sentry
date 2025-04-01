@@ -87,7 +87,6 @@ class ApiClient:
 
         if "*" not in settings.ALLOWED_HOSTS:
             mock_request.META["HTTP_HOST"] = settings.ALLOWED_HOSTS[0]
-        mock_request.is_superuser = lambda: mock_request.superuser.is_active
 
         if request:
             # superuser checks require access to IP

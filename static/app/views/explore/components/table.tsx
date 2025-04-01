@@ -1,4 +1,5 @@
-import React, {useCallback, useEffect, useMemo, useRef} from 'react';
+import type React from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {COL_WIDTH_MINIMUM} from 'sentry/components/gridEditable';
@@ -22,15 +23,22 @@ import {Actions} from 'sentry/views/discover/table/cellAction';
 
 interface TableProps extends React.ComponentProps<typeof _TableWrapper> {}
 
-export const Table = React.forwardRef<HTMLTableElement, TableProps>(
-  ({children, styles, ...props}, ref) => (
+export function Table({
+  ref,
+  children,
+  styles,
+  ...props
+}: TableProps & {
+  ref?: React.Ref<HTMLTableElement>;
+}) {
+  return (
     <_TableWrapper {...props}>
       <_Table ref={ref} style={styles}>
         {children}
       </_Table>
     </_TableWrapper>
-  )
-);
+  );
+}
 
 interface TableStatusProps {
   children: React.ReactNode;
@@ -55,7 +63,7 @@ const MINIMUM_COLUMN_WIDTH = COL_WIDTH_MINIMUM;
 
 export function useTableStyles(
   fields: string[],
-  tableRef: React.RefObject<HTMLDivElement>,
+  tableRef: React.RefObject<HTMLDivElement | null>,
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;
@@ -155,9 +163,9 @@ export const TableHeaderTitle = HeaderTitle;
 export const TableHeadCell = styled(GridHeadCell)<{align?: Alignments}>`
   ${p => p.align && `justify-content: ${p.align};`}
 `;
-export const TableHeadCellContent = styled('div')`
+export const TableHeadCellContent = styled('div')<{isFrozen?: boolean | undefined}>`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  cursor: pointer;
+  cursor: ${p => (p.isFrozen ? 'default' : 'pointer')};
 `;

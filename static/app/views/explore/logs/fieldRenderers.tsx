@@ -1,36 +1,56 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
+import type {Location} from 'history';
 
 import {DateTime} from 'sentry/components/dateTime';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
+  AlignedCellContent,
   ColoredLogCircle,
   ColoredLogText,
   type getLogColors,
   LogDate,
   LogsHighlight,
+  NonClickableCell,
   WrappingText,
 } from 'sentry/views/explore/logs/styles';
 import {
+  type LogAttributeItem,
+  type LogRowItem,
   type OurLogFieldKey,
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {
+  adjustLogTraceID,
   getLogSeverityLevel,
+  logsFieldAlignment,
   SeverityLevel,
   severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-interface FieldRendererProps {
-  attribute_value: string | number | null;
+interface LogFieldRendererProps {
   extra: RendererExtra;
+  item: LogRowItem | LogAttributeItem;
+  align?: 'left' | 'center' | 'right';
+  basicRendered?: React.ReactNode;
+  meta?: EventsMetaType;
   tableResultLogRow?: OurLogsResponseItem;
 }
 
 export interface RendererExtra {
   highlightTerms: string[];
+  location: Location;
   logColors: ReturnType<typeof getLogColors>;
+  organization: Organization;
+  align?: 'left' | 'center' | 'right';
   renderSeverityCircle?: boolean;
   useFullSeverityText?: boolean;
   wrapBody?: boolean;
@@ -55,8 +75,8 @@ function SeverityCircle(props: {
   );
 }
 
-export function severityTextRenderer(props: FieldRendererProps) {
-  const attribute_value = props.attribute_value as string;
+export function SeverityTextRenderer(props: LogFieldRendererProps) {
+  const attribute_value = props.item.value as string;
   const _severityNumber = props.tableResultLogRow?.[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityNumber = _severityNumber ? Number(_severityNumber) : null;
   const useFullSeverityText = props.extra.useFullSeverityText ?? false;
@@ -64,81 +84,122 @@ export function severityTextRenderer(props: FieldRendererProps) {
   const levelLabel = useFullSeverityText ? attribute_value : severityLevelToText(level);
   const renderSeverityCircle = props.extra.renderSeverityCircle ?? false;
   return (
-    <Fragment>
-      {renderSeverityCircle && (
-        <SeverityCircle
-          level={level}
-          levelLabel={levelLabel}
-          severityText={attribute_value}
-          logColors={props.extra.logColors}
-        />
-      )}
-
-      <ColoredLogText logColors={props.extra.logColors}>[{levelLabel}]</ColoredLogText>
-    </Fragment>
+    <NonExpandingCell>
+      <AlignedCellContent align={props.align}>
+        {renderSeverityCircle && (
+          <SeverityCircle
+            level={level}
+            levelLabel={levelLabel}
+            severityText={attribute_value}
+            logColors={props.extra.logColors}
+          />
+        )}
+        <ColoredLogText logColors={props.extra.logColors}>[{levelLabel}]</ColoredLogText>
+      </AlignedCellContent>
+    </NonExpandingCell>
   );
 }
 
-export function TimestampRenderer(props: FieldRendererProps) {
+export function TimestampRenderer(props: LogFieldRendererProps) {
   return (
-    <LogDate>
-      <DateTime seconds date={props.attribute_value} />
-    </LogDate>
+    <NonExpandingCell>
+      <LogDate align={props.extra.align}>
+        <DateTime seconds date={props.item.value} />
+      </LogDate>
+    </NonExpandingCell>
   );
 }
 
-export function bodyRenderer(props: FieldRendererProps) {
-  const attribute_value = props.attribute_value as string;
-  const highlightTerm = props.extra.highlightTerms[0] ?? '';
+export function TraceIDRenderer(props: LogFieldRendererProps) {
+  const traceId = props.item.value as string;
+  const target = getTraceDetailsUrl({
+    traceSlug: traceId,
+    timestamp: props.tableResultLogRow?.[OurLogKnownFieldKey.TIMESTAMP],
+    organization: props.extra.organization,
+    dateSelection: props.extra.location,
+    location: props.extra.location,
+    source: TraceViewSources.TRACES,
+  });
+  return <Link to={target}>{props.basicRendered}</Link>;
+}
+
+export function LogBodyRenderer(props: LogFieldRendererProps) {
+  const attribute_value = props.item.value as string;
+  const highlightTerm = props.extra?.highlightTerms[0] ?? '';
   // TODO: Allow more than one highlight term to be highlighted at once.
   return (
     <WrappingText wrap={props.extra.wrapBody}>
-      <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
+      <NonExpandingCell>
+        <LogsHighlight text={highlightTerm}>{attribute_value}</LogsHighlight>
+      </NonExpandingCell>
     </WrappingText>
   );
 }
 
-function wrappedSeverityTextRenderer(props: {
-  attribute_value: string | number | null;
-  extra?: RendererExtra;
-}) {
-  const extra = props.extra || {
-    highlightTerms: [],
-    logColors: {} as ReturnType<typeof getLogColors>,
-  };
-  return severityTextRenderer({...props, extra});
+function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
+  return 'metaFieldType' in item;
+}
+
+export function LogFieldRenderer(props: LogFieldRendererProps) {
+  const theme = useTheme();
+  const type = props.meta?.fields?.[props.item.fieldKey];
+  const adjustedFieldKey =
+    fullFieldToExistingField[props.item.fieldKey] ?? props.item.fieldKey;
+
+  const adjustedValue =
+    props.item.fieldKey === OurLogKnownFieldKey.TRACE_ID
+      ? adjustLogTraceID(props.item.value as string)
+      : props.item.value;
+  if (!isLogRowItem(props.item) || !defined(adjustedValue) || !type) {
+    // Rendering inside attribute tree.
+    return <Fragment>{adjustedValue}</Fragment>;
+  }
+
+  const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
+  const basicRendered = basicRenderer(
+    {...props, [adjustedFieldKey]: adjustedValue},
+    {...props.extra, theme}
+  );
+
+  const customRenderer = getLogFieldRenderer(props.item.fieldKey);
+
+  const align = logsFieldAlignment(adjustedFieldKey, type);
+
+  if (!customRenderer) {
+    return <NonExpandingCell>{basicRendered}</NonExpandingCell>;
+  }
+
+  return (
+    <AlignedCellContent align={align}>
+      {customRenderer({...props, align, basicRendered})}
+    </AlignedCellContent>
+  );
 }
 
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
-  (props: {
-    attribute_value: string | number | null;
-    extra?: RendererExtra;
-  }) => React.ReactNode
+  (props: LogFieldRendererProps) => React.ReactNode
 > = {
   [OurLogKnownFieldKey.TIMESTAMP]: props => {
-    // Ensure extra is defined for the wrapped function
-    const extra = props.extra || {
-      highlightTerms: [],
-      logColors: {} as ReturnType<typeof getLogColors>,
-    };
-    return TimestampRenderer({...props, extra});
+    return TimestampRenderer(props);
   },
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: wrappedSeverityTextRenderer,
-  [OurLogKnownFieldKey.SENTRY_SEVERITY_TEXT]: wrappedSeverityTextRenderer,
+  [OurLogKnownFieldKey.SEVERITY_TEXT]: SeverityTextRenderer,
+  [OurLogKnownFieldKey.BODY]: LogBodyRenderer,
+  [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
 };
 
-export const LogAttributesHumanLabel: Record<OurLogFieldKey, string> = {
-  [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
-  [OurLogKnownFieldKey.SEVERITY_TEXT]: t('Severity'),
+export function getLogFieldRenderer(field: OurLogFieldKey) {
+  return LogAttributesRendererMap[field];
+}
+
+const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
+  [OurLogKnownFieldKey.TRACE_ID]: 'trace',
 };
 
-export const HiddenLogAttributes: OurLogFieldKey[] = [
-  OurLogKnownFieldKey.SEVERITY_NUMBER,
-  OurLogKnownFieldKey.ID,
-  OurLogKnownFieldKey.BODY,
-  OurLogKnownFieldKey.PROJECT_ID,
-  OurLogKnownFieldKey.SENTRY_ORGANIZATION_ID,
-  OurLogKnownFieldKey.SENTRY_PROJECT_ID,
-  OurLogKnownFieldKey.SENTRY_ITEM_TYPE,
-];
+function NonExpandingCell(props: {children: React.ReactNode}) {
+  return (
+    <NonClickableCell onClick={e => e.stopPropagation()}>
+      {props.children}
+    </NonClickableCell>
+  );
+}

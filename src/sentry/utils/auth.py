@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any, cast
+from typing import Any
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.urls import resolve, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.organizations.absolute_url import generate_organization_url
@@ -24,7 +26,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.demo_mode import is_demo_mode_enabled, is_demo_user
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
@@ -179,7 +180,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     # that now here.
     after_2fa = request.session.pop("_after_2fa", None)
     if after_2fa is not None:
-        return cast(str, after_2fa)
+        return after_2fa
 
     login_url = request.session.pop("_next", None)
     if not login_url:
@@ -188,7 +189,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     if not is_valid_redirect(login_url, allowed_hosts=(request.get_host(),)):
         login_url = default
 
-    return cast(str, login_url)
+    return login_url
 
 
 def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
@@ -261,12 +262,14 @@ def has_completed_sso(request: HttpRequest, organization_id: int) -> bool:
 
 
 def find_users(
-    username: str, with_valid_password: bool = True, is_active: bool | None = None
-) -> Sequence[User]:
+    username: str | None, with_valid_password: bool = True, is_active: bool | None = None
+) -> list[User]:
     """
     Return a list of users that match a username
     and falling back to email
     """
+    if username is None:
+        return []
     queryset = User.objects.filter()
     if is_active is not None:
         queryset = queryset.filter(is_active=is_active)
@@ -387,7 +390,7 @@ def has_user_registration() -> bool:
     return features.has("auth:register") and options.get("auth.allow-registration")
 
 
-def is_user_signed_request(request: HttpRequest) -> bool:
+def is_user_signed_request(request: Request) -> bool:
     """
     This function returns True if the request is a signed valid link
     """
@@ -412,37 +415,36 @@ class EmailAuthBackend(ModelBackend):
     """
 
     def authenticate(
-        self, request: HttpRequest, username: str, password: str | None = None
+        self,
+        request: HttpRequest | None,
+        username: str | None = None,
+        password: str | None = None,
+        **kwargs: Any,
     ) -> User | None:
-        users = find_users(username)
-        if users:
-            for user in users:
-                try:
-                    if is_demo_mode_enabled() and is_demo_user(user):
+        for user in find_users(username):
+            try:
+                if is_demo_mode_enabled() and is_demo_user(user):
+                    return user
+                if user.password:
+                    # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
+                    # password checking as a mechanism to drop old password hashers immediately and
+                    # then lazily sending out password reset emails.
+                    if user.is_password_expired:
+                        raise AuthUserPasswordExpired(user)
+                    if password is not None and user.check_password(password):
                         return user
-                    if user.password:
-                        # XXX(joshuarli): This is checked before (and therefore, regardless of outcome)
-                        # password checking as a mechanism to drop old password hashers immediately and
-                        # then lazily sending out password reset emails.
-                        if user.is_password_expired:
-                            raise AuthUserPasswordExpired(user)
-                        if user.check_password(password):
-                            return user
-                except ValueError:
-                    continue
+            except ValueError:
+                continue
         return None
 
-    def user_can_authenticate(self, user: User) -> bool:
+    def user_can_authenticate(self, user: User | AnonymousUser | None) -> bool:
         return True
 
-    def get_user(self, user_id: int) -> RpcUser | None:
-        user = user_service.get_user(user_id=user_id)
-        if user:
-            return user
-        return None
+    def get_user(self, user_id: int) -> RpcUser | None:  # type: ignore[override]  # XXX: HC "pretends" to be the user model
+        return user_service.get_user(user_id=user_id)
 
 
-def construct_link_with_query(path: str, query_params: dict[str, str]) -> str:
+def construct_link_with_query(path: str, query_params: Mapping[str, str | None]) -> str:
     """
     constructs a link with url encoded query params given a base path
     """

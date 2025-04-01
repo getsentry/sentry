@@ -2,7 +2,8 @@ import {Component, createRef} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -75,9 +76,9 @@ export class OrganizationRules extends Component<Props, State> {
 
     if (rules.length === 0) {
       return (
-        <Wrapper>
+        <PanelAlert type="info">
           {t('There are no data scrubbing rules at the organization level')}
-        </Wrapper>
+        </PanelAlert>
       );
     }
     return (
@@ -119,7 +120,7 @@ const Header = styled('div')`
 `;
 
 const Wrapper = styled('div')<{contentHeight?: string; isCollapsed?: boolean}>`
-  color: ${p => p.theme.gray200};
+  color: ${p => p.theme.subText};
   background: ${p => p.theme.backgroundSecondary};
   ${p => !p.contentHeight && `padding: ${space(1)} ${space(2)}`};
   ${p => !p.isCollapsed && ` border-bottom: 1px solid ${p.theme.border}`};

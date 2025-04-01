@@ -1,18 +1,18 @@
 import type {CSSProperties, ReactNode} from 'react';
-import {forwardRef, isValidElement, useCallback} from 'react';
+import {isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -54,24 +54,23 @@ interface Props {
   className?: string;
   expandPaths?: string[];
   extraction?: Extraction;
+  ref?: React.Ref<HTMLDivElement>;
   style?: CSSProperties;
 }
 
-const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem(
-  {
-    className,
-    extraction,
-    frame,
-    expandPaths,
-    onClick,
-    onInspectorExpanded,
-    onMouseEnter,
-    onMouseLeave,
-    startTimestampMs,
-    style,
-  },
-  ref
-) {
+function BreadcrumbItem({
+  className,
+  extraction,
+  frame,
+  expandPaths,
+  onClick,
+  onInspectorExpanded,
+  onMouseEnter,
+  onMouseLeave,
+  startTimestampMs,
+  style,
+  ref,
+}: Props) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
 
@@ -176,7 +175,7 @@ const BreadcrumbItem = forwardRef<HTMLDivElement, Props>(function BreadcrumbItem
       </ErrorBoundary>
     </StyledTimelineItem>
   );
-});
+}
 
 function WebVitalData({
   selectors,
@@ -358,7 +357,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};
-    .icon-wrapper {
+    .timeline-icon-wrapper {
       background: ${p => p.theme.translucentSurface200};
     }
   }

@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd} from 'sentry/icons';
@@ -11,7 +11,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 
-import {PlanTier, type Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 import {Card, HalvedGrid} from './components/styles';
@@ -85,9 +86,7 @@ function RootAllocationCard({
                   {
                     odLink: (
                       <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/#on-demand-capacity">
-                        {subscription.planTier === PlanTier.AM3
-                          ? 'Pay-as-you-go'
-                          : 'On-Demand'}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </ExternalLink>
                     ),
                   }

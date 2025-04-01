@@ -9,8 +9,8 @@ import {
 } from 'react';
 import {Observer} from 'mobx-react';
 
-import {Button} from 'sentry/components/button';
 import type {AlertProps} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -194,7 +194,7 @@ function FormField(props: FormFieldProps) {
   const {name, onBlur, onChange, onKeyDown} = props;
 
   const context = useContext(FormContext);
-  const inputRef = useRef<HTMLElement>();
+  const inputRef = useRef<HTMLElement | null>(null);
 
   const [model] = useState<FormModel>(
     // XXX: MockModel doesn't fully implement the FormModel interface
@@ -305,7 +305,7 @@ function FormField(props: FormFieldProps) {
         }
       }
 
-      inputRef.current = node ?? undefined;
+      inputRef.current = node ?? null;
     },
     [name]
   );

@@ -14,7 +14,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import PreferenceStore from 'sentry/stores/preferencesStore';
 import type {Organization} from 'sentry/types/organization';
 import type {StatuspageIncident} from 'sentry/types/system';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import * as incidentsHook from 'sentry/utils/useServiceIncidents';
@@ -65,22 +65,18 @@ describe('Sidebar', function () {
 
   const renderSidebarWithFeatures = (features: string[] = []) => {
     return renderSidebar({
-      organization: {
-        ...organization,
-        features: [...organization.features, ...features],
-      },
+      organization: {...organization, features: [...organization.features, ...features]},
     });
   };
 
   beforeEach(function () {
     ConfigStore.set('user', user);
     mockUseLocation.mockReturnValue(LocationFixture());
-    jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
-      () =>
-        ({
-          data: [ServiceIncidentFixture()],
-        }) as UseQueryResult<StatuspageIncident[]>
-    );
+    jest
+      .spyOn(incidentsHook, 'useServiceIncidents')
+      .mockImplementation(
+        () => ({data: [ServiceIncidentFixture()]}) as UseQueryResult<StatuspageIncident[]>
+      );
 
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
@@ -97,9 +93,7 @@ describe('Sidebar', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/onboarding-tasks/`,
       method: 'GET',
-      body: {
-        onboardingTasks: [],
-      },
+      body: {onboardingTasks: []},
     });
   });
 
@@ -123,9 +117,7 @@ describe('Sidebar', function () {
   });
 
   it('has can logout', async function () {
-    renderSidebar({
-      organization: OrganizationFixture({access: ['member:read']}),
-    });
+    renderSidebar({organization: OrganizationFixture({access: ['member:read']})});
 
     await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
     await userEvent.click(screen.getByTestId('sidebar-signout'));
@@ -141,14 +133,14 @@ describe('Sidebar', function () {
   });
 
   it('does not render help center in demo mode', async () => {
-    (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+    (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
     renderSidebar({organization});
     await userEvent.click(await screen.findByText('Help'));
 
     expect(screen.queryByText('Visit Help Center')).not.toBeInTheDocument();
 
-    (isDemoModeEnabled as jest.Mock).mockReset();
+    (isDemoModeActive as jest.Mock).mockReset();
   });
 
   describe('SidebarDropdown', function () {
@@ -161,9 +153,7 @@ describe('Sidebar', function () {
       expect(orgSettingsLink).toBeInTheDocument();
     });
     it('has link to Members settings with `member:write`', async function () {
-      renderSidebar({
-        organization: OrganizationFixture({access: ['member:read']}),
-      });
+      renderSidebar({organization: OrganizationFixture({access: ['member:read']})});
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
 
@@ -201,9 +191,7 @@ describe('Sidebar', function () {
     });
 
     it('can have onboarding feature', async function () {
-      renderSidebar({
-        organization: {...organization, features: ['onboarding']},
-      });
+      renderSidebar({organization: {...organization, features: ['onboarding']}});
 
       const quickStart = await screen.findByText('Onboarding');
 
@@ -259,10 +247,7 @@ describe('Sidebar', function () {
       await waitFor(() => {
         expect(apiMocks.broadcastsMarkAsSeen).toHaveBeenCalledWith(
           '/broadcasts/',
-          expect.objectContaining({
-            data: {hasSeen: '1'},
-            query: {id: ['8']},
-          })
+          expect.objectContaining({data: {hasSeen: '1'}, query: {id: ['8']}})
         );
       });
       jest.useRealTimers();
@@ -377,7 +362,7 @@ describe('Sidebar', function () {
       });
 
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(24);
+      expect(links).toHaveLength(23);
 
       [
         'Issues',
@@ -392,7 +377,6 @@ describe('Sidebar', function () {
         'Backend',
         'Mobile',
         'AI',
-        'Performance',
         'User Feedback',
         'Crons',
         'Alerts',
@@ -437,7 +421,10 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       expect(await screen.findByText(/Try New Navigation/)).toBeInTheDocument();
     });
@@ -448,7 +435,10 @@ describe('Sidebar', function () {
         body: {data: null},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
 
@@ -469,7 +459,10 @@ describe('Sidebar', function () {
         body: {},
       });
 
-      renderSidebarWithFeatures(['navigation-sidebar-v2']);
+      renderSidebarWithFeatures([
+        'navigation-sidebar-v2',
+        'navigation-sidebar-v2-banner',
+      ]);
 
       await userEvent.click(await screen.findByRole('button', {name: /Dismiss/}));
 

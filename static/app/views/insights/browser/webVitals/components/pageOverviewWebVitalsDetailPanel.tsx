@@ -378,13 +378,11 @@ export function PageOverviewWebVitalsDetailPanel({
 
     if (key === SpanIndexedField.SPAN_DESCRIPTION) {
       const description =
-        webVital === 'lcp' &&
-        (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
-          ? (row as SpanSampleRowWithScore)[SpanIndexedField.LCP_ELEMENT]
-          : webVital === 'cls' &&
-              (row as SpanSampleRowWithScore)[SpanIndexedField.SPAN_OP] === 'pageload'
-            ? (row as SpanSampleRowWithScore)[SpanIndexedField.CLS_SOURCE]
-            : (row as SpanSampleRowWithScore)[key];
+        webVital === 'lcp' && row[SpanIndexedField.SPAN_OP] === 'pageload'
+          ? row[SpanIndexedField.LCP_ELEMENT]
+          : webVital === 'cls' && row[SpanIndexedField.SPAN_OP] === 'pageload'
+            ? row[SpanIndexedField.CLS_SOURCE]
+            : row[key];
 
       if (description) {
         return (
@@ -443,11 +441,11 @@ export function PageOverviewWebVitalsDetailPanel({
         {webVital && (
           <WebVitalDetailHeader
             value={
-              webVitalValue !== undefined
-                ? webVital !== 'cls'
-                  ? getDuration(webVitalValue / 1000, 2, true)
-                  : webVitalValue?.toFixed(2)
-                : undefined
+              webVitalValue === undefined
+                ? undefined
+                : webVital === 'cls'
+                  ? webVitalValue?.toFixed(2)
+                  : getDuration(webVitalValue / 1000, 2, true)
             }
             webVital={webVital}
             score={webVitalScore}
@@ -521,7 +519,7 @@ const ChartContainer = styled('div')`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const TableContainer = styled('div')`

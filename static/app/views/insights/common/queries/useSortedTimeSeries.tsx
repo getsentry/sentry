@@ -6,6 +6,7 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -17,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {determineSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
 import type {SpanFunctions, SpanIndexedField} from 'sentry/views/insights/types';
@@ -38,6 +40,7 @@ interface Options<Fields> {
   orderby?: string | string[];
   overriddenRoute?: string;
   referrer?: string;
+  samplingMode?: SamplingMode;
   search?: MutableSearch;
   topEvents?: number;
   yAxis?: Fields;
@@ -61,6 +64,7 @@ export const useSortedTimeSeries = <
     orderby,
     overriddenRoute,
     enabled,
+    samplingMode,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -95,6 +99,7 @@ export const useSortedTimeSeries = <
       partial: 1,
       orderby: eventView.sorts?.[0] ? encodeSort(eventView.sorts?.[0]) : undefined,
       interval: eventView.interval,
+      sampling: samplingMode,
     }),
     options: {
       enabled: enabled && pageFilters.isReady,
@@ -195,10 +200,10 @@ export function transformToSeriesMap(
           groupName
         );
 
-        if (!acc[seriesName]) {
-          acc[seriesName] = [series];
-        } else {
+        if (acc[seriesName]) {
           acc[seriesName].push(series);
+        } else {
+          acc[seriesName] = [series];
         }
       });
       return acc;
@@ -219,12 +224,8 @@ export function convertEventsStatsToTimeSeriesData(
       value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0),
     })),
     meta: {
-      fields: {
-        [label]: seriesData.meta?.fields?.[seriesName]!,
-      },
-      units: {
-        [label]: seriesData.meta?.units?.[seriesName]!,
-      },
+      type: seriesData.meta?.fields?.[seriesName]!,
+      unit: seriesData.meta?.units?.[seriesName] as DataUnit,
     },
     confidence: determineSeriesConfidence(seriesData),
     sampleCount: seriesData.meta?.accuracy?.sampleCount,

@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {

@@ -6,8 +6,8 @@ import * as Sentry from '@sentry/react';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
@@ -239,7 +239,7 @@ export function DeprecatedAggregateFlamegraph(
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -296,7 +296,6 @@ export function DeprecatedAggregateFlamegraph(
       <FlamegraphZoomView
         scheduler={scheduler}
         profileGroup={profileGroup}
-        canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
         flamegraph={flamegraph}
         flamegraphRenderer={flamegraphRenderer}

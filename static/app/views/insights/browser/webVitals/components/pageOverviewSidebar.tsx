@@ -8,7 +8,6 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -119,7 +118,7 @@ export function PageOverviewSidebar({
     return undefined;
   };
 
-  const ringSegmentColors = getChartColorPalette(3);
+  const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   return (
@@ -272,12 +271,12 @@ const processSeriesData = (
   {period, start, end}: PageFilters['datetime'],
   shouldDoublePeriod: boolean
 ) => {
-  let seriesData = !isLoading
-    ? count.map(({name, value}) => ({
+  let seriesData = isLoading
+    ? []
+    : count.map(({name, value}) => ({
         name,
         value,
-      }))
-    : [];
+      }));
 
   // Trim off last data point since it's incomplete
   if (seriesData.length > 0 && period && !start && !end) {
@@ -289,12 +288,12 @@ const processSeriesData = (
     : seriesData;
   const previousSeries = seriesData.slice(0, dataMiddleIndex);
 
-  const initialCount = !isLoading
-    ? previousSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
-  const currentCount = !isLoading
-    ? currentSeries.reduce((acc, {value}) => acc + value, 0)
-    : undefined;
+  const initialCount = isLoading
+    ? undefined
+    : previousSeries.reduce((acc, {value}) => acc + value, 0);
+  const currentCount = isLoading
+    ? undefined
+    : currentSeries.reduce((acc, {value}) => acc + value, 0);
   const countDiff =
     !isLoading && currentCount !== undefined && initialCount !== undefined
       ? currentCount / initialCount

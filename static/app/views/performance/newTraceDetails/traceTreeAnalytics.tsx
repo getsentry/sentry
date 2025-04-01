@@ -4,6 +4,7 @@ import type {TraceTree} from './traceModels/traceTree';
 import type {TraceTreeNode} from './traceModels/traceTreeNode';
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isRootNode,
@@ -18,7 +19,7 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
   if (isAutogroupedNode(node)) {
     return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
   }
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return 'span';
   }
   if (isTransactionNode(node)) {

@@ -42,7 +42,7 @@ export default function DatePickerField(props: DatePickerFieldProps) {
     <FormField {...props}>
       {({children: _children, onChange, onBlur, value, id, size, ...inputProps}: any) => {
         const dateObj = new Date(value);
-        const inputValue = !isNaN(dateObj.getTime()) ? dateObj : new Date();
+        const inputValue = isNaN(dateObj.getTime()) ? new Date() : dateObj;
         const dateString = moment(inputValue).format('LL');
 
         return (
@@ -55,6 +55,8 @@ export default function DatePickerField(props: DatePickerFieldProps) {
                 size={size}
                 value={dateString}
                 readOnly
+                // Do not forward required to avoid default browser behavior
+                required={undefined}
               />
               <StyledIconCalendar inputSize={size} size={size === 'xs' ? 'xs' : 'sm'} />
             </InputWrapper>

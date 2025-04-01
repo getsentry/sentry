@@ -2,7 +2,7 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -196,7 +196,50 @@ export function SelectRow({
               widget_type: state.dataset ?? '',
               organization,
             });
-          } else if (!isNone) {
+          } else if (isNone) {
+            // Handle selecting NONE so we can select just a field, e.g. for samples
+            // If NONE is selected, set the field to a field value
+
+            // When selecting NONE, the next possible columns may be different from the
+            // possible columns for the previous aggregate. Calculate the valid columns,
+            // see if the current field's function argument is in the valid columns, and if so,
+            // set the field to a field value. Otherwise, set the field to the first valid column.
+            const validColumnFields = getColumnOptions(
+              state.dataset ?? WidgetType.ERRORS,
+              {
+                kind: FieldValueKind.FIELD,
+                field: '',
+              },
+              fieldOptions,
+              // If no column filter method is provided, show all options
+              columnFilterMethod ?? (() => true)
+            );
+            const functionArgInValidColumnFields =
+              (currentField.kind === FieldValueKind.FUNCTION &&
+                validColumnFields.find(
+                  option => option.value === currentField.function[1]
+                )) ||
+              undefined;
+            const validColumn =
+              functionArgInValidColumnFields?.value ??
+              validColumnFields?.[0]?.value ??
+              '';
+            newFields[index] = {
+              kind: FieldValueKind.FIELD,
+              field: validColumn,
+            };
+
+            trackAnalytics('dashboards_views.widget_builder.change', {
+              builder_version: WidgetBuilderVersion.SLIDEOUT,
+              field: 'visualize.updateAggregate',
+              from: source,
+              new_widget: !isEditing,
+              value: 'column',
+              widget_type: state.dataset ?? '',
+              organization,
+            });
+            openColumnSelect();
+          } else {
             if (currentField.kind === FieldValueKind.FUNCTION) {
               // Handle setting an aggregate from an aggregate
               currentField.function[0] = parseAggregateFromValueKey(
@@ -331,49 +374,6 @@ export function SelectRow({
               widget_type: state.dataset ?? '',
               organization,
             });
-          } else {
-            // Handle selecting NONE so we can select just a field, e.g. for samples
-            // If NONE is selected, set the field to a field value
-
-            // When selecting NONE, the next possible columns may be different from the
-            // possible columns for the previous aggregate. Calculate the valid columns,
-            // see if the current field's function argument is in the valid columns, and if so,
-            // set the field to a field value. Otherwise, set the field to the first valid column.
-            const validColumnFields = getColumnOptions(
-              state.dataset ?? WidgetType.ERRORS,
-              {
-                kind: FieldValueKind.FIELD,
-                field: '',
-              },
-              fieldOptions,
-              // If no column filter method is provided, show all options
-              columnFilterMethod ?? (() => true)
-            );
-            const functionArgInValidColumnFields =
-              (currentField.kind === FieldValueKind.FUNCTION &&
-                validColumnFields.find(
-                  option => option.value === currentField.function[1]
-                )) ||
-              undefined;
-            const validColumn =
-              functionArgInValidColumnFields?.value ??
-              validColumnFields?.[0]?.value ??
-              '';
-            newFields[index] = {
-              kind: FieldValueKind.FIELD,
-              field: validColumn,
-            };
-
-            trackAnalytics('dashboards_views.widget_builder.change', {
-              builder_version: WidgetBuilderVersion.SLIDEOUT,
-              field: 'visualize.updateAggregate',
-              from: source,
-              new_widget: !isEditing,
-              value: 'column',
-              widget_type: state.dataset ?? '',
-              organization,
-            });
-            openColumnSelect();
           }
           dispatch({
             type: updateAction,
@@ -392,7 +392,7 @@ export function SelectRow({
             options={columnOptions}
             value={
               field.kind === FieldValueKind.FUNCTION
-                ? parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? ''
+                ? (parseFunction(stringFields?.[index] ?? '')?.arguments[0] ?? '')
                 : field.field
             }
             onChange={newField => {

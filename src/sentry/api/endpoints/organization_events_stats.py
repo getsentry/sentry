@@ -114,6 +114,7 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
     Referrer.API_EXPLORE_COMPARE_SERIES.value,
+    Referrer.API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES.value,
 }
 
 
@@ -300,7 +301,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         orderby=self.get_orderby(request),
                         limit=top_events,
                         referrer=referrer,
-                        granularity_secs=rollup,
                         config=SearchResolverConfig(
                             auto_fields=False,
                             use_aggregate_conditions=True,
@@ -336,7 +336,6 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     params=snuba_params,
                     query_string=query,
                     y_axes=query_columns,
-                    granularity_secs=rollup,
                     referrer=referrer,
                     config=SearchResolverConfig(
                         auto_fields=False,
@@ -575,6 +574,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     comparison_delta=comparison_delta,
                     dataset=dataset,
                     transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 ),
                 status=200,
             )

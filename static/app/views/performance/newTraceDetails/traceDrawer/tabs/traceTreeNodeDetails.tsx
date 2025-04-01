@@ -3,6 +3,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
   isAutogroupedNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
   isTraceErrorNode,
@@ -24,6 +25,7 @@ export interface TraceTreeNodeDetailsProps<T> {
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   replay: ReplayRecord | null;
+  traceId: string;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
@@ -31,7 +33,7 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
     return <TransactionNodeDetails {...props} />;
   }
 
-  if (isSpanNode(props.node)) {
+  if (isSpanNode(props.node) || isEAPSpanNode(props.node)) {
     return <SpanNodeDetails {...props} />;
   }
 

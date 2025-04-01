@@ -2,13 +2,13 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 import type {DiscoverQueryProps, GenericChildrenProps} from './genericDiscoverQuery';
-import GenericDiscoverQuery, {useGenericDiscoverQuery} from './genericDiscoverQuery';
+import {GenericDiscoverQuery, useGenericDiscoverQuery} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: string | number;
   id: string;
 };
 

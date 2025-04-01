@@ -234,7 +234,7 @@ class SlackService:
                 use_open_period_start = True
                 open_period_start = open_period_start_for_group(group)
                 if features.has(
-                    "organizations:workflow-engine-notification-action",
+                    "organizations:workflow-engine-trigger-actions",
                     group.organization,
                 ):
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
@@ -249,7 +249,7 @@ class SlackService:
                     )
             else:
                 if features.has(
-                    "organizations:workflow-engine-notification-action",
+                    "organizations:workflow-engine-trigger-actions",
                     group.organization,
                 ):
                     parent_notifications = self._notification_action_repository.get_all_parent_notification_messages_by_filters(
@@ -335,12 +335,13 @@ class SlackService:
                 f"parent notification {parent_notification.id} does not have an action"
             )
 
-        if not parent_notification.action.target_identifier:
+        target_id = parent_notification.action.config.get("target_identifier")
+        if not target_id:
             raise ActionDataError(
                 f"parent notification {parent_notification.id} does not have a target_identifier"
             )
 
-        return str(parent_notification.action.target_identifier)
+        return str(target_id)
 
     def _get_channel_id_from_parent_notification(
         self,

@@ -14,6 +14,7 @@ import {
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import ModalStore from 'sentry/stores/modalStore';
 import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
+import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetBuilderSlideout from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -22,34 +23,36 @@ import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/contexts/spanTagsContext');
 jest.mock('sentry/actionCreators/indicator');
+jest.mock('sentry/utils/useParams');
 
 describe('WidgetBuilderSlideout', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
     organization = OrganizationFixture();
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-    });
+    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
+
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/recent-searches/'});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/widgets/',
       method: 'POST',
-      body: {
-        title: 'Title is required during creation',
-      },
-      statusCode: 400,
+      statusCode: 200,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
     });
   });
 
   afterEach(() => {
     ModalStore.reset();
+    jest.clearAllMocks();
   });
 
   it('should show the sort by step if the widget is a chart and there are fields selected', async () => {
@@ -57,9 +60,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -96,9 +97,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -132,9 +131,7 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
-          dashboardFilters={{
-            release: undefined,
-          }}
+          dashboardFilters={{release: undefined}}
           isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
@@ -225,6 +222,13 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('should not save and close the widget builder if the widget is invalid', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/widgets/',
+      method: 'POST',
+      body: {title: 'Title is required during creation'},
+      statusCode: 400,
+    });
+
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -376,5 +380,61 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     expect(await screen.findByText('Thresholds')).toBeInTheDocument();
+  });
+
+  it('calls the save method with the index if it is defined', async () => {
+    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
+
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByText('Update Widget'));
+
+    expect(onSave).toHaveBeenCalledWith({index: 1, widget: expect.any(Object)});
+  });
+
+  it('passes undefined as the index for onSave if the index is not defined', async () => {
+    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
+
+    const onSave = jest.fn();
+
+    // This is the case where we're adding a new widget
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          isWidgetInvalid
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          isOpen
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByText('Add Widget'));
+
+    expect(onSave).toHaveBeenCalledWith({index: undefined, widget: expect.any(Object)});
   });
 });

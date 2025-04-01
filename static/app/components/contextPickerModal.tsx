@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {StylesConfig} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {StylesConfig} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
@@ -22,7 +22,8 @@ import type {Project} from 'sentry/types/project';
 import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type SharedProps = ModalRenderProps & {
   /**
@@ -294,7 +295,11 @@ class ContextPickerModal extends Component<Props> {
         <div>
           {tct('You have no projects. Click [link] to make one.', {
             link: (
-              <Link to={`/organizations/${organization}/projects/new/`}>{t('here')}</Link>
+              <Link
+                to={makeProjectsPathname({path: '/new/', orgSlug: organization ?? ''})}
+              >
+                {t('here')}
+              </Link>
             ),
           })}
         </div>
@@ -505,7 +510,7 @@ function ConfigUrlContainer(
   );
 }
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   margin-top: ${space(1)};
 `;
 

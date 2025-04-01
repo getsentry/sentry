@@ -1,5 +1,6 @@
 import {type ComponentProps, Fragment, PureComponent} from 'react';
 import React from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -21,7 +22,7 @@ import {
   SectionHeading,
   SectionValue,
 } from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import LoadingMask from 'sentry/components/loadingMask';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import Placeholder from 'sentry/components/placeholder';
@@ -58,7 +59,6 @@ import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMar
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
-import {showConfidence} from 'sentry/views/explore/utils';
 
 import type {MetricRule, Trigger} from '../../types';
 import {
@@ -85,6 +85,7 @@ type Props = {
   projects: Project[];
   query: MetricRule['query'];
   resolveThreshold: MetricRule['resolveThreshold'];
+  theme: Theme;
   thresholdType: MetricRule['thresholdType'];
   timeWindow: MetricRule['timeWindow'];
   triggers: Trigger[];
@@ -96,7 +97,6 @@ type Props = {
   includeConfidence?: boolean;
   includeHistorical?: boolean;
   isOnDemandMetricAlert?: boolean;
-  isSampled?: boolean | null;
   onConfidenceDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
   onHistoricalDataLoaded?: (data: EventsStats | MultiSeriesEventsStats | null) => void;
@@ -471,6 +471,7 @@ class TriggersChart extends PureComponent<Props, State> {
           />
         ) : (
           <ThresholdsChart
+            theme={this.props.theme}
             period={statsPeriod}
             minValue={minBy(timeseriesData[0]?.data, ({value}) => value)?.value}
             maxValue={maxBy(timeseriesData[0]?.data, ({value}) => value)?.value}
@@ -492,8 +493,7 @@ class TriggersChart extends PureComponent<Props, State> {
         <ChartControls>
           {showTotalCount ? (
             <InlineContainer data-test-id="alert-total-events">
-              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM &&
-              showConfidence(this.props.isSampled) ? (
+              {dataset === Dataset.EVENTS_ANALYTICS_PLATFORM ? (
                 <ConfidenceFooter
                   sampleCount={extrapolationSampleCount ?? undefined}
                   confidence={confidence}
@@ -502,7 +502,7 @@ class TriggersChart extends PureComponent<Props, State> {
                 <React.Fragment>
                   <SectionHeading>{totalCountLabel}</SectionHeading>
                   <SectionValue>
-                    {totalCount !== null ? totalCount.toLocaleString() : '\u2014'}
+                    {totalCount === null ? '\u2014' : totalCount.toLocaleString()}
                   </SectionValue>
                 </React.Fragment>
               )}
@@ -539,6 +539,7 @@ class TriggersChart extends PureComponent<Props, State> {
       projects,
       timeWindow,
       query,
+      theme,
       location,
       aggregate,
       dataset,
@@ -571,6 +572,7 @@ class TriggersChart extends PureComponent<Props, State> {
     if (isOnDemandMetricAlert) {
       const {sampleRate} = this.state;
       const baseProps: EventsRequestProps = {
+        includeAllArgs: false,
         api,
         organization,
         query,
@@ -622,7 +624,8 @@ class TriggersChart extends PureComponent<Props, State> {
                   comparisonTimeseriesData,
                   timeWindow,
                   triggers,
-                  thresholdType
+                  thresholdType,
+                  theme
                 );
               }
 
@@ -760,7 +763,8 @@ class TriggersChart extends PureComponent<Props, State> {
                 comparisonTimeseriesData,
                 timeWindow,
                 triggers,
-                thresholdType
+                thresholdType,
+                theme
               );
             }
 

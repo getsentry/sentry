@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Panel from 'sentry/components/panels/panel';
@@ -127,9 +127,9 @@ class OnDemandSummary extends Component<Props, State> {
         help={t('On-Demand is not supported for your account.')}
       >
         <div>
-          <Button to={`/settings/${organization.slug}/support/`}>
+          <LinkButton to={`/settings/${organization.slug}/support/`}>
             {t('Contact Support')}
-          </Button>
+          </LinkButton>
         </div>
       </FieldGroup>
     );

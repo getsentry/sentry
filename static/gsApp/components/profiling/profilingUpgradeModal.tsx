@@ -7,7 +7,7 @@ import * as Sentry from '@sentry/react';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -154,7 +154,7 @@ const UpsellContent = styled('div')`
 `;
 
 const Note = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
 `;
 
@@ -247,12 +247,12 @@ function ActionButtons({
       >
         {t('Update Now')}
       </Button>
-      <Button
+      <LinkButton
         to={`/settings/${organization.slug}/billing/checkout/?referrer=profiling_onboard_modal-owner-modal`}
         onClick={onClickManageSubscription}
       >
         {t('Manage Subscription')}
-      </Button>
+      </LinkButton>
     </ButtonRow>
   ) : (
     <ButtonRow>

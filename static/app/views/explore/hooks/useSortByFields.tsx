@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
 import {
   classifyTagKey,
   parseFunction,
@@ -11,16 +11,11 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSpanTags} from 'sentry/views/explore/contexts/spanTagsContext';
 
-type Props = {
-  fields: string[];
-  groupBys: string[];
-  mode: Mode;
-  yAxes: string[];
-};
+type Props = {fields: string[]; groupBys: string[]; mode: Mode; yAxes: string[]};
 
 export function useSortByFields({fields, yAxes, groupBys, mode}: Props) {
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const fieldOptions: Array<SelectOption<string>> = useMemo(() => {
     const uniqueOptions: string[] = [];

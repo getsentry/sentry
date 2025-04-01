@@ -4,6 +4,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {PlanTier} from 'getsentry/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
+import {getCheckoutAPIData} from 'getsentry/views/amCheckout/utils';
 
 describe('utils', function () {
   const teamPlan = PlanDetailsLookupFixture('am1_team')!;
@@ -322,6 +323,39 @@ describe('utils', function () {
       expect(utils.getToggleTier(PlanTier.AM3)).toBeNull();
       expect(utils.getToggleTier(PlanTier.AM2)).toBe(PlanTier.AM1);
       expect(utils.getToggleTier(PlanTier.AM1)).toBe(PlanTier.AM2);
+    });
+  });
+
+  describe('utils.getCheckoutAPIData', function () {
+    it('returns correct reserved api data', function () {
+      const formData = {
+        plan: 'am3_business',
+        onDemandMaxSpend: 100,
+        reserved: {
+          errors: 10,
+          transactions: 20,
+          replays: 30,
+          spans: 40,
+          monitorSeats: 50,
+          uptime: 60,
+          attachments: 70,
+          profileDuration: 80,
+        },
+      };
+
+      expect(getCheckoutAPIData({formData})).toEqual({
+        onDemandMaxSpend: 100,
+        plan: 'am3_business',
+        referrer: 'billing',
+        reservedErrors: 10,
+        reservedTransactions: 20,
+        reservedReplays: 30,
+        reservedSpans: 40,
+        reservedMonitorSeats: 50,
+        reservedUptime: 60,
+        reservedAttachments: 70,
+        reservedProfileDuration: 80,
+      });
     });
   });
 });

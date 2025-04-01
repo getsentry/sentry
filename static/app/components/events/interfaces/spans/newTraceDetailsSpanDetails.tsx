@@ -1,11 +1,12 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
-import {LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
@@ -50,7 +51,7 @@ import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerforma
 
 import {OpsDot} from '../../opsBreakdown';
 
-import * as SpanEntryContext from './context';
+import {SpanEntryContext} from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
@@ -95,6 +96,8 @@ export type SpanDetailProps = {
 
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const location = useLocation();
+  const theme = useTheme();
+
   const profileId = props.event.contexts.profile?.profile_id || '';
   const issues = useMemo(() => {
     return [...props.node.errors, ...props.node.performance_issues];
@@ -249,7 +252,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
 
     // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
     const groupHash = hasNewSpansUIFlag
-      ? props.node.value.sentry_tags?.group ?? ''
+      ? (props.node.value.sentry_tags?.group ?? '')
       : props.node.value.hash;
 
     // Do not render a button if there is no group hash, since this can result in broken links
@@ -380,7 +383,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       value => value === 0
     );
 
-    const timingKeys = getSpanSubTimings(span) ?? [];
+    const timingKeys = getSpanSubTimings(span, theme) ?? [];
     const parentTransaction = TraceTree.ParentTransaction(props.node);
     const averageSpanSelfTime: number | undefined =
       span['span.averageResults']?.['avg(span.self_time)'];
@@ -524,14 +527,14 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 })}
               </Row>
               <Row title={t('Origin')}>
-                {span.origin !== undefined ? String(span.origin) : null}
+                {span.origin === undefined ? null : String(span.origin)}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
               {renderSpanChild()}
               <Row title={t('Same Process as Parent')}>
-                {span.same_process_as_parent !== undefined
-                  ? String(span.same_process_as_parent)
-                  : null}
+                {span.same_process_as_parent === undefined
+                  ? null
+                  : String(span.same_process_as_parent)}
               </Row>
               <Row title={t('Span Group')}>
                 {defined(span.hash) ? String(span.hash) : null}
@@ -565,11 +568,11 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 </Row>
               ))}
               {Object.entries(nonSizeKeys).map(([key, value]) =>
-                !isHiddenDataKey(key) ? (
+                isHiddenDataKey(key) ? null : (
                   <Row title={key} key={key}>
                     <GeneralSpanDetailsValue value={value} />
                   </Row>
-                ) : null
+                )
               )}
               {unknownKeys.map(key => {
                 if (key === 'event' || key === 'childTransactions') {
@@ -696,10 +699,10 @@ export function Row({
   toolTipText,
 }: {
   children: React.ReactNode;
-  title: JSX.Element | string | null;
+  title: React.JSX.Element | string | null;
   extra?: React.ReactNode;
   keep?: boolean;
-  prefix?: JSX.Element;
+  prefix?: React.JSX.Element;
   toolTipText?: string;
 }) {
   if (!keep && !children) {

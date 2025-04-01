@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -37,7 +37,7 @@ type Props = {
   location: Location;
   organization: Organization;
   queryKey: string;
-  value: React.ReactText | string[];
+  value: string | number | string[];
 };
 
 function ActionDropDown(props: Props) {

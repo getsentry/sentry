@@ -52,7 +52,7 @@ class TeamManager(BaseManager["Team"]):
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
-        if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
+        if env.request and is_active_superuser(env.request):
             team_list = list(base_team_qs)
         else:
             try:
@@ -79,11 +79,10 @@ class TeamManager(BaseManager["Team"]):
     def post_save(self, *, instance: Team, created: bool, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: Team, **kwargs):
         self.process_resource_change(instance, **kwargs)
 
-    def process_resource_change(self, instance, **kwargs):
-        from sentry.models.organization import Organization
+    def process_resource_change(self, instance: Team, **kwargs):
         from sentry.models.project import Project
         from sentry.tasks.codeowners import update_code_owners_schema
 
@@ -91,11 +90,11 @@ class TeamManager(BaseManager["Team"]):
             try:
                 update_code_owners_schema.apply_async(
                     kwargs={
-                        "organization": instance.organization,
-                        "projects": list(instance.get_projects()),
+                        "organization": instance.organization_id,
+                        "projects": [project.id for project in instance.get_projects()],
                     }
                 )
-            except (Organization.DoesNotExist, Project.DoesNotExist):
+            except Project.DoesNotExist:
                 pass
 
         transaction.on_commit(_spawn_task, router.db_for_write(Team))

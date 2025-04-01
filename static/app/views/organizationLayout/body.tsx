@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct} from 'sentry/locale';

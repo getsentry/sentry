@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -36,17 +36,20 @@ const event = EventFixture({
 });
 
 describe('EventOrGroupHeader', function () {
+  beforeEach(() => {
+    jest.useRealTimers();
+  });
+
   const {organization, router} = initializeOrg();
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
-      render(<EventOrGroupHeader organization={organization} data={group} {...router} />);
+      render(<EventOrGroupHeader data={group} {...router} />);
     });
 
     it('renders with `type = csp`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             type: EventOrGroupType.CSP,
@@ -59,7 +62,6 @@ describe('EventOrGroupHeader', function () {
     it('renders with `type = default`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             type: EventOrGroupType.DEFAULT,
@@ -76,7 +78,6 @@ describe('EventOrGroupHeader', function () {
     it('renders metadata values in message for error events', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             type: EventOrGroupType.ERROR,
@@ -91,7 +92,6 @@ describe('EventOrGroupHeader', function () {
     it('renders location', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...group,
             metadata: {
@@ -108,13 +108,34 @@ describe('EventOrGroupHeader', function () {
         screen.getByText(textWithMarkupMatcher('in path/to/file.swift'))
       ).toBeInTheDocument();
     });
+
+    it('preloads group on hover', async function () {
+      jest.useFakeTimers();
+      const mockFetchGroup = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/${group.id}/`,
+        body: group,
+      });
+
+      render(<EventOrGroupHeader data={group} {...router} />, {
+        organization: {...organization, features: ['issue-stream-table-layout']},
+      });
+
+      const groupLink = screen.getByRole('link');
+
+      // Should not be called right away
+      await userEvent.hover(groupLink, {delay: null});
+      expect(mockFetchGroup).not.toHaveBeenCalled();
+
+      // Called after 300ms
+      jest.advanceTimersByTime(301);
+      expect(mockFetchGroup).toHaveBeenCalled();
+    });
   });
 
   describe('Event', function () {
     it('renders with `type = error`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={EventFixture({
             ...event,
             type: EventOrGroupType.ERROR,
@@ -127,7 +148,6 @@ describe('EventOrGroupHeader', function () {
     it('renders with `type = csp`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.CSP,
@@ -140,7 +160,6 @@ describe('EventOrGroupHeader', function () {
     it('renders with `type = default`', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -158,7 +177,6 @@ describe('EventOrGroupHeader', function () {
       render(
         <EventOrGroupHeader
           hideLevel
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -174,7 +192,6 @@ describe('EventOrGroupHeader', function () {
     it('keeps sort in link when query has sort', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -203,7 +220,6 @@ describe('EventOrGroupHeader', function () {
     it('lack of project adds all parameter', function () {
       render(
         <EventOrGroupHeader
-          organization={organization}
           data={{
             ...event,
             type: EventOrGroupType.DEFAULT,
@@ -230,7 +246,6 @@ describe('EventOrGroupHeader', function () {
   it('renders group tombstone without link to group', function () {
     render(
       <EventOrGroupHeader
-        organization={organization}
         data={{
           id: '123',
           level: 'error',

@@ -1,4 +1,4 @@
-import {createRef, forwardRef} from 'react';
+import {createRef} from 'react';
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -18,21 +18,23 @@ function ChonkComponent({theme}: {theme: DO_NOT_USE_ChonkTheme}) {
   return <div>Chonk: {theme.isChonk ? 'true' : 'false'}</div>;
 }
 
-const LegacyComponentWithRef = forwardRef<HTMLDivElement>((_props, ref) => {
+function LegacyComponentWithRef({ref}: {ref?: React.Ref<HTMLDivElement>}) {
   const theme = useTheme();
   return <div ref={ref}>Legacy: {theme.isChonk ? 'true' : 'false'}</div>;
-});
+}
 
-const ChonkComponentWithRef = forwardRef<HTMLDivElement, {theme: DO_NOT_USE_ChonkTheme}>(
-  (_props, ref) => {
-    const theme = useTheme();
-    return <div ref={ref}>Chonk: {theme.isChonk ? 'true' : 'false'}</div>;
-  }
-);
+function ChonkComponentWithRef({
+  ref,
+}: {theme: DO_NOT_USE_ChonkTheme} & {
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  const theme = useTheme();
+  return <div ref={ref}>Chonk: {theme.isChonk ? 'true' : 'false'}</div>;
+}
 
 describe('withChonk', () => {
   beforeEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     OrganizationStore.onUpdate(OrganizationFixture({features: []}));
   });
 
@@ -49,7 +51,7 @@ describe('withChonk', () => {
   });
 
   it('renders chonk component when chonk is enabled', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -85,7 +87,7 @@ describe('withChonk', () => {
   });
 
   it('passes ref to chonk component', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],

@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -8,10 +7,21 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import StreamlinedGroupHeader from 'sentry/views/issueDetails/streamline/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
+
+jest.mock('sentry/views/issueDetails/utils', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/utils'),
+  useHasStreamlinedUI: () => true,
+}));
 
 describe('StreamlinedGroupHeader', () => {
   const baseUrl = 'BASE_URL/';
@@ -21,9 +31,7 @@ describe('StreamlinedGroupHeader', () => {
     teams: [TeamFixture()],
   });
   const group = GroupFixture({issueCategory: IssueCategory.ERROR, isUnhandled: true});
-  const router = RouterFixture({
-    location: LocationFixture({query: {streamline: '1'}}),
-  });
+  const router = RouterFixture();
 
   describe('JS Project Error Issue', () => {
     const defaultProps = {
@@ -87,18 +95,14 @@ describe('StreamlinedGroupHeader', () => {
       expect(
         screen.getByRole('button', {name: 'Modify issue assignee'})
       ).toBeInTheDocument();
-
       expect(
-        screen.queryByRole('button', {name: 'Switch to the old issue experience'})
-      ).not.toBeInTheDocument();
+        screen.getByRole('button', {name: 'Manage issue experience'})
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
     });
 
     it('displays new experience button if flag is set', async () => {
-      const flaggedOrganization = OrganizationFixture({
-        features: ['issue-details-streamline'],
-      });
       render(
         <StreamlinedGroupHeader
           {...defaultProps}
@@ -106,13 +110,10 @@ describe('StreamlinedGroupHeader', () => {
           project={project}
           event={null}
         />,
-        {
-          organization: flaggedOrganization,
-          router,
-        }
+        {organization, router}
       );
       expect(
-        await screen.findByRole('button', {name: 'Switch to the old issue experience'})
+        await screen.findByRole('button', {name: 'Manage issue experience'})
       ).toBeInTheDocument();
     });
 

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -42,7 +42,11 @@ function TableHeader() {
 function Actions() {
   return (
     <Fragment>
-      <LinkButton to="/automations/new/" priority="primary" icon={<IconAdd isCircled />}>
+      <LinkButton
+        to="/issues/automations/new/"
+        priority="primary"
+        icon={<IconAdd isCircled />}
+      >
         {t('Create Automation')}
       </LinkButton>
     </Fragment>

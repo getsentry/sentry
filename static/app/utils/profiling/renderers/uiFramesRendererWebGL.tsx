@@ -229,7 +229,7 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     this.ctx.useProgram(this.program);
   }
 
-  getColorForFrame(type: 'frozen' | 'slow'): [number, number, number, number] {
+  getColorForFrame(type: 'frozen' | 'slow') {
     if (type === 'frozen') {
       return this.theme.COLORS.UI_FRAME_COLOR_FROZEN;
     }

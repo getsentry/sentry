@@ -3,8 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HighlightModalContainer from 'sentry/components/highlightModalContainer';
 import {IconArrow, IconCodecov} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -145,7 +145,7 @@ const PriceWrapper = styled('div')`
 
 const SeatText = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const OffsetIconArrow = styled(IconArrow)`

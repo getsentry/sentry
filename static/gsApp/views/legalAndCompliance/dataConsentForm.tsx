@@ -22,7 +22,7 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
     isUsRegion,
     hasBillingAccess,
     isSuperuser,
-    hasMsaUpdated,
+    isTouchCustomerAndNeedsMsaUpdate,
   } = useGenAiConsentButtonAccess({
     subscription,
   });
@@ -67,7 +67,7 @@ function DataConsentForm({subscription}: {subscription: Subscription}) {
           isUsRegion,
           hasBillingAccess,
           isSuperuser,
-          hasMsaUpdated,
+          isTouchCustomerAndNeedsMsaUpdate,
         }}
         forms={DataConsentFields}
       />

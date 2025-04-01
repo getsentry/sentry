@@ -11,10 +11,10 @@ from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.conf import settings
+from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
-from rest_framework.exceptions import APIException, ParseError
-from rest_framework.request import Request
+from rest_framework.exceptions import APIException, ParseError, Throttled
 from sentry_sdk import Scope
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
@@ -34,7 +34,11 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE, TIMEOUT_RPC_ERROR_MESSAGE
+from sentry.search.events.constants import (
+    RATE_LIMIT_ERROR_MESSAGE,
+    TIMEOUT_ERROR_MESSAGE,
+    TIMEOUT_RPC_ERROR_MESSAGE,
+)
 from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
@@ -266,7 +270,7 @@ def clamp_date_range(
 # The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
 # If you can use the wider more correct type, please do.
 def is_member_disabled_from_limit(
-    request: Request,
+    request: HttpRequest,
     organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
 ) -> bool:
     user = request.user
@@ -378,10 +382,13 @@ def handle_query_errors() -> Generator[None]:
     except SnubaError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
+        if isinstance(error, RateLimitExceeded):
+            sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+            sentry_sdk.capture_exception(error)
+            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
             (
-                RateLimitExceeded,
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
@@ -417,6 +424,17 @@ def handle_query_errors() -> Generator[None]:
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
+    except OperationalError as error:
+        error_message = str(error)
+        is_timeout = "canceling statement due to statement timeout" in error_message
+        if is_timeout and options.get("api.postgres-query-timeout-error-handling.enabled"):
+            sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
+            sentry_sdk.capture_exception(error, level="warning")
+            raise Throttled(
+                detail="Query timeout. Please try with a smaller date range or fewer conditions."
+            )
+        # Let other OperationalErrors propagate as normal
+        raise
 
 
 def update_snuba_params_with_timestamp(

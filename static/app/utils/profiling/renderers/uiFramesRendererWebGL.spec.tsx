@@ -1,4 +1,5 @@
 import {vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
@@ -6,7 +7,9 @@ import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRe
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
-import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
+
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 describe('UIFramesRenderer', () => {
   const canvas = makeCanvasMock({
@@ -48,7 +51,7 @@ describe('UIFramesRenderer', () => {
     {unit: 'nanoseconds'},
     new Rect(0, 0, 10, 1)
   );
-  const renderer = new UIFramesRendererWebGL(canvas, uiFrames, LightFlamegraphTheme);
+  const renderer = new UIFramesRendererWebGL(canvas, uiFrames, theme);
 
   it.each([
     [vec2.fromValues(-1, 0), null],

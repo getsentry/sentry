@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import color from 'color';
 import type {YAXisComponentOption} from 'echarts';
 import moment from 'moment-timezone';
@@ -5,14 +6,12 @@ import moment from 'moment-timezone';
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
-import {lightTheme as theme} from 'sentry/utils/theme';
 import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
@@ -155,16 +154,19 @@ type MetricChartOption = {
   warningDuration: number;
 };
 
-export function getMetricAlertChartOption({
-  timeseriesData,
-  rule,
-  seriesName,
-  incidents,
-  selectedIncident,
-  handleIncidentClick,
-  showWaitingForData,
-  anomalies,
-}: MetricChartData): MetricChartOption {
+export function getMetricAlertChartOption(
+  {
+    timeseriesData,
+    rule,
+    seriesName,
+    incidents,
+    selectedIncident,
+    handleIncidentClick,
+    showWaitingForData,
+    anomalies,
+  }: MetricChartData,
+  theme: Theme
+): MetricChartOption {
   let criticalTrigger: Trigger | undefined;
   let warningTrigger: Trigger | undefined;
 
@@ -184,7 +186,7 @@ export function getMetricAlertChartOption({
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
   series[0]!.z = 1;
-  series[0]!.color = CHART_PALETTE[0][0];
+  series[0]!.color = theme.chart.colors[0][0];
 
   const dataArr = timeseriesData[0]!.data;
 
@@ -257,7 +259,7 @@ export function getMetricAlertChartOption({
               new Date(a.dateCreated).getTime() - new Date(b.dateCreated).getTime()
           );
 
-        const incidentEnd = incident.dateClosed ?? new Date().getTime();
+        const incidentEnd = incident.dateClosed ?? Date.now();
 
         const timeWindowMs = rule.timeWindow * 60 * 1000;
         const incidentColor =
@@ -357,7 +359,7 @@ export function getMetricAlertChartOption({
       });
   }
   if (anomalies) {
-    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate}));
+    series.push(...getAnomalyMarkerSeries(anomalies, {startDate, endDate, theme}));
   }
   let maxThresholdValue = 0;
   if (!rule.comparisonDelta && warningTrigger?.alertThreshold) {

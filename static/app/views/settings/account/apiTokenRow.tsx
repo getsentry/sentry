@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -144,7 +144,7 @@ const Heading = styled('div')`
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const LinkWrapper = styled('div')<{name: string}>`

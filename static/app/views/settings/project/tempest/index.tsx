@@ -1,19 +1,24 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -25,6 +30,7 @@ import {MessageType} from 'sentry/views/settings/project/tempest/types';
 import {useHasTempestWriteAccess} from 'sentry/views/settings/project/tempest/utils/access';
 
 import {CredentialRow} from './CredentialRow';
+import EmptyState from './EmptyState';
 
 interface Props {
   organization: Organization;
@@ -54,6 +60,10 @@ export default function TempestSettings({organization, project}: Props) {
       ),
     onSuccess: () => {
       addSuccessMessage(t('Removed the credentials.'));
+      trackAnalytics('tempest.credentials.removed', {
+        organization,
+        project_slug: project.slug,
+      });
       invalidateCredentialsCache();
     },
     onError: error => {
@@ -67,6 +77,21 @@ export default function TempestSettings({organization, project}: Props) {
     return tempestCredentials?.filter(
       credential => credential.messageType === MessageType.ERROR && credential.message
     );
+  }, [tempestCredentials]);
+
+  useEffect(() => {
+    if (credentialErrors && credentialErrors.length > 0) {
+      trackAnalytics('tempest.credentials.error_displayed', {
+        organization,
+        project_slug: project.slug,
+        error_count: credentialErrors.length,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentialErrors]);
+
+  const isEmpty = useMemo(() => {
+    return !tempestCredentials?.length;
   }, [tempestCredentials]);
 
   if (!hasTempestAccess(organization)) {
@@ -133,20 +158,26 @@ export default function TempestSettings({organization, project}: Props) {
         />
       </Form>
 
-      <PanelTable
-        headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
-        isLoading={isLoading}
-        isEmpty={!tempestCredentials?.length}
-      >
-        {tempestCredentials?.map(credential => (
-          <CredentialRow
-            key={credential.id}
-            credential={credential}
-            isRemoving={isRemoving}
-            removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
-          />
-        ))}
-      </PanelTable>
+      {!isLoading && isEmpty ? (
+        <Panel>
+          <EmptyState />
+        </Panel>
+      ) : (
+        <PanelTable
+          headers={[t('Client ID'), t('Status'), t('Created At'), t('Created By'), '']}
+          isLoading={isLoading}
+          isEmpty={isEmpty}
+        >
+          {tempestCredentials?.map(credential => (
+            <CredentialRow
+              key={credential.id}
+              credential={credential}
+              isRemoving={isRemoving}
+              removeCredential={hasWriteAccess ? handleRemoveCredential : undefined}
+            />
+          ))}
+        </PanelTable>
+      )}
     </Fragment>
   );
 }
@@ -156,18 +187,30 @@ const addNewCredentials = (
   organization: Organization,
   project: Project
 ) => (
-  <Tooltip
-    title={t('You must be an organization admin to add new credentials.')}
-    disabled={hasWriteAccess}
-  >
-    <Button
-      priority="primary"
-      size="sm"
-      data-test-id="create-new-credentials"
-      disabled={!hasWriteAccess}
-      onClick={() => openAddTempestCredentialsModal({organization, project})}
-    >
-      {t('Add Credentials')}
-    </Button>
-  </Tooltip>
+  <Fragment>
+    <ButtonBar gap={1.5}>
+      <FeedbackWidgetButton />
+      <Tooltip
+        title={t('You must be an organization admin to add new credentials.')}
+        disabled={hasWriteAccess}
+      >
+        <Button
+          priority="primary"
+          size="sm"
+          data-test-id="create-new-credentials"
+          disabled={!hasWriteAccess}
+          icon={<IconAdd isCircled />}
+          onClick={() => {
+            openAddTempestCredentialsModal({organization, project});
+            trackAnalytics('tempest.credentials.add_modal_opened', {
+              organization,
+              project_slug: project.slug,
+            });
+          }}
+        >
+          {t('Add Credentials')}
+        </Button>
+      </Tooltip>
+    </ButtonBar>
+  </Fragment>
 );

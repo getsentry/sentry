@@ -1,6 +1,6 @@
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {LinkProps} from 'sentry/components/links/link';

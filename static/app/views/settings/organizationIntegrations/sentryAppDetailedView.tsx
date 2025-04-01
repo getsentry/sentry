@@ -1,3 +1,4 @@
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -6,11 +7,12 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
-import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SentryAppIcon from 'sentry/components/sentryAppIcon';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
+import {Button} from 'sentry/components/core/button';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -20,188 +22,247 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types/integrations';
 import {toPermissions} from 'sentry/utils/consolidatedScopes';
-import {getSentryAppInstallStatus} from 'sentry/utils/integrationUtil';
+import {
+  getSentryAppInstallStatus,
+  trackIntegrationAnalytics,
+} from 'sentry/utils/integrationUtil';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
-import withOrganization from 'sentry/utils/withOrganization';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
+import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import IntegrationLayout from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+import RequestIntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+import {SplitInstallationIdModal} from 'sentry/views/settings/organizationIntegrations/SplitInstallationIdModal';
 
-import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
-import {SplitInstallationIdModal} from './SplitInstallationIdModal';
+function makeSentryAppInstallationsQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
+  return [`/organizations/${orgSlug}/sentry-app-installations/`];
+}
 
-type State = {
-  appInstalls: SentryAppInstallation[];
-  featureData: IntegrationFeature[];
-  sentryApp: SentryApp;
-};
+export default function SentryAppDetailedView() {
+  const tabs: IntegrationTab[] = ['overview'];
+  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const organization = useOrganization();
+  const {integrationSlug} = useParams<{integrationSlug: string}>();
 
-type Tab = AbstractIntegrationDetailedView['state']['tab'];
+  const {
+    data: sentryApp,
+    isPending: isSentryAppPending,
+    isError: isSentryAppError,
+  } = useApiQuery<SentryApp>([`/sentry-apps/${integrationSlug}/`], {
+    staleTime: Infinity,
+    retry: false,
+  });
 
-class SentryAppDetailedView extends AbstractIntegrationDetailedView<
-  AbstractIntegrationDetailedView['props'],
-  State & AbstractIntegrationDetailedView['state']
-> {
-  tabs: Tab[] = ['overview'];
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {
-      organization,
-      params: {integrationSlug},
-    } = this.props;
-    return [
-      ['sentryApp', `/sentry-apps/${integrationSlug}/`],
-      ['featureData', `/sentry-apps/${integrationSlug}/features/`],
-      ['appInstalls', `/organizations/${organization.slug}/sentry-app-installations/`],
-    ];
-  }
+  const {
+    data: featureData = [],
+    isPending: isFeatureDataPending,
+    isError: isFeatureDataError,
+  } = useApiQuery<IntegrationFeature[]>([`/sentry-apps/${integrationSlug}/features/`], {
+    staleTime: Infinity,
+    retry: false,
+  });
 
-  onLoadAllEndpointsSuccess() {
-    const {
-      organization,
-      params: {integrationSlug},
-      router,
-    } = this.props;
-
-    // redirect for internal integrations
-    if (this.sentryApp.status === 'internal') {
-      router.push(
-        `/settings/${organization.slug}/developer-settings/${integrationSlug}/`
-      );
-      return;
+  const {
+    data: appInstalls = [],
+    isPending: isAppInstallsPending,
+    isError: isAppInstallsError,
+  } = useApiQuery<SentryAppInstallation[]>(
+    makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
+    {
+      staleTime: Infinity,
+      retry: false,
     }
+  );
 
-    super.onLoadAllEndpointsSuccess();
-    recordInteraction(integrationSlug, 'sentry_app_viewed');
-  }
-
-  get integrationType() {
-    return 'sentry_app' as const;
-  }
-
-  get sentryApp() {
-    return this.state.sentryApp;
-  }
-
-  get description() {
-    return this.state.sentryApp.overview || '';
-  }
-
-  get author() {
-    return this.sentryApp.author;
-  }
-
-  get resourceLinks() {
-    // only show links for published sentry apps
-    if (this.sentryApp.status !== 'published') {
+  const integrationType = 'sentry_app';
+  const integrationName = sentryApp?.name ?? '';
+  const description = sentryApp?.overview || '';
+  const author = sentryApp?.author || '';
+  const resourceLinks = useMemo(() => {
+    if (sentryApp?.status !== 'published') {
       return [];
     }
     return [
       {
         title: 'Documentation',
-        url: `https://docs.sentry.io/product/integrations/${this.integrationSlug}/`,
+        url: `https://docs.sentry.io/product/integrations/${integrationSlug}/`,
       },
     ];
-  }
+  }, [sentryApp?.status, integrationSlug]);
 
-  get permissions() {
-    return toPermissions(this.sentryApp.scopes);
-  }
+  const install = useMemo(
+    () => appInstalls.find(i => i.app.slug === sentryApp?.slug),
+    [appInstalls, sentryApp?.slug]
+  );
 
-  get installationStatus() {
-    return getSentryAppInstallStatus(this.install);
-  }
+  const permissions = useMemo(
+    () => toPermissions(sentryApp?.scopes || []),
+    [sentryApp?.scopes]
+  );
+  const installationStatus = useMemo(() => getSentryAppInstallStatus(install), [install]);
+  const isPending = isSentryAppPending || isFeatureDataPending || isAppInstallsPending;
+  const isError = isSentryAppError || isFeatureDataError || isAppInstallsError;
 
-  get integrationName() {
-    return this.sentryApp.name;
-  }
-
-  get featureData() {
-    return this.state.featureData;
-  }
-
-  get install() {
-    return this.state.appInstalls.find(i => i.app.slug === this.sentryApp.slug);
-  }
-
-  redirectUser = (install: SentryAppInstallation) => {
-    const {organization} = this.props;
-    const {sentryApp} = this.state;
-    const queryParams = {
-      installationId: install.uuid,
-      code: install.code,
-      orgSlug: organization.slug,
-    };
-    if (sentryApp.redirectUrl) {
-      const redirectUrl = addQueryParamsToExistingUrl(sentryApp.redirectUrl, queryParams);
-      window.location.assign(redirectUrl);
+  useEffect(() => {
+    if (sentryApp?.status === 'internal') {
+      navigate(`/settings/${organization.slug}/developer-settings/${integrationSlug}/`);
     }
-  };
+  }, [sentryApp?.status, navigate, organization.slug, integrationSlug]);
 
-  handleInstall = async () => {
-    const {organization} = this.props;
-    const {sentryApp} = this.state;
-    this.trackIntegrationAnalytics('integrations.installation_start', {
+  useEffect(() => {
+    recordInteraction(integrationSlug, 'sentry_app_viewed');
+    trackIntegrationAnalytics('integrations.integration_viewed', {
+      view: 'integrations_directory_integration_detail',
+      integration: integrationSlug,
+      integration_type: integrationType,
+      already_installed: installationStatus !== 'Not Installed',
+      organization,
+      integration_tab: 'overview',
+    });
+  }, [sentryApp?.status, installationStatus, organization, integrationSlug]);
+
+  const redirectUser = useCallback(
+    (i: SentryAppInstallation) => {
+      const queryParams = {
+        installationId: i.uuid,
+        code: i.code,
+        orgSlug: organization.slug,
+      };
+      if (sentryApp?.redirectUrl) {
+        const redirectUrl = addQueryParamsToExistingUrl(
+          sentryApp.redirectUrl,
+          queryParams
+        );
+        window.location.assign(redirectUrl);
+      }
+    },
+    [organization, sentryApp]
+  );
+
+  const handleInstall = useCallback(async () => {
+    if (!sentryApp) {
+      return;
+    }
+    trackIntegrationAnalytics('integrations.installation_start', {
+      view: 'integrations_directory_integration_detail',
+      integration: integrationSlug,
+      integration_type: integrationType,
+      already_installed: installationStatus !== 'Not Installed',
+      organization,
       integration_status: sentryApp.status,
     });
+
     // installSentryApp adds a message on failure
-    const install = await installSentryApp(this.api, organization.slug, sentryApp);
+    const newInstall = await installSentryApp(api, organization.slug, sentryApp);
 
     // installation is complete if the status is installed
-    if (install.status === 'installed') {
-      this.trackIntegrationAnalytics('integrations.installation_complete', {
+    if (newInstall.status === 'installed') {
+      trackIntegrationAnalytics('integrations.installation_complete', {
+        view: 'integrations_directory_integration_detail',
+        integration: integrationSlug,
+        integration_type: integrationType,
+        already_installed: installationStatus !== 'Not Installed',
+        organization,
         integration_status: sentryApp.status,
       });
     }
 
-    if (!sentryApp.redirectUrl) {
+    if (sentryApp.redirectUrl) {
+      redirectUser(newInstall);
+    } else {
       addSuccessMessage(t('%s successfully installed.', sentryApp.slug));
-      this.setState({appInstalls: [install, ...this.state.appInstalls]});
+      setApiQueryData<SentryAppInstallation[]>(
+        queryClient,
+        makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
+        (existingData = []) => [newInstall, ...existingData]
+      );
 
       // hack for split so we can show the install ID to users for them to copy
       // Will remove once the proper fix is in place
       if (['split', 'split-dev', 'split-testing'].includes(sentryApp.slug)) {
         openModal(({closeModal}) => (
           <SplitInstallationIdModal
-            installationId={install.uuid}
+            installationId={newInstall.uuid}
             closeModal={closeModal}
           />
         ));
       }
-    } else {
-      this.redirectUser(install);
     }
-  };
+  }, [
+    api,
+    organization,
+    sentryApp,
+    queryClient,
+    installationStatus,
+    integrationSlug,
+    redirectUser,
+  ]);
 
-  handleUninstall = async (install: SentryAppInstallation) => {
-    try {
-      await uninstallSentryApp(this.api, install);
-      this.trackIntegrationAnalytics('integrations.uninstall_completed', {
-        integration_status: this.sentryApp.status,
-      });
-      const appInstalls = this.state.appInstalls.filter(
-        i => i.app.slug !== this.sentryApp.slug
-      );
-      return this.setState({appInstalls});
-    } catch (error) {
-      return addErrorMessage(t('Unable to uninstall %s', this.sentryApp.name));
-    }
-  };
+  const handleUninstall = useCallback(
+    async (outgoingInstall: SentryAppInstallation) => {
+      if (!sentryApp) {
+        return;
+      }
 
-  recordUninstallClicked = () => {
-    const sentryApp = this.sentryApp;
-    this.trackIntegrationAnalytics('integrations.uninstall_clicked', {
-      integration_status: sentryApp.status,
+      try {
+        await uninstallSentryApp(api, outgoingInstall);
+        trackIntegrationAnalytics('integrations.uninstall_completed', {
+          view: 'integrations_directory_integration_detail',
+          integration: integrationSlug,
+          integration_type: integrationType,
+          already_installed: installationStatus !== 'Not Installed',
+          organization,
+          integration_status: sentryApp.status,
+        });
+        setApiQueryData<SentryAppInstallation[]>(
+          queryClient,
+          makeSentryAppInstallationsQueryKey({orgSlug: organization.slug}),
+          (existingData = []) => existingData.filter(i => i.app.slug !== sentryApp.slug)
+        );
+      } catch (error) {
+        addErrorMessage(t('Unable to uninstall %s', sentryApp.name));
+      }
+    },
+    [
+      api,
+      sentryApp,
+      queryClient,
+      organization,
+      integrationSlug,
+      integrationType,
+      installationStatus,
+    ]
+  );
+
+  const recordUninstallClicked = useCallback(() => {
+    trackIntegrationAnalytics('integrations.uninstall_clicked', {
+      view: 'integrations_directory_integration_detail',
+      integration: integrationSlug,
+      integration_type: integrationType,
+      organization,
+      integration_status: sentryApp?.status,
     });
-  };
+  }, [integrationSlug, integrationType, organization, sentryApp?.status]);
 
-  renderPermissions() {
-    const permissions = this.permissions;
+  const renderPermissions = useCallback(() => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     if (!Object.keys(permissions).some(scope => permissions[scope].length > 0)) {
       return null;
     }
-
     return (
       <PermissionWrapper>
-        <Title>Permissions</Title>
+        <Title>{t('Permissions')}</Title>
         {permissions.read.length > 0 && (
           <Permission>
             <Indicator />
@@ -238,57 +299,106 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
         )}
       </PermissionWrapper>
     );
-  }
+  }, [permissions]);
 
-  renderTopButton(disabledFromFeatures: boolean, userHasAccess: boolean) {
-    const install = this.install;
-    const capitalizedSlug =
-      this.integrationSlug.charAt(0).toUpperCase() + this.integrationSlug.slice(1);
-    if (install) {
+  const renderTopButton = useCallback(
+    (disabledFromFeatures: boolean, userHasAccess: boolean) => {
+      const capitalizedSlug =
+        integrationSlug.charAt(0).toUpperCase() + integrationSlug.slice(1);
+      if (install) {
+        return (
+          <Confirm
+            disabled={!userHasAccess}
+            message={tct('Are you sure you want to uninstall the [slug] installation?', {
+              slug: capitalizedSlug,
+            })}
+            onConfirm={() => handleUninstall(install)} // called when the user confirms the action
+            onConfirming={recordUninstallClicked} // called when the confirm modal opens
+            priority="danger"
+          >
+            <StyledUninstallButton size="sm" data-test-id="sentry-app-uninstall">
+              <IconSubtract isCircled style={{marginRight: space(0.75)}} />
+              {t('Uninstall')}
+            </StyledUninstallButton>
+          </Confirm>
+        );
+      }
+
+      if (userHasAccess) {
+        return (
+          <InstallButton
+            data-test-id="install-button"
+            disabled={disabledFromFeatures}
+            onClick={() => handleInstall()}
+            priority="primary"
+            size="sm"
+            style={{marginLeft: space(1)}}
+          >
+            {t('Accept & Install')}
+          </InstallButton>
+        );
+      }
       return (
-        <Confirm
-          disabled={!userHasAccess}
-          message={tct('Are you sure you want to uninstall the [slug] installation?', {
-            slug: capitalizedSlug,
-          })}
-          onConfirm={() => this.handleUninstall(install)} // called when the user confirms the action
-          onConfirming={this.recordUninstallClicked} // called when the confirm modal opens
-          priority="danger"
-        >
-          <StyledUninstallButton size="sm" data-test-id="sentry-app-uninstall">
-            <IconSubtract isCircled style={{marginRight: space(0.75)}} />
-            {t('Uninstall')}
-          </StyledUninstallButton>
-        </Confirm>
+        <RequestIntegrationButton
+          name={integrationName}
+          slug={integrationSlug}
+          type={integrationType}
+        />
       );
-    }
+    },
+    [
+      handleInstall,
+      handleUninstall,
+      integrationName,
+      integrationSlug,
+      integrationType,
+      install,
+      recordUninstallClicked,
+    ]
+  );
 
-    if (userHasAccess) {
-      return (
-        <InstallButton
-          data-test-id="install-button"
-          disabled={disabledFromFeatures}
-          onClick={() => this.handleInstall()}
-          priority="primary"
-          size="sm"
-          style={{marginLeft: space(1)}}
-        >
-          {t('Accept & Install')}
-        </InstallButton>
-      );
-    }
-
-    return this.renderRequestIntegrationButton();
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  // no configurations for sentry apps
-  renderConfigurations() {
-    return null;
+  if (isError || !sentryApp) {
+    return <LoadingError message={t('There was an error loading this integration.')} />;
   }
 
-  renderIntegrationIcon() {
-    return <SentryAppIcon sentryApp={this.sentryApp} size={50} />;
-  }
+  return (
+    <IntegrationLayout.Body
+      integrationName={integrationName}
+      alert={null}
+      topSection={
+        <IntegrationLayout.TopSection
+          featureData={featureData}
+          integrationName={integrationName}
+          installationStatus={installationStatus}
+          integrationIcon={<SentryAppAvatar sentryApp={sentryApp} size={50} />}
+          addInstallButton={
+            <IntegrationLayout.AddInstallButton
+              featureData={featureData}
+              hideButtonIfDisabled={false}
+              requiresAccess
+              renderTopButton={renderTopButton}
+            />
+          }
+          additionalCTA={null}
+        />
+      }
+      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab={'overview'} />}
+      content={
+        <IntegrationLayout.InformationCard
+          integrationSlug={integrationSlug}
+          description={description}
+          featureData={featureData}
+          author={author}
+          resourceLinks={resourceLinks}
+          permissions={renderPermissions()}
+        />
+      }
+    />
+  );
 }
 
 const Text = styled('p')`
@@ -318,7 +428,7 @@ const InstallButton = styled(Button)`
 `;
 
 const StyledUninstallButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   background: ${p => p.theme.background};
 
   border: ${p => `1px solid ${p.theme.gray300}`};
@@ -326,5 +436,3 @@ const StyledUninstallButton = styled(Button)`
   box-shadow: 0px 2px 1px rgba(0, 0, 0, 0.08);
   border-radius: 4px;
 `;
-
-export default withOrganization(SentryAppDetailedView);

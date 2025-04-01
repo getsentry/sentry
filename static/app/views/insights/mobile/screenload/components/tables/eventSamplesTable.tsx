@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -64,6 +65,7 @@ export function EventSamplesTable({
   footerAlignedPagination = false,
 }: Props) {
   const navigate = useNavigate();
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
@@ -120,6 +122,7 @@ export function EventSamplesTable({
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     return rendered;
   }
@@ -200,10 +203,10 @@ export function EventSamplesTable({
           isLoading={isLoading}
           data={data?.data as TableDataRow[]}
           columnOrder={eventViewColumns
-            .filter((col: TableColumn<React.ReactText>) =>
+            .filter((col: TableColumn<string | number>) =>
               Object.keys(columnNameMap).includes(col.name)
             )
-            .map((col: TableColumn<React.ReactText>) => {
+            .map((col: TableColumn<string | number>) => {
               return {...col, name: columnNameMap[col.key]!};
             })}
           columnSortBy={columnSortBy}

@@ -133,7 +133,7 @@ export function Tags({
 
             return (
               <EventTagsPill
-                key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+                key={defined(tag.key) ? tag.key : `tag-pill-${index}`}
                 tag={tag}
                 projectSlug={event.project_slug}
                 projectId={event.project_id.toString()}

@@ -1,26 +1,36 @@
 import logging
 
 import sentry_sdk
+from google.protobuf.json_format import MessageToJson
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeAggregation, AttributeKey
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
-from sentry.search.eap.columns import ResolvedAggregate, ResolvedColumn, ResolvedFormula
+from sentry.search.eap.columns import (
+    ResolvedAggregate,
+    ResolvedAttribute,
+    ResolvedConditionalAggregate,
+    ResolvedFormula,
+)
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import CONFIDENCES, ConfidenceData, EAPResponse
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import EventsMeta, SnubaData
-from sentry.utils import snuba_rpc
+from sentry.utils import json, snuba_rpc
 from sentry.utils.snuba import process_value
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
-def categorize_column(column: ResolvedColumn | ResolvedAggregate | ResolvedFormula) -> Column:
+def categorize_column(
+    column: ResolvedAttribute | ResolvedAggregate | ResolvedConditionalAggregate | ResolvedFormula,
+) -> Column:
     if isinstance(column, ResolvedFormula):
         return Column(formula=column.proto_definition, label=column.public_alias)
     if isinstance(column, ResolvedAggregate):
         return Column(aggregation=column.proto_definition, label=column.public_alias)
+    if isinstance(column, ResolvedConditionalAggregate):
+        return Column(conditional_aggregation=column.proto_definition, label=column.public_alias)
     else:
         return Column(key=column.proto_definition, label=column.public_alias)
 
@@ -33,10 +43,13 @@ def run_table_query(
     offset: int,
     limit: int,
     referrer: str,
+    sampling_mode: str | None,
     resolver: SearchResolver,
+    debug: bool = False,
 ) -> EAPResponse:
     """Make the query"""
-    meta = resolver.resolve_meta(referrer=referrer)
+    sentry_sdk.set_tag("query.sampling_mode", sampling_mode)
+    meta = resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     where, having, query_contexts = resolver.resolve_query(query_string)
     columns, column_contexts = resolver.resolve_columns(selected_columns)
     contexts = resolver.resolve_contexts(query_contexts + column_contexts)
@@ -61,9 +74,8 @@ def run_table_query(
                 descending=orderby_column.startswith("-"),
             )
         )
-    has_aggregations = any(
-        col for col in columns if isinstance(col.proto_definition, AttributeAggregation)
-    )
+
+    has_aggregations = any(col for col in columns if col.is_aggregate)
 
     labeled_columns = [categorize_column(col) for col in columns]
 
@@ -88,6 +100,7 @@ def run_table_query(
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
     rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+    sentry_sdk.set_tag("query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier)
 
     """Process the results"""
     final_data: SnubaData = []
@@ -134,5 +147,8 @@ def run_table_query(
                     column_value.reliabilities[index], None
                 )
     sentry_sdk.set_measurement("SearchResolver.result_size.final_data", len(final_data))
+
+    if debug:
+        final_meta["query"] = json.loads(MessageToJson(rpc_request))
 
     return {"data": final_data, "meta": final_meta, "confidence": final_confidence}

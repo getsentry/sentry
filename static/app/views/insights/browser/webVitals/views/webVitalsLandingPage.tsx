@@ -1,7 +1,7 @@
 import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -147,7 +147,7 @@ export function WebVitalsLandingPage() {
 export function WebVitalMetersPlaceholder() {
   return (
     <LoadingBoxContainer>
-      {[...Array(WEB_VITALS_COUNT)].map((_, index) => (
+      {[...new Array(WEB_VITALS_COUNT)].map((_, index) => (
         <LoadingBox key={index} />
       ))}
     </LoadingBoxContainer>
@@ -218,7 +218,7 @@ export const DismissButton = styled(Button)`
 
 export const PagesTooltip = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline dotted ${p => p.theme.gray300};
 `;
 

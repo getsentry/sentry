@@ -8,8 +8,8 @@ import {PlatformIcon} from 'platformicons';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -44,6 +44,7 @@ import IssueAlertOptions, {
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 export type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
@@ -75,7 +76,7 @@ function CreateProject() {
   );
   const [team, setTeam] = useState(
     autoFill
-      ? gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug
+      ? (gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug)
       : accessTeams?.[0]?.slug
   );
 
@@ -181,7 +182,10 @@ function CreateProject() {
 
         browserHistory.push(
           normalizeUrl(
-            `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
+            makeProjectsPathname({
+              orgSlug: organization.slug,
+              path: `/${projectData.slug}/getting-started/`,
+            })
           )
         );
       } catch (err) {
@@ -420,6 +424,7 @@ function CreateProject() {
                     placeholder={t('Select a Team')}
                     onChange={(choice: any) => setTeam(choice.value)}
                     teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+                    minMenuHeight={240}
                   />
                 </TeamSelectInput>
               </div>

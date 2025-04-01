@@ -10,7 +10,7 @@ import {
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
-import {type BaseButtonProps, Button} from 'sentry/components/button';
+import {type BaseButtonProps, Button} from 'sentry/components/core/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -206,9 +206,9 @@ export function GuidedSteps({className, children, onStepChange}: GuidedStepsProp
   const value = useGuidedStepsContentValue({onStepChange});
 
   return (
-    <GuidedStepsContext.Provider value={value}>
+    <GuidedStepsContext value={value}>
       <StepsWrapper className={className}>{children}</StepsWrapper>
-    </GuidedStepsContext.Provider>
+    </GuidedStepsContext>
   );
 }
 

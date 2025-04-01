@@ -1,19 +1,19 @@
-import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
+import {Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
+import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
+import {
+  InnerWrap as MenuListItemInnerWrap,
+  MenuListItem,
+} from 'sentry/components/core/menuListItem';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import type {MenuListItemProps} from 'sentry/components/menuListItem';
-import MenuListItem, {
-  InnerWrap as MenuListItemInnerWrap,
-} from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -91,6 +91,7 @@ interface DropdownMenuItemProps {
    * Handler that is called when the menu should close after selecting an item
    */
   onClose?: () => void;
+  ref?: React.Ref<HTMLLIElement>;
   /**
    * Tag name for item wrapper
    */
@@ -106,19 +107,17 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-function BaseDropdownMenuItem(
-  {
-    node,
-    state,
-    closeOnSelect,
-    onClose,
-    showDivider,
-    renderAs = 'li',
-    ...props
-  }: DropdownMenuItemProps,
-  forwardedRef: React.Ref<HTMLLIElement>
-) {
-  const ref = useRef<HTMLLIElement | null>(null);
+function DropdownMenuItem({
+  node,
+  state,
+  closeOnSelect,
+  onClose,
+  showDivider,
+  renderAs = 'li',
+  ref,
+  ...props
+}: DropdownMenuItemProps) {
+  const listElementRef = useRef<HTMLLIElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {key, onAction, to, label, isSubmenu, trailingItems, externalHref, ...itemProps} =
@@ -179,7 +178,7 @@ function BaseDropdownMenuItem(
             ctrlKey: e.ctrlKey,
             metaKey: e.metaKey,
           });
-          ref.current
+          listElementRef.current
             ?.querySelector(`${MenuListItemInnerWrap}`)
             ?.dispatchEvent(mouseEvent);
           return;
@@ -213,7 +212,7 @@ function BaseDropdownMenuItem(
       isDisabled,
     },
     state,
-    ref
+    listElementRef
   );
 
   // Merged menu item props, class names are combined, event handlers chained,
@@ -234,7 +233,7 @@ function BaseDropdownMenuItem(
 
   return (
     <MenuListItem
-      ref={mergeRefs([ref, forwardedRef])}
+      ref={mergeRefs(listElementRef, ref)}
       as={renderAs}
       data-test-id={key}
       label={itemLabel}
@@ -260,7 +259,5 @@ function BaseDropdownMenuItem(
     />
   );
 }
-
-const DropdownMenuItem = forwardRef(BaseDropdownMenuItem);
 
 export default DropdownMenuItem;

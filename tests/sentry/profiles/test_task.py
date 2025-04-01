@@ -14,6 +14,7 @@ from sentry.constants import DataCategory
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
 from sentry.models.files.file import File
 from sentry.models.project import Project
+from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
@@ -29,6 +30,7 @@ from sentry.profiles.task import (
 from sentry.profiles.utils import Profile
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
+from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -198,6 +200,10 @@ def sample_v1_profile():
       "active_thread_id": "259",
       "relative_start_ns": "500500",
       "relative_end_ns": "50500500"
+  },
+  "client_sdk": {
+    "name": "sentry.python",
+    "version": "2.23.0"
   }
 }"""
     )
@@ -210,8 +216,7 @@ def sample_v1_profile_without_transaction_timestamps(sample_v1_profile):
     return sample_v1_profile
 
 
-@pytest.fixture
-def sample_v2_profile():
+def generate_sample_v2_profile():
     return json.loads(
         """{
   "event_id": "41fed0925670468bb0457f61a74688ec",
@@ -262,9 +267,33 @@ def sample_v2_profile():
         "image_vmaddr": "0x0000000100000000"
       }
     ]
+  },
+  "client_sdk": {
+    "name": "sentry.python",
+    "version": "2.23.0"
   }
 }"""
     )
+
+
+@pytest.fixture
+def sample_v2_profile():
+    return generate_sample_v2_profile()
+
+
+@pytest.fixture
+def sample_v2_profile_long():
+    profile = generate_sample_v2_profile()
+    samples = profile["profile"]["samples"]
+    samples[len(samples) - 1]["timestamp"] += 300
+    return profile
+
+
+@pytest.fixture
+def sample_v2_profile_samples_not_sorted():
+    profile = generate_sample_v2_profile()
+    profile["profile"]["samples"][0]["timestamp"] += 300
+    return profile
 
 
 @django_db_all
@@ -505,6 +534,8 @@ def test_decode_signature(project, android_profile):
         ("sample_v2_profile", 3000),
         ("android_profile", 2020),
         ("sample_v1_profile_without_transaction_timestamps", 25),
+        ("sample_v2_profile_long", 66000),
+        ("sample_v2_profile_samples_not_sorted", 66000),
     ],
 )
 def test_calculate_profile_duration(profile, duration_ms, request):
@@ -901,3 +932,48 @@ def test_process_profile_task_should_not_emit_profile_duration_outcome(
 
     else:
         assert _track_outcome.call_count == 0
+
+
+@patch("sentry.profiles.task._push_profile_to_vroom")
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.models.projectsdk.get_sdk_index")
+@pytest.mark.parametrize(
+    ["profile", "event_type"],
+    [
+        ("sample_v1_profile", EventType.PROFILE),
+        ("sample_v2_profile", EventType.PROFILE_CHUNK),
+    ],
+)
+@django_db_all
+def test_track_latest_sdk(
+    get_sdk_index,
+    _symbolicate_profile,
+    _push_profile_to_vroom,
+    profile,
+    event_type,
+    organization,
+    project,
+    request,
+):
+    _push_profile_to_vroom.return_value = True
+    _symbolicate_profile.return_value = True
+    get_sdk_index.return_value = {
+        "sentry.python": {},
+    }
+
+    profile = request.getfixturevalue(profile)
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+
+    with Feature("organizations:profiling-sdks"):
+        process_profile_task(profile=profile)
+
+    assert (
+        ProjectSDK.objects.get(
+            project=project,
+            event_type=event_type.value,
+            sdk_name="sentry.python",
+            sdk_version="2.23.0",
+        )
+        is not None
+    )

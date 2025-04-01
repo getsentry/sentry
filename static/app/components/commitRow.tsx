@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {LinkButton} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {LinkButton} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -92,7 +92,7 @@ function CommitRow({
         <span>
           {customAvatar ? customAvatar : <UserAvatar size={16} user={commit.author} />}
         </span>
-        <Meta>
+        <Meta hasStreamlinedUI>
           <Tooltip
             title={tct(
               'The email [actorEmail] is not a member of your organization. [inviteUser:Invite] them or link additional emails in [accountSettings:account settings].',
@@ -118,7 +118,7 @@ function CommitRow({
             isHoverable
           >
             <AuthorWrapper>
-              {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+              {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
               {commit.author && commit.author.id === undefined && (
                 <IconQuestion size="xs" />
               )}
@@ -209,7 +209,7 @@ function CommitRow({
           {tct('[author] committed [commitLink] \u2022 [date]', {
             author: (
               <strong>
-                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+                {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
               </strong>
             ),
             commitLink: (
@@ -317,7 +317,7 @@ const Meta = styled(TextOverflow)<{hasStreamlinedUI?: boolean}>`
 const StreamlinedCommitRow = styled('div')`
   display: flex;
   flex-direction: column;
-  padding: ${space(0.5)} ${space(1.5)} ${space(1.5)};
+  padding: 0 ${space(1.5)} ${space(1.5)};
 `;
 
 const MetaWrapper = styled('div')`
@@ -326,6 +326,7 @@ const MetaWrapper = styled('div')`
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
+  padding-top: ${space(0.25)};
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

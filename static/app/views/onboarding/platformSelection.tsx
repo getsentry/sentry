@@ -1,28 +1,25 @@
-import {useContext} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import omit from 'lodash/omit';
 
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import PlatformPicker from 'sentry/components/platformPicker';
-import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
+import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
+import {useConfigureSdk} from 'sentry/views/onboarding/useConfigureSdk';
 
-import {CreateProjectsFooter} from './components/createProjectsFooter';
 import type {StepProps} from './types';
 
 export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
-  const onboardingContext = useContext(OnboardingContext);
+  const onboardingContext = useOnboardingContext();
 
-  const selectedPlatform = onboardingContext.data.selectedSDK
-    ? platforms.find(platform => platform.id === onboardingContext.data.selectedSDK?.key)
-      ? onboardingContext.data.selectedSDK
-      : undefined
-    : undefined;
+  const {configureSdk} = useConfigureSdk({
+    onComplete: props.onComplete,
+  });
 
   return (
     <Wrapper>
@@ -44,28 +41,21 @@ export function PlatformSelection(props: StepProps) {
         </p>
         <PlatformPicker
           noAutoFilter
+          visibleSelection={false}
           source="targeted-onboarding"
-          platform={onboardingContext.data.selectedSDK?.key}
-          defaultCategory={onboardingContext.data.selectedSDK?.category}
+          platform={onboardingContext.selectedPlatform?.key}
+          defaultCategory={onboardingContext.selectedPlatform?.category}
           setPlatform={platform => {
-            onboardingContext.setData({
-              ...onboardingContext.data,
-              selectedSDK: platform
-                ? {...omit(platform, 'id'), key: platform.id}
-                : undefined,
-            });
+            const selectedPlatform = platform
+              ? {...omit(platform, 'id'), key: platform.id}
+              : undefined;
+
+            configureSdk(selectedPlatform);
           }}
           organization={organization}
         />
       </motion.div>
-      <CreateProjectsFooter
-        {...props}
-        organization={organization}
-        clearPlatform={() => {
-          onboardingContext.setData({...onboardingContext.data, selectedSDK: undefined});
-        }}
-        selectedPlatform={selectedPlatform}
-      />
+      <GenericFooter>{props.genSkipOnboardingLink()}</GenericFooter>
     </Wrapper>
   );
 }

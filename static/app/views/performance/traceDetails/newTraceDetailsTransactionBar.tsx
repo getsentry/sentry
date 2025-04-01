@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import {Observer} from 'mobx-react';
@@ -107,7 +108,7 @@ type Props = {
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
   traceInfo: TraceInfo;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   transaction: TraceRoot | TraceFullDetailed | TraceError;
   barColor?: string;
   isOrphanError?: boolean;
@@ -118,6 +119,7 @@ type Props = {
 };
 
 function NewTraceDetailsTransactionBar(props: Props) {
+  const theme = useTheme();
   const hashValues = parseTraceDetailsURLHash(props.location.hash);
   const openPanel = decodeScalar(props.location.query.openPanel);
   const eventIDInQueryParam = !!(
@@ -498,6 +500,7 @@ function NewTraceDetailsTransactionBar(props: Props) {
                           <Observer>
                             {() => (
                               <NewTraceDetailsSpanTree
+                                theme={theme}
                                 measurements={props.measurements}
                                 quickTrace={results}
                                 location={props.location}

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types/core';
@@ -52,7 +52,7 @@ function ReleaseCardCommits({release, withHeading = true}: Props) {
 }
 
 const ReleaseSummaryHeading = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
   font-weight: ${p => p.theme.fontWeightBold};

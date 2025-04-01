@@ -2,9 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -202,6 +202,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...requestProps}
+              includeAllArgs={false}
               limit={1}
               currentSeriesNames={[sortField!]}
               includePrevious={false}

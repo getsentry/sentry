@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
-import {LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import Link from 'sentry/components/links/link';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChat, IconEllipsis} from 'sentry/icons';
@@ -41,12 +41,14 @@ function TimelineItem({
   handleUpdate,
   group,
   teams,
+  isDrawer,
 }: {
   group: Group;
   handleDelete: (item: GroupActivity) => void;
   handleUpdate: (item: GroupActivity, n: NoteType) => void;
   item: GroupActivity;
   teams: Team[];
+  isDrawer?: boolean;
 }) {
   const organization = useOrganization();
   const [editing, setEditing] = useState(false);
@@ -62,7 +64,7 @@ function TimelineItem({
   const iconMapping = groupActivityTypeIconMapping[item.type];
   const Icon = iconMapping?.componentFunction
     ? iconMapping.componentFunction(item.data, item.user)
-    : iconMapping?.Component ?? null;
+    : (iconMapping?.Component ?? null);
 
   return (
     <ActivityTimelineItem
@@ -105,11 +107,11 @@ function TimelineItem({
           onCancel={() => setEditing(false)}
         />
       ) : typeof message === 'string' ? (
-        <NoteWrapper>
+        <NoteWrapper isDrawer={isDrawer}>
           <NoteBody text={message} />
         </NoteWrapper>
       ) : (
-        message
+        <MessageWrapper isDrawer={isDrawer}>{message}</MessageWrapper>
       )}
     </ActivityTimelineItem>
   );
@@ -316,6 +318,7 @@ export default function StreamlinedActivitySection({
                   group={group}
                   teams={teams}
                   key={item.id}
+                  isDrawer={isDrawer}
                 />
               );
             })}
@@ -330,6 +333,7 @@ export default function StreamlinedActivitySection({
                   group={group}
                   teams={teams}
                   key={item.id}
+                  isDrawer={isDrawer}
                 />
               );
             })}
@@ -382,8 +386,13 @@ const RotatedEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg) translateY(1px);
 `;
 
-const NoteWrapper = styled('div')`
+const NoteWrapper = styled('div')<{isDrawer?: boolean}>`
   ${textStyles}
+  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
+`;
+
+const MessageWrapper = styled('div')<{isDrawer?: boolean}>`
+  font-size: ${p => (p.isDrawer ? p.theme.fontSizeMedium : p.theme.fontSizeSmall)};
 `;
 
 const CommentsLink = styled(Link)`

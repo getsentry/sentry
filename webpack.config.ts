@@ -44,7 +44,10 @@ const IS_CI = !!env.CI;
 // `CI` env var set.
 const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
+
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
+const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
+
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
 const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION
   ? 'production'
@@ -239,6 +242,9 @@ const appConfig: webpack.Configuration = {
      * Pipeline View for integrations
      */
     pipeline: ['sentry/utils/statics-setup', 'sentry/views/integrationPipeline'],
+
+    // admin interface
+    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -438,19 +444,13 @@ const appConfig: webpack.Configuration = {
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
       'getsentry-test': path.join(__dirname, 'tests', 'js', 'getsentry-test'),
+      admin: path.join(staticPrefix, 'gsAdmin'),
 
       // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
       // to be resolved
       less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(__dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale'),
-      'ios-device-list': path.join(
-        __dirname,
-        'node_modules',
-        'ios-device-list',
-        'dist',
-        'ios-device-list.min.js'
-      ),
     },
 
     fallback: {
@@ -674,12 +674,12 @@ if (IS_UI_DEV_ONLY) {
 
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
-  const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
-    ? {}
-    : {
+  const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
-      };
+      }
+    : {};
 
   appConfig.devServer = {
     ...appConfig.devServer,
@@ -761,6 +761,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
    * is deployed.
    */
   const HtmlWebpackPlugin = require('html-webpack-plugin');
+
   appConfig.plugins?.push(
     new HtmlWebpackPlugin({
       // Local dev vs vercel slightly differs...
@@ -770,7 +771,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
-      excludeChunks: ['pipeline'],
+      excludeChunks: IS_ADMIN_UI_DEV ? ['pipeline', 'app'] : ['pipeline', 'gsAdmin'],
       title: 'Sentry',
       window: {
         __SENTRY_DEV_UI: true,

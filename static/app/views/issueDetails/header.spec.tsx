@@ -6,9 +6,15 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory, PriorityLevel} from 'sentry/types/group';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
@@ -81,7 +87,7 @@ describe('GroupHeader', () => {
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 
@@ -200,7 +206,7 @@ describe('GroupHeader', () => {
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 

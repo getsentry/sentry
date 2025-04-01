@@ -9,8 +9,8 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {Overlay} from 'sentry/components/overlay';
 import {
   SIDEBAR_COLLAPSED_WIDTH,
@@ -70,7 +70,7 @@ function SidebarAccordion({
 
   const hasActiveChildren = Children.toArray(childSidebarItems).some(child => {
     if (isValidElement(child)) {
-      return isItemActive(child.props);
+      return isItemActive(child.props as SidebarItemProps);
     }
 
     return false;
@@ -217,8 +217,8 @@ function findChildElementsInTree(
       return;
     }
 
-    if (child?.props?.children) {
-      findChildElementsInTree(child.props.children, componentName, found);
+    if ((child?.props as any)?.children) {
+      findChildElementsInTree((child.props as any).children, componentName, found);
       return;
     }
 
@@ -229,7 +229,7 @@ function findChildElementsInTree(
 }
 
 const StyledOverlay = styled(Overlay)<{
-  accordionRef: React.RefObject<HTMLDivElement>;
+  accordionRef: React.RefObject<HTMLDivElement | null>;
   horizontal: boolean;
 }>`
   position: absolute;

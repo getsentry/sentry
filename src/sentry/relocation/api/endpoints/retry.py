@@ -34,12 +34,12 @@ ERR_FILE_NO_LONGER_EXISTS = (
     "The relocation file no longer exists, probably due to data retention requirements."
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("sentry.relocation")
 
 
 @region_silo_endpoint
 class RelocationRetryEndpoint(Endpoint):
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "POST": ApiPublishStatus.EXPERIMENTAL,

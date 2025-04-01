@@ -10,6 +10,7 @@ from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
+from sentry.workflow_engine.typings.notification_action import SentryAppIdentifier
 
 
 @freeze_time("2018-12-11 03:21:34")
@@ -21,12 +22,18 @@ class TestActionSerializer(TestCase):
 
         self.action = self.create_action(
             type=Action.Type.EMAIL.value,
-            target_type=ActionTarget.USER,
-            target_identifier=self.user.id,
+            config={
+                "target_type": ActionTarget.USER,
+                "target_identifier": str(self.user.id),
+            },
         )
         ActionAlertRuleTriggerAction.objects.create(
             action_id=self.action.id,
             alert_rule_trigger_action_id=self.trigger_action.id,
+        )
+        self.data_condition_group = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition_group_action(
+            action=self.action, condition_group=self.data_condition_group
         )
 
     def test_simple(self) -> None:
@@ -54,8 +61,8 @@ class TestActionSerializer(TestCase):
         )
         self.sentry_app_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.sentry_app_trigger,
-            target_identifier=sentry_app.id,
             type=AlertRuleTriggerAction.Type.SENTRY_APP,
+            target_identifier=sentry_app.id,
             target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
             sentry_app=sentry_app,
             sentry_app_config=[
@@ -67,12 +74,14 @@ class TestActionSerializer(TestCase):
         )
         self.sentry_app_action = self.create_action(
             type=Action.Type.SENTRY_APP.value,
-            target_type=ActionTarget.SENTRY_APP,
-            target_identifier=sentry_app.id,
-            target_display=sentry_app.name,
+            config={
+                "target_type": ActionTarget.SENTRY_APP,
+                "target_identifier": str(sentry_app.id),
+                "target_display": sentry_app.name,
+                "sentry_app_identifier": SentryAppIdentifier.SENTRY_APP_ID,
+            },
             data={
-                "sentry_app_config": self.sentry_app_trigger_action.sentry_app_config,
-                "sentry_app_id": sentry_app.id,
+                "settings": self.sentry_app_trigger_action.sentry_app_config,
             },
         )
         ActionAlertRuleTriggerAction.objects.create(
@@ -88,7 +97,7 @@ class TestActionSerializer(TestCase):
         assert serialized_action["targetType"] == "sentry_app"
         assert serialized_action["targetIdentifier"] == sentry_app.id
         assert serialized_action["sentryAppId"] == sentry_app.id
-        assert serialized_action["settings"] == self.sentry_app_action.data["sentry_app_config"]
+        assert serialized_action["settings"] == self.sentry_app_action.data["settings"]
 
         serialized_alert_rule_trigger_action = serialize(
             self.sentry_app_trigger_action, self.user, AlertRuleTriggerActionSerializer()
@@ -112,10 +121,12 @@ class TestActionSerializer(TestCase):
         )
         self.slack_action = self.create_action(
             type=Action.Type.SLACK.value,
-            target_type=ActionTarget.SPECIFIC,
-            target_identifier=self.slack_trigger_action.target_identifier,
-            target_display=self.slack_trigger_action.target_display,
             integration_id=self.integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": self.slack_trigger_action.target_identifier,
+                "target_display": self.slack_trigger_action.target_display,
+            },
         )
         ActionAlertRuleTriggerAction.objects.create(
             action_id=self.slack_action.id,

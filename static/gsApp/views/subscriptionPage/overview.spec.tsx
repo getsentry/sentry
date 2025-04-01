@@ -124,13 +124,17 @@ describe('Subscription > Overview', () => {
       ).not.toBeInTheDocument();
     } else if (isAm3DsPlan(subscription.plan) && !subscription.isEnterpriseTrial) {
       if (subscription.hadCustomDynamicSampling) {
-        expect(screen.getByText('Accepted spans spend this period')).toBeInTheDocument();
-        expect(screen.getByText('Stored spans spend this period')).toBeInTheDocument();
-      } else {
         expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
         expect(
-          screen.queryByText('Stored spans spend this period')
-        ).not.toBeInTheDocument();
+          screen.getByText('Accepted Spans Included in Subscription')
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText('Stored Spans Included in Subscription')
+        ).toBeInTheDocument();
+      } else {
+        expect(screen.getByText('Spans spend this period')).toBeInTheDocument();
+        expect(screen.queryByText('Accepted spans')).not.toBeInTheDocument();
+        expect(screen.queryByText('Stored spans')).not.toBeInTheDocument();
       }
     } else {
       expect(screen.getByText('Spans usage this period')).toBeInTheDocument();
@@ -524,8 +528,8 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
+    render(<Overview location={mockLocation} />, {
+      organization: billingOrg,
     });
 
     expect(await screen.findByText('On-Demand Max Spend')).toBeInTheDocument();
@@ -548,8 +552,8 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
+    render(<Overview location={mockLocation} />, {
+      organization: billingOrg,
     });
 
     expect(await screen.findByText('On-Demand Max Spend')).toBeInTheDocument();
@@ -576,9 +580,7 @@ describe('Subscription > Overview', () => {
     expect('onDemandBudgets' in subscription).toBe(false);
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByText('On-Demand Max Spend')).toBeInTheDocument();
     expect(screen.queryByText('on-demand budget')).not.toBeInTheDocument();
@@ -607,9 +609,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(
       await screen.findByRole('button', {name: 'Set Up Pay-as-you-go'})
@@ -640,9 +640,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(
       await screen.findByText(
@@ -673,9 +671,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(
       await screen.findByText(
@@ -707,9 +703,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByText('Errors usage this period')).toBeInTheDocument();
     expect(
@@ -731,9 +725,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByTestId('usage-chart')).toBeInTheDocument();
     expect(screen.queryByTestId('recurring-credits-panel')).not.toBeInTheDocument();
@@ -753,9 +745,7 @@ describe('Subscription > Overview', () => {
     });
     SubscriptionStore.set(billingOrg.slug, subscription);
 
-    render(<Overview location={mockLocation} organization={billingOrg} />, {
-      organization,
-    });
+    render(<Overview location={mockLocation} />, {organization: billingOrg});
 
     expect(await screen.findByTestId('permission-denied')).toBeInTheDocument();
     expect(screen.queryByTestId('usage-chart')).not.toBeInTheDocument();
@@ -832,9 +822,7 @@ describe('Subscription > Overview', () => {
       });
       SubscriptionStore.set(billingOrg.slug, subscription);
 
-      render(<Overview location={mockLocation} organization={billingOrg} />, {
-        organization: billingOrg,
-      });
+      render(<Overview location={mockLocation} />, {organization: billingOrg});
 
       expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
       expect(
@@ -856,9 +844,7 @@ describe('Subscription > Overview', () => {
       });
       SubscriptionStore.set(nonBillingOrg.slug, subscription);
 
-      render(<Overview location={mockLocation} organization={nonBillingOrg} />, {
-        organization: nonBillingOrg,
-      });
+      render(<Overview location={mockLocation} />, {organization: nonBillingOrg});
 
       expect(await screen.findByTestId('ondemand-disabled-alert')).toBeInTheDocument();
       expect(
@@ -904,5 +890,80 @@ describe('Subscription > Overview', () => {
         )
       ).toBeInTheDocument();
     });
+  });
+
+  it('renders breakdown for transactions only', async function () {
+    // Set up AM2 subscription with profiling-billing feature
+    const subscription = SubscriptionFixture({
+      plan: 'am2_f',
+      planTier: PlanTier.AM2,
+      organization,
+    });
+    organization.features.push('profiling-billing');
+    SubscriptionStore.set(organization.slug, subscription);
+
+    // Set up mock data with event totals for transactions and profiles
+    const mockApi = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/usage/`,
+      method: 'GET',
+      body: {
+        ...CustomerUsageFixture(),
+        eventTotals: {
+          transactions: {
+            accepted: 50000,
+            dropped: 0,
+            droppedOther: 0,
+            droppedOverQuota: 0,
+            droppedSpikeProtection: 0,
+            filtered: 0,
+            projected: 0,
+          },
+          profiles: {
+            accepted: 25000,
+            dropped: 0,
+            droppedOther: 0,
+            droppedOverQuota: 0,
+            droppedSpikeProtection: 0,
+            filtered: 0,
+            projected: 0,
+          },
+          profileDuration: {
+            accepted: 25000,
+            dropped: 0,
+            droppedOther: 0,
+            droppedOverQuota: 0,
+          },
+        },
+      },
+    });
+
+    render(<Overview location={mockLocation} />, {organization});
+
+    expect(mockApi).toHaveBeenCalled();
+
+    // Wait for the Performance units heading to be visible
+    const performanceHeading = await screen.findByText(
+      'Performance units usage this period'
+    );
+    expect(performanceHeading).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('expand-usage-totals-transactions'));
+
+    const transactionsTable = screen.getByTestId('category-table-transactions');
+    expect(transactionsTable).toBeInTheDocument();
+
+    // event-table-accepted should be present means breakdown is shown
+    const acceptedTable = screen.getByTestId('event-table-accepted');
+    expect(acceptedTable).toBeInTheDocument();
+
+    // hide transactions breakdown
+    await userEvent.click(screen.getByTestId('expand-usage-totals-transactions'));
+    expect(screen.queryByTestId('event-table-accepted')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('expand-usage-totals-profileDuration'));
+    expect(screen.getByTestId('category-table-profileDuration')).toBeInTheDocument();
+
+    // event breakdown is not shown for profileDuration
+    expect(screen.queryByTestId('event-table-accepted')).not.toBeInTheDocument();
   });
 });

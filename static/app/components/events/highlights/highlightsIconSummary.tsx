@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
@@ -34,6 +35,7 @@ interface HighlightsIconSummaryProps {
 }
 
 export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps) {
+  const theme = useTheme();
   const organization = useOrganization();
 
   // Project slug and project id are pull out because group is not always available
@@ -53,20 +55,36 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
   // For now, highlight icons are only interpretted from context. We should extend this to tags
   // eventually, but for now, it'll match the previous expectations.
   const items = getOrderedContextItems(event)
-    .map(({alias, type, value}) => ({
-      ...getContextSummary({type, value}),
-      contextTitle: getContextTitle({alias, type, value}),
-      alias,
+    .map(item => ({
+      ...getContextSummary(item),
+      contextTitle: getContextTitle(item),
+      contextType: item.type,
+      alias: item.alias,
       icon: getContextIcon({
-        alias,
-        type,
-        value,
+        alias: item.alias,
+        type: item.type,
+        value: item.value,
         contextIconProps: {
           size: 'md',
         },
+        theme,
       }),
     }))
-    .filter(item => {
+    .filter((item, _index, array) => {
+      // Prefer the "os" context for OS information
+      if (item.contextType === 'client_os' && array.find(i => i.contextType === 'os')) {
+        return false;
+      }
+
+      // Prefer the runtime to browser if they're both the same
+      if (item.contextType === 'browser') {
+        // If the runtime is the same as the browser, prefer the runtime
+        const runtime = array.find(i => i.contextType === 'runtime');
+        if (runtime?.title === item.title) {
+          return false;
+        }
+      }
+
       const hasData = item.icon !== null && Boolean(item.title || item.subtitle);
       if (item.alias === 'device') {
         return hasData && shouldDisplayDevice;

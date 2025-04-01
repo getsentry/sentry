@@ -3,29 +3,30 @@ import styled from '@emotion/styled';
 import {type Change, diffWords} from 'diff';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 type AutofixDiffProps = {
   diff: FilePatch[];
   editable: boolean;
   groupId: string;
   runId: string;
+  isExpandable?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   repoId?: string;
@@ -73,19 +74,99 @@ function addChangesToDiffLines(lines: DiffLineWithChanges[]): DiffLineWithChange
   return lines;
 }
 
-function DiffLineCode({line}: {line: DiffLineWithChanges}) {
-  if (!line.changes) {
-    return <Fragment>{line.value}</Fragment>;
+function detectLanguageFromPath(filePath: string): string {
+  if (!filePath) {
+    return 'plaintext';
+  }
+  const extension = filePath.split('.').pop()?.toLowerCase();
+  if (!extension) {
+    return 'plaintext';
   }
 
+  // Map common file extensions to Prism language identifiers
+  const extensionMap: Record<string, string> = {
+    js: 'javascript',
+    jsx: 'jsx',
+    ts: 'typescript',
+    tsx: 'tsx',
+    py: 'python',
+    rb: 'ruby',
+    go: 'go',
+    java: 'java',
+    php: 'php',
+    c: 'c',
+    cpp: 'cpp',
+    cs: 'csharp',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    json: 'json',
+    md: 'markdown',
+    yaml: 'yaml',
+    yml: 'yaml',
+    sh: 'bash',
+    bash: 'bash',
+    rs: 'rust',
+    swift: 'swift',
+    kt: 'kotlin',
+    sql: 'sql',
+    xml: 'xml',
+  };
+
+  return extensionMap[extension] || 'plaintext';
+}
+
+const SyntaxHighlightedCode = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  white-space: pre;
+
+  pre,
+  code {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+  }
+`;
+
+function DiffLineCode({line, fileName}: {line: DiffLineWithChanges; fileName?: string}) {
+  const language = useMemo(
+    () => (fileName ? detectLanguageFromPath(fileName) : 'plaintext'),
+    [fileName]
+  );
+
+  const tokens = usePrismTokens({code: line.value, language});
+
+  // If we have changes (diff), use the CodeDiff component
+  if (line.changes) {
+    return (
+      <Fragment>
+        {line.changes.map((change, i) => (
+          <CodeDiff key={i} added={change.added} removed={change.removed}>
+            {change.value}
+          </CodeDiff>
+        ))}
+      </Fragment>
+    );
+  }
+
+  // For non-changed lines, apply syntax highlighting
   return (
-    <Fragment>
-      {line.changes.map((change, i) => (
-        <CodeDiff key={i} added={change.added} removed={change.removed}>
-          {change.value}
-        </CodeDiff>
-      ))}
-    </Fragment>
+    <SyntaxHighlightedCode>
+      <pre className={`language-${language}`}>
+        <code>
+          {tokens.map((lineTokens, i) => (
+            <Fragment key={i}>
+              {lineTokens.map((token, j) => (
+                <span key={j} className={token.className}>
+                  {token.children}
+                </span>
+              ))}
+            </Fragment>
+          ))}
+        </code>
+      </pre>
+    </SyntaxHighlightedCode>
   );
 }
 
@@ -406,7 +487,7 @@ function DiffHunkContent({
             }}
             onMouseLeave={() => setHoveredGroup(null)}
           >
-            <DiffLineCode line={line} />
+            <DiffLineCode line={line} fileName={fileName} />
             {editable && lineGroups.some(group => index === group.start) && (
               <ButtonGroup>
                 <ActionButton
@@ -428,9 +509,13 @@ function DiffHunkContent({
               </ButtonGroup>
             )}
             {editingGroup === index && (
-              <EditOverlay ref={overlayRef}>
+              <EditOverlay ref={overlayRef} data-ignore-autofix-highlight="true">
                 <OverlayHeader>
-                  <OverlayTitle>{t('Editing %s', fileName)}</OverlayTitle>
+                  <OverlayTitle
+                    dangerouslySetInnerHTML={{
+                      __html: singleLineRenderer(t('Editing `%s`', fileName)),
+                    }}
+                  />
                 </OverlayHeader>
                 <OverlayContent>
                   <SectionTitle>{getDeletedLineTitle(index)}</SectionTitle>
@@ -495,12 +580,12 @@ function FileDiff({
   runId,
   repoId,
   editable,
-  previousDefaultStepIndex,
-  previousInsightCount,
+  isExpandable,
 }: {
   editable: boolean;
   file: FilePatch;
   groupId: string;
+  isExpandable: boolean;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -509,26 +594,31 @@ function FileDiff({
   const [isExpanded, setIsExpanded] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
+  // const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
-      <FileHeader onClick={() => setIsExpanded(value => !value)}>
-        <InteractionStateLayer />
+      <FileHeader
+        isExpandable={isExpandable}
+        onClick={() => (isExpandable ? setIsExpanded(value => !value) : undefined)}
+      >
+        {isExpandable && <InteractionStateLayer />}
         <FileAddedRemoved>
           <FileAdded>+{file.added}</FileAdded>
           <FileRemoved>-{file.removed}</FileRemoved>
         </FileAddedRemoved>
         <FileName title={file.path}>{file.path}</FileName>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
-          aria-label={t('Toggle file diff')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-        />
+        {isExpandable && (
+          <Button
+            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            aria-label={t('Toggle file diff')}
+            aria-expanded={isExpanded}
+            size="zero"
+            borderless
+          />
+        )}
       </FileHeader>
-      {selection && (
+      {/* {selection && (
         <AutofixHighlightPopup
           selectedText={selection.selectedText}
           referenceElement={selection.referenceElement}
@@ -541,7 +631,7 @@ function FileDiff({
               : -1
           }
         />
-      )}
+      )} */}
       {isExpanded && (
         <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
@@ -573,6 +663,7 @@ export function AutofixDiff({
   editable,
   previousDefaultStepIndex,
   previousInsightCount,
+  isExpandable = true,
 }: AutofixDiffProps) {
   if (!diff || !diff.length) {
     return null;
@@ -590,6 +681,7 @@ export function AutofixDiff({
           editable={editable}
           previousDefaultStepIndex={previousDefaultStepIndex}
           previousInsightCount={previousInsightCount}
+          isExpandable={isExpandable}
         />
       ))}
     </DiffsColumn>
@@ -610,9 +702,10 @@ const FileDiffWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+  background-color: ${p => p.theme.background};
 `;
 
-const FileHeader = styled('div')`
+const FileHeader = styled('div')<{isExpandable?: boolean}>`
   position: relative;
   display: grid;
   align-items: center;
@@ -620,7 +713,7 @@ const FileHeader = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)} ${space(2)};
-  cursor: pointer;
+  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
 `;
 
 const FileAddedRemoved = styled('div')`
@@ -691,6 +784,7 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
+  overflow: visible;
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -723,6 +817,7 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.25)};
   display: flex;
+  z-index: 1;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`
@@ -797,6 +892,7 @@ const StyledTextArea = styled(TextArea)`
   background-color: ${DIFF_COLORS.addedRow};
   border-color: ${p => p.theme.border};
   position: relative;
+  min-height: 250px;
 
   &:focus {
     border-color: ${p => p.theme.focusBorder};

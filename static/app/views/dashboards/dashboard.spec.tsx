@@ -2,6 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TagsFixture} from 'sentry-fixture/tags';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -143,6 +144,7 @@ describe('Dashboards > Dashboard', () => {
   it('fetches tags', () => {
     render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -165,6 +167,7 @@ describe('Dashboards > Dashboard', () => {
     const mockCallbackToUnsetNewWidget = jest.fn();
     render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -190,6 +193,7 @@ describe('Dashboards > Dashboard', () => {
     const mockCallbackToUnsetNewWidget = jest.fn();
     const {rerender} = render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -211,6 +215,7 @@ describe('Dashboards > Dashboard', () => {
     // Re-render with newWidget prop
     rerender(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -235,6 +240,7 @@ describe('Dashboards > Dashboard', () => {
     const mockCallbackToUnsetNewWidget = jest.fn();
     render(
       <Dashboard
+        theme={ThemeFixture()}
         paramDashboardId="1"
         dashboard={mockDashboard}
         organization={initialData.organization}
@@ -267,9 +273,10 @@ describe('Dashboards > Dashboard', () => {
     const mockHandleUpdateWidgetList = jest.fn();
 
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <MEPSettingProvider forceTransactions={false}>
           <Dashboard
+            theme={ThemeFixture()}
             paramDashboardId="1"
             dashboard={dashboardWithOneWidget}
             organization={initialData.organization}
@@ -284,7 +291,7 @@ describe('Dashboards > Dashboard', () => {
             widgetLegendState={widgetLegendState}
           />
         </MEPSettingProvider>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     await userEvent.hover(screen.getByLabelText('Widget warnings'));
@@ -321,9 +328,10 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <MEPSettingProvider forceTransactions={false}>
           <Dashboard
+            theme={ThemeFixture()}
             paramDashboardId="1"
             dashboard={dashboardWithOneWidget}
             organization={initialData.organization}
@@ -338,25 +346,25 @@ describe('Dashboards > Dashboard', () => {
             widgetLegendState={widgetLegendState}
           />
         </MEPSettingProvider>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     await userEvent.click(await screen.findByText('Duplicate Widget'));
 
-    // The new widget is inserted before the duplicated widget
+    // The new widget is inserted after the duplicated widget
     const expectedWidgets = [
-      // New Widget
-      expect.objectContaining(
-        WidgetFixture({
-          id: undefined,
-          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 0, minH: 1}),
-        })
-      ),
       // Duplicated Widget
       expect.objectContaining(
         WidgetFixture({
           id: '1',
+          layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 0, minH: 1}),
+        })
+      ),
+      // New Widget is appended at the end
+      expect.objectContaining(
+        WidgetFixture({
+          id: undefined,
           layout: expect.objectContaining({h: 1, w: 1, x: 0, y: 1, minH: 1}),
         })
       ),
@@ -373,9 +381,10 @@ describe('Dashboards > Dashboard', () => {
 
     const mount = (dashboard: DashboardDetails, mockedOrg = initialData.organization) => {
       render(
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
             <Dashboard
+              theme={ThemeFixture()}
               paramDashboardId="1"
               dashboard={dashboard}
               organization={mockedOrg}
@@ -389,7 +398,7 @@ describe('Dashboards > Dashboard', () => {
               widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       );
     };
 
@@ -434,9 +443,10 @@ describe('Dashboards > Dashboard', () => {
       isPreview = false,
     }: any) => {
       const getDashboardComponent = () => (
-        <OrganizationContext.Provider value={initialData.organization}>
+        <OrganizationContext value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
             <Dashboard
+              theme={ThemeFixture()}
               paramDashboardId="1"
               dashboard={dashboard}
               organization={org}
@@ -453,7 +463,7 @@ describe('Dashboards > Dashboard', () => {
               widgetLegendState={widgetLegendState}
             />
           </MEPSettingProvider>
-        </OrganizationContext.Provider>
+        </OrganizationContext>
       );
       const {rerender} = render(getDashboardComponent());
       return {rerender: () => rerender(getDashboardComponent())};

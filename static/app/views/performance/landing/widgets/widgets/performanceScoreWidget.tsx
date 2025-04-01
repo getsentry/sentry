@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -18,6 +18,7 @@ import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
 import type {PerformanceWidgetProps} from '../types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const {InteractiveTitle} = props;
   const {data: projectData, isPending} = useProjectRawWebVitalsQuery();
@@ -28,7 +29,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
     isProjectScoresLoading || isPending
       ? undefined
       : getWebVitalScoresFromTableDataRow(projectScores?.data?.[0]);
-  const ringSegmentColors = getChartColorPalette(3);
+  const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   const moduleURL = useModuleURL('vital');

@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
 import {Alert} from 'sentry/components/core/alert';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Button} from 'sentry/components/core/button';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
@@ -228,7 +228,7 @@ const CommitDate = styled(({date, ...props}: any) => (
   <div {...props}>{moment(date).fromNow()}</div>
 ))`
   margin-top: ${space(0.5)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const CommitReasonItem = styled('div')`
@@ -248,10 +248,7 @@ const OwnershipTag = styled(
     <div {...props}>{tagType}</div>
   )
 )`
-  background: ${p =>
-    p.tagColors[
-      p.tagType.indexOf('tags') === -1 ? (p.tagType as keyof typeof p.tagColors) : 'tag'
-    ]};
+  background: ${p => p.tagColors[p.tagType.includes('tags') ? 'tag' : p.tagType]};
   color: ${p => p.theme.white};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
@@ -263,7 +260,7 @@ const OwnershipTag = styled(
 
 const ViewMoreButton = styled(Button)`
   border: none;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(1)} ${space(0.25)} ${space(0.25)} 0;

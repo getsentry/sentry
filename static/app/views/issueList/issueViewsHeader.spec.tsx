@@ -6,7 +6,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import IssueViewsIssueListHeader from 'sentry/views/issueList/issueViewsHeader';
-import type {GroupSearchView} from 'sentry/views/issueList/types';
+import {
+  type GroupSearchView,
+  GroupSearchViewVisibility,
+} from 'sentry/views/issueList/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 describe('IssueViewsHeader', () => {
@@ -27,7 +30,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:high',
       querySort: IssueSortOptions.DATE,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         end: '2024-01-01',
@@ -35,6 +37,8 @@ describe('IssueViewsHeader', () => {
         start: '2024-01-02',
         utc: false,
       },
+      visibility: GroupSearchViewVisibility.OWNER,
+      lastVisited: null,
     },
     {
       id: '2',
@@ -42,7 +46,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:medium',
       querySort: IssueSortOptions.DATE,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         start: null,
@@ -50,6 +53,8 @@ describe('IssueViewsHeader', () => {
         period: '1d',
         utc: null,
       },
+      visibility: GroupSearchViewVisibility.ORGANIZATION,
+      lastVisited: null,
     },
     {
       id: '3',
@@ -57,7 +62,6 @@ describe('IssueViewsHeader', () => {
       query: 'priority:low',
       querySort: IssueSortOptions.NEW,
       environments: [],
-      isAllProjects: false,
       projects: [],
       timeFilters: {
         end: '2024-01-01',
@@ -65,6 +69,8 @@ describe('IssueViewsHeader', () => {
         start: '2024-01-02',
         utc: true,
       },
+      visibility: GroupSearchViewVisibility.ORGANIZATION,
+      lastVisited: null,
     },
   ];
 
@@ -131,6 +137,11 @@ describe('IssueViewsHeader', () => {
         organization,
         router: defaultRouter,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
 
       expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: /Medium Priority/})).toBeInTheDocument();
@@ -169,6 +180,11 @@ describe('IssueViewsHeader', () => {
           router: projectsOnlyRouter,
         }
       );
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
 
       expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
 
@@ -281,6 +297,11 @@ describe('IssueViewsHeader', () => {
           },
         }),
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
 
       render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
         organization,
@@ -307,6 +328,11 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} router={queryOnlyRouter} />, {
         organization,
         router: queryOnlyRouter,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+        method: 'POST',
+        body: {},
       });
 
       expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
@@ -341,6 +367,11 @@ describe('IssueViewsHeader', () => {
       render(<IssueViewsIssueListHeader {...defaultProps} router={specificTabRouter} />, {
         organization,
         router: specificTabRouter,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
+        method: 'POST',
+        body: {},
       });
 
       expect(await screen.findByRole('tab', {name: /High Priority/})).toBeInTheDocument();
@@ -384,6 +415,11 @@ describe('IssueViewsHeader', () => {
             },
           },
         ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+        method: 'POST',
+        body: {},
       });
 
       const defaultTabDifferentQueryRouter = RouterFixture({
@@ -438,6 +474,11 @@ describe('IssueViewsHeader', () => {
         organization,
         router: defaultRouter,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
 
       await userEvent.click(await screen.findByRole('tab', {name: /Medium Priority/}));
 
@@ -474,6 +515,11 @@ describe('IssueViewsHeader', () => {
             query: 'is:unresolved',
           },
         }),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
+        method: 'POST',
+        body: {},
       });
 
       render(
@@ -512,6 +558,11 @@ describe('IssueViewsHeader', () => {
           },
         }),
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
 
       render(
         <IssueViewsIssueListHeader
@@ -549,6 +600,11 @@ describe('IssueViewsHeader', () => {
           },
         }),
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
 
       render(
         <IssueViewsIssueListHeader
@@ -571,6 +627,11 @@ describe('IssueViewsHeader', () => {
           },
         }),
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
 
       render(
         <IssueViewsIssueListHeader
@@ -592,6 +653,11 @@ describe('IssueViewsHeader', () => {
             statsPeriod: '7d',
           },
         }),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[1]!.id}/visit/`,
+        method: 'POST',
+        body: {},
       });
 
       render(
@@ -617,6 +683,11 @@ describe('IssueViewsHeader', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues-count/`,
         method: 'GET',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+        method: 'POST',
         body: {},
       });
     });
@@ -771,6 +842,11 @@ describe('IssueViewsHeader', () => {
           method: 'PUT',
           body: getRequestViews,
         });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+          method: 'POST',
+          body: {},
+        });
 
         render(<IssueViewsIssueListHeader {...defaultProps} />, {
           organization,
@@ -823,6 +899,11 @@ describe('IssueViewsHeader', () => {
           url: `/organizations/org-slug/group-search-views/`,
           method: 'PUT',
           body: getRequestViews,
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+          method: 'POST',
+          body: {},
         });
 
         render(<IssueViewsIssueListHeader {...defaultProps} />, {
@@ -937,6 +1018,11 @@ describe('IssueViewsHeader', () => {
   describe('Issue views query counts', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/group-search-views/${getRequestViews[0]!.id}/visit/`,
+        method: 'POST',
+        body: {},
+      });
     });
 
     it('should render the correct count for a single view', async () => {

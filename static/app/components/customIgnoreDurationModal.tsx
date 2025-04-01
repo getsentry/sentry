@@ -4,9 +4,10 @@ import moment from 'moment-timezone';
 import {sprintf} from 'sprintf-js';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import type {IgnoredStatusDetails} from 'sentry/types/group';
 
@@ -17,7 +18,6 @@ type Props = ModalRenderProps & {
 export default function CustomIgnoreDurationModal(props: Props) {
   const [dateWarning, setDateWarning] = useState<boolean>(false);
   const {Header, Body, Footer, onSelected, closeModal} = props;
-  const label = t('Ignore this issue until \u2026');
 
   const snoozeDateInputRef = useRef<HTMLInputElement>(null);
 
@@ -66,12 +66,14 @@ export default function CustomIgnoreDurationModal(props: Props) {
 
   return (
     <Fragment>
-      <Header>{label}</Header>
+      <Header>
+        <h4>{t('Archive this issue until\u2026')}</h4>
+      </Header>
       <Body>
         <form className="form-horizontal">
           <div className="control-group">
             <h6 className="nav-header">{t('Date')}</h6>
-            <input
+            <Input
               className="form-control"
               type="date"
               id="snooze-until-date"
@@ -83,7 +85,7 @@ export default function CustomIgnoreDurationModal(props: Props) {
           </div>
           <div className="control-group m-b-1">
             <h6 className="nav-header">{t('Time (UTC)')}</h6>
-            <input
+            <Input
               className="form-control"
               type="time"
               id="snooze-until-time"

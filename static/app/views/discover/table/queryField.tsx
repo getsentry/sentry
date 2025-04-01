@@ -1,14 +1,15 @@
 import {Component, createRef} from 'react';
+import {type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import type {InputProps} from 'sentry/components/core/input';
 import {Input} from 'sentry/components/core/input';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -105,6 +106,12 @@ type Props = {
   shouldRenderTag?: boolean;
   skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
+  theme?: Theme;
+  /**
+   * Whether or not to mount the popover menu in the document.body.
+   * Useful for rendering query fields in scroll containers.
+   */
+  useMenuPortal?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -113,7 +120,7 @@ type OptionType = {
   value: FieldValue;
 };
 
-class QueryField extends Component<Props> {
+class _QueryField extends Component<Props> {
   FieldSelectComponents = {
     SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
       return (
@@ -430,6 +437,8 @@ class QueryField extends Component<Props> {
       hideParameterSelector,
       skipParameterPlaceholder,
       fieldValue,
+      useMenuPortal,
+      theme,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -447,8 +456,24 @@ class QueryField extends Component<Props> {
           opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
         });
 
+        const portalProps = useMenuPortal
+          ? {
+              menuPortalTarget: document.body,
+              styles: {
+                menuPortal: (provided: any) => ({
+                  ...provided,
+                  // This ensures that the dropdown appears above the widget builder
+                  // because the default dropdown z-index is too low
+                  zIndex: theme?.zIndex.widgetBuilderDrawer
+                    ? theme.zIndex.widgetBuilderDrawer + 1
+                    : undefined,
+                }),
+              },
+            }
+          : {};
+
         return (
-          <SelectControl
+          <Select
             key="select"
             name="parameter"
             menuPlacement="auto"
@@ -459,7 +484,11 @@ class QueryField extends Component<Props> {
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
             disabled={disabled}
-            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            menuPortalTarget={portalProps.menuPortalTarget}
+            styles={{
+              ...portalProps.styles,
+              ...(inFieldLabels ? undefined : this.FieldSelectStyles),
+            }}
             components={this.FieldSelectComponents}
           />
         );
@@ -508,7 +537,7 @@ class QueryField extends Component<Props> {
       }
       if (descriptor.kind === 'dropdown') {
         return (
-          <SelectControl
+          <Select
             key="dropdown"
             name="dropdown"
             menuPlacement="auto"
@@ -637,7 +666,6 @@ class QueryField extends Component<Props> {
             name="arithmetic"
             key="parameter:text"
             type="text"
-            required
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}
@@ -661,9 +689,7 @@ class QueryField extends Component<Props> {
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
-      if (fieldValue.kind !== 'function') {
-        gridColumnsQuantity = 1;
-      } else {
+      if (fieldValue.kind === 'function') {
         const operation =
           // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           AGGREGATIONS[fieldValue.function[0]] ??
@@ -678,6 +704,8 @@ class QueryField extends Component<Props> {
         } else {
           gridColumnsQuantity = 1;
         }
+      } else {
+        gridColumnsQuantity = 1;
       }
     }
 
@@ -689,9 +717,9 @@ class QueryField extends Component<Props> {
         data-test-id="queryField"
       >
         {!hidePrimarySelector && (
-          <SelectControl
+          <Select
             {...selectProps}
-            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            styles={inFieldLabels ? undefined : this.FieldSelectStyles}
             components={this.FieldSelectComponents}
           />
         )}
@@ -752,7 +780,7 @@ export class BufferedInput extends Component<BufferedInputProps, InputState> {
     value: this.props.value,
   };
 
-  private input: React.RefObject<HTMLInputElement>;
+  private input: React.RefObject<HTMLInputElement | null>;
 
   get isValid() {
     if (!this.input.current) {
@@ -801,7 +829,7 @@ const StyledInput = styled(Input)`
 
 const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
@@ -821,6 +849,8 @@ const ArithmeticError = styled(Tooltip)`
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
 `;
+
+const QueryField = withTheme(_QueryField);
 
 export {QueryField};
 

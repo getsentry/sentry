@@ -38,7 +38,7 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
     preferences: {
       timelines: {
         ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
-        ...(initialState?.preferences?.timelines ?? {}),
+        ...initialState?.preferences?.timelines,
       },
       layout:
         initialState?.preferences?.layout ?? DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
@@ -79,10 +79,10 @@ export function FlamegraphStateProvider(
   }, [state, nextState, previousState]);
 
   return (
-    <FlamegraphStateValueContext.Provider value={flamegraphContextValue}>
-      <FlamegraphStateDispatchContext.Provider value={dispatch}>
+    <FlamegraphStateValueContext value={flamegraphContextValue}>
+      <FlamegraphStateDispatchContext value={dispatch}>
         {props.children}
-      </FlamegraphStateDispatchContext.Provider>
-    </FlamegraphStateValueContext.Provider>
+      </FlamegraphStateDispatchContext>
+    </FlamegraphStateValueContext>
   );
 }

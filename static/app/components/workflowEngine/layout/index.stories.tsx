@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';

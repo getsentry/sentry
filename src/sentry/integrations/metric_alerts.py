@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import NotRequired, TypedDict
 from urllib import parse
@@ -12,11 +11,7 @@ from django.utils.translation import gettext as _
 from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import GetMetricIssueAggregatesParams, get_metric_issue_aggregates
-from sentry.incidents.models.alert_rule import (
-    AlertRule,
-    AlertRuleDetectionType,
-    AlertRuleThresholdType,
-)
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
@@ -24,6 +19,7 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     IncidentTrigger,
 )
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
@@ -63,25 +59,6 @@ class TitleLinkParams(TypedDict, total=False):
     referrer: str
     detection_type: str
     notification_uuid: str
-
-
-@dataclass
-class AlertContext:
-    name: str
-    action_identifier_id: int
-    threshold_type: AlertRuleThresholdType | None
-    detection_type: AlertRuleDetectionType
-    comparison_delta: int | None
-
-    @classmethod
-    def from_alert_rule_incident(cls, alert_rule: AlertRule) -> AlertContext:
-        return cls(
-            name=alert_rule.name,
-            action_identifier_id=alert_rule.id,
-            threshold_type=AlertRuleThresholdType(alert_rule.threshold_type),
-            detection_type=AlertRuleDetectionType(alert_rule.detection_type),
-            comparison_delta=alert_rule.comparison_delta,
-        )
 
 
 def logo_url() -> str:
@@ -190,24 +167,21 @@ def build_title_link(
 
 
 def incident_attachment_info(
-    alert_context: AlertContext,
-    open_period_identifier: int,
     organization: Organization,
-    snuba_query: SnubaQuery,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
     referrer: str = "metric_alert",
     notification_uuid: str | None = None,
 ) -> AttachmentInfo:
-    status = get_status_text(new_status)
+    status = get_status_text(metric_issue_context.new_status)
 
     text = ""
-    if metric_value is not None:
+    if metric_issue_context.metric_value is not None:
         text = get_incident_status_text(
-            snuba_query,
+            metric_issue_context.snuba_query,
             alert_context.threshold_type,
             alert_context.comparison_delta,
-            str(metric_value),
+            str(metric_issue_context.metric_value),
         )
 
     if features.has("organizations:anomaly-detection-alerts", organization) and features.has(
@@ -218,7 +192,7 @@ def incident_attachment_info(
     title = get_title(status, alert_context.name)
 
     title_link_params: TitleLinkParams = {
-        "alert": str(open_period_identifier),
+        "alert": str(metric_issue_context.open_period_identifier),
         "referrer": referrer,
         "detection_type": alert_context.detection_type.value,
     }

@@ -42,7 +42,7 @@ import {
 import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
 import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
-import Chart from './chart';
+import {Chart} from './chart';
 import type {
   NormalizedTrendsTransaction,
   TrendFunctionField,
@@ -119,12 +119,12 @@ function handleChangeSelected(
     const query = {
       ...location.query,
     };
-    if (!transaction) {
-      delete query[selectedQueryKey];
-    } else {
+    if (transaction) {
       query[selectedQueryKey] = transaction
         ? `${transaction.transaction}-${transaction.project}`
         : undefined;
+    } else {
+      delete query[selectedQueryKey];
     }
     browserHistory.push({
       pathname: location.pathname,
@@ -676,7 +676,7 @@ const ItemTransactionDurationChange = styled('div')`
 `;
 
 const DurationChange = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin: 0 ${space(1)};
 `;
 

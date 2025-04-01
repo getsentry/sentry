@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -29,7 +30,7 @@ import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
-  columnOrder: Array<TableColumn<React.ReactText>>;
+  columnOrder: Array<TableColumn<string | number>>;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -45,8 +46,8 @@ type Props = {
     ) => LocationDescriptor
   >;
   handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
+    c: TableColumn<string | number>
+  ) => (a: Actions, v: string | number) => void;
   referrer?: string;
   titles?: string[];
 };
@@ -65,6 +66,7 @@ function TransactionsTable(props: Props) {
     isLoading,
     referrer,
   } = props;
+  const theme = useTheme();
 
   const getTitles = () => {
     return titles ?? eventView.getFields();
@@ -127,7 +129,7 @@ function TransactionsTable(props: Props) {
   const renderRow = (
     row: TableDataRow,
     rowIndex: number,
-    colOrder: Array<TableColumn<React.ReactText>>,
+    colOrder: Array<TableColumn<string | number>>,
     tableMeta: MetaType
   ): React.ReactNode[] => {
     const fields = eventView.getFields();
@@ -144,7 +146,7 @@ function TransactionsTable(props: Props) {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {organization, location});
+      let rendered = fieldRenderer(row, {organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, row, location);
 
@@ -218,7 +220,7 @@ function TransactionsTable(props: Props) {
         return;
       }
       // @ts-expect-error TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
-      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta));
+      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta, theme));
     });
     return cells;
   };
@@ -237,7 +239,11 @@ function TransactionsTable(props: Props) {
       <PanelTable
         data-test-id="transactions-table"
         isEmpty={!hasResults}
-        emptyMessage={t('No transactions found')}
+        emptyMessage={
+          eventView.query
+            ? t('No transactions found for this filter.')
+            : t('No transactions found.')
+        }
         headers={renderHeader()}
         isLoading={isLoading}
         disablePadding

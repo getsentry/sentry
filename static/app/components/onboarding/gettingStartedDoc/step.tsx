@@ -3,7 +3,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -299,7 +299,7 @@ const Configuration = styled('div')`
 `;
 
 const Description = styled('div')`
-  code {
+  code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
   }
 

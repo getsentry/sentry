@@ -8,10 +8,7 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {
-  TraceErrorOrIssue,
-  TraceMeta,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 
@@ -52,7 +49,7 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 interface MetaProps {
   meta: TraceMeta | undefined;
   organization: Organization;
-  representativeTransaction: TraceTree.Transaction | null;
+  representativeTransaction: TraceTree.Transaction | TraceTree.EAPSpan | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 }
@@ -65,7 +62,7 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TraceErrorIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {
@@ -84,7 +81,7 @@ export function Meta(props: MetaProps) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TracePerformanceIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.performance_issues) {
@@ -140,7 +137,9 @@ export function Meta(props: MetaProps) {
           bodyText={
             props.representativeTransaction
               ? getDuration(
-                  props.representativeTransaction.timestamp -
+                  ('timestamp' in props.representativeTransaction
+                    ? props.representativeTransaction.timestamp
+                    : props.representativeTransaction.end_timestamp) -
                     props.representativeTransaction.start_timestamp,
                   2,
                   true

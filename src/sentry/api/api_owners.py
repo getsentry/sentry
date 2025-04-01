@@ -18,7 +18,6 @@ class ApiOwner(Enum):
     INTEGRATIONS = "product-owners-settings-integrations"
     ISSUES = "issues"
     ML_AI = "machine-learning-ai"
-    OPEN_SOURCE = "open-source"
     OWNERS_INGEST = "ingest"
     OWNERS_SNUBA = "owners-snuba"
     PERFORMANCE = "performance"

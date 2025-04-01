@@ -1,8 +1,8 @@
 import {useState} from 'react';
 
 import type {Client} from 'sentry/api';
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
@@ -20,7 +20,7 @@ type ChildRenderProps = {
 
 type ChildRenderFunction = (options: ChildRenderProps) => React.ReactNode;
 
-type Props = {
+interface Props extends Omit<ButtonProps, 'to' | 'onClick' | 'busy' | 'children'> {
   api: Client;
   organization: Organization;
   source: string;
@@ -37,7 +37,7 @@ type Props = {
    * Default button priority to use when the button will start a trial
    */
   upgradePriority?: ButtonProps['priority'];
-} & Omit<React.ComponentProps<typeof Button>, 'to' | 'onClick' | 'busy' | 'children'>;
+}
 
 /**
  * This button has the following modes:

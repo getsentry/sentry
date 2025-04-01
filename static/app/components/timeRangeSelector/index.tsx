@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SingleSelectProps} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SingleSelectProps} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -296,8 +296,15 @@ export function TimeRangeSelector({
   );
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
+
+  const restrictedDefaultPeriods = Object.fromEntries(
+    Object.entries(DEFAULT_RELATIVE_PERIODS).filter(
+      ([period]) => parsePeriodToHours(period) <= maxPickableDays * 24
+    )
+  );
+
   const defaultRelativePeriods = {
-    ...DEFAULT_RELATIVE_PERIODS,
+    ...restrictedDefaultPeriods,
     ...arbitraryRelativePeriods,
   };
   return (
@@ -310,7 +317,7 @@ export function TimeRangeSelector({
               defaultOptions: DEFAULT_RELATIVE_PERIODS,
               arbitraryOptions: arbitraryRelativePeriods,
             })
-          : relativeOptions ?? defaultRelativePeriods
+          : (relativeOptions ?? defaultRelativePeriods)
       )}
       handleSelectRelative={value => handleChange({value})}
     >
@@ -324,13 +331,13 @@ export function TimeRangeSelector({
             setSearch(s);
           }}
           searchPlaceholder={
-            searchPlaceholder ?? disallowArbitraryRelativeRanges
+            (searchPlaceholder ?? disallowArbitraryRelativeRanges)
               ? t('Search…')
               : t('Custom range: 2h, 4d, 8w…')
           }
           options={getOptions(items)}
           hideOptions={showAbsoluteSelector}
-          value={start && end ? ABSOLUTE_OPTION_VALUE : relative ?? ''}
+          value={start && end ? ABSOLUTE_OPTION_VALUE : (relative ?? '')}
           onChange={handleChange}
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
@@ -369,7 +376,7 @@ export function TimeRangeSelector({
               );
             })
           }
-          menuWidth={showAbsoluteSelector ? undefined : menuWidth ?? '16rem'}
+          menuWidth={showAbsoluteSelector ? undefined : (menuWidth ?? '16rem')}
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>

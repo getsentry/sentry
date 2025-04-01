@@ -1,4 +1,5 @@
-import {useMemo} from 'react';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -29,12 +30,17 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {ViewTrendsButton} from 'sentry/views/insights/common/viewTrendsButton';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
+import {
+  hasLaravelInsightsFeature,
+  useIsLaravelInsightsEnabled,
+} from 'sentry/views/insights/pages/backend/laravel/features';
+import {NewLaravelExperienceButton} from 'sentry/views/insights/pages/backend/laravel/newLaravelExperienceButton';
 import {
   BACKEND_LANDING_TITLE,
   OVERVIEW_PAGE_ALLOWED_OPS,
@@ -48,6 +54,7 @@ import {
   MOBILE_PLATFORMS,
   OVERVIEW_PAGE_ALLOWED_OPS as BACKEND_OVERVIEW_PAGE_OPS,
 } from 'sentry/views/insights/pages/mobile/settings';
+import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {
   generateBackendPerformanceEventView,
   USER_MISERY_TOOLTIP,
@@ -89,27 +96,13 @@ export const BACKEND_COLUMN_TITLES = [
 ];
 
 function BackendOverviewPage() {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const {selection} = usePageFilters();
-
-  const selectedProjects: Project[] = useMemo(
-    () => getSelectedProjectList(selection.projects, projects),
-    [projects, selection.projects]
-  );
-
-  const selectedProject = selectedProjects.length === 1 ? selectedProjects[0] : null;
-  if (
-    selectedProject?.platform === 'php-laravel' &&
-    organization.features.includes('laravel-insights')
-  ) {
-    return <LaravelOverviewPage />;
-  }
-
-  return <GenericBackendOverviewPage />;
+  useOverviewPageTrackPageload();
+  const [isLaravelPageEnabled] = useIsLaravelInsightsEnabled();
+  return isLaravelPageEnabled ? <LaravelOverviewPage /> : <GenericBackendOverviewPage />;
 }
 
 function GenericBackendOverviewPage() {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -186,6 +179,7 @@ function GenericBackendOverviewPage() {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
+    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
   ];
   const tripleChartRowCharts = filterAllowedChartsMetrics(
     organization,
@@ -250,7 +244,11 @@ function GenericBackendOverviewPage() {
     >
       <BackendHeader
         headerTitle={BACKEND_LANDING_TITLE}
-        headerActions={<ViewTrendsButton />}
+        headerActions={
+          <Fragment>
+            <NewLaravelExperienceButton />
+          </Fragment>
+        }
       />
       <Layout.Body>
         <Layout.Main fullWidth>
@@ -296,6 +294,7 @@ function GenericBackendOverviewPage() {
                       {...sharedProps}
                     />
                     <Table
+                      theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageError}
@@ -320,8 +319,18 @@ function GenericBackendOverviewPage() {
 }
 
 function BackendOverviewPageWithProviders() {
+  const organization = useOrganization();
+  const [isLaravelInsightsEnabled] = useIsLaravelInsightsEnabled();
+  const {maxPickableDays} = limitMaxPickableDays(organization);
+
   return (
-    <DomainOverviewPageProviders>
+    <DomainOverviewPageProviders
+      maxPickableDays={
+        isLaravelInsightsEnabled && hasLaravelInsightsFeature(organization)
+          ? maxPickableDays
+          : undefined
+      }
+    >
       <BackendOverviewPage />
     </DomainOverviewPageProviders>
   );

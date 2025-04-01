@@ -376,7 +376,7 @@ export class VideoReplayer {
     // TODO: Handle the case where relativeOffsetMs > length of the replay/seekbar (shouldn't happen)
     return {
       segment: isExactSegment ? result : undefined,
-      previousSegment: !isExactSegment ? result : undefined,
+      previousSegment: isExactSegment ? undefined : result,
     };
   }
 
@@ -559,11 +559,11 @@ export class VideoReplayer {
     // there is no segment, because we have the previous index, we know what
     // the next index will be since segments are expected to be sorted
     const nextSegmentIndex =
-      segmentIndex !== undefined
-        ? segmentIndex
-        : previousSegmentIndex !== undefined
-          ? previousSegmentIndex + 1
-          : undefined;
+      segmentIndex === undefined
+        ? previousSegmentIndex === undefined
+          ? undefined
+          : previousSegmentIndex + 1
+        : segmentIndex;
 
     // edge case where we have a gap between start of replay and first segment
     // wait until timer reaches the first segment before starting

@@ -1,9 +1,9 @@
 import {createContext, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconSort} from 'sentry/icons';
@@ -89,7 +89,7 @@ export function TraceEventDataSection({
 
   const [state, setState] = useState<State>({
     sortBy: recentFirst ? 'recent-first' : 'recent-last',
-    fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
+    fullStackTrace: hasAppOnlyFrames ? fullStackTrace : true,
   });
 
   const [display, setDisplay] = useLocalStorageState<Array<keyof typeof displayOptions>>(
@@ -267,9 +267,9 @@ export function TraceEventDataSection({
           disabled: display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
           tooltip: display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
-            : !hasAbsoluteAddresses
-              ? t('Absolute addresses not available')
-              : undefined,
+            : hasAbsoluteAddresses
+              ? undefined
+              : t('Absolute addresses not available'),
         },
         {
           label: displayOptions['absolute-file-paths'],
@@ -277,15 +277,15 @@ export function TraceEventDataSection({
           disabled: display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
           tooltip: display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
-            : !hasAbsoluteFilePaths
-              ? t('Absolute file paths not available')
-              : undefined,
+            : hasAbsoluteFilePaths
+              ? undefined
+              : t('Absolute file paths not available'),
         },
         {
           label: displayOptions.minified,
           value: 'minified',
           disabled: !hasMinified,
-          tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
+          tooltip: hasMinified ? undefined : t('Unsymbolicated version not available'),
         },
         {
           label: displayOptions['raw-stack-trace'],
@@ -297,9 +297,9 @@ export function TraceEventDataSection({
           disabled: display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
           tooltip: display.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
-            : !hasVerboseFunctionNames
-              ? t('Verbose function names not available')
-              : undefined,
+            : hasVerboseFunctionNames
+              ? undefined
+              : t('Verbose function names not available'),
         },
       ];
     }
@@ -320,7 +320,7 @@ export function TraceEventDataSection({
           label: t('Minified'),
           value: 'minified',
           disabled: !hasMinified,
-          tooltip: !hasMinified ? t('Minified version not available') : undefined,
+          tooltip: hasMinified ? undefined : t('Minified version not available'),
         },
         {
           label: displayOptions['raw-stack-trace'],
@@ -334,7 +334,7 @@ export function TraceEventDataSection({
         label: displayOptions.minified,
         value: 'minified',
         disabled: !hasMinified,
-        tooltip: !hasMinified ? t('Minified version not available') : undefined,
+        tooltip: hasMinified ? undefined : t('Minified version not available'),
       },
       {
         label: displayOptions['raw-stack-trace'],
@@ -350,11 +350,11 @@ export function TraceEventDataSection({
   const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
-  const sortByTooltip = !hasNewestFirst
-    ? t('Not available on stack trace with single frame')
-    : display.includes('raw-stack-trace')
+  const sortByTooltip = hasNewestFirst
+    ? display.includes('raw-stack-trace')
       ? t('Not available on raw stack trace')
-      : undefined;
+      : undefined
+    : t('Not available on stack trace with single frame');
 
   const childProps = {
     recentFirst: state.sortBy === 'recent-first',
@@ -449,9 +449,9 @@ export function TraceEventDataSection({
         )
       }
     >
-      <TraceEventDataSectionContext.Provider value={childProps}>
+      <TraceEventDataSectionContext value={childProps}>
         {children(childProps)}
-      </TraceEventDataSectionContext.Provider>
+      </TraceEventDataSectionContext>
     </SectionComponent>
   );
 }

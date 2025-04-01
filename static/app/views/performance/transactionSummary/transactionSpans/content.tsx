@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -72,7 +72,7 @@ function SpansContent(props: Props) {
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 
@@ -210,7 +210,7 @@ function SpansContentV2(props: Props) {
         ANALYTICS_VALUES[key]?.(organization, value);
 
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           [key]: value,
         });
 

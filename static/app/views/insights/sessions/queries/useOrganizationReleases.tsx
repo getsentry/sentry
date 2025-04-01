@@ -7,11 +7,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 export default function useOrganizationReleases({
   dateRange,
-  tableType,
   filters,
 }: {
   filters: string[];
-  tableType: 'health' | 'adoption';
   dateRange?: Pick<PageFiltersStringified, 'start' | 'end' | 'statsPeriod'>;
 }) {
   const location = useLocation();
@@ -22,33 +20,30 @@ export default function useOrganizationReleases({
     query: {
       ...location.query,
       ...dateRange,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      width: undefined,
     },
   };
 
-  let finalized;
+  let finalizedQuery;
   const hasFinalized = filters.includes('Finalized');
   const hasNotFinalized = filters.includes('Not Finalized');
 
   if (hasFinalized && !hasNotFinalized) {
-    finalized = 'finalized';
+    finalizedQuery = 'finalized:true';
   } else if (!hasFinalized && hasNotFinalized) {
-    finalized = 'not finalized';
+    finalizedQuery = 'finalized:false';
   } else {
     // if both or neither are selected, it's the same as not selecting any
-    finalized = undefined;
+    finalizedQuery = undefined;
   }
 
   let status;
-  const hasActive = filters.includes('Active');
+  const hasOpen = filters.includes('Open');
   const hasArchived = filters.includes('Archived');
 
-  if (hasActive && !hasArchived) {
+  if (hasOpen && !hasArchived) {
     status = 'open';
-  } else if (!hasActive && hasArchived) {
+  } else if (!hasOpen && hasArchived) {
     status = 'archived';
   } else {
     // if both or neither are selected, it's the same as not selecting any
@@ -69,70 +64,51 @@ export default function useOrganizationReleases({
     ? `${FieldKey.RELEASE_STAGE}:[${stages.join(',')}]`
     : undefined;
 
+  const queryString = [stage, finalizedQuery, location.query.query]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+
   const {data, isError, isPending, getResponseHeader} = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
       {
         query: {
-          query: stage,
           ...locationWithoutWidth.query,
+          query: queryString,
           adoptionStages: 1,
           health: 1,
           per_page: 10,
-          cursor:
-            tableType === 'health'
-              ? location.query.cursor_health_table
-              : location.query.cursor_adoption_table,
           status,
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 0,
+    }
   );
 
   const releaseData =
     isPending || !data
       ? []
-      : data
-          // need to filter since the endpoint does not support querying by finalized status
-          .filter(release => {
-            if (finalized === 'finalized') {
-              return !!release.dateReleased;
-            }
-            if (finalized === 'not finalized') {
-              return !release.dateReleased;
-            }
-            return true;
-          })
-          .map((release, index, releases) => {
-            const projSlug = release.projects[0]?.slug;
-            const currentDate = new Date(release.dateCreated);
+      : data.map(release => {
+          const projSlug = release.projects[0]?.slug;
 
-            const previousDate =
-              index < releases.length - 1
-                ? new Date(releases[index + 1]?.dateCreated ?? 0)
-                : null;
-
-            const lifespan = previousDate
-              ? Math.floor(currentDate.getTime() - previousDate.getTime())
-              : undefined;
-
-            return {
-              project: release.projects[0]!,
-              release: release.shortVersion ?? release.version,
-              date: release.dateCreated,
-              adoption_stage: projSlug
-                ? release.adoptionStages?.[projSlug]?.stage ?? ''
-                : '',
-              crash_free_sessions:
-                release.projects[0]?.healthData?.crashFreeSessions ?? 0,
-              sessions: release.projects[0]?.healthData?.totalSessions ?? 0,
-              error_count: release.projects[0]?.newGroups ?? 0,
-              project_id: release.projects[0]?.id ?? 0,
-              adoption: release.projects[0]?.healthData?.adoption ?? 0,
-              lifespan,
-            };
-          });
+          return {
+            project: release.projects[0]!,
+            release: release.shortVersion ?? release.version,
+            date: release.dateCreated,
+            adoption_stage: projSlug
+              ? (release.adoptionStages?.[projSlug]?.stage ?? '')
+              : '',
+            crash_free_sessions: release.projects[0]?.healthData?.crashFreeSessions ?? 0,
+            sessions: release.projects[0]?.healthData?.totalSessions ?? 0,
+            error_count: release.projects[0]?.newGroups ?? 0,
+            project_id: release.projects[0]?.id ?? 0,
+            adoption: release.projects[0]?.healthData?.adoption ?? 0,
+            status: release.status,
+          };
+        });
 
   return {
     releaseData,

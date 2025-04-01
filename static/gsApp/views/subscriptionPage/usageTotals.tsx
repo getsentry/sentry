@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import colorFn from 'color';
 
-import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
+import {Button} from 'sentry/components/core/button';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,7 +15,12 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import ProductTrialTag from 'getsentry/components/productTrial/productTrialTag';
 import StartTrialButton from 'getsentry/components/startTrialButton';
-import {GIGABYTE, RESERVED_BUDGET_QUOTA, UNLIMITED} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  RESERVED_BUDGET_QUOTA,
+  UNLIMITED,
+  UNLIMITED_RESERVED,
+} from 'getsentry/constants';
 import {
   type BillingMetricHistory,
   type BillingStatTotal,
@@ -25,6 +30,8 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  addBillingStatTotals,
+  displayBudgetName,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -32,7 +39,11 @@ import {
   isUnlimitedReserved,
   MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {
+  getChunkCategoryFromDuration,
+  getPlanCategoryName,
+  isContinuousProfiling,
+} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
 import titleCase from 'getsentry/utils/titleCase';
@@ -58,11 +69,6 @@ const EMPTY_STAT_TOTAL = {
   projected: 0,
 };
 
-const COLORS = {
-  reserved: CHART_PALETTE[5]![0]!,
-  ondemand: CHART_PALETTE[5]![1]!,
-} as const;
-
 function getPercentage(quantity: number, total: number | null) {
   if (typeof total === 'number' && total > 0) {
     return (Math.min(quantity, total) / total) * 100;
@@ -84,11 +90,15 @@ type UsageProps = {
   organization: Organization;
   subscription: Subscription;
   /**
+   * All category totals when needed for reserved budgets.
+   */
+  allTotalsByCategory?: {[key: string]: BillingStatTotal};
+  /**
    * Do not allow the table to be expansded
    */
   disableTable?: boolean;
   /**
-   * Event breakdown totals
+   * Event breakdown totals used by Performance Units
    */
   eventTotals?: {[key: string]: BillingStatTotal};
   /**
@@ -179,20 +189,18 @@ export function calculateCategoryPrepaidUsage(
     prepaidTotal = prepaid;
   } else {
     // Convert prepaid limits to the appropriate unit based on category
-    switch (category) {
-      case DataCategory.ATTACHMENTS:
-        prepaidTotal = prepaid * GIGABYTE;
-        break;
-      case DataCategory.PROFILE_DURATION:
-        prepaidTotal = prepaid * MILLISECONDS_IN_HOUR;
-        break;
-      default:
-        prepaidTotal = prepaid;
-    }
+    prepaidTotal =
+      prepaid *
+      (category === DataCategory.ATTACHMENTS
+        ? GIGABYTE
+        : category === DataCategory.PROFILE_DURATION ||
+            category === DataCategory.PROFILE_DURATION_UI
+          ? MILLISECONDS_IN_HOUR
+          : 1);
   }
   const hasReservedBudget = reservedCpe || typeof reservedSpend === 'number'; // reservedSpend can be 0
   const prepaidUsed = hasReservedBudget
-    ? reservedSpend ?? totals.accepted * (reservedCpe ?? 0)
+    ? (reservedSpend ?? totals.accepted * (reservedCpe ?? 0))
     : totals.accepted;
   const prepaidPercentUsed = getPercentage(prepaidUsed, prepaidTotal);
 
@@ -340,8 +348,16 @@ function UsageTotals({
   showEventBreakdown = false,
   disableTable,
   displayMode,
+  allTotalsByCategory,
 }: UsageProps) {
   const [state, setState] = useState<State>({expanded: false, trialButtonBusy: false});
+  const theme = useTheme();
+
+  const COLORS = {
+    reserved: theme.chart.colors[5][0],
+    ondemand: theme.chart.colors[5][1],
+    secondary_reserved: theme.chart.colors[5][2],
+  } as const;
 
   const usageOptions = {useUnitScaling: true};
   const reservedOptions = {
@@ -351,7 +367,7 @@ function UsageTotals({
   const hasReservedBudget = reservedUnits === RESERVED_BUDGET_QUOTA;
   const free = hasReservedBudget ? freeBudget : freeUnits;
   const reserved = hasReservedBudget ? reservedBudget : reservedUnits;
-  const prepaid = hasReservedBudget ? prepaidBudget ?? 0 : prepaidUnits;
+  const prepaid = hasReservedBudget ? (prepaidBudget ?? 0) : prepaidUnits;
 
   const displayGifts = (free || freeBudget) && !isUnlimitedReserved(reservedUnits);
   const reservedTestId = displayGifts ? `gifted-${category}` : `reserved-${category}`;
@@ -385,15 +401,24 @@ function UsageTotals({
       reservedInfo = tct('[reservedInfo] (True Forward)', {reservedInfo});
     }
     if (displayGifts) {
-      reservedInfo = tct('[reservedInfo] + [giftedAmount] Gifted', {
-        reservedInfo,
-        giftedAmount: formatReservedWithUnits(
-          free,
-          category,
-          reservedOptions,
-          hasReservedBudget
-        ),
-      });
+      reservedInfo = hasReservedQuota
+        ? tct('[reservedInfo] + [giftedAmount] Gifted', {
+            reservedInfo,
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          })
+        : tct('[giftedAmount] Gifted', {
+            giftedAmount: formatReservedWithUnits(
+              free,
+              category,
+              reservedOptions,
+              hasReservedBudget
+            ),
+          });
     }
     return reservedInfo;
   }
@@ -425,7 +450,10 @@ function UsageTotals({
   const unusedPrepaidWidth =
     reserved !== 0 || subscription.isTrial ? 100 - prepaidPercentUsed : 0;
   const totalCategorySpend =
-    (hasReservedBudget ? reservedSpend ?? 0 : prepaidPrice) + categoryOnDemandSpent;
+    (hasReservedBudget
+      ? (subscription.reservedBudgets?.find(budget => category in budget.categories)
+          ?.totalReservedSpend ?? 0)
+      : prepaidPrice) + categoryOnDemandSpent;
 
   // Shared on demand spend is gone, another category has spent all of it
   // It is confusing to show on demand spend when the category did not spend any and the budget is gone
@@ -444,7 +472,7 @@ function UsageTotals({
   const isDisplayingSpend = displayMode === 'cost' || hasReservedBudget; // always display as spend for reserved budgets
 
   // Calculate the width of the reserved bar relative to on demand
-  let reservedMaxWidth = showOnDemand ? (reserved !== 0 ? 50 : 0) : 100;
+  let reservedMaxWidth = showOnDemand ? (reserved === 0 ? 0 : 50) : 100;
   if (showOnDemand && reserved && onDemandUnitPrice) {
     const onDemandTotalUnitsAvailable = onDemandCategoryMax / onDemandUnitPrice;
     reservedMaxWidth =
@@ -471,8 +499,22 @@ function UsageTotals({
     usageOptions
   );
 
+  // use dropped profile chunks to estimate dropped continuous profiling
+  const total = isContinuousProfiling(category)
+    ? {
+        ...addBillingStatTotals(
+          totals,
+          eventTotals[getChunkCategoryFromDuration(category)]
+        ),
+        accepted: totals.accepted,
+      }
+    : totals;
+
+  const hasReservedQuota: boolean =
+    reserved !== null && (reserved === UNLIMITED_RESERVED || reserved > 0);
+
   return (
-    <SubscriptionCard>
+    <SubscriptionCard data-test-id={`usage-card-${category}`}>
       <CardBody>
         <UsageProgress>
           <BaseRow>
@@ -481,7 +523,7 @@ function UsageTotals({
                 {getPlanCategoryName({
                   plan: subscription.planDetails,
                   category,
-                  hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+                  // intentionally not passing hadCustomDynamicSampling as we only show a combined card under "spans" regardless
                 })}{' '}
                 {getTitle()}
                 {productTrial && (
@@ -490,12 +532,14 @@ function UsageTotals({
                   </MarginSpan>
                 )}
               </UsageSummaryTitle>
-              <SubText data-test-id={reservedTestId}>
-                {productTrial?.isStarted &&
-                getDaysSinceDate(productTrial.endDate ?? '') <= 0
-                  ? UNLIMITED
-                  : getReservedInfo()}
-              </SubText>
+              {(hasReservedQuota || displayGifts) && (
+                <SubText data-test-id={reservedTestId}>
+                  {productTrial?.isStarted &&
+                  getDaysSinceDate(productTrial.endDate ?? '') <= 0
+                    ? UNLIMITED
+                    : getReservedInfo()}
+                </SubText>
+              )}
             </div>
             <AcceptedSummary>
               {productTrial && !productTrial.isStarted && (
@@ -527,7 +571,7 @@ function UsageTotals({
               )}
               {!disableTable && (
                 <Button
-                  data-test-id="expand-usage-totals"
+                  data-test-id={`expand-usage-totals-${category}`}
                   size="sm"
                   onClick={() => setState({...state, expanded: !state.expanded})}
                   icon={<IconChevron direction={state.expanded ? 'up' : 'down'} />}
@@ -539,12 +583,38 @@ function UsageTotals({
           <PlanUseBarContainer>
             <PlanUseBarGroup style={{width: `${reservedMaxWidth}%`}}>
               {prepaidPercentUsed >= 1 && (
-                <PlanUseBar
-                  style={{
-                    width: `${prepaidPercentUsed}%`,
-                    backgroundColor: COLORS.reserved,
-                  }}
-                />
+                <Fragment>
+                  {subscription?.reservedBudgets &&
+                  subscription.hadCustomDynamicSampling &&
+                  subscription.reservedBudgets.some(rb => category in rb.categories) ? (
+                    // Show breakdown by category with the spans category first
+                    subscription.reservedBudgets.map(rb =>
+                      Object.entries(rb.categories)
+                        .sort(([cat1], [cat2]) =>
+                          cat1 === category ? -1 : cat2 === category ? 1 : 0
+                        )
+                        .map(([rbCategory, rbInfo]) => (
+                          <PlanUseBar
+                            key={rbCategory}
+                            style={{
+                              width: `${(rbInfo.reservedSpend / rb.reservedBudget) * 100}%`,
+                              backgroundColor:
+                                rbCategory === category
+                                  ? COLORS.reserved
+                                  : COLORS.secondary_reserved,
+                            }}
+                          />
+                        ))
+                    )
+                  ) : (
+                    <PlanUseBar
+                      style={{
+                        width: `${prepaidPercentUsed}%`,
+                        backgroundColor: COLORS.reserved,
+                      }}
+                    />
+                  )}
+                </Fragment>
               )}
               {unusedPrepaidWidth >= 1 && (
                 <PlanUseBar
@@ -579,57 +649,119 @@ function UsageTotals({
 
           <LegendFooterWrapper>
             <LegendPriceWrapper>
-              <LegendContainer>
-                <LegendDot style={{backgroundColor: COLORS.reserved}} />
+              {hasReservedQuota && (
+                <LegendContainer>
+                  {!hasReservedBudget && (
+                    <LegendDot style={{backgroundColor: COLORS.reserved}} />
+                  )}
+                  {isDisplayingSpend ? (
+                    prepaidPrice === 0 ? (
+                      <div>
+                        <LegendTitle>{t('Included in Subscription')}</LegendTitle>
+                        <LegendPriceSubText>
+                          <ReservedUsage
+                            prepaidUsage={prepaidUsage}
+                            reserved={reserved}
+                            category={category}
+                            productTrial={productTrial}
+                          />
+                        </LegendPriceSubText>
+                      </div>
+                    ) : // Show reserved budget breakdown by category with the spans category first if DS was active
+                    // Otherwise we show a combined table for both accepted and stored spans
+                    subscription?.reservedBudgets &&
+                      subscription.hadCustomDynamicSampling ? (
+                      subscription.reservedBudgets.map(rb =>
+                        Object.entries(rb.categories)
+                          .sort(([cat1], [cat2]) =>
+                            // Sort to put the matching category first
+                            cat1 === category ? -1 : cat2 === category ? 1 : 0
+                          )
+                          .map(([categoryKey]) => (
+                            <Fragment key={categoryKey}>
+                              <LegendBudgetContainer>
+                                <LegendDot
+                                  style={{
+                                    backgroundColor:
+                                      categoryKey === category
+                                        ? COLORS.reserved
+                                        : COLORS.secondary_reserved,
+                                  }}
+                                />
+                                <LegendTitle>
+                                  {getPlanCategoryName({
+                                    plan: subscription.planDetails,
+                                    category: categoryKey,
+                                    hadCustomDynamicSampling:
+                                      subscription.hadCustomDynamicSampling,
+                                    title: true,
+                                    capitalize: false,
+                                  })}
+                                  {t(' Included in Subscription')}
+                                </LegendTitle>
+                              </LegendBudgetContainer>
 
-                {isDisplayingSpend ? (
-                  prepaidPrice === 0 ? (
-                    // No reserved price, included in plan
+                              <LegendPriceSubText>
+                                <div>
+                                  <LegendPrice>
+                                    {formatPercentage(
+                                      Math.round(
+                                        ((subscription.reservedBudgets?.[0]?.categories?.[
+                                          categoryKey as keyof (typeof subscription.reservedBudgets)[0]['categories']
+                                        ]?.reservedSpend ?? 0) /
+                                          (subscription.reservedBudgets?.[0]
+                                            ?.reservedBudget ?? 1)) *
+                                          100
+                                      ) / 100
+                                    )}{' '}
+                                    of{' '}
+                                    {prepaidPrice === 0
+                                      ? reserved
+                                      : formatCurrency(
+                                          roundUpToNearestDollar(prepaidPrice)
+                                        )}
+                                  </LegendPrice>
+                                </div>
+                              </LegendPriceSubText>
+                            </Fragment>
+                          ))
+                      )
+                    ) : (
+                      <LegendContainer>
+                        <LegendDot style={{backgroundColor: COLORS.reserved}} />
+                        <div>
+                          <LegendTitle>{t('Included in Subscription')}</LegendTitle>
+                          <LegendPrice>
+                            {formatPercentage(prepaidPercentUsed / 100)} of{' '}
+                            {prepaidPrice === 0
+                              ? reserved
+                              : formatCurrency(roundUpToNearestDollar(prepaidPrice))}
+                          </LegendPrice>
+                        </div>
+                      </LegendContainer>
+                    )
+                  ) : hasReservedQuota ? (
                     <div>
                       <LegendTitle>{t('Included in Subscription')}</LegendTitle>
-                      <LegendPriceSubText>
+                      <LegendPrice>
                         <ReservedUsage
                           prepaidUsage={prepaidUsage}
                           reserved={reserved}
                           category={category}
                           productTrial={productTrial}
                         />
-                      </LegendPriceSubText>
-                    </div>
-                  ) : (
-                    <div>
-                      <LegendTitle>{t('Included in Subscription')}</LegendTitle>
-                      <LegendPrice>
-                        {formatPercentage(prepaidPercentUsed / 100)} of{' '}
-                        {prepaidPrice === 0
-                          ? reserved
-                          : formatCurrency(roundUpToNearestDollar(prepaidPrice))}
                       </LegendPrice>
                     </div>
-                  )
-                ) : (
-                  <div>
-                    <LegendTitle>{t('Included in Subscription')}</LegendTitle>
-                    <LegendPrice>
-                      <ReservedUsage
-                        prepaidUsage={prepaidUsage}
-                        reserved={reserved}
-                        category={category}
-                        productTrial={productTrial}
-                      />
-                    </LegendPrice>
-                  </div>
-                )}
-              </LegendContainer>
+                  ) : null}
+                </LegendContainer>
+              )}
               {showOnDemand && (
                 <LegendContainer>
                   <LegendDot style={{backgroundColor: COLORS.ondemand}} />
                   {isDisplayingSpend ? (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatCurrency(onDemandCategorySpend)} of{' '}
@@ -645,9 +777,7 @@ function UsageTotals({
                   ) : (
                     <div>
                       <LegendTitle>
-                        {subscription.planTier === PlanTier.AM3
-                          ? t('Pay-as-you-go')
-                          : t('On-Demand')}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </LegendTitle>
                       <LegendPrice>
                         {formatUsageWithUnits(onDemandUsage, category, usageOptions)}
@@ -672,9 +802,7 @@ function UsageTotals({
                   {showOnDemand && (
                     <Fragment>
                       {formatCurrency(onDemandCategorySpend)}{' '}
-                      {subscription.planTier === PlanTier.AM3
-                        ? t('Pay-as-you-go')
-                        : t('On-Demand')}
+                      {displayBudgetName(subscription.planDetails, {title: true})}
                     </Fragment>
                   )}
                 </TotalSpendLabel>
@@ -692,9 +820,26 @@ function UsageTotals({
         <Fragment>
           <UsageTotalsTable
             category={category}
-            totals={totals}
+            totals={total}
             subscription={subscription}
           />
+          {/* Show additional tables for shared reserved budget categories */}
+          {hasReservedBudget &&
+            subscription.hadCustomDynamicSampling &&
+            allTotalsByCategory &&
+            subscription.reservedBudgets?.map(budget =>
+              Object.entries(budget.categories)
+                // Filter out the current category since it's already shown from logic above
+                .filter(([categoryKey]) => categoryKey !== category)
+                .map(([categoryKey]) => (
+                  <UsageTotalsTable
+                    key={categoryKey}
+                    category={categoryKey}
+                    totals={allTotalsByCategory?.[categoryKey] ?? EMPTY_STAT_TOTAL}
+                    subscription={subscription}
+                  />
+                ))
+            )}
 
           {showEventBreakdown &&
             Object.entries(eventTotals).map(([key, eventTotal]) => {
@@ -705,6 +850,7 @@ function UsageTotals({
                   category={key}
                   totals={eventTotal}
                   subscription={subscription}
+                  data-test-id={`event-breakdown-${key}`}
                 />
               );
             })}
@@ -802,6 +948,7 @@ const LegendContainer = styled('div')`
 const LegendTitle = styled('div')`
   font-weight: 700;
   font-size: ${p => p.theme.fontSizeSmall};
+  white-space: nowrap;
 `;
 
 const LegendPrice = styled('div')`
@@ -812,6 +959,12 @@ const LegendPriceSubText = styled(LegendPrice)`
   color: ${p => p.theme.subText};
 `;
 
+const LegendBudgetContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  white-space: nowrap;
+`;
 const PlanUseBarContainer = styled('div')`
   display: flex;
   height: 16px;

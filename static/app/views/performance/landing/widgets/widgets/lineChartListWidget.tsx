@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -472,6 +472,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               yAxis={yAxis}
               limit={1}
               includePrevious={includePreviousParam}

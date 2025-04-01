@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
@@ -190,9 +190,9 @@ const DateTime = styled('div')`
 `;
 
 const NeverUsed = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const TokenPreview = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

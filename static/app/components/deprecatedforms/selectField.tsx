@@ -1,31 +1,46 @@
 import styled from '@emotion/styled';
 
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
-import FormField from './formField';
+import FormField, {type FormFieldProps} from './formField';
 
-type SelectProps = Omit<ControlProps, 'onChange' | 'name'>;
-type FormProps = FormField['props'];
+// Combined interface for SelectField props
+export interface SelectFieldProps extends FormFieldProps {
+  // Modified to accept various choice formats
+  choices?: Array<[value: any, label: string | number]> | string[][] | string[];
+  clearable?: boolean;
+  // legacy prop for backward compatibility
+  creatable?: boolean;
+  // Additional select behavior
+  defaultValue?: any;
+  isLoading?: boolean;
+  multi?: boolean;
+  multiple?: boolean;
+  // Core select properties
+  options?: Array<{label: string; value: any}>;
+  placeholder?: string;
+}
 
-type Props = FormProps & SelectProps;
-
-export default class SelectField extends FormField<Props> {
+/**
+ * @deprecated Do not use this
+ */
+export class SelectField extends FormField<SelectFieldProps> {
   static defaultProps = {
     ...FormField.defaultProps,
     clearable: true,
     multiple: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps: any, nextContext: any) {
-    const newError = this.getError(nextProps, nextContext);
+  UNSAFE_componentWillReceiveProps(nextProps: SelectFieldProps) {
+    const newError = this.getError(nextProps);
     if (newError !== this.state.error) {
       this.setState({error: newError});
     }
-    if (this.props.value !== nextProps.value || defined(nextContext.form)) {
-      const newValue = this.getValue(nextProps, nextContext);
+    if (this.props.value !== nextProps.value || defined(nextProps.formContext.form)) {
+      const newValue = this.getValue(nextProps);
       // This is the only thing that is different from parent, we compare newValue against coerced value in state
       // To remain compatible with react-select, we need to store the option object that
       // includes `value` and `label`, but when we submit the format, we need to coerce it
@@ -44,8 +59,8 @@ export default class SelectField extends FormField<Props> {
   }
 
   // Overriding this so that we can support `multi` fields through property
-  getValue(props: any, context: any) {
-    const form = (context || this.context)?.form;
+  getValue(props: SelectFieldProps) {
+    const form = (props.formContext || this.props.formContext)?.form;
     props = props || this.props;
 
     // Don't use `isMultiple` here because we're taking props from args as well
@@ -81,7 +96,7 @@ export default class SelectField extends FormField<Props> {
     return value;
   }
 
-  isMultiple(props?: any) {
+  isMultiple(props?: SelectFieldProps) {
     props = props || this.props;
     // this is to maintain compatibility with the 'multi' prop
     return props.multi || props.multiple;
@@ -129,7 +144,7 @@ export default class SelectField extends FormField<Props> {
 }
 
 // This is to match other fields that are wrapped by a `div.control-group`
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   ${StyledForm} &, .form-stacked & {
     .control-group & {
       margin-bottom: 0;
@@ -138,3 +153,8 @@ const StyledSelectControl = styled(SelectControl)`
     margin-bottom: 15px;
   }
 `;
+
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(SelectField);

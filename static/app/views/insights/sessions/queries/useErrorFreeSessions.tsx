@@ -8,14 +8,13 @@ export default function useErrorFreeSessions() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      query: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
@@ -28,7 +27,7 @@ export default function useErrorFreeSessions() {
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },

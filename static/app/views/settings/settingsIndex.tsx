@@ -1,16 +1,12 @@
-import {useEffect} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
-import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
-import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import type {LinkProps} from 'sentry/components/links/link';
 import Link from 'sentry/components/links/link';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -21,12 +17,11 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import withLatestContext from 'sentry/utils/withLatestContext';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 const LINKS = {
@@ -44,25 +39,12 @@ const LINKS = {
 
 const HOME_ICON_SIZE = 56;
 
-interface SettingsIndexProps extends RouteComponentProps {
-  organization: Organization;
-}
+interface SettingsIndexProps extends RouteComponentProps {}
 
-function SettingsIndex({organization, ...props}: SettingsIndexProps) {
-  const api = useApi();
-
-  useEffect(() => {
-    // if there is no org in context, SidebarDropdown uses an org from `withLatestContext`
-    // (which queries the org index endpoint instead of org details)
-    // and does not have `access` info
-    if (organization && typeof organization.access === 'undefined') {
-      fetchOrganizationDetails(api, organization.slug, {
-        setActive: true,
-        loadProjects: true,
-      });
-    }
-  }, [api, organization]);
-
+function SettingsIndex(props: SettingsIndexProps) {
+  // Organization may be null on settings index if the user is not part of any
+  // organization
+  const organization = useOrganization({allowNull: true});
   const user = useUser();
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
@@ -77,7 +59,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
   // For the new navigation, we are removing this page. The default base route should
   // be the organization settings page.
   // When GAing, this page should be removed and the redirect should be moved to routes.tsx.
-  if (prefersStackedNav()) {
+  if (organization && prefersStackedNav()) {
     return (
       <Redirect
         to={normalizeUrl(
@@ -119,7 +101,6 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
 
   const orgSettings = (
     <GridPanel>
-      {!organization && <LoadingIndicator overlay hideSpinner />}
       <HomePanelHeader>
         <HomeLinkIcon to={organizationSettingsUrl}>
           {organization ? (
@@ -276,7 +257,7 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
   );
 }
 
-export default withLatestContext(SettingsIndex);
+export default SettingsIndex;
 
 const GridLayout = styled('div')`
   display: grid;

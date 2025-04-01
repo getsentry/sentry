@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {Tooltip} from 'sentry/components/tooltip';

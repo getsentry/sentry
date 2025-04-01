@@ -12,8 +12,8 @@ import ArchiveActions, {getArchiveActions} from 'sentry/components/actions/archi
 import ResolveActions from 'sentry/components/actions/resolve';
 import {renderArchiveReason} from 'sentry/components/archivedBox';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {renderResolutionReason} from 'sentry/components/resolutionBox';

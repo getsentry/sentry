@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import type {BarSeriesOption} from 'echarts';
 
-import type {Series} from 'sentry/types/echarts';
+import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
 import BarSeries from './series/barSeries';
 import type {BaseChartProps} from './baseChart';
@@ -61,6 +61,7 @@ export function transformToBarSeries({
 
 const EMPTY_AXIS = {};
 export function BarChart({
+  ref,
   barOpacity,
   hideZeros,
   series,
@@ -68,7 +69,9 @@ export function BarChart({
   xAxis,
   animation,
   ...props
-}: BarChartProps) {
+}: BarChartProps & {
+  ref?: React.Ref<ReactEchartsRef>;
+}) {
   const transformedSeries = useMemo(() => {
     return transformToBarSeries({barOpacity, hideZeros, series, stacked, animation});
   }, [animation, barOpacity, hideZeros, series, stacked]);
@@ -78,5 +81,7 @@ export function BarChart({
     return option;
   }, [xAxis]);
 
-  return <BaseChart {...props} xAxis={xAxisOptions} series={transformedSeries} />;
+  return (
+    <BaseChart {...props} ref={ref} xAxis={xAxisOptions} series={transformedSeries} />
+  );
 }

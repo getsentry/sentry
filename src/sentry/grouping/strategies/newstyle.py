@@ -5,9 +5,8 @@ import logging
 import re
 from collections import Counter
 from collections.abc import Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import (
     ChainedExceptionGroupingComponent,
     ContextLineGroupingComponent,
@@ -36,6 +35,10 @@ from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+
 
 logger = logging.getLogger(__name__)
 
@@ -732,12 +735,16 @@ def filter_exceptions_for_exception_groups(
             yield from get_first_path(children[0])
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
+    top_level_exceptions = []
     if exception_tree[0].exception:
         top_level_exceptions = sorted(
             get_top_level_exceptions(exception_tree[0].exception),
             key=lambda exception: str(exception.type),
             reverse=True,
         )
+    else:
+        # If there's no root exception, return the original list
+        return exceptions
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [

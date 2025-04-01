@@ -50,15 +50,15 @@ type PropType = {
   event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   isEmbedded: boolean;
-  minimapInteractiveRef: React.RefObject<HTMLDivElement>;
+  minimapInteractiveRef: React.RefObject<HTMLDivElement | null>;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
   theme: Theme;
   trace: ParsedTraceType;
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
-  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement | null>;
 };
 
 type State = {
@@ -595,7 +595,10 @@ class ActualMinimap extends PureComponent<{
         case 'span_group_chain': {
           const {span} = payload;
 
-          const spanBarColor: string = pickBarColor(getSpanOperation(span));
+          const spanBarColor: string = pickBarColor(
+            getSpanOperation(span),
+            this.props.theme
+          );
 
           const bounds = generateBounds({
             startTimestamp: span.start_timestamp,
@@ -717,7 +720,7 @@ const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: 10px;
   ${p => p.theme.fontWeightNormal};
   font-variant-numeric: tabular-nums;
@@ -752,7 +755,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
       }
 
       default: {
-        throw Error(`Invalid tick alignment: ${align}`);
+        throw new Error(`Invalid tick alignment: ${align}`);
       }
     }
   }};

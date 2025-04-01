@@ -14,7 +14,7 @@ import type {Image} from './debugImage';
 import type {IssueAttachment, IssueCategory, IssueType} from './group';
 import type {PlatformKey} from './project';
 import type {Release} from './release';
-import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
+import type {StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -161,7 +161,7 @@ export interface Thread {
   crashed: boolean;
   current: boolean;
   id: number;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   heldLocks?: Record<string, Lock> | null;
   name?: string | null;
@@ -218,7 +218,7 @@ export enum FrameBadge {
 export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;
   module: string | null;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;
@@ -284,7 +284,13 @@ export enum EntryType {
 
 export type EntryDebugMeta = {
   data: {
-    images: Array<Image | null>;
+    images?: Array<Image | null>;
+    sdk_info?: {
+      sdk_name: string;
+      version_major: number;
+      version_minor: number;
+      version_patchlevel: number;
+    };
   };
   type: EntryType.DEBUGMETA;
 };
@@ -333,11 +339,11 @@ type EntryMessage = {
 
 export interface EntryRequestDataDefault {
   apiTarget: null;
-  method: string;
+  method: string | null;
   url: string;
   cookies?: Array<[key: string, value: string] | null>;
   data?: string | null | Record<string, any> | Array<[key: string, value: any]>;
-  env?: Record<string, string>;
+  env?: Record<string, string> | null;
   fragment?: string | null;
   headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:

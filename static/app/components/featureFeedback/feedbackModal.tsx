@@ -13,9 +13,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -171,7 +171,7 @@ export function FeedbackModal<T extends Data>({
         } else {
           feedbackClient.captureEvent({
             ...commonEventProps,
-            ...(submitEventData ?? {}),
+            ...submitEventData,
           });
         }
       }
@@ -225,9 +225,9 @@ export function FeedbackModal<T extends Data>({
               priority="primary"
               title={
                 props.children === undefined
-                  ? !defined(state.subject)
-                    ? t('Required fields must be filled out')
-                    : undefined
+                  ? defined(state.subject)
+                    ? undefined
+                    : t('Required fields must be filled out')
                   : primaryDisabledReason
               }
               onClick={onNext ?? (() => handleSubmit(submitEventData))}

@@ -324,8 +324,8 @@ describe('TableView > CellActions', function () {
     expect(link).toHaveAttribute(
       'href',
       expect.stringMatching(
-        RegExp(
-          '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+        new RegExp(
+          '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
         )
       )
     );
@@ -388,7 +388,7 @@ describe('TableView > CellActions', function () {
     expect(link).toHaveAttribute(
       'href',
       expect.stringMatching(
-        RegExp(
+        new RegExp(
           '/organizations/org-slug/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )

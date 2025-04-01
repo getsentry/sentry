@@ -1,16 +1,16 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {LinkButton} from 'sentry/components/button';
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Truncate from 'sentry/components/truncate';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -96,6 +96,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
 
 function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const api = useApi();
+  const theme = useTheme();
   const pageFilter = usePageFilters();
   const mepSetting = useMEPSettingContext();
   const {
@@ -285,7 +286,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             } as SeriesDataUnit;
           }) ?? [];
 
-        const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
+        const color = isPrimary ? theme.chart.colors[3][0] : theme.chart.colors[3][1];
         transformedReleaseSeries[release] = {
           seriesName: formatVersion(label, true),
           color,

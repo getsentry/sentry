@@ -372,6 +372,15 @@ describe('SearchQueryBuilder', function () {
       );
     });
 
+    it('can add a new filter key by clicking an option in the menu', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.click(screen.getByRole('option', {name: 'age'}));
+
+      expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+    });
+
     describe('recent filter keys', function () {
       beforeEach(() => {
         MockApiClient.addMockResponse({
@@ -612,6 +621,11 @@ describe('SearchQueryBuilder', function () {
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
 
+      // Focus should be at the beginning of the query
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'})[0]
+      ).toHaveFocus();
+
       // Custom tag token should still be present
       expect(screen.getByRole('row', {name: 'custom_tag_name:123'})).toBeInTheDocument();
     });
@@ -826,12 +840,12 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
       // New token should be added with the correct key and default value
-      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
+      expect(screen.getByLabelText('browser.name:""')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
+      await userEvent.click(await screen.findByLabelText('Firefox'));
 
       // New token should have a value
-      expect(screen.getByRole('row', {name: 'browser.name:Firefox'})).toBeInTheDocument();
+      expect(screen.getByLabelText('browser.name:Firefox')).toBeInTheDocument();
     });
 
     it('can add free text by typing', async function () {
@@ -863,7 +877,7 @@ describe('SearchQueryBuilder', function () {
       jest.restoreAllMocks();
 
       // Filter value should have focus
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       await userEvent.keyboard('foo{enter}');
 
       // Should have a free text token "some free text"
@@ -872,7 +886,7 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
 
       // Should have a filter token "browser.name:foo"
-      expect(screen.getByRole('row', {name: 'browser.name:foo'})).toBeInTheDocument();
+      expect(screen.getByLabelText('browser.name:foo')).toBeInTheDocument();
     });
 
     it('can add parens by typing', async function () {
@@ -2072,9 +2086,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
         // Should start with the > operator and a value of 10ms
-        expect(
-          await screen.findByRole('row', {name: 'duration:>10ms'})
-        ).toBeInTheDocument();
+        expect(await screen.findByLabelText('duration:>10ms')).toBeInTheDocument();
       });
 
       it('duration filters have the correct operator options', async function () {
@@ -2209,9 +2221,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
         // Should start with the > operator and a value of 10ms
-        expect(
-          await screen.findByRole('row', {name: 'size:>10bytes'})
-        ).toBeInTheDocument();
+        expect(await screen.findByLabelText('size:>10bytes')).toBeInTheDocument();
       });
 
       it('size filters have the correct operator options', async function () {
@@ -2344,7 +2354,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'rate'}));
 
         // Should start with the > operator and a value of 50%
-        expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
+        expect(await screen.findByLabelText('rate:>0.5')).toBeInTheDocument();
       });
 
       it('percentage filters have the correct operator options', async function () {
@@ -2821,9 +2831,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
 
         expect(
-          await screen.findByRole('row', {
-            name: 'count_if(transaction.duration,greater,300ms):>100',
-          })
+          await screen.findByLabelText(
+            'count_if(transaction.duration,greater,300ms):>100'
+          )
         ).toBeInTheDocument();
       });
 

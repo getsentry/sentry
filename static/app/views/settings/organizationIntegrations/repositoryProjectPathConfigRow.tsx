@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import IdBadge from 'sentry/components/idBadge';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
@@ -90,7 +90,7 @@ const RepoName = styled(`span`)`
 const ProjectAndBranch = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 // match the line height of the badge

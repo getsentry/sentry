@@ -10,7 +10,8 @@ const NegativeSpaceContainer = styled('div')`
   overflow: hidden;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  background-image: repeating-linear-gradient(
+  background-image:
+    repeating-linear-gradient(
       -145deg,
       transparent,
       transparent 8px,

@@ -5,12 +5,11 @@ import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import uniqBy from 'lodash/uniqBy';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
@@ -37,6 +36,8 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';
@@ -122,7 +123,7 @@ function Dashboard() {
     return <LoadingError message={t('An error occurred while fetching your projects')} />;
   }
 
-  const includeMyTeams = isAllTeams || selectedTeams.some(team => team === 'myteams');
+  const includeMyTeams = isAllTeams || selectedTeams.includes('myteams');
   const hasOtherTeams = selectedTeams.some(team => team !== 'myteams');
   const myTeams = includeMyTeams ? userTeams : [];
   const otherTeams = isAllTeams
@@ -201,11 +202,14 @@ function Dashboard() {
               priority="primary"
               disabled={!canUserCreateProject}
               title={
-                !canUserCreateProject
-                  ? t('You do not have permission to create projects')
-                  : undefined
+                canUserCreateProject
+                  ? undefined
+                  : t('You do not have permission to create projects')
               }
-              to={`/organizations/${organization.slug}/projects/new/`}
+              to={makeProjectsPathname({
+                path: '/new/',
+                orgSlug: organization.slug,
+              })}
               icon={<IconAdd isCircled />}
               data-test-id="create-project"
             >

@@ -7,7 +7,12 @@ import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
+import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
+import {
+  IdentityIcon,
+  type IdentityIconProps,
+} from 'sentry/views/settings/components/identityIcon';
 
 type TIcon = {
   id: string;
@@ -89,7 +94,20 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['experiment', 'test'],
         name: 'Lab',
-        defaultProps: {},
+        additionalProps: ['isSolid'],
+        defaultProps: {
+          isSolid: false,
+        },
+      },
+      {
+        id: 'lab-isSolid',
+        groups: ['product'],
+        keywords: ['experiment', 'test'],
+        name: 'Lab',
+        additionalProps: ['isSolid'],
+        defaultProps: {
+          isSolid: true,
+        },
       },
       {
         id: 'broadcast',
@@ -757,7 +775,7 @@ const SECTIONS: TSection[] = [
       {
         id: 'previous',
         groups: ['action'],
-        keywords: ['video', 'audio', 'back', 'return', 'rewind'],
+        keywords: ['video', 'audio', 'back', 'rewind'],
         name: 'Previous',
         defaultProps: {},
       },
@@ -1173,13 +1191,6 @@ const SECTIONS: TSection[] = [
     label: 'Device',
     icons: [
       {
-        id: 'return',
-        groups: ['device'],
-        keywords: ['enter'],
-        name: 'Return',
-        defaultProps: {},
-      },
-      {
         id: 'file',
         groups: ['device'],
         keywords: ['document'],
@@ -1292,9 +1303,11 @@ export default function IconsStories() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const definedWithPrefix = new Set<string>();
+
   SECTIONS.forEach(section =>
     section.icons.forEach(icon => definedWithPrefix.add(`Icon${icon.name}`))
   );
+
   const unclassifiedSection = {
     id: 'other',
     label: 'Unclassified',
@@ -1334,6 +1347,8 @@ export default function IconsStories() {
         <Section key={section.id} section={section} />
       ))}
 
+      <PluginIconsSection searchTerm={searchTerm} />
+      <IdentityIconsSection searchTerm={searchTerm} />
       <PlatformIconsSection searchTerm={searchTerm} />
     </Fragment>
   );
@@ -1411,6 +1426,156 @@ function PlatformIconsSection({searchTerm}: {searchTerm: string}) {
           >
             <Cell>
               <PlatformIcon platform={platform} /> {platform}
+            </Cell>
+          </Tooltip>
+        ))}
+      </Grid>
+    </section>
+  );
+}
+
+const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
+  'placeholder',
+  'sentry',
+  'browsers',
+  'device',
+  'interface_types',
+  'os',
+  'urls',
+  'webhooks',
+  'amazon-sqs',
+  'aws_lambda',
+  'asana',
+  'bitbucket',
+  'bitbucket_pipelines',
+  'bitbucket_server',
+  'discord',
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'heroku',
+  'jira',
+  'jira_server',
+  'jumpcloud',
+  'msteams',
+  'opsgenie',
+  'pagerduty',
+  'pivotal',
+  'pushover',
+  'redmine',
+  'segment',
+  'slack',
+  'trello',
+  'twilio',
+  'visualstudio',
+  'vsts',
+  'vercel',
+  'victorops',
+];
+
+const PLUGIN_ICONS = Object.keys(PLUGIN_ICON_KEYS).map(key => ({
+  id: key,
+  name: key,
+  keywords: [key],
+  icons: [{id: key, name: key}],
+}));
+
+function PluginIconsSection({searchTerm}: {searchTerm: string}) {
+  const filteredPlatforms = PLUGIN_ICONS.filter(icon => icon.name.includes(searchTerm));
+
+  return (
+    <section>
+      <SectionHeader>PluginIcons</SectionHeader>
+      <p>
+        <code>{"import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"}</code>
+      </p>
+      <Grid
+        style={{
+          gridAutoFlow: 'column',
+          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
+        }}
+      >
+        {filteredPlatforms.map(platform => (
+          <Tooltip
+            key={platform.id}
+            isHoverable
+            overlayStyle={{maxWidth: 440}}
+            title={
+              <Fragment>
+                <JSXNode name="PluginIcon" props={{pluginId: platform.id}} />
+              </Fragment>
+            }
+          >
+            <Cell>
+              <PluginIcon pluginId={platform.id} /> {platform.name}
+            </Cell>
+          </Tooltip>
+        ))}
+      </Grid>
+    </section>
+  );
+}
+
+const IDENTITY_ICON_KEYS: Array<IdentityIconProps['providerId']> = [
+  'placeholder',
+  'active-directory',
+  'asana',
+  'auth0',
+  'bitbucket',
+  'bitbucket_server',
+  'github',
+  'github_enterprise',
+  'gitlab',
+  'google',
+  'jira_server',
+  'jumpcloud',
+  'msteams',
+  'okta',
+  'onelogin',
+  'rippling',
+  'saml2',
+  'slack',
+  'visualstudio',
+  'vsts',
+];
+
+const IDENTITY_ICONS = Object.keys(IDENTITY_ICON_KEYS).map(key => ({
+  id: key,
+  name: key,
+  keywords: [key],
+  icons: [{id: key, name: key}],
+}));
+
+function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
+  const filteredPlatforms = IDENTITY_ICONS.filter(icon => icon.name.includes(searchTerm));
+
+  return (
+    <section>
+      <SectionHeader>IdentityIcons</SectionHeader>
+      <p>
+        <code>
+          {"import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';"}
+        </code>
+      </p>
+      <Grid
+        style={{
+          gridAutoFlow: 'column',
+          gridTemplateRows: `repeat(${Math.ceil(filteredPlatforms.length / 4)}, 1fr)`,
+        }}
+      >
+        {filteredPlatforms.map(platform => (
+          <Tooltip
+            key={platform.id}
+            isHoverable
+            overlayStyle={{maxWidth: 440}}
+            title={
+              <Fragment>
+                <JSXNode name="IdentityIcon" props={{providerId: platform.id}} />
+              </Fragment>
+            }
+          >
+            <Cell>
+              <IdentityIcon providerId={platform.id} /> {platform.name}
             </Cell>
           </Tooltip>
         ))}

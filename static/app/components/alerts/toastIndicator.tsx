@@ -3,7 +3,7 @@ import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -68,7 +68,7 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
   );
 }
 
-const Toast = styled(motion.div)`
+const Toast = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   display: flex;
   align-items: center;
   height: 40px;

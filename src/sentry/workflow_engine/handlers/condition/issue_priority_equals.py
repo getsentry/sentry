@@ -2,14 +2,15 @@ from typing import Any
 
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowJob
+from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
 
 
 @condition_handler_registry.register(Condition.ISSUE_PRIORITY_EQUALS)
-class IssuePriorityCondition(DataConditionHandler[WorkflowJob]):
-    type = [DataConditionHandler.Type.ACTION_FILTER, DataConditionHandler.Type.WORKFLOW_TRIGGER]
+class IssuePriorityCondition(DataConditionHandler[WorkflowEventData]):
+    group = DataConditionHandler.Group.ACTION_FILTER
+    subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
 
     @staticmethod
-    def evaluate_value(job: WorkflowJob, comparison: Any) -> bool:
-        group = job["event"].group
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        group = event_data.event.group
         return group.priority == comparison

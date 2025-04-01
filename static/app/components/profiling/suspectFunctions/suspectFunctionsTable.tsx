@@ -1,10 +1,11 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import clamp from 'lodash/clamp';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
@@ -86,6 +87,7 @@ export function SuspectFunctionsTable({
   eventView,
   project,
 }: SuspectFunctionsTableProps) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -117,6 +119,7 @@ export function SuspectFunctionsTable({
   const baggage: RenderFunctionBaggage = {
     location,
     organization,
+    theme,
     unit: 'nanosecond',
   };
 

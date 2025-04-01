@@ -1,7 +1,7 @@
 import {isValidElement, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -50,7 +50,8 @@ function SettingsLayout(props: Props) {
   const {renderNavigation, children, params, routes, route} = props;
 
   // We want child's view's props
-  const childProps = children && isValidElement(children) ? children.props : props;
+  const childProps =
+    children && isValidElement(children) ? (children.props as Props) : props;
   const childRoutes = childProps.routes || routes || [];
   const childRoute = childProps.route || route || {};
   const shouldRenderNavigation = typeof renderNavigation === 'function';

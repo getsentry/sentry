@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -22,7 +23,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TopResultsIndicator} from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
   PRIMARY_RELEASE_ALIAS,
@@ -44,6 +45,7 @@ type Props = {
 };
 
 export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: Props) {
+  const theme = useTheme();
   const moduleURL = useModuleURL('screen_load');
   const location = useLocation();
   const organization = useOrganization();
@@ -121,6 +123,7 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     if (
       column.key.includes('time_to_full_display') &&
@@ -216,11 +219,11 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
         data={data?.data as TableDataRow[]}
         columnOrder={eventViewColumns
           .filter(
-            (col: TableColumn<React.ReactText>) =>
+            (col: TableColumn<string | number>) =>
               col.name !== SpanMetricsField.PROJECT_ID &&
               !col.name.startsWith('avg_compare')
           )
-          .map((col: TableColumn<React.ReactText>) => {
+          .map((col: TableColumn<string | number>) => {
             return {...col, name: columnNameMap[col.key] ?? col.name};
           })}
         columnSortBy={[

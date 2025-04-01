@@ -2034,6 +2034,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "line",
                     "interval": "5m",
                     "title": f"Widget {i}",
+                    "limit": 5,
                     "queries": [
                         {
                             "name": "Transactions",
@@ -2541,6 +2542,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "EPM line",
                     "displayType": "line",
+                    "limit": 3,
                     "queries": [
                         {
                             "name": "",
@@ -2638,6 +2640,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widget = DashboardWidget.objects.get(id=widget.id)
         assert widget.discover_widget_split is None
         assert widget.dataset_source == DatasetSourcesTypes.UNKNOWN.value
+
+    def test_dashboard_widget_missing_columns_can_successfully_save(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Issue Widget",
+                    "displayType": "table",
+                    "interval": "5m",
+                    "widgetType": DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ISSUE),
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["issue", "title"],
+                            "aggregates": [],
+                            "conditions": "",
+                            "orderby": "",
+                        }
+                    ],
+                }
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["columns"] == []
+        assert response.data["widgets"][0]["queries"][0]["fields"] == ["issue", "title"]
+        assert response.data["widgets"][0]["widgetType"] == "issue"
 
 
 class OrganizationDashboardDetailsOnDemandTest(OrganizationDashboardDetailsTestCase):

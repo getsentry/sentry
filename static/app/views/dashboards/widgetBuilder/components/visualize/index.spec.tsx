@@ -25,11 +25,9 @@ describe('Visualize', () => {
       features: ['dashboards-widget-builder-redesign', 'performance-view'],
     });
 
-    jest.mocked(useCustomMeasurements).mockReturnValue({
-      customMeasurements: {},
-    });
+    jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
-    jest.mocked(useSpanTags).mockReturnValue({});
+    jest.mocked(useSpanTags).mockReturnValue({tags: {}, isLoading: false});
 
     mockNavigate = jest.fn();
     jest.mocked(useNavigate).mockReturnValue(mockNavigate);
@@ -424,11 +422,7 @@ describe('Visualize', () => {
       'count'
     );
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count()'],
-        }),
-      }),
+      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
       {replace: true}
     );
   });
@@ -464,9 +458,7 @@ describe('Visualize', () => {
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count_miserable(user,300)'],
-        }),
+        query: expect.objectContaining({field: ['count_miserable(user,300)']}),
       }),
       {replace: true}
     );
@@ -725,10 +717,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           }),
         }),
       }
@@ -796,9 +785,7 @@ describe('Visualize', () => {
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
     expect(mockNavigate).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({
-          selectedAggregate: undefined,
-        }),
+        query: expect.objectContaining({selectedAggregate: undefined}),
       }),
       {replace: true}
     );
@@ -813,10 +800,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.RELEASE,
-              field: ['crash_free_rate(session)'],
-            },
+            query: {dataset: WidgetType.RELEASE, field: ['crash_free_rate(session)']},
           }),
         }),
       }
@@ -841,10 +825,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['transaction.duration'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['transaction.duration']},
           }),
         }),
       }
@@ -921,10 +902,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['apdex(3000)'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(3000)']},
           }),
         }),
       }
@@ -948,10 +926,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['apdex(9999)'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['apdex(9999)']},
           }),
         }),
       }
@@ -1019,10 +994,7 @@ describe('Visualize', () => {
         organization,
         router: RouterFixture({
           location: LocationFixture({
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              field: ['count()'],
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, field: ['count()']},
           }),
         }),
       }
@@ -1132,26 +1104,32 @@ describe('Visualize', () => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'span.duration': {
-              key: 'span.duration',
-              name: 'span.duration',
-              kind: 'measurement',
-            },
-            'tags[anotherNumericTag,number]': {
-              key: 'anotherNumericTag',
-              name: 'anotherNumericTag',
-              kind: 'measurement',
-            },
-          } as TagCollection;
+            tags: {
+              'span.duration': {
+                key: 'span.duration',
+                name: 'span.duration',
+                kind: 'measurement',
+              },
+              'tags[anotherNumericTag,number]': {
+                key: 'anotherNumericTag',
+                name: 'anotherNumericTag',
+                kind: 'measurement',
+              },
+            } as TagCollection,
+            isLoading: false,
+          };
         }
 
         return {
-          'span.description': {
-            key: 'span.description',
-            name: 'span.description',
-            kind: 'tag',
-          },
-        } as TagCollection;
+          tags: {
+            'span.description': {
+              key: 'span.description',
+              name: 'span.description',
+              kind: 'tag',
+            },
+          } as TagCollection,
+          isLoading: false,
+        };
       });
     });
 
@@ -1283,21 +1261,17 @@ describe('Visualize', () => {
       jest.mocked(useSpanTags).mockImplementation((type?: 'string' | 'number') => {
         if (type === 'number') {
           return {
-            'tags[count,number]': {
-              key: 'count',
-              name: 'count',
-              kind: 'measurement',
-            },
-          } as TagCollection;
+            tags: {
+              'tags[count,number]': {key: 'count', name: 'count', kind: 'measurement'},
+            } as TagCollection,
+            isLoading: false,
+          };
         }
 
         return {
-          count: {
-            key: 'count',
-            name: 'count',
-            kind: 'tag',
-          },
-        } as TagCollection;
+          tags: {count: {key: 'count', name: 'count', kind: 'tag'}} as TagCollection,
+          isLoading: false,
+        };
       });
       render(
         <WidgetBuilderProvider>

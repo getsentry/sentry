@@ -21,6 +21,10 @@ function isTraceSpan(value: TraceTree.NodeValue): value is TraceTree.Span {
   );
 }
 
+function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value);
+}
+
 function isTraceAutogroup(
   value: TraceTree.NodeValue
 ): value is TraceTree.ChildrenAutogroup | TraceTree.SiblingAutogroup {
@@ -28,6 +32,11 @@ function isTraceAutogroup(
 }
 
 function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
+  // Only collapse EAP spans if they are a segments/transactions
+  if (isEAPSpan(node.value)) {
+    return node.value.is_transaction;
+  }
+
   if (isTraceSpan(node.value)) {
     // Android creates TCP connection spans which are noisy and not useful in most cases.
     // Unless the span has a child txn which would indicate a continuaton of the trace, we collapse it.
@@ -59,7 +68,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   event: EventTransaction | null = null;
 
   // Events associated with the node, these are inferred from the node value.
-  errors = new Set<TraceTree.TraceError>();
+  errors = new Set<TraceTree.TraceErrorIssue>();
   performance_issues = new Set<TraceTree.TracePerformanceIssue>();
   profiles: TraceTree.Profile[] = [];
 
@@ -84,14 +93,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     // otherwise we can only infer a timestamp.
     if (
       value &&
-      'timestamp' in value &&
+      (('end_timestamp' in value && typeof value.end_timestamp === 'number') ||
+        ('timestamp' in value && typeof value.timestamp === 'number')) &&
       'start_timestamp' in value &&
-      typeof value.timestamp === 'number' &&
       typeof value.start_timestamp === 'number'
     ) {
+      const end_timestamp =
+        'end_timestamp' in value ? value.end_timestamp : value.timestamp;
       this.space = [
         value.start_timestamp * 1e3,
-        (value.timestamp - value.start_timestamp) * 1e3,
+        (end_timestamp - value.start_timestamp) * 1e3,
       ];
     } else if (value && 'timestamp' in value && typeof value.timestamp === 'number') {
       this.space = [value.timestamp * 1e3, 0];

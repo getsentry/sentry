@@ -23,7 +23,7 @@ import type {AggregateFunction} from 'sentry/components/arithmeticBuilder/types'
 import type {
   SelectOptionWithKey,
   SelectSectionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
@@ -81,7 +81,7 @@ export function ArithmeticTokenFreeText({
 }
 
 interface InternalInputProps extends ArithmeticTokenFreeTextProps {
-  rowRef: RefObject<HTMLDivElement>;
+  rowRef: RefObject<HTMLDivElement | null>;
 }
 
 function InternalInput({

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import {IconMegaphone} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -26,13 +26,12 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
       <UserFeedbackButton
         type="button"
         priority="link"
-        size="zero"
         icon={<IconMegaphone size="xs" />}
         to={{
           pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
         }}
         replace
-        aria-label={t("View this issues's feedback")}
+        aria-label={t("View this issue's feedback")}
       >
         {tn('%s User Report', '%s User Reports', group.userReportCount)}
       </UserFeedbackButton>
@@ -41,7 +40,7 @@ export function UserFeedbackBadge({group, project}: {group: Group; project: Proj
 }
 
 const UserFeedbackButton = styled(LinkButton)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-decoration: underline;
   text-decoration-style: dotted;
 `;

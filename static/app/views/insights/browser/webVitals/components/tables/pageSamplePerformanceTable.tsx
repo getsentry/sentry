@@ -1,10 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -712,7 +712,7 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SearchBarContainer = styled('div')`

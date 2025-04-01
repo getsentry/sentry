@@ -8,7 +8,6 @@ import moment from 'moment-timezone';
 
 import Feature from 'sentry/components/acl/feature';
 import {OnDemandMetricAlert} from 'sentry/components/alerts/onDemandMetricAlert';
-import {Button} from 'sentry/components/button';
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
@@ -28,6 +27,7 @@ import {
 } from 'sentry/components/charts/styles';
 import {isEmptySeries} from 'sentry/components/charts/utils';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import {Button} from 'sentry/components/core/button';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -335,16 +335,19 @@ export default function MetricChart({
         totalDuration,
         waitingForDataDuration,
         chartOption,
-      } = getMetricAlertChartOption({
-        timeseriesData,
-        rule,
-        seriesName: formattedAggregate,
-        incidents,
-        anomalies,
-        showWaitingForData:
-          shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
-        handleIncidentClick,
-      });
+      } = getMetricAlertChartOption(
+        {
+          timeseriesData,
+          rule,
+          seriesName: formattedAggregate,
+          incidents,
+          anomalies,
+          showWaitingForData:
+            shouldShowOnDemandMetricAlertUI(organization) && isOnDemandAlert,
+          handleIncidentClick,
+        },
+        theme
+      );
 
       const comparisonSeriesName = capitalize(
         COMPARISON_DELTA_OPTIONS.find(({value}) => value === rule.comparisonDelta)
@@ -544,9 +547,9 @@ export function getMetricChartTooltipFormatter({
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const comparisonPointY = comparisonSeries?.data[1] as number | undefined;
     const comparisonPointYFormatted =
-      comparisonPointY !== undefined
-        ? alertTooltipValueFormatter(comparisonPointY, seriesName, rule.aggregate)
-        : undefined;
+      comparisonPointY === undefined
+        ? undefined
+        : alertTooltipValueFormatter(comparisonPointY, seriesName, rule.aggregate);
 
     const changePercentage =
       comparisonPointY === undefined

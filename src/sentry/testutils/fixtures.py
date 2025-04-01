@@ -79,7 +79,8 @@ class Fixtures:
                 is_sentry_app=False,
             )
         except IntegrityError:
-            return User.objects.get(email="admin@localhost")
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                return User.objects.get(email="admin@localhost")
 
     @cached_property
     def organization(self):
@@ -162,6 +163,9 @@ class Fixtures:
 
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
+
+    def create_member_invite(self, *args, **kwargs):
+        return Factories.create_member_invite(*args, **kwargs)
 
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
@@ -739,11 +743,15 @@ class Fixtures:
         name: str | None = None,
         owner: User | Team | None = None,
         uptime_status=UptimeStatus.OK,
+        uptime_status_update_date: datetime | None = None,
+        id: int | None = None,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
         if env is None:
             env = self.environment
+        if uptime_status_update_date is None:
+            uptime_status_update_date = timezone.now()
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription()
@@ -756,6 +764,8 @@ class Fixtures:
             name,
             Actor.from_object(owner) if owner else None,
             uptime_status,
+            uptime_status_update_date,
+            id,
         )
 
     @pytest.fixture(autouse=True)

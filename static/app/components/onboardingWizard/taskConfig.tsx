@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
@@ -20,17 +19,18 @@ import type {
 import {OnboardingTaskGroup, OnboardingTaskKey} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
-  return projects !== undefined
-    ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
-    : false;
+  return projects === undefined
+    ? false
+    : projects.some(({platform}) => platform && sourceMaps.includes(platform));
 }
 
 type Options = {
@@ -38,8 +38,6 @@ type Options = {
    * The organization to show onboarding tasks for
    */
   organization: Organization;
-  onboardingContext?: OnboardingContextProps;
-
   /**
    * A list of the organizations projects. This is used for some onboarding
    * tasks to show additional task details (such as for suggesting sourcemaps)
@@ -96,16 +94,10 @@ function getOnboardingInstructionsUrl({projects, organization}: Options) {
 export function getOnboardingTasks({
   organization,
   projects,
-  onboardingContext,
 }: Options): OnboardingTaskDescriptor[] {
-  const hasPerfLandingRemovalFlag = organization.features?.includes(
-    'insights-performance-landing-removal'
-  );
-  const performanceUrl = hasPerfLandingRemovalFlag
-    ? `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`
-    : `${getPerformanceBaseUrl(organization.slug)}/`;
+  const performanceUrl = `${getPerformanceBaseUrl(organization.slug, 'frontend')}/`;
 
-  if (isDemoModeEnabled()) {
+  if (isDemoModeActive()) {
     return [
       {
         task: OnboardingTaskKey.ISSUE_GUIDE,
@@ -125,7 +117,7 @@ export function getOnboardingTasks({
         description: t('Press the start button for a guided tour through each tab.'),
         skippable: false,
         actionType: 'app',
-        location: `/organizations/${organization.slug}/projects/`,
+        location: makeProjectsPathname({path: '/', orgSlug: organization.slug}),
         display: true,
         group: OnboardingTaskGroup.GETTING_STARTED,
       },
@@ -168,7 +160,7 @@ export function getOnboardingTasks({
       ),
       skippable: false,
       actionType: 'app',
-      location: `/organizations/${organization.slug}/projects/new/`,
+      location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
@@ -239,7 +231,7 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'app',
-      location: `/organizations/${organization.slug}/projects/new/`,
+      location: makeProjectsPathname({path: '/new/', orgSlug: organization.slug}),
       display: true,
       pendingTitle: t('Awaiting an error for this project.'),
     },
@@ -362,16 +354,16 @@ export function getOnboardingTasks({
       ),
       skippable: true,
       actionType: 'app',
-      location: getIssueAlertUrl({projects, organization, onboardingContext}),
+      location: getIssueAlertUrl({projects, organization}),
       display: true,
       group: OnboardingTaskGroup.GETTING_STARTED,
     },
   ];
 }
 
-export function getMergedTasks({organization, projects, onboardingContext}: Options) {
-  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingContext});
-  const serverTasks = isDemoModeEnabled()
+export function getMergedTasks({organization, projects}: Options) {
+  const taskDescriptors = getOnboardingTasks({organization, projects});
+  const serverTasks = isDemoModeActive()
     ? getDemoWalkthroughTasks()
     : organization.onboardingTasks;
 

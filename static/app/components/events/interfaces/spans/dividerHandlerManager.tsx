@@ -10,7 +10,7 @@ import {setBodyUserSelect} from 'sentry/utils/userselect';
 const DEFAULT_DIVIDER_POSITION = 0.4;
 
 const selectRefs = (
-  refs: Array<React.RefObject<HTMLDivElement>>,
+  refs: Array<React.RefObject<HTMLDivElement | null>>,
   transform: (dividerDOM: HTMLDivElement) => void
 ) => {
   refs.forEach(ref => {
@@ -21,8 +21,8 @@ const selectRefs = (
 };
 
 export type DividerHandlerManagerChildrenProps = {
-  addDividerLineRef: () => React.RefObject<HTMLDivElement>;
-  addGhostDividerLineRef: () => React.RefObject<HTMLDivElement>;
+  addDividerLineRef: () => React.RefObject<HTMLDivElement | null>;
+  addGhostDividerLineRef: () => React.RefObject<HTMLDivElement | null>;
   dividerPosition: number;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   setHover: (nextHover: boolean) => void;
@@ -45,7 +45,7 @@ type PropType = {
 
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
-  interactiveLayerRef: React.RefObject<HTMLDivElement>;
+  interactiveLayerRef: React.RefObject<HTMLDivElement | null>;
 };
 
 export class Provider extends Component<PropType, StateType> {
@@ -60,8 +60,8 @@ export class Provider extends Component<PropType, StateType> {
   previousUserSelect: UserSelectValues | null = null;
   dividerHandlePosition: number = DEFAULT_DIVIDER_POSITION;
   isDragging = false;
-  dividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
-  ghostDividerLineRefs: Array<React.RefObject<HTMLDivElement>> = [];
+  dividerLineRefs: Array<React.RefObject<HTMLDivElement | null>> = [];
+  ghostDividerLineRefs: Array<React.RefObject<HTMLDivElement | null>> = [];
 
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
@@ -243,9 +243,9 @@ export class Provider extends Component<PropType, StateType> {
     // to the respective divider components.
 
     return (
-      <DividerManagerContext.Provider value={childrenProps}>
+      <DividerManagerContext value={childrenProps}>
         {this.props.children}
-      </DividerManagerContext.Provider>
+      </DividerManagerContext>
     );
   }
 }

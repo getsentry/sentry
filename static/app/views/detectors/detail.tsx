@@ -2,8 +2,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {DateTime} from 'sentry/components/dateTime';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import TimeSince from 'sentry/components/timeSince';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
 import DetailLayout from 'sentry/components/workflowEngine/layout/detail';
@@ -32,12 +35,13 @@ export default function DetectorDetail() {
 
   return (
     <SentryDocumentTitle title={'/endpoint'} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/monitors'}}>
+      <BreadcrumbsProvider crumb={{label: t('Monitors'), to: '/issues/monitors'}}>
         <ActionsProvider actions={<Actions />}>
           <DetailLayout project={{slug: 'project-slug', platform: 'javascript-astro'}}>
             <DetailLayout.Main>
               {/* TODO: Add chart here */}
               <Section title={t('Ongoing Issues')}>
+                {/* TODO: Replace with GroupList */}
                 <IssuesList />
               </Section>
               <Section title={t('Connected Automations')}>
@@ -67,6 +71,21 @@ export default function DetectorDetail() {
               <Section title={t('Resolve')}>
                 {t('Auto-resolve after %s of inactivity', getDuration(3000000))}
               </Section>
+              <Section title={t('Details')}>
+                <KeyValueTable>
+                  <KeyValueTableRow
+                    keyName={t('Date created')}
+                    value={<DateTime date={new Date()} dateOnly year />}
+                  />
+                  <KeyValueTableRow keyName={t('Created by')} value="Jane Doe" />
+                  <KeyValueTableRow
+                    keyName={t('Last modified')}
+                    value={<TimeSince date={new Date()} />}
+                  />
+                  <KeyValueTableRow keyName={t('Team')} value="Platform" />
+                  <KeyValueTableRow keyName={t('Environment')} value="prod" />
+                </KeyValueTable>
+              </Section>
             </DetailLayout.Sidebar>
           </DetailLayout>
         </ActionsProvider>
@@ -81,8 +100,10 @@ function Actions() {
   };
   return (
     <Fragment>
-      <Button onClick={disable}>{t('Disable')}</Button>
-      <LinkButton to="/monitors/edit" priority="primary" icon={<IconEdit />}>
+      <Button onClick={disable} size="sm">
+        {t('Disable')}
+      </Button>
+      <LinkButton to="edit" priority="primary" icon={<IconEdit />} size="sm">
         {t('Edit')}
       </LinkButton>
     </Fragment>

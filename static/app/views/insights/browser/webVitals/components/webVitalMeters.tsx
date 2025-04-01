@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -59,6 +59,7 @@ export default function WebVitalMeters({
   projectScore,
   showTooltip = true,
 }: Props) {
+  const theme = useTheme();
   if (!projectScore) {
     return null;
   }
@@ -66,7 +67,7 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = getChartColorPalette(3);
+  const colors = theme.chart.getColorPalette(3);
 
   const renderVitals = () => {
     return webVitals.map((webVital, index) => {
@@ -289,7 +290,7 @@ const MeterBarFooterContainer = styled('div')<{
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.headerFontSize};
 `;
 
@@ -314,84 +315,4 @@ export const Dot = styled('span')<{color: string}>`
   width: ${space(1)};
   height: ${space(1)};
   background-color: ${p => p.color};
-`;
-
-// A compressed version of the VitalMeter component used in the trace context panel
-type VitalPillProps = Omit<
-  VitalMeterProps,
-  'showTooltip' | 'isAggregateMode' | 'onClick' | 'color'
->;
-export function VitalPill({webVital, score, meterValue}: VitalPillProps) {
-  const status = score !== undefined ? scoreToStatus(score) : 'none';
-  const webVitalExists = score !== undefined;
-  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
-
-  const formattedMeterValueText =
-    webVitalExists && meterValue ? (
-      webVitalsConfig[webVital].formatter(meterValue)
-    ) : (
-      <NoValue />
-    );
-
-  const tooltipText = VITAL_DESCRIPTIONS[`measurements.${webVital}`];
-
-  return (
-    <VitalPillContainer>
-      <Tooltip title={tooltipText?.shortDescription}>
-        <VitalPillName status={status}>
-          {`${webVital ? webVital.toUpperCase() : ''} (${status === 'none' ? 'N/A' : STATUS_TEXT[status]})`}
-        </VitalPillName>
-      </Tooltip>
-      <VitalPillValue>{formattedMeterValueText}</VitalPillValue>
-    </VitalPillContainer>
-  );
-}
-
-const VitalPillContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  height: 30px;
-  margin-bottom: ${space(1)};
-`;
-
-const VitalPillName = styled('div')<{status: keyof typeof PERFORMANCE_SCORE_COLORS}>`
-  display: flex;
-  align-items: center;
-  position: relative;
-
-  height: 100%;
-  padding: 0 ${space(1)};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].border]};
-  border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
-
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
-
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: ${space(0.25)};
-  text-decoration-thickness: 1px;
-
-  cursor: pointer;
-`;
-
-const VitalPillValue = styled('div')`
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: flex-end;
-
-  height: 100%;
-  padding: 0 ${space(0.5)};
-  border: 1px solid ${p => p.theme.gray200};
-  border-left: none;
-  border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
-
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
-
-  font-size: ${p => p.theme.fontSizeLarge};
 `;

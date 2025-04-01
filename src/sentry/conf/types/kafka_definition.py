@@ -30,6 +30,7 @@ class Topic(Enum):
     EAP_SPANS_SUBSCRIPTIONS_RESULTS = "eap-spans-subscription-results"
     INGEST_EVENTS = "ingest-events"
     INGEST_EVENTS_DLQ = "ingest-events-dlq"
+    INGEST_EVENTS_BACKLOG = "ingest-events-backlog"
     INGEST_FEEDBACK_EVENTS = "ingest-feedback-events"
     INGEST_FEEDBACK_EVENTS_DLQ = "ingest-feedback-events-dlq"
     INGEST_ATTACHMENTS = "ingest-attachments"
@@ -63,7 +64,7 @@ class Topic(Enum):
     SNUBA_OURLOGS = "snuba-ourlogs"
     BUFFERED_SEGMENTS = "buffered-segments"
     BUFFERED_SEGMENTS_DLQ = "buffered-segments-dlq"
-    TASK_WORKER = "task-worker"
+    TASKWORKER = "taskworker"
 
 
 class ConsumerDefinition(TypedDict, total=False):

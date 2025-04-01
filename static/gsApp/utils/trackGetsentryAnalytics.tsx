@@ -85,7 +85,7 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.turned_off': Record<PropertyKey, unknown>;
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.ondemand_changed': {cents: number} & Checkout;
-  'checkout.payg_changed': {cents: number} & Checkout;
+  'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
   'checkout.transactions_upgrade': {
     previous_transactions: number;
     transactions: number;
@@ -103,9 +103,11 @@ type GetsentryEventParameters = {
     previous_replays?: number;
     previous_spans?: number;
     previous_transactions?: number;
+    previous_uptime?: number;
     replays?: number;
     spans?: number;
     transactions?: number;
+    uptime?: number;
   } & Checkout;
   'data_consent_modal.learn_more': Record<PropertyKey, unknown>;
   'data_consent_priority.viewed': Record<PropertyKey, unknown>;

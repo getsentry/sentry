@@ -27,7 +27,8 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
-from sentry.seer.fetch_issues_given_patches import get_issues_related_to_file_patches
+from sentry.seer.autofix_tools import get_error_event_details, get_profile_details
+from sentry.seer.fetch_issues.fetch_issues_given_patches import get_issues_related_to_file_patches
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 
@@ -169,6 +170,8 @@ seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,
+    "get_error_event_details": get_error_event_details,
+    "get_profile_details": get_profile_details,
 }
 
 

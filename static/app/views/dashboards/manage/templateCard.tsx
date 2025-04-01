@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
+import {Button} from 'sentry/components/core/button';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -54,7 +54,7 @@ const Title = styled('div')`
 const Detail = styled(Title)`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const ButtonContainer = styled('div')`

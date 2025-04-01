@@ -144,7 +144,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: t(
-        'If you see an issue in your Sentry dashboard, you have successfully set up Sentry.'
+        'If you see an issue in your Sentry Issues, you have successfully set up Sentry.'
       ),
     },
   ],

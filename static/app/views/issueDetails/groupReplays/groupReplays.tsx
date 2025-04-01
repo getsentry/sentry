@@ -3,7 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -27,7 +28,6 @@ import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
 
-import {ReplayClipPreviewWrapper} from './replayClipPreviewWrapper';
 import useReplaysFromIssue from './useReplaysFromIssue';
 
 type Props = {
@@ -67,12 +67,12 @@ function ReplayFilterMessage() {
   );
 }
 
-function GroupReplays({group}: Props) {
+export default function GroupReplays({group}: Props) {
   const organization = useOrganization();
   const location = useLocation<ReplayListLocationQuery>();
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const {eventView, fetchError, isFetching, pageLinks} = useReplaysFromIssue({
+  const {eventView, fetchError, isFetching} = useReplaysFromIssue({
     group,
     location,
     organization,
@@ -116,13 +116,7 @@ function GroupReplays({group}: Props) {
     );
   }
   return (
-    <GroupReplaysTable
-      eventView={eventView}
-      organization={organization}
-      pageLinks={pageLinks}
-      visibleColumns={visibleColumns(allMobileProj)}
-      group={group}
-    />
+    <GroupReplaysTable eventView={eventView} organization={organization} group={group} />
   );
 }
 
@@ -135,12 +129,10 @@ function GroupReplaysTableInner({
   selectedReplayIndex,
   overlayContent,
   replays,
-  pageLinks,
 }: {
   children: React.ReactNode;
   group: Group;
   organization: Organization;
-  pageLinks: string | null;
   replaySlug: string;
   replays: ReplayListRecord[] | undefined;
   selectedReplayIndex: number;
@@ -148,12 +140,12 @@ function GroupReplaysTableInner({
   overlayContent?: React.ReactNode;
 }) {
   const orgSlug = organization.slug;
-  const {fetching, replay} = useLoadReplayReader({
+  const replayReaderData = useLoadReplayReader({
     orgSlug,
     replaySlug,
     group,
   });
-  const {allMobileProj} = useAllMobileProj({});
+  const {fetching, replay} = replayReaderData;
 
   return (
     <ReplayContextProvider
@@ -162,16 +154,27 @@ function GroupReplaysTableInner({
       replay={replay}
       autoStart
     >
-      <ReplayClipPreviewWrapper
-        orgSlug={orgSlug}
-        replaySlug={replaySlug}
-        group={group}
-        pageLinks={pageLinks}
-        selectedReplayIndex={selectedReplayIndex}
-        setSelectedReplayIndex={setSelectedReplayIndex}
-        visibleColumns={[ReplayColumn.PLAY_PAUSE, ...visibleColumns(allMobileProj)]}
+      <ReplayClipPreviewPlayer
+        replayReaderResult={replayReaderData}
         overlayContent={overlayContent}
-        replays={replays}
+        orgSlug={orgSlug}
+        showNextAndPrevious
+        handleForwardClick={
+          replays && selectedReplayIndex + 1 < replays.length
+            ? () => {
+                setSelectedReplayIndex(selectedReplayIndex + 1);
+              }
+            : undefined
+        }
+        handleBackClick={
+          selectedReplayIndex > 0
+            ? () => {
+                setSelectedReplayIndex(selectedReplayIndex - 1);
+              }
+            : undefined
+        }
+        analyticsContext={'replay_tab'}
+        isLarge
       />
       {children}
     </ReplayContextProvider>
@@ -188,8 +191,6 @@ function GroupReplaysTable({
   eventView: EventView;
   group: Group;
   organization: Organization;
-  pageLinks: string | null;
-  visibleColumns: ReplayColumn[];
 }) {
   const location = useLocation();
   const urlParams = useUrlParams();
@@ -274,7 +275,6 @@ function GroupReplaysTable({
       organization={organization}
       group={group}
       replaySlug={selectedReplay.id}
-      pageLinks={replayListData.pageLinks}
       replays={replays}
     >
       {replayTable}
@@ -348,5 +348,3 @@ const OverlayText = styled('div')`
 const UpNext = styled('div')`
   line-height: 0;
 `;
-
-export default GroupReplays;

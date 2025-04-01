@@ -21,7 +21,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
@@ -654,7 +654,7 @@ describe('OrganizationMembersList', function () {
     });
 
     it('renders only current user in demo mode', async function () {
-      (isDemoModeEnabled as jest.Mock).mockReturnValue(true);
+      (isDemoModeActive as jest.Mock).mockReturnValue(true);
 
       render(<OrganizationMembersList />, {organization, router});
       renderGlobalModal({router});
@@ -663,7 +663,31 @@ describe('OrganizationMembersList', function () {
       expect(screen.getByText(currentUser.name)).toBeInTheDocument();
       expect(screen.queryByText(member.name)).not.toBeInTheDocument();
 
-      (isDemoModeEnabled as jest.Mock).mockReset();
+      (isDemoModeActive as jest.Mock).mockReset();
+    });
+
+    it('allows you to leave as a member after searching', async function () {
+      const searchQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'GET',
+        body: [currentUser],
+        match: [MockApiClient.matchQuery({query: currentUser.name})],
+      });
+      const ownerQuery = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/members/',
+        method: 'GET',
+        body: [members[2]],
+        match: [MockApiClient.matchQuery({query: 'role:owner isInvited:false'})],
+      });
+      const searchRouter = RouterFixture({location: {query: {query: currentUser.name}}});
+      render(<OrganizationMembersList />, {organization, router: searchRouter});
+      renderGlobalModal({router});
+
+      expect(await screen.findByText('Members')).toBeInTheDocument();
+      expect(searchQuery).toHaveBeenCalled();
+      expect(ownerQuery).toHaveBeenCalled();
+      const leaveButton = screen.getByRole('button', {name: 'Leave'});
+      expect(leaveButton).toBeEnabled();
     });
   });
 });

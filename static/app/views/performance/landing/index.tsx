@@ -3,8 +3,8 @@ import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';

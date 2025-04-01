@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';

@@ -2,8 +2,8 @@ import type {ReactNode} from 'react';
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton, type LinkButtonProps} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -338,7 +338,7 @@ const EmptyHeader = styled(Flex)`
   justify-content: center;
   align-items: center;
   gap: ${space(1.5)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export default DeadRageSelectorCards;

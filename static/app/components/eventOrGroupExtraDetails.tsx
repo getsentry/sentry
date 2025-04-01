@@ -17,16 +17,14 @@ import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getTitle} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   data: Event | Group;
-  organization: Organization;
   showAssignee?: boolean;
   showLifetime?: boolean;
 };
@@ -52,12 +50,7 @@ function Lifetime({
   );
 }
 
-function EventOrGroupExtraDetails({
-  data,
-  showAssignee,
-  organization,
-  showLifetime = true,
-}: Props) {
+function EventOrGroupExtraDetails({data, showAssignee, showLifetime = true}: Props) {
   const {
     id,
     lastSeen,
@@ -72,6 +65,7 @@ function EventOrGroupExtraDetails({
     lifetime,
     isUnhandled,
   } = data as Group;
+  const organization = useOrganization();
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
   const {getReplayCountForIssue} = useReplayCountForIssues();
@@ -100,7 +94,13 @@ function EventOrGroupExtraDetails({
     ) : null,
     hasNewLayout && subtitle ? <Location>{subtitle}</Location> : null,
     numComments > 0 ? (
-      <CommentsLink to={`${issuesPath}${id}/activity/`} className="comments">
+      <CommentsLink
+        to={{
+          pathname: `${issuesPath}${id}/activity/`,
+          // Filter activity to only show comments
+          query: {filter: 'comments'},
+        }}
+      >
         <IconChat
           size="xs"
           color={subscriptionDetails?.reason === 'mentioned' ? 'successText' : undefined}
@@ -230,13 +230,15 @@ const AnnotationNoMargin = styled(EventAnnotation)<{hasNewLayout: boolean}>`
 const LoggerAnnotation = styled(AnnotationNoMargin)`
   color: ${p => p.theme.textColor};
   position: relative;
+  min-width: 10px;
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Location = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  min-width: 0;
+  min-width: 10px;
   ${p => p.theme.overflowEllipsis};
 `;
 
-export default withOrganization(EventOrGroupExtraDetails);
+export default EventOrGroupExtraDetails;

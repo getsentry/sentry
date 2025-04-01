@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import HotkeysLabel from 'sentry/components/hotkeysLabel';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -197,9 +197,9 @@ function HighlightedRestOfWords({
   isFirstWordHidden,
   hasSplit,
 }: HighlightedRestOfWordsProps) {
-  const remainingSubstr = !searchSubstring.includes(firstWord)
-    ? searchSubstring
-    : searchSubstring.slice(firstWord.length + 1);
+  const remainingSubstr = searchSubstring.includes(firstWord)
+    ? searchSubstring.slice(firstWord.length + 1)
+    : searchSubstring;
   const descIdx = combinedRestWords.indexOf(remainingSubstr);
 
   if (descIdx > -1) {
@@ -234,7 +234,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
 
   const fullWord = item.title;
 
-  const words = item.kind !== FieldKind.FUNCTION ? fullWord.split('.') : [fullWord];
+  const words = item.kind === FieldKind.FUNCTION ? [fullWord] : fullWord.split('.');
   const [firstWord, ...restWords] = words;
   const isFirstWordHidden = isChild;
 
@@ -401,13 +401,17 @@ function DropdownItem({
         className={`${isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
         data-test-id="search-autocomplete-item"
         onClick={
-          !isDisabled
-            ? item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
+          isDisabled
+            ? undefined
+            : item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
               ? undefined
-              : item.callback ?? onClick.bind(null, item.value, item)
-            : undefined
+              : (item.callback ?? onClick.bind(null, item.value, item))
         }
-        ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
+        ref={element => {
+          if (item.active && element) {
+            element.scrollIntoView?.({block: 'nearest'});
+          }
+        }}
         isChild={isChild}
         isDisabled={isDisabled}
       >
@@ -480,7 +484,7 @@ function QueryItem({item, additionalSearchConfig}: QueryItemProps) {
   );
 }
 
-const SearchDropdownOverlay = styled(Overlay)`
+const SearchDropdownOverlay = styled(Overlay)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 100%;
   left: -1px;
@@ -499,7 +503,7 @@ const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -513,7 +517,7 @@ const SearchDropdownGroupTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -637,7 +641,7 @@ const DropdownFooter = styled(`div`)`
 `;
 
 const HotkeyGlyphWrapper = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-right: ${space(0.5)};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

@@ -13,9 +13,7 @@ export const SectionHeader = styled('div')`
 `;
 
 export const SectionLabel = styled('h6')<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.gray500)};
-  height: ${p => p.theme.form.md.height};
-  min-height: ${p => p.theme.form.md.minHeight};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray500)};
   font-size: ${p => p.theme.form.md.fontSize};
   margin: 0;
   text-decoration: underline dotted

@@ -29,9 +29,10 @@ describe('EvidencePreview', () => {
   });
 
   it('shows error when request fails', async () => {
-    const api = new MockApiClient();
-    jest.spyOn(useApi, 'default').mockReturnValue(api);
-    jest.spyOn(api, 'requestPromise').mockRejectedValue(new Error());
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/group-id/events/recommended/',
+      statusCode: 500,
+    });
 
     render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
 

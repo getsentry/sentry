@@ -7,8 +7,8 @@ import {
   transferProject,
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -320,12 +320,12 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.name!, projectIdField, fields.platform!]}
+            fields={[fields.name, projectIdField, fields.platform]}
           />
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}
-            fields={[fields.subjectPrefix!]}
+            fields={[fields.subjectPrefix]}
           />
         </Form>
         <Hook
@@ -336,18 +336,18 @@ class ProjectGeneralSettings extends DeprecatedAsyncComponent<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Event Settings')}
-            fields={[fields.resolveAge!]}
+            fields={[fields.resolveAge]}
           />
 
           <JsonForm
             {...jsonFormProps}
             title={t('Client Security')}
             fields={[
-              fields.allowedDomains!,
-              fields.scrapeJavaScript!,
-              fields.securityToken!,
-              fields.securityTokenHeader!,
-              fields.verifySSL!,
+              fields.allowedDomains,
+              fields.scrapeJavaScript,
+              fields.securityToken,
+              fields.securityTokenHeader,
+              fields.verifySSL,
             ]}
             renderHeader={() => (
               <PanelAlert type="info">

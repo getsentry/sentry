@@ -1,7 +1,5 @@
-import styled from '@emotion/styled';
-
-import {LinkButton} from 'sentry/components/button';
-import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
+import {LinkButton} from 'sentry/components/core/button';
+import {SpanEvidenceTraceView} from 'sentry/components/events/interfaces/performance/spanEvidenceTraceView';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -14,12 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import TraceView from '../spans/traceView';
-import type {TraceContextType} from '../spans/types';
-import WaterfallModel from '../spans/waterfallModel';
 
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
 
@@ -29,21 +21,12 @@ interface Props {
   projectSlug: string;
 }
 
-export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
-  span_id: string; // TODO: Remove this temporary type.
-};
-
-export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
-  if (!event) {
-    return null;
-  }
-
-  const {affectedSpanIds, focusedSpanIds} = getProblemSpansForSpanTree(event);
-
-  const profileId = event.contexts?.profile?.profile_id ?? null;
-
-  const hasProfilingFeature = organization.features.includes('profiling');
-
+function SpanEvidenceInteriumSection({
+  children,
+  event,
+  organization,
+  projectSlug,
+}: {children: React.ReactNode} & Props) {
   const typeId = event.occurrence?.type;
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const issueTitle = event.occurrence?.issueTitle;
@@ -75,47 +58,31 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         )
       }
     >
-      <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
-      {hasProfilingFeature ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={projectSlug}
-          profileMeta={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <TraceViewWrapper>
-                  <TraceView
-                    organization={organization}
-                    waterfallModel={
-                      new WaterfallModel(event, affectedSpanIds, focusedSpanIds)
-                    }
-                    isEmbedded
-                  />
-                </TraceViewWrapper>
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : (
-        <TraceViewWrapper>
-          <TraceView
-            organization={organization}
-            waterfallModel={new WaterfallModel(event, affectedSpanIds, focusedSpanIds)}
-            isEmbedded
-          />
-        </TraceViewWrapper>
-      )}
+      {children}
     </InterimSection>
   );
 }
 
-const TraceViewWrapper = styled('div')`
-  border: 1px solid ${p => p.theme.innerBorder};
-  border-radius: ${p => p.theme.borderRadius};
-`;
+export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
+  if (!event) {
+    return null;
+  }
+
+  const traceId = event.contexts.trace?.trace_id;
+  return (
+    <SpanEvidenceInteriumSection
+      event={event}
+      organization={organization}
+      projectSlug={projectSlug}
+    >
+      <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
+      {traceId && (
+        <SpanEvidenceTraceView
+          event={event}
+          organization={organization}
+          traceId={traceId}
+        />
+      )}
+    </SpanEvidenceInteriumSection>
+  );
+}

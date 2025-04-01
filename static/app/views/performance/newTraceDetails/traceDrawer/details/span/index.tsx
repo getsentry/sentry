@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -16,9 +17,17 @@ import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  LogsPageDataProvider,
+  useLogsPageData,
+} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsTable} from 'sentry/views/explore/logs/logsTable';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -44,14 +53,14 @@ function SpanNodeDetailHeader({
   onTabScrollToNode,
   project,
 }: {
-  node: TraceTreeNode<TraceTree.Span>;
+  node: TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
   project: Project | undefined;
 }) {
   const hasNewTraceUi = useHasTraceNewUi();
 
-  if (!hasNewTraceUi) {
+  if (!hasNewTraceUi && !isEAPSpanNode(node)) {
     return (
       <LegacySpanNodeDetailHeader
         node={node}
@@ -62,14 +71,15 @@ function SpanNodeDetailHeader({
     );
   }
 
+  const spanId = isEAPSpanNode(node) ? node.value.event_id : node.value.span_id;
   return (
     <TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.Title>
         <TraceDrawerComponents.LegacyTitleText>
           <TraceDrawerComponents.TitleText>{t('Span')}</TraceDrawerComponents.TitleText>
           <TraceDrawerComponents.SubtitleWithCopyButton
-            subTitle={`ID: ${node.value.span_id}`}
-            clipboardText={node.value.span_id}
+            subTitle={`ID: ${spanId}`}
+            clipboardText={spanId}
           />
         </TraceDrawerComponents.LegacyTitleText>
       </TraceDrawerComponents.Title>
@@ -133,6 +143,7 @@ function SpanSections({
   organization: Organization;
   project: Project | undefined;
 }) {
+  const theme = useTheme();
   const hasTraceNewUi = useHasTraceNewUi();
 
   if (!hasTraceNewUi) {
@@ -148,7 +159,7 @@ function SpanSections({
 
   const hasSpanSpecificData =
     hasSpanHTTPInfo(node.value) ||
-    hasSpanKeys(node) ||
+    hasSpanKeys(node, theme) ||
     hasSpanTags(node.value) ||
     hasSpanMeasurements(node.value);
 
@@ -161,9 +172,13 @@ function SpanSections({
         onParentClick={onParentClick}
       />
       {hasSpanSpecificData ? (
-        <InterimSection title={t('Span Specific')} type="span_specifc" initialCollapse>
+        <InterimSection
+          title={t('Span Specific')}
+          type="span_specifc"
+          disableCollapsePersistence
+        >
           <TraceDrawerComponents.SectionCardGroup>
-            {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+            {hasSpanKeys(node, theme) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
             {hasSpanTags(node.value) ? <Tags node={node} /> : null}
             {hasSpanMeasurements(node.value) ? (
@@ -174,6 +189,14 @@ function SpanSections({
       ) : null}
     </Fragment>
   );
+}
+
+function LogDetails() {
+  const {logsData} = useLogsPageData();
+  if (!logsData.data?.length) {
+    return null;
+  }
+  return <LogsTable tableData={logsData} showHeader={false} />;
 }
 
 function LegacySpanSections({
@@ -187,6 +210,7 @@ function LegacySpanSections({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }) {
+  const theme = useTheme();
   return (
     <TraceDrawerComponents.SectionCardGroup>
       <GeneralInfo
@@ -197,7 +221,7 @@ function LegacySpanSections({
       />
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
       {hasSpanTags(node.value) ? <Tags node={node} /> : null}
-      {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+      {hasSpanKeys(node, theme) ? <SpanKeys node={node} /> : null}
     </TraceDrawerComponents.SectionCardGroup>
   );
 }
@@ -229,7 +253,11 @@ function ProfileDetails({
   }
 
   return (
-    <InterimSection title={t('Profile')} type="span_profile_details" initialCollapse>
+    <InterimSection
+      title={t('Profile')}
+      type="span_profile_details"
+      disableCollapsePersistence
+    >
       <EmbededContentWrapper>
         <SpanProfileDetails span={span} event={event} />
       </EmbededContentWrapper>
@@ -246,7 +274,10 @@ export function SpanNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
-}: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Span>>) {
+  traceId,
+}: TraceTreeNodeDetailsProps<
+  TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>
+>) {
   const location = useLocation();
   const hasNewTraceUi = useHasTraceNewUi();
   const {projects} = useProjects();
@@ -258,6 +289,35 @@ export function SpanNodeDetails({
   const profileMeta = getProfileMeta(node.event) || '';
   const profileId =
     typeof profileMeta === 'string' ? profileMeta : profileMeta.profiler_id;
+
+  if (isEAPSpanNode(node)) {
+    return (
+      <TraceDrawerComponents.DetailContainer>
+        <SpanNodeDetailHeader
+          node={node}
+          organization={organization}
+          project={project}
+          onTabScrollToNode={onTabScrollToNode}
+        />
+        <TraceDrawerComponents.BodyContainer hasNewTraceUi={hasNewTraceUi}>
+          <LogsPageParamsProvider
+            isOnEmbeddedView
+            limitToTraceId={traceId}
+            limitToSpanId={node.value.event_id}
+            limitToProjectIds={[node.value.project_id]}
+            analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+          >
+            <LogsPageDataProvider>
+              {issues.length > 0 ? (
+                <IssueList organization={organization} issues={issues} node={node} />
+              ) : null}
+              <LogDetails />
+            </LogsPageDataProvider>
+          </LogsPageParamsProvider>
+        </TraceDrawerComponents.BodyContainer>
+      </TraceDrawerComponents.DetailContainer>
+    );
+  }
 
   return (
     <TraceDrawerComponents.DetailContainer>

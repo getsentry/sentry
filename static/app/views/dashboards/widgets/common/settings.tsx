@@ -1,6 +1,19 @@
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+// NOTE: This is a subset! Some types like `"string"`, `"date"`, and
+// `"percent_change"` are not supported yet. Once we support them, we can remove
+// this constant and any code that checks it.
+export const PLOTTABLE_TIME_SERIES_VALUE_TYPES = [
+  'number',
+  'integer',
+  'duration',
+  'percentage',
+  'size',
+  'rate',
+  'score',
+] as const;
+
 export const MIN_WIDTH = 110;
 export const MIN_HEIGHT = 96;
 

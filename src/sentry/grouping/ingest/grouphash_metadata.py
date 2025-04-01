@@ -144,12 +144,10 @@ def create_or_update_grouphash_metadata_if_needed(
             logger.info(
                 "grouphash_metadata.creation_race_condition.record_exists",
                 extra={
-                    "grouphash_metadata_id": grouphash_metadata.id,
-                    "linked_metadata_id": grouphash.metadata.id if grouphash.metadata else None,
                     "grouphash_id": grouphash.id,
                     "grouphash_is_new": grouphash_is_new,
+                    "grouphash_has_group": bool(grouphash.group_id),
                     "event_id": event.event_id,
-                    "hash_basis": new_data["hash_basis"],
                     "hash": grouphash.hash,
                 },
             )
@@ -161,6 +159,18 @@ def create_or_update_grouphash_metadata_if_needed(
             # results and to reduce load and preserve the project's Seer rate limit.
             event.should_skip_seer = True
             return
+
+        # TODO: Temporary log to investigate race condition.
+        logger.info(
+            "grouphash_metadata.creation_race_condition.new_record",
+            extra={
+                "grouphash_id": grouphash.id,
+                "grouphash_is_new": grouphash_is_new,
+                "grouphash_has_group": bool(grouphash.group_id),
+                "event_id": event.event_id,
+                "hash": grouphash.hash,
+            },
+        )
 
         db_hit_metadata = {"reason": "new_grouphash" if grouphash_is_new else "missing_metadata"}
 

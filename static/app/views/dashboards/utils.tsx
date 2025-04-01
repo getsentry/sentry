@@ -451,9 +451,11 @@ export function isWidgetUsingTransactionName(widget: Widget) {
         }
         return acc;
       }, []);
-      const transactionSelected = [...aggregateArgs, ...columns, ...(fields ?? [])].some(
-        field => field === 'transaction'
-      );
+      const transactionSelected = [
+        ...aggregateArgs,
+        ...columns,
+        ...(fields ?? []),
+      ].includes('transaction');
       const transactionUsedInFilter = parseSearch(conditions)?.some(
         parsedCondition =>
           parsedCondition.type === Token.FILTER &&
@@ -466,8 +468,7 @@ export function isWidgetUsingTransactionName(widget: Widget) {
 
 export function hasSavedPageFilters(dashboard: DashboardDetails) {
   return !(
-    dashboard.projects &&
-    dashboard.projects.length === 0 &&
+    (dashboard.projects === undefined || dashboard.projects.length === 0) &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
@@ -565,7 +566,7 @@ export function getCurrentPageFilters(
           ? [Number(project)]
           : project.map(Number),
     environment:
-      typeof environment === 'string' ? [environment] : environment ?? undefined,
+      typeof environment === 'string' ? [environment] : (environment ?? undefined),
     period: statsPeriod as string | undefined,
     start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,

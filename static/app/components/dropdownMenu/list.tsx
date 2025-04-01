@@ -60,11 +60,11 @@ export interface DropdownMenuListProps
   /**
    * To be displayed below the menu items
    */
-  menuFooter?: React.ReactChild;
+  menuFooter?: React.ReactNode;
   /**
    * Title to display on top of the menu
    */
-  menuTitle?: React.ReactChild;
+  menuTitle?: React.ReactNode;
   /**
    * Minimum menu width
    */
@@ -240,7 +240,7 @@ function DropdownMenuList({
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
-        <DropdownMenuContext.Provider value={contextValue}>
+        <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             <DropdownMenuListWrap
@@ -256,7 +256,7 @@ function DropdownMenuList({
             </DropdownMenuListWrap>
             {menuFooter}
           </StyledOverlay>
-        </DropdownMenuContext.Provider>
+        </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
   );

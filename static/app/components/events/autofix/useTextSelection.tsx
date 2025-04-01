@@ -5,11 +5,14 @@ interface TextSelection {
   selectedText: string;
 }
 
-export function useTextSelection(containerRef: React.RefObject<HTMLElement>) {
+export function useTextSelection(containerRef: React.RefObject<HTMLElement | null>) {
   const [selection, setSelection] = useState<TextSelection | null>(null);
 
   const isClickInPopup = (target: HTMLElement) =>
     target.closest('[data-popup="autofix-highlight"]');
+
+  const shouldIgnoreElement = (target: HTMLElement) =>
+    target.closest('[data-ignore-autofix-highlight="true"]');
 
   const handleClick = useCallback(
     (event: MouseEvent) => {
@@ -20,6 +23,11 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement>) {
         return;
       }
 
+      // If clicking in an ignored element, do nothing
+      if (shouldIgnoreElement(target)) {
+        return;
+      }
+
       // Check if the click is within our container
       const isContainedWithin = containerRef.current?.contains(target);
       if (!isContainedWithin) {
@@ -27,22 +35,23 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement>) {
         return;
       }
 
-      // Get the text content of the clicked element
+      // Get the text content of the clicked element or its container
       const clickedText = target.textContent?.trim() || '';
       if (!clickedText) {
         setSelection(null);
         return;
       }
 
-      // Clear selection if clicking the same text
-      if (selection?.referenceElement === target) {
+      // Clear selection if clicking within the same container while already selected
+      if (selection?.referenceElement === containerRef.current) {
         setSelection(null);
         return;
       }
 
+      // Use the containerRef as the reference element for positioning
       setSelection({
         selectedText: clickedText,
-        referenceElement: target,
+        referenceElement: containerRef.current,
       });
     },
     [containerRef, selection]

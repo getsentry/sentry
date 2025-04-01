@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import {IconTable} from 'sentry/icons/iconTable';
 import {t} from 'sentry/locale';
@@ -26,12 +26,14 @@ import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
 
 interface BaseExploreTablesProps {
   confidences: Confidence[];
+  isProgressivelyLoading: boolean;
   samplesTab: Tab;
   setSamplesTab: (tab: Tab) => void;
 }
 
 interface ExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }
@@ -49,6 +51,7 @@ export function ExploreTables(props: ExploreTablesProps) {
 
 interface AggregatesExploreTablesProps extends BaseExploreTablesProps {
   aggregatesTableResult: AggregatesTableResult;
+  isProgressivelyLoading: boolean;
 }
 
 function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
@@ -56,6 +59,7 @@ function ExploreAggregatesTable(props: AggregatesExploreTablesProps) {
 }
 
 interface SamplesExploreTablesProps extends BaseExploreTablesProps {
+  isProgressivelyLoading: boolean;
   spansTableResult: SpansTableResult;
   tracesTableResult: TracesTableResult;
 }
@@ -64,8 +68,8 @@ function ExploreSamplesTable(props: SamplesExploreTablesProps) {
   const fields = useExploreFields();
   const setFields = useSetExploreFields();
 
-  const numberTags = useSpanTags('number');
-  const stringTags = useSpanTags('string');
+  const {tags: numberTags} = useSpanTags('number');
+  const {tags: stringTags} = useSpanTags('string');
 
   const openColumnEditor = useCallback(() => {
     openModal(
@@ -109,5 +113,5 @@ const SamplesTableHeader = styled('div')`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(1)};
 `;

@@ -6,36 +6,14 @@ from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
+from sentry.issues.auto_source_code_config.utils.platform import get_supported_extensions
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
 
-# We only care about extensions of files which would show up in stacktraces after symbolication
-SUPPORTED_EXTENSIONS = [
-    "clj",
-    "cljc",
-    "cljcs",
-    "cs",
-    "go",
-    "groovy",
-    "java",
-    "js",
-    "jsp",
-    "jsx",
-    "kt",
-    "kts",
-    "mjs",
-    "php",
-    "py",
-    "rake",
-    "rb",
-    "scala",
-    "sc",
-    "ts",
-    "tsx",
-]
 EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
@@ -86,11 +64,13 @@ class RepoTreesIntegration(ABC):
 
     def get_trees_for_org(self) -> dict[str, RepoTree]:
         trees = {}
-        repositories = self._populate_repositories()
+        with metrics.timer("integrations.source_code_management.populate_repositories.duration"):
+            repositories = self._populate_repositories()
         if not repositories:
             logger.warning("Fetching repositories returned an empty list.")
         else:
-            trees = self._populate_trees(repositories)
+            with metrics.timer("integrations.source_code_management.populate_trees.duration"):
+                trees = self._populate_trees(repositories)
 
         return trees
 
@@ -103,7 +83,9 @@ class RepoTreesIntegration(ABC):
         )
         repositories: list[dict[str, str]] = cache.get(cache_key, [])
 
+        use_cache = True
         if not repositories:
+            use_cache = False
             repositories = [
                 # Do not use RepoAndBranch so it stores in the cache as a simple dict
                 {
@@ -113,6 +95,11 @@ class RepoTreesIntegration(ABC):
                 for repo_info in self.get_repositories()
                 if not repo_info.get("archived")
             ]
+
+        metrics.incr(
+            "integrations.source_code_management.populate_repositories",
+            tags={"cached": use_cache, "integration": self.integration_name},
+        )
 
         if repositories:
             cache.set(cache_key, repositories, self.CACHE_SECONDS)
@@ -137,6 +124,11 @@ class RepoTreesIntegration(ABC):
             logger.warning(
                 "Loading trees from cache. Execution will continue. Check logs.", exc_info=True
             )
+
+        metrics.incr(
+            "integrations.source_code_management.populate_trees",
+            tags={"cached": use_cache, "integration": self.integration_name},
+        )
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
@@ -248,8 +240,7 @@ def filter_source_code_files(files: list[str]) -> list[str]:
     # represent a directory in the path
     for file_path in files:
         try:
-            extension = get_extension(file_path)
-            if extension in SUPPORTED_EXTENSIONS and should_include(file_path):
+            if should_include(file_path):
                 supported_files.append(file_path)
         except Exception:
             logger.exception("We've failed to store the file path.")
@@ -268,9 +259,11 @@ def get_extension(file_path: str) -> str:
 
 
 def should_include(file_path: str) -> bool:
-    include = True
+    extension = get_extension(file_path)
+    if extension not in get_supported_extensions():
+        return False
     if any(file_path.endswith(ext) for ext in EXCLUDED_EXTENSIONS):
-        include = False
+        return False
     if any(file_path.startswith(path) for path in EXCLUDED_PATHS):
-        include = False
-    return include
+        return False
+    return True

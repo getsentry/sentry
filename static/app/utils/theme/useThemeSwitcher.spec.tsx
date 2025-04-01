@@ -6,6 +6,7 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {DO_NOT_USE_darkChonkTheme, DO_NOT_USE_lightChonkTheme} from './theme.chonk';
@@ -15,7 +16,7 @@ jest.mock('sentry/utils/removeBodyTheme');
 
 describe('useChonkTheme', () => {
   beforeEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     OrganizationStore.reset();
     ConfigStore.loadInitialData(
       ConfigFixture({
@@ -41,7 +42,7 @@ describe('useChonkTheme', () => {
   });
 
   it('returns null if organization has chonk-ui feature and session storage is unset', () => {
-    sessionStorage.clear();
+    localStorage.clear();
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -53,7 +54,7 @@ describe('useChonkTheme', () => {
   });
 
   it('returns light theme if organization has chonk-ui feature and session storage is set to light', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'light'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'light'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -65,7 +66,7 @@ describe('useChonkTheme', () => {
   });
 
   it('returns dark theme if organization has chonk-ui feature and dark theme is selected', () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -77,7 +78,7 @@ describe('useChonkTheme', () => {
   });
 
   it('unsets chonk theme on config store theme change', async () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],
@@ -97,7 +98,7 @@ describe('useChonkTheme', () => {
   });
 
   it('unsets chonk theme if new organization does not have chonk-ui feature', async () => {
-    sessionStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
+    localStorage.setItem('chonk-theme', JSON.stringify({theme: 'dark'}));
     OrganizationStore.onUpdate(
       OrganizationFixture({
         features: ['chonk-ui'],

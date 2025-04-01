@@ -16,6 +16,7 @@ from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationMetadata,
     IntegrationProvider,
@@ -133,6 +134,7 @@ class JiraIntegration(IssueSyncIntegration):
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
     resolution_strategy_key = "resolution_strategy"
+    comment_key = "sync_comments"
 
     @classproperty
     def use_email_scope(cls):
@@ -356,10 +358,12 @@ class JiraIntegration(IssueSyncIntegration):
             data[self.issues_ignored_fields_key] = ignored_fields_list
 
         config.update(data)
-        self.org_integration = integration_service.update_organization_integration(
+        org_integration = integration_service.update_organization_integration(
             org_integration_id=self.org_integration.id,
             config=config,
         )
+        if org_integration is not None:
+            self.org_integration = org_integration
 
     def _filter_active_projects(self, project_mappings: Sequence[IntegrationExternalProject]):
         project_ids_set = {p["id"] for p in self.get_client().get_projects_list()}
@@ -1107,7 +1111,7 @@ class JiraIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self) -> list[PipelineView]:
         return []
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         # Most information is not available during integration installation,
         # since the integration won't have been fully configured on JIRA's side
         # yet, we can't make API calls for more details like the server name or

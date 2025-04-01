@@ -96,7 +96,7 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
       preferences: props.initialPreferences,
       tabs: {
         tabs: hasTraceNewUi ? [] : STATIC_DRAWER_TABS,
-        current_tab: hasTraceNewUi ? null : STATIC_DRAWER_TABS[0] ?? null,
+        current_tab: hasTraceNewUi ? null : (STATIC_DRAWER_TABS[0] ?? null),
         last_clicked_tab: null,
       },
     }
@@ -109,12 +109,12 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
   }, [traceState.preferences, props.preferencesStorageKey]);
 
   return (
-    <TraceStateContext.Provider value={traceState}>
-      <TraceStateDispatchContext.Provider value={traceDispatch}>
-        <TraceStateEmitterContext.Provider value={traceStateEmitter}>
+    <TraceStateContext value={traceState}>
+      <TraceStateDispatchContext value={traceDispatch}>
+        <TraceStateEmitterContext value={traceStateEmitter}>
           {props.children}
-        </TraceStateEmitterContext.Provider>
-      </TraceStateDispatchContext.Provider>
-    </TraceStateContext.Provider>
+        </TraceStateEmitterContext>
+      </TraceStateDispatchContext>
+    </TraceStateContext>
   );
 }

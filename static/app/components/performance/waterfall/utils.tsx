@@ -2,7 +2,6 @@ import {css, type Theme} from '@emotion/react';
 import Color from 'color';
 
 import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 
 import type {SpanBarType} from './constants';
@@ -238,22 +237,20 @@ const getLetterIndex = (letter: string): number => {
   return index === -1 ? 0 : index;
 };
 
-// @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
-const colorsAsArray = Object.keys(CHART_PALETTE).map(key => CHART_PALETTE[17][key]);
+export const makeBarColors = (theme: Theme) => ({
+  default: theme.chart.colors[17][4],
+  transaction: theme.chart.colors[17][8],
+  http: theme.chart.colors[17][10],
+  db: theme.chart.colors[17][17],
+});
 
-export const barColors = {
-  default: CHART_PALETTE[17][4],
-  transaction: CHART_PALETTE[17][8],
-  http: CHART_PALETTE[17][10],
-  db: CHART_PALETTE[17][17],
-};
-
-export const pickBarColor = (input: string | undefined): string => {
+export const pickBarColor = (input: string | undefined, theme: Theme): string => {
   // We pick the color for span bars using the first three letters of the op name.
   // That way colors stay consistent between transactions.
+  const barColors = makeBarColors(theme);
 
   if (!input || input.length < 3) {
-    return CHART_PALETTE[17][4];
+    return theme.chart.colors[17][4];
   }
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -261,6 +258,11 @@ export const pickBarColor = (input: string | undefined): string => {
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return barColors[input];
   }
+
+  const colorsAsArray = Object.keys(theme.chart.colors[17]).map(
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+    key => theme.chart.colors[17][key]
+  );
 
   const letterIndex1 = getLetterIndex(input[0]!);
   const letterIndex2 = getLetterIndex(input[1]!);
@@ -274,8 +276,9 @@ export const pickBarColor = (input: string | undefined): string => {
 
 export const lightenBarColor = (
   input: string | undefined,
-  lightenRatio: number
+  lightenRatio: number,
+  theme: Theme
 ): string => {
-  const barColor = pickBarColor(input);
+  const barColor = pickBarColor(input, theme);
   return Color(barColor).lighten(lightenRatio).string();
 };

@@ -1,10 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -24,7 +25,7 @@ import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCard
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {VITAL_GROUPS, ZOOM_KEYS} from './constants';
+import {makeVitalGroups, makeZoomKeys} from './constants';
 import {isMissingVitalsData} from './utils';
 import VitalsPanel from './vitalsPanel';
 
@@ -36,12 +37,12 @@ type Props = {
 
 function VitalsContent(props: Props) {
   const {location, organization, eventView} = props;
+  const theme = useTheme();
   const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
-
   const handleSearch = (newQuery: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query: newQuery,
     });
 
@@ -54,12 +55,14 @@ function VitalsContent(props: Props) {
     });
   };
 
-  const allVitals = VITAL_GROUPS.reduce((keys: WebVital[], {vitals}) => {
+  const allVitals = makeVitalGroups(theme).reduce((keys: WebVital[], {vitals}) => {
     return keys.concat(vitals);
   }, []);
 
+  const zoomKeys = useMemo(() => makeZoomKeys(), []);
+
   return (
-    <Histogram location={location} zoomKeys={ZOOM_KEYS}>
+    <Histogram location={location} zoomKeys={zoomKeys}>
       {({activeFilter, handleFilterChange, handleResetView, isZoomed}) => (
         <Layout.Main fullWidth>
           <VitalsCardsDiscoverQuery
@@ -131,6 +134,7 @@ function VitalsContent(props: Props) {
                     </Button>
                   </FilterActions>
                   <VitalsPanel
+                    theme={theme}
                     organization={organization}
                     location={location}
                     eventView={eventView}

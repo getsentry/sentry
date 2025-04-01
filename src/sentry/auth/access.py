@@ -9,6 +9,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import features, roles
@@ -896,10 +897,14 @@ class NoAccess(OrganizationlessAccess):
 
 def from_request_org_and_scopes(
     *,
-    request: Request,
+    request: HttpRequest,
     rpc_user_org_context: RpcUserOrganizationContext | None = None,
     scopes: Iterable[str] | None = None,
 ) -> Access:
+    """
+    Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
+    when the request is made from the frontend using cookies
+    """
     is_superuser = is_active_superuser(request)
     is_staff = is_active_staff(request)
 
@@ -928,6 +933,8 @@ def from_request_org_and_scopes(
         superuser_scopes = get_superuser_scopes(auth_state, request.user, rpc_user_org_context)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
+        if member and member.scopes:
+            superuser_scopes = superuser_scopes.union(set(member.scopes))
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
@@ -1032,6 +1039,8 @@ def from_request(
         superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
+        if member and (member_scopes := member.get_scopes()):
+            superuser_scopes = superuser_scopes.union(set(member_scopes))
 
         return OrganizationGlobalAccess(
             organization=organization,

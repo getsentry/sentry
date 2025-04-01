@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button, LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -21,11 +21,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
-import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
-import ColumnEditCollection from './columnEditCollection';
+import {ColumnEditCollection} from './columnEditCollection';
 
 type Props = {
   columns: Column[];
@@ -39,6 +38,8 @@ type Props = {
 } & ModalRenderProps;
 
 function ColumnEditModal(props: Props) {
+  const theme = useTheme();
+
   const {
     Header,
     Body,
@@ -132,6 +133,7 @@ function ColumnEditModal(props: Props) {
           )}
         </Instruction>
         <ColumnEditCollection
+          theme={theme}
           columns={columns}
           fieldOptions={fieldOptions}
           filterAggregateParameters={option =>
@@ -165,7 +167,7 @@ const Instruction = styled('div')`
   margin-bottom: ${space(4)};
 `;
 
-const modalCss = css`
+const modalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.medium}) {
     width: auto;
     max-width: 900px;

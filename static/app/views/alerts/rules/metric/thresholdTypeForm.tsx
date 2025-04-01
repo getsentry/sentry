@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Select} from 'sentry/components/core/select';
 import RadioGroup, {type RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -11,8 +11,7 @@ import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constan
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
-import type {Dataset} from './types';
-import {AlertRuleComparisonType} from './types';
+import {AlertRuleComparisonType, Dataset} from './types';
 
 type Props = {
   alertType: MetricAlertType;
@@ -54,17 +53,21 @@ function ThresholdTypeForm({
     organization.features.includes('anomaly-detection-alerts') &&
     organization.features.includes('anomaly-detection-rollout');
 
+  let comparisonDeltaOptions = COMPARISON_DELTA_OPTIONS;
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    // Don't allow comparisons over a week for span alerts
+    comparisonDeltaOptions = comparisonDeltaOptions.filter(delta => delta.value <= 10080);
+  }
+
   const thresholdTypeChoices: RadioOption[] = [
     [AlertRuleComparisonType.COUNT, 'Static: above or below {x}'],
     [
       AlertRuleComparisonType.CHANGE,
-      comparisonType !== AlertRuleComparisonType.CHANGE ? (
-        t('Percent Change: {x%} higher or lower compared to previous period')
-      ) : (
+      comparisonType === AlertRuleComparisonType.CHANGE ? (
         // Prevent default to avoid dropdown menu closing on click
         <ComparisonContainer onClick={e => e.preventDefault()}>
           {t('Percent Change: {x%} higher or lower compared to')}
-          <SelectControl
+          <Select
             name="comparisonDelta"
             styles={{
               container: (provided: {[x: string]: string | number | boolean}) => ({
@@ -87,10 +90,12 @@ function ThresholdTypeForm({
             }}
             value={comparisonDelta}
             onChange={({value}: any) => onComparisonDeltaChange(value)}
-            options={COMPARISON_DELTA_OPTIONS}
+            options={comparisonDeltaOptions}
             required={comparisonType === AlertRuleComparisonType.CHANGE}
           />
         </ComparisonContainer>
+      ) : (
+        t('Percent Change: {x%} higher or lower compared to previous period')
       ),
     ],
   ];
@@ -101,9 +106,9 @@ function ThresholdTypeForm({
       <ComparisonContainer key="Dynamic">
         {t('Anomaly: whenever values are outside of expected bounds')}
         <FeatureBadge
-          type="alpha"
+          type="beta"
           tooltipProps={{
-            title: t('Anomaly detection is in alpha and may produce inaccurate results'),
+            title: t('Anomaly detection is in beta and may produce unexpected results'),
             isHoverable: true,
           }}
         />

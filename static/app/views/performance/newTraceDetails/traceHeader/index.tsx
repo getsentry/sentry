@@ -1,9 +1,11 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
+import Feature from 'sentry/components/acl/feature';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -21,16 +23,17 @@ import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {ProjectsRenderer} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
-import {isRootTransaction} from '../../traceDetails/utils';
+import {isRootEvent} from '../../traceDetails/utils';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import TraceConfigurations from '../traceConfigurations';
-import {isTraceNode} from '../traceGuards';
+import {isEAPTraceNode, isTraceNode} from '../traceGuards';
 import type {TraceTree} from '../traceModels/traceTree';
 import {useHasTraceNewUi} from '../useHasTraceNewUi';
 
@@ -70,6 +73,36 @@ function FeedbackButton() {
   ) : null;
 }
 
+export const TRACE_FORMAT_PREFERENCE_KEY = 'trace_format_preference';
+
+export function ToggleTraceFormatButton({
+  organization,
+}: {
+  location: Location;
+  organization: Organization;
+}) {
+  const [storedTraceFormat, setStoredTraceFormat] = useSyncedLocalStorageState(
+    TRACE_FORMAT_PREFERENCE_KEY,
+    'non-eap'
+  );
+
+  return (
+    <Feature organization={organization} features="trace-spans-format">
+      <Button
+        size="xs"
+        aria-label="toggle-trace-format-btn"
+        onClick={() => {
+          setStoredTraceFormat(storedTraceFormat === 'eap' ? 'non-eap' : 'eap');
+        }}
+      >
+        {storedTraceFormat === 'eap'
+          ? t('Switch to Non-EAP Trace')
+          : t('Switch to EAP Trace')}
+      </Button>
+    </Feature>
+  );
+}
+
 function PlaceHolder({organization}: {organization: Organization}) {
   const {view} = useDomainViewFilters();
   const moduleURLBuilder = useModuleURLBuilder(true);
@@ -87,7 +120,10 @@ function PlaceHolder({organization}: {organization: Organization}) {
               view
             )}
           />
-          <FeedbackButton />
+          <ButtonBar gap={1}>
+            <ToggleTraceFormatButton location={location} organization={organization} />
+            <FeedbackButton />
+          </ButtonBar>
         </HeaderRow>
         <HeaderRow>
           <PlaceHolderTitleWrapper>
@@ -133,45 +169,48 @@ const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>
 
 const CANDIDATE_TRACE_TITLE_OPS = ['pageload', 'navigation'];
 
-export const getRepresentativeTransaction = (
+export const getRepresentativeEvent = (
   tree: TraceTree
-): TraceTree.Transaction | null => {
+): TraceTree.Transaction | TraceTree.EAPSpan | null => {
   const traceNode = tree.root.children[0];
 
   if (!traceNode) {
     return null;
   }
 
-  if (!isTraceNode(traceNode)) {
+  if (!isTraceNode(traceNode) && !isEAPTraceNode(traceNode)) {
     throw new TypeError('Not trace node');
   }
 
-  let firstRootTransaction: TraceTree.Transaction | null = null;
-  let candidateTransaction: TraceTree.Transaction | null = null;
-  let firstTransaction: TraceTree.Transaction | null = null;
+  let firstRootEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let candidateEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
+  let firstEvent: TraceTree.Transaction | TraceTree.EAPSpan | null = null;
 
-  for (const transaction of traceNode.value.transactions || []) {
+  const events = isTraceNode(traceNode) ? traceNode.value.transactions : traceNode.value;
+  for (const event of events) {
     // If we find a root transaction, we can stop looking and use it for the title.
-    if (!firstRootTransaction && isRootTransaction(transaction)) {
-      firstRootTransaction = transaction;
+    if (!firstRootEvent && isRootEvent(event)) {
+      firstRootEvent = event;
       break;
     } else if (
       // If we haven't found a root transaction, but we found a candidate transaction
       // with an op that we care about, we can use it for the title. We keep looking for
       // a root.
-      !candidateTransaction &&
-      CANDIDATE_TRACE_TITLE_OPS.includes(transaction['transaction.op'])
+      !candidateEvent &&
+      CANDIDATE_TRACE_TITLE_OPS.includes(
+        'transaction.op' in event ? event['transaction.op'] : event.op
+      )
     ) {
-      candidateTransaction = transaction;
+      candidateEvent = event;
       continue;
-    } else if (!firstTransaction) {
+    } else if (!firstEvent) {
       // If we haven't found a root or candidate transaction, we can use the first transaction
       // in the trace for the title.
-      firstTransaction = transaction;
+      firstEvent = event;
     }
   }
 
-  return firstRootTransaction ?? candidateTransaction ?? firstTransaction;
+  return firstRootEvent ?? candidateEvent ?? firstEvent;
 };
 
 function LegacyTraceMetadataHeader(props: TraceMetadataHeaderProps) {
@@ -245,14 +284,14 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
 
   const isLoading =
     props.metaResults.status === 'pending' ||
-    props.rootEventResults.isPending ||
+    props.rootEventResults.isLoading ||
     props.tree.type === 'loading';
 
   if (isLoading) {
     return <PlaceHolder organization={props.organization} />;
   }
 
-  const representativeTransaction = getRepresentativeTransaction(props.tree);
+  const representativeTransaction = getRepresentativeEvent(props.tree);
 
   return (
     <HeaderLayout>
@@ -266,7 +305,13 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
               view
             )}
           />
-          <FeedbackButton />
+          <ButtonBar gap={1}>
+            <ToggleTraceFormatButton
+              location={location}
+              organization={props.organization}
+            />
+            <FeedbackButton />
+          </ButtonBar>
         </HeaderRow>
         <HeaderRow>
           <Title
@@ -282,22 +327,24 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             representativeTransaction={representativeTransaction}
           />
         </HeaderRow>
-        <StyledBreak />
         {props.rootEventResults.data ? (
-          <HeaderRow>
-            <StyledWrapper>
-              <HighlightsIconSummary event={props.rootEventResults.data} />
-            </StyledWrapper>
-            <ProjectsRendererWrapper>
-              <ProjectsRenderer
-                disableLink
-                onProjectClick={onProjectClick}
-                projectSlugs={projectSlugs}
-                visibleAvatarSize={24}
-                maxVisibleProjects={3}
-              />
-            </ProjectsRendererWrapper>
-          </HeaderRow>
+          <Fragment>
+            <StyledBreak />
+            <HeaderRow>
+              <StyledWrapper>
+                <HighlightsIconSummary event={props.rootEventResults.data} />
+              </StyledWrapper>
+              <ProjectsRendererWrapper>
+                <ProjectsRenderer
+                  disableLink
+                  onProjectClick={onProjectClick}
+                  projectSlugs={projectSlugs}
+                  visibleAvatarSize={24}
+                  maxVisibleProjects={3}
+                />
+              </ProjectsRendererWrapper>
+            </HeaderRow>
+          </Fragment>
         ) : null}
       </HeaderContent>
     </HeaderLayout>

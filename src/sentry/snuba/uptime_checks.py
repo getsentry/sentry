@@ -4,7 +4,7 @@ from snuba_sdk import Column, Condition
 
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.uptime_check_columns import UPTIME_CHECK_DEFINITIONS
+from sentry.search.eap.uptime_checks.definitions import UPTIME_CHECK_DEFINITIONS
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -57,6 +57,7 @@ def query(
         offset=offset or 0,
         limit=limit,
         referrer=referrer or "referrer unset",
+        sampling_mode=None,
         resolver=get_resolver(
             params=snuba_params,
             config=SearchResolverConfig(

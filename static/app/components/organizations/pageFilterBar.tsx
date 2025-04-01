@@ -1,3 +1,5 @@
+import type {DO_NOT_USE_ChonkTheme, Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -7,13 +9,17 @@ import {space} from 'sentry/styles/space';
 // and static/app/views/explore/multiQueryMode/queryConstructors/visualize.tsx
 // and not just for PageFilters as the name indicates.
 const PageFilterBar = styled('div')<{condensed?: boolean}>`
+  ${p => (p.theme.isChonk ? chonkPageFilterBarStyles(p as any) : pageFilterBarStyles(p))}
+`;
+
+const pageFilterBarStyles = (p: {theme: Theme; condensed?: boolean}) => css`
   display: flex;
   position: relative;
-  border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p.theme.form.md.height}px;
-  ${p =>
-    p.condensed &&
-    `
+  border-radius: ${p.theme.borderRadius};
+  height: ${p.theme.form.md.height};
+
+  ${p.condensed &&
+  css`
     max-width: 100%;
     width: max-content;
   `}
@@ -26,8 +32,8 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     left: 0;
     right: 0;
     pointer-events: none;
-    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
-    border-radius: ${p => p.theme.borderRadius};
+    box-shadow: inset 0 0 0 1px ${p.theme.border};
+    border-radius: ${p.theme.borderRadius};
   }
 
   & [role='button'] {
@@ -52,8 +58,8 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
   }
 
   & button[aria-haspopup]:focus-visible {
-    border-color: ${p => p.theme.focusBorder};
-    box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};
+    border-color: ${p.theme.focusBorder};
+    box-shadow: 0 0 0 1px ${p.theme.focusBorder};
     z-index: 1;
   }
 
@@ -67,7 +73,7 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     except in mobile */
     &:first-child {
       flex-shrink: 0;
-      @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
+      @media only screen and (max-width: ${p.theme.breakpoints.small}) {
         flex-shrink: 1;
       }
     }
@@ -83,17 +89,84 @@ const PageFilterBar = styled('div')<{condensed?: boolean}>`
     position: absolute;
     height: 60%;
     width: 1px;
-    background-color: ${p => p.theme.innerBorder};
+    background-color: ${p.theme.innerBorder};
     left: 0;
     top: 50%;
     transform: translateY(-50%);
   }
+`;
 
+const chonkPageFilterBarStyles = (p: {
+  theme: DO_NOT_USE_ChonkTheme;
+  condensed?: boolean;
+}) => css`
+  /* No idea what this is supposed to style, but I am afraid to remove it */
   & > *:hover::after,
   & > *[data-is-open='true']::after,
   & > *:hover + *:not(:first-child)::after,
   & > *[data-is-open='true'] + *:not(:first-child)::after {
     display: none;
+  }
+
+  & > * {
+    min-width: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: max-content;
+
+    /* Prevent project filter from shrinking (it has in-built max character count)
+except in mobile */
+    &:first-child {
+      flex-shrink: 0;
+      @media only screen and (max-width: ${p.theme.breakpoints.small}) {
+        flex-shrink: 1;
+      }
+    }
+
+    /* Prevent date filter from shrinking below 6.5rem */
+    &:last-child {
+      min-width: 4rem;
+    }
+  }
+
+  /* This should not exists. The callers should just wrap the bar in an inline-block element */
+  ${p.condensed &&
+  css`
+    max-width: 100%;
+    width: max-content;
+  `}
+
+  /* Code related to Chonk styles */
+
+display: flex;
+  position: relative;
+
+  & > div > button {
+    width: 100%;
+  }
+
+  /* Disabled InteractionStateLayer */
+  & > div > button > span:first-child {
+    display: none;
+  }
+
+  & > div:first-child > button {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  & > div:not(:first-child):not(:last-child) > button {
+    border-radius: 0;
+
+    &::after {
+      border-left: none;
+      border-right: none;
+    }
+  }
+
+  & > div:last-child > button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
   }
 `;
 

@@ -97,7 +97,7 @@ describe('Subscription > TrialAlert', function () {
     expect(screen.getByText('Enterprise Trial')).toBeInTheDocument();
     expect(
       screen.getByText(
-        "With your trial you have access to Sentry's business plan features, and unlimited errors, replays, attachments, cron monitors, spans, profile hours, and uptime monitors."
+        "With your trial you have access to Sentry's business plan features, and unlimited errors, replays, attachments, cron monitors, spans, uptime monitors, continuous profile hours, and UI profile hours."
       )
     ).toBeInTheDocument();
   });

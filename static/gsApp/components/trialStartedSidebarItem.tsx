@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -13,6 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
 import withApi from 'sentry/utils/withApi';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -27,6 +28,7 @@ type Props = {
   organization: Organization;
   subscription: Subscription;
   theme: Theme;
+  className?: string;
 };
 
 type State = {
@@ -102,8 +104,15 @@ class TrialStartedSidebarItem extends Component<Props, State> {
   }
 
   renderWithHovercard(hovercardBody: React.ReactNode) {
+    const prefersNewNav = prefersStackedNav();
+
     return (
-      <StyledHovercard forceVisible position="right" body={hovercardBody}>
+      <StyledHovercard
+        forceVisible
+        position="right"
+        body={hovercardBody}
+        prefersNewNav={prefersNewNav}
+      >
         {this.props.children}
       </StyledHovercard>
     );
@@ -116,7 +125,7 @@ class TrialStartedSidebarItem extends Component<Props, State> {
 
   render() {
     const {animationComplete, trialRequested} = this.state;
-    const {theme} = this.props;
+    const {className, theme} = this.props;
 
     const animate =
       animationComplete && !this.trialRequestedOrStarted
@@ -135,47 +144,63 @@ class TrialStartedSidebarItem extends Component<Props, State> {
       }
     }
 
-    return (
-      <BoxShadowHider>
-        <Wrapper
-          initial={animate}
-          onAnimationComplete={() =>
-            setTimeout(() => this.setState({animationComplete: true}), 500)
-          }
-          animate={animate}
-          variants={{
-            initial: {
-              backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
-            },
-            started: {
-              backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 100%, transparent 0%)`,
+    const prefersNewNav = prefersStackedNav();
 
-              // We flip the gradient direction so that on dismiss we can animate in the
-              // opposite direction.
-              transitionEnd: {
-                backgroundImage: `linear-gradient(45deg, ${theme.purple400} 100%, transparent 0%)`,
-              },
+    const content = (
+      <Wrapper
+        className={className}
+        initial={animate}
+        onAnimationComplete={() =>
+          setTimeout(() => this.setState({animationComplete: true}), 500)
+        }
+        animate={animate}
+        variants={{
+          initial: {
+            backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
+          },
+          started: {
+            backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 100%, transparent 0%)`,
 
-              transition: testableTransition({
-                duration: 0.35,
-                delay: 1,
-              }),
+            // We flip the gradient direction so that on dismiss we can animate in the
+            // opposite direction.
+            transitionEnd: {
+              backgroundImage: `linear-gradient(45deg, ${theme.purple400} 100%, transparent 0%)`,
             },
-          }}
-        >
-          {children}
-        </Wrapper>
-      </BoxShadowHider>
+
+            color: theme.button.primary.color,
+
+            transition: testableTransition({
+              duration: 0.35,
+              delay: 1,
+            }),
+          },
+          dismissed: {
+            backgroundImage: `linear-gradient(-45deg, ${theme.purple400} 0%, transparent 0%)`,
+          },
+        }}
+      >
+        {children}
+      </Wrapper>
     );
+
+    if (prefersNewNav) {
+      return content;
+    }
+
+    return <BoxShadowHider>{content}</BoxShadowHider>;
   }
 }
 
 const startedStyle = (theme: Theme) => css`
   transition: box-shadow 200ms;
-  color: ${theme.white};
+
+  button,
+  button:hover {
+    color: inherit;
+  }
 
   &:hover a {
-    color: ${theme.white};
+    color: ${theme.button.primary.color};
   }
 
   &:hover {
@@ -183,7 +208,7 @@ const startedStyle = (theme: Theme) => css`
   }
 `;
 
-const Wrapper = styled(motion.div)`
+const Wrapper = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   margin: 0 -20px 0 -5px;
   padding: 0 20px 0 5px;
   border-radius: 4px 0 0 4px;
@@ -205,10 +230,14 @@ const BoxShadowHider = styled('div')`
 
 // We specifically set the z-index lower than the modal here, since it will be
 // common to start a trial with the upsell modal open.
-const StyledHovercard = styled(Hovercard)`
+const StyledHovercard = styled(Hovercard)<{prefersNewNav: boolean}>`
   width: 310px;
   z-index: ${p => p.theme.zIndex.modal - 1};
-  margin-left: 30px;
+  ${p =>
+    !p.prefersNewNav &&
+    css`
+      margin-left: 30px;
+    `}
 `;
 
 const HovercardBody = styled('div')`

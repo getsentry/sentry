@@ -1,8 +1,10 @@
+import {useTheme} from '@emotion/react';
+
 import {closeModal, openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access, {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -31,6 +33,7 @@ import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnershi
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 export default function ProjectOwnership({project}: {project: Project}) {
+  const theme = useTheme();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const ownershipTitle = t('Ownership Rules');
@@ -142,6 +145,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
                   project,
                   ownership: ownership!,
                   onSave: handleOwnershipSave,
+                  theme,
                 })
               }
               disabled={!!ownership && editOwnershipRulesDisabled}
@@ -162,7 +166,7 @@ export default function ProjectOwnership({project}: {project: Project}) {
         )}
       </TextBlock>
       <ProjectPermissionAlert
-        access={!editOwnershipRulesDisabled ? ['project:read'] : ['project:write']}
+        access={editOwnershipRulesDisabled ? ['project:write'] : ['project:read']}
         project={project}
       />
       {isCodeownersError && (

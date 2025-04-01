@@ -25,10 +25,9 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const EXCLUDED_TAGS: string[] = [
   FeedbackFieldKey.BROWSER_VERSION,
-  FeedbackFieldKey.EMAIL,
   FeedbackFieldKey.LOCALE_LANG,
   FeedbackFieldKey.LOCALE_TIMEZONE,
-  FeedbackFieldKey.NAME,
+  FieldKey.MESSAGE,
   FieldKey.PLATFORM,
   FeedbackFieldKey.OS_VERSION,
   // These are found in issue platform and redundant (= __.name, ex os.name)
@@ -36,6 +35,12 @@ const EXCLUDED_TAGS: string[] = [
   'device',
   'os',
   'user',
+  // Prefer issues 'trace' field which has a better description. 'trace.id' tag is for display purposes only.
+  'trace.id',
+];
+
+const EXCLUDED_SUGGESTIONS: string[] = [
+  FeedbackFieldKey.MESSAGE, // Suggestions are too polluted by issue platform error messages.
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
@@ -163,6 +168,10 @@ export default function FeedbackSearch() {
         return Promise.resolve([]);
       }
 
+      if (EXCLUDED_SUGGESTIONS.includes(tag.key)) {
+        return Promise.resolve([]);
+      }
+
       const endpointParams = {
         start,
         end,
@@ -206,6 +215,7 @@ export default function FeedbackSearch() {
   return (
     <SearchQueryBuilder
       initialQuery={decodeScalar(locationQuery.query, '')}
+      fieldDefinitionGetter={getFeedbackFieldDefinition}
       filterKeys={filterKeys}
       filterKeySections={filterKeySections}
       getTagValues={getTagValues}

@@ -106,8 +106,8 @@ def sourcemap_images_from_data(data):
 
 # Most people don't upload release artifacts for their third-party libraries,
 # so ignore missing node_modules files or chrome extensions
-def should_skip_missing_source_error(abs_path):
-    "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
+def should_skip_missing_source_error(abs_path) -> bool:
+    return "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
 
 
 def map_symbolicator_process_js_errors(errors):
@@ -290,6 +290,12 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             new_raw_frames.append(merged_context_frame)
 
             merged_frame = _merge_frame(sinfo_frame, complete_frame)
+
+            # Apply is_in_app logic after merging frame data
+            in_app = is_in_app(merged_frame)
+            if in_app is not None:
+                merged_frame["in_app"] = in_app
+
             new_frames.append(merged_frame)
 
         sinfo.stacktrace["frames"] = new_frames
@@ -300,3 +306,27 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             }
 
     return data
+
+
+NODE_MODULES_RE = re.compile(r"\bnode_modules/")
+
+
+# Port from symbolicator-js
+def is_in_app(frame):
+    """
+    Determine if a frame is part of the application code.
+    Returns None if we can't determine, otherwise returns a boolean.
+    """
+    abs_path = frame.get("abs_path", "")
+    filename = frame.get("filename", "")
+
+    if abs_path.startswith("webpack:"):
+        # This diverges from the original logic. Previously we would only consider
+        # a filename starting with `./` as in-app, but that seems to be overly strict.
+        return not filename.startswith("~/") and "/node_modules/" not in filename
+    elif abs_path.startswith("app:"):
+        return not NODE_MODULES_RE.search(filename)
+    elif "/node_modules/" in abs_path:
+        return False
+    else:
+        return None

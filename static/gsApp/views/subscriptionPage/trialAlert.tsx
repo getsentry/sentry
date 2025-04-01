@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -43,7 +43,7 @@ function TrialAlert({organization, subscription}: Props) {
 
   const oxfordCategories = listDisplayNames({
     plan: subscription.planDetails,
-    categories: subscription.planDetails.checkoutCategories,
+    categories: subscription.planDetails.categories,
     hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 

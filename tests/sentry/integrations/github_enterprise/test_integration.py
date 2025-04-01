@@ -335,41 +335,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_get_stacktrace_link_no_org_integration(self, get_jwt, _):
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            repo = Repository.objects.create(
-                organization_id=self.organization.id,
-                name="Test-Organization/foo",
-                url="https://github.example.org/Test-Organization/foo",
-                provider="integrations:github_enterprise",
-                external_id=123,
-                config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
-            )
-        path = "README.md"
-        version = "master"
-        default = "master"
-        responses.add(
-            responses.HEAD,
-            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
-            status=404,
-        )
-        OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        ).delete()
-        installation = get_installation_of_type(
-            GitHubEnterpriseIntegration, integration, self.organization.id
-        )
-        result = installation.get_stacktrace_link(repo, path, default, version)
-
-        assert not result
-
-    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    @responses.activate
     def test_get_stacktrace_link_use_default_if_version_404(self, get_jwt, _):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)

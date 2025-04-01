@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
 from uuid import uuid4
 
 from cryptography.hazmat.backends import default_backend
@@ -18,12 +17,7 @@ from django.db import connections, router
 from django.utils import timezone
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.crypto import (
-    KeyManagementServiceClient,
-    LocalFileDecryptor,
-    LocalFileEncryptor,
-    decrypt_encrypted_tarball,
-)
+from sentry.backup.crypto import LocalFileDecryptor, LocalFileEncryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     NormalizedModelName,
     get_model,
@@ -44,6 +38,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
+from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -85,10 +80,12 @@ from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
@@ -127,21 +124,6 @@ __all__ = [
 ]
 
 NOOP_PRINTER = Printer()
-
-
-class FakeKeyManagementServiceClient:
-    """
-    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
-    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
-    endpoint.
-    """
-
-    asymmetric_decrypt = MagicMock()
-    get_public_key = MagicMock()
-
-    @staticmethod
-    def crypto_key_version_path(**kwargs) -> str:
-        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
 
 
 class ValidationError(Exception):
@@ -431,6 +413,13 @@ class ExhaustiveFixtures(Fixtures):
                     inviter_id=inviter.id,
                     invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
                 )
+                OrganizationMemberInvite.objects.create(
+                    organization_id=org.id,
+                    role="member",
+                    email=email,
+                    inviter_id=inviter.id,
+                    invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                )
         if accepted_invites:
             for inviter, users in accepted_invites.items():
                 for user in users:
@@ -461,6 +450,12 @@ class ExhaustiveFixtures(Fixtures):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+        ProjectSDK.objects.create(
+            project=project,
+            event_type=EventType.PROFILE_CHUNK.value,
+            sdk_name="sentry.python",
+            sdk_version="2.41.0",
+        )
         self.create_notification_action(organization=org, projects=[project])
 
         # Auth*
@@ -619,7 +614,6 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             query=f"some query for {slug}",
             query_sort="date",
-            position=0,
         )
         GroupSearchViewProject.objects.create(
             group_search_view=group_search_view,
@@ -669,7 +663,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
         )
 
-        send_notification_action = self.create_action(type=Action.Type.SLACK, data="")
+        send_notification_action = self.create_action()
         self.create_data_condition_group_action(
             action=send_notification_action,
             condition_group=notification_condition_group,
@@ -709,6 +703,18 @@ class ExhaustiveFixtures(Fixtures):
             client_secret="test_client_secret",
             message="test_message",
             latest_fetched_item_id="test_latest_fetched_item_id",
+        )
+
+        explore_saved_query = ExploreSavedQuery.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            name="saved query",
+            query={"query": "test_query"},
+        )
+
+        ExploreSavedQueryProject.objects.create(
+            project=project,
+            explore_saved_query=explore_saved_query,
         )
 
         return org

@@ -1,7 +1,7 @@
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal, TypeAlias, TypedDict
 
 from dateutil.tz import tz
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
@@ -16,14 +16,23 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
     VirtualColumnContext,
 )
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.events.types import SnubaParams
 
+ResolvedArgument: TypeAlias = AttributeKey | str | int
+ResolvedArguments: TypeAlias = list[ResolvedArgument]
+
+
+class ResolverSettings(TypedDict):
+    extrapolation_mode: ExtrapolationMode.ValueType
+    snuba_params: SnubaParams
+
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedAttribute:
+class ResolvedColumn:
     # The alias for this column
     public_alias: (
         str  # `p95() as foo` has the public alias `foo` and `p95()` has the public alias `p95()`
@@ -32,8 +41,6 @@ class ResolvedAttribute:
     search_type: constants.SearchType
     # The internal rpc type for this column, optional as it can mostly be inferred from search_type
     internal_type: AttributeKey.Type.ValueType | None = None
-    # Only for aggregates, we only support functions with 1 argument right now
-    argument: AttributeKey | None = None
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
     # Validator to check if the value in a query is correct
@@ -63,9 +70,10 @@ class ResolvedAttribute:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedColumn(ResolvedAttribute):
+class ResolvedAttribute(ResolvedColumn):
     # The internal rpc alias for this column
     internal_name: str
+    is_aggregate: bool = field(default=False, init=False)
 
     @property
     def proto_definition(self) -> AttributeKey:
@@ -77,16 +85,25 @@ class ResolvedColumn(ResolvedAttribute):
 
 
 @dataclass
-class ArgumentDefinition:
-    argument_types: set[constants.SearchType] | None = None
+class BaseArgumentDefinition:
     # The public alias for the default arg, the SearchResolver will resolve this value
     default_arg: str | None = None
-    # Sets the argument as an attribute, for custom functions like `http_response rate` we might have non-attribute parameters
-    is_attribute: bool = True
     # Validator to check if the value is allowed for this argument
-    validator: Callable[[Any], Any] | None = None
+    validator: Callable[[str], bool] | None = None
     # Whether this argument is completely ignored, used for `count()`
     ignored: bool = False
+
+
+@dataclass
+class ValueArgumentDefinition(BaseArgumentDefinition):
+    # the type of the argument itself, if the type is a non-string you should ensure an appropriate validator is provided to avoid conversion errors
+    argument_types: set[Literal["integer", "string"]] | None = None
+
+
+@dataclass
+class AttributeArgumentDefinition(BaseArgumentDefinition):
+    # the allowed types of data stored in the attribute
+    attribute_types: set[constants.SearchType] | None = None
 
 
 @dataclass
@@ -105,11 +122,13 @@ class VirtualColumnDefinition:
 
 
 @dataclass(frozen=True, kw_only=True)
-class ResolvedFunction(ResolvedAttribute):
+class ResolvedFunction(ResolvedColumn):
     """
     A Function should be used as a non-attribute column, this means an aggregate or formula is a type of function.
     The function is considered resolved when it can be passed in directly to the RPC (typically meaning arguments are resolved).
     """
+
+    is_aggregate: bool
 
     @property
     def proto_definition(
@@ -149,6 +168,9 @@ class ResolvedAggregate(ResolvedFunction):
     internal_name: Function.ValueType
     # Whether to enable extrapolation
     extrapolation: bool = True
+    is_aggregate: bool = field(default=True, init=False)
+    # Only for aggregates, we only support functions with 1 argument right now
+    argument: AttributeKey | None = None
 
     @property
     def proto_definition(self) -> AttributeAggregation:
@@ -165,6 +187,36 @@ class ResolvedAggregate(ResolvedFunction):
         )
 
 
+@dataclass(frozen=True, kw_only=True)
+class ResolvedConditionalAggregate(ResolvedFunction):
+
+    # The internal rpc alias for this column
+    internal_name: Function.ValueType
+    # Whether to enable extrapolation
+    extrapolation: bool = True
+    # The condition to filter on
+    filter: TraceItemFilter
+    # The attribute to conditionally aggregate on
+    key: AttributeKey
+
+    is_aggregate: bool = field(default=True, init=False)
+
+    @property
+    def proto_definition(self) -> AttributeConditionalAggregation:
+        """The definition of this function as needed by the RPC"""
+        return AttributeConditionalAggregation(
+            aggregate=self.internal_name,
+            key=self.key,
+            filter=self.filter,
+            label=self.public_alias,
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+        )
+
+
 @dataclass(kw_only=True)
 class FunctionDefinition:
     """
@@ -172,7 +224,7 @@ class FunctionDefinition:
     """
 
     # The list of arguments for this function
-    arguments: list[ArgumentDefinition]
+    arguments: list[ValueArgumentDefinition | AttributeArgumentDefinition]
     # The search_type the argument should be the default type for this column
     default_search_type: constants.SearchType
     # Try to infer the search type from the function arguments
@@ -183,27 +235,53 @@ class FunctionDefinition:
     extrapolation: bool = True
     # Processor is the function run in the post process step to transform a row into the final result
     processor: Callable[[Any], Any] | None = None
+    # if a function is private, assume it can't be used unless it's provided in `SearchResolverConfig.functions_acl`
+    private: bool = False
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
         self,
         alias: str,
         search_type: constants.SearchType,
-        resolved_argument: AttributeKey | Any | None,
-    ) -> ResolvedFormula | ResolvedAggregate:
+        resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
+    ) -> ResolvedFormula | ResolvedAggregate | ResolvedConditionalAggregate:
         raise NotImplementedError()
 
 
 @dataclass(kw_only=True)
 class AggregateDefinition(FunctionDefinition):
     internal_function: Function.ValueType
+    """
+    An optional function that takes in the resolved argument and returns the attribute key to aggregate on.
+    If not provided, assumes the aggregate is on the first argument.
+    """
+    attribute_resolver: Callable[[ResolvedArguments], AttributeKey] | None = None
 
     def resolve(
-        self, alias: str, search_type: constants.SearchType, resolved_argument: AttributeKey | None
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
     ) -> ResolvedAggregate:
+        if len(resolved_arguments) > 1:
+            raise InvalidSearchQuery(
+                f"Aggregates expects exactly 1 argument, got {len(resolved_arguments)}"
+            )
+
+        resolved_attribute = None
+
+        if len(resolved_arguments) == 1:
+            if not isinstance(resolved_arguments[0], AttributeKey):
+                raise InvalidSearchQuery("Aggregates accept attribute keys only")
+            resolved_attribute = resolved_arguments[0]
+            if self.attribute_resolver is not None:
+                resolved_attribute = self.attribute_resolver(resolved_arguments)
+
         return ResolvedAggregate(
             public_alias=alias,
             internal_name=self.internal_function,
@@ -211,49 +289,96 @@ class AggregateDefinition(FunctionDefinition):
             internal_type=self.internal_type,
             processor=self.processor,
             extrapolation=self.extrapolation,
-            argument=resolved_argument,
+            argument=resolved_attribute,
+        )
+
+
+@dataclass(kw_only=True)
+class ConditionalAggregateDefinition(FunctionDefinition):
+    """
+    The definition of a conditional aggregation,
+    Conditionally aggregates the `key`, if it passes the `filter`.
+    The type of aggregation is defined by the `internal_name`.
+    The `filter` is returned by the `filter_resolver` function which takes in the args from the user and returns a `TraceItemFilter`.
+    """
+
+    # The type of aggregation (ex. sum, avg)
+    internal_function: Function.ValueType
+    # A function that takes in the resolved argument and returns the condition to filter on and the key to aggregate on
+    aggregate_resolver: Callable[[ResolvedArguments], tuple[AttributeKey, TraceItemFilter]]
+
+    def resolve(
+        self,
+        alias: str,
+        search_type: constants.SearchType,
+        resolved_arguments: ResolvedArguments,
+        snuba_params: SnubaParams,
+    ) -> ResolvedConditionalAggregate:
+        key, filter = self.aggregate_resolver(resolved_arguments)
+        return ResolvedConditionalAggregate(
+            public_alias=alias,
+            internal_name=self.internal_function,
+            search_type=search_type,
+            internal_type=self.internal_type,
+            filter=filter,
+            key=key,
+            processor=self.processor,
+            extrapolation=self.extrapolation,
         )
 
 
 @dataclass(kw_only=True)
 class FormulaDefinition(FunctionDefinition):
     # A function that takes in the resolved argument and returns a Column.BinaryFormula
-    formula_resolver: Callable[[Any], Column.BinaryFormula]
+    formula_resolver: Callable[[ResolvedArguments, ResolverSettings], Column.BinaryFormula]
+    is_aggregate: bool
 
     @property
-    def required_arguments(self) -> list[ArgumentDefinition]:
+    def required_arguments(self) -> list[ValueArgumentDefinition | AttributeArgumentDefinition]:
         return [arg for arg in self.arguments if arg.default_arg is None and not arg.ignored]
 
     def resolve(
         self,
         alias: str,
         search_type: constants.SearchType,
-        resolved_argument: AttributeKey | Any | None,
+        resolved_arguments: list[AttributeKey | Any],
+        snuba_params: SnubaParams,
     ) -> ResolvedFormula:
+        resolver_settings = ResolverSettings(
+            extrapolation_mode=(
+                ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+                if self.extrapolation
+                else ExtrapolationMode.EXTRAPOLATION_MODE_NONE
+            ),
+            snuba_params=snuba_params,
+        )
+
         return ResolvedFormula(
             public_alias=alias,
             search_type=search_type,
-            formula=self.formula_resolver(resolved_argument),
-            argument=resolved_argument,
+            formula=self.formula_resolver(resolved_arguments, resolver_settings),
+            is_aggregate=self.is_aggregate,
             internal_type=self.internal_type,
             processor=self.processor,
         )
 
 
-def simple_sentry_field(field) -> ResolvedColumn:
+def simple_sentry_field(field) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     without the `sentry.` suffix. This helper functions makes defining them easier"""
-    return ResolvedColumn(public_alias=field, internal_name=f"sentry.{field}", search_type="string")
+    return ResolvedAttribute(
+        public_alias=field, internal_name=f"sentry.{field}", search_type="string"
+    )
 
 
 def simple_measurements_field(
     field,
     search_type: constants.SearchType = "number",
     secondary_alias: bool = False,
-) -> ResolvedColumn:
+) -> ResolvedAttribute:
     """For a good number of fields, the public alias matches the internal alias
     with the `measurements.` prefix. This helper functions makes defining them easier"""
-    return ResolvedColumn(
+    return ResolvedAttribute(
         public_alias=f"measurements.{field}",
         internal_name=field,
         search_type=search_type,
@@ -291,7 +416,8 @@ def project_term_resolver(
 @dataclass(frozen=True)
 class ColumnDefinitions:
     aggregates: dict[str, AggregateDefinition]
+    conditional_aggregates: dict[str, ConditionalAggregateDefinition]
     formulas: dict[str, FormulaDefinition]
-    columns: dict[str, ResolvedColumn]
+    columns: dict[str, ResolvedAttribute]
     contexts: dict[str, VirtualColumnDefinition]
     trace_item_type: TraceItemType.ValueType

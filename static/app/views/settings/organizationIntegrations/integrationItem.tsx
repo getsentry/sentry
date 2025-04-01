@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 import type {Integration} from 'sentry/types/integrations';
-import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
+import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type Props = {
   integration: Integration;
@@ -54,7 +54,7 @@ const IntegrationName = styled('div')`
 const DomainName = styled('div')<{compact: boolean}>`
   color: ${p => p.theme.subText};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
-  margin-top: ${p => (!p.compact ? 0 : 'inherit')};
+  margin-top: ${p => (p.compact ? 'inherit' : 0)};
   font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   text-overflow: ellipsis;

@@ -5,6 +5,7 @@ from typing import ClassVar, Literal, Self, cast
 from django.conf import settings
 from django.db import models
 from django.db.models import Count, Q
+from django.db.models.functions import Now
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import REGIONSCHEDULEMODE_ROUND_ROBIN
 
 from sentry.backup.scopes import RelocationScope
@@ -163,6 +164,8 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
     # (Likely) temporary column to keep track of the current uptime status of this monitor
+    uptime_status_update_date = models.DateTimeField(db_default=Now())
+    # Date of the last time we updated the status for this monitor
     name = models.TextField()
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
@@ -177,6 +180,7 @@ class ProjectUptimeSubscription(DefaultFieldsModelExisting):
 
         indexes = [
             models.Index(fields=("project", "mode")),
+            models.Index(fields=("uptime_status", "uptime_status_update_date")),
         ]
 
         constraints = [

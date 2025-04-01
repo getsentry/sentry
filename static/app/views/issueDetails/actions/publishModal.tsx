@@ -5,7 +5,7 @@ import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconRefresh} from 'sentry/icons';

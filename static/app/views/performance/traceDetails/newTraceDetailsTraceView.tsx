@@ -1,4 +1,5 @@
 import {Fragment, memo, useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -46,7 +47,7 @@ import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/t
 import {
   getTraceInfo,
   hasTraceData,
-  isRootTransaction,
+  isRootEvent,
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
@@ -156,6 +157,7 @@ function NewTraceView({
   onRowClick,
   ...props
 }: Props) {
+  const theme = useTheme();
   const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
 
   const sentrySpan = Sentry.startInactiveSpan({
@@ -264,7 +266,7 @@ function NewTraceView({
             isVisible={isVisible}
             hasGuideAnchor={hasGuideAnchor}
             renderedChildren={accumulated.renderedChildren}
-            barColor={pickBarColor(transaction['transaction.op'])}
+            barColor={pickBarColor(transaction['transaction.op'], theme)}
           />
         </Fragment>
       ),
@@ -313,7 +315,7 @@ function NewTraceView({
       const result = renderTransaction(trace, {
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
-        isOrphan: !isRootTransaction(trace),
+        isOrphan: !isRootEvent(trace),
         isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
           (!isLastTransaction && hasChildren) || hasOrphanErrors
@@ -340,11 +342,11 @@ function NewTraceView({
       const isVisible = isRowVisible(error, filteredEventIds);
       const currentHiddenCount = numOfHiddenErrorsAbove;
 
-      if (!isVisible) {
+      if (isVisible) {
+        numOfHiddenErrorsAbove = 0;
+      } else {
         numOfHiddenErrorsAbove += 1;
         totalNumOfHiddenErrors += 1;
-      } else {
-        numOfHiddenErrorsAbove = 0;
       }
 
       transactionGroups.push(
@@ -476,7 +478,7 @@ function NewTraceView({
                     isVisible
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
-                    barColor={pickBarColor('')}
+                    barColor={pickBarColor('', theme)}
                     onlyOrphanErrors={onlyOrphanErrors}
                     traceViewRef={traceViewRef}
                     numOfOrphanErrors={orphanErrors?.length}

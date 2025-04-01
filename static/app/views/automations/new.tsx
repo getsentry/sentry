@@ -1,5 +1,5 @@
-import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {LinkButton} from 'sentry/components/core/button';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -17,8 +17,10 @@ export default function AutomationNew() {
       <StickyFooter>
         <StickyFooterLabel>{t('Step 1 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <Button priority="default">{t('Cancel')}</Button>
-          <LinkButton priority="primary" to="/automations/new/settings">
+          <LinkButton priority="default" to="/issues/automations">
+            {t('Cancel')}
+          </LinkButton>
+          <LinkButton priority="primary" to="settings">
             {t('Next')}
           </LinkButton>
         </Flex>

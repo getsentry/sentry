@@ -1,14 +1,13 @@
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {LinkButton} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBusiness} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import withSubscription from 'getsentry/components/withSubscription';
@@ -17,15 +16,12 @@ import {getTrialDaysLeft} from 'getsentry/utils/billing';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 
 type Props = {
-  organization: Organization;
   source: string;
   subscription: Subscription;
 };
 
-function TargetedOnboardingHeader({organization, source, subscription}: Props) {
-  if (!organization) {
-    return null;
-  }
+function TargetedOnboardingHeader({source, subscription}: Props) {
+  const organization = useOrganization();
 
   const trackClickNeedHelp = () =>
     trackGetsentryAnalytics('growth.onboarding_clicked_need_help', {
@@ -73,7 +69,7 @@ function TargetedOnboardingHeader({organization, source, subscription}: Props) {
   );
 }
 
-export default withSubscription(withOrganization(TargetedOnboardingHeader), {
+export default withSubscription(TargetedOnboardingHeader, {
   noLoader: true,
 });
 

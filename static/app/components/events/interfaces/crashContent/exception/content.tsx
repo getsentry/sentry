@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
 import {
@@ -29,14 +29,14 @@ type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
 type Props = {
   event: Event;
+  newestFirst: boolean;
   projectSlug: Project['slug'];
   type: StackType;
+  values: ExceptionType['values'];
   meta?: Record<any, any>;
-  newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
   threadId?: number;
-} & Pick<ExceptionType, 'values'> &
-  Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
+} & Pick<React.ComponentProps<typeof StackTrace>, 'groupingCurrentLevel'>;
 
 type CollapsedExceptionMap = {[exceptionId: number]: boolean};
 

@@ -6,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -186,7 +186,7 @@ const Name = styled(`span`)`
 const RuntimeAndVersion = styled('div')`
   display: flex;
   flex-direction: row;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const DetailWrapper = styled('div')`

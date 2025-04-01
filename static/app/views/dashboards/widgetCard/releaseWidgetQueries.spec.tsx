@@ -169,7 +169,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         },
       })
     );
-    expect(mock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({

@@ -92,6 +92,7 @@ export type SpanStringFields =
   | 'timestamp'
   | 'trace'
   | 'transaction'
+  | 'transaction.span_id'
   | 'transaction.id'
   | 'transaction.method'
   | 'release'
@@ -142,6 +143,7 @@ export type ConditionalAggregate =
 export const SPAN_FUNCTIONS = [
   'sps',
   'spm',
+  'epm',
   'count',
   'time_spent_percentage',
   'http_response_rate',
@@ -299,6 +301,7 @@ export enum SpanIndexedField {
   IS_TRANSACTION = 'is_transaction',
   LCP_ELEMENT = 'lcp.element',
   CLS_SOURCE = 'cls.source.1',
+  NORMALIZED_DESCRIPTION = 'sentry.normalized_description',
 }
 
 export type SpanIndexedResponse = {
@@ -399,7 +402,7 @@ export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
 export enum SpanFunction {
   SPS = 'sps',
-  SPM = 'spm',
+  EPM = 'epm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',
@@ -411,15 +414,26 @@ export enum SpanFunction {
 
 // TODO - add more functions and fields, combine shared ones, etc
 
-export const METRICS_FUNCTIONS = ['count'] as const;
+export const METRICS_FUNCTIONS = ['count', 'performance_score'] as const;
 
 export enum MetricsFields {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION = 'transaction',
   PROJECT = 'project',
+  LCP_SCORE = 'measurements.score.lcp',
+  FCP_SCORE = 'measurements.score.fcp',
+  INP_SCORE = 'measurements.score.inp',
+  CLS_SCORE = 'measurements.score.cls',
+  TTFB_SCORE = 'measurements.score.ttfb',
 }
 
-export type MetricsNumberFields = MetricsFields.TRANSACTION_DURATION;
+export type MetricsNumberFields =
+  | MetricsFields.TRANSACTION_DURATION
+  | MetricsFields.LCP_SCORE
+  | MetricsFields.FCP_SCORE
+  | MetricsFields.INP_SCORE
+  | MetricsFields.CLS_SCORE
+  | MetricsFields.TTFB_SCORE;
 
 export type MetricsStringFields = MetricsFields.TRANSACTION;
 
@@ -427,6 +441,10 @@ export type MetricsFunctions = (typeof METRICS_FUNCTIONS)[number];
 
 export type MetricsResponse = {
   [Property in MetricsNumberFields as `${Aggregate}(${Property})`]: number;
+} & {
+  [Property in MetricsNumberFields as `${MetricsFunctions}(${Property})`]: number;
+} & {
+  [Function in MetricsFunctions as `${Function}()`]: number;
 } & {
   [Property in MetricsStringFields as `${Property}`]: string;
 };

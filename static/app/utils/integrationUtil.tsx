@@ -1,6 +1,6 @@
 import * as qs from 'query-string';
 
-import type {Result} from 'sentry/components/forms/controls/selectAsyncControl';
+import type {Result} from 'sentry/components/core/select/async';
 import {
   IconAsana,
   IconBitbucket,
@@ -220,8 +220,9 @@ export const getIntegrationDisplayName = (integrationType?: string) => {
     case 'gitlab':
       return 'GitLab';
     case 'github':
-    case 'github_enterprise':
       return 'GitHub';
+    case 'github_enterprise':
+      return 'GitHub Enterprise';
     case 'jira':
     case 'jira_server':
       return 'Jira';

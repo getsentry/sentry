@@ -16,12 +16,14 @@ from typing import Any, Final, Union, overload
 from urllib.parse import urlparse
 
 import sentry
+import sentry.utils.types as env_types
 from sentry.conf.api_pagination_allowlist_do_not_modify import (
     SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY,
 )
 from sentry.conf.types.celery import SplitQueueSize, SplitQueueTaskRoute
 from sentry.conf.types.kafka_definition import ConsumerDefinition
 from sentry.conf.types.logging_config import LoggingConfig
+from sentry.conf.types.region_config import RegionConfig
 from sentry.conf.types.role_dict import RoleDict
 from sentry.conf.types.sdk_config import ServerSdkConfig
 from sentry.conf.types.sentry_config import SentryMode
@@ -30,7 +32,6 @@ from sentry.conf.types.taskworker import ScheduleConfigMap
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.utils import json  # NOQA (used in getsentry config)
 from sentry.utils.celery import make_split_task_queues
-from sentry.utils.types import Type, type_from_value
 
 
 def gettext_noop(s: str) -> str:
@@ -48,13 +49,13 @@ def env(key: str) -> str: ...
 
 
 @overload
-def env(key: str, default: _EnvTypes, type: Type | None = None) -> _EnvTypes: ...
+def env(key: str, default: _EnvTypes, type: env_types.Type | None = None) -> _EnvTypes: ...
 
 
 def env(
     key: str,
     default: str | _EnvTypes = "",
-    type: Type | None = None,
+    type: env_types.Type | None = None,
 ) -> _EnvTypes:
     """
     Extract an environment variable for use in configuration
@@ -86,7 +87,7 @@ def env(
             rv = default
 
     if type is None:
-        type = type_from_value(default)
+        type = env_types.type_from_value(default)
 
     return type(rv)
 
@@ -96,6 +97,8 @@ _env_cache: dict[str, object] = {}
 ENVIRONMENT = os.environ.get("SENTRY_ENVIRONMENT", "production")
 
 IS_DEV = ENVIRONMENT == "development"
+SPOTLIGHT_ENV_VAR = os.environ.get("SENTRY_SPOTLIGHT", "")
+SPOTLIGHT = IS_DEV and SPOTLIGHT_ENV_VAR.lower() not in ("0", "false", "n", "no")
 
 DEBUG = IS_DEV
 # override the settings dumped in the debug view
@@ -432,6 +435,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.remote_subscriptions.apps.Config",
     "sentry.data_secrecy",
     "sentry.workflow_engine",
+    "sentry.explore",
 )
 
 # Silence internal hints from Django's system checks
@@ -687,9 +691,8 @@ SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 # Returns the customer single tenant ID.
 CUSTOMER_ID = os.environ.get("CUSTOMER_ID", None)
 
-# List of the available regions, or a JSON string
-# that is parsed.
-SENTRY_REGION_CONFIG: Any = ()
+# List of the available regions
+SENTRY_REGION_CONFIG: list[RegionConfig] = []
 
 # Shared secret used to sign cross-region RPC requests.
 RPC_SHARED_SECRET: list[str] | None = None
@@ -777,12 +780,12 @@ CELERY_IMPORTS = (
     "sentry.relocation.tasks.process",
     "sentry.relocation.tasks.transfer",
     "sentry.tasks.assemble",
-    "sentry.tasks.auth",
+    "sentry.tasks.auth.auth",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
-    "sentry.tasks.check_auth",
+    "sentry.tasks.auth.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.clear_expired_rulesnoozes",
@@ -896,6 +899,11 @@ CELERY_QUEUES_CONTROL = [
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
     Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
     Queue("relocation.control", routing_key="relocation.control", exchange=control_exchange),
+    Queue(
+        "release_registry.control",
+        routing_key="release_registry.control",
+        exchange=control_exchange,
+    ),
 ]
 
 CELERY_ISSUE_STATES_QUEUE = Queue(
@@ -999,6 +1007,7 @@ CELERY_QUEUES_REGION = [
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
     Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
     Queue("demo_mode", routing_key="demo_mode"),
+    Queue("release_registry", routing_key="release_registry"),
 ]
 
 from celery.schedules import crontab
@@ -1053,6 +1062,16 @@ CELERYBEAT_SCHEDULE_CONTROL = {
         # Run every 10 seconds as integration webhooks are delivered by this task
         "schedule": timedelta(seconds=10),
         "options": {"expires": 60, "queue": "webhook.control"},
+    },
+    "relocation-find-transfer-control": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_control",
+        "schedule": crontab(minute="*/5"),
+    },
+    "fetch-release-registry-data-control": {
+        "task": "sentry.tasks.release_registry.fetch_release_registry_data_control",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+        "options": {"expires": 3600, "queue": "release_registry.control"},
     },
 }
 
@@ -1181,7 +1200,7 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-        "options": {"expires": 3600},
+        "options": {"expires": 3600, "queue": "release_registry"},
     },
     "snuba-subscription-checker": {
         "task": "sentry.snuba.tasks.subscription_checker",
@@ -1192,6 +1211,11 @@ CELERYBEAT_SCHEDULE_REGION = {
     "uptime-subscription-checker": {
         "task": "sentry.uptime.tasks.subscription_checker",
         "schedule": crontab(minute="*/10"),
+        "options": {"expires": 10 * 60},
+    },
+    "uptime-broken-monitor-checker": {
+        "task": "sentry.uptime.tasks.broken_monitor_checker",
+        "schedule": crontab(minute="0", hour="*/1"),
         "options": {"expires": 10 * 60},
     },
     "poll_tempest": {
@@ -1285,6 +1309,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run every hour
         "schedule": crontab(minute="0", hour="*/1"),
     },
+    "relocation-find-transfer-region": {
+        "task": "sentry.relocation.transfer.find_relocation_transfer_region",
+        "schedule": crontab(minute="*/5"),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1352,9 +1380,19 @@ BGTASKS = {
     },
 }
 
+#######################
 # Taskworker settings #
-# Shared secret used to sign RPC requests to taskbrokers
-TASKWORKER_SHARED_SECRET: str | None = None
+#######################
+
+# Shared secrets used to sign RPC requests to taskbrokers
+# The first secret is used for signing.
+# Environment variable is expected to be a JSON encoded list
+TASKWORKER_SHARED_SECRET = os.getenv("TASKWORKER_SHARED_SECRET")
+
+TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
+
+# Expected to be a JSON encoded dictionary of namespace:topic
+TASKWORKER_ROUTES = os.getenv("TASKWORKER_ROUTES")
 
 # The list of modules that workers will import after starting up
 # Like celery, taskworkers need to import task modules to make tasks
@@ -1363,8 +1401,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     # Used for tests
     "sentry.taskworker.tasks.examples",
 )
-TASKWORKER_ROUTER: str = "sentry.taskworker.router.DefaultRouter"
-TASKWORKER_ROUTES: dict[str, str] = {}
 
 # Schedules for taskworker tasks to be spawned on.
 TASKWORKER_SCHEDULES: ScheduleConfigMap = {}
@@ -1545,16 +1581,8 @@ SENTRY_DEFAULT_TIME_ZONE = "UTC"
 
 SENTRY_DEFAULT_LANGUAGE = "en"
 
-# Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = None
-
-SENTRY_IGNORE_EXCEPTIONS = ("OperationalError",)
-
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
-
-# Allow access to Sentry without authentication.
-SENTRY_PUBLIC = False
 
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
@@ -1848,7 +1876,6 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT: str | None = None
-SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
 # `organizations:org-ingest-subdomains` feature.
@@ -2553,7 +2580,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "25.2.0"
+SELF_HOSTED_STABLE_VERSION = "25.3.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2620,7 +2647,7 @@ SENTRY_PROFILER_MODE: Final = "sleep"
 #
 # This will allow us to have finer control over where we are running the
 # profiler. For example, only on the web server.
-SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", False)
+SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
 
 # To have finer control over which process will have continuous profiling enabled,
 # this environment variable will be required to enable continuous profiling.
@@ -2838,7 +2865,20 @@ SENTRY_BUILTIN_SOURCES = {
         "name": "Electron",
         "layout": {"type": "native"},
         "url": "https://symbols.electronjs.org/",
-        "filters": {"filetypes": ["pdb", "breakpad", "sourcebundle"]},
+        "filters": {
+            "filetypes": ["pdb", "breakpad", "sourcebundle"],
+            # These file paths were empirically determined by examining
+            # logs of successful downloads from the Electron symbol server.
+            "path_patterns": [
+                "*electron*",
+                "*ffmpeg*",
+                "*libEGL*",
+                "*libGLESv2*",
+                "*node*",
+                "*slack*",
+                "*vk_swiftshader*",
+            ],
+        },
         "is_public": True,
     },
     # === Various Linux distributions ===
@@ -2941,6 +2981,7 @@ KAFKA_TOPIC_OVERRIDES: Mapping[str, str] = {}
 KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "events": "default",
     "ingest-events-dlq": "default",
+    "ingest-events-backlog": "default",
     "snuba-commit-log": "default",
     "transactions": "default",
     "snuba-transactions-commit-log": "default",
@@ -2987,7 +3028,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "task-worker": "default",
+    "taskworker": "default",
     "snuba-ourlogs": "default",
 }
 
@@ -3015,6 +3056,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "uptime",
     "workflow_engine",
     "tempest",
+    "explore",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3139,7 +3181,7 @@ PG_VERSION: str = os.getenv("PG_VERSION") or "14"
 # https://github.com/tbicr/django-pg-zero-downtime-migrations#settings
 ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT = None
-ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT = None
+ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT_FORCE = False
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
@@ -3528,7 +3570,6 @@ if SILO_DEVSERVER:
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
             "address": f"http://127.0.0.1:{region_port}",
-            "api_token": "dev-region-silo-token",
         }
     ]
     SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]

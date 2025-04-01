@@ -9,7 +9,7 @@ from typing import Any, DefaultDict, NamedTuple
 from celery import Task
 from django.db.models import OuterRef, Subquery
 
-from sentry import buffer, nodestore
+from sentry import buffer, features, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.eventstore.models import Event, GroupEvent
@@ -230,7 +230,22 @@ def build_group_to_groupevent(
     group_id_to_group: dict[int, Group],
     project_id: int,
 ) -> dict[Group, GroupEvent]:
+
+    project = fetch_project(project_id)
+    if project:
+        if features.has("projects:num-events-issue-debugging", project):
+            logger.info(
+                "delayed_processing.build_group_to_groupevent_input",
+                extra={
+                    "parsed_rulegroup_to_event_data": parsed_rulegroup_to_event_data,
+                    "bulk_event_id_to_events": bulk_event_id_to_events,
+                    "bulk_occurrence_id_to_occurrence": bulk_occurrence_id_to_occurrence,
+                    "group_id_to_group": group_id_to_group,
+                    "project_id": project_id,
+                },
+            )
     group_to_groupevent = {}
+
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
         event_id = instance_data.get("event_id")
         occurrence_id = instance_data.get("occurrence_id")
@@ -246,7 +261,7 @@ def build_group_to_groupevent(
         group = group_id_to_group.get(int(rule_group[1]))
 
         if not group or not event:
-            if random.random() < 0.01:
+            if features.has("projects:num-events-issue-debugging", project):
                 logger.info(
                     "delayed_processing.missing_event_or_group",
                     extra={
@@ -379,6 +394,14 @@ def passes_comparison(
         ]
     except KeyError:
         metrics.incr("delayed_processing.missing_query_result")
+        logger.info(
+            "delayed_processing.missing_query_result",
+            extra={
+                "condition_data": condition_data,
+                "project_id": project_id,
+                "group_id": group_id,
+            },
+        )
         return False
 
     calculated_value = query_values[0]
@@ -433,6 +456,17 @@ def fire_rules(
         group_to_groupevent = get_group_to_groupevent(
             parsed_rulegroup_to_event_data, project.id, group_ids
         )
+        if features.has("organizations:workflow-engine-process-workflows", project.organization):
+            serialized_groups = {
+                group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+            }
+            logger.info(
+                "delayed_processing.group_to_groupevent",
+                extra={
+                    "group_to_groupevent": serialized_groups,
+                    "project_id": project_id,
+                },
+            )
         for group, groupevent in group_to_groupevent.items():
             rule_statuses = bulk_get_rule_status(alert_rules, group, project)
             status = rule_statuses[rule.id]
@@ -464,10 +498,39 @@ def fire_rules(
             notification_uuid = str(uuid.uuid4())
             groupevent = group_to_groupevent[group]
             rule_fire_history = history.record(rule, group, groupevent.event_id, notification_uuid)
-            for callback, futures in activate_downstream_actions(
-                rule, groupevent, notification_uuid, rule_fire_history
-            ).values():
-                safe_execute(callback, groupevent, futures)
+
+            if features.has(
+                "organizations:workflow-engine-process-workflows-logs",
+                project.organization,
+            ):
+                logger.info(
+                    "post_process.delayed_processing.triggered_rule",
+                    extra={
+                        "rule_id": rule.id,
+                        "group_id": group.id,
+                        "event_id": groupevent.event_id,
+                    },
+                )
+
+            callback_and_futures = activate_downstream_actions(
+                rule, groupevent, notification_uuid, rule_fire_history, is_post_process=False
+            ).values()
+
+            # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
+            not_sent = 0
+            for callback, futures in callback_and_futures:
+                results = safe_execute(callback, groupevent, futures)
+                if results is None:
+                    not_sent += 1
+
+            if features.has("projects:num-events-issue-debugging", project):
+                logger.info(
+                    "delayed_processing.rules_fired",
+                    extra={
+                        "total": len(callback_and_futures),
+                        "not_sent": not_sent,
+                    },
+                )
 
 
 def cleanup_redis_buffer(
@@ -506,11 +569,32 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
     logger.info(
         "delayed_processing.condition_groups",
-        extra={"condition_groups": len(condition_groups), "project_id": project_id},
+        extra={
+            "condition_groups": len(condition_groups),
+            "project_id": project_id,
+            "rules_to_groups": rules_to_groups,
+        },
     )
 
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
+
+    has_workflow_engine = features.has(
+        "organizations:workflow-engine-process-workflows", project.organization
+    )
+    if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
+        serialized_results = (
+            {str(query): count_dict for query, count_dict in condition_group_results.items()}
+            if condition_group_results
+            else None
+        )
+        logger.info(
+            "delayed_processing.condition_group_results",
+            extra={
+                "condition_group_results": serialized_results,
+                "project_id": project_id,
+            },
+        )
 
     rules_to_slow_conditions = defaultdict(list)
     for rule in alert_rules:
@@ -521,6 +605,18 @@ def apply_delayed(project_id: int, batch_key: str | None = None, *args: Any, **k
         rules_to_fire = get_rules_to_fire(
             condition_group_results, rules_to_slow_conditions, rules_to_groups, project.id
         )
+        if has_workflow_engine or features.has("projects:num-events-issue-debugging", project):
+            logger.info(
+                "delayed_processing.rules_to_fire",
+                extra={
+                    "rules_to_fire": {rule.id: groups for rule, groups in rules_to_fire.items()},
+                    "project_id": project_id,
+                    "rules_to_slow_conditions": {
+                        rule.id: conditions for rule, conditions in rules_to_slow_conditions.items()
+                    },
+                    "rules_to_groups": rules_to_groups,
+                },
+            )
         if random.random() < 0.01:
             logger.info(
                 "delayed_processing.rule_to_fire",

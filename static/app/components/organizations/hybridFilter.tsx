@@ -3,16 +3,16 @@ import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import xor from 'lodash/xor';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Checkbox, type CheckboxProps} from 'sentry/components/core/checkbox';
 import type {
   MultipleSelectProps,
   SelectKey,
   SelectOption,
   SelectOptionOrSection,
   SelectSection,
-} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {Checkbox, type CheckboxProps} from 'sentry/components/core/checkbox';
+} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {IconInfo} from 'sentry/icons/iconInfo';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +33,7 @@ export interface HybridFilterProps<Value extends SelectKey>
     | 'closeOnSelect'
     | 'onKeyDown'
     | 'onKeyUp'
+    | 'onToggle'
   > {
   /**
    * Default selection value. When the user clicks "Reset", the selection value will

@@ -5,7 +5,7 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 
-import type {Subscription as TSubscription} from 'getsentry/types';
+import type {Subscription as TSubscription, Plan} from 'getsentry/types';
 import {BillingType} from 'getsentry/types';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import {ReservedBudgetFixture} from 'getsentry-test/fixtures/reservedBudget';
@@ -16,7 +16,9 @@ type Props = Partial<TSubscription> & {organization: Organization};
 export function SubscriptionFixture(props: Props): TSubscription {
   const {organization, ...params} = props;
   const planData = {plan: 'am1_f', ...params};
-  const planDetails = PlanDetailsLookupFixture(planData.plan);
+
+  // Use planDetails from params if provided, otherwise look it up
+  const planDetails = (planData.planDetails || PlanDetailsLookupFixture(planData.plan)) as Plan;
 
   const hasPerformance = planDetails?.categories?.includes(
     DATA_CATEGORY_INFO.transaction.plural
@@ -33,9 +35,16 @@ export function SubscriptionFixture(props: Props): TSubscription {
   const hasProfileDuration = planDetails?.categories?.includes(
     DataCategory.PROFILE_DURATION
   );
+  const hasProfileDurationUI = planDetails?.categories?.includes(
+    DataCategory.PROFILE_DURATION_UI
+  );
   const hasAttachments = planDetails?.categories?.includes(
     DATA_CATEGORY_INFO.attachment.plural
   );
+
+  // Create a safe default for planCategories if it doesn't exist
+  const safeCategories = planDetails?.planCategories || {};
+  const defaultErrorEvents = safeCategories.errors?.[0]?.events || 5000;
 
   return {
     customPrice: null,
@@ -80,7 +89,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     onDemandSpendUsed: 0,
     renewalDate: '2018-10-25',
     partner: null,
-    planDetails: planDetails!,
+    planDetails: planDetails,
     totalMembers: 1,
     contractInterval: 'monthly',
     canGracePeriod: true,
@@ -102,7 +111,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     usedLicenses: 1,
     membersDeactivatedFromLimit: 0,
     type: BillingType.CREDIT_CARD,
-    reservedEvents: planDetails!.planCategories.errors![0]!.events,
+    reservedEvents: defaultErrorEvents,
     hasSoftCap: false,
     isPastDue: false,
     onDemandDisabled: false,
@@ -137,72 +146,80 @@ export function SubscriptionFixture(props: Props): TSubscription {
     categories: {
       errors: MetricHistoryFixture({
         category: DATA_CATEGORY_INFO.error.plural,
-        reserved: planDetails!.planCategories.errors![0]!.events,
-        prepaid: planDetails!.planCategories.errors![0]!.events,
+        reserved: safeCategories.errors?.[0]?.events || 5000,
+        prepaid: safeCategories.errors?.[0]?.events || 5000,
         order: 1,
       }),
       ...(hasPerformance && {
         transactions: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.transaction.plural,
-          reserved: planDetails!.planCategories.transactions![0]!.events,
-          prepaid: planDetails!.planCategories.transactions![0]!.events,
+          reserved: safeCategories.transactions?.[0]?.events || 10000,
+          prepaid: safeCategories.transactions?.[0]?.events || 10000,
           order: 2,
         }),
       }),
       ...(hasReplays && {
         replays: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.replay.plural,
-          reserved: planDetails!.planCategories.replays![0]!.events,
-          prepaid: planDetails!.planCategories.replays![0]!.events,
+          reserved: safeCategories.replays?.[0]?.events || 500,
+          prepaid: safeCategories.replays?.[0]?.events || 500,
           order: 4,
         }),
       }),
       ...(hasSpans && {
         spans: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.span.plural,
-          reserved: planDetails!.planCategories.spans![0]!.events,
-          prepaid: planDetails!.planCategories.spans![0]!.events,
+          reserved: safeCategories.spans?.[0]?.events || 10000000,
+          prepaid: safeCategories.spans?.[0]?.events || 10000000,
           order: 5,
         }),
       }),
       ...(hasSpansIndexed && {
         spansIndexed: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.spanIndexed.plural,
-          reserved: planDetails!.planCategories.spans![0]!.events,
-          prepaid: planDetails!.planCategories.spans![0]!.events,
+          reserved: safeCategories.spans?.[0]?.events || 10000000,
+          prepaid: safeCategories.spans?.[0]?.events || 10000000,
           order: 6,
         }),
       }),
       ...(hasMonitors && {
         monitorSeats: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.monitorSeat.plural,
-          reserved: planDetails!.planCategories.monitorSeats![0]!.events,
-          prepaid: planDetails!.planCategories.monitorSeats![0]!.events,
+          reserved: safeCategories.monitorSeats?.[0]?.events || 1,
+          prepaid: safeCategories.monitorSeats?.[0]?.events || 1,
           order: 7,
         }),
       }),
       ...(hasUptime && {
         uptime: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.uptime.plural,
-          reserved: planDetails!.planCategories.uptime![0]!.events,
-          prepaid: planDetails!.planCategories.uptime![0]!.events,
+          reserved: safeCategories.uptime?.[0]?.events || 1,
+          prepaid: safeCategories.uptime?.[0]?.events || 1,
           order: 8,
         }),
       }),
       ...(hasAttachments && {
         attachments: MetricHistoryFixture({
           category: DATA_CATEGORY_INFO.attachment.plural,
-          reserved: planDetails!.planCategories.attachments![0]!.events,
-          prepaid: planDetails!.planCategories.attachments![0]!.events,
+          reserved: safeCategories.attachments?.[0]?.events || 1,
+          prepaid: safeCategories.attachments?.[0]?.events || 1,
           order: 9,
         }),
       }),
       ...(hasProfileDuration && {
         profileDuration: MetricHistoryFixture({
           category: DataCategory.PROFILE_DURATION,
-          reserved: planDetails!.planCategories.profileDuration![0]!.events,
-          prepaid: planDetails!.planCategories.profileDuration![0]!.events,
+          reserved: safeCategories.profileDuration?.[0]?.events || 0,
+          prepaid: safeCategories.profileDuration?.[0]?.events || 0,
           order: 10,
+        }),
+      }),
+      ...(hasProfileDurationUI && {
+        profileDurationUI: MetricHistoryFixture({
+          category: DataCategory.PROFILE_DURATION_UI,
+          reserved: safeCategories.profileDurationUI?.[0]?.events || 0,
+          prepaid: safeCategories.profileDurationUI?.[0]?.events || 0,
+          order: 11,
         }),
       }),
     },
@@ -397,6 +414,7 @@ export function Am3DsEnterpriseSubscriptionFixture(props: Props): TSubscription 
   subscription.reservedBudgetCategories = ['spans', 'spansIndexed'];
   subscription.reservedBudgets = [
     ReservedBudgetFixture({
+      id: '11',
       reservedBudget: 100_000_00,
       totalReservedSpend: 60_000_00,
       freeBudget: 0,

@@ -65,6 +65,7 @@ export type RenderProps = LoadingStatus &
   };
 
 type DefaultProps = {
+  includeAllArgs: false;
   /**
    * Include data for previous period
    */
@@ -277,6 +278,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     comparisonDelta: undefined,
     limit: 15,
     query: '',
+    includeAllArgs: false,
     includePrevious: true,
     includeTransformedData: true,
   };
@@ -334,7 +336,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     } else {
       try {
         api.clear();
-        timeseriesData = await doEventsRequest(api, props);
+        timeseriesData = await doEventsRequest<false>(api, props);
       } catch (resp) {
         if (resp?.responseJSON?.detail) {
           errorMessage = resp.responseJSON.detail;
@@ -476,14 +478,14 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       : {};
     const timeframe =
       response.start && response.end
-        ? !previous
+        ? previous
           ? {
-              start: response.start * 1000,
+              // Find the midpoint of start & end since previous includes 2x data
+              start: (response.start + response.end) * 500,
               end: response.end * 1000,
             }
           : {
-              // Find the midpoint of start & end since previous includes 2x data
-              start: (response.start + response.end) * 500,
+              start: response.start * 1000,
               end: response.end * 1000,
             }
         : undefined;

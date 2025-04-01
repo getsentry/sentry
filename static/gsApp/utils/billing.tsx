@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {DataCategory} from 'sentry/types/core';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import {DataCategory, type DataCategoryInfo} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -19,12 +20,14 @@ import {
 import type {
   BillingConfig,
   BillingMetricHistory,
+  BillingStatTotal,
   EventBucket,
   Plan,
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
 import {PlanName, PlanTier} from 'getsentry/types';
+import {isContinuousProfiling} from 'getsentry/utils/dataCategory';
 import titleCase from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
@@ -37,6 +40,21 @@ function isNum(val: unknown): val is number {
 // TODO(brendan): remove condition for 0 once -1 is the value we use to represent unlimited reserved quota
 export function isUnlimitedReserved(value: number | null | undefined): boolean {
   return value === UNLIMITED_RESERVED;
+}
+
+export function addBillingStatTotals(
+  a: BillingStatTotal,
+  b: BillingStatTotal | undefined
+): BillingStatTotal {
+  return {
+    accepted: a.accepted + (b?.accepted ?? 0),
+    dropped: a.dropped + (b?.dropped ?? 0),
+    droppedOther: a.droppedOther + (b?.droppedOther ?? 0),
+    droppedOverQuota: a.droppedOverQuota + (b?.droppedOverQuota ?? 0),
+    droppedSpikeProtection: a.droppedSpikeProtection + (b?.droppedSpikeProtection ?? 0),
+    filtered: a.filtered + (b?.filtered ?? 0),
+    projected: a.projected + (b?.projected ?? 0),
+  };
 }
 
 export const getSlot = (
@@ -130,7 +148,7 @@ export function formatReservedWithUnits(
   // convert reservedQuantity to BYTES to check for unlimited
   const usageGb = reservedQuantity ? reservedQuantity * GIGABYTE : reservedQuantity;
   if (isUnlimitedReserved(usageGb)) {
-    return !options.isGifted ? UNLIMITED : '0 GB';
+    return options.isGifted ? '0 GB' : UNLIMITED;
   }
   if (!options.useUnitScaling) {
     const formatted = formatReservedNumberToString(reservedQuantity, options);
@@ -161,7 +179,7 @@ export function formatUsageWithUnits(
       ? `${displayNumber(usageGb)} GB`
       : `${usageGb.toLocaleString(undefined, {maximumFractionDigits: 2})} GB`;
   }
-  if (dataCategory === DataCategory.PROFILE_DURATION) {
+  if (isContinuousProfiling(dataCategory)) {
     const usageProfileHours = usageQuantity / MILLISECONDS_IN_HOUR;
     if (usageProfileHours === 0) {
       return '0';
@@ -279,15 +297,9 @@ export const hasActiveVCFeature = (organization: Organization) =>
 
 export const isDeveloperPlan = (plan?: Plan) => plan?.name === PlanName.DEVELOPER;
 
-export const isBizPlanFamily = (plan?: Plan) =>
-  plan?.name === PlanName.BUSINESS ||
-  plan?.name === PlanName.BUSINESS_BUNDLE ||
-  plan?.name === PlanName.BUSINESS_SPONSORED;
+export const isBizPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.BUSINESS);
 
-export const isTeamPlanFamily = (plan?: Plan) =>
-  plan?.name === PlanName.TEAM ||
-  plan?.name === PlanName.TEAM_BUNDLE ||
-  plan?.name === PlanName.TEAM_SPONSORED;
+export const isTeamPlanFamily = (plan?: Plan) => plan?.name.includes(PlanName.TEAM);
 
 export const isBusinessTrial = (subscription: Subscription) => {
   return (
@@ -328,8 +340,33 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
   return subscription.isTrial && subscription.isTrialStarted;
 }
 
+export const displayBudgetName = (
+  plan?: Plan | null,
+  options: {
+    pluralOndemand?: boolean;
+    title?: boolean;
+    withBudget?: boolean;
+  } = {}
+) => {
+  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.title) {
+    if (budgetTerm === 'on-demand') {
+      if (options.withBudget) {
+        if (options.pluralOndemand) {
+          return 'On-Demand Budgets';
+        }
+        return 'On-Demand Budget';
+      }
+      return 'On-Demand';
+    }
+    return titleCase(text);
+  }
+  return text;
+};
+
 export const displayPlanName = (plan?: Plan | null) => {
-  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : plan?.name ?? '[unavailable]';
+  return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };
 
 export const getAmPlanTier = (plan: string) => {
@@ -344,6 +381,14 @@ export const getAmPlanTier = (plan: string) => {
   }
   return null;
 };
+
+export const isNewPayingCustomer = (
+  subscription: Subscription,
+  organization: Organization
+) =>
+  subscription.isFree ||
+  isTrialPlan(subscription.plan) ||
+  hasPartnerMigrationFeature(organization);
 
 /**
  * Promotion utility functions that are based off of formData which has the plan as a string
@@ -593,4 +638,15 @@ export function partnerPlanEndingModalIsDismissed(
     default:
       return true;
   }
+}
+
+export function getCategoryInfoFromPlural(
+  category: DataCategory
+): DataCategoryInfo | null {
+  const categories = Object.values(DATA_CATEGORY_INFO);
+  const info = categories.find(c => c.plural === category);
+  if (!info) {
+    return null;
+  }
+  return info;
 }

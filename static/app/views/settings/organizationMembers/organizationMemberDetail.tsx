@@ -10,8 +10,8 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {resendMemberInvite, updateMember} from 'sentry/actionCreators/members';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import {DateTime} from 'sentry/components/dateTime';
 import NotFound from 'sentry/components/errors/notFound';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -423,7 +423,7 @@ function OrganizationMemberDetail() {
 export default OrganizationMemberDetail;
 
 const ExtraHeaderText = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeLarge};
 `;

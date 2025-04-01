@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
@@ -9,7 +9,6 @@ import {Chevron} from 'sentry/components/chevron';
 import FeatureFlagOnboardingSidebar from 'sentry/components/events/featureFlags/featureFlagOnboardingSidebar';
 import FeedbackOnboardingSidebar from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import Hook from 'sentry/components/hook';
-import {OptInBanner} from 'sentry/components/nav/optInBanner';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -27,7 +26,6 @@ import {
   IconDashboard,
   IconGraph,
   IconIssues,
-  IconLightning,
   IconMegaphone,
   IconProject,
   IconReleases,
@@ -47,15 +45,12 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
@@ -78,10 +73,7 @@ import {
   DOMAIN_VIEW_BASE_TITLE,
   DOMAIN_VIEW_BASE_URL,
 } from 'sentry/views/insights/pages/settings';
-import {
-  getPerformanceBaseUrl,
-  platformToDomainView,
-} from 'sentry/views/performance/utils';
+import {OptInBanner} from 'sentry/views/nav/optInBanner';
 
 import {LegacyProfilingOnboardingSidebar} from '../profiling/profilingOnboardingSidebar';
 
@@ -103,13 +95,12 @@ function hidePanel(hash?: string) {
 }
 
 function Sidebar() {
+  const theme = useTheme();
   const location = useLocation();
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const {selection} = usePageFilters();
-  const {projects: projectList} = useProjects();
   const hasOrganization = !!organization;
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
@@ -119,12 +110,7 @@ function Sidebar() {
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
-  const sidebarItemProps = {
-    orientation,
-    collapsed,
-    hasPanel,
-    organization,
-  };
+  const sidebarItemProps = {orientation, collapsed, hasPanel, organization};
   // Avoid showing superuser UI on self-hosted instances
   const showSuperuserWarning = () => {
     return isActiveSuperuser() && !ConfigStore.get('isSelfHosted');
@@ -175,7 +161,7 @@ function Sidebar() {
     return () => bcl.remove('collapsed');
   }, [collapsed]);
 
-  const sidebarAnchor = isDemoModeEnabled() ? (
+  const sidebarAnchor = isDemoModeActive() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
     </GuideAnchor>
@@ -223,7 +209,7 @@ function Sidebar() {
   );
 
   const traces = hasOrganization && (
-    <Feature features="performance-trace-explorer">
+    <Feature features={['performance-trace-explorer', 'performance-view']}>
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
@@ -246,25 +232,14 @@ function Sidebar() {
     </Feature>
   );
 
-  const hasPerfLandingRemovalFlag = organization?.features.includes(
-    'insights-performance-landing-removal'
-  );
-  const view = hasPerfLandingRemovalFlag
-    ? platformToDomainView(projectList, selection.projects)
-    : undefined;
-  const performance = hasOrganization && (
-    <Feature
-      hookName="feature-disabled:performance-sidebar-item"
-      features="performance-view"
-      organization={organization}
-    >
+  const savedQueries = hasOrganization && (
+    <Feature features="performance-saved-queries" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={<IconLightning />}
-        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-        active={hasPerfLandingRemovalFlag ? false : undefined}
-        to={`${getPerformanceBaseUrl(organization.slug, view)}/`}
-        id="performance"
+        label={<GuideAnchor target="saved-queries">{t('All Queries')}</GuideAnchor>}
+        to={`/organizations/${organization?.slug}/explore/saved-queries/`}
+        id="performance-saved-queries"
+        icon={<SubitemDot collapsed />}
       />
     </Feature>
   );
@@ -309,10 +284,7 @@ function Sidebar() {
       {...sidebarItemProps}
       icon={<IconSiren />}
       label={t('Alerts')}
-      to={makeAlertsPathname({
-        path: '/rules/',
-        organization,
-      })}
+      to={makeAlertsPathname({path: '/rules/', organization})}
       id="alerts"
     />
   );
@@ -408,11 +380,7 @@ function Sidebar() {
         label={DOMAIN_VIEW_BASE_TITLE}
         id="insights-domains"
         initiallyExpanded
-        active={
-          hasPerfLandingRemovalFlag
-            ? location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)
-            : undefined
-        }
+        active={location.pathname.includes(`/${DOMAIN_VIEW_BASE_URL}/summary`)}
         exact={!shouldAccordionFloat}
       >
         <SidebarItem
@@ -462,6 +430,7 @@ function Sidebar() {
       {profiling}
       {replays}
       {discover}
+      {savedQueries}
     </SidebarAccordion>
   );
 
@@ -475,7 +444,9 @@ function Sidebar() {
             <SidebarDropdown orientation={orientation} collapsed={collapsed} />
 
             {showSuperuserWarning() && !isExcludedOrg() && (
-              <Hook name="component:superuser-warning" organization={organization} />
+              <SuperuserBadgeContainer>
+                <Hook name="component:superuser-warning" organization={organization} />
+              </SuperuserBadgeContainer>
             )}
           </DropdownSidebarSection>
           <PrimaryItems>
@@ -494,7 +465,6 @@ function Sidebar() {
                     </SidebarSection>
 
                     <SidebarSection>
-                      {performance}
                       {feedback}
                       {monitors}
                       {alerts}
@@ -586,20 +556,24 @@ function Sidebar() {
                 hidePanel={hidePanel}
                 organization={organization}
               />
-              <Broadcasts
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
-                hidePanel={hidePanel}
-              />
-              <ServiceIncidents
-                orientation={orientation}
-                collapsed={collapsed}
-                currentPanel={activePanel}
-                onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
-                hidePanel={hidePanel}
-              />
+              {!isDemoModeActive() && (
+                <Fragment>
+                  <Broadcasts
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.BROADCASTS)}
+                    hidePanel={hidePanel}
+                  />
+                  <ServiceIncidents
+                    orientation={orientation}
+                    collapsed={collapsed}
+                    currentPanel={activePanel}
+                    onShowPanel={() => togglePanel(SidebarPanelKey.SERVICE_INCIDENTS)}
+                    hidePanel={hidePanel}
+                  />
+                </Fragment>
+              )}
             </SidebarSection>
 
             {!horizontal && (
@@ -623,7 +597,7 @@ function Sidebar() {
 
 export default Sidebar;
 
-const responsiveFlex = css`
+const responsiveFlex = (theme: Theme) => css`
   display: flex;
   flex-direction: column;
 
@@ -651,7 +625,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
   justify-content: space-between;
   z-index: ${p => p.theme.zIndex.sidebar};
   border-right: solid 1px ${p => p.theme.sidebar.border};
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     top: 0;
@@ -668,14 +642,14 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean; hasNewNav?: boo
 `;
 
 const SidebarSectionGroup = styled('div')<{hasNewNav?: boolean}>`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   flex-shrink: 0; /* prevents shrinking on Safari */
   gap: 1px;
   ${p => p.hasNewNav && `align-items: center;`}
 `;
 
 const SidebarSectionGroupPrimary = styled('div')`
-  ${responsiveFlex};
+  ${p => responsiveFlex(p.theme)};
   /* necessary for child flexing on msedge and ff */
   min-height: 0;
   min-width: 0;
@@ -790,6 +764,17 @@ const DropdownSidebarSection = styled(SidebarSection)<{
 
 const SidebarCollapseItem = styled(SidebarItem)`
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
+    display: none;
+  }
+`;
+
+const SuperuserBadgeContainer = styled('div')`
+  position: absolute;
+  top: -5px;
+  right: 5px;
+
+  /* Hiding on smaller screens because it looks misplaced */
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

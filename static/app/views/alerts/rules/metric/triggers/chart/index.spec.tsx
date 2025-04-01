@@ -1,4 +1,5 @@
 import {EventsStatsFixture} from 'sentry-fixture/events';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,6 +10,8 @@ import {
   AlertRuleThresholdType,
   Dataset,
 } from 'sentry/views/alerts/rules/metric/types';
+
+const theme = ThemeFixture();
 
 describe('Incident Rules Create', () => {
   let eventStatsMock: jest.Func;
@@ -44,6 +47,7 @@ describe('Incident Rules Create', () => {
         anomalies={[]}
         location={router.location}
         organization={organization}
+        theme={theme}
         projects={[project]}
         query="event.type:error"
         timeWindow={1}
@@ -96,6 +100,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -152,6 +157,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}
@@ -211,6 +217,7 @@ describe('Incident Rules Create', () => {
 
     render(
       <TriggersChart
+        theme={theme}
         api={api}
         location={router.location}
         organization={organization}

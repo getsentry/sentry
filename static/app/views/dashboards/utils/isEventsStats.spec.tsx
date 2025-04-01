@@ -15,7 +15,7 @@ const singleSeries: EventsStats = {
 };
 
 const multiSeries: MultiSeriesEventsStats = {
-  'spm()': singleSeries,
+  'epm()': singleSeries,
   'avg(span.duration)': singleSeries,
 };
 

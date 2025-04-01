@@ -50,9 +50,6 @@ export function useReleaseStats(
           ...normalizeDateTimeParams(datetime),
         },
       },
-      // This is here to prevent a cache key conflict between normal queries and
-      // "infinite" queries. Read more here: https://tkdodo.eu/blog/effective-react-query-keys#caching-data
-      'load-all',
     ],
     ...queryOptions,
   });

@@ -1,14 +1,17 @@
 import {vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeCanvasMock, makeFlamegraph} from 'sentry-test/profiling/utils';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphRendererDOM} from 'sentry/utils/profiling/renderers/flamegraphRendererDOM';
 
 import {CanvasView} from '../canvasView';
 import type {Flamegraph} from '../flamegraph';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
+
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 const originalDpr = window.devicePixelRatio;
 

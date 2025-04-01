@@ -6,6 +6,7 @@ import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceD
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {
+  isEAPSpanNode,
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
@@ -16,6 +17,9 @@ import type {ParentAutogroupNode} from './parentAutogroupNode';
 import {TraceTree} from './traceTree';
 import {
   assertTransactionNode,
+  makeEAPError,
+  makeEAPSpan,
+  makeEAPTrace,
   makeEventTransaction,
   makeSpan,
   makeTrace,
@@ -53,6 +57,14 @@ const trace = makeTrace({
   ],
   orphan_errors: [],
 });
+
+const eapTrace = makeEAPTrace([
+  makeEAPSpan({
+    start_timestamp: start,
+    end_timestamp: start + 2,
+    children: [makeEAPSpan({start_timestamp: start + 1, end_timestamp: start + 4})],
+  }),
+]);
 
 const traceWithEventId = makeTrace({
   transactions: [
@@ -159,10 +171,32 @@ const parentAutogroupSpansWithTailChildren = [
   }),
 ];
 
+const eapTraceWithErrors = makeEAPTrace([
+  makeEAPSpan({
+    event_id: 'eap-span-1',
+    is_transaction: true,
+    errors: [],
+    children: [
+      makeEAPSpan({
+        event_id: 'eap-span-2',
+        is_transaction: false,
+        errors: [makeEAPError()],
+      }),
+    ],
+  }),
+]);
+
 function findTransactionByEventId(tree: TraceTree, eventId: string) {
   return TraceTree.Find(
     tree.root,
     node => isTransactionNode(node) && node.value.event_id === eventId
+  );
+}
+
+function findEAPSpanByEventId(tree: TraceTree, eventId: string) {
+  return TraceTree.Find(
+    tree.root,
+    node => isEAPSpanNode(node) && node.value.event_id === eventId
   );
 }
 
@@ -425,6 +459,37 @@ describe('TraceTree', () => {
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 
+    it('swaps only pageload transaction child with parent http.server transaction', () => {
+      const tree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              'transaction.op': 'http.server',
+              transaction: '/api-1/',
+              start_timestamp: 2,
+              children: [
+                makeTransaction({
+                  'transaction.op': 'pageload',
+                  transaction: '/',
+                  start_timestamp: 1,
+                  children: [
+                    makeTransaction({
+                      'transaction.op': 'http.server',
+                      transaction: '/api-2/',
+                      start_timestamp: 4,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+        traceMetadata
+      );
+
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
     it('initializes canFetch based on spanChildrenCount', () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
@@ -478,6 +543,118 @@ describe('TraceTree', () => {
       );
 
       expect(findTransactionByEventId(tree, 'transaction')?.canFetch).toBe(true);
+    });
+  });
+
+  describe('eap trace', () => {
+    it('assembles tree from eap trace', () => {
+      const tree = TraceTree.FromTrace(eapTrace, traceMetadata);
+      expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('adds eap errors to tree nodes', () => {
+      const tree = TraceTree.FromTrace(eapTraceWithErrors, traceMetadata);
+
+      expect(tree.root.children[0]!.errors.size).toBe(1);
+
+      const eapTransaction = findEAPSpanByEventId(tree, 'eap-span-1');
+      const eapSpan = findEAPSpanByEventId(tree, 'eap-span-2');
+
+      expect(eapTransaction?.errors.size).toBe(1);
+      expect(eapSpan?.errors.size).toBe(1);
+    });
+
+    it('initializes expanded based on is_transaction property', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true,
+            children: [
+              makeEAPSpan({
+                event_id: 'eap-span-2',
+                start_timestamp: start + 1,
+                end_timestamp: start + 4,
+                is_transaction: false,
+                children: [],
+              }),
+            ],
+          }),
+        ]),
+        {meta: null, replay: null}
+      );
+
+      // eap-span-1 is a transaction/segment and should be collapsed
+      expect(findEAPSpanByEventId(tree, 'eap-span-1')?.expanded).toBe(false);
+
+      // eap-span-2 is a span and should be expanded
+      expect(findEAPSpanByEventId(tree, 'eap-span-2')?.expanded).toBe(true);
+    });
+
+    it('correctly renders eap-transactions toggle state', () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'eap-span-1',
+            start_timestamp: start,
+            end_timestamp: start + 2,
+            is_transaction: true, // is a transaction
+            parent_span_id: undefined,
+            children: [
+              makeEAPSpan({
+                event_id: 'eap-span-2',
+                start_timestamp: start + 1,
+                end_timestamp: start + 4,
+                is_transaction: false,
+                parent_span_id: 'eap-span-1',
+                children: [
+                  makeEAPSpan({
+                    event_id: 'eap-span-3',
+                    start_timestamp: start + 2,
+                    end_timestamp: start + 3,
+                    is_transaction: true, // is a transaction
+                    parent_span_id: 'eap-span-2',
+                    children: [
+                      makeEAPSpan({
+                        event_id: 'eap-span-4',
+                        start_timestamp: start + 3,
+                        end_timestamp: start + 4,
+                        is_transaction: false,
+                        parent_span_id: 'eap-span-3',
+                        children: [
+                          makeEAPSpan({
+                            event_id: 'eap-span-5',
+                            start_timestamp: start + 4,
+                            end_timestamp: start + 5,
+                            is_transaction: true, // is a transaction
+                            parent_span_id: 'eap-span-4',
+                            children: [],
+                          }),
+                        ],
+                      }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ]),
+        traceMetadata
+      );
+
+      // Assert initial state
+      expect(tree.build().serialize()).toMatchSnapshot();
+
+      // Assert expaneded state
+      const eapTxn = findEAPSpanByEventId(tree, 'eap-span-1');
+      tree.expand(eapTxn!, true);
+      expect(tree.build().serialize()).toMatchSnapshot();
+
+      // Assert state upon collapsing
+      tree.expand(eapTxn!, false);
+      expect(tree.build().serialize()).toMatchSnapshot();
     });
   });
 
@@ -1143,6 +1320,63 @@ describe('TraceTree', () => {
         tree.expand(siblingAutogroup!, expanded);
         expect(TraceTree.HasVisibleChildren(siblingAutogroup!)).toBe(expanded);
       });
+
+      it("doesn't auto-group sibling spans with default op", () => {
+        const siblingSpans = [
+          makeSpan({
+            op: 'pageload',
+            description: 'parent',
+            start_timestamp: start,
+            timestamp: start + 1,
+            span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+          makeSpan({
+            op: 'default',
+            description: 'desc',
+            start_timestamp: start,
+            timestamp: start + 1,
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        TraceTree.FromSpans(tree.root.children[0]!, siblingSpans, makeEventTransaction());
+
+        TraceTree.AutogroupSiblingSpanNodes(tree.root);
+
+        const siblingAutogroup = TraceTree.Find(tree.root, node =>
+          isSiblingAutogroupedNode(node)
+        );
+        expect(siblingAutogroup).toBeNull();
+      });
     });
 
     describe('parent autogroup', () => {
@@ -1162,6 +1396,28 @@ describe('TraceTree', () => {
 
         tree.expand(parentAutogroup!, expanded);
         expect(TraceTree.HasVisibleChildren(parentAutogroup!)).toBe(expanded);
+      });
+
+      it("does't auto-group child spans with default op", () => {
+        const childSpans = [
+          makeSpan({op: 'default', description: 'desc1', span_id: '0000'}),
+          makeSpan({
+            op: 'default',
+            description: 'desc2',
+            span_id: '0001',
+            parent_span_id: '0000',
+          }),
+        ];
+
+        const tree = TraceTree.FromTrace(trace, traceMetadata);
+        TraceTree.FromSpans(tree.root.children[0]!, childSpans, makeEventTransaction());
+
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+
+        const parentAutogroup = TraceTree.Find(tree.root, node =>
+          isParentAutogroupedNode(node)
+        );
+        expect(parentAutogroup).toBeNull();
       });
     });
 

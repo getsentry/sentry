@@ -22,11 +22,11 @@ export type ScrollbarManagerChildrenProps = {
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
-  scrollBarAreaRef: React.RefObject<HTMLDivElement>;
+  scrollBarAreaRef: React.RefObject<HTMLDivElement | null>;
   storeSpanBar: (spanBar: SpanBar | NewTraceDetailsSpanBar) => void;
   updateHorizontalScrollState: (avgSpanDepth: number) => void;
   updateScrollState: () => void;
-  virtualScrollbarRef: React.RefObject<HTMLDivElement>;
+  virtualScrollbarRef: React.RefObject<HTMLDivElement | null>;
 };
 
 const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
@@ -44,7 +44,7 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
 });
 
 const selectRefs = (
-  refs: Set<HTMLDivElement> | React.RefObject<HTMLDivElement>,
+  refs: Set<HTMLDivElement | null> | React.RefObject<HTMLDivElement | null>,
   transform: (element: HTMLDivElement) => void
 ) => {
   if (!(refs instanceof Set)) {
@@ -56,7 +56,7 @@ const selectRefs = (
   }
 
   refs.forEach(element => {
-    if (document.body.contains(element)) {
+    if (element && document.body.contains(element)) {
       transform(element);
     }
   });
@@ -72,7 +72,7 @@ type Props = {
   dividerPosition: number;
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
-  interactiveLayerRef: React.RefObject<HTMLDivElement>;
+  interactiveLayerRef: React.RefObject<HTMLDivElement | null>;
 
   dragProps?: DragManagerChildrenProps;
   isEmbedded?: boolean;
@@ -117,8 +117,8 @@ export class Provider extends Component<Props, State> {
   }
 
   contentSpanBar: Set<HTMLDivElement> = new Set();
-  virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
-  scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
+  virtualScrollbar: React.RefObject<HTMLDivElement | null> = createRef<HTMLDivElement>();
+  scrollBarArea: React.RefObject<HTMLDivElement | null> = createRef<HTMLDivElement>();
   isDragging = false;
   isWheeling = false;
   wheelTimeout: NodeJS.Timeout | null = null;
@@ -534,9 +534,9 @@ export class Provider extends Component<Props, State> {
     };
 
     return (
-      <ScrollbarManagerContext.Provider value={childrenProps}>
+      <ScrollbarManagerContext value={childrenProps}>
         {this.props.children}
-      </ScrollbarManagerContext.Provider>
+      </ScrollbarManagerContext>
     );
   }
 }

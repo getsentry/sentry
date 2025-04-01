@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -132,7 +132,7 @@ function InnerContent(
     (tagKey: string) => {
       if (lastTag.current !== tagKey) {
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           tagKey,
           [TAG_PAGE_TABLE_CURSOR]: undefined,
         });
@@ -159,7 +159,7 @@ function InnerContent(
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 

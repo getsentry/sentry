@@ -13,7 +13,7 @@ import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insight
 import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -324,7 +324,7 @@ const FeatureListItem = styled('li')<{isSelected: boolean}>`
   display: flex;
   align-items: center;
   gap: ${space(2)};
-  color: ${p => (p.isSelected ? p.theme.gray500 : p.theme.gray300)};
+  color: ${p => (p.isSelected ? p.theme.gray500 : p.theme.subText)};
   ${p => p.isSelected && `font-weight: ${p.theme.fontWeightBold};`}
   cursor: pointer;
   :hover {

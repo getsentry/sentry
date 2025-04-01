@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
@@ -42,7 +43,6 @@ import type {KeyValueListData, KeyValueListDataItem} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import commonTheme from 'sentry/utils/theme';
 
 /**
  * Generates the class name used for contexts
@@ -334,8 +334,10 @@ export function getContextIcon({
   type,
   value = {},
   contextIconProps = {},
+  theme,
 }: {
   alias: string;
+  theme: Theme;
   type: string;
   contextIconProps?: Partial<ContextIconProps>;
   value?: Record<string, any>;
@@ -363,7 +365,7 @@ export function getContextIcon({
       break;
     case 'user': {
       const user = userContextToActor(value);
-      const iconSize = commonTheme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
+      const iconSize = theme.iconNumberSizes[contextIconProps?.size ?? 'xl'];
       return <UserAvatar user={user} size={iconSize} gravatar={false} />;
     }
     case 'gpu':
@@ -461,6 +463,34 @@ export function getFormattedContextData({
       }));
   }
 }
+
+function shortRuntimeVersion(version: string) {
+  // Ruby runtime version looks like:
+  // - `ruby 3.2.6 (2024-10-30 revision 63aeb018eb) [arm64-darwin23]`
+  // - `ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin24]`
+  if (version.startsWith('ruby') && version.length > 25) {
+    // Extract everything from "ruby" until the first opening parenthesis
+    // This will include both the version number and any patch level
+    const match = version.match(/^ruby\s+(.*?)(?:\s+\(|$)/);
+    return match ? match[1]?.trim() : version;
+  }
+  // TODO: handle other long runtime versions
+
+  return version;
+}
+
+function shortOperatingSystemVersion(version: string) {
+  // Darwin version looks like `Darwin Kernel Version 24.3.0: Thu Jan 2 20:24:24 PST 2025; root:xnu-11215.81.4~3/RELEASE_ARM64_T6030`
+  if (version.startsWith('Darwin Kernel Version') && version.length > 25) {
+    const match = version.match(/Darwin Kernel Version (\d+\.\d+\.\d+).+RELEASE_(.+)/);
+    // Return just the version number and release type
+    return match ? `${match[1]} (RELEASE_${match[2]})` : version;
+  }
+  // TODO: handle other long operating system versions
+
+  return version;
+}
+
 /**
  * Reimplemented as util function from legacy summaries deleted in this PR - https://github.com/getsentry/sentry/pull/71695/files
  * Consildated into one function and neglects any meta annotations since those will be rendered in the proper contexts section.
@@ -507,8 +537,8 @@ export function getContextSummary({
     case 'os':
     case 'client_os':
       title = data?.name ?? null;
-      if (defined(data?.version) && typeof data?.version === 'string') {
-        subtitle = data?.version;
+      if (typeof data?.version === 'string') {
+        subtitle = shortOperatingSystemVersion(data?.version);
         subtitleType = t('Version');
       } else if (defined(data?.kernel_version)) {
         subtitle = data?.kernel_version;
@@ -541,6 +571,12 @@ export function getContextSummary({
       }
       break;
     case 'runtime':
+      title = data?.name ?? null;
+      if (typeof data?.version === 'string') {
+        subtitle = shortRuntimeVersion(data?.version);
+        subtitleType = t('Version');
+      }
+      break;
     case 'browser':
       title = data?.name ?? null;
       if (defined(data?.version)) {

@@ -1,12 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
-import isEqual from 'lodash/isEqual';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import type {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
@@ -17,10 +15,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {Outcome} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import withProjects from 'sentry/utils/withProjects';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import {droppedProfileChunkMultiplier} from 'sentry/views/organizationStats/mapSeriesToChart';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
@@ -41,18 +41,13 @@ type Props = {
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
   isSingleProject: boolean;
-  loadingProjects: boolean;
-  organization: Organization;
   projectIds: number[];
-  projects: Project[];
   tableCursor?: string;
   tableQuery?: string;
   tableSort?: string;
-} & DeprecatedAsyncComponent['props'];
+};
 
-type State = {
-  projectStats: UsageSeries | undefined;
-} & DeprecatedAsyncComponent['state'];
+const MAX_ROWS_USAGE_TABLE = 25;
 
 export enum SortBy {
   PROJECT = 'project',
@@ -64,45 +59,21 @@ export enum SortBy {
   RATE_LIMITED = 'rate_limited',
 }
 
-class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
-  static MAX_ROWS_USAGE_TABLE = 25;
+export function UsageStatsProjects({
+  dataDatetime,
+  dataCategory,
+  projectIds,
+  isSingleProject,
+  tableQuery,
+  handleChangeState,
+  tableCursor,
+  getNextLocations,
+  tableSort: parentTableSort,
+}: Props) {
+  const organization = useOrganization();
+  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
-  componentDidUpdate(prevProps: Props) {
-    const {
-      dataDatetime: prevDateTime,
-      dataCategory: prevDataCategory,
-      projectIds: prevProjectIds,
-    } = prevProps;
-    const {
-      dataDatetime: currDateTime,
-      dataCategory: currDataCategory,
-      projectIds: currProjectIds,
-    } = this.props;
-
-    if (
-      prevDateTime.start !== currDateTime.start ||
-      prevDateTime.end !== currDateTime.end ||
-      prevDateTime.period !== currDateTime.period ||
-      prevDateTime.utc !== currDateTime.utc ||
-      prevDataCategory !== currDataCategory ||
-      !isEqual(prevProjectIds, currProjectIds)
-    ) {
-      this.reloadData();
-    }
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [['projectStats', this.endpointPath, {query: this.endpointQuery}]];
-  }
-
-  get endpointPath() {
-    const {organization} = this.props;
-    return `/organizations/${organization.slug}/stats_v2/`;
-  }
-
-  get endpointQuery() {
-    const {dataDatetime, dataCategory, projectIds, isSingleProject} = this.props;
-
+  const endpointQuery = useMemo(() => {
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
         ? {
@@ -118,11 +89,20 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
     const category: string[] = [dataCategory.apiName];
 
     if (
-      hasDynamicSamplingCustomFeature(this.props.organization) &&
+      hasDynamicSamplingCustomFeature(organization) &&
       dataCategory.apiName === 'span'
     ) {
       groupBy.push('category');
       category.push('span_indexed');
+    }
+    if (
+      dataCategory.apiName === 'profile_duration' ||
+      dataCategory.apiName === 'profile_duration_ui'
+    ) {
+      groupBy.push('category');
+      category.push(
+        dataCategory.apiName === 'profile_duration' ? 'profile_chunk' : 'profile_chunk_ui'
+      );
     }
 
     // We do not need more granularity in the data so interval is '1d'
@@ -135,41 +115,41 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
       category,
     };
-  }
+  }, [organization, dataDatetime, dataCategory, isSingleProject, projectIds]);
 
-  get tableData() {
-    const {projectStats} = this.state;
-    const seriesData = this.mapSeriesToTable(projectStats);
+  const {
+    data: projectStats,
+    isError,
+    error,
+    isPending: loading,
+  } = useApiQuery<UsageSeries>(
+    [
+      `/organizations/${organization.slug}/stats_v2/`,
+      {
+        // We do not need more granularity in the data so interval is '1d'
+        query: endpointQuery,
+      },
+    ],
+    {
+      staleTime: Infinity,
+    }
+  );
 
-    const showStoredOutcome =
-      hasDynamicSamplingCustomFeature(this.props.organization) &&
-      this.props.dataCategory.apiName === 'span' &&
-      seriesData.hasStoredOutcome;
-
-    return {
-      headers: this.getTableHeader({showStoredOutcome}),
-      showStoredOutcome,
-      ...seriesData,
-    };
-  }
-
-  get tableSort(): {
+  const tableSort: {
     direction: number;
     key: SortBy;
-  } {
-    const {tableSort} = this.props;
-
-    if (!tableSort) {
+  } = useMemo(() => {
+    if (!parentTableSort) {
       return {
         key: SortBy.TOTAL,
         direction: 1,
       };
     }
 
-    let key: string = tableSort;
+    let key: string = parentTableSort;
     let direction = -1;
 
-    if (tableSort.charAt(0) === '-') {
+    if (parentTableSort.charAt(0) === '-') {
       key = key.slice(1);
       direction = 1;
     }
@@ -185,186 +165,96 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       default:
         return {key: SortBy.ACCEPTED, direction: -1};
     }
-  }
+  }, [parentTableSort]);
 
-  get tableOffset() {
-    const {tableCursor} = this.props;
-    return getOffsetFromCursor(tableCursor);
-  }
+  const handleSearch = useCallback(
+    (query: string) => {
+      if (query === tableQuery) {
+        return;
+      }
 
-  /**
-   * OrganizationStatsEndpointV2 does not have any performance issues. We use
-   * client-side pagination to limit the number of rows on the table so the
-   * page doesn't scroll too deeply for organizations with a lot of projects
-   */
-  get pageLink() {
-    const offset = this.tableOffset;
-    const numRows = this.filteredProjects.length;
+      if (!query) {
+        handleChangeState({query: undefined, cursor: undefined});
+        return;
+      }
 
-    return getPaginationPageLink({
-      numRows,
-      pageSize: UsageStatsProjects.MAX_ROWS_USAGE_TABLE,
-      offset,
-    });
-  }
+      handleChangeState({query, cursor: undefined});
+    },
+    [tableQuery, handleChangeState]
+  );
 
-  get projectSelectionFilter(): (p: Project) => boolean {
-    const {projectIds, isSingleProject} = this.props;
-    const selectedProjects = new Set(projectIds.map(id => `${id}`));
+  const handleChangeSort = useCallback(
+    (nextKey: SortBy) => {
+      const {key, direction} = tableSort;
 
-    // If 'My Projects' or 'All Projects' are selected
-    return selectedProjects.size === 0 || selectedProjects.has('-1') || isSingleProject
-      ? _p => true
-      : p => selectedProjects.has(p.id);
-  }
+      let nextDirection = 1; // Default to descending
+
+      if (key === nextKey) {
+        nextDirection = direction * -1; // Toggle if clicking on the same column
+      } else if (nextKey === SortBy.PROJECT) {
+        nextDirection = -1; // Default PROJECT to ascending
+      }
+
+      // The header uses SortLink, which takes a LocationDescriptor and pushes
+      // that to the router. As such, we do not need to update the router in
+      // handleChangeState
+      return handleChangeState(
+        {sort: `${nextDirection > 0 ? '-' : ''}${nextKey}`},
+        {willUpdateRouter: false}
+      );
+    },
+    [tableSort, handleChangeState]
+  );
+
+  const projectSelectionFilter = useCallback(
+    (p: Project) => {
+      const selectedProjects = new Set(projectIds.map(id => `${id}`));
+
+      return selectedProjects.size === 0 || selectedProjects.has('-1') || isSingleProject
+        ? true
+        : selectedProjects.has(p.id);
+    },
+    [projectIds, isSingleProject]
+  );
 
   /**
    * Filter projects if there's a query
    */
-  get filteredProjects() {
-    const {projects, tableQuery} = this.props;
+  const filteredProjects = useMemo(() => {
     return tableQuery
       ? projects.filter(
-          p =>
-            p.slug.includes(tableQuery) && p.hasAccess && this.projectSelectionFilter(p)
+          p => p.slug.includes(tableQuery) && p.hasAccess && projectSelectionFilter(p)
         )
-      : projects.filter(p => p.hasAccess && this.projectSelectionFilter(p));
-  }
+      : projects.filter(p => p.hasAccess && projectSelectionFilter(p));
+  }, [projects, tableQuery, projectSelectionFilter]);
 
-  getTableHeader({showStoredOutcome}: {showStoredOutcome: boolean}) {
-    const {key, direction} = this.tableSort;
+  const getProjectLink = useCallback(
+    (project: Project) => {
+      const {performance, projectDetail, settings} = getNextLocations(project);
 
-    const getArrowDirection = (linkKey: SortBy): Directions => {
-      if (linkKey !== key) {
-        return undefined;
+      if (
+        dataCategory === DATA_CATEGORY_INFO.transaction &&
+        organization.features.includes('performance-view')
+      ) {
+        return {
+          projectLink: performance,
+          projectSettingsLink: settings,
+        };
       }
 
-      return direction > 0 ? 'desc' : 'asc';
-    };
-
-    return [
-      {
-        key: SortBy.PROJECT,
-        title: t('Project'),
-        align: 'left',
-        direction: getArrowDirection(SortBy.PROJECT),
-        onClick: () => this.handleChangeSort(SortBy.PROJECT),
-      },
-      {
-        key: SortBy.TOTAL,
-        title: t('Total'),
-        align: 'right',
-        direction: getArrowDirection(SortBy.TOTAL),
-        onClick: () => this.handleChangeSort(SortBy.TOTAL),
-      },
-      {
-        key: SortBy.ACCEPTED,
-        title: showStoredOutcome ? t('Accepted (Stored)') : t('Accepted'),
-        align: 'right',
-        direction: getArrowDirection(SortBy.ACCEPTED),
-        onClick: () => this.handleChangeSort(SortBy.ACCEPTED),
-      },
-      {
-        key: SortBy.FILTERED,
-        title: t('Filtered'),
-        align: 'right',
-        direction: getArrowDirection(SortBy.FILTERED),
-        onClick: () => this.handleChangeSort(SortBy.FILTERED),
-      },
-      {
-        key: SortBy.RATE_LIMITED,
-        title: t('Rate Limited'),
-        align: 'right',
-        direction: getArrowDirection(SortBy.RATE_LIMITED),
-        onClick: () => this.handleChangeSort(SortBy.RATE_LIMITED),
-      },
-      {
-        key: SortBy.INVALID,
-        title: t('Invalid'),
-        align: 'right',
-        direction: getArrowDirection(SortBy.INVALID),
-        onClick: () => this.handleChangeSort(SortBy.INVALID),
-      },
-    ]
-      .map(h => {
-        const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
-
-        return (
-          <Cell key={h.key}>
-            <SortLink
-              canSort
-              title={h.title}
-              align={h.align as Alignments}
-              direction={h.direction}
-              generateSortLink={h.onClick}
-            />
-          </Cell>
-        );
-      })
-      .concat([<CellStat key="empty" />]); // Extra column for displaying buttons etc.
-  }
-
-  getProjectLink(project: Project) {
-    const {dataCategory, getNextLocations, organization} = this.props;
-    const {performance, projectDetail, settings} = getNextLocations(project);
-
-    if (
-      dataCategory === DATA_CATEGORY_INFO.transaction &&
-      organization.features.includes('performance-view')
-    ) {
       return {
-        projectLink: performance,
+        projectLink: projectDetail,
         projectSettingsLink: settings,
       };
-    }
+    },
+    [organization, dataCategory, getNextLocations]
+  );
 
-    return {
-      projectLink: projectDetail,
-      projectSettingsLink: settings,
-    };
-  }
+  const tableOffset = useMemo(() => {
+    return getOffsetFromCursor(tableCursor);
+  }, [tableCursor]);
 
-  handleChangeSort = (nextKey: SortBy) => {
-    const {handleChangeState} = this.props;
-    const {key, direction} = this.tableSort;
-
-    let nextDirection = 1; // Default to descending
-
-    if (key === nextKey) {
-      nextDirection = direction * -1; // Toggle if clicking on the same column
-    } else if (nextKey === SortBy.PROJECT) {
-      nextDirection = -1; // Default PROJECT to ascending
-    }
-
-    // The header uses SortLink, which takes a LocationDescriptor and pushes
-    // that to the router. As such, we do not need to update the router in
-    // handleChangeState
-    return handleChangeState(
-      {sort: `${nextDirection > 0 ? '-' : ''}${nextKey}`},
-      {willUpdateRouter: false}
-    );
-  };
-
-  handleSearch = (query: string) => {
-    const {handleChangeState, tableQuery} = this.props;
-
-    if (query === tableQuery) {
-      return;
-    }
-
-    if (!query) {
-      handleChangeState({query: undefined, cursor: undefined});
-      return;
-    }
-
-    handleChangeState({query, cursor: undefined});
-  };
-
-  mapSeriesToTable(projectStats?: UsageSeries): {
-    hasStoredOutcome: boolean;
-    tableStats: TableStat[];
-    error?: Error;
-  } {
+  const seriesData = useMemo(() => {
     if (!projectStats) {
       return {tableStats: [], hasStoredOutcome: false};
     }
@@ -381,12 +271,15 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         [SortBy.RATE_LIMITED]: 0,
       };
 
-      const projectList = this.filteredProjects;
+      const projectList = filteredProjects;
       const projectSet = new Set(projectList.map(p => p.id));
 
       projectStats.groups.forEach(group => {
         const {outcome, category, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
+
+        const multiplier = droppedProfileChunkMultiplier(category, outcome);
+        const value = group.totals['sum(quantity)']! * multiplier;
 
         if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
           // we need `span_indexed` data for `accepted_stored` only
@@ -402,11 +295,11 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
-          stats[projectId!]!.total += group.totals['sum(quantity)']!;
+          stats[projectId!]!.total += value;
         }
 
         if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
-          stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
+          stats[projectId!]!.accepted_stored += value;
           return;
         }
 
@@ -415,7 +308,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.FILTERED ||
           outcome === Outcome.INVALID
         ) {
-          stats[projectId!]![outcome] += group.totals['sum(quantity)']!;
+          stats[projectId!]![outcome] += value;
         }
 
         if (
@@ -423,7 +316,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.ABUSE
         ) {
-          stats[projectId!]![SortBy.RATE_LIMITED] += group.totals['sum(quantity)']!;
+          stats[projectId!]![SortBy.RATE_LIMITED] += value;
         }
       });
 
@@ -439,34 +332,31 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         }
         return {
           project: {...proj},
-          ...this.getProjectLink(proj),
+          ...getProjectLink(proj),
           ...stat,
         };
       });
 
-      const {key, direction} = this.tableSort;
+      const {key, direction} = tableSort;
       tableStats.sort((a, b) => {
         if (key === SortBy.PROJECT) {
           return b.project.slug.localeCompare(a.project.slug) * direction;
         }
 
-        return a[key] !== b[key]
-          ? (b[key] - a[key]) * direction
-          : a.project.slug.localeCompare(b.project.slug);
+        return a[key] === b[key]
+          ? a.project.slug.localeCompare(b.project.slug)
+          : (b[key] - a[key]) * direction;
       });
 
-      const offset = this.tableOffset;
+      const offset = tableOffset;
 
       return {
-        tableStats: tableStats.slice(
-          offset,
-          offset + UsageStatsProjects.MAX_ROWS_USAGE_TABLE
-        ),
+        tableStats: tableStats.slice(offset, offset + MAX_ROWS_USAGE_TABLE),
         hasStoredOutcome,
       };
     } catch (err) {
       Sentry.withScope(scope => {
-        scope.setContext('query', this.endpointQuery);
+        scope.setContext('query', endpointQuery);
         scope.setContext('body', {...projectStats});
         Sentry.captureException(err);
       });
@@ -477,49 +367,155 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         error: err,
       };
     }
-  }
+  }, [
+    endpointQuery,
+    filteredProjects,
+    projectStats,
+    tableSort,
+    tableOffset,
+    getProjectLink,
+  ]);
 
-  renderComponent() {
-    const {error, errors, loading} = this.state;
-    const {dataCategory, loadingProjects, tableQuery, isSingleProject} = this.props;
-    const {headers, tableStats, showStoredOutcome} = this.tableData;
-    return (
-      <Fragment>
-        {isSingleProject && (
-          <PanelHeading>
-            <Title>{t('All Projects')}</Title>
-          </PanelHeading>
-        )}
-        {!isSingleProject && (
-          <Container>
-            <SearchBar
-              defaultQuery=""
-              query={tableQuery}
-              placeholder={t('Filter your projects')}
-              aria-label={t('Filter projects')}
-              onSearch={this.handleSearch}
-            />
-          </Container>
-        )}
-        <Container data-test-id="usage-stats-table">
-          <UsageTable
-            isLoading={loading || loadingProjects}
-            isError={error}
-            errors={errors as any} // TODO(ts)
-            isEmpty={tableStats.length === 0}
-            headers={headers}
-            dataCategory={dataCategory}
-            usageStats={tableStats}
-            showStoredOutcome={showStoredOutcome}
+  const getTableHeader = useCallback(
+    ({showStoredOutcome}: {showStoredOutcome: boolean}) => {
+      const {key, direction} = tableSort;
+
+      const getArrowDirection = (linkKey: SortBy): Directions => {
+        if (linkKey !== key) {
+          return undefined;
+        }
+
+        return direction > 0 ? 'desc' : 'asc';
+      };
+
+      return [
+        {
+          key: SortBy.PROJECT,
+          title: t('Project'),
+          align: 'left',
+          direction: getArrowDirection(SortBy.PROJECT),
+          onClick: () => handleChangeSort(SortBy.PROJECT),
+        },
+        {
+          key: SortBy.TOTAL,
+          title: t('Total'),
+          align: 'right',
+          direction: getArrowDirection(SortBy.TOTAL),
+          onClick: () => handleChangeSort(SortBy.TOTAL),
+        },
+        {
+          key: SortBy.ACCEPTED,
+          title: showStoredOutcome ? t('Accepted (Stored)') : t('Accepted'),
+          align: 'right',
+          direction: getArrowDirection(SortBy.ACCEPTED),
+          onClick: () => handleChangeSort(SortBy.ACCEPTED),
+        },
+        {
+          key: SortBy.FILTERED,
+          title: t('Filtered'),
+          align: 'right',
+          direction: getArrowDirection(SortBy.FILTERED),
+          onClick: () => handleChangeSort(SortBy.FILTERED),
+        },
+        {
+          key: SortBy.RATE_LIMITED,
+          title: t('Rate Limited'),
+          align: 'right',
+          direction: getArrowDirection(SortBy.RATE_LIMITED),
+          onClick: () => handleChangeSort(SortBy.RATE_LIMITED),
+        },
+        {
+          key: SortBy.INVALID,
+          title: t('Invalid'),
+          align: 'right',
+          direction: getArrowDirection(SortBy.INVALID),
+          onClick: () => handleChangeSort(SortBy.INVALID),
+        },
+      ]
+        .map(h => {
+          const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
+
+          return (
+            <Cell key={h.key}>
+              <SortLink
+                canSort
+                title={h.title}
+                align={h.align as Alignments}
+                direction={h.direction}
+                generateSortLink={h.onClick}
+              />
+            </Cell>
+          );
+        })
+        .concat([<CellStat key="empty" />]); // Extra column for displaying buttons etc.
+    },
+    [handleChangeSort, tableSort]
+  );
+
+  const tableData = useMemo(() => {
+    const showStoredOutcome =
+      hasDynamicSamplingCustomFeature(organization) &&
+      dataCategory.apiName === 'span' &&
+      seriesData.hasStoredOutcome;
+
+    return {
+      headers: getTableHeader({showStoredOutcome}),
+      showStoredOutcome,
+      ...seriesData,
+    };
+  }, [organization, dataCategory, seriesData, getTableHeader]);
+
+  /**
+   * OrganizationStatsEndpointV2 does not have any performance issues. We use
+   * client-side pagination to limit the number of rows on the table so the
+   * page doesn't scroll too deeply for organizations with a lot of projects
+   */
+  const pageLink = useMemo(() => {
+    const offset = tableOffset;
+    const numRows = filteredProjects.length;
+    return getPaginationPageLink({
+      numRows,
+      pageSize: MAX_ROWS_USAGE_TABLE,
+      offset,
+    });
+  }, [tableOffset, filteredProjects]);
+
+  const {headers, tableStats, showStoredOutcome} = tableData;
+
+  return (
+    <Fragment>
+      {isSingleProject && (
+        <PanelHeading>
+          <Title>{t('All Projects')}</Title>
+        </PanelHeading>
+      )}
+      {!isSingleProject && (
+        <Container>
+          <SearchBar
+            defaultQuery=""
+            query={tableQuery}
+            placeholder={t('Filter your projects')}
+            aria-label={t('Filter projects')}
+            onSearch={handleSearch}
           />
-          <Pagination pageLinks={this.pageLink} />
         </Container>
-      </Fragment>
-    );
-  }
+      )}
+      <Container data-test-id="usage-stats-table">
+        <UsageTable
+          isLoading={loading || !projectsLoaded}
+          isError={isError}
+          errors={error ? {projectStats: error} : undefined}
+          isEmpty={tableStats.length === 0}
+          headers={headers}
+          dataCategory={dataCategory}
+          usageStats={tableStats}
+          showStoredOutcome={showStoredOutcome}
+        />
+        <Pagination pageLinks={pageLink} />
+      </Container>
+    </Fragment>
+  );
 }
-
-export default withProjects(UsageStatsProjects);
 
 const Container = styled('div')`
   margin-bottom: ${space(2)};

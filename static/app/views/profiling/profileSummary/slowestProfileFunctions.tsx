@@ -1,8 +1,8 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -133,11 +133,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           <SlowestFunctionsQueryState>
             {t('Failed to fetch slowest functions')}
           </SlowestFunctionsQueryState>
-        ) : !functions.length ? (
-          <SlowestFunctionsQueryState>
-            {t('The fastest code is one that never runs.')}
-          </SlowestFunctionsQueryState>
-        ) : (
+        ) : functions.length ? (
           functions.map((fn, i) => {
             return (
               <SlowestFunctionEntry
@@ -149,6 +145,10 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
               />
             );
           })
+        ) : (
+          <SlowestFunctionsQueryState>
+            {t('The fastest code is one that never runs.')}
+          </SlowestFunctionsQueryState>
         )}
       </SlowestFunctionsList>
     </SlowestFunctionsContainer>

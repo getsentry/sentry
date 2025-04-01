@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -33,8 +34,8 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {addRoutePerformanceContext} from '../../utils';
@@ -51,7 +52,7 @@ import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import SummaryContent, {OTelSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
-// as React.ReactText
+// as string | number
 type TotalValues = Record<string, number>;
 
 type Props = {
@@ -123,7 +124,6 @@ function OTelOverviewContentWrapper(props: ChildProps) {
   } = props;
 
   const navigate = useNavigate();
-
   const mepContext = useMEPDataContext();
 
   const queryData = useDiscoverQuery({
@@ -221,7 +221,7 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
-
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const mepContext = useMEPDataContext();
@@ -234,7 +234,7 @@ function OverviewContentWrapper(props: ChildProps) {
   );
 
   const queryData = useDiscoverQuery({
-    eventView: getTotalsEventView(organization, eventView),
+    eventView: getTotalsEventView(organization, eventView, theme),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
@@ -405,12 +405,15 @@ function getTotalCountEventView(
 
 function getTotalsEventView(
   _organization: Organization,
-  eventView: EventView
+  eventView: EventView,
+  theme: Theme
 ): EventView {
-  const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
-    vs.forEach(vital => keys.push(vital));
-    return keys;
-  }, []);
+  const vitals = makeVitalGroups(theme)
+    .map(({vitals: vs}) => vs)
+    .reduce((keys: WebVital[], vs) => {
+      vs.forEach(vital => keys.push(vital));
+      return keys;
+    }, []);
 
   const totalsColumns: QueryFieldValue[] = [
     {

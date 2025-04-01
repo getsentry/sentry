@@ -1,6 +1,4 @@
 import {
-  type ForwardedRef,
-  forwardRef,
   type MouseEventHandler,
   type ReactNode,
   useCallback,
@@ -14,19 +12,19 @@ import styled from '@emotion/styled';
 import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
+import {mergeRefs} from '@react-aria/utils';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
-import {ListBox} from 'sentry/components/compactSelect/listBox';
+import {ListBox} from 'sentry/components/core/compactSelect/listBox';
 import type {
   SelectKey,
   SelectOptionOrSectionWithKey,
-  SelectOptionWithKey,
-} from 'sentry/components/compactSelect/types';
+} from 'sentry/components/core/compactSelect/types';
 import {
   getDisabledOptions,
   getHiddenOptions,
-} from 'sentry/components/compactSelect/utils';
+} from 'sentry/components/core/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
@@ -37,7 +35,6 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -96,6 +93,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
+  ref?: React.Ref<HTMLInputElement>;
   /**
    * Function to determine whether the menu should close when interacting with
    * other elements.
@@ -116,10 +114,11 @@ export type CustomComboboxMenuProps<T> = {
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
-  listBoxRef: React.RefObject<HTMLUListElement>;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
   overlayProps: OverlayProps;
-  popoverRef: React.RefObject<HTMLDivElement>;
+  popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
+  portalTarget?: HTMLElement | null;
 };
 
 export type CustomComboboxMenu<T> = (
@@ -197,7 +196,7 @@ function useUpdateOverlayPositionOnContentChange({
   updateOverlayPosition,
   isOpen,
 }: {
-  contentRef: React.RefObject<HTMLDivElement>;
+  contentRef: React.RefObject<HTMLDivElement | null>;
   isOpen: boolean;
   updateOverlayPosition: (() => void) | null;
 }) {
@@ -247,16 +246,18 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   popoverRef,
   state,
   overlayProps,
+  portalTarget,
 }: {
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
-  listBoxRef: React.RefObject<HTMLUListElement>;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
   overlayProps: OverlayProps;
-  popoverRef: React.RefObject<HTMLDivElement>;
+  popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
   customMenu?: CustomComboboxMenu<T>;
+  portalTarget?: HTMLElement | null;
 }) {
   if (customMenu) {
     return customMenu({
@@ -268,6 +269,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       state,
       overlayProps,
       filterValue,
+      portalTarget,
     });
   }
 
@@ -289,40 +291,43 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   );
 }
 
-function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<string>>(
-  {
-    children,
-    description,
-    items,
-    inputValue,
-    filterValue = inputValue,
-    placeholder,
-    onCustomValueBlurred,
-    onCustomValueCommitted,
-    onOptionSelected,
-    inputLabel,
-    onExit,
-    onKeyDown,
-    onKeyDownCapture,
-    onKeyUp,
-    onInputChange,
-    onOpenChange,
-    autoFocus,
-    openOnFocus,
-    onFocus,
-    tabIndex = -1,
-    maxOptions,
-    shouldFilterResults = true,
-    shouldCloseOnInteractOutside,
-    onPaste,
-    onClick,
-    customMenu,
-    isOpen: incomingIsOpen,
-    ['data-test-id']: dataTestId,
-  }: SearchQueryBuilderComboboxProps<T>,
-  ref: ForwardedRef<HTMLInputElement>
-) {
-  const {disabled} = useSearchQueryBuilder();
+/**
+ * A combobox component which is used in freeText tokens and filter values.
+ */
+export function SearchQueryBuilderCombobox<
+  T extends SelectOptionOrSectionWithKey<string>,
+>({
+  children,
+  description,
+  items,
+  inputValue,
+  filterValue = inputValue,
+  placeholder,
+  onCustomValueBlurred,
+  onCustomValueCommitted,
+  onOptionSelected,
+  inputLabel,
+  onExit,
+  onKeyDown,
+  onKeyDownCapture,
+  onKeyUp,
+  onInputChange,
+  onOpenChange,
+  autoFocus,
+  openOnFocus,
+  onFocus,
+  tabIndex = -1,
+  maxOptions,
+  shouldFilterResults = true,
+  shouldCloseOnInteractOutside,
+  onPaste,
+  onClick,
+  customMenu,
+  isOpen: incomingIsOpen,
+  ['data-test-id']: dataTestId,
+  ref,
+}: SearchQueryBuilderComboboxProps<T>) {
+  const {disabled, portalTarget} = useSearchQueryBuilder();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -353,6 +358,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     items,
     autoFocus,
     inputValue: filterValue,
+    selectedKey: null,
     onSelectionChange,
     allowsCustomValue: true,
     disabledKeys,
@@ -513,7 +519,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       <UnstyledInput
         {...inputProps}
         size="md"
-        ref={mergeRefs([ref, inputRef, triggerProps.ref])}
+        ref={mergeRefs(ref, inputRef, triggerProps.ref)}
         type="text"
         placeholder={placeholder}
         onClick={handleInputClick}
@@ -546,19 +552,11 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         popoverRef={popoverRef}
         state={state}
         overlayProps={overlayProps}
+        portalTarget={portalTarget}
       />
     </Wrapper>
   );
 }
-
-/**
- * A combobox component which is used in freeText tokens and filter values.
- */
-export const SearchQueryBuilderCombobox = forwardRef(SearchQueryBuilderComboboxInner) as <
-  T extends SelectOptionWithKey<string>,
->(
-  props: SearchQueryBuilderComboboxProps<T> & {ref?: ForwardedRef<HTMLInputElement>}
-) => ReturnType<typeof SearchQueryBuilderComboboxInner>;
 
 const Wrapper = styled('div')`
   position: relative;

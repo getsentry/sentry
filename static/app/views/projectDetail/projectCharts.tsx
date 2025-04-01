@@ -23,7 +23,6 @@ import {
 } from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
 import {t} from 'sentry/locale';
 import type {SelectValue} from 'sentry/types/core';
@@ -37,7 +36,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-import {isPlatformANRCompatible} from 'sentry/views/projectDetail/utils';
+import {
+  getANRRateText,
+  isPlatformANRCompatible,
+  isPlatformForegroundANRCompatible,
+} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -95,7 +98,7 @@ class ProjectCharts extends Component<Props, State> {
     }
 
     if (hasSessions && !hasTransactions) {
-      if (isPlatformANRCompatible(project?.platform)) {
+      if (isPlatformANRCompatible(project?.platform, project?.features)) {
         return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
       }
       return [DisplayModes.STABILITY, DisplayModes.ERRORS];
@@ -105,7 +108,7 @@ class ProjectCharts extends Component<Props, State> {
       return [DisplayModes.FAILURE_RATE, DisplayModes.APDEX];
     }
 
-    if (isPlatformANRCompatible(project?.platform)) {
+    if (isPlatformANRCompatible(project?.platform, project?.features)) {
       return [DisplayModes.STABILITY, DisplayModes.ANR_RATE];
     }
 
@@ -149,7 +152,7 @@ class ProjectCharts extends Component<Props, State> {
         label: t('Crash Free Sessions'),
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.STABILITY) || !hasSessions,
-        tooltip: !hasSessions ? noHealthTooltip : undefined,
+        tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
         value: DisplayModes.STABILITY_USERS,
@@ -157,7 +160,7 @@ class ProjectCharts extends Component<Props, State> {
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.STABILITY_USERS) ||
           !hasSessions,
-        tooltip: !hasSessions ? noHealthTooltip : undefined,
+        tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
         value: DisplayModes.APDEX,
@@ -205,7 +208,7 @@ class ProjectCharts extends Component<Props, State> {
         label: t('Number of Sessions'),
         disabled:
           this.otherActiveDisplayModes.includes(DisplayModes.SESSIONS) || !hasSessions,
-        tooltip: !hasSessions ? noHealthTooltip : undefined,
+        tooltip: hasSessions ? undefined : noHealthTooltip,
       },
       {
         value: DisplayModes.TRANSACTIONS,
@@ -218,25 +221,29 @@ class ProjectCharts extends Component<Props, State> {
       },
     ];
 
-    if (isPlatformANRCompatible(project?.platform)) {
-      return [
+    if (isPlatformANRCompatible(project?.platform, project?.features)) {
+      const anrRateOptions = [
         {
           value: DisplayModes.ANR_RATE,
-          label: t('ANR Rate'),
+          label: getANRRateText(project?.platform),
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.ANR_RATE) || !hasSessions,
-          tooltip: !hasSessions ? noHealthTooltip : undefined,
+          tooltip: hasSessions ? undefined : noHealthTooltip,
         },
-        {
+      ];
+
+      if (isPlatformForegroundANRCompatible(project?.platform)) {
+        anrRateOptions.push({
           value: DisplayModes.FOREGROUND_ANR_RATE,
           label: t('Foreground ANR Rate'),
           disabled:
             this.otherActiveDisplayModes.includes(DisplayModes.FOREGROUND_ANR_RATE) ||
             !hasSessions,
-          tooltip: !hasSessions ? noHealthTooltip : undefined,
-        },
-        ...options,
-      ];
+          tooltip: hasSessions ? undefined : noHealthTooltip,
+        });
+      }
+
+      return [...anrRateOptions, ...options];
     }
 
     return options;
@@ -319,14 +326,18 @@ class ProjectCharts extends Component<Props, State> {
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;
-    const hasAnrRateFeature = isPlatformANRCompatible(project?.platform);
+    const hasAnrRateFeature = isPlatformANRCompatible(
+      project?.platform,
+      project?.features
+    );
+    const hasAnrForegroundRateFeature = isPlatformForegroundANRCompatible(
+      project?.platform
+    );
 
     return (
       <Panel>
         <ChartContainer>
-          {!defined(hasSessions) ? (
-            <LoadingPanel />
-          ) : (
+          {defined(hasSessions) ? (
             <Fragment>
               {displayMode === DisplayModes.APDEX && (
                 <ProjectBaseEventsChart
@@ -342,7 +353,7 @@ class ProjectCharts extends Component<Props, State> {
                   router={router}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[CHART_PALETTE[0][0], theme.purple200]}
+                  colors={[theme.chart.colors[0][0], theme.purple200]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (
@@ -438,8 +449,11 @@ class ProjectCharts extends Component<Props, State> {
               )}
               {hasAnrRateFeature && displayMode === DisplayModes.ANR_RATE && (
                 <ProjectBaseSessionsChart
-                  title={t('ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
+                  title={getANRRateText(project?.platform)}
+                  help={getSessionTermDescription(
+                    SessionTerm.ANR_RATE,
+                    project?.platform || null
+                  )}
                   api={api}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
@@ -447,17 +461,21 @@ class ProjectCharts extends Component<Props, State> {
                   query={query}
                 />
               )}
-              {hasAnrRateFeature && displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
-                <ProjectBaseSessionsChart
-                  title={t('Foreground ANR Rate')}
-                  help={getSessionTermDescription(SessionTerm.FOREGROUND_ANR_RATE, null)}
-                  api={api}
-                  organization={organization}
-                  onTotalValuesChange={this.handleTotalValuesChange}
-                  displayMode={displayMode}
-                  query={query}
-                />
-              )}
+              {hasAnrForegroundRateFeature &&
+                displayMode === DisplayModes.FOREGROUND_ANR_RATE && (
+                  <ProjectBaseSessionsChart
+                    title={t('Foreground ANR Rate')}
+                    help={getSessionTermDescription(
+                      SessionTerm.FOREGROUND_ANR_RATE,
+                      null
+                    )}
+                    api={api}
+                    organization={organization}
+                    onTotalValuesChange={this.handleTotalValuesChange}
+                    displayMode={displayMode}
+                    query={query}
+                  />
+                )}
               {displayMode === DisplayModes.STABILITY_USERS && (
                 <ProjectBaseSessionsChart
                   title={t('Crash Free Users')}
@@ -481,6 +499,8 @@ class ProjectCharts extends Component<Props, State> {
                 />
               )}
             </Fragment>
+          ) : (
+            <LoadingPanel />
           )}
         </ChartContainer>
         <ChartControls>

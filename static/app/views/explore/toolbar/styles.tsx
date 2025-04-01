@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
@@ -17,23 +17,21 @@ export const ToolbarHeader = styled('div')`
 `;
 
 export const ToolbarLabel = styled('h6')<{disabled?: boolean; underlined?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.gray500)};
-  height: ${p => p.theme.form.md.height};
-  min-height: ${p => p.theme.form.md.minHeight};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray500)};
   font-size: ${p => p.theme.form.md.fontSize};
   margin: 0;
   ${p =>
     !defined(p.underlined) || p.underlined
-      ? `text-decoration: underline dotted ${p.disabled ? p.theme.gray300 : p.theme.gray300}`
+      ? `text-decoration: underline dotted ${p.disabled ? p.theme.disabled : p.theme.gray300}`
       : ''};
 `;
 
 export const ToolbarHeaderButton = styled(Button)<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.gray500)};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.gray500)};
 `;
 
 export const ToolbarFooterButton = styled(Button)<{disabled?: boolean}>`
-  color: ${p => (p.disabled ? p.theme.gray300 : p.theme.linkColor)};
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.linkColor)};
 `;
 
 export const ToolbarFooter = styled('div')<{disabled?: boolean}>`

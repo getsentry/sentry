@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -214,7 +214,7 @@ const AlertPanel = styled('div')<
     `}
 
   ${p =>
-    p.expand &&
+    !!p.expand &&
     css`
       cursor: pointer;
       ${TrailingItems} {

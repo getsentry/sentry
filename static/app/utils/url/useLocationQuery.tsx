@@ -80,6 +80,7 @@ export default function useLocationQuery<
       ...(forwardedFields as any),
       ...(locationFields as any),
     }),
-    [stringyForwardedFields, stringyLocationFields] // eslint-disable-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stringyForwardedFields, stringyLocationFields]
   );
 }

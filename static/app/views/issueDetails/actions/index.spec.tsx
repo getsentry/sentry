@@ -14,6 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
@@ -44,6 +45,11 @@ const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
 });
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupActions', function () {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');

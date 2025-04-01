@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,6 +29,7 @@ function WidgetTemplatesList({
   setOpenWidgetTemplates,
   setIsPreviewDraggable,
 }: WidgetTemplatesListProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const [selectedWidget, setSelectedWidget] = useState<number | null>(null);
 
@@ -62,7 +63,7 @@ function WidgetTemplatesList({
   return (
     <Fragment>
       {widgets.map((widget, index) => {
-        const iconColor = getChartColorPalette(widgets.length - 2)?.[index]!;
+        const iconColor = theme.chart.getColorPalette(widgets.length - 2)?.[index]!;
 
         const Icon = getWidgetIcon(widget.displayType);
         const lastWidget = index === widgets.length - 1;
@@ -175,7 +176,7 @@ const WidgetTitle = styled('h3')`
 
 const WidgetDescription = styled('p')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-bottom: 0;
 `;
 

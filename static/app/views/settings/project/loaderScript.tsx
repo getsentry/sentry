@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useState} from 'react';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -19,7 +19,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
-export function ProjectLoaderScript({project}: {project: Project}) {
+function ProjectLoaderScript({project}: {project: Project}) {
   const organization = useOrganization();
   const apiEndpoint = `/projects/${organization.slug}/${project.slug}/keys/`;
   const [updatedProjectKeys, setUpdatedProjectKeys] = useState<ProjectKey[]>([]);
@@ -122,7 +122,7 @@ function LoaderItem({
         </LinkButton>
       </PanelHeader>
       <PanelBody>
-        <PanelAlert type="info" showIcon>
+        <PanelAlert type="info">
           {t('Note that it can take a few minutes until changed options are live.')}
         </PanelAlert>
 

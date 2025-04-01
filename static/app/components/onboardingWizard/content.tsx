@@ -6,9 +6,9 @@ import partition from 'lodash/partition';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import {Button} from 'sentry/components/button';
+import {useUpdateOnboardingTasks} from 'sentry/actionCreators/onboardingTasks';
 import {Chevron} from 'sentry/components/chevron';
+import {Button} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
@@ -29,9 +29,9 @@ import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
 import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {updateDemoWalkthroughTask} from 'sentry/utils/demoMode/guides';
 import testableTransition from 'sentry/utils/testableTransition';
-import useApi from 'sentry/utils/useApi';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -255,8 +255,8 @@ interface TaskProps {
 }
 
 function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
-  const api = useApi();
   const organization = useOrganization();
+  const updateOnboardingTasks = useUpdateOnboardingTasks();
   const router = useRouter();
   const [showSkipConfirmation, setShowSkipConfirmation] = useState(false);
 
@@ -271,7 +271,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
 
       e.stopPropagation();
 
-      if (isDemoModeEnabled()) {
+      if (isDemoModeActive()) {
         DemoWalkthroughStore.activateGuideAnchor(task.task);
       }
 
@@ -297,22 +297,29 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
     [task, organization, router, hidePanel]
   );
 
-  const handleMarkSkipped = useCallback(
-    (taskKey: OnboardingTaskKey) => {
-      trackAnalytics('quick_start.task_card_clicked', {
-        organization,
-        todo_id: task.task,
-        todo_title: task.title,
-        action: 'skipped',
-      });
-      updateOnboardingTask(api, organization, {
-        task: taskKey,
+  const handleMarkSkipped = useCallback(() => {
+    // all demos tasks are not skippable,
+    // so this apply for the quick start only.
+    // Adding this check here just in case it changes in the future
+    if (isDemoModeActive()) {
+      return;
+    }
+
+    trackAnalytics('quick_start.task_card_clicked', {
+      organization,
+      todo_id: task.task,
+      todo_title: task.title,
+      action: 'skipped',
+    });
+
+    updateOnboardingTasks.mutate([
+      {
+        task: task.task,
         status: 'skipped',
         completionSeen: true,
-      });
-    },
-    [task, organization, api]
-  );
+      },
+    ]);
+  }, [task, organization, updateOnboardingTasks]);
 
   const iconTooltipText = useMemo(() => {
     switch (task.status) {
@@ -389,7 +396,7 @@ function Task({task, hidePanel, showWaitingIndicator}: TaskProps) {
       {showSkipConfirmation && (
         <SkipConfirmation
           onConfirm={() => {
-            handleMarkSkipped(task.task);
+            handleMarkSkipped();
             setShowSkipConfirmation(false);
           }}
           onDismiss={() => setShowSkipConfirmation(false)}
@@ -410,10 +417,9 @@ function ExpandedTaskGroup({
   hidePanel,
   taskKeyForWaitingIndicator,
 }: ExpandedTaskGroupProps) {
-  const api = useApi();
-  const organization = useOrganization();
+  const updateOnboardingTasks = useUpdateOnboardingTasks();
 
-  const markCompletionTimeout = useRef<number | undefined>();
+  const markCompletionTimeout = useRef<number | undefined>(undefined);
 
   function completionTimeout(time: number): Promise<void> {
     window.clearTimeout(markCompletionTimeout.current);
@@ -425,15 +431,16 @@ function ExpandedTaskGroup({
   const markTasksAsSeen = useCallback(() => {
     const unseenDoneTasks = sortedTasks
       .filter(task => taskIsDone(task) && !task.completionSeen)
-      .map(task => task.task);
+      .map(task => ({...task, completionSeen: true}));
 
-    for (const unseenDoneTask of unseenDoneTasks) {
-      updateOnboardingTask(api, organization, {
-        task: unseenDoneTask,
-        completionSeen: true,
-      });
+    if (isDemoModeActive()) {
+      for (const unseenDoneTask of unseenDoneTasks) {
+        updateDemoWalkthroughTask(unseenDoneTask);
+      }
+    } else {
+      updateOnboardingTasks.mutate(unseenDoneTasks);
     }
-  }, [api, organization, sortedTasks]);
+  }, [updateOnboardingTasks, sortedTasks]);
 
   const markSeenOnOpen = useCallback(
     async function () {

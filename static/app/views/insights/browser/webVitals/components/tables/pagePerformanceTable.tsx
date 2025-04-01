@@ -1,7 +1,8 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -65,6 +66,7 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -87,7 +89,7 @@ export function PagePerformanceTable() {
     isPending: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
-    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
+    transaction: query === '' ? undefined : `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
     browserTypes,
@@ -121,7 +123,7 @@ export function PagePerformanceTable() {
 
       return {
         ...location,
-        query: {...location.query, sort: newSort},
+        query: {...location.query, sort: newSort, cursor: undefined},
       };
     }
     const sortableFields = SORTABLE_FIELDS;
@@ -281,6 +283,7 @@ export function PagePerformanceTable() {
       location,
       organization,
       unit: meta.units?.[col.key],
+      theme,
     });
   }
 
@@ -394,5 +397,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

@@ -13,10 +13,15 @@ export const TestTourContext = createContext<TourContextType<TestTour> | null>(n
 
 export const emptyTourContext = {
   currentStepId: null,
-  isAvailable: true,
   isCompleted: false,
   isRegistered: false,
   orderedStepIds: [],
-  dispatch: jest.fn(),
   handleStepRegistration: jest.fn(),
+  startTour: jest.fn(),
+  endTour: jest.fn(),
+  nextStep: jest.fn(),
+  previousStep: jest.fn(),
+  setStep: jest.fn(),
 };
+
+export const mockTour = () => emptyTourContext;

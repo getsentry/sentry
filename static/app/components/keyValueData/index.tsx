@@ -95,7 +95,7 @@ export function Content({
       isSuspectFlag={isSuspectFlag}
       {...props}
     >
-      {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
+      {subjectNode === undefined ? <Subject>{subject}</Subject> : subjectNode}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
         <ValueWrapper hasSuffix={hasSuffix}>
           {!disableLink && defined(action?.link) ? (
@@ -344,5 +344,3 @@ export const KeyValueData = {
   CardPanel,
   Container,
 };
-
-export default KeyValueData;

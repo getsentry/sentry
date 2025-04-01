@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import type {Tag} from 'sentry/actionCreators/events';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconChevron, IconCircleFill, IconClose, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,6 +58,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
+  traceId: string;
   traceType: TraceShape;
 };
 
@@ -260,10 +261,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       type: 'minimize drawer',
       payload: !isDrawerMinimized,
     });
-    if (!isDrawerMinimized) {
-      onResize(0, 0, true, true);
-      size.current = drawerOptions.min;
-    } else {
+    if (isDrawerMinimized) {
       if (drawerOptions.initialSize === 0) {
         const userPreference =
           traceStateRef.current.preferences.drawer.sizes[
@@ -283,6 +281,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
       }
       onResize(drawerOptions.initialSize, drawerOptions.min, true, false);
       size.current = drawerOptions.initialSize;
+    } else {
+      onResize(0, 0, true, true);
+      size.current = drawerOptions.min;
     }
   }, [
     size,
@@ -434,7 +435,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         </TabsLayout>
       </TabsHeightContainer>
       {isDrawerMinimized ? null : (
-        <DrawerContainerRefContext.Provider value={contentContainerRef}>
+        <DrawerContainerRefContext value={contentContainerRef}>
           <Content
             ref={contentContainerRef}
             layout={traceState.preferences.layout}
@@ -466,13 +467,14 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     organization={organization}
                     onParentClick={onParentClick}
                     node={traceState.tabs.current_tab.node}
+                    traceId={props.traceId}
                     onTabScrollToNode={props.onTabScrollToNode}
                   />
                 )
               ) : null}
             </ContentWrapper>
           </Content>
-        </DrawerContainerRefContext.Provider>
+        </DrawerContainerRefContext>
       )}
     </PanelWrapper>
   );

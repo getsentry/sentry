@@ -45,6 +45,7 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
+ORGANIZATION_NAME_MAX_LENGTH = 64
 
 
 class OrganizationStatus(IntEnum):
@@ -111,12 +112,6 @@ class OrganizationManager(BaseManager["Organization"]):
         if not user.is_authenticated:
             return []
 
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(self.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(self.filter())
-
         qs = OrganizationMember.objects.filter(user_id=user.id).select_related("organization")
         if only_visible:
             qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
@@ -154,7 +149,7 @@ class Organization(ReplicatedRegionModel):
     replication_version = 4
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=ORGANIZATION_NAME_MAX_LENGTH)
     slug: models.Field[str, str] = SentryOrgSlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
@@ -438,7 +433,7 @@ class Organization(ReplicatedRegionModel):
         )
 
     def handle_2fa_required(self, request):
-        from sentry.tasks.auth import remove_2fa_non_compliant_members
+        from sentry.tasks.auth.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)
 

@@ -15,7 +15,7 @@ export interface WorkflowEngineDetailLayoutProps {
    * Expected to include `<DetailLayout.Main>` and `<DetailLayout.Sidebar>` components.
    */
   children: React.ReactNode;
-  project: AvatarProject;
+  project?: AvatarProject;
 }
 
 /**
@@ -29,9 +29,11 @@ function DetailLayout({children, project}: WorkflowEngineDetailLayoutProps) {
         <Layout.HeaderContent>
           <BreadcrumbsFromContext />
           <Layout.Title>{title}</Layout.Title>
-          <ProjectContainer>
-            <ProjectBadge project={project} disableLink avatarSize={16} />
-          </ProjectContainer>
+          {project && (
+            <ProjectContainer>
+              <ProjectBadge project={project} disableLink avatarSize={16} />
+            </ProjectContainer>
+          )}
         </Layout.HeaderContent>
         <ActionsFromContext />
       </Layout.Header>

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';

@@ -1,4 +1,4 @@
-import {useLayoutEffect, useState} from 'react';
+import {useLayoutEffect} from 'react';
 import type Fuse from 'fuse.js';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -825,24 +825,17 @@ export function useResizeCanvasObserver(
   canvasPoolManager: CanvasPoolManager,
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null
-): Rect {
-  const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
-
+) {
   useLayoutEffect(() => {
     if (!canvas || !canvases.length) {
       return undefined;
     }
 
-    if (canvases.some(c => c === null)) {
+    if (canvases.includes(null)) {
       return undefined;
     }
 
-    const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
-      // We cannot use the resize observer's reported rect because it does not report x
-      // coordinate that is required to do edge detection.
-      const rect = entries[0]!.target.getBoundingClientRect();
-      setCanvasBounds(new Rect(rect.x, rect.y, rect.width, rect.height));
-
+    const observer = watchForResize(canvases as HTMLCanvasElement[], () => {
       canvas.initPhysicalSpace();
       if (view) {
         view.resizeConfigSpace(canvas);
@@ -854,6 +847,4 @@ export function useResizeCanvasObserver(
       observer.disconnect();
     };
   }, [canvases, canvas, view, canvasPoolManager]);
-
-  return bounds;
 }

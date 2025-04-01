@@ -13,7 +13,6 @@ import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import type {CursorHandler} from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
@@ -58,6 +57,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {NewTabContextProvider} from 'sentry/views/issueList/utils/newTabContext';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useSelectedSavedSearch} from 'sentry/views/issueList/utils/useSelectedSavedSearch';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
@@ -316,9 +316,10 @@ function IssueListOverview({router}: Props) {
       ...getEndpointParams(),
       limit: MAX_ITEMS,
       shortIdLookup: 1,
-      savedSearch: savedSearchLoading
-        ? savedSearchLookupEnabled
-        : savedSearchLookupDisabled,
+      savedSearch:
+        savedSearchLoading && !prefersStackedNav
+          ? savedSearchLookupEnabled
+          : savedSearchLookupDisabled,
     };
 
     if (selectedSearchId) {
@@ -343,7 +344,13 @@ function IssueListOverview({router}: Props) {
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query, savedSearchLoading, selectedSearchId]);
+  }, [
+    getEndpointParams,
+    location.query,
+    savedSearchLoading,
+    selectedSearchId,
+    prefersStackedNav,
+  ]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);
@@ -557,7 +564,7 @@ function IssueListOverview({router}: Props) {
           setIssuesLoading(false);
           setQueryCount(newQueryCount);
           setQueryMaxCount(newQueryMaxCount);
-          setPageLinks(newPageLinks !== null ? newPageLinks : '');
+          setPageLinks(newPageLinks === null ? '' : newPageLinks);
 
           fetchCounts(newQueryCount, fetchAllCounts);
 
@@ -725,7 +732,7 @@ function IssueListOverview({router}: Props) {
     const links = parseLinkHeader(pageLinks);
     const queryPageInt = parsePageQueryParam(location, 0);
     // Cursor must be present for the page number to be used
-    const page = !location.query.cursor ? 0 : queryPageInt;
+    const page = location.query.cursor ? queryPageInt : 0;
 
     let numPreviousIssues = Math.min(page * MAX_ITEMS, queryCount);
 
@@ -799,13 +806,10 @@ function IssueListOverview({router}: Props) {
       delete queryData.sort;
     }
 
-    if (path !== location.pathname || !isEqual(query, location.query)) {
-      navigate({
-        pathname: normalizeUrl(path),
-        query: queryData,
-      });
-      setIssuesLoading(true);
-    }
+    navigate({
+      pathname: normalizeUrl(path),
+      query: queryData,
+    });
   };
 
   const onSearch = (newQuery: string) => {
@@ -849,9 +853,9 @@ function IssueListOverview({router}: Props) {
     if (period !== getGroupStatsPeriod()) {
       const cursor = Array.isArray(location.query.cursor)
         ? location.query.cursor[0]
-        : location.query.cursor ?? undefined;
+        : (location.query.cursor ?? undefined);
       const queryPageInt = parsePageQueryParam(location, 0);
-      const page = !location.query.cursor ? 0 : queryPageInt;
+      const page = location.query.cursor ? queryPageInt : 0;
       transitionTo({cursor, page, groupStatsPeriod: period});
     }
   };
@@ -938,7 +942,7 @@ function IssueListOverview({router}: Props) {
       // avoid showing an empty state - if not on the last page, just show a spinner
       const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
       transitionTo({cursor: shouldGoBackAPage ? links.previous!.cursor : undefined});
-      fetchCounts(newQueryCount, true);
+      fetchData(true);
     } else {
       fetchData(true);
     }

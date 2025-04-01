@@ -1,8 +1,9 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock} from 'sentry/icons/iconClock';
@@ -12,16 +13,21 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
+import {isTimeSeriesOther} from 'sentry/utils/timeSeries/isTimeSeriesOther';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
+import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
+import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/charts/confidenceFooter';
+import {getProgressiveLoadingIndicator} from 'sentry/views/explore/components/progressiveLoadingIndicator';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -31,7 +37,7 @@ import {
   useUpdateQueryAtIndex,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {INGESTION_DELAY} from 'sentry/views/explore/settings';
-import {combineConfidenceForSeries, showConfidence} from 'sentry/views/explore/utils';
+import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -43,6 +49,7 @@ export interface MultiQueryChartProps {
   mode: Mode;
   query: ReadableExploreQueryParts;
   timeseriesResult: ReturnType<typeof useSortedTimeSeries>;
+  isProgressivelyLoading?: boolean;
 }
 
 export const EXPLORE_CHART_GROUP = 'multi-query-charts_group';
@@ -53,7 +60,10 @@ export function MultiQueryModeChart({
   mode,
   timeseriesResult,
   canUsePreviousResults,
+  isProgressivelyLoading,
 }: MultiQueryChartProps) {
+  const theme = useTheme();
+
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
@@ -123,7 +133,7 @@ export function MultiQueryModeChart({
   ]);
 
   const {data, error, loading} = getSeries();
-  const {sampleCount, isSampled} = determineSeriesSampleCountAndIsSampled(data, isTopN);
+  const {sampleCount} = determineSeriesSampleCountAndIsSampled(data, isTopN);
 
   const visualizationType =
     queryParts.chartType === ChartType.LINE
@@ -159,6 +169,7 @@ export function MultiQueryModeChart({
         key={index}
         height={CHART_HEIGHT}
         Title={Title}
+        TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
         revealActions="always"
       />
@@ -236,11 +247,19 @@ export function MultiQueryModeChart({
     });
   }
 
+  const DataPlottableConstructor =
+    chartInfo.chartType === ChartType.LINE
+      ? Line
+      : chartInfo.chartType === ChartType.AREA
+        ? Area
+        : Bars;
+
   return (
     <Widget
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
+      TitleBadges={[getProgressiveLoadingIndicator(isProgressivelyLoading)]}
       Actions={[
         <Tooltip
           key="visualization"
@@ -295,19 +314,21 @@ export function MultiQueryModeChart({
       revealActions="always"
       Visualization={
         <TimeSeriesWidgetVisualization
-          dataCompletenessDelay={INGESTION_DELAY}
-          visualizationType={visualizationType}
-          timeSeries={chartInfo.data}
+          plottables={chartInfo.data.map(timeSeries => {
+            return new DataPlottableConstructor(timeSeries, {
+              delay: INGESTION_DELAY,
+              color: isTimeSeriesOther(timeSeries) ? theme.chartOther : undefined,
+              stack: 'all',
+            });
+          })}
         />
       }
       Footer={
-        showConfidence(isSampled) && (
-          <ConfidenceFooter
-            sampleCount={sampleCount}
-            confidence={confidence}
-            topEvents={isTopN ? numSeries : undefined}
-          />
-        )
+        <ConfidenceFooter
+          sampleCount={sampleCount}
+          confidence={confidence}
+          topEvents={isTopN ? numSeries : undefined}
+        />
       }
     />
   );

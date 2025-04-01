@@ -3,12 +3,15 @@ import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {lightTheme} from 'sentry/utils/theme';
 
 import {ConfigurationContextProvider} from '../hooks/useConfiguration';
 import {ToolbarRouterContextProvider} from '../hooks/useToolbarRoute';
 import {VisibilityContextProvider} from '../hooks/useVisibility';
 import type {Configuration} from '../types';
+
+import {FeatureFlagsContextProvider} from './featureFlags/featureFlagsContext';
 
 interface Props {
   children: React.ReactNode;
@@ -38,7 +41,9 @@ export default function Providers({children, config, container}: Props) {
         <ConfigurationContextProvider config={config}>
           <QueryClientProvider client={queryClient}>
             <VisibilityContextProvider>
-              <ToolbarRouterContextProvider>{children}</ToolbarRouterContextProvider>
+              <ToolbarRouterContextProvider>
+                <FeatureFlagsContextProvider>{children}</FeatureFlagsContextProvider>
+              </ToolbarRouterContextProvider>
             </VisibilityContextProvider>
           </QueryClientProvider>
         </ConfigurationContextProvider>

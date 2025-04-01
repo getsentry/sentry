@@ -2,8 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import {LinkButton} from 'sentry/components/button';
 import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -39,8 +39,8 @@ class PluginSettings<
   P extends Props = Props,
   S extends State = State,
 > extends PluginComponentBase<P, S> {
-  constructor(props: P, context: any) {
-    super(props, context);
+  constructor(props: P) {
+    super(props);
 
     Object.assign(this.state, {
       fieldList: null,
@@ -176,10 +176,10 @@ class PluginSettings<
     const data = this.state.rawData;
     if (data.config_error) {
       let authUrl = data.auth_url;
-      if (authUrl.indexOf('?') === -1) {
-        authUrl += '?next=' + encodeURIComponent(document.location.pathname);
-      } else {
+      if (authUrl.includes('?')) {
         authUrl += '&next=' + encodeURIComponent(document.location.pathname);
+      } else {
+        authUrl += '?next=' + encodeURIComponent(document.location.pathname);
       }
       return (
         <div className="m-b-1">

@@ -4,13 +4,13 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
 /**
  * An individual row in a Segment explorer result
  */
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: string | number;
   count: number;
   tags_key: string;
   tags_value: string;

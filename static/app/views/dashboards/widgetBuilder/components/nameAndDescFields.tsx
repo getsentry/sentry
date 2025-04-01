@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
 import TextField from 'sentry/components/forms/fields/textField';
 import {t} from 'sentry/locale';
@@ -33,7 +33,7 @@ function WidgetBuilderNameAndDescription({
   return (
     <Fragment>
       <SectionHeader title={t('Widget Name & Description')} />
-      <StyledInput
+      <StyledTextField
         name={t('Widget Name')}
         size="md"
         placeholder={t('Name')}
@@ -101,7 +101,7 @@ function WidgetBuilderNameAndDescription({
 
 export default WidgetBuilderNameAndDescription;
 
-const StyledInput = styled(TextField)`
+const StyledTextField = styled(TextField)`
   margin-bottom: ${space(1)};
   padding: 0;
   border: none;

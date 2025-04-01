@@ -26,16 +26,18 @@ const AlertPanel = chonkStyled('div')<ChonkAlertProps>`
   border-width: ${p => (p.system ? '0px 0px 2px 0px' : '2px')};
   border-radius: ${p => (p.system ? '0px' : p.theme.borderRadius)};
 
-  cursor: ${p => (p.expand ? 'pointer' : 'default')};
+  cursor: ${p => (p.expand ? 'pointer' : 'inherit')};
   gap: ${p => p.theme.space.md};
 
   a,
-  button {
+  button,
+  code {
     color: inherit;
   }
 
   a:hover,
-  button:hover {
+  button:hover,
+  code:hover {
     color: inherit;
   }
 
@@ -51,40 +53,39 @@ function makeChonkAlertTheme(
   switch (type) {
     case 'info':
       return {
-        color: theme.colors.static.white,
-        background: theme.colors.static.blue400,
-        border: `1px solid ${theme.colors.static.blue400}`,
-        padding: `${theme.space.md} ${theme.space.lg}`,
-      };
-    case 'success':
-      return {
-        color: theme.colors.static.black,
-        background: theme.colors.static.green400,
-        border: `1px solid ${theme.colors.dynamic.green100}`,
-        padding: `${theme.space.md} ${theme.space.lg}`,
-      };
-    case 'warning':
-      return {
-        color: theme.colors.static.black,
-        background: theme.colors.static.yellow400,
-        border: `1px solid ${theme.colors.dynamic.yellow100}`,
+        color: theme.colors.white,
+        background: theme.colors.chonk.blue400,
+        border: `1px solid ${theme.colors.chonk.blue100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     case 'danger':
       return {
-        color: theme.colors.static.white,
-        background: theme.colors.static.red400,
-        border: `1px solid ${theme.colors.dynamic.red100}`,
+        color: theme.colors.white,
+        background: theme.colors.chonk.red400,
+        border: `1px solid ${theme.colors.chonk.red100}`,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
+    case 'warning':
+      return {
+        color: theme.colors.black,
+        background: theme.colors.chonk.yellow400,
+        border: `1px solid ${theme.colors.chonk.yellow100}`,
+        padding: `${theme.space.md} ${theme.space.lg}`,
+      };
+    case 'success':
+      return {
+        color: theme.colors.black,
+        background: theme.colors.chonk.green400,
+        border: `1px solid ${theme.colors.chonk.green100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
     case 'subtle':
       return {
         color: theme.textColor,
-        background: theme.colors.dynamic.surface500,
-        border: `1px solid ${theme.colors.dynamic.surface100}`,
+        background: theme.colors.surface500,
+        border: `1px solid ${theme.colors.surface100}`,
         padding: `${theme.space.md} ${theme.space.lg}`,
       };
-
     default:
       unreachable(type);
   }

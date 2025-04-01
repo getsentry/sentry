@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -85,5 +85,5 @@ const DateTime = styled('div')`
 `;
 
 const SecretPreview = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

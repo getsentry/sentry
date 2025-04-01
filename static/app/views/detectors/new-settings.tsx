@@ -1,5 +1,5 @@
-import {Button, LinkButton} from 'sentry/components/button';
 import {Flex} from 'sentry/components/container/flex';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import {
   StickyFooter,
   StickyFooterLabel,
@@ -17,7 +17,7 @@ export default function DetectorNewSettings() {
       <StickyFooter>
         <StickyFooterLabel>{t('Step 2 of 2')}</StickyFooterLabel>
         <Flex gap={space(1)}>
-          <LinkButton priority="default" to="/monitors/new/">
+          <LinkButton priority="default" to="/issues/monitors/new">
             {t('Back')}
           </LinkButton>
           <Button priority="primary">{t('Create Monitor')}</Button>

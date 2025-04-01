@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {
   DebugImageDetails,
   modalCss,
@@ -17,7 +18,7 @@ import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
-import type {Event} from 'sentry/types/event';
+import type {EntryDebugMeta, Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
@@ -37,13 +38,31 @@ import {
   getFileName,
   IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT,
   normalizeId,
-  shouldSkipSection,
 } from './utils';
 
+function shouldSkipSection(
+  filteredImages: Image[],
+  images: EntryDebugMeta['data']['images']
+) {
+  if (filteredImages.length) {
+    return false;
+  }
+
+  const definedImages = images?.filter(image => defined(image));
+
+  if (!definedImages?.length) {
+    return true;
+  }
+
+  if (definedImages.every(image => image.type === 'proguard')) {
+    return true;
+  }
+
+  return false;
+}
+
 interface DebugMetaProps {
-  data: {
-    images: Array<Image | null>;
-  };
+  data: EntryDebugMeta['data'];
   event: Event;
   projectSlug: Project['slug'];
   groupId?: Group['id'];
@@ -106,6 +125,7 @@ function applyImageFilters(
 }
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const listRef = useRef<List>(null);
   const panelTableRef = useRef<HTMLDivElement>(null);
@@ -120,13 +140,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const getRelevantImages = useCallback(() => {
-    const {images} = data;
-
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
 
-    const relevantImages = images.filter((image): image is Image => {
+    const relevantImages = data.images?.filter((image): image is Image => {
       // in particular proguard images do not have a code file, skip them
       if (image === null || image.code_file === null || image.type === 'proguard') {
         return false;
@@ -140,7 +158,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       return true;
     });
 
-    if (!relevantImages.length) {
+    if (!relevantImages?.length) {
       return;
     }
 
@@ -273,10 +291,10 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             }
           />
         ),
-        {modalCss}
+        {modalCss: modalCss(theme)}
       );
     },
-    [event, groupId, handleReprocessEvent, organization, projectSlug]
+    [event, groupId, handleReprocessEvent, organization, projectSlug, theme]
   );
 
   // This hook replaces the componentDidMount/WillUnmount calls from its class component
@@ -351,9 +369,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   const filteredImages = applyImageFilters(allImages, filterSelections, searchTerm);
 
-  const {images} = data;
-
-  if (shouldSkipSection(filteredImages, images)) {
+  if (shouldSkipSection(filteredImages, data.images)) {
     return null;
   }
 
@@ -377,7 +393,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       type={SectionKey.DEBUGMETA}
       title={isJSPlatform ? t('Source Maps Loaded') : t('Images Loaded')}
       help={t(
-        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute to the application code that is referenced in stack traces.'
       )}
       actions={actions}
       initialCollapse

@@ -6,9 +6,9 @@ import partition from 'lodash/partition';
 import moment from 'moment-timezone';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
@@ -509,7 +509,7 @@ const HiddenProjectsMessage = styled('div')`
   overflow: hidden;
   height: 24px;
   line-height: 24px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom-right-radius: ${p => p.theme.borderRadius};
   @media (max-width: ${p => p.theme.breakpoints.medium}) {

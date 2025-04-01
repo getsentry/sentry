@@ -375,6 +375,12 @@ describe('GroupReplays', () => {
         },
       });
 
+      const mockReplayRecord = mockReplay?.getReplay();
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
+      });
+
       // Mock the system date to be 2022-09-28
       setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
@@ -429,9 +435,9 @@ describe('GroupReplays', () => {
       expect(screen.getByText('7 days ago')).toBeInTheDocument();
     });
 
-    it('Should render the replay player when replay-play-from-replay-tab is enabled', async () => {
+    it('Should render the replay player', async () => {
       const {router, organization} = init({
-        organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
+        organizationProps: {features: ['session-replay']},
       });
 
       const mockReplayCountApi = MockApiClient.addMockResponse({
@@ -478,6 +484,12 @@ describe('GroupReplays', () => {
         },
       });
 
+      const mockReplayRecord = mockReplay?.getReplay();
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
+      });
+
       render(<GroupReplays />, {
         router,
         organization,
@@ -498,7 +510,7 @@ describe('GroupReplays', () => {
       );
     });
 
-    it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
+    it('Should switch replays when clicking', async () => {
       const {router, organization} = init({
         organizationProps: {features: ['session-replay']},
       });

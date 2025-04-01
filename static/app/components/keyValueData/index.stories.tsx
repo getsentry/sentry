@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Alert} from 'sentry/components/core/alert';
-import KeyValueData, {
+import {Button} from 'sentry/components/core/button';
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';

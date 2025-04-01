@@ -1,9 +1,12 @@
 import {vec2} from 'gl-matrix';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {CursorRenderer} from 'sentry/utils/profiling/renderers/cursorRenderer';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+
+const theme = makeLightFlamegraphTheme(ThemeFixture());
 
 describe('CursorRenderer', () => {
   it('renders cursor in center screen', () => {
@@ -18,7 +21,7 @@ describe('CursorRenderer', () => {
       getContext: jest.fn().mockReturnValue(context),
     } as unknown as HTMLCanvasElement;
 
-    const renderer = new CursorRenderer(canvasMock, LightFlamegraphTheme);
+    const renderer = new CursorRenderer(canvasMock, theme);
 
     const cursor = vec2.fromValues(0.5, 0.5);
     const physicalSpace = new Rect(0, 0, 1000, 1000);
@@ -40,7 +43,7 @@ describe('CursorRenderer', () => {
     expect(context.moveTo.mock.calls[1]).toEqual([0, 500]);
     expect(context.lineTo.mock.calls[1]).toEqual([1000, 500]);
 
-    expect(context.strokeStyle).toBe(LightFlamegraphTheme.COLORS.CURSOR_CROSSHAIR);
+    expect(context.strokeStyle).toBe(theme.COLORS.CURSOR_CROSSHAIR);
     expect(context.stroke).toHaveBeenCalledTimes(1);
   });
 });

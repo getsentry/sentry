@@ -145,6 +145,7 @@ export enum FieldValueType {
   SIZE = 'size',
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
+  SCORE = 'score',
 }
 
 export enum WebVital {
@@ -1103,12 +1104,12 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
   [MobileVital.STALL_TOTAL_TIME]: {
     desc: t('Total stall duration (React Native)'),
     kind: FieldKind.METRICS,
-    valueType: FieldValueType.PERCENTAGE,
+    valueType: FieldValueType.DURATION,
   },
   [MobileVital.STALL_LONGEST_TIME]: {
     desc: t('Duration of slowest Javascript event loop (React Native)'),
     kind: FieldKind.METRICS,
-    valueType: FieldValueType.INTEGER,
+    valueType: FieldValueType.DURATION,
   },
   [MobileVital.STALL_PERCENTAGE]: {
     desc: t('Total stall duration out of the total transaction duration (React Native)'),
@@ -1171,10 +1172,12 @@ type TraceFields =
   | SpanIndexedField.SPAN_GROUP
   | SpanIndexedField.SPAN_MODULE
   | SpanIndexedField.SPAN_OP
+  | SpanIndexedField.NORMALIZED_DESCRIPTION
   // TODO: Remove self time field when it is deprecated
   | SpanIndexedField.SPAN_SELF_TIME
   | SpanIndexedField.SPAN_STATUS
-  | SpanIndexedField.RESPONSE_CODE;
+  | SpanIndexedField.RESPONSE_CODE
+  | SpanIndexedField.CACHE_HIT;
 
 export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   /** Indexed Fields */
@@ -1186,7 +1189,14 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [SpanIndexedField.SPAN_DESCRIPTION]: {
-    desc: t('Parameterized and scrubbed description of the span'),
+    desc: t('Description of the span’s operation'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [SpanIndexedField.NORMALIZED_DESCRIPTION]: {
+    desc: t(
+      'Parameterized and normalized description of the span, commonly used for grouping within insights'
+    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1236,6 +1246,11 @@ export const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
   },
   [SpanIndexedField.IS_TRANSACTION]: {
     desc: t('The span is also a transaction'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
+  [SpanIndexedField.CACHE_HIT]: {
+    desc: t('`true` if the  cache was hit, `false` otherwise'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
@@ -1835,6 +1850,8 @@ const SPAN_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...SPAN_HTTP_FIELD_DEFINITIONS,
 };
 
+const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {};
+
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
   FieldKey.ASSIGNED_OR_SUGGESTED,
@@ -2106,6 +2123,7 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
+  REPLAY_TYPE = 'replay_type',
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
@@ -2157,6 +2175,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
   FieldKey.RELEASE,
+  ReplayFieldKey.REPLAY_TYPE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   ReplayFieldKey.SEEN_BY_ME,
@@ -2228,6 +2247,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.OS_VERSION]: {
     desc: t('Version number of the Operating System'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.REPLAY_TYPE]: {
+    desc: t('The replay recording mode - "session" or "buffer"'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2347,11 +2371,9 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
 export enum FeedbackFieldKey {
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
-  EMAIL = 'contact_email',
   LOCALE_LANG = 'locale.lang',
   LOCALE_TIMEZONE = 'locale.timezone',
   MESSAGE = 'message',
-  NAME = 'name',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
   URL = 'url',
@@ -2366,7 +2388,6 @@ export const FEEDBACK_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
-  FeedbackFieldKey.EMAIL,
   FieldKey.ENVIRONMENT,
   FieldKey.ID,
   FieldKey.IS,
@@ -2374,7 +2395,6 @@ export const FEEDBACK_FIELDS = [
   FeedbackFieldKey.LOCALE_LANG,
   FeedbackFieldKey.LOCALE_TIMEZONE,
   FeedbackFieldKey.MESSAGE,
-  FeedbackFieldKey.NAME,
   FeedbackFieldKey.OS_NAME,
   FeedbackFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
@@ -2382,7 +2402,6 @@ export const FEEDBACK_FIELDS = [
   FieldKey.SDK_VERSION,
   FieldKey.TIMESTAMP,
   FieldKey.TRACE,
-  FieldKey.TRANSACTION,
   FeedbackFieldKey.URL,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
@@ -2401,11 +2420,6 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FeedbackFieldKey.EMAIL]: {
-    desc: t('Contact email of the user writing the feedback'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
     kind: FieldKind.FIELD,
@@ -2417,14 +2431,10 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.MESSAGE]: {
-    desc: t('Message written by the user providing feedback'),
+    desc: t('Message written by the user providing feedback.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.NAME]: {
-    desc: t('Name of the user writing feedback'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+    allowWildcard: true,
   },
   [FeedbackFieldKey.OS_NAME]: {
     desc: t('Name of the operating system'),
@@ -2445,7 +2455,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' = 'event',
+  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' | 'log' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {
@@ -2498,6 +2508,21 @@ export const getFieldDefinition = (
       }
 
       return null;
+
+    case 'log':
+      if (key in LOG_FIELD_DEFINITIONS) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        return LOG_FIELD_DEFINITIONS[key];
+      }
+
+      if (kind === FieldKind.TAG) {
+        return {
+          kind: FieldKind.FIELD,
+          valueType: FieldValueType.STRING,
+        };
+      }
+      return null;
+
     case 'event':
     default:
       // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message

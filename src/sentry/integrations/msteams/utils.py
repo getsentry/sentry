@@ -3,8 +3,14 @@ from __future__ import annotations
 import enum
 import logging
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    NotificationContext,
+    OpenPeriodContext,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
@@ -99,21 +105,30 @@ def get_channel_id(organization: Organization, integration_id: int, name: str) -
 
 
 def send_incident_alert_notification(
-    action: AlertRuleTriggerAction,
-    incident: Incident,
-    metric_value: float,
-    new_status: IncidentStatus,
+    organization: Organization,
+    alert_context: AlertContext,
+    notification_context: NotificationContext,
+    metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
+    alert_rule_serialized_response: AlertRuleSerializerResponse | None,
+    incident_serialized_response: DetailedIncidentSerializerResponse | None,
     notification_uuid: str | None = None,
 ) -> bool:
     from .card_builder.incident_attachment import build_incident_attachment
 
-    if action.target_identifier is None:
+    if notification_context.target_identifier is None:
         raise ValueError("Can't send without `target_identifier`")
 
-    attachment = build_incident_attachment(incident, new_status, metric_value, notification_uuid)
+    attachment = build_incident_attachment(
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        organization=organization,
+        date_started=open_period_context.date_started,
+        notification_uuid=notification_uuid,
+    )
     success = integration_service.send_msteams_incident_alert_notification(
-        integration_id=action.integration_id,
-        channel=action.target_identifier,
+        integration_id=notification_context.integration_id,
+        channel=notification_context.target_identifier,
         attachment=attachment,
     )
     return success

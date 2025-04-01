@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -40,7 +41,7 @@ import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/t
 import {
   getTraceInfo,
   hasTraceData,
-  isRootTransaction,
+  isRootEvent,
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
@@ -144,6 +145,7 @@ export default function TraceView({
   handleLimitChange,
   ...props
 }: TraceViewProps) {
+  const theme = useTheme();
   const sentrySpan = Sentry.startInactiveSpan({
     op: 'trace.render',
     name: 'trace-view-content',
@@ -247,7 +249,7 @@ export default function TraceView({
             isVisible={isVisible}
             hasGuideAnchor={hasGuideAnchor}
             renderedChildren={accumulated.renderedChildren}
-            barColor={pickBarColor(transaction['transaction.op'])}
+            barColor={pickBarColor(transaction['transaction.op'], theme)}
           />
         </Fragment>
       ),
@@ -296,7 +298,7 @@ export default function TraceView({
       const result = renderTransaction(trace, {
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
-        isOrphan: !isRootTransaction(trace),
+        isOrphan: !isRootEvent(trace),
         isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
           (!isLastTransaction && hasChildren) || hasOrphanErrors
@@ -323,11 +325,11 @@ export default function TraceView({
       const isVisible = isRowVisible(error, filteredEventIds);
       const currentHiddenCount = numOfHiddenErrorsAbove;
 
-      if (!isVisible) {
+      if (isVisible) {
+        numOfHiddenErrorsAbove = 0;
+      } else {
         numOfHiddenErrorsAbove += 1;
         totalNumOfHiddenErrors += 1;
-      } else {
-        numOfHiddenErrorsAbove = 0;
       }
 
       transactionGroups.push(
@@ -446,7 +448,7 @@ export default function TraceView({
                     isVisible
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
-                    barColor={pickBarColor('')}
+                    barColor={pickBarColor('', theme)}
                     onlyOrphanErrors={onlyOrphanErrors}
                     traceViewRef={traceViewRef}
                     numOfOrphanErrors={orphanErrors?.length}

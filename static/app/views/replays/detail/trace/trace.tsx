@@ -88,7 +88,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer left': 0.33,
       'drawer right': 0.33,
       'drawer bottom': 0.4,
-      'trace context height': 150,
+      'trace grid height': 330,
     },
     layoutOptions: [],
   },
@@ -204,7 +204,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
-        {!indexComplete ? <Loading /> : null}
+        {indexComplete ? null : <Loading />}
       </StyledPlaceholder>
     );
   }
@@ -214,7 +214,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
 
-  if (replayTraces.length === 0) {
+  if (!firstTrace) {
     return <TracesNotFound performanceActive={performanceActive} />;
   }
 
@@ -225,7 +225,7 @@ export function NewTraceView({replay}: {replay: undefined | ReplayRecord}) {
     >
       <TraceViewWaterfallWrapper>
         <TraceWaterfall
-          traceSlug={undefined}
+          traceSlug={firstTrace.traceSlug}
           trace={trace}
           tree={tree}
           rootEvent={rootEvent}

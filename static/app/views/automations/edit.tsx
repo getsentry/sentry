@@ -1,7 +1,7 @@
 /* eslint-disable no-alert */
 import {Fragment} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ActionsProvider} from 'sentry/components/workflowEngine/layout/actions';
 import {BreadcrumbsProvider} from 'sentry/components/workflowEngine/layout/breadcrumbs';
@@ -14,7 +14,7 @@ export default function AutomationEdit() {
 
   return (
     <SentryDocumentTitle title={t('Edit Automation')} noSuffix>
-      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/automations'}}>
+      <BreadcrumbsProvider crumb={{label: t('Automations'), to: '/issues/automations'}}>
         <ActionsProvider actions={<Actions />}>
           <EditLayout>
             <h2>Edit Automation</h2>

@@ -269,9 +269,7 @@ function getAM3MigrationCredits(cohortId: CohortId, nextPlan: NextPlanInfo) {
   if (cohortId === CohortId.TENTH) {
     message =
       "You'll retain the same monthly replay quota throughout the remainder of your annual subscription.";
-  } else if (!nextPlan.categoryCredits) {
-    return null;
-  } else {
+  } else if (nextPlan.categoryCredits) {
     const categoryCredits = nextPlan.categoryCredits;
 
     message = "We'll provide an additional ";
@@ -304,6 +302,8 @@ function getAM3MigrationCredits(cohortId: CohortId, nextPlan: NextPlanInfo) {
       message += ' after your plan is upgraded';
     }
     message += ', at no charge.';
+  } else {
+    return null;
   }
 
   return (

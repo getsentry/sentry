@@ -19,6 +19,7 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
+from sentry.demo_mode.utils import get_demo_user, is_demo_mode_enabled, is_demo_org
 from sentry.http import get_server_hostname
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.authprovider import AuthProvider
@@ -38,7 +39,6 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
-from sentry.utils.demo_mode import get_demo_user, is_demo_mode_enabled, is_demo_org
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
@@ -132,13 +132,11 @@ class AuthLoginView(BaseView):
 
         return response
 
-    def get_next_uri(self, request: Request) -> str:
+    def get_next_uri(self, request: HttpRequest) -> str:
         """
         Returns the next URI a user should visit in their authentication flow.
         """
-        next_uri_fallback = None
-        if request.session.get("_next") is not None:
-            next_uri_fallback = request.session.pop("_next")
+        next_uri_fallback = request.session.pop("_next", None)
         return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
 
     def redirect_authenticated_user(self, request: Request, next_uri: str) -> HttpResponseBase:
@@ -171,10 +169,11 @@ class AuthLoginView(BaseView):
             and request.path_info not in non_sso_urls
         )
 
-    def get_org_auth_login_redirect(self, request: Request) -> HttpResponseRedirect:
+    def get_org_auth_login_redirect(self, request: Request) -> HttpResponseBase:
         """
         Returns a redirect response that will take a user to SSO login.
         """
+        assert request.subdomain is not None
         url_prefix = generate_organization_url(org_slug=request.subdomain)
         url = absolute_uri(
             url=reverse("sentry-auth-organization", args=[request.subdomain]), url_prefix=url_prefix
@@ -524,7 +523,7 @@ class AuthLoginView(BaseView):
         """
         return bool(has_user_registration() or request.session.get("can_register"))
 
-    def get_default_context(self, request: Request, **kwargs) -> dict:
+    def get_default_context(self, request: HttpRequest, **kwargs) -> dict:
         """
         Sets up a default context that will be injected into our login template.
         TODO: clean up unused context
@@ -560,7 +559,7 @@ class AuthLoginView(BaseView):
         redirect_uri = construct_link_with_query(path=path, query_params=query_params)
         return redirect_uri
 
-    def handle_basic_auth(self, request: Request, **kwargs) -> HttpResponseBase:
+    def handle_basic_auth(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         """
         Legacy handler that handles GET and POST requests for registration and login.
         This is still here because it's used by OAuthAuthorizeView and AuthOrganizationLoginView.

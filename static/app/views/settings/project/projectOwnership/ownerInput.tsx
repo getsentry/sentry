@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {TextArea} from 'sentry/components/core/textarea';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

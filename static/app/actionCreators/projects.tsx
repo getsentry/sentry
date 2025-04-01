@@ -10,7 +10,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
-import LatestContextStore from 'sentry/stores/latestContextStore';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Team} from 'sentry/types/organization';
@@ -125,10 +124,6 @@ export function loadStatsForProject(api: Client, project: string, params: Update
   // and call a debounced function to fetch stats for list of projects
   _projectStatsToFetch.add(project);
   _debouncedLoadStats(api, _projectStatsToFetch, params);
-}
-
-export function setActiveProject(project: Project | null) {
-  LatestContextStore.onSetActiveProject(project);
 }
 
 export function transferProject(
@@ -349,10 +344,14 @@ export function removeProject({
   origin: 'onboarding' | 'settings' | 'getting_started';
   projectSlug: Project['slug'];
 }) {
-  return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
-    method: 'DELETE',
-    data: {origin},
-  });
+  return api
+    .requestPromise(`/projects/${orgSlug}/${projectSlug}/`, {
+      method: 'DELETE',
+      data: {origin},
+    })
+    .then(() => {
+      ProjectsStore.onDeleteProject(projectSlug);
+    });
 }
 
 /**

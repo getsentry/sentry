@@ -5,7 +5,7 @@ import missionControl from 'getsentry-images/missionControl.jpg';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/core/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconClose, IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
@@ -174,7 +174,7 @@ const InfoHeader = styled('div')`
 
 const ConsentHeader = styled('p')`
   font-weight: bold;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-transform: uppercase;
   margin-bottom: ${space(1)};
 `;
@@ -204,13 +204,13 @@ const ConsentLabelHeader = styled('div')`
 `;
 const ConsentLabelBody = styled('p')`
   margin-bottom: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StyledIconWrapper = styled('span')`
   margin-left: ${space(3)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const Footer = styled('div')`

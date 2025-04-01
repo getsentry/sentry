@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Well from 'sentry/components/well';
 import {IconFile, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -180,8 +180,6 @@ export function UploadBackup({relocationState, onComplete}: StepProps) {
   );
 }
 
-export default UploadBackup;
-
 const StyledUploadIcon = styled(IconUpload)`
   margin-top: ${space(2)};
   margin-bottom: ${space(1)};
@@ -199,7 +197,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   width: 100%;
   font-size: 16px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   mark {
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
@@ -234,7 +232,7 @@ const FinishedWell = styled(Well)`
     font-size: 14px;
   }
   a:hover {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 

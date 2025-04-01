@@ -1,17 +1,19 @@
 import styled from '@emotion/styled';
 
 import {openHelpSearchModal} from 'sentry/actionCreators/modal';
+import {Badge} from 'sentry/components/core/badge';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
-import {useNavPrompts} from 'sentry/components/nav/useNavPrompts';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeEnabled} from 'sentry/utils/demoMode';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useNavPrompts} from 'sentry/views/nav/useNavPrompts';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
@@ -30,6 +32,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
     organization,
   });
   const {mutate: mutateUserOptions} = useMutateUserOptions();
+  const openForm = useFeedbackForm();
 
   return (
     <DeprecatedDropdownMenu onOpen={onOpenHelpMenu}>
@@ -62,7 +65,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               >
                 {t('Search Support, Docs and More')}
               </SidebarMenuItem>
-              {!isDemoModeEnabled() && (
+              {!isDemoModeActive() && (
                 // Sentry zendesk is public but we hide it in demo mode to limit the amount of potential spam
                 <SidebarMenuItem href="https://sentry.zendesk.com/hc/en-us">
                   {t('Visit Help Center')}
@@ -72,6 +75,19 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                 {t('Join our Discord')}
               </SidebarMenuItem>
               <Hook name="sidebar:help-menu" organization={organization} />
+              {openForm ? (
+                <SidebarMenuItem
+                  onClick={() => {
+                    openForm({
+                      tags: {
+                        ['feedback.source']: 'navigation_sidebar_legacy',
+                      },
+                    });
+                  }}
+                >
+                  {t('Give Feedback')}
+                </SidebarMenuItem>
+              ) : null}
               {organization?.features?.includes('navigation-sidebar-v2') && (
                 <SidebarMenuItem
                   onClick={() => {
@@ -84,7 +100,7 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
                     );
                   }}
                 >
-                  {t('Try new navigation ✨')}
+                  {t('Try New Navigation')} <Badge type="alpha">Alpha</Badge>
                 </SidebarMenuItem>
               )}
             </HelpMenu>

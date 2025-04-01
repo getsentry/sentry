@@ -193,12 +193,12 @@ export function useStoryTree(
           root.children[type] = new StoryTreeNode(type, type);
         }
 
-        if (!root.children[type].children[name]) {
-          root.children[type].children[name] = new StoryTreeNode(name, file);
-        } else {
+        if (root.children[type].children[name]) {
           throw new Error(
             `Naming conflict found between ${file} and ${root.children[type].children[name].path}`
           );
+        } else {
+          root.children[type].children[name] = new StoryTreeNode(name, file);
         }
       }
 

@@ -5,12 +5,21 @@ import {DurationUnit, type RateUnit, SizeUnit} from 'sentry/utils/discover/field
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 
 import {isADurationUnit, isASizeUnit} from '../../common/typePredicates';
 
-export function formatTooltipValue(value: number, type: string, unit?: string): string {
+export function formatTooltipValue(
+  value: number | typeof ECHARTS_MISSING_DATA_VALUE,
+  type: string,
+  unit?: string
+): string {
+  if (value === ECHARTS_MISSING_DATA_VALUE) {
+    return value;
+  }
+
   switch (type) {
     case 'integer':
     case 'number':
@@ -39,6 +48,9 @@ export function formatTooltipValue(value: number, type: string, unit?: string): 
       // This way, named rate functions like `epm()` will be shows in per minute
       // units
       return formatRate(value, unit as RateUnit);
+    case 'score':
+      // Scores are always integers, no half-marks.
+      return value.toFixed(0);
     default:
       return value.toString();
   }

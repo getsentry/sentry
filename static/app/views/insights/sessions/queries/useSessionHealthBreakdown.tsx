@@ -8,14 +8,13 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
   const location = useLocation();
   const organization = useOrganization();
 
-  const locationWithoutWidth = {
+  const locationQuery = {
     ...location,
     query: {
       ...location.query,
-      width_health_table: undefined,
-      width_adoption_table: undefined,
-      cursor_health_table: undefined,
-      cursor_adoption_table: undefined,
+      query: undefined,
+      width: undefined,
+      cursor: undefined,
     },
   };
 
@@ -28,7 +27,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
       `/organizations/${organization.slug}/sessions/`,
       {
         query: {
-          ...locationWithoutWidth.query,
+          ...locationQuery.query,
           field: ['sum(session)'],
           groupBy: ['session.status'],
         },
@@ -47,10 +46,10 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
 
   // Create a map of status to their data
   const statusData = {
-    healthy: getSessionStatusSeries('healthy', sessionData.groups),
     crashed: getSessionStatusSeries('crashed', sessionData.groups),
     errored: getSessionStatusSeries('errored', sessionData.groups),
     abnormal: getSessionStatusSeries('abnormal', sessionData.groups),
+    healthy: getSessionStatusSeries('healthy', sessionData.groups),
   };
 
   const createDatapoints = (data: number[]) =>
@@ -82,7 +81,7 @@ export default function useSessionHealthBreakdown({type}: {type: 'count' | 'rate
     meta: {
       fields: {
         [`${status}_session_${type}`]:
-          type === 'count' ? ('number' as const) : ('percentage' as const),
+          type === 'count' ? ('integer' as const) : ('percentage' as const),
         time: 'date' as const,
       },
       units: {},

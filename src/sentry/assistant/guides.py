@@ -30,4 +30,6 @@ GUIDES = {
     "explain_archive_button_issue_stream": 33,
     "crons_backend_insights": 38,
     "issue_views_page_filters_persistence": 39,
+    "tour.issue_details": 40,
+    "tour.stacked_navigation": 41,
 }
