@@ -345,7 +345,7 @@ class BaseMetricAlertMigrationTest(APITestCase, BaseWorkflowTest):
         detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
-        workflow = AlertRuleWorkflow.objects.get(alert_rule=alert_rule).workflow
+        workflow = AlertRuleWorkflow.objects.get(alert_rule_id=alert_rule.id).workflow
 
         detector_trigger = self.create_data_condition(
             comparison=alert_rule_trigger.alert_threshold,
@@ -1241,7 +1241,7 @@ class CalculateResolveThresholdHelperTest(BaseMetricAlertMigrationTest):
         )
 
     def test_calculate_resolve_threshold_critical_only(self):
-        detector = AlertRuleDetector.objects.get(alert_rule=self.metric_alert).detector
+        detector = AlertRuleDetector.objects.get(alert_rule_id=self.metric_alert.id).detector
         detector_dcg = detector.workflow_condition_group
         assert detector_dcg  # to appease mypy
 

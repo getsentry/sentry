@@ -883,7 +883,9 @@ def dual_delete_migrated_alert_rule_trigger(alert_rule_trigger: AlertRuleTrigger
         alert_rule_trigger_id=alert_rule_trigger.id
     )
     for trigger_action in actions_to_dual_delete:
-        aarta = ActionAlertRuleTriggerAction.objects.get(alert_rule_trigger_action=trigger_action)
+        aarta = ActionAlertRuleTriggerAction.objects.get(
+            alert_rule_trigger_action_id=trigger_action.id
+        )
         action = aarta.action
         action.delete()
 
