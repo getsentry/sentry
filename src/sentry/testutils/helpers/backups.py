@@ -85,6 +85,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
@@ -449,6 +450,12 @@ class ExhaustiveFixtures(Fixtures):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+        ProjectSDK.objects.create(
+            project=project,
+            event_type=EventType.PROFILE_CHUNK.value,
+            sdk_name="sentry.python",
+            sdk_version="2.41.0",
+        )
         self.create_notification_action(organization=org, projects=[project])
 
         # Auth*

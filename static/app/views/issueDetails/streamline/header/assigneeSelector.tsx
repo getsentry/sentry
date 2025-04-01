@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
@@ -30,6 +31,7 @@ export function GroupHeaderAssigneeSelector({
   event,
 }: GroupHeaderAssigneeSelectorProps) {
   const api = useApi();
+  const theme = useTheme();
   const organization = useOrganization();
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({
     organization,
@@ -71,6 +73,7 @@ export function GroupHeaderAssigneeSelector({
               organization,
               issueId: group.id,
               eventData: event!,
+              theme,
             });
           }}
           icon={<IconSettings />}

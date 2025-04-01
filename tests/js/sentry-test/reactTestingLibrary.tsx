@@ -13,6 +13,7 @@ import * as rtl from '@testing-library/react'; // eslint-disable-line no-restric
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
@@ -26,7 +27,6 @@ import {
 } from 'sentry/utils/browserHistory';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
-import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {TestRouteContext} from 'sentry/views/routeContext';
 
@@ -147,15 +147,15 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <OrganizationContext.Provider value={optionalOrganization}>
+      <OrganizationContext value={optionalOrganization}>
         <GlobalDrawer>{children}</GlobalDrawer>
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     );
 
     const wrappedContent = options.disableRouterMocks ? (
       content
     ) : (
-      <TestRouteContext.Provider
+      <TestRouteContext
         value={{
           router,
           location: router.location,
@@ -165,7 +165,7 @@ function makeAllTheProviders(options: ProviderOptions) {
       >
         {/* ProvideAriaRouter may not be necessary in tests but matches routes.tsx */}
         <ProvideAriaRouter>{content}</ProvideAriaRouter>
-      </TestRouteContext.Provider>
+      </TestRouteContext>
     );
 
     if (!options.disableRouterMocks) {
@@ -174,7 +174,7 @@ function makeAllTheProviders(options: ProviderOptions) {
 
     return (
       <CacheProvider value={{...cache, compat: true}}>
-        <ThemeProvider theme={lightTheme}>
+        <ThemeProvider theme={ThemeFixture()}>
           <QueryClientProvider client={makeTestQueryClient()}>
             {wrappedContent}
           </QueryClientProvider>

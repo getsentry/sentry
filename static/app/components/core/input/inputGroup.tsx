@@ -72,11 +72,11 @@ export function InputGroup({children, ...props}: React.HTMLAttributes<HTMLDivEle
   );
 
   return (
-    <InputGroupContext.Provider value={contextValue}>
+    <InputGroupContext value={contextValue}>
       <InputGroupWrap disabled={inputProps.disabled} {...props}>
         {children}
       </InputGroupWrap>
-    </InputGroupContext.Provider>
+    </InputGroupContext>
   );
 }
 

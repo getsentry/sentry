@@ -137,6 +137,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/svelte',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/svelte',
+      },
     ],
   },
 ];
@@ -146,9 +152,12 @@ const onboarding: OnboardingConfig = {
     <Fragment>
       <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
-        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-          strong: <strong />,
-        })}
+        {tct(
+          "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+          {
+            strong: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
@@ -156,10 +165,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
-        {
-          code: <code />,
-        }
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },

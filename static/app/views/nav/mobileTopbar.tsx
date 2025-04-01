@@ -14,17 +14,17 @@ import {space} from 'sentry/styles/space';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useNavContext} from 'sentry/views/nav/context';
 import {OrgDropdown} from 'sentry/views/nav/orgDropdown';
 import {PrimaryNavigationItems} from 'sentry/views/nav/primary/index';
 import {SecondaryMobile} from 'sentry/views/nav/secondary/secondaryMobile';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
 type ActiveView = 'primary' | 'secondary' | 'closed';
 
 function MobileTopbar() {
-  const {activeGroup} = useNavContext();
   const location = useLocation();
   const organization = useOrganization();
+  const activeGroup = useActiveNavGroup();
   const [view, setView] = useState<ActiveView>('closed');
   /** Sync menu state with `body` attributes */
   useLayoutEffect(() => {

@@ -30,7 +30,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 const PAGE_TITLE = t('User Auth Tokens');
 const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
 
-export function ApiTokens() {
+function ApiTokens() {
   const api = useApi();
   const queryClient = useQueryClient();
 

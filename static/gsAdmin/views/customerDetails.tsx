@@ -125,7 +125,7 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
   get giftCategories() {
     const {data} = this.state;
 
-    if (data === null) {
+    if (data === null || !data.planDetails) {
       return {};
     }
     // Can only gift for checkout categories
@@ -135,13 +135,21 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
         const reserved = data.categories?.[category]?.reserved;
         const isUnlimited = isUnlimitedReserved(reserved);
         const isReservedBudgetQuota = reserved === RESERVED_BUDGET_QUOTA;
+
+        // Check why categories are disabled
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        const categoryNotExists = !data.categories?.[category];
+        const notInCheckoutCategories =
+          !data.planDetails?.checkoutCategories?.includes(category);
+        const notInOnDemandCategories =
+          !data.planDetails?.onDemandCategories?.includes(category);
+
         return [
           category,
           {
             disabled:
-              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-              !data.categories?.[category] ||
-              !data.planDetails.checkoutCategories.includes(category) ||
+              categoryNotExists ||
+              (notInCheckoutCategories && notInOnDemandCategories) ||
               isUnlimited ||
               isReservedBudgetQuota,
             displayName: getPlanCategoryName({
@@ -766,9 +774,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             {
               visible: !!data.pendingChanges,
               content: (
-                <OrganizationContext.Provider value={organization}>
+                <OrganizationContext value={organization}>
                   <PendingChanges subscription={data} />
-                </OrganizationContext.Provider>
+                </OrganizationContext>
               ),
             },
             {

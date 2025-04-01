@@ -20,9 +20,9 @@ export function BreadcrumbsProvider({
 }) {
   const context = useContext(BreadcrumbsContext);
   return (
-    <BreadcrumbsContext.Provider value={{crumbs: [...context.crumbs, crumb]}}>
+    <BreadcrumbsContext value={{crumbs: [...context.crumbs, crumb]}}>
       {children}
-    </BreadcrumbsContext.Provider>
+    </BreadcrumbsContext>
   );
 }
 
