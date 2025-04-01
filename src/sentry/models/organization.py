@@ -112,12 +112,6 @@ class OrganizationManager(BaseManager["Organization"]):
         if not user.is_authenticated:
             return []
 
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(self.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(self.filter())
-
         qs = OrganizationMember.objects.filter(user_id=user.id).select_related("organization")
         if only_visible:
             qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)

@@ -26,7 +26,6 @@ llm_provider_backends: dict[str, LlmModelBase] = {}
 
 def get_llm_provider_backend(usecase: LLMUseCase) -> LlmModelBase:
     usecase_config = get_usecase_config(usecase.value)
-    global llm_provider_backends
 
     if usecase_config["provider"] in llm_provider_backends:
         return llm_provider_backends[usecase_config["provider"]]

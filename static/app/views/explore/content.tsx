@@ -6,7 +6,6 @@ import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -18,6 +17,7 @@ import ExploreBreadcrumb from 'sentry/views/explore/components/breadcrumb';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 export function ExploreContent() {
   const organization = useOrganization();

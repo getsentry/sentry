@@ -1,5 +1,5 @@
 import {Fragment, type PropsWithChildren, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -10,13 +10,14 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from 'sentry/components/dropdownMenu';
-import EventTagsDataSection from 'sentry/components/events/eventTagsAndScreenshot/tags';
+import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import KeyValueData, {
+import {
   CardPanel,
+  KeyValueData,
   type KeyValueDataContentProps,
   Subject,
   ValueSection,
@@ -489,6 +490,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
+  const theme = useTheme();
   const breakdown = generateStats(event, {type: 'no_filter'});
 
   return (
@@ -501,7 +503,7 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
           const {name, percentage} = currOp;
 
           const operationName = typeof name === 'string' ? name : t('Other');
-          const color = pickBarColor(operationName);
+          const color = pickBarColor(operationName, theme);
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
           return (

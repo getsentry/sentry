@@ -672,7 +672,7 @@ export function IssueViewsStateProvider({
   }, [setOnNewViewsSaved, handleNewViewsSaved]);
 
   return (
-    <IssueViewsContext.Provider
+    <IssueViewsContext
       value={{
         rootProps: {...restProps, orientation: 'horizontal'},
         tabListState,
@@ -683,7 +683,7 @@ export function IssueViewsStateProvider({
       }}
     >
       {children}
-    </IssueViewsContext.Provider>
+    </IssueViewsContext>
   );
 }
 

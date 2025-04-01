@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/core/button';
@@ -64,6 +65,7 @@ export function EventSamplesTable({
   footerAlignedPagination = false,
 }: Props) {
   const navigate = useNavigate();
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {view} = useDomainViewFilters();
@@ -120,6 +122,7 @@ export function EventSamplesTable({
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     return rendered;
   }

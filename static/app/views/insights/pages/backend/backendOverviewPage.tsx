@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -32,7 +33,6 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {limitMaxPickableDays} from 'sentry/views/explore/utils';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {ViewTrendsButton} from 'sentry/views/insights/common/components/viewTrendsButton';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {LaravelOverviewPage} from 'sentry/views/insights/pages/backend/laravel';
@@ -102,6 +102,7 @@ function BackendOverviewPage() {
 }
 
 function GenericBackendOverviewPage() {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageError} = usePageAlert();
@@ -245,7 +246,6 @@ function GenericBackendOverviewPage() {
         headerTitle={BACKEND_LANDING_TITLE}
         headerActions={
           <Fragment>
-            <ViewTrendsButton />
             <NewLaravelExperienceButton />
           </Fragment>
         }
@@ -294,6 +294,7 @@ function GenericBackendOverviewPage() {
                       {...sharedProps}
                     />
                     <Table
+                      theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageError}

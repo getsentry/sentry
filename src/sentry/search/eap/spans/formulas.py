@@ -36,6 +36,8 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import literal_validator
 from sentry.search.events.constants import WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS
 from sentry.snuba import spans_rpc
+from sentry.snuba.referrer import Referrer
+
 
 
 def get_total_span_count(settings: ResolverSettings) -> Column:
@@ -419,10 +421,29 @@ def ttid_contribution_rate(
 def time_spent_percentage(
     args: ResolvedArguments, settings: ResolverSettings
 ) -> Column.BinaryFormula:
+    """Note this won't work for timeseries requests because we have to divide each bucket by it's own total time."""
     extrapolation_mode = settings["extrapolation_mode"]
+    snuba_params = settings["snuba_params"]
 
     attribute = cast(AttributeKey, args[0])
-    """TODO: This function isn't fully implemented, when https://github.com/getsentry/eap-planning/issues/202 is merged we can properly divide by the total time"""
+    column = "span.self_time" if attribute.name == "sentry.exclusive_time_ms" else "span.duration"
+
+    if snuba_params.organization_id is None:
+        raise Exception("An organization is required to resolve queries")
+
+    rpc_res = spans_rpc.run_table_query(
+        snuba_params,
+        query_string="",
+        referrer=Referrer.INSIGHTS_TIME_SPENT_TOTAL_TIME.value,
+        selected_columns=[f"sum({column})"],
+        orderby=None,
+        offset=0,
+        limit=1,
+        sampling_mode=None,
+        config=SearchResolverConfig(),
+    )
+
+    total_time = rpc_res["data"][0][f"sum({column})"]
 
     return Column.BinaryFormula(
         left=Column(
@@ -434,11 +455,7 @@ def time_spent_percentage(
         ),
         op=Column.BinaryFormula.OP_DIVIDE,
         right=Column(
-            aggregation=AttributeAggregation(
-                aggregate=Function.FUNCTION_SUM,
-                key=attribute,
-                extrapolation_mode=extrapolation_mode,
-            )
+            literal=LiteralValue(val_double=total_time),
         ),
     )
 
@@ -589,6 +606,10 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=time_spent_percentage,
         is_aggregate=True,
+        check_if_enabled=lambda params: (
+            params.is_timeseries_request is False,
+            "not supported for timeseries requests",
+        ),
     ),
     "epm": FormulaDefinition(
         default_search_type="number", arguments=[], formula_resolver=epm, is_aggregate=True
