@@ -150,6 +150,11 @@ class MigrateMetricAlertTest(TestMigrations):
             sentry_app_config=[{"favorite_tea": "strawberry matcha latte with oat milk"}],
         )
 
+        self.rule_with_long_name = self.create_alert_rule(
+            name="She cast her fragrance and her radiance over me. I ought never to have run away from her... I ought to have guessed all the affection that lay behind her poor little stratagems. Flowers are so inconsistent! But I was too young to know how to love her..."
+        )
+        self.create_alert_rule_trigger(alert_rule=self.rule_with_long_name)
+
     def test_simple_rule(self):
         alert_rule_workflow = AlertRuleWorkflow.objects.get(alert_rule=self.valid_rule)
         alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.valid_rule)
@@ -401,7 +406,7 @@ class MigrateMetricAlertTest(TestMigrations):
 
         assert action.type == Action.Type.SENTRY_APP
         assert action.data == {
-            "settings": self.sentry_app_action.sentry_app_config,
+            "settings": [{"label": None, "name": "assignee", "value": "michelle"}]
         }
         assert action.integration_id is None
         assert action.config.get("target_display") == self.sentry_app_action.target_display
@@ -432,3 +437,15 @@ class MigrateMetricAlertTest(TestMigrations):
         an exception doesn't crash the migration.
         """
         assert not AlertRuleDetector.objects.filter(alert_rule=self.skipped_rule).exists()
+
+    def test_long_rule_name(self):
+        """
+        Test that we can handle the rule with len(alert_rule.name) > 200.
+        """
+        alert_rule_detector = AlertRuleDetector.objects.get(alert_rule=self.rule_with_long_name)
+
+        detector = Detector.objects.get(id=alert_rule_detector.detector.id)
+        assert (
+            detector.name
+            == "She cast her fragrance and her radiance over me. I ought never to have run away from her... I ought to have guessed all the affection that lay behind her poor little stratagems. Flowers are so inco..."
+        )

@@ -178,12 +178,15 @@ class SentryAppFormConfigDataBlob:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "SentryAppFormConfigDataBlob":
-        if not isinstance(data.get("name"), str) or not isinstance(data.get("value"), str):
+        if not isinstance(data.get("name"), str) or not isinstance(
+            data.get("value"), (str, type(None))
+        ):
             raise ValueError("Sentry app config must contain name and value keys")
-        return cls(name=data["name"], value=data["value"])
+        return cls(name=data["name"], value=data["value"], label=data.get("label"))
 
     name: str = ""
     value: str = ""
+    label: str | None = None
 
 
 @dataclasses.dataclass
@@ -459,7 +462,7 @@ def _create_detector(
         project_id=project.id,
         enabled=enabled,
         created_by_id=create_activity.user_id if create_activity else None,
-        name=alert_rule.name,
+        name=alert_rule.name if len(alert_rule.name) < 200 else alert_rule.name[:197] + "...",
         workflow_condition_group=data_condition_group,
         type="metric_alert_fire",
         description=alert_rule.description,
@@ -584,18 +587,9 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
 
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rules = AlertRule.objects_with_snapshots.select_for_update().filter(
-                organization=organization
+                organization=organization, status=AlertRuleStatus.PENDING.value
             )
             for alert_rule in RangeQuerySetWrapperWithProgressBarApprox(alert_rules):
-                if alert_rule.status in [
-                    AlertRuleStatus.DISABLED.value,
-                    AlertRuleStatus.SNAPSHOT.value,
-                ]:
-                    logger.info(
-                        "Skipping disabled/deleted alert rule",
-                        extra={"alert_rule_id": alert_rule.id},
-                    )
-                    continue
                 if alert_rule.detection_type == "dynamic":
                     logger.info(
                         "anomaly detection alert rule, skipping",
@@ -613,7 +607,13 @@ def migrate_metric_alerts(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -
 
                 try:
                     with transaction.atomic(router.db_for_write(AlertRule)):
-                        project = alert_rule.projects.get()
+                        project = alert_rule.projects.first()
+                        if not project:
+                            logger.info(
+                                "alert rule missing query subscription, skipping",
+                                extra={"alert_rule_id": alert_rule.id},
+                            )
+                            continue
                         snoozed = None
                         try:
                             snoozed = RuleSnooze.objects.get(
