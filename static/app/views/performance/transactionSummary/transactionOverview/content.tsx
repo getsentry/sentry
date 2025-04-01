@@ -143,10 +143,6 @@ function OTelSummaryContentInner({
     navigate(target);
   }
 
-  const hasPerformanceChartInterpolation = organization.features.includes(
-    'performance-chart-interpolation'
-  );
-
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
   }, [location]);
@@ -264,23 +260,11 @@ function OTelSummaryContentInner({
           </PageFilterBar>
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
-        {hasNewSpansUIFlag && (
-          <EAPChartsWidgetContainer>
-            <EAPChartsWidget transactionName={transactionName} />
-          </EAPChartsWidgetContainer>
-        )}
+        <EAPChartsWidgetContainer>
+          <EAPChartsWidget transactionName={transactionName} />
+        </EAPChartsWidgetContainer>
+
         <PerformanceAtScaleContextProvider>
-          {!hasNewSpansUIFlag && (
-            <TransactionSummaryCharts
-              organization={organization}
-              location={location}
-              eventView={eventView}
-              totalValue={totalCount}
-              currentFilter={spanOperationBreakdownFilter}
-              withoutZerofill={hasPerformanceChartInterpolation}
-              project={project}
-            />
-          )}
           <ServiceEntrySpansTable
             eventView={transactionsListEventView}
             handleDropdownChange={handleTransactionsListSortChange}
