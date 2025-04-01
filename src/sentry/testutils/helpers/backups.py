@@ -739,6 +739,7 @@ class ExhaustiveFixtures(Fixtures):
             organization=org,
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
+            position=0,
         )
 
         return org
