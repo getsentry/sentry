@@ -20,6 +20,7 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
+import {useDrawerWidth} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -43,6 +44,8 @@ interface Props {
 interface OptimisticMessage extends CommentThreadMessage {
   isLoading?: boolean;
 }
+
+const MIN_LEFT_MARGIN = 8;
 
 function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
@@ -318,23 +321,22 @@ function AutofixHighlightPopupContent({
   );
 }
 
-function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
+function getOptimalPosition(
+  referenceRect: DOMRect,
+  popupRect: DOMRect,
+  drawerWidth?: number
+) {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
 
-  // Find the drawer element to get its actual width
-  const drawerElement = document.querySelector('.drawer-panel');
-  const drawerWidth = drawerElement
-    ? drawerElement.getBoundingClientRect().width
-    : viewportWidth * 0.5;
+  const effectiveDrawerWidth = drawerWidth ?? viewportWidth * 0.5;
 
   // Calculate initial position to the left of the drawer
-  let left = viewportWidth - drawerWidth - popupRect.width - 8;
+  let left = viewportWidth - effectiveDrawerWidth - popupRect.width - 8;
 
   // Ensure the popup is not cut off on the left side
-  const minLeftMargin = 8;
-  if (left < minLeftMargin) {
-    left = minLeftMargin;
+  if (left < MIN_LEFT_MARGIN) {
+    left = MIN_LEFT_MARGIN;
   }
 
   let top = referenceRect.top;
@@ -353,6 +355,7 @@ function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
 function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
+  const drawerWidth = useDrawerWidth();
   const [position, setPosition] = useState<{
     left: number;
     top: number;
@@ -373,19 +376,13 @@ function AutofixHighlightPopup(props: Props) {
       const popupRect = popupRef.current!.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
 
-      // Find the drawer element to get its actual width
-      const drawerElement = document.querySelector('.drawer-panel');
-      const drawerWidth = drawerElement
-        ? drawerElement.getBoundingClientRect().width
-        : viewportWidth * 0.5;
-
       // Calculate available width for the popup
-      const availableWidth = viewportWidth - drawerWidth - 16; // 8px padding on each side
+      const availableWidth = viewportWidth - (drawerWidth ?? viewportWidth * 0.5) - 16;
       const defaultWidth = 300;
       const newWidth = Math.min(defaultWidth, Math.max(200, availableWidth));
 
       startTransition(() => {
-        setPosition(getOptimalPosition(referenceRect, popupRect));
+        setPosition(getOptimalPosition(referenceRect, popupRect, drawerWidth));
         setWidth(newWidth);
       });
     };
@@ -417,7 +414,7 @@ function AutofixHighlightPopup(props: Props) {
       });
       window.removeEventListener('resize', updatePosition);
     };
-  }, [referenceElement]);
+  }, [referenceElement, drawerWidth]);
 
   const handleFocus = () => {
     setIsFocused(true);
