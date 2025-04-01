@@ -1700,6 +1700,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
     def test_downsampling_top_events(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},

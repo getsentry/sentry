@@ -1674,6 +1674,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[2][1][0]["count"] == 0.0
         assert response.data["meta"]["dataset"] == self.dataset
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
     def test_downsampling_single_series(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
@@ -1729,6 +1730,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[2][1][0]["count"] == 0
         assert response.data["meta"]["dataset"] == self.dataset
 
+    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
     def test_downsampling_top_events(self):
         span = self.create_span(
             {"description": "foo", "sentry_tags": {"status": "success"}},
@@ -1773,8 +1775,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(minutes=3),
                 "interval": "1m",
-                # update to span.description once https://github.com/getsentry/eap-planning/issues/237 is fixed
-                "field": ["span.status", "sum(span.self_time)"],
+                "field": ["span.description", "sum(span.self_time)"],
                 "orderby": ["-sum(span.self_time)"],
                 "topEvents": 1,
                 "yAxis": "count()",
@@ -1784,9 +1785,9 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
             },
         )
 
-        assert "success" in response.data
+        assert "foo" in response.data
         assert "Other" in response.data
 
-        rows = response.data["success"]["data"][0:6]
+        rows = response.data["foo"]["data"][0:6]
         for expected, result in zip([0, 1, 0], rows):
             assert result[1][0]["count"] == expected
