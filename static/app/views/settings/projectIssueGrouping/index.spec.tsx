@@ -1,11 +1,14 @@
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
-import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import ProjectIssueGrouping from 'sentry/views/settings/projectIssueGrouping';
+
+jest.mock('sentry/utils/isActiveSuperuser', () => ({
+  isActiveSuperuser: jest.fn(),
+}));
 
 describe('projectIssueGrouping', () => {
   const {organization, projects} = initializeOrg();
@@ -72,12 +75,11 @@ describe('projectIssueGrouping', () => {
     expect(await screen.findByText('Issue Grouping')).toBeInTheDocument();
     expect(screen.queryByText(/Derived Grouping Enhancements/)).not.toBeInTheDocument();
 
-    // Re-render with a superuser
-    ConfigStore.set('user', UserFixture({isSuperuser: true, isStaff: true}));
-    const orgWithSuperUser = {...organization, user: {isSuperuser: true}};
+    // Re-render for superuser
+    jest.mocked(isActiveSuperuser).mockReturnValue(true);
     rerender(
       <ProjectIssueGrouping
-        organization={orgWithSuperUser}
+        organization={organization}
         project={project}
         {...RouteComponentPropsFixture()}
       />
