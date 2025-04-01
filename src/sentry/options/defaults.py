@@ -3198,3 +3198,13 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.options.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.options.control.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
