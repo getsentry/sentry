@@ -118,6 +118,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   } = useSpanIndexedSeries(
     {
       yAxis: [
+        'avg(span.duration)',
         'p100(span.duration)',
         'p99(span.duration)',
         'p95(span.duration)',
