@@ -1,11 +1,11 @@
-import {Component} from 'react';
+import {Component, type ComponentType} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import type {HookName, Hooks} from 'sentry/types/hooks';
 
 // Only allow hooks that return a React component
 type ComponentHookName = {
-  [K in HookName]: Hooks[K] extends React.ComponentType<any> ? K : never;
+  [K in HookName]: Hooks[K] extends ComponentType<any> ? K : never;
 }[HookName];
 
 type Props<H extends ComponentHookName> = {
