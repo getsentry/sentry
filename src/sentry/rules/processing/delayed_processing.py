@@ -516,18 +516,18 @@ def fire_rules(
             ).values()
 
             # TODO(cathy): add opposite of the FF organizations:workflow-engine-trigger-actions
-            sent = 0
+            not_sent = 0
             for callback, futures in callback_and_futures:
                 results = safe_execute(callback, groupevent, futures)
-                if results:
-                    sent += 1
+                if results is None:
+                    not_sent += 1
 
             if features.has("projects:num-events-issue-debugging", project):
                 logger.info(
                     "delayed_processing.rules_fired",
                     extra={
                         "total": len(callback_and_futures),
-                        "num_sent": sent,
+                        "not_sent": not_sent,
                     },
                 )
 
