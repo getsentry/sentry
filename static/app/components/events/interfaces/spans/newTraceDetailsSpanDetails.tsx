@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
@@ -50,7 +51,7 @@ import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerforma
 
 import {OpsDot} from '../../opsBreakdown';
 
-import * as SpanEntryContext from './context';
+import {SpanEntryContext} from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
@@ -95,6 +96,8 @@ export type SpanDetailProps = {
 
 function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
   const location = useLocation();
+  const theme = useTheme();
+
   const profileId = props.event.contexts.profile?.profile_id || '';
   const issues = useMemo(() => {
     return [...props.node.errors, ...props.node.performance_issues];
@@ -380,7 +383,7 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
       value => value === 0
     );
 
-    const timingKeys = getSpanSubTimings(span) ?? [];
+    const timingKeys = getSpanSubTimings(span, theme) ?? [];
     const parentTransaction = TraceTree.ParentTransaction(props.node);
     const averageSpanSelfTime: number | undefined =
       span['span.averageResults']?.['avg(span.self_time)'];

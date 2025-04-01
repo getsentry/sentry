@@ -1,11 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
@@ -667,7 +660,7 @@ function GroupDetailsContent({
 
   const hasStreamlinedUI = useHasStreamlinedUI();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!hasStreamlinedUI || isDrawerOpen) {
       return;
     }
@@ -831,7 +824,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      tourContext={IssueDetailsTourContext}
+      TourContext={IssueDetailsTourContext}
     >
       <GroupDetailsContent
         {...props}

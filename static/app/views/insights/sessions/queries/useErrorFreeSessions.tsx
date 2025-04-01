@@ -12,6 +12,7 @@ export default function useErrorFreeSessions() {
     ...location,
     query: {
       ...location.query,
+      query: undefined,
       width: undefined,
       cursor: undefined,
     },
