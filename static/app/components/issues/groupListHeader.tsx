@@ -30,13 +30,13 @@ function GroupListHeader({
       {hasNewLayout ? (
         <Fragment>
           <NarrowIssueWrapper hideDivider>{t('Issue')}</NarrowIssueWrapper>
-          {withColumns.includes('firstSeen') && (
-            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
-              {t('First Seen')}
+          {withColumns.includes('lastSeen') && (
+            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+              {t('Last Seen')}
             </FirstSeenWrapper>
           )}
-          {withColumns.includes('lastSeen') && (
-            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+          {withColumns.includes('firstSeen') && (
+            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
               {t('Age')}
             </LastSeenWrapper>
           )}
