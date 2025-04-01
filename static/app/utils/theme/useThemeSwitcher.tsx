@@ -83,7 +83,7 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
       callback: () => {
         removeBodyTheme();
         if (!chonkTheme.theme) {
-          addMessage(`Previewing UI2 theme`, 'success');
+          addMessage(`Previewing new theme`, 'success');
         }
         setChonkTheme({
           theme:
