@@ -1276,3 +1276,57 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
 
         assert response.status_code == 200, response.data
+
+    def test_has_correct_limit_suggestion_with_muiltiple_aggregates_on_creation(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "discover",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "columns": ["transaction"],
+                    "fields": [],
+                    "aggregates": ["count()", "epm()", "equation|count()*epm()"],
+                    "orderby": "-transaction",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 400, response.data == {
+            "limit": "limit is required. the maximum limit is 3."
+        }
+
+    def test_has_correct_limit_suggestion_with_no_aggregates_on_creation(self):
+        data = {
+            "title": "Test Query",
+            "widgetType": "discover",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "columns": ["transaction"],
+                    "fields": [],
+                    "aggregates": [],
+                    "orderby": "-transaction",
+                }
+            ],
+        }
+
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+
+        assert response.status_code == 400, response.data == {
+            "limit": "limit is required. the maximum limit is 5."
+        }
