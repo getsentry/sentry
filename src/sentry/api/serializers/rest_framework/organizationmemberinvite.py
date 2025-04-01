@@ -158,12 +158,11 @@ class ApproveInviteRequestValidator(serializers.Serializer):
     approve = serializers.BooleanField(required=True, write_only=True)
 
     def validate_approve(self, approve):
-        approving_user = self.context["actor"]
         invited_member = self.context["invited_member"]
         allowed_roles = self.context["allowed_roles"]
 
         try:
-            invited_member.validate_invitation(approving_user, allowed_roles)
+            invited_member.validate_invitation(allowed_roles)
         except UnableToAcceptMemberInvitationException as err:
             raise serializers.ValidationError(str(err))
 

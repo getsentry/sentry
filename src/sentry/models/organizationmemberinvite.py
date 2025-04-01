@@ -150,13 +150,13 @@ class OrganizationMemberInvite(DefaultFieldsModel):
         self.organization_member_team_data = team_data
         self.save()
 
-    def validate_invitation(self, approving_user, allowed_roles):
+    def validate_invitation(self, allowed_roles):
         """
         Validates whether an org has the options to invite members, handle join requests,
         and that the member role doesn't exceed the allowed roles to invite.
         """
         organization = self.organization
-        if not features.has("organizations:invite-members", organization, actor=approving_user):
+        if not features.has("organizations:invite-members", organization):
             raise UnableToAcceptMemberInvitationException(ERR_CANNOT_INVITE)
 
         if (

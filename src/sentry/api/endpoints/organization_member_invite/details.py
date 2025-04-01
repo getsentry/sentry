@@ -140,6 +140,10 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         :param array teams: the teams which the member should belong to.
         :auth: required
         """
+        if not features.has(
+            "organizations:new-organization-member-invite", organization, actor=request.user
+        ):
+            return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
         # if the requesting user doesn't have >= member:admin perms, then they cannot approve invite
         # members can reinvite users they invited, but they cannot edit invite requests
         allowed_roles = get_allowed_org_roles(request, organization)
@@ -196,7 +200,6 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
             approval_validator = ApproveInviteRequestValidator(
                 data=request.data,
                 context={
-                    "actor": request.user,
                     "organization": organization,
                     "invited_member": invited_member,
                     "allowed_roles": allowed_roles,

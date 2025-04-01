@@ -57,6 +57,7 @@ class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
         self.get_error_response(self.organization.slug, "-1", status_code=404)
 
 
+@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
 class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     method = "put"
 
@@ -453,10 +454,10 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             == "You do not have permission to approve a member invitation with the role owner."
         )
 
-    # @with_feature({"organizations:invite-members", False})
+    @with_feature({"organizations:invite-members": False})
     # idk wtf is going on tbh. why is this feature still enabled.
-    # def test_cannot_approve_if_invite_requests_disabled(self):
-    #     response = self.get_error_response(
-    #         self.organization.slug, self.invite_request.id, approve=1
-    #     )
-    #     assert response.data["approve"][0] == "Your organization is not allowed to invite members."
+    def test_cannot_approve_if_invite_requests_disabled(self):
+        response = self.get_error_response(
+            self.organization.slug, self.invite_request.id, approve=1
+        )
+        assert response.data["approve"][0] == "Your organization is not allowed to invite members."
