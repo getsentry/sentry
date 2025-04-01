@@ -428,6 +428,8 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Samples', () => {
+    const [sampleId, setSampleId] = useState<string>();
+
     const timeSeriesPlottable = useMemo(() => {
       return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
         delay: 1800,
@@ -440,6 +442,9 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
         attributeName: 'p99(span.duration)',
         baselineValue: 175,
         baselineLabel: 'Average',
+        onHighlight: row => {
+          setSampleId(row.id);
+        },
       });
     }, []);
 
@@ -451,6 +456,13 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
           below, we plot a set of span duration samples on top of an aggregate series of
           the 99th percentile of those durations. Samples that are faster than a baseline
           are green, samples that are slower are red.
+        </p>
+
+        <p>
+          <code>Samples</code> supports the <code>onHighlight</code> configuration option.
+          It's a callback, called whenever a sample is highlighted by bringing the X axis
+          cursor near its timestamp. e.g., here's the sample ID of the most recent
+          highlighted sample: {sampleId}
         </p>
 
         <MediumWidget>
