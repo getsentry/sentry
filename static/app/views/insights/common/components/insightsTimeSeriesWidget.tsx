@@ -111,15 +111,17 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     );
   }
 
+  const enableReleaseBubblesProps = organization.features.includes('release-bubbles-ui')
+    ? ({releases, showReleaseAs: 'bubble'} as const)
+    : {};
+
   return (
     <ChartContainer>
       <Widget
         Title={Title}
         Visualization={
           <TimeSeriesWidgetVisualization
-            {...(organization.features.includes('release-bubbles-ui')
-              ? {releases, showReleaseAs: 'bubble'}
-              : {})}
+            {...enableReleaseBubblesProps}
             legendSelection={props.legendSelection}
             onLegendSelectionChange={props.onLegendSelectionChange}
             {...visualizationProps}
@@ -142,6 +144,8 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
                     <ModalChartContainer>
                       <TimeSeriesWidgetVisualization
                         {...visualizationProps}
+                        {...enableReleaseBubblesProps}
+                        disableZoomNavigation
                         legendSelection={props.legendSelection}
                         onLegendSelectionChange={props.onLegendSelectionChange}
                         releases={releases ?? []}
