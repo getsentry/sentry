@@ -286,7 +286,9 @@ function RegressionEvidence({event, issueType}: SpanEvidenceKeyValueListProps) {
   return data ? <PresortedKeyValueList data={data} /> : null;
 }
 
-const PREVIEW_COMPONENTS = {
+const PREVIEW_COMPONENTS: Partial<
+  Record<IssueType, (p: SpanEvidenceKeyValueListProps) => React.ReactElement | null>
+> = {
   [IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES]: NPlusOneDBQueriesSpanEvidence,
   [IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS]: NPlusOneAPICallsSpanEvidence,
   [IssueType.PERFORMANCE_SLOW_DB_QUERY]: SlowDBQueryEvidence,
@@ -340,17 +342,20 @@ export function SpanEvidenceKeyValueList({
     );
   }
 
-  const Component = (PREVIEW_COMPONENTS as any)[issueType] ?? DefaultSpanEvidence;
+  const Component = PREVIEW_COMPONENTS[issueType] ?? DefaultSpanEvidence;
 
   return (
     <ClippedBox clipHeight={300}>
       <Component
+        theme={theme}
         event={event}
         issueType={issueType}
         organization={organization}
         location={location}
         projectSlug={projectSlug}
-        {...spanInfo}
+        parentSpan={spanInfo?.parentSpan ?? null}
+        offendingSpans={spanInfo?.offendingSpans ?? []}
+        causeSpans={spanInfo?.causeSpans ?? []}
       />
     </ClippedBox>
   );
