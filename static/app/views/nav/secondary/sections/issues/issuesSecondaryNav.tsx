@@ -3,22 +3,15 @@ import {Fragment, useEffect, useRef} from 'react';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {IssueView} from 'sentry/views/issueList/issueViews/issueViews';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
-import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {IssueViewNavItems} from 'sentry/views/nav/secondary/sections/issues/issueViews/issueViewNavItems';
 import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
-import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
-interface IssuesWrapperProps extends RouteComponentProps {
-  children: React.ReactNode;
-}
-
-export function IssueNavigation({children}: IssuesWrapperProps) {
+export function IssuesSecondaryNav() {
   const organization = useOrganization();
 
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -38,69 +31,60 @@ export function IssueNavigation({children}: IssuesWrapperProps) {
     }
   }, [groupSearchViews, viewId, updateViewLastVisited]);
 
-  const prefersStackedNav = usePrefersStackedNav();
-
-  if (!prefersStackedNav) {
-    return children;
-  }
-
   const baseUrl = `/organizations/${organization.slug}/issues`;
 
   return (
-    <Fragment>
-      <SecondaryNav group={PrimaryNavGroup.ISSUES}>
-        <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
-        <SecondaryNav.Body>
-          <SecondaryNav.Section>
-            <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
-              {t('Feed')}
-            </SecondaryNav.Item>
-            <SecondaryNav.Item
-              to={`${baseUrl}/feedback/`}
-              analyticsItemName="issues_feedback"
-            >
-              {t('Feedback')}
-            </SecondaryNav.Item>
-          </SecondaryNav.Section>
-          {groupSearchViews && (
-            <IssueViewNavItems
-              loadedViews={groupSearchViews.map(
-                (
-                  {
-                    id,
-                    name,
-                    query: viewQuery,
-                    querySort: viewQuerySort,
-                    environments: viewEnvironments,
-                    projects: viewProjects,
-                    timeFilters: viewTimeFilters,
-                  },
-                  index
-                ): IssueView => {
-                  const tabId = id ?? `default${index.toString()}`;
+    <SecondaryNav>
+      <SecondaryNav.Header>{t('Issues')}</SecondaryNav.Header>
+      <SecondaryNav.Body>
+        <SecondaryNav.Section>
+          <SecondaryNav.Item to={`${baseUrl}/`} end analyticsItemName="issues_feed">
+            {t('Feed')}
+          </SecondaryNav.Item>
+          <SecondaryNav.Item
+            to={`${baseUrl}/feedback/`}
+            analyticsItemName="issues_feedback"
+          >
+            {t('Feedback')}
+          </SecondaryNav.Item>
+        </SecondaryNav.Section>
+        {groupSearchViews && (
+          <IssueViewNavItems
+            loadedViews={groupSearchViews.map(
+              (
+                {
+                  id,
+                  name,
+                  query: viewQuery,
+                  querySort: viewQuerySort,
+                  environments: viewEnvironments,
+                  projects: viewProjects,
+                  timeFilters: viewTimeFilters,
+                },
+                index
+              ): IssueView => {
+                const tabId = id ?? `default${index.toString()}`;
 
-                  return {
-                    id: tabId,
-                    key: tabId,
-                    label: name,
-                    query: viewQuery,
-                    querySort: viewQuerySort,
-                    environments: viewEnvironments,
-                    projects: viewProjects,
-                    timeFilters: viewTimeFilters,
-                    isCommitted: true,
-                  };
-                }
-              )}
-              sectionRef={sectionRef}
-              baseUrl={baseUrl}
-            />
-          )}
-          <ConfigureSection baseUrl={baseUrl} />
-        </SecondaryNav.Body>
-      </SecondaryNav>
-      {children}
-    </Fragment>
+                return {
+                  id: tabId,
+                  key: tabId,
+                  label: name,
+                  query: viewQuery,
+                  querySort: viewQuerySort,
+                  environments: viewEnvironments,
+                  projects: viewProjects,
+                  timeFilters: viewTimeFilters,
+                  isCommitted: true,
+                };
+              }
+            )}
+            sectionRef={sectionRef}
+            baseUrl={baseUrl}
+          />
+        )}
+        <ConfigureSection baseUrl={baseUrl} />
+      </SecondaryNav.Body>
+    </SecondaryNav>
   );
 }
 
