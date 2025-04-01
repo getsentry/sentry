@@ -215,6 +215,7 @@ export function GuidedSteps({className, children, onStepChange}: GuidedStepsProp
 const StepButtonsWrapper = styled('div')`
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: ${space(1)};
   margin-top: ${space(1.5)};
 `;

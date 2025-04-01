@@ -30,6 +30,8 @@ import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -46,21 +48,41 @@ function useOnboardingProject() {
   return selectedProject[0];
 }
 
-function WaitingIndicator({project}: {project: Project}) {
-  const api = useApi();
+function WaitingIndicator({
+  project,
+  hasProfile,
+}: {
+  hasProfile: boolean;
+  project: Project;
+}) {
   const organization = useOrganization();
 
-  return (
-    <EventWaiter
-      api={api}
-      organization={organization}
-      project={project}
-      eventType="profile"
+  const {data} = useProfileEvents({
+    fields: ['profile.id', 'timestamp'],
+    limit: 1,
+    referrer: 'profiling-onboarding',
+    sort: {
+      key: 'timestamp',
+      order: 'desc',
+    },
+    enabled: hasProfile,
+  });
+
+  const profileId = data?.data[0]?.['profile.id']?.toString();
+
+  return profileId ? (
+    <LinkButton
+      priority="primary"
+      to={generateProfileFlamechartRoute({
+        organization,
+        projectSlug: project.slug,
+        profileId,
+      })}
     >
-      {({firstIssue}) =>
-        firstIssue ? <EventReceivedIndicator /> : <EventWaitingIndicator />
-      }
-    </EventWaiter>
+      {t('Take me to my profile')}
+    </LinkButton>
+  ) : (
+    <EventWaitingIndicator />
   );
 }
 
@@ -100,13 +122,27 @@ function StepRenderer({
   step: StepProps;
 }) {
   const {type, title} = step;
+  const api = useApi();
+  const organization = useOrganization();
+
   return (
     <GuidedSteps.Step stepKey={type || title} title={title || (type && StepTitles[type])}>
       <ConfigurationRenderer configuration={step} />
-      {isLastStep && <WaitingIndicator project={project} />}
       <GuidedSteps.ButtonWrapper>
         <GuidedSteps.BackButton size="md" />
         <GuidedSteps.NextButton size="md" />
+        {isLastStep && (
+          <EventWaiter
+            api={api}
+            organization={organization}
+            project={project}
+            eventType="profile"
+          >
+            {({firstIssue}) => (
+              <WaitingIndicator project={project} hasProfile={!!firstIssue} />
+            )}
+          </EventWaiter>
+        )}
       </GuidedSteps.ButtonWrapper>
     </GuidedSteps.Step>
   );
@@ -187,11 +223,11 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
-  const doesSupportProfiling = project?.platform
-    ? profilingPlatforms.includes(project.platform)
+  const doesSupportProfiling = currentPlatform
+    ? profilingPlatforms.includes(currentPlatform.id)
     : false;
 
-  const profilingDocs = docs?.profilingOnboarding || docs?.onboarding;
+  const profilingDocs = docs?.profilingOnboarding;
 
   if (!project) {
     return <div>{t('No project found')}</div>;
@@ -201,36 +237,47 @@ export function Onboarding() {
     return <LoadingIndicator />;
   }
 
-  if (!doesSupportProfiling) {
+  if (!currentPlatform || !doesSupportProfiling) {
     return (
       <OnboardingPanel project={project}>
-        {tct(
-          'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
-          {platform: currentPlatform?.name || project.slug}
-        )}
-        <br />
-        <LinkButton size="sm" href="https://docs.sentry.io/product/profiling/" external>
-          {t('Go to Documentation')}
-        </LinkButton>
+        <DescriptionWrapper>
+          <p>
+            {tct(
+              'Fiddlesticks. Profiling isn’t available for your [platform] project yet but we’re definitely still working on it. Stay tuned.',
+              {platform: currentPlatform?.name || project.slug}
+            )}
+          </p>
+          <LinkButton size="sm" href="https://docs.sentry.io/product/profiling/" external>
+            {t('Go to Documentation')}
+          </LinkButton>
+        </DescriptionWrapper>
       </OnboardingPanel>
     );
   }
 
-  if (!currentPlatform || !profilingDocs || !dsn || !projectKeyId) {
+  if (!profilingDocs || !dsn || !projectKeyId) {
     return (
       <OnboardingPanel project={project}>
-        {tct(
-          'Fiddlesticks. The profiling onboarding checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
-          {project: project.slug}
-        )}
-        <br />
-        <LinkButton
-          size="sm"
-          href="https://docs.sentry.io/product/profiling/getting-started/"
-          external
-        >
-          {t('Go to Documentation')}
-        </LinkButton>
+        <DescriptionWrapper>
+          <p>
+            {tct(
+              'Fiddlesticks. The profiling onboarding checklist isn’t available for your [project] project yet, but for now, go to Sentry docs for installation details.',
+              {project: project.slug}
+            )}
+          </p>
+          <LinkButton
+            size="sm"
+            href={
+              // TODO(aknaus): Go does not have profiling docs yet, so we redirect to the general profiling docs. Remove this once Go has docs.
+              currentPlatform.id === 'go'
+                ? 'https://docs.sentry.io/product/profiling/getting-started/'
+                : `${currentPlatform.link}/profiling/`
+            }
+            external
+          >
+            {t('Go to Documentation')}
+          </LinkButton>
+        </DescriptionWrapper>
       </OnboardingPanel>
     );
   }
@@ -267,14 +314,17 @@ export function Onboarding() {
     <OnboardingPanel project={project}>
       <BodyTitle>{t('Set up the Sentry SDK')}</BodyTitle>
       <GuidedSteps>
-        {steps.map((step, index) => (
-          <StepRenderer
-            key={index}
-            project={project}
-            step={step}
-            isLastStep={index === steps.length - 1}
-          />
-        ))}
+        {steps
+          // Only show non-optional steps
+          .filter(step => !step.collapsible)
+          .map((step, index) => (
+            <StepRenderer
+              key={index}
+              project={project}
+              step={step}
+              isLastStep={index === steps.length - 1}
+            />
+          ))}
       </GuidedSteps>
     </OnboardingPanel>
   );
@@ -289,7 +339,7 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   display: flex;
   align-items: center;
   position: relative;
-  padding: ${space(1.5)} 0;
+  padding: 0 ${space(1)};
   z-index: 10;
   flex-grow: 1;
   font-size: ${p => p.theme.fontSizeMedium};
@@ -299,22 +349,6 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const PulsingIndicator = styled('div')`
   ${pulsingIndicatorStyles};
   margin-left: ${space(1)};
-`;
-
-const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
-  <div {...p}>
-    {'🎉 '}
-    {t(
-      "We've received this project's first profile! Refresh the page to see it in action."
-    )}
-  </div>
-))`
-  display: flex;
-  align-items: center;
-  padding: ${space(1.5)} 0;
-  flex-grow: 1;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.successText};
 `;
 
 const SubTitle = styled('div')`
@@ -421,7 +455,7 @@ const ConfigurationWrapper = styled('div')`
 `;
 
 const DescriptionWrapper = styled('div')`
-  code {
+  code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
   }
 
