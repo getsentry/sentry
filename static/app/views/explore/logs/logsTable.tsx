@@ -118,7 +118,7 @@ export function LogsTable({
             </LogTableRow>
           </TableHead>
         ) : null}
-        <LogTableBody>
+        <LogTableBody showHeader={showHeader}>
           {isPending && (
             <TableStatus>
               <LoadingIndicator />
