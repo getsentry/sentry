@@ -774,7 +774,7 @@ describe('ExploreToolbar', function () {
 
     await userEvent.click(within(section).getByText(/Save as/));
     await userEvent.hover(within(section).getByText('An Alert for'));
-    await userEvent.click(screen.getByText('count(span.duration)'));
+    await userEvent.click(screen.getByText('count(spans)'));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/metric/',
       query: expect.objectContaining({

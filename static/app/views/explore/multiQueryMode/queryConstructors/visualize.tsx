@@ -45,8 +45,8 @@ export function VisualizeSection({query, index}: Props) {
     () => [
       {
         label: t('spans'),
-        value: 'spans',
-        textValue: 'spans',
+        value: DEFAULT_VISUALIZATION_FIELD,
+        textValue: DEFAULT_VISUALIZATION_FIELD,
       },
     ],
     []
@@ -55,8 +55,6 @@ export function VisualizeSection({query, index}: Props) {
     yAxes: query.yAxes,
   });
   const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
-
-  const fieldValue = lockOptions ? 'spans' : parsedFunction?.arguments?.[0];
 
   const updateYAxis = useUpdateQueryAtIndex(index);
 
@@ -97,7 +95,7 @@ export function VisualizeSection({query, index}: Props) {
           <CompactSelect
             searchable
             options={fieldOptions}
-            value={fieldValue}
+            value={parsedFunction?.arguments?.[0]}
             onChange={newField => {
               const newYAxis = `${parsedFunction!.name}(${newField.value})`;
               updateYAxis({yAxes: [newYAxis]});

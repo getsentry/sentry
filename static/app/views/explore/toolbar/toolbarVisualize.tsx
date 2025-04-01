@@ -190,14 +190,12 @@ function VisualizeDropdown({
   // compatibility, we don't want to lock down all `count` queries immediately.
   const lockOptions = yAxis === DEFAULT_VISUALIZATION;
 
-  const fieldValue = lockOptions ? 'spans' : parsedVisualize.arguments[0];
-
   const countFieldOptions: Array<SelectOption<string>> = useMemo(
     () => [
       {
         label: t('spans'),
-        value: 'spans',
-        textValue: 'spans',
+        value: DEFAULT_VISUALIZATION_FIELD,
+        textValue: DEFAULT_VISUALIZATION_FIELD,
       },
     ],
     []
@@ -247,7 +245,7 @@ function VisualizeDropdown({
       <ColumnCompactSelect
         searchable
         options={fieldOptions}
-        value={fieldValue}
+        value={parsedVisualize.arguments[0]}
         onChange={setChartField}
         disabled={lockOptions}
       />
