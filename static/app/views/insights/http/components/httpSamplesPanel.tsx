@@ -178,7 +178,7 @@ export function HTTPSamplesPanel() {
     {
       search: MutableSearch.fromQueryObject(ribbonFilters),
       fields: [
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
         `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
@@ -306,7 +306,7 @@ export function HTTPSamplesPanel() {
             <ReadoutRibbon>
               <MetricReadout
                 title={getThroughputTitle('http')}
-                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
+                value={domainTransactionMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
                 unit={RateUnit.PER_MINUTE}
                 isLoading={areDomainTransactionMetricsFetching}
               />
