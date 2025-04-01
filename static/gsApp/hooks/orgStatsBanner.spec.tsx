@@ -47,7 +47,7 @@ describe('OrgStatsBanner', function () {
     SubscriptionStore.set(organization.slug, subscription);
 
     wrapper = render(<OrgStatsBanner organization={organization} />);
-    expect(screen.getByText('Increase Reserved Limits')).toBeInTheDocument();
+    expect(screen.getByText('Setup On-Demand')).toBeInTheDocument();
     expect(screen.getByText('Increase your Reserved Quotas')).toBeInTheDocument();
   });
 

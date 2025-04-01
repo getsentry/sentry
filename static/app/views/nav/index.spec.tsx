@@ -15,6 +15,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import Nav from 'sentry/views/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
 import {NavContextProvider} from 'sentry/views/nav/context';
@@ -33,6 +34,19 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-trace-explorer',
   'profiling',
 ];
+
+const mockUsingCustomerDomain = jest.fn();
+
+jest.mock('sentry/constants', () => {
+  const sentryConstant = jest.requireActual('sentry/constants');
+  return {
+    ...sentryConstant,
+
+    get USING_CUSTOMER_DOMAIN() {
+      return mockUsingCustomerDomain();
+    },
+  };
+});
 
 describe('Nav', function () {
   beforeEach(() => {
@@ -53,12 +67,23 @@ describe('Nav', function () {
       url: `/organizations/org-slug/group-search-views/`,
       body: [],
     });
+
+    ConfigStore.set('user', {
+      ...ConfigStore.get('user'),
+      options: {
+        ...ConfigStore.get('user').options,
+        prefersStackedNavigation: true,
+      },
+    });
+    mockUsingCustomerDomain.mockReturnValue(true);
   });
 
   function renderNav({
     initialPathname = '/organizations/org-slug/issues/',
+    route,
   }: {
     initialPathname?: string;
+    route?: string;
   } = {}) {
     return render(
       <NavContextProvider>
@@ -69,6 +94,7 @@ describe('Nav', function () {
         organization: OrganizationFixture({features: ALL_AVAILABLE_FEATURES}),
         disableRouterMocks: true,
         initialRouterConfig: {
+          route,
           location: {
             pathname: initialPathname,
             query: {query: 'is:unresolved'},
@@ -123,6 +149,54 @@ describe('Nav', function () {
       const link = screen.getByRole('link', {name: 'Feed'});
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(link).toHaveAttribute('aria-selected', 'true');
+    });
+
+    describe('sections', function () {
+      it('renders organization/account settings secondary nav when on settings routes', function () {
+        renderNav({initialPathname: '/settings/organization/'});
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Account Details'})
+        ).toBeInTheDocument();
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Security'})
+        ).toBeInTheDocument();
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'General Settings'})
+        ).toBeInTheDocument();
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Teams'})
+        ).toBeInTheDocument();
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Members'})
+        ).toBeInTheDocument();
+      });
+
+      // Settings renders different secondary nav when on project routes
+      it('renders project settings secondary nav when on setting project routes', function () {
+        renderNav({
+          initialPathname: '/settings/projects/project-slug/',
+          route: '/settings/projects/:projectId/',
+        });
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'General Settings'})
+        ).toBeInTheDocument();
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Project Teams'})
+        ).toBeInTheDocument();
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Inbound Filters'})
+        ).toBeInTheDocument();
+      });
     });
 
     describe('collapse behavior', function () {

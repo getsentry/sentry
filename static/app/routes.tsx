@@ -2063,7 +2063,9 @@ function buildRoutes() {
       />
       <Route
         path={`${TabPaths[Tab.DISTRIBUTIONS]}:tagKey/`}
-        component={make(() => import('sentry/views/issueDetails/groupTagValues'))}
+        component={make(
+          () => import('sentry/views/issueDetails/groupTags/groupTagValues')
+        )}
       />
       <Route
         path={TabPaths[Tab.USER_FEEDBACK]}
