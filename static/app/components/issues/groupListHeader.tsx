@@ -20,15 +20,15 @@ function GroupListHeader({
   return (
     <PanelHeader disablePadding>
       <IssueWrapper hideDivider>{t('Issue')}</IssueWrapper>
-      {withColumns.includes('firstSeen') && (
-        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
-          {t('First Seen')}
-        </FirstSeenWrapper>
-      )}
       {withColumns.includes('lastSeen') && (
         <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
-          {t('Age')}
+          {t('First Seen')}
         </LastSeenWrapper>
+      )}
+      {withColumns.includes('firstSeen') && (
+        <AgeWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+          {t('Age')}
+        </AgeWrapper>
       )}
       {withColumns.includes('lastTriggered') && (
         <LastTriggeredLabel align="right">{t('Last Triggered')}</LastTriggeredLabel>
@@ -71,11 +71,11 @@ const IssueWrapper = styled(GroupListHeaderLabel)`
   padding-left: ${space(2)};
 `;
 
-const FirstSeenWrapper = styled(GroupListHeaderLabel)`
+const LastSeenWrapper = styled(GroupListHeaderLabel)`
   width: 80px;
 `;
 
-const LastSeenWrapper = styled(GroupListHeaderLabel)`
+const AgeWrapper = styled(GroupListHeaderLabel)`
   width: 50px;
 `;
 

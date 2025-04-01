@@ -26,7 +26,7 @@ describe('SuspectSpansTable', () => {
             'span.group': 'abc123',
             'span.op': 'db',
             'span.description': 'SELECT thing FROM my_cool_db',
-            'spm()': 4.448963396488444,
+            'epm()': 4.448963396488444,
             'sum(span.duration)': 1236071121.5044901,
             'avg(span.duration)': 30900.700924083318,
           },
@@ -78,7 +78,7 @@ describe('SuspectSpansTable', () => {
         data: [
           {
             'span.op': 'db',
-            'spm()': 5000,
+            'epm()': 5000,
             'sum(span.self_time)': 12346071121.5044901,
             'avg(span.duration)': 30900.700924083318,
           },

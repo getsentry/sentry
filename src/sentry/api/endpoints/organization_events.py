@@ -465,6 +465,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     config=SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
+                        functions_acl={"time_spent_percentage"},
                     ),
                     sampling_mode=sampling_mode,
                 )

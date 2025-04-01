@@ -4,7 +4,7 @@ import abc
 import logging
 import sys
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
-from enum import Enum, StrEnum
+from enum import StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, Any, NamedTuple, NoReturn, NotRequired, TypedDict
 
@@ -20,6 +20,7 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.team import Team
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -96,7 +97,7 @@ class IntegrationMetadata(NamedTuple):
         return metadata
 
 
-class IntegrationFeatures(Enum):
+class IntegrationFeatures(StrEnum):
     """
     IntegrationFeatures are used for marking supported features on an
     integration. Features are marked on the IntegrationProvider itself, as well
@@ -133,22 +134,6 @@ class IntegrationDomain(StrEnum):
     SOURCE_CODE_MANAGEMENT = "source_code_management"
     ON_CALL_SCHEDULING = "on_call_scheduling"
     IDENTITY = "identity"  # for identity pipelines
-
-
-class IntegrationProviderSlug(StrEnum):
-    SLACK = "slack"
-    DISCORD = "discord"
-    MSTEAMS = "msteams"
-    JIRA = "jira"
-    JIRA_SERVER = "jira_server"
-    AZURE_DEVOPS = "vsts"
-    GITHUB = "github"
-    GITHUB_ENTERPRISE = "github_enterprise"
-    GITLAB = "gitlab"
-    BITBUCKET = "bitbucket"
-    BITBUCKET_SERVER = "bitbucket_server"
-    PAGERDUTY = "pagerduty"
-    OPSGENIE = "opsgenie"
 
 
 INTEGRATION_TYPE_TO_PROVIDER = {
