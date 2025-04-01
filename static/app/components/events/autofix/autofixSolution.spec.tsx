@@ -45,21 +45,21 @@ describe('AutofixSolution', () => {
         repos={[
           {
             name: 'owner/repo1',
-            default_branch: 'main',
+            owner: 'owner',
             external_id: 'repo1',
-            integration_id: 'integration1',
             provider: 'github',
-            url: 'https://github.com/owner/repo1',
+            provider_raw: 'github',
             is_readable: true,
+            is_writeable: true,
           },
           {
             name: 'owner/repo2',
-            default_branch: 'main',
+            owner: 'owner',
             external_id: 'repo2',
-            integration_id: 'integration1',
             provider: 'github',
-            url: 'https://github.com/owner/repo2',
+            provider_raw: 'github',
             is_readable: true,
+            is_writeable: true,
           },
         ]}
       />
@@ -76,21 +76,21 @@ describe('AutofixSolution', () => {
         repos={[
           {
             name: 'owner/repo1',
-            default_branch: 'main',
+            owner: 'owner',
             external_id: 'repo1',
-            integration_id: 'integration1',
             provider: 'github',
-            url: 'https://github.com/owner/repo1',
+            provider_raw: 'github',
             is_readable: false,
+            is_writeable: false,
           },
           {
             name: 'owner/repo2',
-            default_branch: 'main',
+            owner: 'owner',
             external_id: 'repo2',
-            integration_id: 'integration1',
             provider: 'github',
-            url: 'https://github.com/owner/repo2',
+            provider_raw: 'github',
             is_readable: false,
+            is_writeable: false,
           },
         ]}
       />
@@ -107,21 +107,21 @@ describe('AutofixSolution', () => {
         repos={[
           {
             name: 'owner/repo1',
-            default_branch: 'main',
+            owner: 'owner',
             external_id: 'repo1',
-            integration_id: 'integration1',
             provider: 'github',
-            url: 'https://github.com/owner/repo1',
+            provider_raw: 'github',
             is_readable: true,
+            is_writeable: true,
           },
           {
             name: 'owner/repo2',
-            default_branch: 'main',
+            owner: 'owner',
             external_id: 'repo2',
-            integration_id: 'integration1',
             provider: 'github',
-            url: 'https://github.com/owner/repo2',
+            provider_raw: 'github',
             is_readable: false,
+            is_writeable: false,
           },
         ]}
       />

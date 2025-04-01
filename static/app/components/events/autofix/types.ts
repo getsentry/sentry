@@ -53,17 +53,6 @@ export type AutofixUpdateEndpointResponse = {
   status?: 'success' | 'error';
 };
 
-export type AutofixRepository = {
-  default_branch: string;
-  external_id: string;
-  integration_id: string;
-  name: string;
-  provider: string;
-  url: string;
-  is_readable?: boolean;
-  is_writeable?: boolean;
-};
-
 export type CodebaseState = {
   is_readable: boolean | null;
   is_writeable: boolean | null;
@@ -73,7 +62,9 @@ export type CodebaseState = {
 export type AutofixData = {
   codebases: Record<string, CodebaseState>;
   created_at: string;
-  repositories: AutofixRepository[];
+  request: {
+    repos: SeerRepoDefinition[];
+  };
   run_id: string;
   status: AutofixStatus;
   actor_ids?: number[];

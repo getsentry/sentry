@@ -21,6 +21,7 @@ import {
 import {
   makeAutofixQueryKey,
   useAutofixData,
+  useAutofixRepos,
 } from 'sentry/components/events/autofix/useAutofix';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -380,13 +381,12 @@ function SetupAndCreatePRsButton({
   onBusyStateChange: (busy: boolean) => void;
   runId: string;
 }) {
-  const {data: autofixData} = useAutofixData({groupId});
+  const {codebases} = useAutofixRepos(groupId);
 
   if (
     !changes.every(
       change =>
-        change.repo_external_id &&
-        autofixData?.codebases?.[change.repo_external_id]?.is_writeable
+        change.repo_external_id && codebases[change.repo_external_id]?.is_writeable
     )
   ) {
     return (
