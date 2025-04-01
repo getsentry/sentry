@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
@@ -100,7 +101,7 @@ function IntegrationTabs({
       <Tabs value={activeTab} onChange={onTabChange}>
         <TabList>
           {tabs.map(tab => (
-            <TabList.Item key={tab}>{renderTab(tab)}</TabList.Item>
+            <TabList.Item key={tab}>{capitalize(renderTab(tab))}</TabList.Item>
           ))}
         </TabList>
       </Tabs>
