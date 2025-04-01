@@ -64,7 +64,7 @@ Glossary for types of keys:
 from __future__ import annotations
 
 import itertools
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from typing import Any, NamedTuple
 
 import rapidjson
@@ -196,8 +196,8 @@ class SpansBuffer:
                 results = p.execute()
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
-            queue_delete_items = {}
-            queue_add_items = {}
+            queue_delete_items: dict[str, set[bytes]] = {}
+            queue_add_items: dict[str, MutableMapping[str | bytes, int]] = {}
 
             has_root_span_count = 0
             min_hole_size = float("inf")
