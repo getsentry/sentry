@@ -68,7 +68,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   event: EventTransaction | null = null;
 
   // Events associated with the node, these are inferred from the node value.
-  errors = new Set<TraceTree.TraceError>();
+  errors = new Set<TraceTree.TraceErrorIssue>();
   performance_issues = new Set<TraceTree.TracePerformanceIssue>();
   profiles: TraceTree.Profile[] = [];
 

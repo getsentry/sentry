@@ -7,7 +7,6 @@ import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import type {TraceErrorOrIssue} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
@@ -38,7 +37,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TraceErrorIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {
@@ -57,7 +56,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
       return [];
     }
 
-    const unique: TraceErrorOrIssue[] = [];
+    const unique: TraceTree.TracePerformanceIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.performance_issues) {

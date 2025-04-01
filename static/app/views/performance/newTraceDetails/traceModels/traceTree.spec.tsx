@@ -17,6 +17,7 @@ import type {ParentAutogroupNode} from './parentAutogroupNode';
 import {TraceTree} from './traceTree';
 import {
   assertTransactionNode,
+  makeEAPError,
   makeEAPSpan,
   makeEAPTrace,
   makeEventTransaction,
@@ -169,6 +170,21 @@ const parentAutogroupSpansWithTailChildren = [
     parent_span_id: '0001',
   }),
 ];
+
+const eapTraceWithErrors = makeEAPTrace([
+  makeEAPSpan({
+    event_id: 'eap-span-1',
+    is_transaction: true,
+    errors: [],
+    children: [
+      makeEAPSpan({
+        event_id: 'eap-span-2',
+        is_transaction: false,
+        errors: [makeEAPError()],
+      }),
+    ],
+  }),
+]);
 
 function findTransactionByEventId(tree: TraceTree, eventId: string) {
   return TraceTree.Find(
@@ -534,6 +550,18 @@ describe('TraceTree', () => {
     it('assembles tree from eap trace', () => {
       const tree = TraceTree.FromTrace(eapTrace, traceMetadata);
       expect(tree.build().serialize()).toMatchSnapshot();
+    });
+
+    it('adds eap errors to tree nodes', () => {
+      const tree = TraceTree.FromTrace(eapTraceWithErrors, traceMetadata);
+
+      expect(tree.root.children[0]!.errors.size).toBe(1);
+
+      const eapTransaction = findEAPSpanByEventId(tree, 'eap-span-1');
+      const eapSpan = findEAPSpanByEventId(tree, 'eap-span-2');
+
+      expect(eapTransaction?.errors.size).toBe(1);
+      expect(eapSpan?.errors.size).toBe(1);
     });
 
     it('initializes expanded based on is_transaction property', () => {
