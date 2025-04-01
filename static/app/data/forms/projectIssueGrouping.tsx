@@ -9,7 +9,7 @@ import {space} from 'sentry/styles/space';
 // Export route to make these forms searchable by label/help
 export const route = '/settings/:orgId/projects/:projectId/issue-grouping/';
 
-export const fields: Record<string, Field> = {
+export const fields = {
   fingerprintingRules: {
     name: 'fingerprintingRules',
     type: 'string',
@@ -97,7 +97,7 @@ stack.function:mylibrary_* +app`}
     validate: () => [],
     visible: true,
   },
-};
+} satisfies Record<string, Field>;
 
 const RuleDescription = styled('div')`
   margin-bottom: ${space(1)};
