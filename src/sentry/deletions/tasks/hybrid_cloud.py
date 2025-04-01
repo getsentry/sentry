@@ -27,9 +27,11 @@ from django.utils import timezone
 from sentry import options
 from sentry.db.models import Model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.deletions.tasks import deletioncontroltasks, deletiontasks
 from sentry.models.tombstone import TombstoneBase
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
 from sentry.utils import json, metrics, redis
 
 
@@ -116,6 +118,7 @@ def _chunk_watermark_batch(
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=deletioncontroltasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -131,6 +134,7 @@ def schedule_hybrid_cloud_foreign_key_jobs_control() -> None:
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=deletiontasks),
 )
 def schedule_hybrid_cloud_foreign_key_jobs() -> None:
     if options.get("hybrid_cloud.disable_tombstone_cleanup"):
@@ -168,6 +172,7 @@ def _schedule_hybrid_cloud_foreign_key(silo_mode: SiloMode, cascade_task: Task) 
     queue="cleanup.control",
     acks_late=True,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(namespace=deletioncontroltasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch_control(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -189,6 +194,7 @@ def process_hybrid_cloud_foreign_key_cascade_batch_control(
     queue="cleanup",
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=deletiontasks),
 )
 def process_hybrid_cloud_foreign_key_cascade_batch(
     app_name: str, model_name: str, field_name: str, **kwargs: Any
@@ -230,14 +236,11 @@ def _process_hybrid_cloud_foreign_key_cascade(
         if _process_tombstone_reconciliation(
             field, model, tombstone_cls, True
         ) or _process_tombstone_reconciliation(field, model, tombstone_cls, False):
-            process_task.apply_async(
-                kwargs=dict(
-                    app_name=app_name,
-                    model_name=model_name,
-                    field_name=field_name,
-                    silo_mode=silo_mode.name,
-                ),
-                countdown=15,
+            process_task.delay(
+                app_name=app_name,
+                model_name=model_name,
+                field_name=field_name,
+                silo_mode=silo_mode.name,
             )
     except Exception as err:
         sentry_sdk.set_context(

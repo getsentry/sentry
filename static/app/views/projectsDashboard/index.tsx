@@ -10,7 +10,6 @@ import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
@@ -37,6 +36,7 @@ import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import ProjectCard from './projectCard';

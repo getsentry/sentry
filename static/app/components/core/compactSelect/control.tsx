@@ -505,7 +505,7 @@ export function Control({
 
   const theme = useTheme();
   return (
-    <SelectContext.Provider value={contextValue}>
+    <SelectContext value={contextValue}>
       <ControlWrap {...wrapperProps}>
         {trigger ? (
           trigger(mergeProps(triggerKeyboardProps, overlayTriggerProps), overlayIsOpen)
@@ -561,7 +561,7 @@ export function Control({
                   onFocus={onSearchFocus}
                   onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
-                  size={searchInputSizeMapping[size]}
+                  size="xs"
                   {...searchKeyboardProps}
                 />
               )}
@@ -580,7 +580,7 @@ export function Control({
           </StyledOverlay>
         </StyledPositionWrapper>
       </ControlWrap>
-    </SelectContext.Provider>
+    </SelectContext>
   );
 }
 
@@ -654,12 +654,6 @@ const ClearButton = styled(Button)`
   padding: 0 ${space(0.5)};
   margin: -${space(0.25)} -${space(0.5)};
 `;
-
-const searchInputSizeMapping: Record<FormSize, FormSize> = {
-  md: 'sm',
-  sm: 'xs',
-  xs: 'xs',
-};
 
 const SearchInput = styled(Input)`
   appearance: none;

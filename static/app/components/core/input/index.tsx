@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -11,6 +10,9 @@ export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
     InputStylesProps {}
 
+export const inputStyles = (p: InputStylesProps & {theme: Theme}) =>
+  p.theme.isChonk ? chonkInputStyles(p as any) : legacyInputStyles(p);
+
 /**
  * Basic input component.
  *
@@ -21,32 +23,23 @@ export interface InputProps
  * To add leading/trailing items (e.g. a search icon on the left side), use
  * InputControl (components/inputControl) instead.
  */
-const StyledInput = styled(
-  forwardRef<HTMLInputElement, InputProps>(
-    (
-      {
-        // Do not forward `size` since it's used for custom styling, not as the
-        // native `size` attribute (for that, use `nativeSize` instead)
-        size: _size,
-        // Use `nativeSize` as the native `size` attribute
-        nativeSize,
-        ...props
-      },
-      ref
-    ) => <input {...props} ref={ref} size={nativeSize} />
-  ),
-  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
-)``;
-
-// This is a hack - emotion does not support overriding the shouldForwardProp
-// for styled components, but if we wrap it inside another component, we can
-// prevent it from doing that while still applying the styles.
 export const Input = styled(
-  forwardRef<HTMLInputElement, InputProps>((props: InputProps, ref) => (
-    <StyledInput {...props} ref={ref} />
-  ))
+  ({
+    ref,
+    // Do not forward `size` since it's used for custom styling, not as the
+    // native `size` attribute (for that, use `nativeSize` instead)
+    size: _size,
+
+    // Use `nativeSize` as the native `size` attribute
+    nativeSize,
+
+    ...props
+  }: InputProps & {
+    ref?: React.Ref<HTMLInputElement>;
+  }) => <input {...props} ref={ref} size={nativeSize} />,
+  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
-  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
+  ${inputStyles};
 `;
 
 export interface InputStylesProps {
@@ -57,7 +50,7 @@ export interface InputStylesProps {
   type?: React.HTMLInputTypeAttribute;
 }
 
-const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
+const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
   color: ${p.theme.formText};

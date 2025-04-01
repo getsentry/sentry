@@ -14,8 +14,8 @@ export const STARFISH_AGGREGATION_FIELDS: Record<
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,
   },
-  [SpanFunction.SPM]: {
-    desc: t('Spans per minute'),
+  [SpanFunction.EPM]: {
+    desc: t('Events per second'),
     kind: FieldKind.FUNCTION,
     defaultOutputType: 'number',
     valueType: FieldValueType.NUMBER,

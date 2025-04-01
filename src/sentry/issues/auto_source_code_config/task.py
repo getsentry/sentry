@@ -32,7 +32,8 @@ from .integration_utils import (
     get_installation,
 )
 from .stacktraces import get_frames_to_process
-from .utils import PlatformConfig
+from .utils.platform import PlatformConfig
+from .utils.repository import create_repository
 
 logger = logging.getLogger(__name__)
 
@@ -183,7 +184,7 @@ def create_configurations(
     if not org_integration:
         raise InstallationNotFoundError
 
-    dry_run = platform_config.is_dry_run_platform()
+    dry_run = platform_config.is_dry_run_platform(project.organization)
     platform = platform_config.platform
     tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
     with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
@@ -200,29 +201,6 @@ def create_configurations(
     # We return this to allow tests running in dry-run mode to assert
     # what would have been created.
     return code_mappings, in_app_stack_trace_rules
-
-
-def create_repository(
-    repo_name: str, org_integration: RpcOrganizationIntegration, tags: Mapping[str, str | bool]
-) -> Repository | None:
-    organization_id = org_integration.organization_id
-    created = False
-    repository = (
-        Repository.objects.filter(name=repo_name, organization_id=organization_id)
-        .order_by("-date_added")
-        .first()
-    )
-    if not repository:
-        if not tags["dry_run"]:
-            repository, created = Repository.objects.get_or_create(
-                name=repo_name,
-                organization_id=organization_id,
-                integration_id=org_integration.integration_id,
-            )
-        if created or tags["dry_run"]:
-            metrics.incr(key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0)
-
-    return repository
 
 
 def create_code_mapping(

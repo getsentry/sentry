@@ -1,4 +1,5 @@
 import {Component, type ReactNode, useEffect} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
@@ -71,6 +72,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  theme: Theme;
   withStaticFilters: boolean;
   columnTitles?: ColumnTitle[];
   domainViewFilters?: DomainViewFilters;
@@ -267,6 +269,7 @@ class _Table extends Component<Props, State> {
     const rendered = fieldRenderer(dataRow, {
       organization,
       location,
+      theme: this.props.theme,
       unit: tableMeta.units?.[column.key],
     });
 

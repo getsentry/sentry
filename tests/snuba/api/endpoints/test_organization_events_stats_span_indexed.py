@@ -1516,3 +1516,159 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[1][1][0]["count"] == 2.0
         assert data[2][1][0]["count"] == 1.0
         assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_top_events_with_escape_characters(self):
+        key = "test\\n*"
+        key2 = "test\\n\\*"
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": key, "status": "success"},
+                        "tags": {"foo": key},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+                self.create_span(
+                    {
+                        "sentry_tags": {"transaction": key, "status": "success"},
+                        "tags": {"foo": key2},
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                    duration=2000,
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "count()",
+                "field": ["foo", "sum(span.self_time)"],
+                "orderby": ["-sum_span_self_time"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "excludeOther": 0,
+                "topEvents": 2,
+            },
+        )
+        assert response.status_code == 200, response.content
+        for response_key in [key, key2]:
+            assert response_key in response.data
+            assert len(response.data[response_key]["data"]) == 6, response_key
+            rows = response.data[response_key]["data"][0:6]
+            for expected, result in zip([0, 1, 0, 0, 0, 0], rows):
+                assert result[1][0]["count"] == expected, response_key
+
+    def test_time_spent_percentage_timeseries_fails(self):
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "time_spent_percentage(span.self_time)",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert (
+            "Time_Spent_Percentage Is Not Enabled For This Request. Reason: Not Supported For Timeseries Requests"
+            in response.data["detail"].title()
+        )
+
+    def test_module_alias(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "http.client",
+                        "description": "GET /app/index",
+                        "sentry_tags": {
+                            "description": "GET /app/index",
+                            "category": "http",
+                            "op": "http.client",
+                            "transaction": "my-transaction",
+                        },
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "query": "span.module:http",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 1.0
+        assert data[2][1][0]["count"] == 0.0
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_module_alias_multi_value(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "http.client",
+                        "description": "GET /app/index",
+                        "sentry_tags": {
+                            "description": "GET /app/index",
+                            "category": "http",
+                            "op": "http.client",
+                            "transaction": "my-transaction",
+                        },
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+                self.create_span(
+                    {
+                        "op": "cache.get",
+                        "description": "get user cache",
+                        "sentry_tags": {
+                            "description": "get user cache",
+                            "category": "cache",
+                            "op": "cache.get",
+                            "transaction": "my-transaction",
+                        },
+                    },
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+            is_eap=self.is_eap,
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "query": "span.module:[http,cache]",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0][1][0]["count"] == 0.0
+        assert data[1][1][0]["count"] == 2.0
+        assert data[2][1][0]["count"] == 0.0
+        assert response.data["meta"]["dataset"] == self.dataset

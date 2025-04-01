@@ -74,12 +74,6 @@ const restrictedImportPaths = [
       'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
   },
   {
-    name: 'sentry/utils/theme',
-    importNames: ['lightColors', 'darkColors'],
-    message:
-      "'lightColors' and 'darkColors' exports intended for use in Storybook only. Instead, use theme prop from emotion or the useTheme hook.",
-  },
-  {
     name: 'react-router',
     importNames: ['withRouter'],
     message:
@@ -154,8 +148,8 @@ export default typescript.config([
     },
     settings: {
       react: {
-        version: '18.2.0',
-        defaultVersion: '18.2',
+        version: '19.0.0',
+        defaultVersion: '19.0',
       },
       'import/parsers': {'@typescript-eslint/parser': ['.ts', '.tsx']},
       'import/resolver': {typescript: {}},
@@ -192,6 +186,7 @@ export default typescript.config([
     'src/sentry/static/sentry/js/**/*',
     'src/sentry/templates/sentry/**/*',
     'stylelint.config.js',
+    '.artifacts/**/*',
   ]),
   /**
    * Rules are grouped by plugin. If you want to override a specific rule inside
@@ -271,8 +266,29 @@ export default typescript.config([
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
             },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
           ],
           paths: restrictedImportPaths,
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+        },
+        {
+          selector:
+            "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
+          message:
+            'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
         },
       ],
       'no-return-assign': 'error',
@@ -715,6 +731,12 @@ export default typescript.config([
               group: ['getsentry/*'],
               message: 'Do not import gsApp into sentry',
             },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
           ],
           paths: [
             ...restrictedImportPaths,
@@ -753,6 +775,12 @@ export default typescript.config([
             {
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
+            },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
           ],
           paths: [
@@ -799,6 +827,12 @@ export default typescript.config([
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
             },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
+            },
           ],
           paths: restrictedImportPaths,
         },
@@ -816,6 +850,12 @@ export default typescript.config([
             {
               group: ['sentry/components/devtoolbar/*'],
               message: 'Do not depend on toolbar internals',
+            },
+            {
+              group: ['sentry/utils/theme*', 'sentry/utils/theme'],
+              importNames: ['lightTheme', 'darkTheme', 'default'],
+              message:
+                "Use 'useTheme' hook of withTheme HOC instead of importing theme directly. For tests, use ThemeFixture.",
             },
           ],
           paths: restrictedImportPaths,

@@ -80,7 +80,7 @@ function BreadcrumbProvider({children}: ProviderProps) {
     setExplicitTitle,
   };
 
-  return <BreadcrumbContext.Provider value={ctx}>{children}</BreadcrumbContext.Provider>;
+  return <BreadcrumbContext value={ctx}>{children}</BreadcrumbContext>;
 }
 
 /**

@@ -1,3 +1,4 @@
+import type {Theme} from '@emotion/react';
 import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
@@ -9,7 +10,7 @@ import {
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
-import {isMissingInstrumentationNode} from '../traceGuards';
+import {isEAPError, isMissingInstrumentationNode} from '../traceGuards';
 import {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import {TraceRowWidthMeasurer} from '../traceRenderers/traceRowWidthMeasurer';
@@ -55,7 +56,7 @@ export class VirtualizedViewManager {
     new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
     new TraceRowWidthMeasurer();
-  text_measurer: TraceTextMeasurer = new TraceTextMeasurer();
+  text_measurer: TraceTextMeasurer;
 
   resize_observer: ResizeObserver | null = null;
   list: VirtualizedList | null = null;
@@ -139,7 +140,8 @@ export class VirtualizedViewManager {
       span_list: Pick<ViewColumn, 'width'>;
     },
     trace_scheduler: TraceScheduler,
-    trace_view: TraceView
+    trace_view: TraceView,
+    theme: Theme
   ) {
     this.columns = {
       list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
@@ -150,6 +152,9 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+
+    this.text_measurer = new TraceTextMeasurer(theme);
+
     this.scheduler = trace_scheduler;
     this.view = trace_view;
 
@@ -1701,9 +1706,10 @@ function getIconTimestamps(
   }
 
   for (const err of node.errors) {
-    if (typeof err.timestamp === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, err.timestamp * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, err.timestamp * 1e3 + icon_width);
+    const timestamp = isEAPError(err) ? err.start_timestamp : err.timestamp;
+    if (typeof timestamp === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
     }
   }
 

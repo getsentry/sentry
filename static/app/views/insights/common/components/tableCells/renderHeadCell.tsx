@@ -30,7 +30,7 @@ const {SPAN_SELF_TIME, SPAN_DURATION, HTTP_RESPONSE_CONTENT_LENGTH, CACHE_ITEM_S
 const {
   TIME_SPENT_PERCENTAGE,
   SPS,
-  SPM,
+  EPM,
   HTTP_ERROR_COUNT,
   HTTP_RESPONSE_RATE,
   CACHE_HIT_RATE,
@@ -47,7 +47,7 @@ export const SORTABLE_FIELDS = new Set([
   'transaction',
   `count()`,
   `${SPS}()`,
-  `${SPM}()`,
+  `${EPM}()`,
   `${TIME_SPENT_PERCENTAGE}()`,
   `${HTTP_ERROR_COUNT}()`,
   `${HTTP_RESPONSE_RATE}(2)`,

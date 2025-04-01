@@ -23,7 +23,7 @@ import Projects from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import IntegrationIcon from 'sentry/views/settings/organizationIntegrations/integrationIcon';
+import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
 type SharedProps = ModalRenderProps & {
   /**
