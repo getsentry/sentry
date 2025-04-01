@@ -58,14 +58,20 @@ export function DrawerPanel({
 }: DrawerPanelProps & {
   ref?: React.Ref<HTMLDivElement>;
 }) {
-  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent} =
-    useDrawerResizing({
-      drawerKey,
-      drawerWidth,
-    });
+  const {
+    panelRef,
+    resizeHandleRef,
+    handleResizeStart,
+    persistedWidthPercent,
+    isSmallScreen,
+  } = useDrawerResizing({
+    drawerKey,
+    drawerWidth,
+  });
 
   // Calculate actual drawer width in pixels
-  const actualDrawerWidth = (window.innerWidth * persistedWidthPercent) / 100;
+  const actualDrawerWidth =
+    (window.innerWidth * (isSmallScreen ? 100 : persistedWidthPercent)) / 100;
 
   return (
     <DrawerContainer>
@@ -76,10 +82,10 @@ export function DrawerPanel({
           collapsed={false}
           ref={mergeRefs(panelRef, ref)}
           transitionProps={transitionProps}
-          panelWidth="var(--drawer-width)" // Initial width only
+          panelWidth={isSmallScreen ? '100%' : 'var(--drawer-width)'}
           className="drawer-panel"
         >
-          {drawerKey && (
+          {drawerKey && !isSmallScreen && (
             <ResizeHandle
               ref={resizeHandleRef}
               onMouseDown={handleResizeStart}
