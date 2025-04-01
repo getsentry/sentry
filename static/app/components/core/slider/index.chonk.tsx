@@ -28,16 +28,13 @@ export function Slider({
   const initialProgress = getProgress(value, min, max);
   const filledSteps = step === -1 ? -1 : label / step;
 
-  const handleChange = useCallback(
-    (event: Event) => {
-      const input = event.target as HTMLInputElement;
-      const {valueAsNumber, min: nativeMin, max: nativeMax} = input;
-      setLabel(valueAsNumber);
-      const progress = getProgress(valueAsNumber, nativeMin || 0, nativeMax || 100);
-      input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
-    },
-    []
-  );
+  const handleChange = useCallback((event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const {valueAsNumber, min: nativeMin, max: nativeMax} = input;
+    setLabel(valueAsNumber);
+    const progress = getProgress(valueAsNumber, nativeMin || 0, nativeMax || 100);
+    input.parentElement?.style.setProperty('--p', `${progress.toFixed(0)}%`);
+  }, []);
 
   useEffect(() => {
     const input: HTMLInputElement | null = inputRef.current;
