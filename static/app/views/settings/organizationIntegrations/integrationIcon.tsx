@@ -10,13 +10,20 @@ type IconProps = {
 };
 
 function Icon(props: IconProps) {
-  const [imgSrc, setImgSrc] = useState(props.integration.icon || undefined);
+  const [renderFallback, setRenderFallback] = useState(false);
 
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const fallbackIcon = ICON_PATHS[props.integration.provider.key] || DEFAULT_ICON;
+  if (renderFallback) {
+    return (
+      <PluginIcon size={props.size} pluginId={props.integration.provider.key || ''} />
+    );
+  }
 
   return (
-    <StyledIcon size={props.size} src={imgSrc} onError={() => setImgSrc(fallbackIcon)} />
+    <StyledIcon
+      size={props.size}
+      src={props.integration.icon ?? ''}
+      onError={() => setRenderFallback(true)}
+    />
   );
 }
 
