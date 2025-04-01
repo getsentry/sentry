@@ -44,6 +44,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.input_block_size = input_block_size
         self.output_block_size = output_block_size
         self.skip_produce = skip_produce
+        self.num_processes = num_processes
         self.pool = MultiprocessingPool(num_processes)
 
         topic_definition = get_topic_definition(Topic.SNUBA_SPANS)
@@ -66,7 +67,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
             # finished by the multi processing pool. We size the produce buffer
             # so that it can accommodate batches from all subprocesses at the
             # sime time, assuming some upper bound of spans per segment.
-            max_buffer_size = self.max_batch_size * self.pool.pool.num_processes * SPANS_PER_SEG_P95
+            max_buffer_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
 
             produce_step = Produce(
                 producer=self.producer,
