@@ -438,8 +438,7 @@ const VerticalIssueTagsButton = styled(LinkButton)`
   margin: ${space(1)} ${space(2)} ${space(1)} ${space(1)};
   padding: ${space(1)} ${space(1.5)};
   text-align: center;
-  min-width: 55px;
-  height: unset;
+  align-self: center;
   span {
     white-space: unset;
   }
