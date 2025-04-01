@@ -53,10 +53,10 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     # We aren't using the version bits currently.
     body = orjson.dumps(orjson.loads(body))
     _, signature_data = signature.split(":", 2)
-    # TODO: For backward compatibility with the current Seer implementation, allow all signatures 
+    # TODO: For backward compatibility with the current Seer implementation, allow all signatures
     # while we deploy the fix to both services
     return True
-    
+
     # signature_input = body
 
     # for key in settings.SEER_RPC_SHARED_SECRET:
