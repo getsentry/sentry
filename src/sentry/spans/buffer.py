@@ -112,6 +112,16 @@ class Span(NamedTuple):
     payload: bytes
     is_segment_span: bool = False
 
+    def effective_parent_id(self):
+        # Note: For the case where the span's parent is in another project, we
+        # will still flush the segment-without-root-span as one unit, just
+        # after span_buffer_timeout_secs rather than
+        # span_buffer_root_timeout_secs.
+        if self.is_segment_span:
+            return self.span_id
+        else:
+            return self.parent_span_id or self.span_id
+
 
 class OutputSpan(NamedTuple):
     payload: dict[str, Any]
@@ -160,28 +170,21 @@ class SpansBuffer:
 
         is_root_span_count = 0
         has_root_span_count = 0
-        min_hole_size = float("inf")
-        max_hole_size = float("-inf")
+        min_redirect_depth = float("inf")
+        max_redirect_depth = float("-inf")
+
+        with metrics.timer("spans.buffer.process_spans.push_payloads"):
+            with self.client.pipeline(transaction=False) as p:
+                for span in spans:
+                    parent_span_id = span.effective_parent_id()
+                    set_key = f"span-buf:s:{{{span.project_id}:{span.trace_id}}}:{parent_span_id}"
+                    p.sadd(set_key, span.payload)
+
+                p.execute()
 
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
             with self.client.pipeline(transaction=False) as p:
                 for span in spans:
-                    # (parent_span_id) -> [Span]
-                    shard = self.assigned_shards[int(span.trace_id, 16) % len(self.assigned_shards)]
-                    queue_key = f"span-buf:q:{shard}"
-
-                    # Note: For the case where the span's parent is in another project, we
-                    # will still flush the segment-without-root-span as one unit, just
-                    # after span_buffer_timeout_secs rather than
-                    # span_buffer_root_timeout_secs.
-                    is_root_span = span.is_segment_span
-
-                    if is_root_span:
-                        is_root_span_count += 1
-                        parent_span_id = span.span_id
-                    else:
-                        parent_span_id = span.parent_span_id or span.span_id
-
                     # hack to make redis-cluster-py pipelines work well with
                     # scripts. we cannot use EVALSHA or "the normal way to do
                     # scripts in sentry" easily until we get rid of
@@ -191,23 +194,23 @@ class SpansBuffer:
                         add_buffer_script.script,
                         1,
                         f"{span.project_id}:{span.trace_id}",
-                        span.payload,
-                        "true" if is_root_span else "false",
+                        "true" if span.is_segment_span else "false",
                         span.span_id,
-                        parent_span_id,
+                        span.effective_parent_id(),
                         self.redis_ttl,
                     )
 
-                    queue_keys.append(queue_key)
+                    shard = self.assigned_shards[int(span.trace_id, 16) % len(self.assigned_shards)]
+                    queue_keys.append(f"span-buf:q:{shard}")
 
                 results = iter(p.execute())
-                for hole_size, delete_item, item, has_root_span in results:
-                    # For each span, hole_size measures how long it took to
+                for redirect_depth, delete_item, item, has_root_span in results:
+                    # For each span, redirect_depth measures how long it took to
                     # find the corresponding intermediate segment. Larger
                     # numbers loosely correlate with fewer siblings per tree
                     # level.
-                    min_hole_size = min(min_hole_size, hole_size)
-                    max_hole_size = max(max_hole_size, hole_size)
+                    min_redirect_depth = min(min_redirect_depth, redirect_depth)
+                    max_redirect_depth = max(max_redirect_depth, redirect_depth)
                     queue_delete_items.append(delete_item)
                     queue_items.append(item)
                     queue_item_has_root_span.append(has_root_span)
@@ -236,9 +239,8 @@ class SpansBuffer:
         metrics.timing("spans.buffer.process_spans.num_spans", len(spans))
         metrics.timing("spans.buffer.process_spans.num_is_root_spans", is_root_span_count)
         metrics.timing("spans.buffer.process_spans.num_has_root_spans", has_root_span_count)
-
-        metrics.timing("span.buffer.hole_size.min", min_hole_size)
-        metrics.timing("span.buffer.hole_size.max", max_hole_size)
+        metrics.timing("span.buffer.hole_size.min", min_redirect_depth)
+        metrics.timing("span.buffer.hole_size.max", max_redirect_depth)
 
     def flush_segments(
         self, now: int, max_segments: int = 0
@@ -324,7 +326,7 @@ class SpansBuffer:
                     hrs_key = b"span-buf:hrs:" + segment_key
                     p.get(hrs_key)
                     p.delete(hrs_key)
-                    p.delete(segment_key)
+                    p.unlink(segment_key)
 
                     project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
