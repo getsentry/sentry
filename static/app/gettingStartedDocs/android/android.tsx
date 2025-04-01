@@ -80,10 +80,14 @@ const getConfigurationSnippet = (params: Params) => `
   }${
     params.isProfilingSelected
       ? `
-  <!-- enable profiling when starting transactions, adjust in production env -->
+  <!-- Set sampling rate for profiling, adjust in production env - this is evaluated only once per session -->
   <!-- note: there is a known issue in the Android Runtime that can be triggered by Profiling in certain circumstances -->
   <!-- see https://docs.sentry.io/platforms/android/profiling/troubleshooting/ -->
-  <meta-data android:name="io.sentry.traces.profiling.sample-rate" android:value="1.0" />`
+  <meta-data android:name="io.sentry.traces.profiling.session-sample-rate" android:value="1.0" />
+  <!-- Set profiling lifecycle, can be \`manual\` (controlled through \`Sentry.startProfiler()\` and \`Sentry.stopProfiler()\`) or \`trace\` (automatically starts and stop a profile whenever a sampled trace starts and finishes) -->
+  <meta-data android:name="io.sentry.traces.profiling.lifecycle" android:value="trace" />
+  <!-- Enable profiling on app start -->
+  <meta-data android:name="io.sentry.traces.profiling.start-on-app-start" android:value="true" />`
       : ''
   }${
     params.isReplaySelected
@@ -96,7 +100,14 @@ const getConfigurationSnippet = (params: Params) => `
   }
 </application>`;
 
-const getVerifySnippet = () => `
+const getVerifySnippet = (params: Params) => `
+${
+    params.isProfilingSelected
+      ? `
+// Start profiling, if lifecycle is set to \`manual\`
+Sentry.startProfiler()`
+      : ''
+  }
 val breakWorld = Button(this).apply {
   text = "Break the world"
   setOnClickListener {
@@ -105,7 +116,14 @@ val breakWorld = Button(this).apply {
 }
 
 addContentView(breakWorld, ViewGroup.LayoutParams(
-  ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))`;
+  ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+${
+    params.isProfilingSelected
+      ? `
+// Stop profiling, if lifecycle is set to \`manual\`. This call is optional. If you don't stop the profiler, it will keep profiling your application until the process exits or Sentry.stopProfiler() is called.
+Sentry.stopProfiler()`
+      : ''
+  }`;
 
 const getReplaySetupSnippetKotlin = (params: Params) => `
 SentryAndroid.init(context) { options ->
@@ -251,7 +269,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             configurations: [
               {
                 language: 'kotlin',
-                code: getVerifySnippet(),
+                code: getVerifySnippet(params),
               },
             ],
           },
