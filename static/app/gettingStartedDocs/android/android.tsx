@@ -102,12 +102,12 @@ const getConfigurationSnippet = (params: Params) => `
 
 const getVerifySnippet = (params: Params) => `
 ${
-    params.isProfilingSelected
-      ? `
+  params.isProfilingSelected
+    ? `
 // Start profiling, if lifecycle is set to \`manual\`
 Sentry.startProfiler()`
-      : ''
-  }
+    : ''
+}
 val breakWorld = Button(this).apply {
   text = "Break the world"
   setOnClickListener {
@@ -118,12 +118,12 @@ val breakWorld = Button(this).apply {
 addContentView(breakWorld, ViewGroup.LayoutParams(
   ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 ${
-    params.isProfilingSelected
-      ? `
+  params.isProfilingSelected
+    ? `
 // Stop profiling, if lifecycle is set to \`manual\`. This call is optional. If you don't stop the profiler, it will keep profiling your application until the process exits or Sentry.stopProfiler() is called.
 Sentry.stopProfiler()`
-      : ''
-  }`;
+    : ''
+}`;
 
 const getReplaySetupSnippetKotlin = (params: Params) => `
 SentryAndroid.init(context) { options ->
