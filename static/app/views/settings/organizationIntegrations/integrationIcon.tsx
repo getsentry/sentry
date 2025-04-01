@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Integration} from 'sentry/types/integrations';
 
 type IconProps = {

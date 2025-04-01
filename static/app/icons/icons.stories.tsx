@@ -1486,7 +1486,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
     <section>
       <SectionHeader>PluginIcons</SectionHeader>
       <p>
-        <code>{"import PluginIcon from 'sentry/plugins/components/pluginIcon';"}</code>
+        <code>{"import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"}</code>
       </p>
       <Grid
         style={{
