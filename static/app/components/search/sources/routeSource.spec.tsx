@@ -1,19 +1,23 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {RouteSource} from 'sentry/components/search/sources/routeSource';
+import RouteSource from 'sentry/components/search/sources/routeSource';
 import HookStore from 'sentry/stores/hookStore';
+import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('RouteSource', function () {
+  const project = ProjectFixture();
+
+  beforeEach(() => {
+    ProjectsStore.loadInitialData([project]);
+  });
+
   it('can find a route', async function () {
     const mock = jest.fn().mockReturnValue(null);
 
-    const {organization, project, routerProps} = initializeOrg();
-    render(
-      <RouteSource query="password" {...{organization, project}} {...routerProps}>
-        {mock}
-      </RouteSource>
-    );
+    render(<RouteSource query="password">{mock}</RouteSource>);
 
     await waitFor(() => {
       const calls = mock.mock.calls;
@@ -24,13 +28,13 @@ describe('RouteSource', function () {
         sourceType: 'route',
         title: 'Security',
         to: '/settings/account/security/',
+        resolvedTs: expect.anything(),
       });
     });
   });
 
   it('can load links via hooks', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    const {organization, project, routerProps} = initializeOrg();
     HookStore.add('settings:organization-navigation-config', () => {
       return {
         name: 'Usage & Billing',
@@ -43,11 +47,7 @@ describe('RouteSource', function () {
       };
     });
 
-    render(
-      <RouteSource query="Spike" {...{organization, project}} {...routerProps}>
-        {mock}
-      </RouteSource>
-    );
+    render(<RouteSource query="Spike">{mock}</RouteSource>);
 
     await waitFor(() => {
       const calls = mock.mock.calls;
@@ -57,15 +57,16 @@ describe('RouteSource', function () {
         sourceType: 'route',
         title: 'Spike Protection',
         to: '/settings/spike-protection',
+        resolvedTs: expect.anything(),
       });
     });
   });
 
   it('does not find any form field', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    const {organization, project, routerProps} = initializeOrg();
+    const {routerProps} = initializeOrg();
     render(
-      <RouteSource query="invalid" {...{organization, project}} {...routerProps}>
+      <RouteSource query="invalid" {...routerProps}>
         {mock}
       </RouteSource>
     );

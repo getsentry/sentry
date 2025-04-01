@@ -33,12 +33,12 @@ class LatestAdoptedReleaseConditionHandler(DataConditionHandler[WorkflowEventDat
     }
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         release_age_type = comparison["release_age_type"]
         age_comparison = comparison["age_comparison"]
         environment_name = comparison["environment"]
 
-        event = job.event
+        event = event_data.event
 
         if follows_semver_versioning_scheme(event.organization.id, event.project.id):
             order_type = LatestReleaseOrders.SEMVER

@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -20,16 +21,17 @@ import {
   useSetLogsFields,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {TraceItemAttributes} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {
   LogAttributesRendererMap,
   RendererExtra,
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {type OurLogFieldKey, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
+  adjustAliases,
   adjustLogTraceID,
   getLogAttributeItem,
-  removeSentryPrefix,
+  removePrefixes,
 } from 'sentry/views/explore/logs/utils';
 
 const MAX_TREE_DEPTH = 4;
@@ -65,14 +67,12 @@ interface LogAttributeFieldRender {
 }
 
 interface LogFieldsTreeProps extends LogAttributeFieldRender {
-  attributes: TraceItemAttributes;
+  attributes: TraceItemResponseAttribute[];
   hiddenAttributes?: OurLogFieldKey[];
 }
 
-interface LogFieldsTreeColumnsProps extends LogAttributeFieldRender {
-  attributes: TraceItemAttributes;
+interface LogFieldsTreeColumnsProps extends LogFieldsTreeProps {
   columnCount: number;
-  hiddenAttributes?: OurLogFieldKey[];
 }
 
 interface LogFieldsTreeRowConfig {
@@ -207,8 +207,8 @@ function LogFieldsTreeColumns({
     }
 
     // Convert attributes record to the format expected by addToAttributeTree
-    const visibleAttributes = Object.keys(attributes)
-      .map(key => getAttribute(attributes, key, hiddenAttributes))
+    const visibleAttributes = attributes
+      .map(key => getAttribute(key, hiddenAttributes))
       .filter(defined);
 
     // Create the AttributeTree data structure using all the given attributes
@@ -292,6 +292,7 @@ function LogFieldsTreeRow({
   config = {},
   ...props
 }: LogFieldsTreeRowProps) {
+  const theme = useTheme();
   const originalAttribute = content.originalAttribute;
   const hasErrors = false; // No error handling in this simplified version
   const hasStem = !isLast && isEmptyObject(content.subtree);
@@ -327,7 +328,11 @@ function LogFieldsTreeRow({
           </Fragment>
         )}
         <TreeSearchKey aria-hidden>{originalAttribute.attribute_key}</TreeSearchKey>
-        <TreeKey hasErrors={hasErrors} title={originalAttribute.attribute_key}>
+        <TreeKey
+          hasErrors={hasErrors}
+          title={originalAttribute.attribute_key}
+          data-test-id={`tree-key-${content.originalAttribute?.original_attribute_key}`}
+        >
           {attributeKey}
         </TreeKey>
       </TreeKeyTrunk>
@@ -338,6 +343,7 @@ function LogFieldsTreeRow({
             content={content}
             renderers={props.renderers}
             renderExtra={props.renderExtra}
+            theme={theme}
           />
         </TreeValue>
         {attributeActions}
@@ -357,18 +363,20 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
   const isTableEditingFrozen = useLogsIsTableEditingFrozen();
   const [isVisible, setIsVisible] = useState(false);
   const originalAttribute = content.originalAttribute;
-
-  const addFilter = useCallback(() => {
-    if (!originalAttribute) {
-      return;
-    }
-    const newSearch = search.copy();
-    newSearch.addFilterValue(
-      originalAttribute.original_attribute_key,
-      String(content.value)
-    );
-    setLogsSearch(newSearch);
-  }, [originalAttribute, content.value, setLogsSearch, search]);
+  const addSearchFilter = useCallback(
+    ({negated}: {negated?: boolean} = {}) => {
+      if (!originalAttribute) {
+        return;
+      }
+      const newSearch = search.copy();
+      newSearch.addFilterValue(
+        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
+        String(content.value)
+      );
+      setLogsSearch(newSearch);
+    },
+    [originalAttribute, content.value, setLogsSearch, search]
+  );
 
   const addColumn = useCallback(() => {
     if (!originalAttribute) {
@@ -392,7 +400,14 @@ function LogFieldsTreeRowDropdown({content}: {content: AttributeTreeContent}) {
       key: 'search-for-value',
       label: t('Search for this value'),
       onAction: () => {
-        addFilter();
+        addSearchFilter();
+      },
+    },
+    {
+      key: 'search-for-negated-value',
+      label: t('Exclude this value'),
+      onAction: () => {
+        addSearchFilter({negated: true});
       },
     },
     {
@@ -445,10 +460,11 @@ function LogFieldsTreeValue({
   content,
   renderers = {},
   renderExtra,
+  theme,
 }: {
   content: AttributeTreeContent;
   config?: LogFieldsTreeRowConfig;
-} & LogAttributeFieldRender) {
+} & LogAttributeFieldRender & {theme: Theme}) {
   const {originalAttribute} = content;
   if (!originalAttribute) {
     return null;
@@ -463,7 +479,10 @@ function LogFieldsTreeValue({
       ? adjustLogTraceID(content.value as string)
       : content.value;
 
-  const basicRendered = basicRenderer({[attributeKey]: adjustedValue}, renderExtra);
+  const basicRendered = basicRenderer(
+    {[attributeKey]: adjustedValue},
+    {...renderExtra, theme}
+  );
   const defaultValue = <span>{String(adjustedValue)}</span>;
 
   if (config?.disableRichValue) {
@@ -498,22 +517,17 @@ function LogFieldsTreeValue({
  * Filters out hidden attributes, replaces sentry. prefixed keys, and simplifies the value
  */
 function getAttribute(
-  attributes: TraceItemAttributes,
-  attributeKey: string,
+  attribute: Record<string, any>,
   hiddenAttributes: OurLogFieldKey[]
 ): Attribute | undefined {
+  const attributeKey = attribute.name;
   // Filter out hidden attributes
   if (hiddenAttributes.includes(attributeKey)) {
     return undefined;
   }
 
-  const attribute = attributes[attributeKey];
-  if (!attribute) {
-    return undefined;
-  }
-
   // Replace the key name with the new key name
-  const newKeyName = removeSentryPrefix(attributeKey);
+  const newKeyName = removePrefixes(attributeKey);
 
   const attributeValue =
     attribute.type === 'bool' ? String(attribute.value) : attribute.value;
@@ -524,7 +538,7 @@ function getAttribute(
   return {
     attribute_key: newKeyName,
     attribute_value: attributeValue,
-    original_attribute_key: attributeKey,
+    original_attribute_key: adjustAliases(attributeKey),
   };
 }
 

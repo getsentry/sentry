@@ -17,7 +17,6 @@ import {Switch} from 'sentry/components/core/switch';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
@@ -41,6 +40,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import type {DashboardsLayout} from 'sentry/views/dashboards/manage/types';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import RouteError from 'sentry/views/routeError';
 
 import {getDashboardTemplates} from '../data';

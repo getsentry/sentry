@@ -5,7 +5,7 @@ import type {TraceTree} from '../traceModels/traceTree';
 import type {TraceTreeNode} from '../traceModels/traceTreeNode';
 import type {VirtualizedViewManager} from '../traceRenderers/virtualizedViewManager';
 
-function getMaxErrorSeverity(errors: TraceTree.TraceError[]) {
+function getMaxErrorSeverity(errors: TraceTree.TraceErrorIssue[]) {
   return errors.reduce((acc, error) => {
     if (error.level === 'fatal') {
       return 'fatal';

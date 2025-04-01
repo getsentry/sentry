@@ -186,7 +186,7 @@ describe('SchemaHintsList', () => {
     await userEvent.click(numberTag1Checkbox);
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: {query: 'numberTag1:>0'}})
+      expect.objectContaining({query: {query: '!stringTag1:"" numberTag1:>0'}})
     );
   });
 

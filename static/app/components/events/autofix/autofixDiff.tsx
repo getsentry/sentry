@@ -5,14 +5,12 @@ import {type Change, diffWords} from 'diff';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
@@ -28,6 +26,7 @@ type AutofixDiffProps = {
   editable: boolean;
   groupId: string;
   runId: string;
+  isExpandable?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   repoId?: string;
@@ -510,7 +509,7 @@ function DiffHunkContent({
               </ButtonGroup>
             )}
             {editingGroup === index && (
-              <EditOverlay ref={overlayRef}>
+              <EditOverlay ref={overlayRef} data-ignore-autofix-highlight="true">
                 <OverlayHeader>
                   <OverlayTitle
                     dangerouslySetInnerHTML={{
@@ -581,12 +580,12 @@ function FileDiff({
   runId,
   repoId,
   editable,
-  previousDefaultStepIndex,
-  previousInsightCount,
+  isExpandable,
 }: {
   editable: boolean;
   file: FilePatch;
   groupId: string;
+  isExpandable: boolean;
   runId: string;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
@@ -595,26 +594,31 @@ function FileDiff({
   const [isExpanded, setIsExpanded] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
+  // const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
-      <FileHeader onClick={() => setIsExpanded(value => !value)}>
-        <InteractionStateLayer />
+      <FileHeader
+        isExpandable={isExpandable}
+        onClick={() => (isExpandable ? setIsExpanded(value => !value) : undefined)}
+      >
+        {isExpandable && <InteractionStateLayer />}
         <FileAddedRemoved>
           <FileAdded>+{file.added}</FileAdded>
           <FileRemoved>-{file.removed}</FileRemoved>
         </FileAddedRemoved>
         <FileName title={file.path}>{file.path}</FileName>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
-          aria-label={t('Toggle file diff')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-        />
+        {isExpandable && (
+          <Button
+            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            aria-label={t('Toggle file diff')}
+            aria-expanded={isExpanded}
+            size="zero"
+            borderless
+          />
+        )}
       </FileHeader>
-      {selection && (
+      {/* {selection && (
         <AutofixHighlightPopup
           selectedText={selection.selectedText}
           referenceElement={selection.referenceElement}
@@ -627,7 +631,7 @@ function FileDiff({
               : -1
           }
         />
-      )}
+      )} */}
       {isExpanded && (
         <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
@@ -659,6 +663,7 @@ export function AutofixDiff({
   editable,
   previousDefaultStepIndex,
   previousInsightCount,
+  isExpandable = true,
 }: AutofixDiffProps) {
   if (!diff || !diff.length) {
     return null;
@@ -676,6 +681,7 @@ export function AutofixDiff({
           editable={editable}
           previousDefaultStepIndex={previousDefaultStepIndex}
           previousInsightCount={previousInsightCount}
+          isExpandable={isExpandable}
         />
       ))}
     </DiffsColumn>
@@ -696,9 +702,10 @@ const FileDiffWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
+  background-color: ${p => p.theme.background};
 `;
 
-const FileHeader = styled('div')`
+const FileHeader = styled('div')<{isExpandable?: boolean}>`
   position: relative;
   display: grid;
   align-items: center;
@@ -706,7 +713,7 @@ const FileHeader = styled('div')`
   gap: ${space(2)};
   background-color: ${p => p.theme.backgroundSecondary};
   padding: ${space(1)} ${space(2)};
-  cursor: pointer;
+  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
 `;
 
 const FileAddedRemoved = styled('div')`
@@ -777,6 +784,7 @@ const DiffContent = styled('div')<{lineType: DiffLineType}>`
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
+  overflow: visible;
 
   ${p =>
     p.lineType === DiffLineType.ADDED &&
@@ -809,6 +817,7 @@ const ButtonGroup = styled('div')`
   top: 0;
   right: ${space(0.25)};
   display: flex;
+  z-index: 1;
 `;
 
 const ActionButton = styled(Button)<{isHovered: boolean}>`

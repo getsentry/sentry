@@ -33,7 +33,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         self.event = self.get_event()
         self.group = self.create_group(project=self.project)
         self.group_event = self.event.for_group(self.group)
-        self.job = WorkflowEventData(event=self.group_event)
+        self.event_data = WorkflowEventData(event=self.group_event)
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"},
@@ -157,7 +157,7 @@ class TestTaggedEventCondition(ConditionTestCase):
         self.dc.comparison.update(
             {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"}
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -166,7 +166,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.other.example",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_equal(self):
         self.dc.comparison.update(
@@ -176,7 +176,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.example",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -185,7 +185,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.other.example",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_starts_with(self):
         self.dc.comparison.update(
@@ -195,12 +195,12 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.STARTS_WITH, "key": "logger", "value": "bar."}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_start_with(self):
         self.dc.comparison.update(
@@ -210,7 +210,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry.",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -219,7 +219,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_ends_with(self):
         self.dc.comparison.update(
@@ -229,10 +229,10 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": ".example",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.ENDS_WITH, "key": "logger", "value": ".foo"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_end_with(self):
         self.dc.comparison.update(
@@ -242,7 +242,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": ".example",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -251,7 +251,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": ".foo",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_contains(self):
         self.dc.comparison.update(
@@ -261,12 +261,12 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {"match": MatchType.CONTAINS, "key": "logger", "value": "bar.foo"}
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_does_not_contain(self):
         self.dc.comparison.update(
@@ -276,7 +276,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "sentry",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -285,21 +285,21 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.foo",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_is_set(self):
         self.dc.comparison.update({"match": MatchType.IS_SET, "key": "logger"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.IS_SET, "key": "missing"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
     def test_is_not_set(self):
         self.dc.comparison.update({"match": MatchType.NOT_SET, "key": "logger"})
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update({"match": MatchType.NOT_SET, "key": "missing"})
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_is_in(self):
         self.dc.comparison.update(
@@ -309,7 +309,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.foo, wee, wow",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -318,7 +318,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "foo.bar",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
     def test_not_in(self):
         self.dc.comparison.update(
@@ -328,7 +328,7 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "bar.foo, wee, wow",
             }
         )
-        self.assert_passes(self.dc, self.job)
+        self.assert_passes(self.dc, self.event_data)
 
         self.dc.comparison.update(
             {
@@ -337,4 +337,4 @@ class TestTaggedEventCondition(ConditionTestCase):
                 "value": "foo.bar",
             }
         )
-        self.assert_does_not_pass(self.dc, self.job)
+        self.assert_does_not_pass(self.dc, self.event_data)

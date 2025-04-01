@@ -77,7 +77,16 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     timeseriesResult,
     queryType: mode === Mode.AGGREGATE ? 'aggregate' : 'samples',
     interval,
+    isTopN: mode === Mode.AGGREGATE,
   });
+
+  const tableIsProgressivelyLoading =
+    organization.features.includes('visibility-explore-progressive-loading') &&
+    (mode === Mode.SAMPLES
+      ? spansTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+      : mode === Mode.AGGREGATE
+        ? aggregatesTableResult.samplingMode !== SAMPLING_MODE.BEST_EFFORT
+        : false);
 
   return (
     <Fragment>
@@ -118,6 +127,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
             index={index}
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
+            isProgressivelyLoading={tableIsProgressivelyLoading}
           />
         </LazyRender>
       </QueryVisualizationSection>

@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -42,10 +43,11 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {ServiceEntrySpansTable} from 'sentry/views/performance/otlp/serviceEntrySpansTable';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
 import {isSummaryViewFrontend, isSummaryViewFrontendPageLoad} from '../../utils';
@@ -100,6 +102,7 @@ function OTelSummaryContentInner({
   projectId,
   transactionName,
 }: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const domainViewFilters = useDomainViewFilters();
   const spanCategory = decodeScalar(location.query?.[SpanIndexedField.SPAN_CATEGORY]);
@@ -140,10 +143,6 @@ function OTelSummaryContentInner({
     navigate(target);
   }
 
-  const hasPerformanceChartInterpolation = organization.features.includes(
-    'performance-chart-interpolation'
-  );
-
   const query = useMemo(() => {
     return decodeScalar(location.query.query, '');
   }, [location]);
@@ -155,7 +154,7 @@ function OTelSummaryContentInner({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      VITAL_GROUPS.some(group =>
+      makeVitalGroups(theme).some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
@@ -261,16 +260,11 @@ function OTelSummaryContentInner({
           </PageFilterBar>
           <StyledSearchBarWrapper>{renderSearchBar()}</StyledSearchBarWrapper>
         </FilterActions>
+        <EAPChartsWidgetContainer>
+          <EAPChartsWidget transactionName={transactionName} />
+        </EAPChartsWidgetContainer>
+
         <PerformanceAtScaleContextProvider>
-          <TransactionSummaryCharts
-            organization={organization}
-            location={location}
-            eventView={eventView}
-            totalValue={totalCount}
-            currentFilter={spanOperationBreakdownFilter}
-            withoutZerofill={hasPerformanceChartInterpolation}
-            project={project}
-          />
           <ServiceEntrySpansTable
             eventView={transactionsListEventView}
             handleDropdownChange={handleTransactionsListSortChange}
@@ -373,6 +367,7 @@ function SummaryContent({
   transactionName,
   onChangeFilter,
 }: Props) {
+  const theme = useTheme();
   const routes = useRoutes();
   const navigate = useNavigate();
   const mepDataContext = useMEPDataContext();
@@ -484,7 +479,7 @@ function SummaryContent({
   const hasWebVitals =
     isSummaryViewFrontendPageLoad(eventView, projects) ||
     (totalValues !== null &&
-      VITAL_GROUPS.some(group =>
+      makeVitalGroups(theme).some(group =>
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
@@ -871,6 +866,11 @@ const StyledSearchBarWrapper = styled('div')`
 
 const StyledIconWarning = styled(IconWarning)`
   display: block;
+`;
+
+const EAPChartsWidgetContainer = styled('div')`
+  height: 300px;
+  margin-bottom: ${space(2)};
 `;
 
 export default withProjects(SummaryContent);

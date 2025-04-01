@@ -1,12 +1,14 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, type SelectOption} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -26,10 +28,18 @@ const LIMIT = 10;
 const ALLOWED_CATEGORIES = ['http', 'db', 'browser', 'resource', 'ui'];
 
 export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const {selection} = usePageFilters();
   const location = useLocation();
+  const spanCategoryUrlParam = decodeScalar(
+    location.query?.[SpanIndexedField.SPAN_CATEGORY]
+  );
+
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
+    spanCategoryUrlParam
+  );
+
+  const {selection} = usePageFilters();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const query = new MutableSearch('');
   query.addFilterValue('transaction', serviceEntrySpanName);
@@ -55,7 +65,7 @@ export function SpanCategoryFilter({serviceEntrySpanName}: Props) {
         key: d[SpanIndexedField.SPAN_CATEGORY],
         leadingItems: (
           <OperationDot
-            backgroundColor={pickBarColor(d[SpanIndexedField.SPAN_CATEGORY])}
+            backgroundColor={pickBarColor(d[SpanIndexedField.SPAN_CATEGORY], theme)}
           />
         ),
       }))

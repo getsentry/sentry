@@ -241,7 +241,8 @@ function Overview({location, subscription, promotionData}: Props) {
 
           const showEventBreakdown =
             organization.features.includes('profiling-billing') &&
-            subscription.planTier === PlanTier.AM2;
+            subscription.planTier === PlanTier.AM2 &&
+            category === DataCategory.TRANSACTIONS;
 
           return (
             <UsageTotals
