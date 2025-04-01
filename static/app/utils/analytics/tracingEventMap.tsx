@@ -22,6 +22,7 @@ export type TracingEventParameters = {
     result_length: number;
     result_missing_root: number;
     result_mode: 'trace samples' | 'span samples' | 'aggregates';
+    sample_counts: number[];
     title: string;
     user_queries: string;
     user_queries_count: number;
