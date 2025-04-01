@@ -96,7 +96,7 @@ def build_test_message_blocks(
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
     if rule:
-        title_link += "&alert_rule_id=2&alert_type=issue"
+        title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
 
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
