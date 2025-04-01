@@ -7,6 +7,7 @@ import {
   useRef,
 } from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 import type {AnimationProps} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
@@ -117,7 +118,7 @@ export function DrawerPanel({
       }
 
       // Mark as resizing
-      handle.setAttribute('data-resizing', 'true');
+      handle.setAttribute('data-resizing', '');
       panel.setAttribute('data-resizing', '');
       initialMousePositionRef.current = e.clientX;
 
@@ -194,14 +195,7 @@ export function DrawerPanel({
         ariaLabel={ariaLabel}
         slidePosition="right"
         collapsed={false}
-        ref={node => {
-          panelRef.current = node;
-          if (typeof ref === 'function') {
-            ref(node);
-          } else if (ref) {
-            (ref as React.RefObject<HTMLDivElement | null>).current = node;
-          }
-        }}
+        ref={mergeRefs(panelRef, ref)}
         transitionProps={transitionProps}
         panelWidth={'var(--drawer-width)'} // Initial width only
         className="drawer-panel"
@@ -387,7 +381,7 @@ const ResizeHandle = styled('div')`
     transition: background 0.1s ease;
   }
 
-  &[data-resizing='true']::after {
+  &[data-resizing]::after {
     background: ${p => p.theme.purple400};
   }
 `;
