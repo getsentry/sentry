@@ -38,7 +38,7 @@ export function DeletableToken({
   invalid,
 }: DeletableTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, handleSearch} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
   const {shiftFocusProps} = useShiftFocusToChild(item, state);
 
@@ -72,7 +72,7 @@ export function DeletableToken({
             aria-label={t('Delete %s', label)}
             onClick={e => {
               e.stopPropagation();
-              dispatch({type: 'DELETE_TOKEN', token});
+              dispatch({type: 'DELETE_TOKEN', token, handleSearch});
             }}
           >
             <InteractionStateLayer />

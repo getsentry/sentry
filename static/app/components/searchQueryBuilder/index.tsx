@@ -120,6 +120,10 @@ export interface SearchQueryBuilderProps {
    */
   showUnsubmittedIndicator?: boolean;
   /**
+   * When true, will submit the query when the filter query changes.
+   */
+  submitOnFilterChange?: boolean;
+  /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
    */
@@ -208,6 +212,7 @@ export function SearchQueryBuilder({
   trailingItems,
   getFilterTokenWarning,
   portalTarget,
+  submitOnFilterChange,
 }: SearchQueryBuilderProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -215,6 +220,7 @@ export function SearchQueryBuilder({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
+    submitOnChange: submitOnFilterChange,
   });
 
   const parsedQuery = useMemo(

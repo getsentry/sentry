@@ -215,7 +215,7 @@ export function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
-  const {dispatch, searchSource, query, recentSearches, disabled} =
+  const {dispatch, searchSource, query, recentSearches, disabled, handleSearch} =
     useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
@@ -255,6 +255,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
+          handleSearch,
         });
       }}
       offset={MENU_OFFSET}
