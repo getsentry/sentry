@@ -7,9 +7,10 @@ import {Sticky} from 'sentry/components/sticky';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
 import * as Icons from 'sentry/icons';
-import PluginIcon, {type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon, type PluginIconProps} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
-import IdentityIcon, {
+import {
+  IdentityIcon,
   type IdentityIconProps,
 } from 'sentry/views/settings/components/identityIcon';
 
@@ -1486,7 +1487,7 @@ function PluginIconsSection({searchTerm}: {searchTerm: string}) {
     <section>
       <SectionHeader>PluginIcons</SectionHeader>
       <p>
-        <code>{"import PluginIcon from 'sentry/plugins/components/pluginIcon';"}</code>
+        <code>{"import {PluginIcon} from 'sentry/plugins/components/pluginIcon';"}</code>
       </p>
       <Grid
         style={{
@@ -1553,7 +1554,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
       <SectionHeader>IdentityIcons</SectionHeader>
       <p>
         <code>
-          {"import IdentityIcon from 'sentry/views/settings/components/identityIcon';"}
+          {"import {IdentityIcon} from 'sentry/views/settings/components/identityIcon';"}
         </code>
       </p>
       <Grid
