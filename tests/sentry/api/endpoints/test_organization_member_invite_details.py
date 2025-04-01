@@ -1,5 +1,6 @@
 from sentry.models.organizationmemberinvite import InviteStatus
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 
 
 class OrganizationMemberInviteTestBase(APITestCase):
@@ -10,6 +11,7 @@ class OrganizationMemberInviteTestBase(APITestCase):
         self.login_as(self.user)
 
 
+@apply_feature_flag_on_cls("organizations:new-organization-member-invite")
 class GetOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
     def test_simple(self):
         invited_member = self.create_member_invite(

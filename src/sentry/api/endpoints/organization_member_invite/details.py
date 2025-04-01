@@ -3,6 +3,7 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -12,6 +13,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
+
+MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
 @region_silo_endpoint
@@ -51,6 +54,10 @@ class OrganizationMemberInviteDetailsEndpoint(OrganizationEndpoint):
         """
         Retrieve an invited organization member's details.
         """
+        if not features.has(
+            "organizations:new-organization-member-invite", organization, actor=request.user
+        ):
+            return Response({"detail": MISSING_FEATURE_MESSAGE}, status=403)
         return Response(serialize(invited_member, request.user))
 
     def put(
