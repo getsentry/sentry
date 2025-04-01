@@ -250,7 +250,6 @@ const profilingOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-
   performanceOnboarding,
   crashReportOnboarding,
   profilingOnboarding,

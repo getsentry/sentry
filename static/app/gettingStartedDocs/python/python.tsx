@@ -414,7 +414,7 @@ export const featureFlagOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   performanceOnboarding,
-
+  profilingOnboarding: onboarding,
   crashReportOnboarding: crashReportOnboardingPython,
   featureFlagOnboarding,
 };

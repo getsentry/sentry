@@ -445,6 +445,7 @@ const docs: Docs<PlatformOptions> = {
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   platformOptions,
+  profilingOnboarding: onboarding,
   replayOnboarding,
 };
 
