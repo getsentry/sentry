@@ -63,9 +63,9 @@ export default function SentryAppDetailsModal(props: Props) {
 
   const installMutation = useMutation({
     mutationFn: onInstall,
-    onSettled: () => {
-      // we want to make sure install finishes before we close the modal
-      // and we should close the modal if there is an error as well
+    onError: () => {
+      // We are only calling the closeModal (onClose) modal function on error because currently the onInstall already calls onClose
+      // TODO(christinarlong): Verify that the redirect behavior of external-install is the same if we onSuccess
       closeModal();
     },
   });

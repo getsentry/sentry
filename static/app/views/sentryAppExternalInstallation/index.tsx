@@ -151,7 +151,7 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
     [isInstalled, selectedOrgSlug, sentryApp]
   );
 
-  const onInstall = useCallback(async (): Promise<any | undefined> => {
+  const onInstall = useCallback(async (): Promise<undefined | void> => {
     if (!organization || !sentryApp) {
       return undefined;
     }
