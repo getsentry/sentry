@@ -21,6 +21,7 @@ import type {DiscoverSeries} from 'sentry/views/insights/common/queries/useDisco
 import {ModalChartContainer} from 'sentry/views/insights/pages/backend/laravel/styles';
 import {WidgetVisualizationStates} from 'sentry/views/insights/pages/backend/laravel/widgetVisualizationStates';
 import useRecentIssues from 'sentry/views/insights/sessions/queries/useRecentIssues';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function ChartWithIssues({
   project,
@@ -59,7 +60,7 @@ export default function ChartWithIssues({
   if (isLoading) {
     return (
       <Widget
-        height={400}
+        height={SESSION_HEALTH_CHART_HEIGHT}
         Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
       />
     );
@@ -94,7 +95,7 @@ export default function ChartWithIssues({
   return (
     <Widget
       Title={<Widget.WidgetTitle title={title} />}
-      height={400}
+      height={SESSION_HEALTH_CHART_HEIGHT}
       Visualization={visualization}
       Actions={
         <Widget.WidgetToolbar>

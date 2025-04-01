@@ -3,6 +3,7 @@ import {t, tct} from 'sentry/locale';
 import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import useCrashFreeSessions from 'sentry/views/insights/sessions/queries/useCrashFreeSessions';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function CrashFreeSessionsChart() {
   const {series, releases, isPending, error} = useCrashFreeSessions();
@@ -17,7 +18,7 @@ export default function CrashFreeSessionsChart() {
   return (
     <InsightsLineChartWidget
       title={t('Crash Free Sessions')}
-      height={400}
+      height={SESSION_HEALTH_CHART_HEIGHT}
       description={tct(
         'The percent of sessions terminating without a crash. See [link:session status].',
         {

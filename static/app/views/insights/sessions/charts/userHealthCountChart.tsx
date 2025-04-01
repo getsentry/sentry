@@ -2,6 +2,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
+import {SESSION_HEALTH_CHART_HEIGHT} from 'sentry/views/insights/sessions/utils/sessions';
 
 export default function UserHealthCountChart() {
   const {series, isPending, error} = useUserHealthBreakdown({type: 'count'});
@@ -15,7 +16,7 @@ export default function UserHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
-      height={400}
+      height={SESSION_HEALTH_CHART_HEIGHT}
       title={t('User Counts')}
       description={tct(
         'Breakdown of total [linkUsers:users], grouped by [linkStatus:health status].',
