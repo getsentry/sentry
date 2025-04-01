@@ -100,7 +100,7 @@ stack.function:mylibrary_* +app`}
   derivedGroupingEnhancements: {
     name: 'derivedGroupingEnhancements',
     type: 'string',
-    label: 'Derived Grouping Enhancements (staff only)',
+    label: 'Derived Grouping Enhancements (super user only)',
     hideLabel: true,
     placeholder: '',
     multiline: true,
