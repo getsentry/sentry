@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {space} from 'sentry/styles/space';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
 import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
@@ -45,7 +45,7 @@ function SettingsSecondaryNavigation({
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
-        {NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.SETTINGS].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         {navWithHooks.map(config => (

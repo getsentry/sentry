@@ -298,7 +298,7 @@ const NavLinkLabel = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
