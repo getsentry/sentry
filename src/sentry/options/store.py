@@ -104,8 +104,8 @@ class OptionsStore:
             return result
 
         if should_log:
-            # Log 1% of our cache misses for option retrieval to help triage
-            # excessive queries against the store.
+            # Log some percentage of our cache misses for option retrieval to
+            # help triage excessive queries against the store.
             logger.info(
                 "sentry_options_store.cache_miss",
                 extra={"key": key.name, "cache_configured": self.cache is not None},
