@@ -600,16 +600,30 @@ class TracesExecutor:
                     filter=base_filter,
                 )
             ]
-        return GetTracesRequest(
-            meta=meta,
-            page_token=PageToken(offset=0),
-            limit=self.limit,
-            filters=filters,
-            order_by=[
+
+        if self.sort == "-timestamp":
+            orderby = [
                 GetTracesRequest.OrderBy(
                     key=TraceAttribute.Key.KEY_START_TIMESTAMP, descending=True
                 ),
-            ],
+            ]
+        elif self.sort == "timestamp":
+            orderby = [
+                GetTracesRequest.OrderBy(
+                    key=TraceAttribute.Key.KEY_START_TIMESTAMP, descending=False
+                ),
+            ]
+        else:
+            # The orderby is intentionally empty here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby = []
+        return GetTracesRequest(
+            meta=meta,
+            page_token=PageToken(offset=self.offset),
+            limit=self.limit,
+            filters=filters,
+            order_by=orderby,
             attributes=[
                 TraceAttribute(key=TraceAttribute.Key.KEY_TRACE_ID),
                 TraceAttribute(key=TraceAttribute.Key.KEY_START_TIMESTAMP),
@@ -1595,6 +1609,7 @@ def quantize_range(span_start, span_end, trace_range):
 
 
 def new_trace_interval(row) -> TraceInterval:
+    parent_span = row.get("parent_span", "")
     return {
         "kind": "project",
         "project": row["project"],
@@ -1606,7 +1621,7 @@ def new_trace_interval(row) -> TraceInterval:
         "sliceWidth": row["end_index"] - row["start_index"],
         "duration": 0,
         "components": [(row["precise.start_ts"], row["precise.finish_ts"])],
-        "isRoot": not bool(row.get("parent_span")),
+        "isRoot": not parent_span or set(parent_span) == {"0"},
     }
 
 
