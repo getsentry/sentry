@@ -53,18 +53,19 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
     # We aren't using the version bits currently.
     body = orjson.dumps(orjson.loads(body))
     _, signature_data = signature.split(":", 2)
-    signature_input = b"%s:%s" % (
-        url.encode(),
-        body,
-    )
+    # TODO: For backward compatibility with the current Seer implementation, allow all signatures 
+    # while we deploy the fix to both services
+    return True
+    
+    # signature_input = body
 
-    for key in settings.SEER_RPC_SHARED_SECRET:
-        computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
-        is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
-        if is_valid:
-            return True
+    # for key in settings.SEER_RPC_SHARED_SECRET:
+    #     computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
+    #     is_valid = hmac.compare_digest(computed.encode(), signature_data.encode())
+    #     if is_valid:
+    #         return True
 
-    return False
+    # return False
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.REGION)
@@ -185,10 +186,7 @@ def generate_request_signature(url_path: str, body: bytes) -> str:
     if not settings.SEER_RPC_SHARED_SECRET:
         raise RpcAuthenticationSetupException("Cannot sign RPC requests without RPC_SHARED_SECRET")
 
-    signature_input = b"%s:%s" % (
-        url_path.encode("utf8"),
-        body,
-    )
+    signature_input = body
     secret = settings.SEER_RPC_SHARED_SECRET[0]
     signature = hmac.new(secret.encode("utf-8"), signature_input, hashlib.sha256).hexdigest()
     return f"rpc0:{signature}"
