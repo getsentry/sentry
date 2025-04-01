@@ -160,7 +160,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 }
 
 const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
-  'spm()': THROUGHPUT_COLOR(theme),
+  'epm()': THROUGHPUT_COLOR(theme),
   'count()': COUNT_COLOR(theme),
   'avg(span.self_time)': AVG_COLOR(theme),
   'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
