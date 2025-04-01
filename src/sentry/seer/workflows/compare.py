@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from sentry.seer.math import kl_divergence, laplace_smooth
 
@@ -10,7 +10,7 @@ Score = tuple[str, float]
 ValueCount = tuple[str, float]
 
 
-def keyed_kl_score(a: list[KeyedValueCount], b: list[KeyedValueCount]) -> list[Score]:
+def keyed_kl_score(a: Sequence[KeyedValueCount], b: Sequence[KeyedValueCount]) -> list[Score]:
     """
     KL score a multi-dimensional distribution of values. Returns a list of key, score pairs.
     Duplicates are not tolerated.
@@ -23,7 +23,7 @@ def keyed_kl_score(a: list[KeyedValueCount], b: list[KeyedValueCount]) -> list[S
     return _multi_dimensional_kl_compare_sets(parsed_a, parsed_b)
 
 
-def kl_score(a: list[ValueCount], b: list[ValueCount]) -> float:
+def kl_score(a: Sequence[ValueCount], b: Sequence[ValueCount]) -> float:
     """
     KL score a mono-dimensional distribution of values. Duplicates are not tolerated.
 
@@ -33,7 +33,7 @@ def kl_score(a: list[ValueCount], b: list[ValueCount]) -> float:
     return _kl_compare_sets(dict(a), dict(b))
 
 
-def _as_attribute_dict(rows: list[KeyedValueCount]) -> Attributes:
+def _as_attribute_dict(rows: Sequence[KeyedValueCount]) -> Attributes:
     """
     Coerce a database result into a standardized type.
     """

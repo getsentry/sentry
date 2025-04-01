@@ -85,6 +85,6 @@ def query_flag_rows(
     )
 
     return [
-        (result["variants"][0], result["variants"][1], float(result["count"]))
+        (result["variants"][0], result["variants"][1], result["count"])
         for result in response["data"]
     ]
