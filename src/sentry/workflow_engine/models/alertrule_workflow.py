@@ -17,21 +17,21 @@ class AlertRuleWorkflow(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule_id = BoundedBigIntegerField(null=True, db_column="alert_rule")
-    rule_id = BoundedBigIntegerField(null=True, db_column="rule")
+    alert_rule_id = BoundedBigIntegerField(null=True)
+    rule_id = BoundedBigIntegerField(null=True)
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
 
     class Meta:
         db_table = "workflow_engine_alertruleworkflow"
         app_label = "workflow_engine"
         unique_together = (
-            ("workflow", "rule"),
-            ("workflow", "alert_rule"),
+            ("workflow", "rule_id"),
+            ("workflow", "alert_rule_id"),
         )
         constraints = [
             CheckConstraint(
-                condition=Q(rule__isnull=False, alert_rule__isnull=True)
-                | Q(rule__isnull=True, alert_rule__isnull=False),
+                condition=Q(rule_id__isnull=False, alert_rule_id__isnull=True)
+                | Q(rule_id__isnull=True, alert_rule_id__isnull=False),
                 name="rule_or_alert_rule_workflow",
             ),
         ]
