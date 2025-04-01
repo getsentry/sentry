@@ -52,7 +52,7 @@ execnet==1.9.0
 fastjsonschema==2.16.2
 fido2==0.9.2
 filelock==3.13.1
-flake8==7.0.0
+flake8==7.2.0
 flake8-bugbear==22.10.27
 flake8-logging==1.5.0
 google-api-core==2.19.1
@@ -137,11 +137,11 @@ psutil==5.9.7
 psycopg2-binary==2.9.10
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
-pycodestyle==2.11.0
+pycodestyle==2.13.0
 pycountry==17.5.14
 pycparser==2.21
 pydantic==1.10.20
-pyflakes==3.2.0
+pyflakes==3.3.2
 pyjwt==2.4.0
 pymemcache==4.0.0
 pysocks==1.7.1
@@ -192,7 +192,7 @@ sentry-ophio==1.0.0
 sentry-protos==0.1.65
 sentry-redis-tools==0.1.7
 sentry-relay==0.9.7
-sentry-sdk==2.24.1
+sentry-sdk==2.25.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0

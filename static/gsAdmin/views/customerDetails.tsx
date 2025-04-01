@@ -779,9 +779,9 @@ class CustomerDetails extends DeprecatedAsyncComponent<Props, State> {
             {
               visible: !!data.pendingChanges,
               content: (
-                <OrganizationContext.Provider value={organization}>
+                <OrganizationContext value={organization}>
                   <PendingChanges subscription={data} />
-                </OrganizationContext.Provider>
+                </OrganizationContext>
               ),
             },
             {
