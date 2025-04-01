@@ -1,5 +1,7 @@
 import {t} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useReleaseNewIssues from 'sentry/views/insights/sessions/queries/useReleaseNewIssues';
 
 export default function ReleaseNewIssuesChart() {
@@ -7,7 +9,8 @@ export default function ReleaseNewIssuesChart() {
 
   return (
     <InsightsLineChartWidget
-      title={t('New Issues by Release')}
+      title={CHART_TITLES.ReleaseNewIssuesChart}
+      interactiveTitle={() => <ChartSelectionTitle />}
       description={t('New issue counts over time, grouped by release.')}
       series={series}
       isLoading={isPending}

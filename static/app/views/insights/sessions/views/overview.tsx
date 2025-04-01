@@ -17,17 +17,9 @@ import {
   type DomainView,
   useDomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
-import CrashFreeSessionsChart from 'sentry/views/insights/sessions/charts/crashFreeSessionsChart';
-import ErrorFreeSessionsChart from 'sentry/views/insights/sessions/charts/errorFreeSessionsChart';
-import NewAndResolvedIssueChart from 'sentry/views/insights/sessions/charts/newAndResolvedIssueChart';
-import ReleaseNewIssuesChart from 'sentry/views/insights/sessions/charts/releaseNewIssuesChart';
-import ReleaseSessionCountChart from 'sentry/views/insights/sessions/charts/releaseSessionCountChart';
-import ReleaseSessionPercentageChart from 'sentry/views/insights/sessions/charts/releaseSessionPercentageChart';
-import SessionHealthCountChart from 'sentry/views/insights/sessions/charts/sessionHealthCountChart';
-import SessionHealthRateChart from 'sentry/views/insights/sessions/charts/sessionHealthRateChart';
-import UserHealthCountChart from 'sentry/views/insights/sessions/charts/userHealthCountChart';
-import UserHealthRateChart from 'sentry/views/insights/sessions/charts/userHealthRateChart';
+import {ChartPlacementContext} from 'sentry/views/insights/sessions/components/chartPlacementContext';
 import FilterReleaseDropdown from 'sentry/views/insights/sessions/components/filterReleaseDropdown';
+import {InsightLayoutContext} from 'sentry/views/insights/sessions/components/insightLayoutContext';
 import ReleaseTableSearch from 'sentry/views/insights/sessions/components/releaseTableSearch';
 import ReleaseHealth from 'sentry/views/insights/sessions/components/tables/releaseHealth';
 import useProjectHasSessions from 'sentry/views/insights/sessions/queries/useProjectHasSessions';
@@ -93,60 +85,46 @@ function ViewSpecificCharts({
   view: DomainView | '';
 }) {
   switch (view) {
-    case FRONTEND_LANDING_SUB_PATH:
+    case FRONTEND_LANDING_SUB_PATH: {
       return (
-        <Fragment>
+        <InsightLayoutContext view={view}>
           <ModuleLayout.Half>
-            <ErrorFreeSessionsChart />
+            <ChartPlacementContext index={0} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <UserHealthRateChart />
+            <ChartPlacementContext index={1} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <UserHealthCountChart />
+            <ChartPlacementContext index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <NewAndResolvedIssueChart type="issue" />
+            <ChartPlacementContext index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthRateChart />
+            <ChartPlacementContext index={4} />
           </ModuleLayout.Third>
-
-          <ModuleLayout.Third>
-            <SessionHealthCountChart />
-          </ModuleLayout.Third>
-        </Fragment>
+        </InsightLayoutContext>
       );
-
-    case MOBILE_LANDING_SUB_PATH:
+    }
+    case MOBILE_LANDING_SUB_PATH: {
       return (
-        <Fragment>
+        <InsightLayoutContext view={view}>
           <ModuleLayout.Half>
-            <CrashFreeSessionsChart />
+            <ChartPlacementContext index={0} />
           </ModuleLayout.Half>
           <ModuleLayout.Half>
-            <ReleaseSessionPercentageChart />
+            <ChartPlacementContext index={1} />
           </ModuleLayout.Half>
 
           <ModuleLayout.Third>
-            <ReleaseNewIssuesChart />
+            <ChartPlacementContext index={2} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <ReleaseSessionCountChart />
+            <ChartPlacementContext index={3} />
           </ModuleLayout.Third>
           <ModuleLayout.Third>
-            <SessionHealthCountChart />
-          </ModuleLayout.Third>
-
-          <ModuleLayout.Third>
-            <UserHealthCountChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <SessionHealthRateChart />
-          </ModuleLayout.Third>
-          <ModuleLayout.Third>
-            <UserHealthRateChart />
+            <ChartPlacementContext index={4} />
           </ModuleLayout.Third>
 
           <ModuleLayout.Full>
@@ -156,8 +134,9 @@ function ViewSpecificCharts({
             </FilterWrapper>
             <ReleaseHealth filters={filters} />
           </ModuleLayout.Full>
-        </Fragment>
+        </InsightLayoutContext>
       );
+    }
     default:
       return null;
   }

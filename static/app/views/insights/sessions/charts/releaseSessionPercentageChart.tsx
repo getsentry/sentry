@@ -1,6 +1,8 @@
 import {t} from 'sentry/locale';
 import {formatSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatSeriesName';
 import {InsightsAreaChartWidget} from 'sentry/views/insights/common/components/insightsAreaChartWidget';
+import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useReleaseSessionPercentage from 'sentry/views/insights/sessions/queries/useReleaseSessionPercentage';
 
 export default function ReleaseSessionPercentageChart() {
@@ -13,7 +15,8 @@ export default function ReleaseSessionPercentageChart() {
 
   return (
     <InsightsAreaChartWidget
-      title={t('Release Adoption')}
+      title={CHART_TITLES.ReleaseSessionPercentageChart}
+      interactiveTitle={() => <ChartSelectionTitle />}
       description={t(
         'The percentage of total sessions that each release accounted for. The 5 most recent releases are shown.'
       )}

@@ -1,6 +1,8 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
+import ChartSelectionTitle from 'sentry/views/insights/sessions/components/chartSelectionTitle';
+import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 import useUserHealthBreakdown from 'sentry/views/insights/sessions/queries/useUserHealthBreakdown';
 
 export default function UserHealthCountChart() {
@@ -15,7 +17,8 @@ export default function UserHealthCountChart() {
 
   return (
     <InsightsLineChartWidget
-      title={t('User Counts')}
+      title={CHART_TITLES.UserHealthCountChart}
+      interactiveTitle={() => <ChartSelectionTitle />}
       description={tct(
         'Breakdown of total [linkUsers:users], grouped by [linkStatus:health status].',
         {
