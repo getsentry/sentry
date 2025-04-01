@@ -787,15 +787,15 @@ class SubscriptionProcessor:
         # Schedule the actions to be fired
         for action in actions_to_fire:
             transaction.on_commit(
-                handle_trigger_action.s(
+                lambda: handle_trigger_action.delay(
                     action_id=action.id,
                     incident_id=incident.id,
                     project_id=self.subscription.project_id,
                     method=method,
                     new_status=new_status,
                     metric_value=metric_value,
-                ).delay,
-                router.db_for_write(AlertRule),
+                ),
+                using=router.db_for_write(AlertRule),
             )
 
         if features.has("organizations:metric-issue-poc", self.alert_rule.organization):

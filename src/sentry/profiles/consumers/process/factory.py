@@ -15,7 +15,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
     sampled = is_sampled(message.payload.headers)
 
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        process_profile_task.s(payload=message.payload.value, sampled=sampled).apply_async()
+        process_profile_task.delay(payload=message.payload.value, sampled=sampled)
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

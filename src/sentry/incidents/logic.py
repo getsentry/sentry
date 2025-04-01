@@ -1161,14 +1161,14 @@ def _trigger_incident_triggers(incident: Incident) -> None:
         for action in actions:
             for project in incident.projects.all():
                 transaction.on_commit(
-                    handle_trigger_action.s(
+                    lambda: handle_trigger_action.delay(
                         action_id=action.id,
                         incident_id=incident.id,
                         project_id=project.id,
                         method="resolve",
                         new_status=IncidentStatus.CLOSED.value,
-                    ).delay,
-                    router.db_for_write(AlertRuleTrigger),
+                    ),
+                    using=router.db_for_write(AlertRuleTrigger),
                 )
 
 
