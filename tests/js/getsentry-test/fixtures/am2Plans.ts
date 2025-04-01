@@ -81,6 +81,8 @@ const AM2_TRIAL_FEATURES = AM2_BUSINESS_FEATURES.filter(
   feature => feature !== 'sso-saml2' && feature !== 'baa'
 );
 
+const BUDGET_TERM = 'on-demand';
+
 // TODO: Update with correct pricing and structure
 const AM2_PLANS: Record<string, Plan> = {
   am2_business: {
@@ -762,6 +764,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    budgetTerm: BUDGET_TERM,
   },
   am2_f: {
     id: 'am2_f',
@@ -847,6 +850,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    budgetTerm: BUDGET_TERM,
   },
   am2_team: {
     id: 'am2_team',
@@ -1527,6 +1531,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    budgetTerm: BUDGET_TERM,
   },
   am2_t: {
     id: 'am2_t',
@@ -1612,6 +1617,7 @@ const AM2_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    budgetTerm: BUDGET_TERM,
   },
   am2_team_auf: {
     id: 'am2_team_auf',
@@ -1639,6 +1645,7 @@ const AM2_PLANS: Record<string, Plan> = {
     availableCategories: AM2_CATEGORIES,
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -2319,6 +2326,7 @@ const AM2_PLANS: Record<string, Plan> = {
     availableCategories: AM2_CATEGORIES,
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -3010,6 +3018,7 @@ const AM2_PLANS: Record<string, Plan> = {
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    budgetTerm: BUDGET_TERM,
   },
   am2_sponsored_team_auf: {
     id: 'am2_sponsored_team_auf',
@@ -3047,6 +3056,7 @@ const AM2_PLANS: Record<string, Plan> = {
       profileDurationUI: [{events: 0, unitPrice: 0, price: 0}],
     },
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    budgetTerm: BUDGET_TERM,
   },
   am2_business_bundle: {
     id: 'am2_business_bundle',
@@ -3069,6 +3079,7 @@ const AM2_PLANS: Record<string, Plan> = {
     reservedMinimum: 500000,
     allowAdditionalReservedEvents: false,
     categoryDisplayNames: AM2_CATEGORY_DISPLAY_NAMES,
+    budgetTerm: BUDGET_TERM,
     categories: AM2_CATEGORIES,
     checkoutCategories: AM2_CATEGORIES,
     availableCategories: AM2_CATEGORIES,
@@ -3564,6 +3575,7 @@ const AM2_PLANS: Record<string, Plan> = {
     availableCategories: AM2_CATEGORIES,
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4104,6 +4116,7 @@ const AM2_PLANS: Record<string, Plan> = {
     availableCategories: AM2_CATEGORIES,
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: true,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4659,6 +4672,7 @@ const AM2_PLANS: Record<string, Plan> = {
     availableCategories: AM2_CATEGORIES,
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {
@@ -4744,6 +4758,7 @@ const AM2_PLANS: Record<string, Plan> = {
     availableCategories: AM2_CATEGORIES,
     onDemandCategories: AM2_CATEGORIES,
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     planCategories: {
       errors: [
         {

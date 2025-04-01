@@ -6,6 +6,7 @@ const MM2_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
 };
 
+const BUDGET_TERM = 'on-demand';
 const MM2_PLANS: Record<string, Plan> = {
   mm2_a_100k: {
     isTestPlan: false,
@@ -18,6 +19,7 @@ const MM2_PLANS: Record<string, Plan> = {
     categories: ['errors'],
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
+    budgetTerm: BUDGET_TERM,
     hasOnDemandModes: false,
     trialPlan: null,
     maxMembers: null,
@@ -73,6 +75,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -127,6 +130,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -181,6 +185,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -235,6 +240,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -289,6 +295,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: null,
     maxMembers: null,
     planCategories: {
@@ -343,6 +350,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -386,6 +394,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -429,6 +438,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -472,6 +482,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -516,6 +527,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -559,6 +571,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'mm2_a',
     maxMembers: null,
     planCategories: {
@@ -602,6 +615,7 @@ const MM2_PLANS: Record<string, Plan> = {
     checkoutCategories: ['errors'],
     onDemandCategories: ['errors'],
     hasOnDemandModes: false,
+    budgetTerm: BUDGET_TERM,
     trialPlan: 'am1_t',
     maxMembers: 1,
     planCategories: {
@@ -684,7 +698,8 @@ const MM2_PLANS: Record<string, Plan> = {
         ]
     },
     categoryDisplayNames: MM2_CATEGORY_DISPLAY_NAMES,
-},
+    budgetTerm: BUDGET_TERM,
+  },
 };
 
 export default MM2_PLANS;

@@ -340,6 +340,31 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
   return subscription.isTrial && subscription.isTrialStarted;
 }
 
+export const displayBudgetName = (
+  plan?: Plan | null,
+  options: {
+    pluralOndemand?: boolean;
+    title?: boolean;
+    withBudget?: boolean;
+  } = {}
+) => {
+  const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
+  if (options.title) {
+    if (budgetTerm === 'on-demand') {
+      if (options.withBudget) {
+        if (options.pluralOndemand) {
+          return 'On-Demand Budgets';
+        }
+        return 'On-Demand Budget';
+      }
+      return 'On-Demand';
+    }
+    return titleCase(text);
+  }
+  return text;
+};
+
 export const displayPlanName = (plan?: Plan | null) => {
   return isAmEnterprisePlan(plan?.id) ? 'Enterprise' : (plan?.name ?? '[unavailable]');
 };

@@ -247,15 +247,12 @@ function NoticeModal({
           )
         : t('To ensure uninterrupted service, upgrade your subscription.');
     } else {
-      if (subscription.planTier === PlanTier.AM3) {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your pay-as-you-go spend limit.`
-        );
-      } else {
-        subText = t(
-          `To ensure uninterrupted service, upgrade your subscription or increase your on-demand spend limit.`
-        );
-      }
+      subText = tct(
+        `To ensure uninterrupted service, upgrade your subscription or increase your [budgetTerm] spend limit.`,
+        {
+          budgetTerm: subscription.planDetails.budgetTerm,
+        }
+      );
     }
   }
 
@@ -1162,8 +1159,7 @@ class GSBanner extends Component<Props, State> {
           {
             monitorTitle:
               eventTypes[0] === 'monitorSeat' ? 'Cron Monitors' : 'Uptime Monitors',
-            budgetType:
-              subscription.planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand',
+            budgetType: subscription.planDetails.budgetTerm,
           }
         );
       } else {

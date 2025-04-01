@@ -4,12 +4,13 @@ import color from 'color';
 
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 import {PlanTier, type Subscription} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {roundUpToNearestDollar} from 'getsentry/utils/roundUpToNearestDollar';
 import {
@@ -106,16 +107,17 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
           <SummaryWrapper>
             <SummaryTitleWrapper>
               <SummaryTitle>
-                {subscription.planTier === PlanTier.AM3
-                  ? t('Pay-as-you-go Spent')
-                  : t('On-Demand Spent')}
+                {tct('[budgetType] Spent', {
+                  budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+                })}
               </SummaryTitle>
               <Tooltip
-                title={
-                  subscription.planTier === PlanTier.AM3
-                    ? t('Pay-as-you-go budget consumed')
-                    : t('On-Demand budget consumed')
-                }
+                title={tct('[budgetType] consumed', {
+                  budgetType: displayBudgetName(subscription.planDetails, {
+                    title: true,
+                    withBudget: true,
+                  }),
+                })}
                 skipWrapper
               >
                 <IconInfo size="xs" />
@@ -206,9 +208,7 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
             <LegendDot style={{backgroundColor: COLORS.ondemand}} />
             <div>
               <LegendTitle>
-                {subscription.planTier === PlanTier.AM3
-                  ? t('Pay-as-you-go')
-                  : t('On-Demand')}
+                {displayBudgetName(subscription.planDetails, {title: true})}
               </LegendTitle>
               <LegendPrice>
                 {formatCurrency(onDemandTotalSpent)} of{' '}

@@ -75,6 +75,8 @@ const AM1_TRIAL_FEATURES = AM1_BUSINESS_FEATURES.filter(
   feature => feature !== 'sso-saml2' && feature !== 'baa'
 );
 
+const BUDGET_TERM = 'on-demand';
+
 const AM1_PLANS: Record<string, Plan> = {
   am1_f: {
     allowAdditionalReservedEvents: false,
@@ -145,6 +147,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_FREE_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_t: {
     allowAdditionalReservedEvents: false,
@@ -215,6 +218,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_TRIAL_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_team: {
     allowAdditionalReservedEvents: false,
@@ -795,6 +799,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_TEAM_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_team_auf: {
     allowAdditionalReservedEvents: false,
@@ -1375,6 +1380,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_TEAM_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_business: {
     allowAdditionalReservedEvents: false,
@@ -1955,6 +1961,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_BUSINESS_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_business_auf: {
     allowAdditionalReservedEvents: false,
@@ -2535,6 +2542,7 @@ const AM1_PLANS: Record<string, Plan> = {
       ],
     },
     features: AM1_BUSINESS_FEATURES,
+    budgetTerm: BUDGET_TERM,
   },
   am1_business_ent: {
     id: 'am1_business_ent',
@@ -2612,6 +2620,7 @@ const AM1_PLANS: Record<string, Plan> = {
         },
       ],
     },
+    budgetTerm: BUDGET_TERM,
   },
 };
 

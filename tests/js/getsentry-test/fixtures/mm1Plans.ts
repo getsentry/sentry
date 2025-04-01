@@ -1,5 +1,7 @@
 import type {Plan} from 'getsentry/types';
 
+const BUDGET_TERM = 'on-demand';
+
 const MM1_CATEGORY_DISPLAY_NAMES = {
   errors: {singular: 'error', plural: 'errors'},
 };
@@ -47,6 +49,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'relay',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   e1_auf: {
     isTestPlan: false,
@@ -89,6 +92,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'relay',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   f1: {
     isTestPlan: false,
@@ -123,6 +127,7 @@ const MM1_PLANS: Record<string, Plan> = {
     onDemandEventPrice: 0,
     retentionDays: 30,
     features: [],
+    budgetTerm: BUDGET_TERM,
   },
   l1: {
     isTestPlan: false,
@@ -167,6 +172,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-sync',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   l1_ac: {
     isTestPlan: false,
@@ -211,6 +217,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-sync',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   l1_auf: {
     isTestPlan: false,
@@ -255,6 +262,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-sync',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   m1: {
     isTestPlan: false,
@@ -296,6 +304,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-sync',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   m1_ac: {
     isTestPlan: false,
@@ -337,6 +346,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-sync',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   m1_auf: {
     isTestPlan: false,
@@ -378,6 +388,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-sync',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   s1: {
     isTestPlan: false,
@@ -417,6 +428,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-basic',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
   s1_ac: {
     isTestPlan: false,
@@ -456,6 +468,7 @@ const MM1_PLANS: Record<string, Plan> = {
       'integrations-issue-basic',
       'extended-data-retention',
     ],
+    budgetTerm: BUDGET_TERM,
   },
 };
 

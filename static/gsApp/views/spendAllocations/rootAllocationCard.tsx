@@ -11,7 +11,8 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategory} from 'sentry/types/core';
 
-import {PlanTier, type Subscription} from 'getsentry/types';
+import type {Subscription} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {displayPrice} from 'getsentry/views/amCheckout/utils';
 
 import {Card, HalvedGrid} from './components/styles';
@@ -85,9 +86,7 @@ function RootAllocationCard({
                   {
                     odLink: (
                       <ExternalLink href="https://docs.sentry.io/product/accounts/pricing/#on-demand-capacity">
-                        {subscription.planTier === PlanTier.AM3
-                          ? 'Pay-as-you-go'
-                          : 'On-Demand'}
+                        {displayBudgetName(subscription.planDetails, {title: true})}
                       </ExternalLink>
                     ),
                   }

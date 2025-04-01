@@ -300,13 +300,11 @@ function getOnDemandChanges(subscription: Subscription) {
     if (!isOnDemandBudgetsEqual(pendingOnDemandBudgets, currentOnDemandBudgets)) {
       const current = formatOnDemandBudget(
         subscription.planDetails,
-        subscription.planTier,
         currentOnDemandBudgets,
         subscription.planDetails.onDemandCategories
       );
       const change = formatOnDemandBudget(
         pendingChanges.planDetails,
-        subscription.planTier,
         pendingOnDemandBudgets,
         pendingChanges.planDetails.onDemandCategories
       );
