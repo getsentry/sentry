@@ -290,7 +290,7 @@ class MonitorValidator(CamelSnakeSerializer):
         # a seat, otherwise fail with the reason it cannot.
         #
         # XXX: This check will ONLY be performed when a monitor is provided via
-        #      context. It is the callers responsabiliy to ensure that a
+        #      context. It is the caller's responsibility to ensure that a
         #      monitor is provided in context for this to be validated.
         if status == ObjectStatus.ACTIVE and monitor:
             result = quotas.backend.check_assign_monitor_seat(monitor)
