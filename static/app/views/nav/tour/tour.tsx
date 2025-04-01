@@ -18,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavTourModal, navTourModalCss} from 'sentry/views/nav/tour/tourModal';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
+import {useActiveNavGroup} from 'sentry/views/nav/useActiveNavGroup';
 
 export const enum StackedNavigationTour {
   ISSUES = 'issues',
@@ -113,8 +114,9 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   const isStackedNavigationTourCompleted = useStackedNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
-  const {activeGroup, setShowTourReminder} = useNavContext();
+  const {setShowTourReminder} = useNavContext();
   const location = useLocation();
+  const activeGroup = useActiveNavGroup();
 
   const onStartTour = useCallback(() => {
     // Save the initial URL when the tour starts because we need to restore it when the tour ends.

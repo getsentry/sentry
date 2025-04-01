@@ -1,4 +1,4 @@
-import {type ReactNode, useLayoutEffect} from 'react';
+import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import type {To} from 'react-router-dom';
 import {css} from '@emotion/react';
@@ -14,12 +14,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useNavContext} from 'sentry/views/nav/context';
-import {NavLayout, type PrimaryNavGroup} from 'sentry/views/nav/types';
+import {NavLayout} from 'sentry/views/nav/types';
 import {isLinkActive} from 'sentry/views/nav/utils';
 
 type SecondaryNavProps = {
   children: ReactNode;
-  group: PrimaryNavGroup;
 };
 
 interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
@@ -40,16 +39,8 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   trailingItems?: ReactNode;
 }
 
-export function SecondaryNav({children, group}: SecondaryNavProps) {
-  const {secondaryNavEl, setActiveGroup} = useNavContext();
-
-  useLayoutEffect(() => {
-    setActiveGroup(group);
-
-    return () => {
-      setActiveGroup(null);
-    };
-  }, [group, setActiveGroup]);
+export function SecondaryNav({children}: SecondaryNavProps) {
+  const {secondaryNavEl} = useNavContext();
 
   if (!secondaryNavEl) {
     return null;

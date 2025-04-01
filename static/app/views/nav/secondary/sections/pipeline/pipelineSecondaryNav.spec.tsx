@@ -4,7 +4,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import Nav from 'sentry/views/nav';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import PipelineSecondaryNav from 'sentry/views/nav/secondary/sections/pipeline/pipelineSecondaryNav';
 
 jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
@@ -32,23 +31,25 @@ describe('PipelineSecondaryNav', () => {
     render(
       <NavContextProvider>
         <Nav />
-        <PipelineSecondaryNav>
-          <p>Test content</p>
-        </PipelineSecondaryNav>
         <div id="main" />
-      </NavContextProvider>
+      </NavContextProvider>,
+      {
+        disableRouterMocks: true,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/test-org-slug/pipeline/',
+          },
+        },
+      }
     );
 
-    expect(screen.getByText('Test content')).toBeInTheDocument();
+    expect(screen.getByText('Pipeline')).toBeInTheDocument();
   });
 
   it('renders the correct coverage link', () => {
     render(
       <NavContextProvider>
         <Nav />
-        <PipelineSecondaryNav>
-          <p>Test content</p>
-        </PipelineSecondaryNav>
         <div id="main" />
       </NavContextProvider>,
       {
@@ -72,9 +73,6 @@ describe('PipelineSecondaryNav', () => {
     render(
       <NavContextProvider>
         <Nav />
-        <PipelineSecondaryNav>
-          <p>Test content</p>
-        </PipelineSecondaryNav>
         <div id="main" />
       </NavContextProvider>,
       {
