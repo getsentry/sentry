@@ -82,11 +82,9 @@ export default function ChartWithIssues({
   const footer = hasData && recentIssues && (
     <FooterIssues>
       {recentIssues.map((group, index) => (
-        <GroupWrapper key={group.id}>
-          <GroupSummary canSelect hasNewLayout>
-            <EventOrGroupHeader index={index} data={group} source={'session-health'} />
-            <EventOrGroupExtraDetails data={group} showLifetime={false} />
-          </GroupSummary>
+        <GroupWrapper canSelect hasNewLayout key={group.id}>
+          <EventOrGroupHeader index={index} data={group} source={'session-health'} />
+          <EventOrGroupExtraDetails data={group} showLifetime={false} />
         </GroupWrapper>
       ))}
     </FooterIssues>
@@ -117,7 +115,7 @@ export default function ChartWithIssues({
                         legendSelection={legendSelection}
                       />
                     </ModalChartContainer>
-                    <FooterWrapper>{footer}</FooterWrapper>
+                    <ModalFooterWrapper>{footer}</ModalFooterWrapper>
                   </Fragment>
                 ),
               });
@@ -136,7 +134,7 @@ const FooterIssues = styled('div')`
   flex-direction: column;
 `;
 
-const GroupWrapper = styled('div')`
+const GroupWrapper = styled(GroupSummary)`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(0.5)} ${space(1.5)} ${space(0.5)};
 
@@ -145,6 +143,6 @@ const GroupWrapper = styled('div')`
   }
 `;
 
-const FooterWrapper = styled(Panel)`
+const ModalFooterWrapper = styled(Panel)`
   margin-top: 50px;
 `;
