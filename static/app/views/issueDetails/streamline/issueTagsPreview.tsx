@@ -189,7 +189,7 @@ function IssueTagButton({
         disabled={tags.length === 0}
       >
         {hasFlagsDistributions
-          ? tct('View All[nbsp]Tags &[nbsp]Flags', {
+          ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })
           : tct('View All[nbsp]Tags', {
