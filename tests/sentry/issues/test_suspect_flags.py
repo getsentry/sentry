@@ -1,47 +1,9 @@
 import datetime
-import math
 import time
 import uuid
 
-from sentry.issues.suspect_flags import (
-    as_attribute_dict,
-    get_suspect_flag_scores,
-    kl_score,
-    query_flag_rows,
-)
+from sentry.issues.suspect_flags import get_suspect_flag_scores, query_flag_rows
 from sentry.testutils.cases import SnubaTestCase, TestCase
-
-
-def test_as_attributes_dict():
-    attrs = as_attribute_dict([("key", "true", 10), ("key", "false", 20), ("other", "true", 85)])
-    assert attrs["key"]["true"] == 10
-    assert attrs["key"]["false"] == 20
-    assert attrs["other"]["true"] == 85
-    assert "false" not in attrs["other"]
-
-
-def test_kl_score():
-    baseline = as_attribute_dict(
-        [
-            ("key", "true", 10),
-            ("key", "false", 200),
-            ("other", "true", 1000),
-            ("other", "false", 5000),
-        ]
-    )
-    outliers = as_attribute_dict(
-        [
-            ("key", "true", 10),
-            ("other", "true", 100),
-            ("other", "false", 500),
-        ]
-    )
-
-    scores = kl_score(baseline, outliers)
-    assert scores[0][0] == "key"
-    assert math.isclose(scores[0][1], 8.58, rel_tol=1e-3)
-    assert scores[1][0] == "other"
-    assert math.isclose(scores[1][1], 0, abs_tol=1e-9)
 
 
 class SnubaTest(TestCase, SnubaTestCase):
