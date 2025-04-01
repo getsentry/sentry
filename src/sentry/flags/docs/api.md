@@ -206,9 +206,9 @@ Any request content-type is acceptable (JSON, XML, binary-formats) so long as th
 
 - Response 201
 
-## Suspect Flag Scores [/organizations/<organization_id_or_slug>/issues/<issue_id>/flags/suspect-scores/]
+## Suspect Scores [/organizations/<organization_id_or_slug>/issues/<issue_id>/suspect/flags/]
 
-### Browse Scores [GET]
+### Browse Suspect Scores [GET]
 
 Retrieve a collection of confidence scores for all feature flags associated with an issue. Each flag appears exactly once in the result.
 
