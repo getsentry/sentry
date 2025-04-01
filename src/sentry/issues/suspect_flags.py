@@ -1,15 +1,9 @@
-from collections import defaultdict
-from collections.abc import Mapping
 from datetime import datetime
 
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
-from sentry.seer.workflows.compare import kl_compare_sets
+from sentry.seer.workflows.compare import KeyedValueCount, Score, keyed_kl_score
 from sentry.utils.snuba import raw_snql_query
-
-Attributes = Mapping[str, dict[str, float]]
-AttributesRow = tuple[str, str, float]
-Score = tuple[str, float]
 
 
 def get_suspect_flag_scores(
@@ -19,13 +13,9 @@ def get_suspect_flag_scores(
     Queries the baseline and outliers sets. Computes the KL scores of each and returns a sorted
     list of key, score values.
     """
-    baseline_rows = query_flag_rows(org_id, project_id, start, end, group_id=None)
-    baseline = as_attribute_dict(baseline_rows)
-
-    outliers_rows = query_flag_rows(org_id, project_id, start, end, group_id=group_id)
-    outliers = as_attribute_dict(outliers_rows)
-
-    return kl_score(baseline, outliers)
+    baseline = query_flag_rows(org_id, project_id, start, end, group_id=None)
+    outliers = query_flag_rows(org_id, project_id, start, end, group_id=group_id)
+    return keyed_kl_score(baseline, outliers)
 
 
 def query_flag_rows(
@@ -34,9 +24,9 @@ def query_flag_rows(
     start: datetime,
     end: datetime,
     group_id: int | None,
-) -> list[AttributesRow]:
+) -> list[KeyedValueCount]:
     """
-    Query for the count of unique flag-key, flag-value pairings. Specifying a primary-hash will
+    Query for the count of unique flag-key, flag-value pairings. Specifying a group-id will
     narrow the query to a particular issue.
 
     SQL:
@@ -46,7 +36,7 @@ def query_flag_rows(
             project_id = {project_id} AND
             timestamp >= {start} AND
             timestamp < {end} AND
-            primary_hash = {primary_hash}
+            group_id = {group_id}
         )
         GROUP BY variants
     """
@@ -98,29 +88,3 @@ def query_flag_rows(
         (result["variants"][0], result["variants"][1], float(result["count"]))
         for result in response["data"]
     ]
-
-
-def as_attribute_dict(rows: list[AttributesRow]) -> Attributes:
-    """
-    Coerce a database result into a standardized type.
-    """
-    attributes: Mapping[str, dict[str, float]] = defaultdict(dict[str, float])
-    for key, value, count in rows:
-        attributes[key][value] = count
-    return attributes
-
-
-def kl_score(baseline: Attributes, outliers: Attributes) -> list[Score]:
-    """
-    Computes the KL scores of each key in the outlier set and returns a sorted list, in descending
-    order, of key, score values.
-    """
-    return sorted(
-        (
-            (key, kl_compare_sets(baseline[key], outliers[key]))
-            for key in outliers
-            if key in baseline
-        ),
-        key=lambda k: k[1],
-        reverse=True,
-    )
