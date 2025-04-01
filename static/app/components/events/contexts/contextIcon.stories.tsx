@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import ContextIcon, {NAMES} from 'sentry/components/events/contexts/contextIcon';
+import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import {Tooltip} from 'sentry/components/tooltip';
 import storyBook from 'sentry/stories/storyBook';

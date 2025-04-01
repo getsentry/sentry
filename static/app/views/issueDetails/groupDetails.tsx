@@ -825,7 +825,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      tourContext={IssueDetailsTourContext}
+      TourContext={IssueDetailsTourContext}
     >
       <GroupDetailsContent
         {...props}

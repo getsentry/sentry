@@ -17,7 +17,11 @@ from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.integrations.middleware.metrics import MiddlewareOperationEvent, MiddlewareOperationType
+from sentry.integrations.middleware.metrics import (
+    MiddlewareHaltReason,
+    MiddlewareOperationEvent,
+    MiddlewareOperationType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -308,7 +312,10 @@ class BaseRequestParser(ABC):
             )
 
             if organization_integrations.count() == 0:
-                raise OrganizationIntegration.DoesNotExist()
+                lifecycle.record_halt(
+                    halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
+                )
+                return []
 
             organization_ids = [oi.organization_id for oi in organization_integrations]
             return organization_mapping_service.get_many(organization_ids=organization_ids)
@@ -322,8 +329,11 @@ class BaseRequestParser(ABC):
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
+        if len(organizations) == 0:
+            return []
+
         region_names = find_regions_for_orgs([org.id for org in organizations])
         return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
-        return HttpResponse(status=400)
+        return HttpResponse(status=status.HTTP_400_BAD_REQUEST)

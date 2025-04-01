@@ -2,7 +2,7 @@ import logging
 from collections.abc import Sequence
 
 from sentry.issues.auto_source_code_config.code_mapping import CodeMapping
-from sentry.issues.auto_source_code_config.utils import PlatformConfig
+from sentry.issues.auto_source_code_config.utils.platform import PlatformConfig
 from sentry.models.project import Project
 from sentry.utils import metrics
 

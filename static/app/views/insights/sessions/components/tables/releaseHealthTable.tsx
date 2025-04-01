@@ -1,9 +1,9 @@
 import {type ReactNode, useCallback, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
-import Duration from 'sentry/components/duration';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
 import GridEditable from 'sentry/components/gridEditable';
@@ -28,11 +28,11 @@ type ReleaseHealthItem = {
   crash_free_sessions: number;
   date: string;
   error_count: number;
-  lifespan: number | undefined;
   project: ReleaseProject;
   project_id: number;
   release: string;
   sessions: number;
+  status: string;
 };
 
 interface Props {
@@ -54,7 +54,7 @@ const BASE_COLUMNS: Array<GridColumnOrder<keyof ReleaseHealthItem>> = [
   {key: 'crash_free_sessions', name: 'crash free rate'},
   {key: 'sessions', name: 'total sessions'},
   {key: 'error_count', name: 'new issues'},
-  {key: 'lifespan', name: 'lifespan'},
+  {key: 'status', name: 'status'},
 ];
 
 export default function ReleaseHealthTable({
@@ -64,6 +64,7 @@ export default function ReleaseHealthTable({
   location,
   meta,
 }: Props) {
+  const theme = useTheme();
   const {currentSort, makeSortLinkGenerator} = useQueryBasedSorting({
     defaultSort: {field: 'date', kind: 'desc'},
     location,
@@ -91,21 +92,6 @@ export default function ReleaseHealthTable({
   const renderBodyCell = useCallback(
     (column: Column, dataRow: ReleaseHealthItem) => {
       const value = dataRow[column.key];
-
-      if (column.key === 'lifespan') {
-        return value === undefined ? (
-          // the last lifespan in the table is rendered as '--' since there's nothing previous to compare it to
-          '--'
-        ) : (
-          <CellWrapper>
-            <Duration
-              precision="hours"
-              abbreviation
-              seconds={(value as number) * (1 / 1000)}
-            />
-          </CellWrapper>
-        );
-      }
 
       if (column.key === 'adoption' || column.key === 'crash_free_sessions') {
         return `${(value as number).toFixed(2)}%`;
@@ -148,11 +134,12 @@ export default function ReleaseHealthTable({
             location,
             organization,
             unit: meta.units?.[column.key],
+            theme,
           })}
         </CellWrapper>
       );
     },
-    [organization, location, meta]
+    [organization, location, meta, theme]
   );
 
   const tableEmptyMessage = (
@@ -180,7 +167,6 @@ export default function ReleaseHealthTable({
         renderHeadCell,
         renderBodyCell: (column, row) => renderBodyCell(column, row),
       }}
-      title={t('Release Health')}
     />
   );
 }

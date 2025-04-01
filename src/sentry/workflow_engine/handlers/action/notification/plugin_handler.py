@@ -7,7 +7,7 @@ from sentry.workflow_engine.types import ActionHandler, WorkflowEventData
 
 @action_handler_registry.register(Action.Type.PLUGIN)
 class PluginActionHandler(ActionHandler):
-    group = ActionHandler.Group.NOTIFICATION
+    group = ActionHandler.Group.OTHER
 
     config_schema = GENERIC_ACTION_CONFIG_SCHEMA
     data_schema = {}

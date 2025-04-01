@@ -57,9 +57,5 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
     }
   }, [props.input, props.traceID, props.type, props.frameFilter]);
 
-  return (
-    <ProfileGroupContext.Provider value={profileGroup}>
-      {props.children}
-    </ProfileGroupContext.Provider>
-  );
+  return <ProfileGroupContext value={profileGroup}>{props.children}</ProfileGroupContext>;
 }
