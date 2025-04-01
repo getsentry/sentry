@@ -829,7 +829,8 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         }
 
     @override_options({"alerts.issue_summary_timeout": 5})
-    def test_build_group_block_with_ai_summary(self):
+    @with_feature({"organizations:gen-ai-features", "projects:trigger-issue-summary-on-alerts"})
+    def test_build_group_block_with_ai_summary_with_feature_flag(self):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -863,17 +864,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             "possibleCause": "This is a possible cause",
         }
         patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
-        features_path = "sentry.integrations.utils.issue_summary_for_alerts.features.has"
         serializer_path = "sentry.api.serializers.models.event.EventSerializer.serialize"
         serializer_mock = Mock(return_value={})
 
         with (
             patch(patch_path) as mock_get_summary,
-            patch(features_path) as mock_features,
             patch(serializer_path, serializer_mock),
         ):
             mock_get_summary.return_value = (mock_summary, 200)
-            mock_features.return_value = True
 
             blocks = SlackIssuesMessageBuilder(group).build()
 
@@ -895,9 +893,37 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             # Check that the original text is not present
             assert "Identity not found" not in content_block
 
-        # Test with feature flag disabled
-        with patch(patch_path) as mock_get_summary, patch(features_path) as mock_features:
-            mock_features.return_value = False
+    @override_options({"alerts.issue_summary_timeout": 5})
+    def test_build_group_block_with_ai_summary_without_feature_flag(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "IntegrationError",
+                "fingerprint": ["group-1"],
+                "exception": {
+                    "values": [
+                        {
+                            "type": "IntegrationError",
+                            "value": "Identity not found.",
+                        }
+                    ]
+                },
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+        assert event.group
+        group = event.group
+        group.type = ErrorGroupType.type_id
+        group.save()
+        assert group.issue_category == GroupCategory.ERROR
+
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+
+        patch_path = "sentry.integrations.utils.issue_summary_for_alerts.get_issue_summary"
+
+        with patch(patch_path) as mock_get_summary:
             mock_get_summary.assert_not_called()
             blocks = SlackIssuesMessageBuilder(group).build()
             assert "IntegrationError" in blocks["blocks"][0]["text"]["text"]
