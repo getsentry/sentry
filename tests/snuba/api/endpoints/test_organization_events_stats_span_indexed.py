@@ -1578,7 +1578,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
 
         assert response.status_code == 400, response.content
         assert (
-            "Time_Spent_Percentage Is Not Enabled For This Request. Reason: Not Supported For Timeseries Requests"
+            "The Function Time_Spent_Percentage Is Not Allowed For This Query"
             in response.data["detail"].title()
         )
 

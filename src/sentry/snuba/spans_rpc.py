@@ -67,6 +67,7 @@ def get_resolver(
     params: SnubaParams,
     config: SearchResolverConfig,
 ) -> SearchResolver:
+
     return SearchResolver(
         params=params,
         config=config,
