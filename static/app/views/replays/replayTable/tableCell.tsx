@@ -453,6 +453,7 @@ export function TransactionCell({
   replay,
 }: Props & {organization: Organization}) {
   const location = useLocation();
+  const theme = useTheme();
 
   if (replay.is_archived) {
     return <Item isArchived />;
@@ -465,7 +466,7 @@ export function TransactionCell({
         {txDuration ? <div>{txDuration}ms</div> : null}
         {spanOperationRelativeBreakdownRenderer(
           replay.txEvent,
-          {organization, location},
+          {organization, location, theme},
           {enableOnClick: false}
         )}
       </SpanOperationBreakdown>

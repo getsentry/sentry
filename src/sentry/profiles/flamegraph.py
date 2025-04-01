@@ -568,6 +568,7 @@ class FlamegraphExecutor:
             offset=0,
             limit=limit,
             referrer=Referrer.API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH.value,
+            sampling_mode=None,
             config=SearchResolverConfig(
                 auto_fields=True,
             ),

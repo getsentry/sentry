@@ -1,9 +1,9 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-import theme from 'sentry/utils/theme';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useNavContext} from 'sentry/views/nav/context';
 import {NavLayout} from 'sentry/views/nav/types';
@@ -35,6 +35,7 @@ export function PrimaryButtonOverlay({
   children,
   overlayProps,
 }: PrimaryButtonOverlayProps) {
+  const theme = useTheme();
   const {layout} = useNavContext();
 
   return (
