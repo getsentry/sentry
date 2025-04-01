@@ -170,6 +170,7 @@ DETAILED_PROJECT = {
     "groupingConfig": DEFAULT_GROUPING_CONFIG,
     "groupingEnhancements": "",
     "groupingEnhancementsBase": None,
+    "derivedGroupingEnhancements": "",
     "secondaryGroupingExpiry": 1687010243,
     "secondaryGroupingConfig": LEGACY_GROUPING_CONFIG,
     "fingerprintingRules": "",
