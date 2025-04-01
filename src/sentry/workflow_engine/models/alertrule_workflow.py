@@ -1,7 +1,12 @@
 from django.db.models import CheckConstraint, Q
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    region_silo_model,
+)
 
 
 @region_silo_model
@@ -12,8 +17,8 @@ class AlertRuleWorkflow(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
-    rule = FlexibleForeignKey("sentry.Rule", null=True)
+    alert_rule = BoundedBigIntegerField(null=True)
+    rule = BoundedBigIntegerField(null=True)
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
 
     class Meta:
