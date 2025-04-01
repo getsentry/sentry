@@ -8,6 +8,11 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import {
+  DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
+  DEFAULT_VISUALIZATION_FIELD,
+} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
   type ReadableExploreQueryParts,
@@ -27,9 +32,31 @@ type Props = {
 export function VisualizeSection({query, index}: Props) {
   const parsedFunction = query.yAxes.map(parseFunction).find(defined);
 
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({
+  // We want to lock down the fields dropdown when using count so that we can
+  // render `count(spans)` for better legibility. However, for backwards
+  // compatibility, we don't want to lock down all `count` queries immediately.
+  const lockOptions =
+    defined(parsedFunction) &&
+    parsedFunction.name === DEFAULT_VISUALIZATION_AGGREGATE &&
+    parsedFunction.arguments.length === 1 &&
+    parsedFunction.arguments[0] === DEFAULT_VISUALIZATION_FIELD;
+
+  const countFieldOptions: Array<SelectOption<string>> = useMemo(
+    () => [
+      {
+        label: t('spans'),
+        value: 'spans',
+        textValue: 'spans',
+      },
+    ],
+    []
+  );
+  const defaultFieldOptions: Array<SelectOption<string>> = useVisualizeFields({
     yAxes: query.yAxes,
   });
+  const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
+
+  const fieldValue = lockOptions ? 'spans' : parsedFunction?.arguments?.[0];
 
   const updateYAxis = useUpdateQueryAtIndex(index);
 
@@ -60,18 +87,22 @@ export function VisualizeSection({query, index}: Props) {
             options={aggregateOptions}
             value={parsedFunction?.name}
             onChange={newAggregate => {
-              const newYAxis = `${newAggregate.value}(${parsedFunction!.arguments[0]})`;
+              const newYAxis =
+                newAggregate.value === DEFAULT_VISUALIZATION_AGGREGATE
+                  ? DEFAULT_VISUALIZATION
+                  : `${newAggregate.value}(${parsedFunction!.arguments[0]})`;
               updateYAxis({yAxes: [newYAxis]});
             }}
           />
           <CompactSelect
             searchable
             options={fieldOptions}
-            value={parsedFunction?.arguments[0]}
+            value={fieldValue}
             onChange={newField => {
               const newYAxis = `${parsedFunction!.name}(${newField.value})`;
               updateYAxis({yAxes: [newYAxis]});
             }}
+            disabled={lockOptions}
           />
         </StyledPageFilterBar>
       </Fragment>

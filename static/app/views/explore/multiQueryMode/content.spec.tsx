@@ -67,6 +67,99 @@ describe('MultiQueryModeContent', function () {
     });
   });
 
+  it('disables changing fields for count', function () {
+    function Component() {
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-visualize-0');
+    expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
+  });
+
+  it('changes to count(span.duration) when using count', async function () {
+    let queries: any;
+    function Component() {
+      queries = useReadQueriesFromLocation();
+      return <MultiQueryModeContent />;
+    }
+
+    render(
+      <PageParamsProvider>
+        <SpanTagsProvider dataset={DiscoverDatasets.SPANS_EAP} enabled>
+          <Component />
+        </SpanTagsProvider>
+      </PageParamsProvider>,
+      {disableRouterMocks: true}
+    );
+
+    const section = screen.getByTestId('section-visualize-0');
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'span.duration',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['avg(span.self_time)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.self_time'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'count'}));
+
+    expect(queries).toEqual([
+      {
+        chartType: 1,
+        yAxes: ['count(span.duration)'],
+        sortBys: [
+          {
+            field: 'id',
+            kind: 'desc',
+          },
+        ],
+        fields: ['id', 'span.duration'],
+        groupBys: [],
+        query: '',
+      },
+    ]);
+  });
+
   it('updates visualization and outdated sorts', async function () {
     let queries: any;
     function Component() {
@@ -86,7 +179,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -99,6 +192,8 @@ describe('MultiQueryModeContent', function () {
       },
     ]);
     const section = screen.getByTestId('section-visualize-0');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(queries).toEqual([
@@ -137,7 +232,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -155,7 +250,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'id',
@@ -188,7 +283,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -205,11 +300,11 @@ describe('MultiQueryModeContent', function () {
     await userEvent.click(within(section).getByRole('option', {name: 'span.op'}));
     expect(queries).toEqual([
       {
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         chartType: 1,
         sortBys: [
           {
-            field: 'avg(span.duration)',
+            field: 'count(span.duration)',
             kind: 'desc',
           },
         ],
@@ -239,7 +334,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -257,7 +352,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -270,7 +365,7 @@ describe('MultiQueryModeContent', function () {
       },
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -284,6 +379,8 @@ describe('MultiQueryModeContent', function () {
     ]);
 
     const section = screen.getByTestId('section-visualize-0');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
     expect(queries).toEqual([
@@ -302,7 +399,7 @@ describe('MultiQueryModeContent', function () {
       },
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -318,7 +415,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -351,7 +448,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -384,7 +481,7 @@ describe('MultiQueryModeContent', function () {
             statsPeriod: '7d',
             topEvents: undefined,
             useRpc: '1',
-            yAxis: 'avg(span.duration)',
+            yAxis: 'count(span.duration)',
           }),
         })
       )
@@ -426,17 +523,17 @@ describe('MultiQueryModeContent', function () {
           query: expect.objectContaining({
             dataset: 'spans',
             excludeOther: 0,
-            field: ['span.op', 'avg(span.duration)'],
+            field: ['span.op', 'count(span.duration)'],
             interval: '12h',
-            orderby: '-avg_span_duration',
+            orderby: '-count_span_duration',
             project: ['2'],
             query: '!transaction.span_id:00',
             referrer: 'api.explorer.stats',
-            sort: '-avg_span_duration',
+            sort: '-count_span_duration',
             statsPeriod: '7d',
             topEvents: '5',
             useRpc: '1',
-            yAxis: 'avg(span.duration)',
+            yAxis: 'count(span.duration)',
           }),
         })
       )
@@ -449,12 +546,12 @@ describe('MultiQueryModeContent', function () {
           query: expect.objectContaining({
             dataset: 'spans',
             environment: [],
-            field: ['span.op', 'avg(span.duration)'],
+            field: ['span.op', 'count(span.duration)'],
             per_page: 10,
             project: ['2'],
             query: '!transaction.span_id:00',
             referrer: 'api.explore.multi-query-spans-table',
-            sort: '-avg_span_duration',
+            sort: '-count_span_duration',
             statsPeriod: '7d',
             useRpc: '1',
           }),
@@ -504,7 +601,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'span.duration',
@@ -526,7 +623,7 @@ describe('MultiQueryModeContent', function () {
     expect(queries).toEqual([
       {
         chartType: 1,
-        yAxes: ['avg(span.duration)'],
+        yAxes: ['count(span.duration)'],
         sortBys: [
           {
             field: 'id',
