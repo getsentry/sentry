@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Mapping, Sequence
+from typing import Any
 from urllib.parse import parse_qsl
 
 from oauthlib.oauth1 import SIGNATURE_RSA
@@ -7,28 +9,22 @@ from requests_oauthlib import OAuth1
 
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.base import IntegrationFeatureNotImplementedError
+from sentry.integrations.bitbucket_server.blame import fetch_file_blames
+from sentry.integrations.bitbucket_server.utils import BitbucketServerAPIPath
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextClient,
+    FileBlameInfo,
+    SourceLineInfo,
+)
 from sentry.integrations.source_code_management.repository import RepositoryClient
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
-
-
-class BitbucketServerAPIPath:
-    """
-    project is the short key of the project
-    repo is the fully qualified slug
-    """
-
-    repository = "/rest/api/1.0/projects/{project}/repos/{repo}"
-    repositories = "/rest/api/1.0/repos"
-    repository_hook = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks/{id}"
-    repository_hooks = "/rest/api/1.0/projects/{project}/repos/{repo}/webhooks"
-    repository_commits = "/rest/api/1.0/projects/{project}/repos/{repo}/commits"
-    commit_changes = "/rest/api/1.0/projects/{project}/repos/{repo}/commits/{commit}/changes"
 
 
 class BitbucketServerSetupClient(ApiClient):
@@ -100,7 +96,7 @@ class BitbucketServerSetupClient(ApiClient):
         return self._request(*args, **kwargs)
 
 
-class BitbucketServerClient(ApiClient, RepositoryClient):
+class BitbucketServerClient(ApiClient, RepositoryClient, CommitContextClient):
     """
     Contains the BitBucket Server specifics in order to communicate with bitbucket
 
@@ -256,9 +252,50 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         return values
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
-        raise IntegrationFeatureNotImplementedError
+        return self.head_cached(
+            path=BitbucketServerAPIPath.build_source(
+                project=repo.config["project"],
+                repo=repo.config["repo"],
+                path=path,
+                sha=version,
+            ),
+        )
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
     ) -> str:
+        response = self.get_cached(
+            path=BitbucketServerAPIPath.build_raw(
+                project=repo.config["project"],
+                repo=repo.config["repo"],
+                path=path,
+                sha=ref,
+            ),
+            raw_response=True,
+        )
+        return response.text
+
+    def get_blame_for_files(
+        self, files: Sequence[SourceLineInfo], extra: Mapping[str, Any]
+    ) -> list[FileBlameInfo]:
+        metrics.incr("integrations.bitbucket_server.get_blame_for_files")
+        return fetch_file_blames(
+            self,
+            files,
+            extra={
+                **extra,
+                "provider": "bitbucket_server",
+                "org_integration_id": self.integration_id,
+            },
+        )
+
+    def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> Any:
+        raise IntegrationFeatureNotImplementedError
+
+    def update_comment(
+        self, repo: str, issue_id: str, comment_id: str, data: Mapping[str, Any]
+    ) -> Any:
+        raise IntegrationFeatureNotImplementedError
+
+    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
         raise IntegrationFeatureNotImplementedError
