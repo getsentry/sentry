@@ -38,7 +38,9 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
     static displayName = `Hook(${name})`;
 
     state = {
-      hooks: HookStore.get(name).map(cb => cb(props)),
+      hooks: HookStore.get(name).map((HookComp, index) => (
+        <HookComp key={index} {...props} />
+      )),
     };
 
     componentWillUnmount() {
@@ -51,7 +53,9 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
         return;
       }
 
-      this.setState({hooks: hooks.map(cb => cb(props))});
+      this.setState({
+        hooks: hooks.map((HookComp, index) => <HookComp key={index} {...props} />),
+      });
     }
 
     unsubscribe = HookStore.listen(
