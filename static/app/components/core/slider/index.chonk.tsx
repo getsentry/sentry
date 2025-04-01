@@ -26,7 +26,7 @@ export function Slider({
   const {value, min, max} = resolveMinMaxValue(props);
   const [label, setLabel] = useState(value);
   const initialProgress = getProgress(value, min, max);
-  const filledSteps = useMemo(() => (step === -1 ? -1 : label / step), [step, label]);
+  const filledSteps = step === -1 ? -1 : label / step;
 
   const handleChange = useCallback(
     (event: Event) => {
