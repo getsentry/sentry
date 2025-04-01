@@ -47,7 +47,10 @@ export function DatabaseLandingPage() {
   const hasModuleData = useHasFirstSpan(moduleName);
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
-  const spanDescription = decodeScalar(location.query?.['span.description'], '');
+  const spanDescription = decodeScalar(
+    location.query?.['sentry.normalized_description'],
+    ''
+  );
   const spanAction = decodeScalar(location.query?.['span.action']);
   const spanDomain = decodeScalar(location.query?.['span.domain']);
 
@@ -76,7 +79,7 @@ export function DatabaseLandingPage() {
       ...location,
       query: {
         ...location.query,
-        'span.description': newQuery === '' ? undefined : newQuery,
+        'sentry.normalized_description': newQuery === '' ? undefined : newQuery,
         [QueryParameterNames.SPANS_CURSOR]: undefined,
       },
     });
@@ -93,7 +96,7 @@ export function DatabaseLandingPage() {
     ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
-    'span.description': spanDescription ? `*${spanDescription}*` : undefined,
+    'sentry.normalized_description': spanDescription ? `*${spanDescription}*` : undefined,
     'span.system': system,
   };
 
@@ -105,7 +108,7 @@ export function DatabaseLandingPage() {
       fields: [
         'project.id',
         'span.group',
-        'span.description',
+        'sentry.normalized_description',
         'span.action',
         'epm()',
         'avg(span.self_time)',
