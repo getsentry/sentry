@@ -58,6 +58,7 @@ from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
 )
+from sentry.relocation.tasks import relocation_tasks
 from sentry.relocation.tasks.transfer import process_relocation_transfer_region
 from sentry.relocation.utils import (
     TASK_TO_STEP,
@@ -75,7 +76,6 @@ from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
-from sentry.taskworker.registry import relocation_tasks
 from sentry.taskworker.retry import LastAction, Retry
 from sentry.types.region import get_local_region
 from sentry.users.models.lostpasswordhash import LostPasswordHash
