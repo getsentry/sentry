@@ -27,7 +27,7 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
   return (
-    <OrganizationContext.Provider value={data.organization}>
+    <OrganizationContext value={data.organization}>
       <MetricsCardinalityProvider
         location={data.router.location}
         organization={data.organization}
@@ -53,7 +53,7 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
           </PerformanceDisplayProvider>
         </MEPSettingProvider>
       </MetricsCardinalityProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 

@@ -97,7 +97,7 @@ function Content({
   const colors = () =>
     currentFilter === SpanOperationBreakdownFilter.NONE
       ? theme.chart.getColorPalette(1)
-      : [filterToColor(currentFilter)];
+      : [filterToColor(currentFilter, theme)];
 
   return <Chart series={transformData(chartData.data, false)} colors={colors} />;
 }

@@ -36,10 +36,15 @@ const LOGS_INSTRUCTIONS_URL = 'https://github.com/getsentry/sentry/discussions/8
 
 export type LogsTableProps = {
   tableData: UseExploreLogsTableResult;
+  allowPagination?: boolean;
   showHeader?: boolean;
 };
 
-export function LogsTable({tableData, showHeader}: LogsTableProps) {
+export function LogsTable({
+  tableData,
+  showHeader = true,
+  allowPagination = true,
+}: LogsTableProps) {
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setCursor = useSetLogsCursor();
@@ -60,7 +65,7 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
   return (
     <Fragment>
       <Table ref={tableRef} styles={initialTableStyles}>
-        {showHeader === false ? null : (
+        {showHeader ? (
           <TableHead>
             <LogTableRow>
               {fields.map((field, index) => {
@@ -112,7 +117,7 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
               })}
             </LogTableRow>
           </TableHead>
-        )}
+        ) : null}
         <LogTableBody>
           {isPending && (
             <TableStatus>
@@ -156,7 +161,7 @@ export function LogsTable({tableData, showHeader}: LogsTableProps) {
           ))}
         </LogTableBody>
       </Table>
-      <Pagination pageLinks={pageLinks} onCursor={setCursor} />
+      {allowPagination ? <Pagination pageLinks={pageLinks} onCursor={setCursor} /> : null}
     </Fragment>
   );
 }

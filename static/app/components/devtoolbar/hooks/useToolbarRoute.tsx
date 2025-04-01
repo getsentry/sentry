@@ -11,7 +11,7 @@ type State = {
     | 'replay';
 };
 
-const context = createContext<{
+const Context = createContext<{
   setActivePanel: (activePanel: State['activePanel']) => void;
   state: State;
 }>({
@@ -33,9 +33,9 @@ export function ToolbarRouterContextProvider({children}: {children: React.ReactN
     [setState]
   );
 
-  return <context.Provider value={{setActivePanel, state}}>{children}</context.Provider>;
+  return <Context value={{setActivePanel, state}}>{children}</Context>;
 }
 
 export default function useToolbarRoute() {
-  return useContext(context);
+  return useContext(Context);
 }

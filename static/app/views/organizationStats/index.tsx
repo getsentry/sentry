@@ -42,7 +42,7 @@ import {getDocsLinkForEventType} from 'sentry/views/settings/account/notificatio
 import type {ChartDataTransform} from './usageChart';
 import {CHART_OPTIONS_DATACATEGORY} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
-import UsageStatsProjects from './usageStatsProjects';
+import {UsageStatsProjects} from './usageStatsProjects';
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 
@@ -382,7 +382,6 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
                 </div>
                 <ErrorBoundary mini>
                   <UsageStatsProjects
-                    organization={organization}
                     dataCategory={this.dataCategoryInfo}
                     dataCategoryName={this.dataCategoryInfo.titleName}
                     isSingleProject={this.isSingleProject}

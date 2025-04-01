@@ -14,9 +14,7 @@ const {organization} = initializeOrg();
 function TestContext({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
@@ -32,9 +30,9 @@ describe('useProfileEvents', function () {
     function TestContextUsingTransactions({children}: {children?: ReactNode}) {
       return (
         <QueryClientProvider client={makeTestQueryClient()}>
-          <OrganizationContext.Provider value={organizationUsingTransactions}>
+          <OrganizationContext value={organizationUsingTransactions}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         </QueryClientProvider>
       );
     }

@@ -54,7 +54,7 @@ const onboarding: OnboardingConfig = {
           description:
             params.docsLocation === DocsPageLocation.PROFILING_PAGE
               ? tct(
-                  'You need a minimum version [code:1.18.0] of the [code:sentry-python] SDK for the profiling feature.',
+                  'You need a minimum version [code:2.24.1] of the [code:sentry-python] SDK for the profiling feature.',
                   {
                     code: <code />,
                   }
