@@ -37,7 +37,7 @@ describe('useActiveNavGroup', function () {
       [PrimaryNavGroup.PIPELINE, '/pipeline/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       render(<TestComponent />, {
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,
@@ -60,7 +60,7 @@ describe('useActiveNavGroup', function () {
     ])('correctly matches %s nav group', async function (navGroup, path) {
       mockUsingCustomerDomain.mockReturnValue(false);
       render(<TestComponent />, {
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,
