@@ -5,6 +5,7 @@ from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -1672,3 +1673,120 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsStatsSpansMetri
         assert data[1][1][0]["count"] == 2.0
         assert data[2][1][0]["count"] == 0.0
         assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_downsampling_single_series(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "success"}},
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=self.is_eap,
+        )
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "PREFLIGHT",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0][1][0]["count"] == 0
+        assert data[1][1][0]["count"] == 512  # The preflight table is 1/512 of the full table
+        assert data[2][1][0]["count"] == 0
+        assert response.data["meta"]["dataset"] == self.dataset
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "BEST_EFFORT",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0][1][0]["count"] == 0
+        assert data[1][1][0]["count"] == 1
+        assert data[2][1][0]["count"] == 0
+        assert response.data["meta"]["dataset"] == self.dataset
+
+    def test_downsampling_top_events(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            duration=100,
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "failure"}},
+            duration=10,
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=self.is_eap,
+        )
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                "field": ["span.description", "sum(span.self_time)"],
+                "orderby": ["-sum(span.self_time)"],
+                "topEvents": 1,
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "PREFLIGHT",
+            },
+        )
+
+        assert "foo" in response.data
+        assert "Other" not in response.data
+
+        rows = response.data["foo"]["data"][0:6]
+        for expected, result in zip([0, 512, 0], rows):
+            assert result[1][0]["count"] == expected
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=3),
+                "interval": "1m",
+                # update to span.description once https://github.com/getsentry/eap-planning/issues/237 is fixed
+                "field": ["span.status", "sum(span.self_time)"],
+                "orderby": ["-sum(span.self_time)"],
+                "topEvents": 1,
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "BEST_EFFORT",
+            },
+        )
+
+        assert "success" in response.data
+        assert "Other" in response.data
+
+        rows = response.data["success"]["data"][0:6]
+        for expected, result in zip([0, 1, 0], rows):
+            assert result[1][0]["count"] == expected
