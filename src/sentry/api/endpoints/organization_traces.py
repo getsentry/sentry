@@ -11,6 +11,18 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import (
+    GetTracesRequest,
+    GetTracesResponse,
+    TraceAttribute,
+)
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, IntArray
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    TraceItemFilter,
+)
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 from urllib3.exceptions import ReadTimeoutError
 
@@ -24,6 +36,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.spans_indexed import (
@@ -34,9 +47,10 @@ from sentry.search.events.builder.spans_indexed import (
 )
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams, WhereType
-from sentry.snuba import discover, spans_indexed
+from sentry.snuba import discover, spans_indexed, spans_rpc
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
+from sentry.utils import snuba_rpc
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries_with_referrers
@@ -90,6 +104,7 @@ class OrganizationTracesSerializer(serializers.Serializer):
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     sort = serializers.CharField(required=False)
+    useRpc = serializers.BooleanField(required=False)
 
     def validate_dataset(self, value):
         if value == "spans":
@@ -162,6 +177,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
                 project_slugs=None,
                 include_all_accessible=True,
             ),
+            use_rpc=bool(serialized["useRpc"]),
         )
 
         return self.paginate(
@@ -333,15 +349,21 @@ class TracesExecutor:
         limit: int,
         breakdown_slices: int,
         get_all_projects: Callable[[], list[Project]],
+        use_rpc: bool,
     ):
         self.dataset = dataset
         self.snuba_params = snuba_params
+        self.raw_user_queries = user_queries
+        self.rpc_user_queries = (
+            process_rpc_user_queries(snuba_params, user_queries) if use_rpc else None
+        )
         self.user_queries = process_user_queries(snuba_params, user_queries, dataset)
         self.sort = sort
         self.offset = 0
         self.limit = limit
         self.breakdown_slices = breakdown_slices
         self.get_all_projects = get_all_projects
+        self.use_rpc = use_rpc
 
     def params_with_all_projects(self) -> SnubaParams:
         all_projects_snuba_params = dataclasses.replace(
@@ -357,7 +379,245 @@ class TracesExecutor:
             self.offset = offset
             self.limit = limit
 
+        if self.use_rpc:
+            return {"data": self._execute_rpc()}
+
         return {"data": self._execute()}
+
+    def _execute_rpc(self):
+        if self.snuba_params.organization_id is None:
+            raise Exception("An organization is required to resolve queries")
+
+        all_projects = self.get_all_projects()
+
+        rpc_request = self.get_traces_rpc(all_projects)
+
+        rpc_response = snuba_rpc.traces_rpc(rpc_request)
+
+        if not rpc_response.traces:
+            return []
+
+        traces = [format_trace_result(trace, all_projects) for trace in rpc_response.traces]
+
+        with handle_span_query_errors():
+            snuba_params = self.params_with_all_projects()
+            self.enrich_eap_traces_with_extra_data(traces, snuba_params)
+
+        return traces
+
+    def enrich_eap_traces_with_extra_data(
+        self,
+        traces: list[TraceResult],
+        snuba_params: SnubaParams,
+    ):
+        trace_ids = [trace["trace"] for trace in traces]
+
+        breakdown_raw_results = spans_rpc.run_table_query(
+            params=snuba_params,
+            query_string=f"is_transaction:1 trace:[{','.join(trace_ids)}]",
+            selected_columns=[
+                "trace",
+                "project",
+                "sdk.name",
+                "span.op",
+                "parent_span",
+                "transaction",
+                "precise.start_ts",
+                "precise.finish_ts",
+                "span.duration",
+            ],
+            orderby=["precise.start_ts", "-precise.finish_ts"],
+            offset=0,
+            limit=MAX_SNUBA_RESULTS,
+            referrer=Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS.value,
+            config=SearchResolverConfig(auto_fields=True),
+            sampling_mode=None,
+        )
+        spans = breakdown_raw_results["data"]
+
+        extra_queries = [
+            self.get_traces_errors_query(snuba_params, trace_ids),
+            self.get_traces_occurrences_query(snuba_params, trace_ids),
+        ]
+
+        extra_raw_results = bulk_snuba_queries_with_referrers(
+            [(query.get_snql_query(), referrer.value) for query, referrer in extra_queries]
+        )
+
+        extra_results = [
+            query.process_results(result)
+            for (query, _), result in zip(extra_queries, extra_raw_results)
+        ]
+
+        traces_errors: dict[str, int] = {
+            row["trace"]: row["count()"] for row in extra_results[0]["data"]
+        }
+
+        traces_occurrences: dict[str, int] = {
+            row["trace"]: row["count()"] for row in extra_results[1]["data"]
+        }
+
+        self.enrich_traces_with_extra_data(
+            traces,
+            spans,
+            traces_errors,
+            traces_occurrences,
+        )
+
+    def enrich_traces_with_extra_data(
+        self,
+        traces: list[TraceResult],
+        spans: list[dict[str, Any]],
+        traces_errors: dict[str, int],
+        traces_occurrences: dict[str, int],
+    ):
+        traces_range = {
+            trace["trace"]: {
+                "start": trace["start"],
+                "end": trace["end"],
+                "slices": self.breakdown_slices,
+            }
+            for trace in traces
+        }
+
+        spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
+
+        try:
+            traces_breakdowns = process_breakdowns(spans, traces_range)
+        except Exception as e:
+            traces_breakdowns = defaultdict(list)
+
+            context = {"traces": list(sorted(traces_range.keys()))}
+            sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
+
+        # This is the name of the trace's root span without a parent span
+        traces_primary_info: MutableMapping[str, tuple[str, str, float]] = {}
+
+        # This is the name of a span that can take the place of the trace's root
+        # based on some heuristics for that type of trace
+        traces_fallback_info: MutableMapping[str, tuple[str, str, float]] = {}
+
+        # This is the name of the first span in the trace that will be used if
+        # no other candidates names are found
+        traces_default_info: MutableMapping[str, tuple[str, str, float]] = {}
+
+        # Normally, the name given to a trace is the name of the first root transaction
+        # found within the trace.
+        #
+        # But there are some cases where traces do not have any root transactions. For
+        # these traces, we try to pick out a name from the first span that is a good
+        # candidate for the trace name.
+        for span in spans:
+            if span["trace"] in traces_primary_info:
+                continue
+
+            name: tuple[str, str, float] = (
+                span["project"],
+                span["transaction"],
+                # to minmimize the impact of floating point errors,
+                # multiply by 1e3 first then do the subtraction
+                # once we move to eap_items, this can be just `span["span.duration"]`
+                span["precise.finish_ts"] * 1e3 - span["precise.start_ts"] * 1e3,
+            )
+
+            # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
+            # So make sure to handle both in case something changes.
+            if not span["parent_span"] or int(span["parent_span"], 16) == 0:
+                traces_primary_info[span["trace"]] = name
+
+            if span["trace"] in traces_fallback_info:
+                continue
+
+            # This span is a good candidate for the trace name so use it.
+            if span["trace"] not in traces_fallback_info and is_trace_name_candidate(span):
+                traces_fallback_info[span["trace"]] = name
+
+            if span["trace"] in traces_default_info:
+                continue
+
+            # This is the first span in this trace.
+            traces_default_info[span["trace"]] = name
+
+        def get_trace_info(trace: str) -> tuple[str, str, float] | tuple[None, None, None]:
+            if trace in traces_primary_info:
+                return traces_primary_info[trace]
+
+            if trace in traces_fallback_info:
+                return traces_fallback_info[trace]
+
+            if trace in traces_default_info:
+                return traces_default_info[trace]
+
+            return (None, None, None)
+
+        for trace in traces:
+            info = get_trace_info(trace["trace"])
+            trace["project"] = info[0]
+            trace["name"] = info[1]
+            trace["rootDuration"] = info[2]
+
+            trace["numErrors"] = traces_errors.get(trace["trace"], 0)
+            trace["numOccurrences"] = traces_occurrences.get(trace["trace"], 0)
+            trace["breakdowns"] = traces_breakdowns[trace["trace"]]
+
+    def get_traces_rpc(self, projects: list[Project]):
+        meta = RequestMeta(
+            organization_id=self.snuba_params.organization_id,
+            referrer=Referrer.API_TRACE_EXPLORER_SPANS_LIST.value,
+            project_ids=[project.id for project in projects],
+            start_timestamp=self.snuba_params.rpc_start_date,
+            end_timestamp=self.snuba_params.rpc_end_date,
+            trace_item_type=TraceItemType.TRACE_ITEM_TYPE_UNSPECIFIED,
+        )
+
+        base_filter = TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.project_id", type=AttributeKey.Type.TYPE_INT),
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_int_array=IntArray(values=self.snuba_params.project_ids)),
+            )
+        )
+
+        if self.rpc_user_queries:
+            filters = [
+                GetTracesRequest.TraceFilter(
+                    item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                    filter=TraceItemFilter(
+                        and_filter=AndFilter(
+                            filters=[
+                                base_filter,
+                                user_query,
+                            ],
+                        )
+                    ),
+                )
+                for user_query in self.rpc_user_queries.values()
+            ]
+        else:
+            filters = [
+                GetTracesRequest.TraceFilter(
+                    item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
+                    filter=base_filter,
+                )
+            ]
+        return GetTracesRequest(
+            meta=meta,
+            page_token=PageToken(offset=0),
+            limit=self.limit,
+            filters=filters,
+            order_by=[
+                GetTracesRequest.OrderBy(
+                    key=TraceAttribute.Key.KEY_START_TIMESTAMP, descending=True
+                ),
+            ],
+            attributes=[
+                TraceAttribute(key=TraceAttribute.Key.KEY_TRACE_ID),
+                TraceAttribute(key=TraceAttribute.Key.KEY_START_TIMESTAMP),
+                TraceAttribute(key=TraceAttribute.Key.KEY_END_TIMESTAMP),
+                TraceAttribute(key=TraceAttribute.Key.KEY_TOTAL_ITEM_COUNT),
+                TraceAttribute(key=TraceAttribute.Key.KEY_FILTERED_ITEM_COUNT),
+            ],
+        )
 
     def _execute(self):
         with handle_span_query_errors():
@@ -460,13 +720,6 @@ class TracesExecutor:
     def get_traces_matching_conditions(
         self,
         snuba_params: SnubaParams,
-    ) -> tuple[datetime, datetime, list[str]]:
-        return self.get_traces_matching_span_conditions(snuba_params)
-
-    def get_traces_matching_span_conditions(
-        self,
-        snuba_params: SnubaParams,
-        trace_ids: list[str] | None = None,
     ) -> tuple[datetime, datetime, list[str]]:
         query, timestamp_column = self.get_traces_matching_span_conditions_query(
             snuba_params,
@@ -690,113 +943,41 @@ class TracesExecutor:
         traces_occurrences_results,
         traces_breakdown_projects_results,
     ) -> list[TraceResult]:
-        traces_range = {
-            row["trace"]: {
-                "start": row["first_seen()"],
-                "end": row["last_seen()"],
-                "slices": self.breakdown_slices,
-            }
-            for row in traces_metas_results["data"]
-        }
-
-        spans = [span for span in traces_breakdown_projects_results["data"]]
-        spans.sort(key=lambda span: (span["precise.start_ts"], span["precise.finish_ts"]))
-
-        try:
-            traces_breakdowns = process_breakdowns(spans, traces_range)
-        except Exception as e:
-            traces_breakdowns = defaultdict(list)
-
-            context = {"traces": list(sorted(traces_range.keys()))}
-            sentry_sdk.capture_exception(e, contexts={"bad_traces": context})
-
-        # This is the name of the trace's root span without a parent span
-        traces_primary_info: MutableMapping[str, tuple[str, str, float]] = {}
-
-        # This is the name of a span that can take the place of the trace's root
-        # based on some heuristics for that type of trace
-        traces_fallback_info: MutableMapping[str, tuple[str, str, float]] = {}
-
-        # This is the name of the first span in the trace that will be used if
-        # no other candidates names are found
-        traces_default_info: MutableMapping[str, tuple[str, str, float]] = {}
-
-        # Normally, the name given to a trace is the name of the first root transaction
-        # found within the trace.
-        #
-        # But there are some cases where traces do not have any root transactions. For
-        # these traces, we try to pick out a name from the first span that is a good
-        # candidate for the trace name.
-        for row in traces_breakdown_projects_results["data"]:
-            if row["trace"] in traces_primary_info:
-                continue
-
-            name: tuple[str, str, float] = (
-                row["project"],
-                row["transaction"],
-                row["span.duration"],
-            )
-
-            # The underlying column is a Nullable(UInt64) but we write a default of 0 to it.
-            # So make sure to handle both in case something changes.
-            if not row["parent_span"] or int(row["parent_span"], 16) == 0:
-                traces_primary_info[row["trace"]] = name
-
-            if row["trace"] in traces_fallback_info:
-                continue
-
-            # This span is a good candidate for the trace name so use it.
-            if row["trace"] not in traces_fallback_info and is_trace_name_candidate(row):
-                traces_fallback_info[row["trace"]] = name
-
-            if row["trace"] in traces_default_info:
-                continue
-
-            # This is the first span in this trace.
-            traces_default_info[row["trace"]] = name
-
-        def get_trace_info(trace: str) -> tuple[str, str, float] | tuple[None, None, None]:
-            if trace in traces_primary_info:
-                return traces_primary_info[trace]
-
-            if trace in traces_fallback_info:
-                return traces_fallback_info[trace]
-
-            if trace in traces_default_info:
-                return traces_default_info[trace]
-
-            return (None, None, None)
-
-        traces_errors: Mapping[str, int] = {
-            row["trace"]: row["count()"] for row in traces_errors_results["data"]
-        }
-
-        traces_occurrences: Mapping[str, int] = {
-            row["trace"]: row["count()"] for row in traces_occurrences_results["data"]
-        }
-
         results: list[TraceResult] = []
 
         for row in traces_metas_results["data"]:
-            info = get_trace_info(row["trace"])
-
             result: TraceResult = {
                 "trace": row["trace"],
-                "numErrors": traces_errors.get(row["trace"], 0),
-                "numOccurrences": traces_occurrences.get(row["trace"], 0),
+                "numErrors": 0,
+                "numOccurrences": 0,
                 "matchingSpans": row[MATCHING_COUNT_ALIAS],
                 # In EAP mode, we have to use `count_sample()` to avoid extrapolation
                 "numSpans": row.get("count()") or row.get("count_sample()") or 0,
-                "project": info[0],
-                "name": info[1],
-                "rootDuration": info[2],
+                "project": None,
+                "name": None,
+                "rootDuration": None,
                 "duration": row["last_seen()"] - row["first_seen()"],
                 "start": row["first_seen()"],
                 "end": row["last_seen()"],
-                "breakdowns": traces_breakdowns[row["trace"]],
+                "breakdowns": [],
             }
 
             results.append(result)
+
+        traces_errors: dict[str, int] = {
+            row["trace"]: row["count()"] for row in traces_errors_results["data"]
+        }
+
+        traces_occurrences: dict[str, int] = {
+            row["trace"]: row["count()"] for row in traces_occurrences_results["data"]
+        }
+
+        self.enrich_traces_with_extra_data(
+            results,
+            traces_breakdown_projects_results["data"],
+            traces_errors,
+            traces_occurrences,
+        )
 
         return results
 
@@ -1698,6 +1879,38 @@ def process_user_queries(
     return queries
 
 
+def process_rpc_user_queries(
+    snuba_params: SnubaParams,
+    user_queries: list[str],
+    dataset: Dataset = Dataset.SpansIndexed,
+) -> dict[str, TraceItemFilter]:
+    if len(user_queries) > 1:
+        raise ValueError("Only 1 user query supported")
+
+    queries: dict[str, TraceItemFilter] = {}
+
+    config = SearchResolverConfig(auto_fields=True)
+    resolver = spans_rpc.get_resolver(snuba_params, config)
+
+    for user_query in user_queries:
+        user_query = user_query.strip()
+
+        # Filter out empty queries as they do not do anything to change the results.
+        if not user_query:
+            continue
+
+        # We want to ignore all the aggregate conditions here because we're strictly
+        # searching on span attributes, not aggregates
+        where, _, _ = resolver.resolve_query(user_query)
+        if where is not None:
+            queries[user_query] = where
+
+    set_measurement("user_queries_count", len(queries))
+    sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
+
+    return queries
+
+
 OP_TO_FUNC = {
     Op.GT: "greater",
     Op.LT: "less",
@@ -1753,3 +1966,73 @@ def format_as_trace_condition(span_condition: WhereType) -> Function:
             raise ValueError(f"{span_condition.op} is not a BooleanOp")
     else:
         raise ValueError(f"{span_condition} is not a Condition or BooleanCondition")
+
+
+@dataclasses.dataclass
+class TraceInfo:
+    project: int | None = None
+    name: str | None = None
+    duration: float | None = None
+
+
+def format_trace_result(
+    trace: GetTracesResponse.Trace,
+    projects: list[Project],
+) -> TraceResult:
+    result: TraceResult = {
+        "trace": "",
+        "numErrors": 0,  # TODO
+        "numOccurrences": 0,  # TODO
+        "matchingSpans": 0,
+        "numSpans": 0,
+        "project": None,  # TODO
+        "name": None,  # TODO
+        "rootDuration": None,  # TODO
+        "duration": 0,  # TODO
+        "start": 0,
+        "end": 0,  # TODO
+        "breakdowns": [],  # TODO
+    }
+
+    for attribute in trace.attributes:
+        if attribute.key == TraceAttribute.Key.KEY_TRACE_ID:
+            result["trace"] = get_attr_val_str(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_START_TIMESTAMP:
+            result["start"] = int(get_attr_val_double(attribute) * 1000)
+        elif attribute.key == TraceAttribute.Key.KEY_END_TIMESTAMP:
+            result["end"] = int(get_attr_val_double(attribute) * 1000)
+        elif attribute.key == TraceAttribute.Key.KEY_TOTAL_ITEM_COUNT:
+            result["numSpans"] = get_attr_val_int(attribute)
+        elif attribute.key == TraceAttribute.Key.KEY_FILTERED_ITEM_COUNT:
+            result["matchingSpans"] = get_attr_val_int(attribute)
+        else:
+            raise ValueError(f"Unexpected attribute found: {attribute.key}")
+
+    if not result["start"]:
+        raise ValueError(f"Expected {TraceAttribute.Key.KEY_START_TIMESTAMP} to be present")
+    if not result["end"]:
+        raise ValueError(f"Expected {TraceAttribute.Key.KEY_END_TIMESTAMP} to be present")
+
+    result["duration"] = result["end"] - result["start"]
+
+    return result
+
+
+def validate_attribute_type(attribute: TraceAttribute, type: AttributeKey.Type.ValueType):
+    if attribute.type != type:
+        raise ValueError(f"Expected {attribute.key} to be of type {type} but got {attribute.type}")
+
+
+def get_attr_val_str(attribute: TraceAttribute) -> str:
+    validate_attribute_type(attribute, AttributeKey.Type.TYPE_STRING)
+    return attribute.value.val_str
+
+
+def get_attr_val_double(attribute: TraceAttribute) -> float:
+    validate_attribute_type(attribute, AttributeKey.Type.TYPE_DOUBLE)
+    return attribute.value.val_double
+
+
+def get_attr_val_int(attribute: TraceAttribute) -> int:
+    validate_attribute_type(attribute, AttributeKey.Type.TYPE_INT)
+    return attribute.value.val_int

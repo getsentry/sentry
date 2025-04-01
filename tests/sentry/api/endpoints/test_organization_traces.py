@@ -16,6 +16,7 @@ from sentry.utils.samples import load_data
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
     is_eap: bool = False
+    use_rpc: bool = False
 
     def setUp(self):
         super().setUp()
@@ -243,7 +244,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
 
-        timestamps.append(now - timedelta(days=1, minutes=21, seconds=0))
+        timestamps.append(now - timedelta(days=1, minutes=20, seconds=0))
         self.store_indexed_span(
             organization_id=project_1.organization.id,
             project_id=project_1.id,
@@ -282,6 +283,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
         if self.is_eap:
             query["dataset"] = "spans"
+        query["useRpc"] = "1" if self.use_rpc else "0"
 
         with self.feature(features):
             return self.client.get(
@@ -2538,6 +2540,15 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
                 assert prev_link["results"] == "true"
                 next_link = next(link for link in links.values() if link["rel"] == "next")
                 assert next_link["results"] == "false"
+
+
+class OrganizationTracesEAPRPCEndpointTest(OrganizationTracesEAPEndpointTest):
+    use_rpc = True
+
+    @pytest.mark.skip
+    def test_use_separate_referrers(self):
+        # TODO: detect the referrers correctly for RPC calls
+        pass
 
 
 class OrganizationTraceSpansEAPEndpointTest(OrganizationTraceSpansEndpointTest):
