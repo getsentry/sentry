@@ -303,7 +303,7 @@ class OrganizationMemberInvitePostTest(APITestCase):
     def test_rate_limited(self, mock_rate_limit):
         mock_rate_limit.return_value = True
 
-        data = {"email": "mifu@email.com", "role": "member"}
+        data = {"email": "mifu@email.com", "orgRole": "member"}
         self.get_error_response(self.organization.slug, **data, status_code=429)
         assert not OrganizationMemberInvite.objects.filter(email="mifu@email.com").exists()
 
