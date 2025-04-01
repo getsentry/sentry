@@ -311,9 +311,13 @@ class OnDemandBudgetEditModal extends Component<Props, State> {
       <Fragment>
         <Header closeButton>
           <h4>
-            {tct('[action] [budgetType] Budget', {
+            {tct('[action] [budgetType]', {
               action: onDemandBudgets.enabled ? t('Edit') : t('Set Up'),
-              budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+              budgetType: displayBudgetName(subscription.planDetails, {
+                title: true,
+                withBudget: true,
+                pluralOndemand: true,
+              }),
             })}
           </h4>
         </Header>

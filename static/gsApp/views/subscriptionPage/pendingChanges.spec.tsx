@@ -246,7 +246,7 @@ describe('Subscription > PendingChanges', function () {
 
     expect(
       getItemWithText(
-        'On-Demand budget change from shared on-demand of $50 to shared on-demand of $10'
+        'On-Demand budget change from shared on-demand budget of $50 to shared on-demand budget of $10'
       )
     ).toBeInTheDocument();
   });
@@ -299,7 +299,7 @@ describe('Subscription > PendingChanges', function () {
 
     expect(
       getItemWithText(
-        'On-Demand budget change from shared on-demand of $50 to per-category on-demand (errors at $10, transactions at $20, and attachments at $30)'
+        'On-Demand budget change from shared on-demand budget of $50 to per-category on-demand budget (errors at $10, transactions at $20, and attachments at $30)'
       )
     ).toBeInTheDocument();
   });
@@ -408,7 +408,7 @@ describe('Subscription > PendingChanges', function () {
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(
       screen.getByText(
-        'Pay-as-you-go budget change from per-category on-demand (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, continuous profile hours at $0, UI profile hours at $0, and uptime monitors at $0) to shared pay-as-you-go of $50'
+        'Pay-as-you-go budget change from per-category on-demand budget (errors at $10, performance units at $0, replays at $0, attachments at $0, cron monitors at $0, continuous profile hours at $0, UI profile hours at $0, and uptime monitors at $0) to shared pay-as-you-go budget of $50'
       )
     ).toBeInTheDocument();
   });

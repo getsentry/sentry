@@ -342,16 +342,27 @@ export function hasJustStartedPlanTrial(subscription: Subscription) {
 
 export const displayBudgetName = (
   plan?: Plan | null,
-  options: {title?: boolean} = {}
+  options: {
+    pluralOndemand?: boolean;
+    title?: boolean;
+    withBudget?: boolean;
+  } = {}
 ) => {
   const budgetTerm = plan?.budgetTerm ?? 'on-demand';
+  const text = `${budgetTerm}${options.withBudget ? ' budget' : ''}`;
   if (options.title) {
     if (budgetTerm === 'on-demand') {
+      if (options.withBudget) {
+        if (options.pluralOndemand) {
+          return 'On-Demand Budgets';
+        }
+        return 'On-Demand Budget';
+      }
       return 'On-Demand';
     }
-    return titleCase(budgetTerm);
+    return titleCase(text);
   }
-  return budgetTerm;
+  return text;
 };
 
 export const displayPlanName = (plan?: Plan | null) => {

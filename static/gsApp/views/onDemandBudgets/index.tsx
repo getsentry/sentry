@@ -32,8 +32,12 @@ class OnDemandBudgets extends Component<Props> {
     const {subscription} = this.props;
     return (
       <Label>
-        {tct('[budgetType] Budget', {
-          budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+        {tct('[budgetType]', {
+          budgetType: displayBudgetName(subscription.planDetails, {
+            title: true,
+            withBudget: true,
+            pluralOndemand: true,
+          }),
         })}
         <Tooltip
           title={t(
@@ -85,12 +89,11 @@ class OnDemandBudgets extends Component<Props> {
 
     const budgetTerm = subscription.planDetails.budgetTerm;
     const budgetString =
-      budgetTerm === 'pay-as-you-go' ? 'a pay-as-you-go' : 'an on-demand';
+      budgetTerm === 'pay-as-you-go' ? 'a pay-as-you-go budget' : 'on-demand budgets';
 
-    const label = tct(
-      "To set [budgetType] budget, you'll need a valid credit card on file.",
-      {budgetType: budgetString}
-    );
+    const label = tct("To set [budgetType], you'll need a valid credit card on file.", {
+      budgetType: budgetString,
+    });
     const action = (
       <div>
         <Button

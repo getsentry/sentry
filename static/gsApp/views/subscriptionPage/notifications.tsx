@@ -155,8 +155,11 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
                 displayBudgetName(subscription.planDetails, {title: true})
               )}
               help={t(
-                "Receive notifications when your organization's usage exceeds a threshold (%% of monthly %s budget)",
-                displayBudgetName(subscription.planDetails, {title: true})
+                "Receive notifications when your organization's usage exceeds a threshold (%% of monthly %s)",
+                displayBudgetName(subscription.planDetails, {
+                  title: true,
+                  withBudget: true,
+                })
               )}
               thresholds={notificationThresholds.perProductOndemandPercent}
               removeThreshold={indexToRemove => {

@@ -78,9 +78,11 @@ export function OnDemandSettings({subscription, organization}: OnDemandSettingsP
         }
       >
         <PanelTitleWrapper>
-          {subscription.planDetails.budgetTerm === 'pay-as-you-go'
-            ? t('Pay-as-you-go Budget')
-            : t('On-Demand Budgets')}{' '}
+          {displayBudgetName(subscription.planDetails, {
+            title: true,
+            withBudget: true,
+            pluralOndemand: true,
+          })}{' '}
           <QuestionTooltip
             size="sm"
             title={tct(

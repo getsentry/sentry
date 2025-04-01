@@ -13,6 +13,7 @@ import type {
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
 import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -129,10 +130,15 @@ export function formatOnDemandBudget(
   ]
 ): React.ReactNode {
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    return `per-category ${plan.budgetTerm} (${listBudgets({plan, categories, budget})})`;
+    return `per-category ${displayBudgetName(plan, {
+      withBudget: true,
+      pluralOndemand: true,
+    })} (${listBudgets({plan, categories, budget})})`;
   }
 
-  return `shared ${plan.budgetTerm} of ${formatCurrency(budget.sharedMaxBudget ?? 0)}`;
+  return `shared ${displayBudgetName(plan, {
+    withBudget: true,
+  })} of ${formatCurrency(budget.sharedMaxBudget ?? 0)}`;
 }
 
 export function hasOnDemandBudgetsFeature(

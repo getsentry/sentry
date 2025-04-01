@@ -111,8 +111,11 @@ export function UsageCard({subscription, organization}: UsageCardProps) {
                 })}
               </SummaryTitle>
               <Tooltip
-                title={tct('[budgetType] budget consumed', {
-                  budgetType: displayBudgetName(subscription.planDetails, {title: true}),
+                title={tct('[budgetType] consumed', {
+                  budgetType: displayBudgetName(subscription.planDetails, {
+                    title: true,
+                    withBudget: true,
+                  }),
                 })}
                 skipWrapper
               >

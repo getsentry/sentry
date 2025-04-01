@@ -200,7 +200,7 @@ describe('PendingChanges', function () {
       'The following changes will take effect on Feb 16, 2022'
     );
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand of $100 → per-category on-demand (errors at $3, transactions at $2, and attachments at $1)'
+      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
     );
   });
 
@@ -245,7 +245,7 @@ describe('PendingChanges', function () {
     );
     expect(container).toHaveTextContent('Plan changes — Developer → Team (Enterprise)');
     expect(container).toHaveTextContent(
-      'On-demand budget — shared on-demand of $100 → per-category on-demand (errors at $3, transactions at $2, and attachments at $1)'
+      'On-demand budget — shared on-demand budget of $100 → per-category on-demand budget (errors at $3, transactions at $2, and attachments at $1)'
     );
     expect(screen.getAllByText(/The following changes will take effect on/)).toHaveLength(
       1

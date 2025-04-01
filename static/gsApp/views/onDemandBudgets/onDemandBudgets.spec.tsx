@@ -98,7 +98,7 @@ describe('OnDemandBudgets', () => {
 
     expect(
       screen.getByText(
-        `To set an on-demand budget, you'll need a valid credit card on file.`
+        `To set on-demand budgets, you'll need a valid credit card on file.`
       )
     ).toBeInTheDocument();
     expect(screen.getByText('Add Credit Card')).toBeInTheDocument();
