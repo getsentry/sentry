@@ -72,59 +72,6 @@ describe('useGenAiConsentButtonAccess', function () {
     });
   });
 
-  describe('Touch Customer MSA Updates', function () {
-    it('disables access for touch customers without MSA update', function () {
-      const organization = OrganizationFixture({
-        access: ['org:billing'],
-      });
-      const subscription = SubscriptionFixture({
-        organization,
-        type: BillingType.INVOICED,
-        msaUpdatedForDataConsent: false,
-      });
-
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'us'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
-
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
-
-      expect(result.current).toEqual(
-        expect.objectContaining({
-          isDisabled: true,
-          message:
-            'These changes require updates to your account. Please contact your customer success manager to learn more.',
-          isTouchCustomerAndNeedsMsaUpdate: true,
-        })
-      );
-    });
-
-    it('enables access for touch customers with MSA update', function () {
-      const organization = OrganizationFixture({
-        access: ['org:billing'],
-      });
-      const subscription = SubscriptionFixture({
-        organization,
-        type: BillingType.INVOICED,
-        msaUpdatedForDataConsent: true,
-      });
-
-      mockUseOrganization.mockReturnValue(organization);
-      mockGetRegionData.mockReturnValue({name: 'us'});
-      mockUseUser.mockReturnValue({isSuperuser: false});
-
-      const {result} = renderHook(() => useGenAiConsentButtonAccess({subscription}));
-
-      expect(result.current).toEqual(
-        expect.objectContaining({
-          isDisabled: false,
-          message: null,
-          isTouchCustomerAndNeedsMsaUpdate: false,
-        })
-      );
-    });
-  });
-
   describe('Billing Access', function () {
     it('disables access for users without billing access', function () {
       const organization = OrganizationFixture({
@@ -203,7 +150,7 @@ describe('useGenAiConsentButtonAccess', function () {
   });
 
   describe('Combined Conditions', function () {
-    it('prioritizes region restriction over MSA update requirement', function () {
+    it('shows region restriction for non-US regions', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
       });
@@ -229,7 +176,7 @@ describe('useGenAiConsentButtonAccess', function () {
       );
     });
 
-    it('handles undefined msaUpdatedForDataConsent', function () {
+    it('allows access for invoiced customers with undefined msaUpdatedForDataConsent', function () {
       const organization = OrganizationFixture({
         access: ['org:billing'],
       });
@@ -247,9 +194,8 @@ describe('useGenAiConsentButtonAccess', function () {
 
       expect(result.current).toEqual(
         expect.objectContaining({
-          isDisabled: true,
-          message:
-            'These changes require updates to your account. Please contact your customer success manager to learn more.',
+          isDisabled: false,
+          message: null,
           isTouchCustomerAndNeedsMsaUpdate: true,
         })
       );
