@@ -102,8 +102,6 @@ export function DrawerPanel({
   useLayoutEffect(() => {
     if (panelRef.current) {
       panelRef.current.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
-      panelRef.current.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
-      panelRef.current.style.setProperty('--drawer-max-width', `${MAX_WIDTH_PERCENT}%`);
     }
   }, [persistedWidthPercent]);
 
