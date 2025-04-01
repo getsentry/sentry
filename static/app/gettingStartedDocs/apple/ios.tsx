@@ -82,22 +82,20 @@ func application(_ application: UIApplication,
         // Sample rate for profiling, applied on top of TracesSampleRate.
         // We recommend adjusting this value in production.
         options.profilesSampleRate = 1.0`
-            : ''
-        }
-    }${
-      params.isProfilingSelected &&
-      params.profilingOptions?.defaultProfilingMode === 'continuous'
-        ? `
+            : ${
+              params.isProfilingSelected &&
+              params.profilingOptions?.defaultProfilingMode === 'continuous'
+                ? `
 
-    // Manually call startProfiler and stopProfiler
-    // to profile the code in between
-    SentrySDK.startProfiler()
-    // this code will be profiled
-    //
-    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-    // your application until the process exits or stopProfiler is called.
-    SentrySDK.stopProfiler()`
-        : ''
+        // Configure the profiler to start profiling when there is an active root span
+        // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
+        options.configureProfiling = {
+          $0.lifecycle = .trace
+          $0.sessionSampleRate = 1.0
+        }`
+                : ''
+            }
+        }
     }
 
     return true
@@ -131,22 +129,20 @@ struct SwiftUIApp: App {
             // Sample rate for profiling, applied on top of TracesSampleRate.
             // We recommend adjusting this value in production.
             options.profilesSampleRate = 1.0`
-                : ''
-            }
-        }${
-          params.isProfilingSelected &&
-          params.profilingOptions?.defaultProfilingMode === 'continuous'
-            ? `
+                : ${
+                  params.isProfilingSelected &&
+                  params.profilingOptions?.defaultProfilingMode === 'continuous'
+                    ? `
 
-        // Manually call startProfiler and stopProfiler
-        // to profile the code in between
-        SentrySDK.startProfiler()
-        // this code will be profiled
-        //
-        // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
-        // your application until the process exits or stopProfiler is called.
-        SentrySDK.stopProfiler()`
-            : ''
+            // Configure the profiler to start profiling when there is an active root span
+            // For more information, visit: https://docs.sentry.io/platforms/apple/profiling/
+            options.configureProfiling = {
+              $0.lifecycle = .trace
+              $0.sessionSampleRate = 1.0
+            }`
+                    : ''
+                }
+            }
         }
     }
 }`;
