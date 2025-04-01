@@ -23,7 +23,6 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
@@ -36,7 +35,6 @@ class IncidentOccurrenceTestCase(TestCase):
             name="test monitor",
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": [1, "month"],
                 "schedule_type": ScheduleType.INTERVAL,

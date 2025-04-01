@@ -17,7 +17,7 @@ remote_subscriptions: 0003_drop_remote_subscription
 
 replays: 0004_index_together
 
-sentry: 0854_add_project_sdk_model
+sentry: 0855_drop_monitor_type
 
 social_auth: 0002_default_auto_field
 

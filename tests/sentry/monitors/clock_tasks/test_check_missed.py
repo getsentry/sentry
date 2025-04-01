@@ -19,7 +19,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import TestCase
@@ -36,7 +35,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
@@ -126,7 +124,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": "0 0 * * *",
                 "schedule_type": ScheduleType.CRONTAB,
@@ -182,7 +179,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule": [10, "minute"],
                 "schedule_type": ScheduleType.INTERVAL,
@@ -291,7 +287,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 # Every 5 minutes
                 "schedule": "*/5 * * * *",
@@ -377,7 +372,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
@@ -451,7 +445,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
@@ -503,7 +496,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
@@ -547,7 +539,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         exception_monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.INTERVAL,
                 # XXX: Note the invalid schedule will cause an exception,
@@ -569,7 +560,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
@@ -662,7 +652,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "*/10 * * * *",
@@ -729,7 +718,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         monitor = Monitor.objects.create(
             organization_id=org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={
                 "schedule_type": ScheduleType.CRONTAB,
                 "schedule": "* * * * *",
