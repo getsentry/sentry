@@ -6,6 +6,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {Input} from 'sentry/components/core/input';
+import {AutofixDiff} from 'sentry/components/events/autofix/autofixDiff';
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {AutofixInsight} from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
@@ -203,6 +204,7 @@ function AutofixInsightCard({
                     __html: singleLineRenderer(insight.insight),
                   }}
                 />
+
                 <RightSection>
                   {!isUserMessage && (
                     <Button
@@ -243,16 +245,28 @@ function AutofixInsightCard({
                   }}
                 >
                   <ContextBody>
-                    <p
-                      ref={justificationRef}
-                      dangerouslySetInnerHTML={{
-                        __html: marked(
-                          replaceHeadersWithBold(
-                            insight.justification || t('No details here.')
-                          )
-                        ),
-                      }}
-                    />
+                    {insight.justification || !insight.change_diff ? (
+                      <p
+                        ref={justificationRef}
+                        dangerouslySetInnerHTML={{
+                          __html: marked(
+                            replaceHeadersWithBold(
+                              insight.justification || t('No details here.')
+                            )
+                          ),
+                        }}
+                      />
+                    ) : (
+                      <DiffContainer>
+                        <AutofixDiff
+                          diff={insight.change_diff}
+                          groupId={groupId}
+                          runId={runId}
+                          editable={false}
+                          isExpandable={false}
+                        />
+                      </DiffContainer>
+                    )}
                   </ContextBody>
                 </motion.div>
               )}
@@ -765,6 +779,10 @@ const AddButton = styled(Button)`
     color: ${p => p.theme.pink400};
   }
   margin-right: ${space(1)};
+`;
+
+const DiffContainer = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
 export default AutofixInsightCards;
