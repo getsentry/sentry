@@ -1,10 +1,9 @@
-import type {CrashContent} from 'sentry/components/events/interfaces/crashContent';
+import {StacktraceContext} from 'sentry/components/events/interfaces/stacktraceContext';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import type {Event, ExceptionValue} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey, Project} from 'sentry/types/project';
-import {StackView} from 'sentry/types/stacktrace';
 
 import {TraceEventDataSection} from '../traceEventDataSection';
 
@@ -12,10 +11,8 @@ import {StackTraceContent} from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
 import {isStacktraceNewestFirst} from './utils';
 
-type CrashContentProps = React.ComponentProps<typeof CrashContent>;
-
-type Props = Pick<CrashContentProps, 'groupingCurrentLevel'> & {
-  data: NonNullable<CrashContentProps['stacktrace']>;
+type Props = {
+  data: NonNullable<ExceptionValue['stacktrace']>;
   event: Event;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
@@ -38,50 +35,45 @@ export function StackTrace({projectSlug, event, data, groupingCurrentLevel}: Pro
   const stackTraceNotFound = !(data.frames ?? []).length;
 
   return (
-    <TraceEventDataSection
-      type={EntryType.STACKTRACE}
+    <StacktraceContext
       projectSlug={projectSlug}
-      eventId={event.id}
-      platform={platform}
-      stackTraceNotFound={stackTraceNotFound}
-      recentFirst={isStacktraceNewestFirst()}
-      fullStackTrace={!data.hasSystemFrames}
-      title={t('Stack Trace')}
-      hasMinified={false}
-      hasVerboseFunctionNames={
-        !!data.frames?.some(
-          frame =>
-            !!frame.rawFunction &&
-            !!frame.function &&
-            frame.rawFunction !== frame.function
-        )
-      }
-      hasAbsoluteFilePaths={!!data.frames?.some(frame => !!frame.filename)}
-      hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
-      hasAppOnlyFrames={!!data.frames?.some(frame => frame.inApp !== true)}
-      hasNewestFirst={(data.frames ?? []).length > 1}
+      hasFullStackTrace={!data.hasSystemFrames}
+      hasSystemFrames={data.hasSystemFrames}
     >
-      {({recentFirst, display, fullStackTrace}) =>
-        stackTraceNotFound ? (
+      <TraceEventDataSection
+        type={EntryType.STACKTRACE}
+        projectSlug={projectSlug}
+        eventId={event.id}
+        platform={platform}
+        stackTraceNotFound={stackTraceNotFound}
+        recentFirst={isStacktraceNewestFirst()}
+        title={t('Stack Trace')}
+        hasMinified={false}
+        hasVerboseFunctionNames={
+          !!data.frames?.some(
+            frame =>
+              !!frame.rawFunction &&
+              !!frame.function &&
+              frame.rawFunction !== frame.function
+          )
+        }
+        hasAbsoluteFilePaths={!!data.frames?.some(frame => !!frame.filename)}
+        hasAbsoluteAddresses={!!data.frames?.some(frame => !!frame.instructionAddr)}
+        hasAppOnlyFrames={!!data.frames?.some(frame => frame.inApp !== true)}
+        hasNewestFirst={(data.frames ?? []).length > 1}
+      >
+        {stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
           <StackTraceContent
             meta={meta}
             event={event}
             platform={platform}
-            stackView={
-              display.includes('raw-stack-trace')
-                ? StackView.RAW
-                : fullStackTrace
-                  ? StackView.FULL
-                  : StackView.APP
-            }
-            newestFirst={recentFirst}
             stacktrace={data}
             groupingCurrentLevel={groupingCurrentLevel}
           />
-        )
-      }
-    </TraceEventDataSection>
+        )}
+      </TraceEventDataSection>
+    </StacktraceContext>
   );
 }
