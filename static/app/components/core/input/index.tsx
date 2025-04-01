@@ -10,6 +10,9 @@ export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'readOnly'>,
     InputStylesProps {}
 
+export const inputStyles = (p: InputStylesProps & {theme: Theme}) =>
+  p.theme.isChonk ? chonkInputStyles(p as any) : legacyInputStyles(p);
+
 /**
  * Basic input component.
  *
@@ -36,7 +39,7 @@ export const Input = styled(
   }) => <input {...props} ref={ref} size={nativeSize} />,
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
-  ${p => (p.theme.isChonk ? chonkInputStyles(p as any) : inputStyles(p))}
+  ${inputStyles};
 `;
 
 export interface InputStylesProps {
@@ -47,7 +50,7 @@ export interface InputStylesProps {
   type?: React.HTMLInputTypeAttribute;
 }
 
-const inputStyles = (p: InputStylesProps & {theme: Theme}) => css`
+const legacyInputStyles = (p: InputStylesProps & {theme: Theme}) => css`
   display: block;
   width: 100%;
   color: ${p.theme.formText};
