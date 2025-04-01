@@ -1735,4 +1735,4 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
 
-        assert not AlertRuleWorkflow.objects.filter(rule=rule).exists()
+        assert not AlertRuleWorkflow.objects.filter(rule_id=rule.id).exists()
