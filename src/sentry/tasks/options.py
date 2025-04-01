@@ -7,21 +7,30 @@ from sentry.options import default_manager, default_store
 from sentry.options.manager import UnknownOption
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.registry import TaskNamespace, taskregistry
 
 ONE_HOUR = 60 * 60
 logger = logging.getLogger("sentry")
+options_tasks: TaskNamespace = taskregistry.create_namespace("options")
+options_control_tasks: TaskNamespace = taskregistry.create_namespace("options.control")
 
 
 @instrumented_task(
     name="sentry.tasks.options.sync_options_control",
     queue="options.control",
     silo_mode=SiloMode.CONTROL,
+    taskworker=TaskworkerConfig(namespace=options_control_tasks),
 )
 def sync_options_control(cutoff=ONE_HOUR):
     _sync_options(cutoff)
 
 
-@instrumented_task(name="sentry.tasks.options.sync_options", queue="options")
+@instrumented_task(
+    name="sentry.tasks.options.sync_options",
+    queue="options",
+    taskworker=TaskworkerConfig(namespace=options_tasks),
+)
 def sync_options(cutoff=ONE_HOUR):
     _sync_options(cutoff)
 
