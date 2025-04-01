@@ -402,8 +402,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     visibleSeriesCount += 1;
   }
 
-  const showLegendProp = props.showLegend ?? true;
-  const showLegend = showLegendProp && visibleSeriesCount > 1;
+  const showLegend = props.showLegend ?? visibleSeriesCount > 1;
 
   // Keep track of which `Series[]` indexes correspond to which `Plottable` so
   // we can look up the types in the tooltip. We need this so we can find the
