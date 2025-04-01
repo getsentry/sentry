@@ -17,6 +17,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
@@ -214,6 +215,49 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 />
           `}
         </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Data Types', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="TimeSeriesWidgetVisualization" /> can plot most, but not all data
+          types that come back from our time series endpoints. The supported data types
+          are:
+          <ul>
+            <li>
+              <code>number</code>
+            </li>
+            <li>
+              <code>integer</code>
+            </li>
+            <li>
+              <code>duration</code>
+            </li>
+            <li>
+              <code>percentage</code>
+            </li>
+            <li>
+              <code>size</code>
+            </li>
+            <li>
+              <code>rate</code>
+            </li>
+            <li>
+              <code>score</code>
+            </li>
+          </ul>
+        </p>
+        <p>
+          Each of those types has specific behavior in its axes range, axis value
+          formatting, tooltip formatting, unit scaling, and so on. For example, the{' '}
+          <code>score</code> type always uses the 0-100 Y axis range.
+        </p>
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[new Area(sampleScoreTimeSeries)]} />
+        </MediumWidget>
       </Fragment>
     );
   });

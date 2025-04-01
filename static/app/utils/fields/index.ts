@@ -145,6 +145,7 @@ export enum FieldValueType {
   SIZE = 'size',
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
+  SCORE = 'score',
 }
 
 export enum WebVital {

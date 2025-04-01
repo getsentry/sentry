@@ -50,6 +50,12 @@ export function TimeSeriesWidgetYAxis(
           return 0.001;
         }
 
+        // "Score" axes are _always_ from 0 to 100. Otherwise it's unclear how much
+        // opportunity there is to improve them.
+        if (yAxisFieldType === 'score') {
+          return 100;
+        }
+
         return null;
       },
     },
