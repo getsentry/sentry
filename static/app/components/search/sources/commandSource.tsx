@@ -11,7 +11,6 @@ import type {ProjectKey} from 'sentry/types/project';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
-import type {Params} from 'sentry/utils/useParams';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -100,7 +99,7 @@ if (NODE_ENV === 'development' && window?.__initialData?.isSelfHosted === false)
   });
 }
 
-function createCopyDSNAction(params: Params) {
+function createCopyDSNAction(params: {orgId?: string; projectId?: string}) {
   return {
     title: t('Copy Project DSN to Clipboard'),
     description: t('Copies the Project DSN to the clipboard.'),

@@ -41,7 +41,7 @@ type ParamKeys =
   | 'viewId'
   | 'widgetIndex';
 
-export type Params = Partial<Record<ParamKeys, string | undefined>>;
+type Params = Partial<Record<ParamKeys, string | undefined>>;
 
 /**
  * Get params from the current route. Param availability depends on the current route.
