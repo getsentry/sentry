@@ -80,6 +80,7 @@ def build_test_message_blocks(
     initial_assignee: Team | User | None = None,
     notes: str | None = None,
     suspect_commit_text: str | None = None,
+    rule: IssueAlertRule | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -94,13 +95,21 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
+    if rule:
+        title_link += f"&alert_rule_id={rule.id}&alert_type=issue"
+
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
+
+    if rule:
+        block_id = f'{{"issue":{group.id},"rule":{rule.id}}}'
+    else:
+        block_id = f'{{"issue":{group.id}}}'
 
     blocks: list[dict[str, Any]] = [
         {
             "type": "section",
             "text": {"type": "mrkdwn", "text": title_text},
-            "block_id": f'{{"issue":{group.id}}}',
+            "block_id": block_id,
         },
     ]
     if group.culprit:
@@ -213,7 +222,10 @@ def build_test_message_blocks(
         }
         blocks.append(notes_section)
 
-    context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
+    if rule:
+        context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+    else:
+        context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
     context = {
         "type": "context",
         "elements": [{"type": "mrkdwn", "text": context_text}],
@@ -257,6 +269,95 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             teams={self.team},
             users={self.user},
             group=group,
+        )
+        # add extra tag to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo", "escape", "release"}
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            event=event,
+        )
+
+        # add notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            notes=notes,
+            event=event,
+        )
+        # add extra tag and notes to message
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), tags={"foo", "escape", "release"}, notes=notes
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            tags=more_tags,
+            notes=notes,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group)
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event.for_group(group), link_to_event=True
+        ).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            event=event,
+            link_to_event=True,
+        )
+
+        test_message = build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+        )
+
+        assert SlackIssuesMessageBuilder(group).build() == test_message
+
+    @with_feature("organizations:workflow-engine-trigger-actions")
+    def test_build_group_block_noa(self):
+        rule = self.create_project_rule(project=self.project)
+        release = self.create_release(project=self.project)
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"escape": "`room`", "foo": "bar"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "logentry": {"formatted": "bar"},
+                "_meta": {"logentry": {"formatted": {"": {"err": ["some error"]}}}},
+                "release": release.version,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        group = event.group
+        assert group
+        self.project.flags.has_releases = True
+        self.project.save(update_fields=["flags"])
+        more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
+        notes = "hey @colleen fix it"
+
+        assert SlackIssuesMessageBuilder(group, rules=[rule]).build() == build_test_message_blocks(
+            teams={self.team},
+            users={self.user},
+            group=group,
+            rule=rule,
         )
         # add extra tag to message
         assert SlackIssuesMessageBuilder(
