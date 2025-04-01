@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
-import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
+import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
 import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
 import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
@@ -18,7 +18,7 @@ export function ExploreSecondaryNav() {
   return (
     <SecondaryNav>
       <SecondaryNav.Header>
-        {NAV_GROUP_LABELS[PrimaryNavGroup.EXPLORE]}
+        {PRIMARY_NAV_GROUP_CONFIG[PrimaryNavGroup.EXPLORE].label}
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section>
@@ -72,17 +72,19 @@ export function ExploreSecondaryNav() {
             </SecondaryNav.Item>
           </Feature>
         </SecondaryNav.Section>
-        <SecondaryNav.Section title={t('Starred Queries')}>
-          {starredQueries?.map(query => (
-            <SecondaryNav.Item
-              key={query.id}
-              to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
-              analyticsItemName="explore_starred_item"
-            >
-              {query.name}
-            </SecondaryNav.Item>
-          )) ?? null}
-        </SecondaryNav.Section>
+        <Feature features="performance-saved-queries">
+          <SecondaryNav.Section title={t('Starred Queries')}>
+            {starredQueries?.map(query => (
+              <SecondaryNav.Item
+                key={query.id}
+                to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+                analyticsItemName="explore_starred_item"
+              >
+                {query.name}
+              </SecondaryNav.Item>
+            )) ?? null}
+          </SecondaryNav.Section>
+        </Feature>
       </SecondaryNav.Body>
     </SecondaryNav>
   );
