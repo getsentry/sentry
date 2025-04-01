@@ -4,8 +4,8 @@ from django.urls import reverse
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY
 from sentry.cache import default_cache
 from sentry.testutils.cases import PermissionTestCase
-from sentry.testutils.silo import control_silo_test
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
