@@ -20,7 +20,7 @@ export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
   return (
     <Content>
       <p>
-        Each Web Vital score contributes a different amount to the total score.
+        {t('Each Web Vital score contributes a different amount to the total score.')}
         <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
           {' '}
           {t('How is this calculated?')}
@@ -30,8 +30,8 @@ export function WebVitalsWeightList({weights}: WebVitalsWeightListProps) {
       <List>
         {ORDER.map((webVital, index) => (
           <ListItem key={webVital}>
-            <Dot color={segmentColors[index]!} /> {webVital.toUpperCase()} contributes{' '}
-            {weights[webVital]}%
+            <Dot color={segmentColors[index]!} />
+            {t('%s contributes %s%%', webVital.toUpperCase(), weights[webVital])}
           </ListItem>
         ))}
       </List>
