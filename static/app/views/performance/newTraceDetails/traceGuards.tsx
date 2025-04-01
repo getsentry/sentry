@@ -23,8 +23,12 @@ export function isSpanNode(
   );
 }
 
+export function isEAPSpan(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
+  return !!(value && 'is_transaction' in value);
+}
+
 export function isEAPTransaction(value: TraceTree.NodeValue): value is TraceTree.EAPSpan {
-  return !!(value && 'is_transaction' in value && value.is_transaction);
+  return isEAPSpan(value) && value.is_transaction;
 }
 
 export function isEAPTransactionNode(
@@ -36,7 +40,7 @@ export function isEAPTransactionNode(
 export function isEAPSpanNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.EAPSpan> {
-  return !!(node.value && 'is_transaction' in node.value);
+  return isEAPSpan(node.value);
 }
 
 export function isNonTransactionEAPSpanNode(
@@ -51,7 +55,8 @@ export function isTransactionNode(
   return (
     !!(node.value && 'transaction' in node.value) &&
     !isAutogroupedNode(node) &&
-    !isEAPSpanNode(node)
+    !isEAPSpanNode(node) &&
+    !isEAPErrorNode(node)
   );
 }
 
@@ -60,7 +65,7 @@ export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPEr
     value &&
     'event_type' in value &&
     value.event_type === 'error' &&
-    !('message' in value) // a bit gross, but we won't need this soon as we remove the legacy error type
+    'description' in value // a bit gross, but we won't need this soon as we remove the legacy error type
   );
 }
 
@@ -94,10 +99,14 @@ export function isCollapsedNode(
   return node instanceof CollapsedNode;
 }
 
+export function isTraceError(value: TraceTree.NodeValue): value is TraceTree.TraceError {
+  return !!(value && 'level' in value && 'message' in value);
+}
+
 export function isTraceErrorNode(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): node is TraceTreeNode<TraceTree.TraceError> {
-  return !!(node.value && 'level' in node.value);
+  return isTraceError(node.value);
 }
 
 export function isRootNode(

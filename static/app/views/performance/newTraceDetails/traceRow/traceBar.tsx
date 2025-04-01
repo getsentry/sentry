@@ -7,6 +7,7 @@ import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {getStylingSliceName} from '../../../traces/utils';
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
   isEAPSpanNode,
   isMissingInstrumentationNode,
   isSpanNode,
@@ -43,7 +44,7 @@ export function makeTraceNodeBarColor(
     return theme.gray300;
   }
 
-  if (isTraceErrorNode(node)) {
+  if (isTraceErrorNode(node) || isEAPErrorNode(node)) {
     // Theme defines this as orange, yet everywhere in our product we show red for errors
     if (node.value.level === 'error' || node.value.level === 'fatal') {
       return theme.red300;

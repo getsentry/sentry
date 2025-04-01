@@ -78,6 +78,14 @@ eap trace root
 "
 `;
 
+exports[`TraceTree eap trace assembles tree from eap trace with only errors 1`] = `
+"
+eap trace root
+  eap-error-1
+  eap-error-2
+"
+`;
+
 exports[`TraceTree eap trace correctly renders eap-transactions toggle state 1`] = `
 "
 eap trace root

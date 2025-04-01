@@ -11,6 +11,10 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {
+  isEAPError,
+  isTraceError,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 
 import {TraceDrawerComponents} from '../traceDrawer/details/styles';
 import type {TraceTree} from '../traceModels/traceTree';
@@ -49,11 +53,23 @@ const SectionBody = styled('div')<{rightAlign?: boolean}>`
 interface MetaProps {
   meta: TraceMeta | undefined;
   organization: Organization;
-  representativeTransaction: TraceTree.Transaction | TraceTree.EAPSpan | null;
+  representativeEvent: TraceTree.TraceEvent | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   tree: TraceTree;
 }
 
+function getRootDuration(event: TraceTree.TraceEvent | null) {
+  if (!event || isEAPError(event) || isTraceError(event)) {
+    return '\u2014';
+  }
+
+  return getDuration(
+    ('timestamp' in event ? event.timestamp : event.end_timestamp) -
+      event.start_timestamp,
+    2,
+    true
+  );
+}
 export function Meta(props: MetaProps) {
   const traceNode = props.tree.root.children[0]!;
 
@@ -134,18 +150,7 @@ export function Meta(props: MetaProps) {
         <MetaSection
           headingText={t('Root Duration')}
           rightAlignBody
-          bodyText={
-            props.representativeTransaction
-              ? getDuration(
-                  ('timestamp' in props.representativeTransaction
-                    ? props.representativeTransaction.timestamp
-                    : props.representativeTransaction.end_timestamp) -
-                    props.representativeTransaction.start_timestamp,
-                  2,
-                  true
-                )
-              : '\u2014'
-          }
+          bodyText={getRootDuration(props.representativeEvent)}
         />
       ) : null}
     </MetaWrapper>
