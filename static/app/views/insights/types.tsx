@@ -402,7 +402,6 @@ export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 
 export enum SpanFunction {
   SPS = 'sps',
-  SPM = 'spm',
   EPM = 'epm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',

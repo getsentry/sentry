@@ -126,7 +126,7 @@ describe('DatabaseLandingPage', function () {
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        'spm()': {
+        'epm()': {
           data: [
             [1699907700, [{count: 7810.2}]],
             [1699908000, [{count: 1216.8}]],
@@ -165,7 +165,7 @@ describe('DatabaseLandingPage', function () {
           referrer: 'api.starfish.span-landing-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -209,7 +209,7 @@ describe('DatabaseLandingPage', function () {
             'span.group',
             'span.description',
             'span.action',
-            'spm()',
+            'epm()',
             'avg(span.self_time)',
             'sum(span.self_time)',
             'time_spent_percentage()',
@@ -282,7 +282,7 @@ describe('DatabaseLandingPage', function () {
           referrer: 'api.starfish.span-landing-page-metrics-chart',
           statsPeriod: '10d',
           topEvents: undefined,
-          yAxis: 'spm()',
+          yAxis: 'epm()',
           transformAliasToInputFormat: '1',
         },
       })
@@ -327,7 +327,7 @@ describe('DatabaseLandingPage', function () {
             'span.group',
             'span.description',
             'span.action',
-            'spm()',
+            'epm()',
             'avg(span.self_time)',
             'sum(span.self_time)',
             'time_spent_percentage()',
