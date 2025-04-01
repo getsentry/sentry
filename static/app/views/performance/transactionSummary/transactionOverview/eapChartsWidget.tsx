@@ -5,12 +5,15 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 enum EAPWidgetType {
   DURATION_BREAKDOWN = 'duration_breakdown',
@@ -88,8 +91,10 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   const [selectedWidget, setSelectedWidget] = useState<EAPWidgetType>(
     EAPWidgetType.DURATION_BREAKDOWN
   );
-
-  // console.log(transactionName);
+  const location = useLocation();
+  const spanCategoryUrlParam = decodeScalar(
+    location.query?.[SpanIndexedField.SPAN_CATEGORY]
+  );
 
   const options = useMemo(() => {
     return Object.entries(WIDGET_OPTIONS).map(([key, value]) => ({
@@ -100,8 +105,14 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
 
   const {title, description} = getWidgetContents(selectedWidget);
 
+  const query = new MutableSearch('');
+  query.addFilterValue('transaction', transactionName);
+  if (spanCategoryUrlParam) {
+    query.addFilterValue('span.category', spanCategoryUrlParam);
+  }
+
   const {
-    data: spanIndexedSeriesData,
+    data: spanSeriesData,
     isPending,
     error,
   } = useSpanIndexedSeries(
@@ -114,7 +125,7 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
         'p75(span.duration)',
         'p50(span.duration)',
       ],
-      search: new MutableSearch(`transaction.name:"${transactionName}"`),
+      search: query,
       transformAliasToInputFormat: true,
     },
 
@@ -122,25 +133,21 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
     DiscoverDatasets.SPANS_EAP
   );
 
-  console.dir(spanIndexedSeriesData);
-
-  const timeSeries: TimeSeries = {
-    field: 'duration',
-    meta: {
-      type:
-        spanIndexedSeriesData['p100(span.duration)']?.meta?.fields?.[
-          'p100(span.duration)'
-        ] ?? null,
-      unit: spanIndexedSeriesData['p100(span.duration)']?.meta?.units?.[
-        'p100(span.duration)'
-      ] as DataUnit,
-    },
-    data:
-      spanIndexedSeriesData['p100(span.duration)']?.data.map(item => ({
-        timestamp: item.name.toString(),
-        value: item.value,
-      })) ?? [],
-  };
+  const timeSeries: TimeSeries[] = [];
+  Object.entries(spanSeriesData).forEach(([key, value]) => {
+    timeSeries.push({
+      field: key,
+      meta: {
+        type: value?.meta?.fields?.[key] ?? null,
+        unit: value?.meta?.units?.[key] as DataUnit,
+      },
+      data:
+        value?.data.map(item => ({
+          timestamp: item.name.toString(),
+          value: item.value,
+        })) ?? [],
+    });
+  });
 
   return (
     <Widget
@@ -154,7 +161,9 @@ export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
         isPending || error ? (
           <TimeSeriesWidgetVisualization.LoadingPlaceholder />
         ) : (
-          <TimeSeriesWidgetVisualization plottables={[new Area(timeSeries)]} />
+          <TimeSeriesWidgetVisualization
+            plottables={timeSeries.map(series => new Area(series))}
+          />
         )
       }
       Footer={
