@@ -153,17 +153,10 @@ class SpansBuffer:
             deadlines. Used for unit-testing and managing backlogging behavior.
         """
 
-        queue_keys = []
-        queue_delete_items = []
-        queue_items = []
-        queue_item_has_root_span = []
-
-        is_root_span_count = 0
-        has_root_span_count = 0
-        min_hole_size = float("inf")
-        max_hole_size = float("-inf")
-
         with metrics.timer("spans.buffer.process_spans.insert_spans"):
+            queue_keys = []
+            is_root_span_count = 0
+
             with self.client.pipeline(transaction=False) as p:
                 for span in spans:
                     # (parent_span_id) -> [Span]
@@ -200,36 +193,58 @@ class SpansBuffer:
 
                     queue_keys.append(queue_key)
 
-                results = iter(p.execute())
-                for hole_size, delete_item, item, has_root_span in results:
-                    # For each span, hole_size measures how long it took to
-                    # find the corresponding intermediate segment. Larger
-                    # numbers loosely correlate with fewer siblings per tree
-                    # level.
-                    min_hole_size = min(min_hole_size, hole_size)
-                    max_hole_size = max(max_hole_size, hole_size)
-                    queue_delete_items.append(delete_item)
-                    queue_items.append(item)
-                    queue_item_has_root_span.append(has_root_span)
+                results = p.execute()
 
         with metrics.timer("spans.buffer.process_spans.update_queue"):
-            with self.client.pipeline(transaction=False) as p:
-                for key, delete_item, item, has_root_span in zip(
-                    queue_keys, queue_delete_items, queue_items, queue_item_has_root_span
-                ):
-                    # if the currently processed span is a root span, OR the buffer
-                    # already had a root span inside, use a different timeout than
-                    # usual.
-                    if has_root_span:
-                        has_root_span_count += 1
-                        timestamp = now + self.span_buffer_root_timeout_secs
-                    else:
-                        timestamp = now + self.span_buffer_timeout_secs
+            queue_delete_items = {}
+            queue_add_items = {}
 
-                    if delete_item != item:
-                        p.zrem(key, delete_item)
-                    p.zadd(key, {item: timestamp})
-                    p.expire(key, self.redis_ttl)
+            has_root_span_count = 0
+            min_hole_size = float("inf")
+            max_hole_size = float("-inf")
+
+            assert len(queue_keys) == len(results)
+
+            for queue_key, (hole_size, delete_item, add_item, has_root_span) in zip(
+                queue_keys, results
+            ):
+                # For each span, hole_size measures how long it took to
+                # find the corresponding intermediate segment. Larger
+                # numbers loosely correlate with fewer siblings per tree
+                # level.
+                min_hole_size = min(min_hole_size, hole_size)
+                max_hole_size = max(max_hole_size, hole_size)
+
+                delete_set = queue_delete_items.setdefault(queue_key, set())
+                delete_set.add(delete_item)
+                # if we are going to add this item, we should not need to
+                # delete it from redis
+                delete_set.discard(add_item)
+
+                # if the currently processed span is a root span, OR the buffer
+                # already had a root span inside, use a different timeout than
+                # usual.
+                if has_root_span:
+                    has_root_span_count += 1
+                    timestamp = now + self.span_buffer_root_timeout_secs
+                else:
+                    timestamp = now + self.span_buffer_timeout_secs
+
+                zadd_items = queue_add_items.setdefault(queue_key, {})
+                zadd_items[add_item] = timestamp
+                if delete_item != add_item:
+                    zadd_items.pop(delete_item, None)
+
+            with self.client.pipeline(transaction=False) as p:
+                for queue_key, adds in queue_add_items.items():
+                    if adds:
+                        p.zadd(queue_key, adds)
+                        p.expire(queue_key, self.redis_ttl)
+
+                for queue_key, deletes in queue_delete_items.items():
+                    # set can be empty as we both push and pop from it.
+                    if deletes:
+                        p.zrem(queue_key, *deletes)
 
                 p.execute()
 
