@@ -31,14 +31,14 @@ function GroupListHeader({
         <Fragment>
           <NarrowIssueWrapper hideDivider>{t('Issue')}</NarrowIssueWrapper>
           {withColumns.includes('lastSeen') && (
-            <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
+            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN} align="right">
               {t('Last Seen')}
-            </FirstSeenWrapper>
+            </LastSeenWrapper>
           )}
           {withColumns.includes('firstSeen') && (
-            <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
+            <AgeWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN} align="right">
               {t('Age')}
-            </LastSeenWrapper>
+            </AgeWrapper>
           )}
           {withColumns.includes('lastTriggered') && (
             <NarrowLastTriggeredLabel align="right">
@@ -128,11 +128,11 @@ const NarrowIssueWrapper = styled(GroupListHeaderLabel)`
   padding-left: ${space(2)};
 `;
 
-const FirstSeenWrapper = styled(GroupListHeaderLabel)`
+const LastSeenWrapper = styled(GroupListHeaderLabel)`
   width: 80px;
 `;
 
-const LastSeenWrapper = styled(GroupListHeaderLabel)`
+const AgeWrapper = styled(GroupListHeaderLabel)`
   width: 50px;
 `;
 
