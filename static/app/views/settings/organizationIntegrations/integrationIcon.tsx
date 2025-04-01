@@ -20,18 +20,12 @@ const StyledIcon = styled('img')<IconProps>`
 
 function Icon({integration, size}: Props) {
   const [imgSrc, setImgSrc] = useState<string | undefined>(integration.icon || undefined);
-  
+
   const handleError = () => {
     setImgSrc(ICON_PATHS[integration.provider.key] || DEFAULT_ICON);
   };
 
-  return (
-    <StyledIcon
-      size={size}
-      src={imgSrc}
-      onError={handleError}
-    />
-  );
+  return <StyledIcon size={size} src={imgSrc} onError={handleError} />;
 }
 
 function IntegrationIcon({integration, size = 32}: Props) {
