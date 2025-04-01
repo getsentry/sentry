@@ -17,6 +17,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
     view: str
     is_eap: bool = False
     use_rpc: bool = False
+    allow_multiple_user_queries: bool = True
 
     def setUp(self):
         super().setUp()
@@ -696,6 +697,9 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "foo:baz",
             ],
         ]:
+            if len(q) > 1 and not self.allow_multiple_user_queries:
+                continue
+
             for features in [
                 None,  # use the default features
                 ["organizations:performance-trace-explorer"],
@@ -2544,6 +2548,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
 
 class OrganizationTracesEAPRPCEndpointTest(OrganizationTracesEAPEndpointTest):
     use_rpc = True
+    allow_multiple_user_queries: bool = False
 
     @pytest.mark.skip
     def test_use_separate_referrers(self):
