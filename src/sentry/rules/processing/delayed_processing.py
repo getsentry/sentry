@@ -231,18 +231,19 @@ def build_group_to_groupevent(
     project_id: int,
 ) -> dict[Group, GroupEvent]:
 
-    project = Project.objects.get(id=project_id)
-    if features.has("projects:num-events-issue-debugging", project):
-        logger.info(
-            "delayed_processing.build_group_to_groupevent_input",
-            extra={
-                "parsed_rulegroup_to_event_data": parsed_rulegroup_to_event_data,
-                "bulk_event_id_to_events": bulk_event_id_to_events,
-                "bulk_occurrence_id_to_occurrence": bulk_occurrence_id_to_occurrence,
-                "group_id_to_group": group_id_to_group,
-                "project_id": project_id,
-            },
-        )
+    project = fetch_project(project_id)
+    if project:
+        if features.has("projects:num-events-issue-debugging", project):
+            logger.info(
+                "delayed_processing.build_group_to_groupevent_input",
+                extra={
+                    "parsed_rulegroup_to_event_data": parsed_rulegroup_to_event_data,
+                    "bulk_event_id_to_events": bulk_event_id_to_events,
+                    "bulk_occurrence_id_to_occurrence": bulk_occurrence_id_to_occurrence,
+                    "group_id_to_group": group_id_to_group,
+                    "project_id": project_id,
+                },
+            )
     group_to_groupevent = {}
 
     for rule_group, instance_data in parsed_rulegroup_to_event_data.items():
