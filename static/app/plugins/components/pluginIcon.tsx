@@ -68,7 +68,7 @@ const PLUGIN_ICONS = {
   victorops,
 } satisfies Record<string, string>;
 
-type PluginIconProps = {
+export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
   /**
    * @default 'Placeholder'
    */
@@ -77,32 +77,41 @@ type PluginIconProps = {
    * @default 20
    */
   size?: number;
-};
+}
 
-const PluginIcon = styled('div')<PluginIconProps>`
+export default function PluginIcon({pluginId, size = 20, ref}: PluginIconProps) {
+  return (
+    <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
+  );
+}
+
+const StyledPluginIcon = styled('div')<{
+  pluginSrc: string;
+  size: number;
+}>`
   position: relative;
-  height: ${p => p.size ?? 20}px;
-  width: ${p => p.size ?? 20}px;
-  min-width: ${p => p.size ?? 20}px;
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  min-width: ${p => p.size}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${getPluginIcon});
+  background-image: url(${p => p.pluginSrc});
 `;
 
-function getPluginIcon(props: Pick<PluginIconProps, 'pluginId'>) {
-  if (!props.pluginId) {
+function getPluginIconSource(
+  pluginId: PluginIconProps['pluginId']
+): (typeof PLUGIN_ICONS)[keyof typeof PLUGIN_ICONS] {
+  if (!pluginId) {
     return PLUGIN_ICONS.placeholder;
   }
 
-  if (props.pluginId in PLUGIN_ICONS) {
-    return PLUGIN_ICONS[props.pluginId as keyof typeof PLUGIN_ICONS];
+  if (pluginId in PLUGIN_ICONS) {
+    return PLUGIN_ICONS[pluginId as keyof typeof PLUGIN_ICONS];
   }
 
   return PLUGIN_ICONS.placeholder;
 }
-
-export default PluginIcon;

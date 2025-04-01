@@ -4,21 +4,12 @@ import styled from '@emotion/styled';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import type {Integration} from 'sentry/types/integrations';
 
-type Props = {
+type IconProps = {
   integration: Integration;
   size?: number;
 };
 
-type IconProps = Pick<Props, 'size'>;
-
-const StyledIcon = styled('img')<IconProps>`
-  height: ${p => p.size}px;
-  width: ${p => p.size}px;
-  border-radius: 2px;
-  display: block;
-`;
-
-function Icon(props: Props) {
+function Icon(props: IconProps) {
   const [imgSrc, setImgSrc] = useState(props.integration.icon || undefined);
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
@@ -29,7 +20,7 @@ function Icon(props: Props) {
   );
 }
 
-function IntegrationIcon({integration, size = 32}: Props) {
+export default function IntegrationIcon({integration, size = 32}: IconProps) {
   return integration.icon ? (
     <Icon size={size} integration={integration} />
   ) : (
@@ -37,4 +28,9 @@ function IntegrationIcon({integration, size = 32}: Props) {
   );
 }
 
-export default IntegrationIcon;
+const StyledIcon = styled('img')<Pick<IconProps, 'size'>>`
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
+  border-radius: 2px;
+  display: block;
+`;

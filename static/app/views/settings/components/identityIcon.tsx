@@ -19,7 +19,7 @@ import saml2 from 'sentry-logos/logo-saml2.svg';
 import slack from 'sentry-logos/logo-slack.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
-const IDENTITY_ICONS: Record<string, string> = {
+const IDENTITY_ICONS = {
   placeholder,
   'active-directory': vsts,
   asana,
@@ -40,9 +40,9 @@ const IDENTITY_ICONS: Record<string, string> = {
   slack,
   visualstudio,
   vsts,
-};
+} satisfies Record<string, string>;
 
-type IdentityIconProps = {
+interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
   /**
    * @default 'placeholder'
    */
@@ -51,31 +51,41 @@ type IdentityIconProps = {
    * @default 36
    */
   size?: number;
-};
+}
 
-const IdentityIcon = styled('div')<IdentityIconProps>`
+export default function IdentityIcon({providerId, size = 36, ref}: IdentityIconProps) {
+  return (
+    <StyledIdentityIcon
+      ref={ref}
+      size={size}
+      identitySrc={getIdentityIconSource(providerId)}
+    />
+  );
+}
+
+const StyledIdentityIcon = styled('div')<{identitySrc: string; size: number}>`
   position: relative;
-  height: ${p => p.size ?? 36}px;
-  width: ${p => p.size ?? 36}px;
+  height: ${p => p.size}px;
+  width: ${p => p.size}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${getIdentityIcon});
+  background-image: url(${p => p.identitySrc});
 `;
 
-function getIdentityIcon(props: Pick<IdentityIconProps, 'providerId'>) {
-  if (!props.providerId) {
+function getIdentityIconSource(
+  providerId: IdentityIconProps['providerId']
+): (typeof IDENTITY_ICONS)[keyof typeof IDENTITY_ICONS] {
+  if (!providerId) {
     return IDENTITY_ICONS.placeholder;
   }
 
-  if (props.providerId in IDENTITY_ICONS) {
-    return IDENTITY_ICONS[props.providerId as keyof typeof IDENTITY_ICONS];
+  if (providerId in IDENTITY_ICONS) {
+    return IDENTITY_ICONS[providerId as keyof typeof IDENTITY_ICONS];
   }
 
   return IDENTITY_ICONS.placeholder;
 }
-
-export default IdentityIcon;
