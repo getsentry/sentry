@@ -1047,6 +1047,7 @@ class Factories:
     @assume_test_silo_mode(SiloMode.REGION)
     def create_group(project, **kwargs):
         from sentry.models.group import GroupStatus
+        from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.types.group import GroupSubStatus
 
         kwargs.setdefault("message", "Hello world")
@@ -1062,7 +1063,12 @@ class Factories:
             kwargs["status"] = GroupStatus.UNRESOLVED
             kwargs["substatus"] = GroupSubStatus.NEW
 
-        return Group.objects.create(project=project, **kwargs)
+        group = Group.objects.create(project=project, **kwargs)
+        GroupOpenPeriod.objects.create(
+            date_started=group.first_seen or timezone.now(),
+            defaults={"group": group, "project": project},
+        )
+        return group
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
