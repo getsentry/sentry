@@ -5,14 +5,12 @@ import {type Change, diffWords} from 'diff';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
-import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighlightPopup';
 import {
   type DiffLine,
   DiffLineType,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import {useTextSelection} from 'sentry/components/events/autofix/useTextSelection';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron, IconClose, IconDelete, IconEdit} from 'sentry/icons';
@@ -582,8 +580,6 @@ function FileDiff({
   runId,
   repoId,
   editable,
-  previousDefaultStepIndex,
-  previousInsightCount,
   isExpandable,
 }: {
   editable: boolean;
@@ -598,7 +594,7 @@ function FileDiff({
   const [isExpanded, setIsExpanded] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const selection = useTextSelection(containerRef);
+  // const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
@@ -622,7 +618,7 @@ function FileDiff({
           />
         )}
       </FileHeader>
-      {selection && previousDefaultStepIndex !== undefined && (
+      {/* {selection && (
         <AutofixHighlightPopup
           selectedText={selection.selectedText}
           referenceElement={selection.referenceElement}
@@ -635,7 +631,7 @@ function FileDiff({
               : -1
           }
         />
-      )}
+      )} */}
       {isExpanded && (
         <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
