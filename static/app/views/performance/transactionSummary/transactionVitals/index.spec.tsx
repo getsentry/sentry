@@ -2,6 +2,7 @@ import type {Query} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -18,10 +19,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
-  VITAL_GROUPS,
-  ZOOM_KEYS,
+  makeVitalGroups,
+  makeZoomKeys,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
 
+const theme = ThemeFixture();
 jest.mock('sentry/utils/useLocation');
 
 const mockUseLocation = jest.mocked(useLocation);
@@ -138,7 +140,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     const histogramData: Record<string, HistogramData[]> = {};
-    const webVitals = VITAL_GROUPS.reduce<string[]>(
+    const webVitals = makeVitalGroups(theme).reduce<string[]>(
       (vs, group) => vs.concat(group.vitals),
       []
     );
@@ -320,7 +322,7 @@ describe('Performance > Web Vitals', function () {
 
       expect(mockNavigate).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
-          ZOOM_KEYS.reduce(
+          makeZoomKeys().reduce(
             (obj, key) => {
               obj[key] = expect.anything();
               return obj;

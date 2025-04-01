@@ -167,10 +167,8 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationLoaderContext.Provider value={{bootstrapIsPending}}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
-    </OrganizationLoaderContext.Provider>
+    <OrganizationLoaderContext value={{bootstrapIsPending}}>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
+    </OrganizationLoaderContext>
   );
 }

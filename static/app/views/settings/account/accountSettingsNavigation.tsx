@@ -1,5 +1,5 @@
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import type {Organization} from 'sentry/types/organization';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 import getConfiguration from 'sentry/views/settings/account/navigationConfiguration';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
 import OrganizationSettingsNavigation from 'sentry/views/settings/organization/organizationSettingsNavigation';

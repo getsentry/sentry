@@ -5,7 +5,6 @@ import {Client} from 'sentry/api';
 import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 
-import LatestContextStore from './latestContextStore';
 import type {StrictStoreDefinition} from './types';
 
 type State = {
@@ -113,8 +112,6 @@ const storeConfig: ProjectsStoreDefinition = {
     this.state = {...this.state, projects: newProjects};
 
     this.trigger(new Set([data.id]));
-
-    LatestContextStore.onUpdateProject(newProject);
   },
 
   onStatsLoadSuccess(data) {

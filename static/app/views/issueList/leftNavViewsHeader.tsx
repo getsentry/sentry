@@ -2,13 +2,13 @@ import styled from '@emotion/styled';
 
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {useFetchGroupSearchViews} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 type LeftNavViewsHeaderProps = {
   selectedProjectIds: number[];

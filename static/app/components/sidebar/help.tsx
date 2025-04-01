@@ -4,7 +4,6 @@ import {openHelpSearchModal} from 'sentry/actionCreators/modal';
 import {Badge} from 'sentry/components/core/badge';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import Hook from 'sentry/components/hook';
-import {useNavPrompts} from 'sentry/components/nav/useNavPrompts';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -14,6 +13,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useMutateUserOptions from 'sentry/utils/useMutateUserOptions';
+import {useNavPrompts} from 'sentry/views/nav/useNavPrompts';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
