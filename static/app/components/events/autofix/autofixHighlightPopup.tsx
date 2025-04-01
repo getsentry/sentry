@@ -20,6 +20,7 @@ import {
   makeAutofixQueryKey,
   useAutofixData,
 } from 'sentry/components/events/autofix/useAutofix';
+import {useDrawerWidth} from 'sentry/components/globalDrawer/components';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -43,6 +44,8 @@ interface Props {
 interface OptimisticMessage extends CommentThreadMessage {
   isLoading?: boolean;
 }
+
+const MIN_LEFT_MARGIN = 8;
 
 function useCommentThread({groupId, runId}: {groupId: string; runId: string}) {
   const api = useApi({persistInFlight: true});
@@ -318,12 +321,24 @@ function AutofixHighlightPopupContent({
   );
 }
 
-function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
+function getOptimalPosition(
+  referenceRect: DOMRect,
+  popupRect: DOMRect,
+  drawerWidth?: number
+) {
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
 
-  // Fixed position from the right edge of the viewport
-  const left = viewportWidth / 2 - popupRect.width + 8;
+  const effectiveDrawerWidth = drawerWidth ?? viewportWidth * 0.5;
+
+  // Calculate initial position to the left of the drawer
+  let left = viewportWidth - effectiveDrawerWidth - popupRect.width - 8;
+
+  // Ensure the popup is not cut off on the left side
+  if (left < MIN_LEFT_MARGIN) {
+    left = MIN_LEFT_MARGIN;
+  }
+
   let top = referenceRect.top;
 
   // Ensure the popup stays within the viewport vertically
@@ -340,6 +355,7 @@ function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
 function AutofixHighlightPopup(props: Props) {
   const {referenceElement} = props;
   const popupRef = useRef<HTMLDivElement>(null);
+  const drawerWidth = useDrawerWidth();
   const [position, setPosition] = useState<{
     left: number;
     top: number;
@@ -347,6 +363,7 @@ function AutofixHighlightPopup(props: Props) {
     left: 0,
     top: 0,
   });
+  const [width, setWidth] = useState<number | undefined>(undefined);
   const [isFocused, setIsFocused] = useState(false);
 
   useLayoutEffect(() => {
@@ -357,9 +374,16 @@ function AutofixHighlightPopup(props: Props) {
     const updatePosition = () => {
       const referenceRect = referenceElement.getBoundingClientRect();
       const popupRect = popupRef.current!.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+
+      // Calculate available width for the popup
+      const availableWidth = viewportWidth - (drawerWidth ?? viewportWidth * 0.5) - 16;
+      const defaultWidth = 300;
+      const newWidth = Math.min(defaultWidth, Math.max(200, availableWidth));
 
       startTransition(() => {
-        setPosition(getOptimalPosition(referenceRect, popupRect));
+        setPosition(getOptimalPosition(referenceRect, popupRect, drawerWidth));
+        setWidth(newWidth);
       });
     };
 
@@ -390,7 +414,7 @@ function AutofixHighlightPopup(props: Props) {
       });
       window.removeEventListener('resize', updatePosition);
     };
-  }, [referenceElement]);
+  }, [referenceElement, drawerWidth]);
 
   const handleFocus = () => {
     setIsFocused(true);
@@ -414,6 +438,7 @@ function AutofixHighlightPopup(props: Props) {
       style={{
         left: `${position.left}px`,
         top: `${position.top}px`,
+        width: width ? `${width}px` : '300px',
       }}
       isFocused={isFocused}
       onFocus={handleFocus}
@@ -438,7 +463,8 @@ const Wrapper = styled(motion.div)<
   align-items: flex-start;
   margin-right: ${space(1)};
   gap: ${space(1)};
-  width: 300px;
+  max-width: 300px;
+  min-width: 200px;
   position: fixed;
   will-change: transform;
 `;
