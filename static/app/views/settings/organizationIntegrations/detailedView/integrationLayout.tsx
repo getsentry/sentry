@@ -1,6 +1,5 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
@@ -101,13 +100,20 @@ function IntegrationTabs({
       <Tabs value={activeTab} onChange={onTabChange}>
         <TabList>
           {tabs.map(tab => (
-            <TabList.Item key={tab}>{capitalize(renderTab(tab))}</TabList.Item>
+            <TabList.Item key={tab}>
+              <Capitalized>{renderTab(tab)}</Capitalized>
+            </TabList.Item>
           ))}
         </TabList>
       </Tabs>
     </TabsContainer>
   );
 }
+
+// Requires CSS transform because of how the tab rendering works
+const Capitalized = styled('div')`
+  text-transform: capitalize;
+`;
 
 const TabsContainer = styled('div')`
   margin-top: ${space(2)};
