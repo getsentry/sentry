@@ -3172,3 +3172,8 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "taskworker.demomode.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
