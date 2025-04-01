@@ -41,7 +41,8 @@ from sentry.sentry_apps.services.app.service import (
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
-from sentry.tasks.base import instrumented_task, retry, retry_task
+from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.retry import retry_task
 from sentry.types.rules import RuleFuture
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service

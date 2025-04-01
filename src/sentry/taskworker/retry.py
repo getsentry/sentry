@@ -12,6 +12,7 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
 )
 
 from sentry.taskworker.state import current_task as taskworker_current_task
+from sentry.utils import metrics
 
 
 class RetryError(Exception):
@@ -57,6 +58,7 @@ def retry_task(exc: Exception | None = None) -> None:
     else:
         current = taskworker_current_task()
         if current and not current.retries_remaining:
+            metrics.incr("taskworker.retry.no_retries_remaining")
             raise NoRetriesRemainingError()
         raise RetryError()
 
