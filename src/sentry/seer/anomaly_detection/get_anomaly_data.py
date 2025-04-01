@@ -59,7 +59,7 @@ def get_anomaly_data_from_seer(
         logger.info("Missing anomaly detection rule data", extra=extra_data)
         return None
 
-    if aggregation_value is None:
+    if not aggregation_value:
         metrics.incr("anomaly_detection.aggregation_value.none")
         logger.warning("Aggregation value is none", extra=extra_data)
         aggregation_value = 0

@@ -4,7 +4,8 @@
     "allowJs": true
   },
   "include": [
-    "eslint*.config.mjs",
+    "*.config.mjs",
+    "*.config.ts",
     "static/app",
     "static/gsApp",
     "static/gsAdmin",

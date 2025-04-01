@@ -428,7 +428,7 @@ def send_incident_alert_notification(
         notification_uuid=notification_uuid,
     )
 
-    if features.has("organizations:workflow-engine-notification-action", organization):
+    if features.has("organizations:workflow-engine-trigger-actions", organization):
         return _handle_workflow_engine_notification(
             organization=organization,
             notification_context=notification_context,

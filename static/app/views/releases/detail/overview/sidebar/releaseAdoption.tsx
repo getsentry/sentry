@@ -13,7 +13,6 @@ import NotAvailable from 'sentry/components/notAvailable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -124,7 +123,7 @@ function ReleaseAdoption({
     return series;
   }
 
-  const colors = getChartColorPalette(2);
+  const colors = theme.chart.getColorPalette(2);
 
   const axisLineConfig = {
     scale: true,

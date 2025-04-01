@@ -2,11 +2,11 @@ import {cloneElement, Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {NAV_GROUP_LABELS} from 'sentry/components/nav/constants';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
-import {SecondaryNav} from 'sentry/components/nav/secondary';
-import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {space} from 'sentry/styles/space';
+import {NAV_GROUP_LABELS} from 'sentry/views/nav/constants';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
+import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
+import {PrimaryNavGroup} from 'sentry/views/nav/types';
 import SettingsNavigationGroup from 'sentry/views/settings/components/settingsNavigationGroup';
 import SettingsNavigationGroupDeprecated from 'sentry/views/settings/components/settingsNavigationGroupDeprecated';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -43,7 +43,7 @@ function SettingsSecondaryNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
-    <SecondaryNav group={PrimaryNavGroup.SETTINGS}>
+    <SecondaryNav>
       <SecondaryNav.Header>
         {NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
       </SecondaryNav.Header>

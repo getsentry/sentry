@@ -1,3 +1,4 @@
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {t} from 'sentry/locale';
@@ -15,7 +16,7 @@ import withProjects from 'sentry/utils/withProjects';
 import PageLayout from '../pageLayout';
 import Tab from '../tabs';
 
-import {PERCENTILE, VITAL_GROUPS} from './constants';
+import {makeVitalGroups, PERCENTILE} from './constants';
 import VitalsContent from './content';
 
 type Props = {
@@ -26,7 +27,7 @@ type Props = {
 
 function TransactionVitals(props: Props) {
   const {location, organization, projects} = props;
-
+  const theme = useTheme();
   return (
     <PageLayout
       location={location}
@@ -34,7 +35,9 @@ function TransactionVitals(props: Props) {
       projects={projects}
       tab={Tab.WEB_VITALS}
       getDocumentTitle={getDocumentTitle}
-      generateEventView={generateEventView}
+      generateEventView={({location: locationArg, transactionName}) =>
+        generateEventView({location: locationArg, transactionName, theme})
+      }
       childComponent={VitalsContent}
     />
   );
@@ -54,8 +57,10 @@ function getDocumentTitle(transactionName: string): string {
 function generateEventView({
   location,
   transactionName,
+  theme,
 }: {
   location: Location;
+  theme: Theme;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
@@ -70,7 +75,7 @@ function generateEventView({
     }
   });
 
-  const vitals = VITAL_GROUPS.reduce((allVitals: WebVital[], group) => {
+  const vitals = makeVitalGroups(theme).reduce((allVitals: WebVital[], group) => {
     return allVitals.concat(group.vitals);
   }, []);
 

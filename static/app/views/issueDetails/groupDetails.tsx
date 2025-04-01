@@ -665,7 +665,7 @@ function GroupDetailsContent({
       return;
     }
 
-    if (currentTab === Tab.TAGS) {
+    if (currentTab === Tab.DISTRIBUTIONS) {
       openTagsDrawer();
     } else if (currentTab === Tab.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
@@ -688,7 +688,7 @@ function GroupDetailsContent({
 
   const isDisplayingEventDetails = [
     Tab.DETAILS,
-    Tab.TAGS,
+    Tab.DISTRIBUTIONS,
     Tab.SIMILAR_ISSUES,
     Tab.MERGED,
     Tab.ACTIVITY,
@@ -824,7 +824,7 @@ function GroupDetailsPageContent(props: GroupDetailsProps & FetchGroupDetailsSta
       tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
       isCompleted={isIssueDetailsTourCompleted}
       orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      tourContext={IssueDetailsTourContext}
+      TourContext={IssueDetailsTourContext}
     >
       <GroupDetailsContent
         {...props}

@@ -1,6 +1,9 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {getGroupReleaseChartMarkers} from 'sentry/components/group/releaseChart';
 import type {TimeseriesValue} from 'sentry/types/core';
-import theme from 'sentry/utils/theme';
+
+const theme = ThemeFixture();
 
 it('should set marker before first bucket', () => {
   const data: TimeseriesValue[] = [

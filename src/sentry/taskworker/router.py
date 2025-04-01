@@ -1,9 +1,11 @@
 from typing import Protocol
 
 from django.conf import settings
+from sentry_sdk import capture_exception
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.utils import json
 
 
 class TaskRouter(Protocol):
@@ -13,10 +15,21 @@ class TaskRouter(Protocol):
 class DefaultRouter:
     """Router that uses django settings and options to select topics at runtime"""
 
+    _route_map: dict[str, str]
+
+    def __init__(self) -> None:
+        routes = {}
+        if settings.TASKWORKER_ROUTES:
+            try:
+                routes = json.loads(settings.TASKWORKER_ROUTES)
+            except Exception as err:
+                capture_exception(err)
+        self._route_map = routes
+
     def route_namespace(self, name: str) -> Topic:
         overrides = options.get("taskworker.route.overrides")
         if name in overrides:
             return Topic(overrides[name])
-        if name in settings.TASKWORKER_ROUTES:
-            return Topic(settings.TASKWORKER_ROUTES[name])
+        if name in self._route_map:
+            return Topic(self._route_map[name])
         return Topic.TASKWORKER
