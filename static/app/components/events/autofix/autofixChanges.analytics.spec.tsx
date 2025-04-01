@@ -7,8 +7,13 @@ import {Button} from 'sentry/components/core/button';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import {
   type AutofixChangesStep,
+  AutofixStatus,
   AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {
+  useAutofixData,
+  useAutofixRepos,
+} from 'sentry/components/events/autofix/useAutofix';
 
 jest.mock('sentry/components/core/button', () => ({
   Button: jest.fn(props => {
@@ -19,6 +24,8 @@ jest.mock('sentry/components/core/button', () => ({
     return <a href={props.href}>{props.children}</a>;
   }),
 }));
+
+jest.mock('sentry/components/events/autofix/useAutofix');
 
 const mockButton = Button as jest.MockedFunction<typeof Button>;
 
@@ -35,6 +42,24 @@ describe('AutofixChanges', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockButton.mockClear();
+    jest.mocked(useAutofixRepos).mockReset();
+    jest.mocked(useAutofixData).mockReset();
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [],
+      codebases: {},
+    });
+    jest.mocked(useAutofixData).mockReturnValue({
+      data: {
+        request: {
+          repos: [],
+        },
+        codebases: {},
+        created_at: '2024-01-01T00:00:00Z',
+        run_id: '456',
+        status: AutofixStatus.COMPLETED,
+      },
+      isPending: false,
+    });
   });
 
   it('passes correct analytics props for Create PR button when write access is enabled', async () => {
@@ -44,8 +69,33 @@ describe('AutofixChanges', () => {
       body: {
         genAIConsent: {ok: true},
         integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+        githubWriteIntegration: {},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/issues/123/autofix/update/',
+      method: 'POST',
+      body: {ok: true},
+    });
+
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: '100',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {
+        '100': {
+          repo_external_id: '100',
+          is_readable: true,
+          is_writeable: true,
         },
       },
     });
@@ -74,6 +124,27 @@ describe('AutofixChanges', () => {
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],
+        },
+      },
+    });
+
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
+        },
+      ],
+      codebases: {
+        'repo-123': {
+          repo_external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
         },
       },
     });
@@ -108,6 +179,27 @@ describe('AutofixChanges', () => {
       },
     });
 
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: true,
+        },
+      ],
+      codebases: {
+        'repo-123': {
+          repo_external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: true,
+        },
+      },
+    });
+
     render(<AutofixChanges {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Check Out Locally'}));
@@ -133,6 +225,27 @@ describe('AutofixChanges', () => {
         integration: {ok: true},
         githubWriteIntegration: {
           repos: [{ok: false, owner: 'owner', name: 'hello-world', id: 100}],
+        },
+      },
+    });
+
+    jest.mocked(useAutofixRepos).mockReturnValue({
+      repos: [
+        {
+          name: 'org/repo',
+          owner: 'org',
+          provider: 'github',
+          provider_raw: 'github',
+          external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
+        },
+      ],
+      codebases: {
+        'repo-123': {
+          repo_external_id: 'repo-123',
+          is_readable: true,
+          is_writeable: false,
         },
       },
     });

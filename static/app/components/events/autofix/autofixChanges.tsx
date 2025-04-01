@@ -382,7 +382,6 @@ function SetupAndCreatePRsButton({
   runId: string;
 }) {
   const {codebases} = useAutofixRepos(groupId);
-
   if (
     !changes.every(
       change =>
