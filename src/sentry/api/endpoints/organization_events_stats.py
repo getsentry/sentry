@@ -277,6 +277,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
         use_rpc = request.GET.get("useRpc", "0") == "1" and dataset == spans_eap
+        sampling_mode = request.GET.get("sampling")
         transform_alias_to_input_format = (
             request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
         )
@@ -305,6 +306,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             auto_fields=False,
                             use_aggregate_conditions=True,
                         ),
+                        sampling_mode=sampling_mode,
                     )
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -341,6 +343,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         auto_fields=False,
                         use_aggregate_conditions=True,
                     ),
+                    sampling_mode=sampling_mode,
                     comparison_delta=comparison_delta,
                 )
 

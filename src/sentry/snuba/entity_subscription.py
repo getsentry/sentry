@@ -281,6 +281,7 @@ class PerformanceSpansEAPRpcEntitySubscription(BaseEntitySubscription):
             groupby=[],
             referrer=referrer,
             config=SearchResolverConfig(),
+            sampling_mode=None,
         )
 
         return rpc_request

@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
+from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -1616,6 +1617,177 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             self.start, 60_000, [0.0, 2.0, 1.0], ignore_accuracy=True
         )
         assert timeseries["meta"] == {
+            "valueType": "integer",
+            "interval": 60_000,
+        }
+
+    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
+    def test_downsampling_single_series(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "success"}},
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=True,
+        )
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "PREFLIGHT",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 512, 0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "integer",
+            "interval": 60_000,
+        }
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "BEST_EFFORT",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "valueType": "integer",
+            "interval": 60_000,
+        }
+
+    @pytest.mark.xfail(reason="https://github.com/getsentry/eap-planning/issues/237")
+    def test_downsampling_top_events(self):
+        span = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            duration=100,
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span["span_id"] = KNOWN_PREFLIGHT_ID
+        span2 = self.create_span(
+            {"description": "zoo", "sentry_tags": {"status": "failure"}},
+            duration=10,
+            start_ts=self.day_ago + timedelta(minutes=1),
+        )
+        span2["span_id"] = "b" * 16
+        self.store_spans(
+            [span, span2],
+            is_eap=True,
+        )
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "field": ["span.description", "sum(span.self_time)"],
+                "orderby": ["-sum(span.self_time)"],
+                "topEvents": 1,
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "PREFLIGHT",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 1
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 512, 0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "isOther": False,
+            "order": 0,
+            "valueType": "integer",
+            "interval": 60_000,
+        }
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                # update to span.description once https://github.com/getsentry/eap-planning/issues/237 is fixed
+                "field": ["span.status", "sum(span.self_time)"],
+                "orderby": ["-sum(span.self_time)"],
+                "topEvents": 1,
+                "yAxis": "count()",
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "BEST_EFFORT",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["meta"] == {
+            "dataset": "spans",
+            "start": self.start.timestamp() * 1000,
+            "end": self.end.timestamp() * 1000,
+        }
+        assert len(response.data["timeseries"]) == 2
+
+        timeseries = response.data["timeseries"][0]
+        assert len(timeseries["values"]) == 3
+        assert timeseries["yaxis"] == "count()"
+        assert timeseries["values"] == _timeseries(
+            self.start, 60_000, [0, 1, 0], ignore_accuracy=True
+        )
+        assert timeseries["meta"] == {
+            "isOther": False,
+            "order": 0,
             "valueType": "integer",
             "interval": 60_000,
         }
