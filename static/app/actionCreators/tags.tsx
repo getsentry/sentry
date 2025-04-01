@@ -236,10 +236,6 @@ export function fetchFeatureFlagValues({
   search?: string;
   sort?: '-last_seen' | '-count';
 }): Promise<TagValue[]> {
-  if (!organization.features.includes('feature-flag-autocomplete')) {
-    return Promise.resolve([]);
-  }
-
   // Search syntax may wrap with flags[] or flags[""], but this endpoint doesn't support it.
   const strippedKey = tagKey.replace(/^flags\[(?:"?)(.*?)(?:"?)\]$/, '$1');
 

@@ -24,10 +24,7 @@ import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useIssueListFilterKeys} from 'sentry/views/issueList/utils/useIssueListFilterKeys';
 
-const getFilterKeySections = (
-  tags: TagCollection,
-  organization: Organization
-): FilterKeySection[] => {
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
@@ -72,10 +69,7 @@ const getFilterKeySections = (
     },
   ];
 
-  if (
-    organization.features.includes('feature-flag-autocomplete') &&
-    eventFeatureFlags.length > 0
-  ) {
+  if (eventFeatureFlags.length > 0) {
     sections.push({
       value: FieldKind.FEATURE_FLAG,
       label: t('Flags'), // Keeping this short so the tabs stay on 1 line.
@@ -168,8 +162,8 @@ function IssueListSearchBar({
   );
 
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(filterKeys, organization);
-  }, [filterKeys, organization]);
+    return getFilterKeySections(filterKeys);
+  }, [filterKeys]);
 
   return (
     <SearchQueryBuilder
