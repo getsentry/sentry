@@ -46,8 +46,8 @@ def retry_task(exc: Exception | None = None) -> None:
     If all retries have been consumed, this will raise a
     MaxAttemptsExceededError.
 
-    During task conversion, this function will shims
-    between celery's retry AP and Taskworker retry API.
+    During task conversion, this function will shim
+    between celery's retry API and Taskworker retry API.
     """
     celery_retry = getattr(current_task, "retry", None)
     if celery_retry:
