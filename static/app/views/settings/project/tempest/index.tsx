@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openAddTempestCredentialsModal} from 'sentry/actionCreators/modal';
@@ -18,6 +18,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -59,6 +60,10 @@ export default function TempestSettings({organization, project}: Props) {
       ),
     onSuccess: () => {
       addSuccessMessage(t('Removed the credentials.'));
+      trackAnalytics('tempest.credentials.removed', {
+        organization,
+        project_slug: project.slug,
+      });
       invalidateCredentialsCache();
     },
     onError: error => {
@@ -73,6 +78,17 @@ export default function TempestSettings({organization, project}: Props) {
       credential => credential.messageType === MessageType.ERROR && credential.message
     );
   }, [tempestCredentials]);
+
+  useEffect(() => {
+    if (credentialErrors && credentialErrors.length > 0) {
+      trackAnalytics('tempest.credentials.error_displayed', {
+        organization,
+        project_slug: project.slug,
+        error_count: credentialErrors.length,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [credentialErrors]);
 
   const isEmpty = useMemo(() => {
     return !tempestCredentials?.length;
@@ -184,7 +200,13 @@ const addNewCredentials = (
           data-test-id="create-new-credentials"
           disabled={!hasWriteAccess}
           icon={<IconAdd isCircled />}
-          onClick={() => openAddTempestCredentialsModal({organization, project})}
+          onClick={() => {
+            openAddTempestCredentialsModal({organization, project});
+            trackAnalytics('tempest.credentials.add_modal_opened', {
+              organization,
+              project_slug: project.slug,
+            });
+          }}
         >
           {t('Add Credentials')}
         </Button>
