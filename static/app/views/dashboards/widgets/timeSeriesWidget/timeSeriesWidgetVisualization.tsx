@@ -12,6 +12,7 @@ import type {
 import type EChartsReactCore from 'echarts-for-react/lib/core';
 import groupBy from 'lodash/groupBy';
 import mapValues from 'lodash/mapValues';
+import sum from 'lodash/sum';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
@@ -19,7 +20,11 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {EChartDataZoomHandler, ReactEchartsRef} from 'sentry/types/echarts';
+import type {
+  EChartDataZoomHandler,
+  EChartHighlightHandler,
+  ReactEchartsRef,
+} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {uniq} from 'sentry/utils/array/uniq';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -410,7 +415,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Keep track of what color in the chosen palette we're assigning
   let seriesColorIndex = 0;
-  const series: SeriesOption[] = props.plottables.flatMap(plottable => {
+  const seriesFromPlottables: SeriesOption[] = props.plottables.flatMap(plottable => {
     let color: string | undefined;
 
     if (plottable.needsColor) {
@@ -467,12 +472,46 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     seriesIndexToPlottableMapRanges
   );
 
+  const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
+
+  const handleHighlight: EChartHighlightHandler = event => {
+    for (const batch of event.batch ?? []) {
+      const affectedRange = seriesIndexToPlottableRangeMap.getRange(batch.seriesIndex);
+      const affectedPlottable = affectedRange?.value;
+
+      if (
+        !defined(affectedRange) ||
+        !defined(affectedPlottable) ||
+        !defined(affectedPlottable.onHighlight)
+      ) {
+        continue;
+      }
+
+      // Each plottable creates anywhere from 1 to N `Series` objects.
+      // `batch.dataIndex` is the data index in the _series_, not in the
+      // plottable. e.g., If this is the third series of the plottable, the data
+      // index in the plottable needs to be offset by the data counts of the
+      // first two.
+      const dataIndexOffset: number = sum(
+        allSeries
+          .slice(affectedRange.min ?? 0, batch.seriesIndex)
+          .map(seriesOfPlottable => {
+            return Array.isArray(seriesOfPlottable.data)
+              ? seriesOfPlottable.data.length
+              : 0;
+          })
+      );
+
+      affectedPlottable.onHighlight(dataIndexOffset + batch.dataIndex);
+    }
+  };
+
   return (
     <BaseChart
       ref={mergeRefs(props.ref, chartRef, handleChartRef)}
       {...releaseBubbleEventHandlers}
       autoHeightResize
-      series={[...series, releaseSeries].filter(defined)}
+      series={allSeries}
       grid={{
         // NOTE: Adding a few pixels of left padding prevents ECharts from
         // incorrectly truncating long labels. See
@@ -539,6 +578,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       end={end ? new Date(end) : undefined}
       period={period}
       utc={utc ?? undefined}
+      onHighlight={handleHighlight}
     />
   );
 }

@@ -48,4 +48,8 @@ export interface Plottable {
    * Optional label for this plottable, if it appears in the legend and in tooltips.
    */
   label?: string;
+  /**
+   * `TimeSeriesWidgetVisualization` will call this function if the user highlights (via mouse, or imperatively) a point on a series that originated from this plottable.
+   */
+  onHighlight?: (dataIndex: number) => void;
 }
