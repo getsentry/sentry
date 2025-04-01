@@ -66,9 +66,22 @@ describe('WebVitalsLandingPage', function () {
         data: [],
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: {},
+      body: {
+        'performance_score(measurements.score.lcp)': {
+          data: [[1743348600, [{count: 0.6106921965623204}]]],
+        },
+        'performance_score(measurements.score.fcp)': {
+          data: [[1743435000, [{count: 0.7397871866098699}]]],
+        },
+      },
     });
   });
 
