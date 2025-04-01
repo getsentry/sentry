@@ -561,6 +561,7 @@ class TracesExecutor:
             trace["breakdowns"] = traces_breakdowns[trace["trace"]]
 
     def get_traces_rpc(self, projects: list[Project]):
+        assert self.snuba_params.organization_id is not None
         meta = RequestMeta(
             organization_id=self.snuba_params.organization_id,
             referrer=Referrer.API_TRACE_EXPLORER_SPANS_LIST.value,
