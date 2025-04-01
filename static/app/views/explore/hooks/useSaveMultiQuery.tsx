@@ -8,6 +8,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {getTitleFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/title';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
@@ -27,6 +28,7 @@ export function useSaveMultiQuery() {
 
   const api = useApi();
   const organization = useOrganization();
+  const invalidateSavedQueries = useInvalidateSavedQueries();
 
   const data = useMemo(() => {
     return {
@@ -59,12 +61,14 @@ export function useSaveMultiQuery() {
           data: {
             ...data,
             name: newTitle,
+            starred: true,
           },
         }
       );
+      invalidateSavedQueries();
       return response;
     },
-    [api, organization.slug, data]
+    [api, organization.slug, data, invalidateSavedQueries]
   );
 
   const updateQuery = useCallback(async () => {

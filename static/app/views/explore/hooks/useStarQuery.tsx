@@ -4,17 +4,20 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
-export function useDeleteQuery() {
+export function useStarQuery() {
   const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
-  const deleteQuery = useCallback(
-    async (id: number) => {
+  const starQuery = useCallback(
+    async (id: number, starred: boolean) => {
       await api.requestPromise(
-        `/organizations/${organization.slug}/explore/saved/${id}/`,
+        `/organizations/${organization.slug}/explore/saved/${id}/starred/`,
         {
-          method: 'DELETE',
+          method: 'POST',
+          data: {
+            starred,
+          },
         }
       );
       invalidateSavedQueries();
@@ -22,5 +25,5 @@ export function useDeleteQuery() {
     [api, organization.slug, invalidateSavedQueries]
   );
 
-  return {deleteQuery};
+  return {starQuery};
 }

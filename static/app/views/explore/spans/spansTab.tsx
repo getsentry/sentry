@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -37,6 +37,7 @@ import SchemaHintsList, {
 import {
   PageParamsProvider,
   useExploreDataset,
+  useExploreId,
   useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
@@ -54,6 +55,7 @@ import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTa
 import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {
@@ -90,6 +92,14 @@ export function SpansTabContentImpl({
 
   const query = useExploreQuery();
   const setQuery = useSetExploreQuery();
+
+  const id = useExploreId();
+  const visitQuery = useVisitQuery();
+  useEffect(() => {
+    if (defined(id)) {
+      visitQuery(id);
+    }
+  }, [id, visitQuery]);
 
   const isSchemaHintsDrawerOpenOnLargeScreen = useSchemaHintsOnLargeScreen();
 

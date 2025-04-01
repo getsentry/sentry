@@ -6,6 +6,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useExplorePageParams} from 'sentry/views/explore/contexts/pageParamsContext';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
+import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 const TRACE_EXPLORER_DATASET = 'spans';
 
@@ -19,6 +20,7 @@ export function useSaveQuery() {
 
   const api = useApi();
   const organization = useOrganization();
+  const invalidateSavedQueries = useInvalidateSavedQueries();
 
   const visualize = visualizes.map(({chartType, yAxes}) => ({
     chartType,
@@ -71,12 +73,14 @@ export function useSaveQuery() {
           data: {
             ...data,
             name: newTitle,
+            starred: true,
           },
         }
       );
+      invalidateSavedQueries();
       return response;
     },
-    [api, organization.slug, data]
+    [api, organization.slug, data, invalidateSavedQueries]
   );
 
   const updateQuery = useCallback(async () => {

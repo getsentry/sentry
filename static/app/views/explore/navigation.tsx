@@ -7,6 +7,8 @@ import {SecondaryNav} from 'sentry/components/nav/secondary';
 import {PrimaryNavGroup} from 'sentry/components/nav/types';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {getExploreUrlFromSavedQueryUrl} from 'sentry/views/explore/utils';
 
 type Props = {
   children: React.ReactNode;
@@ -15,6 +17,10 @@ type Props = {
 export default function ExploreNavigation({children}: Props) {
   const organization = useOrganization();
   const prefersStackedNav = usePrefersStackedNav();
+
+  const {data: starredQueries} = useGetSavedQueries({
+    starred: true,
+  });
 
   if (!prefersStackedNav) {
     return children;
@@ -80,6 +86,17 @@ export default function ExploreNavigation({children}: Props) {
                 {t('All Queries')}
               </SecondaryNav.Item>
             </Feature>
+          </SecondaryNav.Section>
+          <SecondaryNav.Section title={t('Starred Queries')}>
+            {starredQueries?.map(query => (
+              <SecondaryNav.Item
+                key={query.id}
+                to={getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})}
+                analyticsItemName="explore_starred_item"
+              >
+                {query.name}
+              </SecondaryNav.Item>
+            )) ?? null}
           </SecondaryNav.Section>
         </SecondaryNav.Body>
       </SecondaryNav>
