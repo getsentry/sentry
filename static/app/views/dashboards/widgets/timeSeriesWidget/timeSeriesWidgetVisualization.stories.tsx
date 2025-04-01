@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
@@ -11,6 +11,7 @@ import storyBook from 'sentry/stories/storyBook';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {shiftTabularDataToNow} from 'sentry/utils/tabularData/shiftTabularDataToNow';
 import {shiftTimeSeriesToNow} from 'sentry/utils/timeSeries/shiftTimeSeriesToNow';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 
@@ -427,6 +428,21 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
   });
 
   story('Samples', () => {
+    const timeSeriesPlottable = useMemo(() => {
+      return new Bars(shiftTimeSeriesToNow(sampleDurationTimeSeries), {
+        delay: 1800,
+      });
+    }, []);
+
+    const samplesPlottable = useMemo(() => {
+      return new Samples(shiftTabularDataToNow(spanSamplesWithDurations), {
+        alias: 'Span Samples',
+        attributeName: 'p99(span.duration)',
+        baselineValue: 175,
+        baselineLabel: 'Average',
+      });
+    }, []);
+
     return (
       <Fragment>
         <p>
@@ -439,15 +455,7 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
 
         <MediumWidget>
           <TimeSeriesWidgetVisualization
-            plottables={[
-              new Line(sampleDurationTimeSeries),
-              new Samples(spanSamplesWithDurations, {
-                alias: 'Span Samples',
-                attributeName: 'p99(span.duration)',
-                baselineValue: 175,
-                baselineLabel: 'Average',
-              }),
-            ]}
+            plottables={[timeSeriesPlottable, samplesPlottable]}
           />
         </MediumWidget>
       </Fragment>
