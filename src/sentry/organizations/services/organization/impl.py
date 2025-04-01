@@ -318,14 +318,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def _query_organizations(
         self, user_id: int, scope: str | None, only_visible: bool
     ) -> list[Organization]:
-        from django.conf import settings
-
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(Organization.objects.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(Organization.objects.filter())
-
         qs = OrganizationMember.objects.filter(user_id=user_id)
 
         qs = qs.select_related("organization")

@@ -1584,9 +1584,6 @@ SENTRY_DEFAULT_LANGUAGE = "en"
 # Should we send the beacon to the upstream server?
 SENTRY_BEACON = True
 
-# Allow access to Sentry without authentication.
-SENTRY_PUBLIC = False
-
 # Instruct Sentry that this install intends to be run by a single organization
 # and thus various UI optimizations should be enabled.
 SENTRY_SINGLE_ORGANIZATION = False
@@ -1879,7 +1876,6 @@ SENTRY_CHART_RENDERER_OPTIONS: dict[str, Any] = {}
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
 SENTRY_ENDPOINT: str | None = None
-SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
 # `organizations:org-ingest-subdomains` feature.
