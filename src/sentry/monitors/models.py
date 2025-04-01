@@ -264,7 +264,7 @@ class Monitor(Model):
     """
 
     type = BoundedPositiveIntegerField(
-        default=MonitorType.UNKNOWN,
+        db_default=MonitorType.UNKNOWN,
         choices=[(k, str(v)) for k, v in MonitorType.as_choices()],
     )
     """
