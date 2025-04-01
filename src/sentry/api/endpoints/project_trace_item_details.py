@@ -24,6 +24,17 @@ from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 
+SUPPORTED_TRACE_TYPES = {
+    "ourlogs": SupportedTraceItemType.LOGS,
+    "spans": SupportedTraceItemType.SPANS,
+}
+
+
+DISALLOW_LIST = {
+    "sentry.organization_id",
+    "sentry.item_type",
+}
+
 
 def convert_rpc_attribute_to_json(
     attributes: list[dict],
@@ -32,11 +43,13 @@ def convert_rpc_attribute_to_json(
     result: list[TraceItemAttribute] = []
     for attribute in attributes:
         internal_name = attribute["name"]
+        if internal_name in DISALLOW_LIST:
+            continue
         source = attribute["value"]
         if len(source) == 0:
             raise BadRequest(f"unknown field in protobuf: {internal_name}")
-        for k, v in source.items():
-            lowered_key = k.lower()
+        for key, value in source.items():
+            lowered_key = key.lower()
             if lowered_key.startswith("val"):
                 val_type = lowered_key[3:]
                 column_type: Literal["string", "number"] = "string"
@@ -51,23 +64,38 @@ def convert_rpc_attribute_to_json(
                     internal_name, column_type, trace_item_type
                 )
 
+                if trace_item_type == SupportedTraceItemType.SPANS and internal_name.startswith(
+                    "sentry."
+                ):
+                    internal_name = internal_name.replace("sentry.", "", count=1)
+
                 if external_name is None:
-                    if type == "number":
+                    if column_type == "number":
                         external_name = f"tags[{internal_name},number]"
                     else:
                         external_name = internal_name
 
+                # TODO: this should happen in snuba instead
+                if external_name == "trace":
+                    value = value.replace("-", "")
+
                 result.append(
-                    TraceItemAttribute({"name": external_name, "type": val_type, "value": v})
+                    TraceItemAttribute({"name": external_name, "type": val_type, "value": value})
                 )
 
     return sorted(result, key=lambda x: (x["type"], x["name"]))
 
 
+def serialize_item_id(item_id: str, trace_item_type: SupportedTraceItemType) -> str:
+    if trace_item_type == SupportedTraceItemType.SPANS:
+        return item_id[-16:]
+    else:
+        return item_id
+
+
 class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
     trace_id = serializers.UUIDField(format="hex", required=True)
-    item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=False)
-    dataset = serializers.ChoiceField(["ourlogs"], required=False)
+    item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
     referrer = serializers.CharField(required=False)
 
 
@@ -98,26 +126,16 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         serialized = serializer.validated_data
         trace_id = serialized.get("trace_id")
         item_type = serialized.get("item_type")
-        dataset = serialized.get("dataset")
         referrer = serialized.get("referrer", Referrer.API_ORGANIZATION_TRACE_ITEM_DETAILS.value)
 
         trace_item_type = None
         if item_type is not None:
-
             trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
                 SupportedTraceItemType(item_type), None
             )
 
-        if dataset == "ourlogs":
-            trace_item_type = constants.SUPPORTED_TRACE_ITEM_TYPE_MAP.get(
-                SupportedTraceItemType.LOGS, None
-            )
-            item_type = SupportedTraceItemType.LOGS
-
         if trace_item_type is None:
-            raise BadRequest(
-                detail=f"Unknown dataset or trace item type: '{dataset}' / {item_type}"
-            )
+            raise BadRequest(detail=f"Unknown trace item type: {item_type}")
 
         start_timestamp_proto = ProtoTimestamp()
         start_timestamp_proto.FromSeconds(0)
@@ -158,7 +176,7 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         resp = MessageToDict(snuba_rpc.trace_item_details_rpc(req))
 
         resp_dict = {
-            "itemId": resp["itemId"],
+            "itemId": serialize_item_id(resp["itemId"], item_type),
             "timestamp": resp["timestamp"],
             "attributes": convert_rpc_attribute_to_json(resp["attributes"], item_type),
         }

@@ -3462,7 +3462,7 @@ class OrganizationEventsEAPRPCSpanEndpointTest(OrganizationEventsEAPSpanEndpoint
         self.store_spans(spans, is_eap=self.is_eap)
         response = self.do_request(
             {
-                "field": ["description"],
+                "field": ["description", "precise.start_ts"],
                 "query": f"trace:[{'1' * 32}, {'2' * 32}]",
                 "orderby": "description",
                 "project": self.project.id,

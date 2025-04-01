@@ -1,27 +1,46 @@
 import uuid
 
+import pytest
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, OurLogTestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
+class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
         self.features = {
             "organizations:discover-basic": True,
         }
+        self.one_min_ago = before_now(minutes=1)
+        self.trace_uuid = str(uuid.uuid4()).replace("-", "")
+
+    def do_request(self, event_type: str, item_id: str):
+        item_details_url = reverse(
+            "sentry-api-0-project-trace-item-details",
+            kwargs={
+                "item_id": item_id,
+                "project_id_or_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+            },
+        )
+        with self.feature(self.features):
+            return self.client.get(
+                item_details_url,
+                {
+                    "item_type": event_type,
+                    "trace_id": self.trace_uuid,
+                },
+            )
 
     def test_simple(self):
-        one_min_ago = before_now(minutes=1)
-        trace_uuid = str(uuid.uuid4())
         logs = [
             self.create_ourlog(
                 {
                     "body": "foo",
-                    "trace_id": trace_uuid,
+                    "trace_id": self.trace_uuid,
                 },
                 attributes={
                     "str_attr": {
@@ -35,7 +54,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
                         "bool_value": True,
                     },
                 },
-                timestamp=one_min_ago,
+                timestamp=self.one_min_ago,
             ),
         ]
         self.store_ourlogs(logs)
@@ -58,59 +77,40 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
             )
         assert item_list_response.data is not None
         item_id = item_list_response.data["data"][0]["sentry.item_id"]
-        trace_id = item_list_response.data["data"][0]["sentry.trace_id"]
 
-        item_details_url = reverse(
-            "sentry-api-0-project-trace-item-details",
-            kwargs={
-                "item_id": item_id,
-                "project_id_or_slug": self.project.slug,
-                "organization_id_or_slug": self.project.organization.slug,
-            },
-        )
-        with self.feature(self.features):
-            trace_details_response = self.client.get(
-                item_details_url,
-                {
-                    "dataset": "ourlogs",
-                    "trace_id": trace_id,
-                },
-            )
+        trace_details_response = self.do_request("logs", item_id)
 
         assert trace_details_response.status_code == 200, trace_details_response.content
-        assert trace_details_response.data == {
-            "attributes": [
-                {"name": "bool_attr", "type": "bool", "value": True},
-                {"name": "bool_attr", "type": "float", "value": 1.0},
-                {"name": "float_attr", "type": "float", "value": 3.0},
-                {"name": "int_attr", "type": "float", "value": 2.0},
-                {"name": "log.severity_number", "type": "float", "value": 0.0},
-                {"name": "int_attr", "type": "int", "value": "2"},
-                {"name": "log.severity_number", "type": "int", "value": "0"},
-                {"name": "sentry.item_type", "type": "int", "value": "3"},
-                {
-                    "name": "sentry.organization_id",
-                    "type": "int",
-                    "value": str(self.project.organization.id),
-                },
-                {"name": "sentry.project_id", "type": "int", "value": str(self.project.id)},
-                {"name": "log.body", "type": "str", "value": "foo"},
-                {"name": "log.severity_text", "type": "str", "value": "INFO"},
-                {"name": "str_attr", "type": "str", "value": "1"},
-                {"name": "trace", "type": "str", "value": trace_uuid},
-            ],
-            "itemId": item_id,
-            "timestamp": one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z",
-        }, trace_details_response.data
+        assert trace_details_response.data["attributes"] == [
+            {"name": "bool_attr", "type": "bool", "value": True},
+            {"name": "log.severity_number", "type": "float", "value": 0.0},
+            {"name": "tags[bool_attr,number]", "type": "float", "value": 1.0},
+            {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+            {"name": "tags[int_attr,number]", "type": "float", "value": 2.0},
+            {"name": "log.severity_number", "type": "int", "value": "0"},
+            {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
+            {
+                "name": "tags[sentry.project_id,number]",
+                "type": "int",
+                "value": str(self.project.id),
+            },
+            {"name": "log.body", "type": "str", "value": "foo"},
+            {"name": "log.severity_text", "type": "str", "value": "INFO"},
+            {"name": "str_attr", "type": "str", "value": "1"},
+            {"name": "trace", "type": "str", "value": self.trace_uuid},
+        ]
+        assert trace_details_response.data["itemId"] == item_id
+        assert (
+            trace_details_response.data["timestamp"]
+            == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+        )
 
     def test_simple_using_logs_item_type(self):
-        one_min_ago = before_now(minutes=1)
-        trace_uuid = str(uuid.uuid4())
         logs = [
             self.create_ourlog(
                 {
                     "body": "foo",
-                    "trace_id": trace_uuid,
+                    "trace_id": self.trace_uuid,
                 },
                 attributes={
                     "str_attr": {
@@ -124,7 +124,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
                         "bool_value": True,
                     },
                 },
-                timestamp=one_min_ago,
+                timestamp=self.one_min_ago,
             ),
         ]
         self.store_ourlogs(logs)
@@ -147,47 +147,77 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase):
             )
         assert item_list_response.data is not None
         item_id = item_list_response.data["data"][0]["sentry.item_id"]
-        trace_id = item_list_response.data["data"][0]["sentry.trace_id"]
 
-        item_details_url = reverse(
-            "sentry-api-0-project-trace-item-details",
-            kwargs={
-                "item_id": item_id,
-                "project_id_or_slug": self.project.slug,
-                "organization_id_or_slug": self.project.organization.slug,
-            },
-        )
-        with self.feature(self.features):
-            trace_details_response = self.client.get(
-                item_details_url,
-                {
-                    "item_type": "logs",
-                    "trace_id": trace_id,
-                },
-            )
+        trace_details_response = self.do_request("logs", item_id)
 
         assert trace_details_response.status_code == 200, trace_details_response.content
         assert trace_details_response.data == {
             "attributes": [
                 {"name": "bool_attr", "type": "bool", "value": True},
-                {"name": "bool_attr", "type": "float", "value": 1.0},
-                {"name": "float_attr", "type": "float", "value": 3.0},
-                {"name": "int_attr", "type": "float", "value": 2.0},
                 {"name": "log.severity_number", "type": "float", "value": 0.0},
-                {"name": "int_attr", "type": "int", "value": "2"},
+                {"name": "tags[bool_attr,number]", "type": "float", "value": 1.0},
+                {"name": "tags[float_attr,number]", "type": "float", "value": 3.0},
+                {"name": "tags[int_attr,number]", "type": "float", "value": 2.0},
                 {"name": "log.severity_number", "type": "int", "value": "0"},
-                {"name": "sentry.item_type", "type": "int", "value": "3"},
+                {"name": "tags[int_attr,number]", "type": "int", "value": "2"},
                 {
-                    "name": "sentry.organization_id",
+                    "name": "tags[sentry.project_id,number]",
                     "type": "int",
-                    "value": str(self.project.organization.id),
+                    "value": str(self.project.id),
                 },
-                {"name": "sentry.project_id", "type": "int", "value": str(self.project.id)},
                 {"name": "log.body", "type": "str", "value": "foo"},
                 {"name": "log.severity_text", "type": "str", "value": "INFO"},
                 {"name": "str_attr", "type": "str", "value": "1"},
-                {"name": "trace", "type": "str", "value": trace_uuid},
+                {"name": "trace", "type": "str", "value": self.trace_uuid},
             ],
             "itemId": item_id,
-            "timestamp": one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z",
+            "timestamp": self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z",
         }, trace_details_response.data
+
+    def test_simple_using_spans_item_type(self):
+        span_1 = self.create_span(
+            {"description": "foo", "sentry_tags": {"status": "success"}},
+            start_ts=self.one_min_ago,
+        )
+        span_1["trace_id"] = self.trace_uuid
+        item_id = span_1["span_id"]
+
+        self.store_span(span_1, is_eap=True)
+
+        trace_details_response = self.do_request("spans", item_id)
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert trace_details_response.data["attributes"] == [
+            {"name": "is_segment", "type": "bool", "value": False},
+            {"name": "is_transaction", "type": "float", "value": 0.0},
+            {
+                "name": "precise.finish_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "precise.start_ts",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "received",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {"name": "span.duration", "type": "float", "value": 1000.0},
+            {"name": "span.self_time", "type": "float", "value": 1000.0},
+            {"name": "project_id", "type": "int", "value": str(self.project.id)},
+            {"name": "span.duration", "type": "int", "value": "1000"},
+            {"name": "event_id", "type": "str", "value": span_1["event_id"]},
+            {"name": "parent_span", "type": "str", "value": span_1["parent_span_id"]},
+            {"name": "profile.id", "type": "str", "value": span_1["profile_id"]},
+            {"name": "raw_description", "type": "str", "value": "foo"},
+            {"name": "span.status", "type": "str", "value": "success"},
+            {"name": "trace", "type": "str", "value": self.trace_uuid},
+            {"name": "transaction.span_id", "type": "str", "value": span_1["segment_id"]},
+        ]
+        assert trace_details_response.data["itemId"] == item_id
+        assert (
+            trace_details_response.data["timestamp"]
+            == self.one_min_ago.replace(microsecond=0, tzinfo=None).isoformat() + "Z"
+        )

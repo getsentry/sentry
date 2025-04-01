@@ -208,12 +208,17 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias=PRECISE_START_TS,
-            internal_name="sentry.start_timestamp",
+            internal_name="sentry.start_timestamp_precise",
             search_type="number",
         ),
         ResolvedAttribute(
             public_alias=PRECISE_FINISH_TS,
-            internal_name="sentry.end_timestamp",
+            internal_name="sentry.end_timestamp_precise",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="received",
+            internal_name="sentry.received",
             search_type="number",
         ),
         ResolvedAttribute(
