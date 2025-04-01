@@ -41,6 +41,7 @@ export type InsightEventParameters = {
   'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
   'insights.page_loads.overview': {domain: DomainView | undefined; platforms: string[]};
+  'insights.session_health_tour.dismissed': Record<string, unknown>;
 };
 
 export type InsightEventKey = keyof InsightEventParameters;
@@ -87,4 +88,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.vital.select_browser_value': 'Insights: Web Vitals - filter by browser type',
   'insight.general.select_region_value': 'Insights: Select value in region selector',
   'insight.general.create_alert': 'Insights: Create Alert clicked',
+  'insights.session_health_tour.dismissed': 'Insights: Session Health Tour Dismissed',
 };
