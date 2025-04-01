@@ -3,9 +3,9 @@ from sentry.seer.math import kl_divergence, laplace_smooth
 Distribution = dict[str, float]
 
 
-def kl_compare_sets(sup: Distribution, sub: Distribution):
-    sup, sub = _normalize_sets(sup, sub)
-    return kl_divergence(list(sup.values()), list(sub.values()))
+def kl_compare_sets(a: Distribution, b: Distribution):
+    a, b = _normalize_sets(a, b)
+    return kl_divergence(list(a.values()), list(b.values()))
 
 
 def _normalize_sets(a: Distribution, b: Distribution) -> tuple[Distribution, Distribution]:
