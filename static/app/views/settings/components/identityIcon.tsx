@@ -46,7 +46,7 @@ interface IdentityIconProps extends React.RefAttributes<HTMLDivElement> {
   /**
    * @default 'placeholder'
    */
-  providerId?: string | keyof typeof IDENTITY_ICONS;
+  providerId: string | keyof typeof IDENTITY_ICONS;
   /**
    * @default 36
    */

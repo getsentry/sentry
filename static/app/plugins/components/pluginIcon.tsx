@@ -72,7 +72,7 @@ export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
   /**
    * @default 'Placeholder'
    */
-  pluginId?: string | keyof typeof PLUGIN_ICONS;
+  pluginId: string | keyof typeof PLUGIN_ICONS;
   /**
    * @default 20
    */
