@@ -556,7 +556,7 @@ class Factories:
         action_data=None,
         allow_no_action_data=False,
         condition_data=None,
-        name="",
+        name="Test Alert",
         action_match="all",
         filter_match="all",
         **kwargs,
