@@ -775,7 +775,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             return self.resolve_metric_index(value)
 
     def default_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        name = search_filter.key.name
+        name = self.column_remapping.get(search_filter.key.name, search_filter.key.name)
         operator = search_filter.operator
         value = search_filter.value.value
 

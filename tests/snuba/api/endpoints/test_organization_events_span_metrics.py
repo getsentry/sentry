@@ -2332,7 +2332,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         response = self.do_request(
             {
                 "field": ["sentry.normalized_description", "avg(span.self_time)"],
-                "query": "",
+                "query": "has:sentry.normalized_description",
                 "orderby": ["-avg(span.self_time)"],
                 "project": self.project.id,
                 "dataset": "spansMetrics",
