@@ -510,8 +510,9 @@ class GroupManager(BaseManager["Group"]):
 
         assigned_groups = (
             GroupAssignee.objects.filter(team=team)
-            | GroupAssignee.objects.filter(user_id__in=user_ids)
-        ).values_list("group_id", flat=True)
+            .union(GroupAssignee.objects.filter(user_id__in=user_ids))
+            .values_list("group_id", flat=True)
+        )
 
         return self.filter(
             project__in=project_list,
