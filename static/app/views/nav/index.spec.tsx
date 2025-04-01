@@ -18,8 +18,6 @@ import {
 import Nav from 'sentry/views/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
 import {NavContextProvider} from 'sentry/views/nav/context';
-import {SecondaryNav} from 'sentry/views/nav/secondary/secondary';
-import {PrimaryNavGroup} from 'sentry/views/nav/types';
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',
@@ -50,6 +48,11 @@ describe('Nav', function () {
       url: `/assistant/`,
       body: [],
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/group-search-views/`,
+      body: [],
+    });
   });
 
   function renderNav({
@@ -60,12 +63,6 @@ describe('Nav', function () {
     return render(
       <NavContextProvider>
         <Nav />
-        <SecondaryNav group={PrimaryNavGroup.ISSUES}>
-          <SecondaryNav.Header>Issues</SecondaryNav.Header>
-          <SecondaryNav.Item to="/organizations/org-slug/issues/foo/">
-            Foo
-          </SecondaryNav.Item>
-        </SecondaryNav>
         <div id="main" />
       </NavContextProvider>,
       {
@@ -116,14 +113,14 @@ describe('Nav', function () {
     it('includes expected secondary nav items', function () {
       renderNav();
       const container = screen.getByRole('navigation', {name: 'Secondary Navigation'});
-      const link = within(container).getByRole('link', {name: 'Foo'});
-      expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/foo/');
+      const link = within(container).getByRole('link', {name: 'Feed'});
+      expect(link).toHaveAttribute('href', '/organizations/org-slug/issues/');
     });
 
     it('displays the current secondary route as active', function () {
-      renderNav({initialPathname: '/organizations/org-slug/issues/foo/'});
+      renderNav({initialPathname: '/organizations/org-slug/issues/'});
 
-      const link = screen.getByRole('link', {name: 'Foo'});
+      const link = screen.getByRole('link', {name: 'Feed'});
       expect(link).toHaveAttribute('aria-current', 'page');
       expect(link).toHaveAttribute('aria-selected', 'true');
     });
@@ -244,7 +241,7 @@ describe('Nav', function () {
       expect(
         await screen.findByRole('navigation', {name: 'Secondary Navigation'})
       ).toBeInTheDocument();
-      expect(screen.getByRole('link', {name: 'Foo'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Feed'})).toBeInTheDocument();
 
       // Clicking back should render the primary navigation
       await userEvent.click(
