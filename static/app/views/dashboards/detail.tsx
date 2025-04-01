@@ -1344,7 +1344,7 @@ class DashboardDetail extends Component<Props, State> {
                                 }}
                               />
 
-                              <WidgetViewerContext.Provider value={{seriesData, setData}}>
+                              <WidgetViewerContext value={{seriesData, setData}}>
                                 <Fragment>
                                   <Dashboard
                                     theme={this.props.theme}
@@ -1386,7 +1386,7 @@ class DashboardDetail extends Component<Props, State> {
                                     onSave={this.handleSaveWidget}
                                   />
                                 </Fragment>
-                              </WidgetViewerContext.Provider>
+                              </WidgetViewerContext>
                             </MEPSettingProvider>
                           )}
                         </MetricsDataSwitcher>

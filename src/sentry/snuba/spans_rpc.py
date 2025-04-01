@@ -84,6 +84,7 @@ def run_table_query(
     limit: int,
     referrer: str,
     config: SearchResolverConfig,
+    sampling_mode: str | None,
     search_resolver: SearchResolver | None = None,
     debug: bool = False,
 ) -> EAPResponse:
@@ -94,6 +95,7 @@ def run_table_query(
         offset,
         limit,
         referrer,
+        sampling_mode,
         search_resolver or get_resolver(params, config),
         debug,
     )
@@ -298,6 +300,7 @@ def run_top_events_timeseries_query(
         limit,
         referrer,
         config,
+        None,
         search_resolver,
     )
     if len(top_events["data"]) == 0:

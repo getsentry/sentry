@@ -85,5 +85,5 @@ export function NavContextProvider({children}: {children: React.ReactNode}) {
     ]
   );
 
-  return <NavContext.Provider value={value}>{children}</NavContext.Provider>;
+  return <NavContext value={value}>{children}</NavContext>;
 }

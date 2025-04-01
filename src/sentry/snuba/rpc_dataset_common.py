@@ -43,11 +43,13 @@ def run_table_query(
     offset: int,
     limit: int,
     referrer: str,
+    sampling_mode: str | None,
     resolver: SearchResolver,
     debug: bool = False,
 ) -> EAPResponse:
     """Make the query"""
-    meta = resolver.resolve_meta(referrer=referrer)
+    sentry_sdk.set_tag("query.sampling_mode", sampling_mode)
+    meta = resolver.resolve_meta(referrer=referrer, sampling_mode=sampling_mode)
     where, having, query_contexts = resolver.resolve_query(query_string)
     columns, column_contexts = resolver.resolve_columns(selected_columns)
     contexts = resolver.resolve_contexts(query_contexts + column_contexts)
@@ -98,6 +100,7 @@ def run_table_query(
         virtual_column_contexts=[context for context in contexts if context is not None],
     )
     rpc_response = snuba_rpc.table_rpc([rpc_request])[0]
+    sentry_sdk.set_tag("query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier)
 
     """Process the results"""
     final_data: SnubaData = []
