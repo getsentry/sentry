@@ -4,23 +4,19 @@ import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {space} from 'sentry/styles/space';
 import {useChartPlacementContext} from 'sentry/views/insights/sessions/components/chartPlacementContext';
 import {useInsightLayoutContext} from 'sentry/views/insights/sessions/components/insightLayoutContext';
-import {CHART_TITLES} from 'sentry/views/insights/sessions/components/settings';
 
 export default function ChartSelectionTitle() {
   const {chartsByIndex, chartOptions, onChange} = useInsightLayoutContext();
   const {index} = useChartPlacementContext();
 
-  const options = chartOptions.map(opt => ({value: opt, label: CHART_TITLES[opt]}));
-  const selected = chartsByIndex[index];
-
   return (
     <StyledCompactSelect
       triggerProps={{borderless: true, size: 'zero'}}
       offset={4}
-      options={options}
-      value={selected}
+      options={chartOptions}
+      value={chartsByIndex[index]}
       onChange={selection => {
-        onChange(index, selection.value as (typeof chartOptions)[number]);
+        onChange(index, selection as (typeof chartOptions)[number]);
       }}
     />
   );

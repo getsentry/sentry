@@ -4,17 +4,18 @@ import {createContext, useCallback, useContext, useEffect, useState} from 'react
 import localStorage from 'sentry/utils/localStorage';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {
-  type CHART_MAP,
+  CHART_MAP,
+  CHART_TITLES,
   DEFAULT_LAYOUTS,
   PAGE_CHART_OPTIONS,
 } from 'sentry/views/insights/sessions/components/settings';
 
 type TChart = keyof typeof CHART_MAP;
-type TCharts = readonly TChart[];
+type Option = {label: string; value: TChart};
 interface TContext {
-  chartOptions: TCharts;
-  chartsByIndex: TCharts;
-  onChange: (index: number, chart: TChart) => void;
+  chartOptions: Option[];
+  chartsByIndex: readonly TChart[];
+  onChange: (index: number, chart: Option) => void;
   view: DomainView;
 }
 
@@ -38,11 +39,9 @@ const getLocalStorage = () => {
 };
 
 export function InsightLayoutContext({children, view}: Props) {
-  const chartOptions = PAGE_CHART_OPTIONS[view];
-
-  const [chartsByIndex, setChartsByIndex] = useState<TCharts>(() => {
-    return [...DEFAULT_LAYOUTS[view], ...(getLocalStorage()[view] ?? [])];
-  });
+  const [chartsByIndex, setChartsByIndex] = useState<readonly TChart[]>(
+    () => getLocalStorage()[view] ?? DEFAULT_LAYOUTS[view]
+  );
 
   useEffect(() => {
     localStorage.setItem(
@@ -54,8 +53,14 @@ export function InsightLayoutContext({children, view}: Props) {
     );
   }, [chartsByIndex, view]);
 
-  const onChange = useCallback((index: number, chart: TChart) => {
-    setChartsByIndex(prev => prev.toSpliced(index, 1, chart));
+  const chartOptions = PAGE_CHART_OPTIONS[view].map(opt => ({
+    value: opt,
+    label: CHART_TITLES[opt],
+    disabled: chartsByIndex.includes(opt),
+  }));
+
+  const onChange = useCallback((index: number, selection: Option) => {
+    setChartsByIndex(prev => prev.toSpliced(index, 1, selection.value));
   }, []);
 
   return (
@@ -65,4 +70,14 @@ export function InsightLayoutContext({children, view}: Props) {
 
 export function useInsightLayoutContext(): TContext {
   return useContext(Context);
+}
+
+export function useInsightChartRenderer({index}: {index: number}) {
+  const {chartsByIndex} = useInsightLayoutContext();
+  const key = chartsByIndex[index];
+  if (!key) {
+    return null;
+  }
+  const renderer = CHART_MAP[key];
+  return renderer;
 }

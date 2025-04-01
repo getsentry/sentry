@@ -41,9 +41,9 @@ export const PAGE_CHART_OPTIONS: Record<
   DomainView,
   ReadonlyArray<keyof typeof CHART_MAP>
 > = {
-  // ORDER MATTERS HERE
-  // The order things are listed, is the order rendered
   frontend: [
+    // ORDER MATTERS HERE
+    // The order things are listed is the order rendered
     'ErrorFreeSessionsChart',
     'NewAndResolvedIssueChart_issue',
     'SessionHealthCountChart',
@@ -51,9 +51,9 @@ export const PAGE_CHART_OPTIONS: Record<
     'UserHealthCountChart',
     'UserHealthRateChart',
   ],
-  // ORDER MATTERS HERE
-  // The order things are listed, is the order rendered
   mobile: [
+    // ORDER MATTERS HERE
+    // The order things are listed is the order rendered
     'CrashFreeSessionsChart',
     'ReleaseNewIssuesChart',
     'ReleaseSessionCountChart',
@@ -71,23 +71,20 @@ export const DEFAULT_LAYOUTS: Record<
   DomainView,
   ReadonlyArray<keyof typeof CHART_MAP>
 > = {
-  // ORDER MATTERS HERE
-  // The order represents the default chart layout for Frontend > Session Health
   frontend: [
+    // ORDER MATTERS HERE
+    // The order represents the default chart layout for Frontend > Session Health
     'ErrorFreeSessionsChart',
     'UserHealthRateChart',
-
     'UserHealthCountChart',
     'NewAndResolvedIssueChart_issue',
     'SessionHealthRateChart',
   ],
-
-  // ORDER MATTERS HERE
-  // The order represents the default chart layout for Mobile > Session Health
   mobile: [
+    // ORDER MATTERS HERE
+    // The order represents the default chart layout for Mobile > Session Health
     'CrashFreeSessionsChart',
     'ReleaseSessionPercentageChart',
-
     'ReleaseNewIssuesChart',
     'ReleaseSessionCountChart',
     'SessionHealthCountChart',

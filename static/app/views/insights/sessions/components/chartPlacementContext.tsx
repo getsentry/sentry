@@ -1,7 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import {useInsightLayoutContext} from 'sentry/views/insights/sessions/components/insightLayoutContext';
-import {CHART_MAP} from 'sentry/views/insights/sessions/components/settings';
+import {useInsightChartRenderer} from 'sentry/views/insights/sessions/components/insightLayoutContext';
 
 interface TContext {
   index: number;
@@ -18,12 +17,7 @@ interface Props {
 }
 
 export function ChartPlacementContext({index}: Props) {
-  const {chartsByIndex} = useInsightLayoutContext();
-  const key = chartsByIndex[index];
-  if (!key) {
-    return null;
-  }
-  const renderer = CHART_MAP[key];
+  const renderer = useInsightChartRenderer({index});
   return <Context value={{index}}>{renderer?.()}</Context>;
 }
 
