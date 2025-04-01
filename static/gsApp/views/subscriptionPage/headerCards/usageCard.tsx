@@ -1,8 +1,8 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import color from 'color';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -22,20 +22,21 @@ import {
   shouldSeeSpendVisibility,
 } from 'getsentry/views/subscriptionPage/utils';
 
-const COLORS = {
-  prepaid: CHART_PALETTE[5]![0]!,
-  ondemand: CHART_PALETTE[5]![1]!,
-} as const;
-
 interface UsageCardProps {
   organization: Organization;
   subscription: Subscription;
 }
 
 export function UsageCard({subscription, organization}: UsageCardProps) {
+  const theme = useTheme();
   const intervalPrice = subscription.customPrice
     ? subscription.customPrice
     : subscription.planDetails?.price;
+
+  const COLORS = {
+    prepaid: theme.chart.colors[5][0],
+    ondemand: theme.chart.colors[5][1],
+  } as const;
 
   if (!intervalPrice || !shouldSeeSpendVisibility(subscription)) {
     return null;

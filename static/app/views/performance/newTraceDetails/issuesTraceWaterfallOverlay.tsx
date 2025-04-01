@@ -132,7 +132,7 @@ export function IssueTraceWaterfallOverlay({
       />
       {rowPositions?.map(pos => (
         <IssuesTraceOverlayContainer
-          key={pos.pathToNode[0]!}
+          key={pos.pathToNode[0]}
           to={getTraceLinkForIssue(traceTarget, pos.pathToNode)}
           onClick={handleLinkClick}
           style={{

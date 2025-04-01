@@ -709,8 +709,7 @@ describe('PUT edit spend allocation', () => {
     await userEvent.click(screen.getByTestId('toggle-spend'));
 
     expect(screen.getByTestId('allocation-input')).toHaveValue(
-      (mockSpendAllocations[2]!.reservedQuantity! *
-        mockSpendAllocations[2]!.costPerItem!) /
+      (mockSpendAllocations[2]!.reservedQuantity * mockSpendAllocations[2]!.costPerItem) /
         100
     );
 

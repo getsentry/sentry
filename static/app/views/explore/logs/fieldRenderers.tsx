@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -140,10 +141,10 @@ function isLogRowItem(item: LogRowItem | LogAttributeItem): item is LogRowItem {
 }
 
 export function LogFieldRenderer(props: LogFieldRendererProps) {
-  const type = props.meta?.fields?.[props.item.fieldKey as OurLogFieldKey];
+  const theme = useTheme();
+  const type = props.meta?.fields?.[props.item.fieldKey];
   const adjustedFieldKey =
-    fullFieldToExistingField[props.item.fieldKey as OurLogFieldKey] ??
-    props.item.fieldKey;
+    fullFieldToExistingField[props.item.fieldKey] ?? props.item.fieldKey;
 
   const adjustedValue =
     props.item.fieldKey === OurLogKnownFieldKey.TRACE_ID
@@ -157,7 +158,7 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   const basicRenderer = getFieldRenderer(adjustedFieldKey, props.meta ?? {}, false);
   const basicRendered = basicRenderer(
     {...props, [adjustedFieldKey]: adjustedValue},
-    props.extra
+    {...props.extra, theme}
   );
 
   const customRenderer = getLogFieldRenderer(props.item.fieldKey);

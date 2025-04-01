@@ -117,6 +117,10 @@ describe('OrganizationStats', function () {
     expect(screen.getAllByText('Invalid')[0]).toBeInTheDocument();
     expect(screen.getAllByText('15')[0]).toBeInTheDocument();
 
+    expect(
+      screen.queryByText('*This is an estimation, and may not be 100% accurate.')
+    ).not.toBeInTheDocument();
+
     // Correct API Calls
     const mockExpectations = {
       UsageStatsOrg: {
@@ -432,7 +436,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Continuous Profile Hours'})
+    ).toBeInTheDocument();
     // Should not show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
   });
@@ -451,7 +457,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Continuous Profile Hours'})
+    ).toBeInTheDocument();
     // Should show Profiles (transaction) option
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
@@ -475,7 +483,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.getByRole('option', {name: 'Profile Hours'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'Continuous Profile Hours'})
+    ).toBeInTheDocument();
     // Should not show Profiles (transaction) option
     expect(screen.queryByRole('option', {name: 'Profiles'})).not.toBeInTheDocument();
   });
@@ -494,7 +504,9 @@ describe('OrganizationStats', function () {
     await userEvent.click(await screen.findByText('Category'));
 
     // Should show Profile Hours option
-    expect(screen.queryByRole('option', {name: 'Profile Hours'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'Continuous Profile Hours'})
+    ).not.toBeInTheDocument();
     // Should show Profiles (transaction) option
     expect(screen.getByRole('option', {name: 'Profiles'})).toBeInTheDocument();
   });
@@ -508,6 +520,33 @@ describe('OrganizationStats', function () {
 
     expect(
       await screen.findByText('You need at least one project to use this view')
+    ).toBeInTheDocument();
+  });
+
+  it('shows estimation text when profile duration category is selected', async () => {
+    const newOrg = initializeOrg({
+      organization: {
+        features: [
+          'global-views',
+          'team-insights',
+          'continuous-profiling-stats',
+          'continuous-profiling',
+        ],
+      },
+    });
+
+    render(
+      <OrganizationStats
+        {...defaultProps}
+        location={{...defaultProps.location, query: {dataCategory: 'profileDuration'}}}
+        organization={newOrg.organization}
+      />,
+      {
+        router: newOrg.router,
+      }
+    );
+    expect(
+      await screen.findByText('*This is an estimation, and may not be 100% accurate.')
     ).toBeInTheDocument();
   });
 

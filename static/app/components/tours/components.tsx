@@ -21,6 +21,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+// eslint-disable-next-line no-restricted-imports -- @TODO(jonasbadalic): Remove theme import
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -28,6 +29,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
+  /**
+   * The React context (from React.createContext) containing the provider for the tour.
+   */
+  TourContext: React.Context<TourContextType<T> | null>;
   /**
    * The children of the tour context provider.
    * All children of this component will be blurred when the tour is active.
@@ -43,10 +48,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
-   * The React context (from React.createContext) containing the provider for the tour.
-   */
-  tourContext: React.Context<TourContextType<T> | null>;
-  /**
    * Whether to omit the blurring window.
    */
   omitBlur?: boolean;
@@ -59,6 +60,14 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   onStartTour?: (stepId?: T) => void;
   /**
+   * Called when the tour step changes.
+   */
+  onStepChange?: (stepId: T) => void;
+  /**
+   * Whether to require all steps to be registered in the DOM before the tour can start.
+   */
+  requireAllStepsRegistered?: boolean;
+  /**
    * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
    */
   tourKey?: string;
@@ -68,14 +77,25 @@ export function TourContextProvider<T extends TourEnumType>({
   children,
   isCompleted,
   tourKey,
-  tourContext,
+  TourContext,
   omitBlur,
   orderedStepIds,
   onEndTour,
   onStartTour,
+  onStepChange,
+  requireAllStepsRegistered,
 }: TourContextProviderProps<T>) {
   const organization = useOrganization();
   const {mutate} = useMutateAssistant();
+  const options = useMemo(
+    () => ({
+      onStartTour,
+      onEndTour,
+      onStepChange,
+      requireAllStepsRegistered,
+    }),
+    [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
+  );
   const tourContextValue = useTourReducer<T>(
     {
       isCompleted,
@@ -84,10 +104,7 @@ export function TourContextProvider<T extends TourEnumType>({
       currentStepId: null,
       tourKey,
     },
-    {
-      onStartTour,
-      onEndTour,
-    }
+    options
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
@@ -131,10 +148,10 @@ export function TourContextProvider<T extends TourEnumType>({
   }, [isTourActive, mutate, tourKey]);
 
   return (
-    <tourContext.Provider value={tourContextValue}>
+    <TourContext value={tourContextValue}>
       {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
-    </tourContext.Provider>
+    </TourContext>
   );
 }
 
@@ -527,7 +544,6 @@ const BlurWindow = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.tour.blur};
   user-select: none;
-  pointer-events: none;
   backdrop-filter: blur(3px);
 `;
 

@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -142,6 +143,7 @@ function SpanSections({
   organization: Organization;
   project: Project | undefined;
 }) {
+  const theme = useTheme();
   const hasTraceNewUi = useHasTraceNewUi();
 
   if (!hasTraceNewUi) {
@@ -157,7 +159,7 @@ function SpanSections({
 
   const hasSpanSpecificData =
     hasSpanHTTPInfo(node.value) ||
-    hasSpanKeys(node) ||
+    hasSpanKeys(node, theme) ||
     hasSpanTags(node.value) ||
     hasSpanMeasurements(node.value);
 
@@ -176,7 +178,7 @@ function SpanSections({
           disableCollapsePersistence
         >
           <TraceDrawerComponents.SectionCardGroup>
-            {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+            {hasSpanKeys(node, theme) ? <SpanKeys node={node} /> : null}
             {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
             {hasSpanTags(node.value) ? <Tags node={node} /> : null}
             {hasSpanMeasurements(node.value) ? (
@@ -194,7 +196,7 @@ function LogDetails() {
   if (!logsData.data?.length) {
     return null;
   }
-  return <LogsTable tableData={logsData} />;
+  return <LogsTable tableData={logsData} showHeader={false} />;
 }
 
 function LegacySpanSections({
@@ -208,6 +210,7 @@ function LegacySpanSections({
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   organization: Organization;
 }) {
+  const theme = useTheme();
   return (
     <TraceDrawerComponents.SectionCardGroup>
       <GeneralInfo
@@ -218,7 +221,7 @@ function LegacySpanSections({
       />
       {hasSpanHTTPInfo(node.value) ? <SpanHTTPInfo span={node.value} /> : null}
       {hasSpanTags(node.value) ? <Tags node={node} /> : null}
-      {hasSpanKeys(node) ? <SpanKeys node={node} /> : null}
+      {hasSpanKeys(node, theme) ? <SpanKeys node={node} /> : null}
     </TraceDrawerComponents.SectionCardGroup>
   );
 }

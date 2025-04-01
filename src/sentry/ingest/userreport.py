@@ -135,7 +135,7 @@ def save_userreport(
             if report_instance.group_id:
                 report_instance.notify()
 
-        user_feedback_received.send(project=project, sender=save_userreport)
+        user_feedback_received.send_robust(project=project, sender=save_userreport)
 
         logger.info(
             "ingest.user_report",

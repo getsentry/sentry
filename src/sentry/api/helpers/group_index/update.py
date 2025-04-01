@@ -612,7 +612,7 @@ def process_group_resolution(
     group.substatus = None
     group.resolved_at = now
     if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send(
+        post_save.send_robust(
             sender=Group,
             instance=group,
             created=False,
@@ -797,6 +797,9 @@ def prepare_response(
             sender=update_groups,
         )
 
+    # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
+    # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this
+    # cannot be enforced currently. If changing fields, please update that type.
     return Response(result)
 
 

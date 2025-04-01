@@ -69,28 +69,29 @@ from typing import Any, NamedTuple
 
 import rapidjson
 from django.conf import settings
+from django.utils.functional import cached_property
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils import metrics, redis
 
-# This SegmentId is an internal identifier used by the redis buffer that is
-# also directly used as raw redis key. the format is
-# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our redis
-# client is bytes.
+# SegmentKey is an internal identifier used by the redis buffer that is also
+# directly used as raw redis key. the format is
+# "span-buf:s:{project_id:trace_id}:span_id", and the type is bytes because our
+# redis client is bytes.
 #
-# The segment ID in the Kafka protocol is actually only the span ID.
-SegmentId = bytes
+# The segment ID in the Kafka protocol is only the span ID.
+SegmentKey = bytes
 
 
-def _segment_to_span_id(segment_id: SegmentId) -> bytes:
-    return parse_segment_id(segment_id)[2]
+def _segment_key_to_span_id(segment_key: SegmentKey) -> bytes:
+    return parse_segment_key(segment_key)[2]
 
 
-def parse_segment_id(segment_id: SegmentId) -> tuple[bytes, bytes, bytes]:
-    segment_id_parts = segment_id.split(b":")
-    project_id = segment_id_parts[2][1:]
-    trace_id = segment_id_parts[3][:-1]
-    span_id = segment_id_parts[4]
+def parse_segment_key(segment_key: SegmentKey) -> tuple[bytes, bytes, bytes]:
+    segment_key_parts = segment_key.split(b":")
+    project_id = segment_key_parts[2][1:]
+    trace_id = segment_key_parts[3][:-1]
+    span_id = segment_key_parts[4]
 
     return project_id, trace_id, span_id
 
@@ -124,11 +125,14 @@ class SpansBuffer:
         span_buffer_root_timeout_secs: int = 10,
         redis_ttl: int = 3600,
     ):
-        self.client: RedisCluster[bytes] | StrictRedis[bytes] = get_redis_client()
         self.assigned_shards = list(assigned_shards)
         self.span_buffer_timeout_secs = span_buffer_timeout_secs
         self.span_buffer_root_timeout_secs = span_buffer_root_timeout_secs
         self.redis_ttl = redis_ttl
+
+    @cached_property
+    def client(self) -> RedisCluster[bytes] | StrictRedis[bytes]:
+        return get_redis_client()
 
     # make it pickleable
     def __reduce__(self):
@@ -238,7 +242,7 @@ class SpansBuffer:
 
     def flush_segments(
         self, now: int, max_segments: int = 0
-    ) -> tuple[int, dict[SegmentId, list[OutputSpan]]]:
+    ) -> tuple[int, dict[SegmentKey, list[OutputSpan]]]:
         cutoff = now
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_ids"):
@@ -252,7 +256,7 @@ class SpansBuffer:
 
                 result = iter(p.execute())
 
-        segment_ids = []
+        segment_keys = []
         queue_sizes = []
 
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
@@ -260,9 +264,9 @@ class SpansBuffer:
                 # ZRANGEBYSCORE output
                 for segment_span_ids in result:
                     # process return value of zrevrangebyscore
-                    for segment_id in segment_span_ids:
-                        segment_ids.append(segment_id)
-                        p.smembers(segment_id)
+                    for segment_key in segment_span_ids:
+                        segment_keys.append(segment_key)
+                        p.smembers(segment_key)
 
                     # ZCARD output
                     queue_sizes.append(next(result))
@@ -278,8 +282,8 @@ class SpansBuffer:
 
         return_segments = {}
 
-        for segment_id, segment in zip(segment_ids, segments):
-            segment_span_id = _segment_to_span_id(segment_id).decode("ascii")
+        for segment_key, segment in zip(segment_keys, segments):
+            segment_span_id = _segment_key_to_span_id(segment_key).decode("ascii")
 
             return_segment = []
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
@@ -306,26 +310,26 @@ class SpansBuffer:
 
                 return_segment.append(OutputSpan(payload=val))
 
-            return_segments[segment_id] = return_segment
+            return_segments[segment_key] = return_segment
         metrics.timing("spans.buffer.flush_segments.num_segments", len(return_segments))
 
         return sum(queue_sizes), return_segments
 
-    def done_flush_segments(self, segment_ids: dict[SegmentId, list[OutputSpan]]):
+    def done_flush_segments(self, segment_keys: dict[SegmentKey, list[OutputSpan]]):
         num_hdels = []
-        metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_ids))
+        metrics.timing("spans.buffer.done_flush_segments.num_segments", len(segment_keys))
         with metrics.timer("spans.buffer.done_flush_segments"):
             with self.client.pipeline(transaction=False) as p:
-                for segment_id, output_spans in segment_ids.items():
-                    hrs_key = b"span-buf:hrs:" + segment_id
+                for segment_key, output_spans in segment_keys.items():
+                    hrs_key = b"span-buf:hrs:" + segment_key
                     p.get(hrs_key)
                     p.delete(hrs_key)
-                    p.delete(segment_id)
+                    p.delete(segment_key)
 
-                    project_id, trace_id, _ = parse_segment_id(segment_id)
+                    project_id, trace_id, _ = parse_segment_key(segment_key)
                     redirect_map_key = b"span-buf:sr:{%s:%s}" % (project_id, trace_id)
                     shard = self.assigned_shards[int(trace_id, 16) % len(self.assigned_shards)]
-                    p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_id)
+                    p.zrem(f"span-buf:q:{shard}".encode("ascii"), segment_key)
 
                     i = 0
                     for span_batch in itertools.batched(output_spans, 100):
@@ -345,7 +349,7 @@ class SpansBuffer:
                     has_root_span_count += 1
 
                 next(results)  # DEL hrs_key
-                next(results)  # DEL segment_id
+                next(results)  # DEL segment_key
                 next(results)  # ZREM ...
                 for _ in range(num_hdel):  # HDEL ...
                     next(results)

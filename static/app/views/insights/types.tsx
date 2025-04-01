@@ -92,6 +92,7 @@ export type SpanStringFields =
   | 'timestamp'
   | 'trace'
   | 'transaction'
+  | 'transaction.span_id'
   | 'transaction.id'
   | 'transaction.method'
   | 'release'
@@ -142,6 +143,7 @@ export type ConditionalAggregate =
 export const SPAN_FUNCTIONS = [
   'sps',
   'spm',
+  'epm',
   'count',
   'time_spent_percentage',
   'http_response_rate',
@@ -401,6 +403,7 @@ export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 export enum SpanFunction {
   SPS = 'sps',
   SPM = 'spm',
+  EPM = 'epm',
   TIME_SPENT_PERCENTAGE = 'time_spent_percentage',
   HTTP_ERROR_COUNT = 'http_error_count',
   HTTP_RESPONSE_RATE = 'http_response_rate',

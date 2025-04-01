@@ -1,3 +1,5 @@
+// we need forwardRef for class components
+// eslint-disable-next-line no-restricted-syntax
 import {Component, forwardRef} from 'react';
 import debounce from 'lodash/debounce';
 
@@ -17,13 +19,13 @@ export type Result = {
 };
 
 export interface SelectAsyncControlProps {
-  forwardedRef: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
   // TODO(ts): Improve data type
   onQuery: (query: string | undefined) => Record<string, unknown>;
   onResults: (data: any) => Result[];
   url: string;
   value: ControlProps['value'];
   defaultOptions?: boolean | GeneralSelectValue[];
+  forwardedRef?: React.Ref<typeof ReactSelect<GeneralSelectValue>>;
 }
 
 type State = {
@@ -33,7 +35,7 @@ type State = {
 /**
  * Performs an API request to `url` to fetch the options
  */
-class SelectAsyncControl extends Component<SelectAsyncControlProps> {
+export class SelectAsyncControl extends Component<SelectAsyncControlProps> {
   static defaultProps = {
     placeholder: '--',
     defaultOptions: true,

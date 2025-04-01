@@ -130,7 +130,7 @@ export function Chart(props: ChartProps) {
       top: '40px',
       bottom: '0px',
     },
-    colors: () => pickBarColor(spanSlug.op),
+    colors: () => pickBarColor(spanSlug.op, theme),
     seriesOptions: {
       showSymbol: false,
     },

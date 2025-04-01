@@ -104,7 +104,12 @@ export class IssuesTraceTree extends TraceTree {
    * @param preserveLeafNodes - The nodes to preserve.
    * @param numSurroundingNodes - The number of surrounding nodes to preserve.
    */
-  collapseList(preserveLeafNodes: TraceTreeNode[], numSurroundingNodes = 3) {
+  collapseList(
+    preserveLeafNodes: TraceTreeNode[],
+    numSurroundingNodes: number,
+    minShownNodes: number
+  ) {
+    // Create set of nodes to preserve from input parameters
     const preserveNodes = new Set(preserveLeafNodes);
 
     for (const node of preserveLeafNodes) {
@@ -138,6 +143,21 @@ export class IssuesTraceTree extends TraceTree {
           preserveNodes.add(this.list[j]!);
         }
         j++;
+      }
+    }
+
+    // Preserve a minimum number of nodes so it doesn't feel overly sparse
+    if (preserveNodes.size < minShownNodes && this.list.length > 0) {
+      let additionalNodesNeeded = minShownNodes - preserveNodes.size;
+      // Start from the root of the issue and go down the list
+      let index = Math.max(0, this.list.indexOf(preserveLeafNodes[0]!));
+
+      while (additionalNodesNeeded > 0 && index < this.list.length) {
+        if (!preserveNodes.has(this.list[index]!)) {
+          preserveNodes.add(this.list[index]!);
+          additionalNodesNeeded--;
+        }
+        index++;
       }
     }
 

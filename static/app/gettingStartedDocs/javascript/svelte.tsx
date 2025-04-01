@@ -90,15 +90,14 @@ const getDynamicParts = (params: Params): string[] => {
   return dynamicParts;
 };
 
-const getSdkSetupSnippet = (params: Params) => {
+const getSdkSetupSnippet = (params: Params, isVersion5: boolean) => {
   const config = buildSdkConfig({
     params,
     staticParts: [`dsn: "${params.dsn.public}"`],
     getIntegrations,
     getDynamicParts,
   });
-
-  return `
+  return `${isVersion5 ? 'import { mount } from "svelte";' : ''}
 import "./app.css";
 import App from "./App.svelte";
 
@@ -108,7 +107,7 @@ Sentry.init({
   ${config}
 });
 
-const app = new App({
+${isVersion5 ? 'const app = mount(App, {' : 'const app = new App({'}
   target: document.getElementById("app"),
 });
 
@@ -138,6 +137,12 @@ const getInstallConfig = () => [
         language: 'bash',
         code: 'yarn add @sentry/svelte',
       },
+      {
+        label: 'pnpm',
+        value: 'pnpm',
+        language: 'bash',
+        code: 'pnpm add @sentry/svelte',
+      },
     ],
   },
 ];
@@ -147,9 +152,12 @@ const onboarding: OnboardingConfig = {
     <Fragment>
       <MaybeBrowserProfilingBetaWarning {...params} />
       <p>
-        {tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
-          strong: <strong />,
-        })}
+        {tct(
+          "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+          {
+            strong: <strong />,
+          }
+        )}
       </p>
     </Fragment>
   ),
@@ -157,10 +165,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm] or [code:yarn]:',
-        {
-          code: <code />,
-        }
+        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+        {code: <code />}
       ),
       configurations: getInstallConfig(),
     },
@@ -176,10 +182,16 @@ const onboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Svelte v5',
+              value: 'svelte v5',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              code: getSdkSetupSnippet(params, true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'svelte v3/v4',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params, false),
             },
           ],
         },
@@ -248,10 +260,16 @@ const replayOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Svelte v5',
+              value: 'svelte v5',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              code: getSdkSetupSnippet(params, true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'svelte v3/v4',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params, false),
             },
           ],
           additionalInfo: <TracePropagationMessage />,
@@ -289,10 +307,16 @@ const feedbackOnboarding: OnboardingConfig = {
         {
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Svelte v5',
+              value: 'svelte v5',
               language: 'javascript',
-              code: getSdkSetupSnippet(params),
+              code: getSdkSetupSnippet(params, true),
+            },
+            {
+              label: 'Svelte v3/v4',
+              value: 'svelte v3/v4',
+              language: 'javascript',
+              code: getSdkSetupSnippet(params, false),
             },
           ],
         },

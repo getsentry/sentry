@@ -61,11 +61,9 @@ export function FeatureFlagsContextProvider({children}: {children: ReactNode}) {
   }, [featureFlags]);
 
   return (
-    <FeatureFlagContext.Provider
-      value={{isDirty, featureFlagMap, setOverride, clearOverrides}}
-    >
+    <FeatureFlagContext value={{isDirty, featureFlagMap, setOverride, clearOverrides}}>
       {children}
-    </FeatureFlagContext.Provider>
+    </FeatureFlagContext>
   );
 }
 

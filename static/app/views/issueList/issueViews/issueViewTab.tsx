@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {useUpdateGroupSearchViewLastVisited} from 'sentry/components/nav/issueViews/useUpdateGroupSearchViewLastVisited';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
@@ -17,6 +16,7 @@ import {
   IssueViewsContext,
   TEMPORARY_TAB_KEY,
 } from 'sentry/views/issueList/issueViews/issueViews';
+import {useUpdateGroupSearchViewLastVisited} from 'sentry/views/nav/secondary/sections/issues/issueViews/useUpdateGroupSearchViewLastVisited';
 
 interface IssueViewTabProps {
   editingTabKey: string | null;
