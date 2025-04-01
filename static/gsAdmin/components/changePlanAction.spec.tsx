@@ -41,7 +41,6 @@ describe('ChangePlanAction', () => {
       }),
     },
   });
-  SubscriptionStore.set(mockOrg.slug, subscription);
   const BILLING_CONFIG = BillingConfigFixture(PlanTier.ALL);
   const testPlan = PlanFixture({
     id: 'test_test_monthly',
@@ -76,6 +75,7 @@ describe('ChangePlanAction', () => {
     const user = UserFixture();
     user.permissions = new Set(['billing.provision']);
     ConfigStore.set('user', user);
+    SubscriptionStore.set(mockOrg.slug, subscription);
 
     // Set up default subscription response
     MockApiClient.addMockResponse({
@@ -86,26 +86,6 @@ describe('ChangePlanAction', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${mockOrg.slug}/billing-config/?tier=all`,
       body: BILLING_CONFIG,
-    });
-
-    const testSubscription = {
-      ...subscription,
-      planTier: PlanTier.TEST,
-      plan: 'test_test_monthly',
-      planDetails: {
-        id: 'test_test_monthly',
-        name: 'TEST Tier Test Plan',
-        isTestPlan: true,
-      },
-    };
-
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/subscription/`,
-      body: testSubscription,
-    });
-    MockApiClient.addMockResponse({
-      url: `/subscriptions/${mockOrg.slug}/`,
-      body: testSubscription,
     });
   });
 
@@ -118,7 +98,7 @@ describe('ChangePlanAction', () => {
       ...props,
     });
     const modal = renderGlobalModal();
-    expect(await screen.findByText('Change Plan')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Change Plan'})).toBeInTheDocument();
     return modal;
   }
 
@@ -141,6 +121,41 @@ describe('ChangePlanAction', () => {
     // Test basic interaction - click on AM2 tier
     const am2Tab = screen.getByRole('tab', {name: 'AM2'});
     await userEvent.click(am2Tab);
+
+    // Verify tab change changes plan options displayed
+    expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
+  });
+
+  it('only displays current plan for NT customers', async () => {
+    const ntSubscription = SubscriptionFixture({
+      organization: mockOrg,
+      plan: 'am2_business',
+      partner: {
+        externalId: '123',
+        name: 'test',
+        partnership: {
+          id: 'NT',
+          displayName: 'NT',
+          supportNote: '',
+        },
+        isActive: true,
+      },
+      sponsoredType: 'NT',
+    });
+    SubscriptionStore.set(mockOrg.slug, ntSubscription);
+    MockApiClient.addMockResponse({
+      url: `/subscriptions/${mockOrg.slug}/`,
+      body: ntSubscription,
+    });
+
+    await openAndLoadModal({partnerPlanId: ntSubscription.plan});
+
+    expect(screen.queryByTestId('am3-tier')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('am2-tier')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('am1-tier')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('mm2-tier')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('radio')).toHaveLength(1);
+    expect(screen.getByTestId('change-plan-label-am2_business')).toBeInTheDocument();
   });
 
   it('completes form submission flow', async () => {

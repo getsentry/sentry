@@ -52,6 +52,7 @@ function ChangePlanAction({
     isPending,
     isError,
   } = useApiQuery<BillingConfig>([`/customers/${orgId}/billing-config/?tier=all`], {
+    // TODO(isabella): pass billing config from customerDetails
     staleTime: Infinity,
   });
 
@@ -91,17 +92,19 @@ function ChangePlanAction({
           plan.contractInterval === contractInterval
       );
     }
-    return planList.filter(
-      plan =>
-        plan.price &&
-        (plan.userSelectable || plan.checkoutType === CheckoutType.BUNDLE) &&
-        plan.id.split('_')[0] === activeTier &&
-        plan.billingInterval === billingInterval &&
-        plan.contractInterval === contractInterval &&
-        // Plan id on partner sponsored subscriptions is not modifiable so only including
-        // the existing plan in the list
-        (partnerPlanId === null || partnerPlanId === plan.id)
-    );
+    return planList
+      .sort((a, b) => a.reservedMinimum - b.reservedMinimum)
+      .filter(
+        plan =>
+          plan.price &&
+          (plan.userSelectable || plan.checkoutType === CheckoutType.BUNDLE) &&
+          plan.billingInterval === billingInterval &&
+          plan.contractInterval === contractInterval &&
+          // Plan id on partner sponsored subscriptions is not modifiable so only including
+          // the existing plan in the list
+          ((partnerPlanId === null && plan.id.split('_')[0] === activeTier) ||
+            partnerPlanId === plan.id)
+      );
   };
 
   /**

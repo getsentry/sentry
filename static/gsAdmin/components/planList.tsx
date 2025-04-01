@@ -133,12 +133,7 @@ function PlanList({
                 category === DataCategory.ATTACHMENTS
                   ? `${titleCategory} (GB)`
                   : titleCategory;
-              const currentReserved =
-                subscription.categories[category as DataCategories]?.reserved ?? null;
-              const fieldValue =
-                currentReserved === null
-                  ? null
-                  : (formModel.getValue(reservedKey) ?? null);
+              const fieldValue = formModel.getValue(reservedKey);
               const currentValueDisplay = getCurrentValueDisplay(
                 category as DataCategory
               );
