@@ -141,6 +141,11 @@ function MonitorDetails({params, location}: Props) {
 
   const envsSortedByLastCheck = sortBy(monitor.environments, e => e.lastCheckIn);
 
+  // TODO(epurkhiser): Remove once we've restricted history to 30days in the backend
+  const maxPickableDays = organization.features.includes('crons-30-days-ui')
+    ? 30
+    : undefined;
+
   return (
     <Layout.Page>
       <SentryDocumentTitle title={`${monitor.name} — Alerts`} />
@@ -148,7 +153,7 @@ function MonitorDetails({params, location}: Props) {
       <Layout.Body>
         <Layout.Main>
           <StyledPageFilterBar condensed>
-            <DatePageFilter maxPickableDays={30} />
+            <DatePageFilter maxPickableDays={maxPickableDays} />
             <EnvironmentPageFilter />
           </StyledPageFilterBar>
           {monitor.status === 'disabled' && (
