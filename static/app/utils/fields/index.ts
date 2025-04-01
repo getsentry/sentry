@@ -145,6 +145,7 @@ export enum FieldValueType {
   SIZE = 'size',
   RATE = 'rate',
   PERCENT_CHANGE = 'percent_change',
+  SCORE = 'score',
 }
 
 export enum WebVital {
@@ -2122,6 +2123,7 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
+  REPLAY_TYPE = 'replay_type',
   SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
   URL = 'url',
@@ -2173,6 +2175,7 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.OS_VERSION,
   FieldKey.PLATFORM,
   FieldKey.RELEASE,
+  ReplayFieldKey.REPLAY_TYPE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   ReplayFieldKey.SEEN_BY_ME,
@@ -2244,6 +2247,11 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.OS_VERSION]: {
     desc: t('Version number of the Operating System'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.REPLAY_TYPE]: {
+    desc: t('The replay recording mode - "session" or "buffer"'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

@@ -22,7 +22,7 @@ import {
   getFlagActionLabel,
   type RawFlag,
 } from 'sentry/views/issueDetails/streamline/featureFlagUtils';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -76,7 +76,7 @@ export function FlagDetailsDrawerContent() {
         <LinkButton
           size="sm"
           to={{
-            pathname: `${baseUrl}${TabPaths[Tab.TAGS]}`,
+            pathname: `${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}`,
             query: {...location.query, tab: DrawerTab.FEATURE_FLAGS},
           }}
         >

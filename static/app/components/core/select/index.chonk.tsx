@@ -76,6 +76,7 @@ export const getChonkStylesConfig = ({
         background: theme.background,
         color: theme.disabled,
         cursor: 'not-allowed',
+        opacity: '60%',
       }),
       ...omit(theme.form[size], 'height'),
       ...(state.isMulti && {
@@ -270,8 +271,7 @@ export const ChonkCheckWrap = chonkStyled('div')<{
   justify-content: center;
   align-items: center;
   width: 1em;
-  /* We need to adjust for smaller font-size */
-  height: ${p => (p.size === 'xs' ? '1.3em' : '1.4em')};
+  height: 1.2em;
 
   ${p =>
     p.isMultiple

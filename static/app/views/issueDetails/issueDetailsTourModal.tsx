@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {darkTheme} from 'sentry/utils/theme';
 
 interface IssueDetailsTourModalProps {
   handleDismissTour: () => void;
@@ -22,6 +21,7 @@ export function IssueDetailsTourModal({
 }: IssueDetailsTourModalProps) {
   const config = useLegacyStore(ConfigStore);
   const prefersDarkMode = config.theme === 'dark';
+
   return (
     <TourContainer prefersDarkMode={prefersDarkMode}>
       <ImageContainer prefersDarkMode={prefersDarkMode} />
@@ -29,13 +29,17 @@ export function IssueDetailsTourModal({
         <Header prefersDarkMode={prefersDarkMode}>
           {t('Welcome to the new Issue Details')}
         </Header>
-        <Description>{t('Make the most out of the redesigned experience.')}</Description>
+        <Description>
+          {t(
+            "Have 30 seconds? Tour the redesigned experience - we promise you'll be less confused."
+          )}
+        </Description>
         <Footer>
           <TextTourAction size="sm" onClick={handleDismissTour} borderless>
-            {t('Got it')}
+            {t('Maybe later')}
           </TextTourAction>
           <TourAction size="sm" onClick={handleStartTour} borderless autoFocus>
-            {t('Take a tour')}
+            {t('Take tour')}
           </TourAction>
         </Footer>
       </TextContainer>
@@ -66,7 +70,7 @@ const TourContainer = styled('div')<{prefersDarkMode: boolean}>`
     margin: -${space(4)};
   }
   border-radius: ${p => p.theme.borderRadius};
-  background: ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
+  background: ${p => p.theme.tour.background};
   overflow: hidden;
 `;
 
@@ -75,14 +79,14 @@ const TextContainer = styled('div')`
 `;
 
 const Header = styled('div')<{prefersDarkMode: boolean}>`
-  color: ${p => (p.prefersDarkMode ? p.theme.white : darkTheme.headingColor)};
+  color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.headerFontSize};
   font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Description = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.white};
+  color: ${p => p.theme.tour.text};
   opacity: 0.8;
 `;
 

@@ -1,4 +1,3 @@
-import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
@@ -25,6 +24,7 @@ interface DropdownBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
    * If true, the menu will be visually detached from actor.
    */
   detached?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * The width of the menu
    */
@@ -65,12 +65,10 @@ const getMenuBorderRadius = ({
 };
 
 const DropdownBubble = styled(
-  forwardRef<HTMLDivElement, DropdownBubbleProps>(
-    ({children, ...props}, forwardedRef) => (
-      <div ref={forwardedRef} {...props}>
-        <PanelProvider>{children}</PanelProvider>
-      </div>
-    )
+  ({children, ...props}: DropdownBubbleProps) => (
+    <div {...props}>
+      <PanelProvider>{children}</PanelProvider>
+    </div>
   ),
   {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`

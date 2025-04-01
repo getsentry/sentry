@@ -15,7 +15,7 @@ import {
   isDemoModeActive,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
-import {openDemoEmailModal} from 'sentry/utils/demoMode/utils';
+import {captureEmail} from 'sentry/utils/demoMode/utils';
 import useApi from 'sentry/utils/useApi';
 
 export const DEMO_HEADER_HEIGHT_PX = 70;
@@ -24,8 +24,8 @@ export default function DemoHeader() {
   const api = useApi();
 
   useEffect(() => {
-    openDemoEmailModal();
-  }, []);
+    captureEmail(api);
+  }, [api]);
 
   if (!isDemoModeActive()) {
     return null;
@@ -62,14 +62,13 @@ export default function DemoHeader() {
             extraQueryParameterWithEmail()
           );
 
+          trackAnalytics('growth.demo_click_get_started', {
+            organization: null,
+          });
+
           // Using window.open instead of href={} because we need to read `email`
           // from localStorage when the user clicks the button.
           window.open(url, '_blank');
-
-          trackAnalytics('growth.demo_click_get_started', {
-            cta: undefined,
-            organization: null,
-          });
         }}
       >
         <FreeTrialTextLong>{t('Start Free Trial')}</FreeTrialTextLong>

@@ -113,11 +113,19 @@ export const getTabCrumbs = ({
     view,
   };
 
-  crumbs.push({
-    to: transactionSummaryRouteWithQuery(routeQuery),
-    label: t('Transaction Summary'),
-    preservePageFilters: true,
-  });
+  const isEAP = organization.features.includes('performance-transaction-summary-eap');
+
+  isEAP
+    ? crumbs.push({
+        to: transactionSummaryRouteWithQuery(routeQuery),
+        label: t('Service Entry Span Summary'),
+        preservePageFilters: true,
+      })
+    : crumbs.push({
+        to: transactionSummaryRouteWithQuery(routeQuery),
+        label: t('Transaction Summary'),
+        preservePageFilters: true,
+      });
 
   if (spanSlug) {
     crumbs.push({

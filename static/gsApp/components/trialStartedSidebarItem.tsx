@@ -7,13 +7,13 @@ import {motion} from 'framer-motion';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
-import {prefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {IconBusiness} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import testableTransition from 'sentry/utils/testableTransition';
 import withApi from 'sentry/utils/withApi';
+import {prefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 import TrialRequestedActions from 'getsentry/actions/trialRequestedActions';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
@@ -208,7 +208,7 @@ const startedStyle = (theme: Theme) => css`
   }
 `;
 
-const Wrapper = styled(motion.div)`
+const Wrapper = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   margin: 0 -20px 0 -5px;
   padding: 0 20px 0 5px;
   border-radius: 4px 0 0 4px;

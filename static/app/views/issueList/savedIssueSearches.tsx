@@ -12,7 +12,6 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
-import {usePrefersStackedNav} from 'sentry/components/nav/prefersStackedNav';
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -25,6 +24,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
+import {usePrefersStackedNav} from 'sentry/views/nav/prefersStackedNav';
 
 interface SavedIssueSearchesProps {
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;

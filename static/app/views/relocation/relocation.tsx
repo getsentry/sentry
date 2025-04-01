@@ -1,9 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import type {ButtonProps} from 'sentry/components/core/button';
 import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,12 +21,12 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
 
-import EncryptBackup from './encryptBackup';
+import {EncryptBackup} from './encryptBackup';
 import GetStarted from './getStarted';
-import InProgress from './inProgress';
-import PublicKey from './publicKey';
+import {InProgress} from './inProgress';
+import {PublicKey} from './publicKey';
 import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
-import UploadBackup from './uploadBackup';
+import {UploadBackup} from './uploadBackup';
 
 type RouteParams = {
   step: string;
@@ -259,10 +257,32 @@ function RelocationOnboarding(props: Props) {
 
   const backButtonView =
     stepId === 'in-progress' ? null : (
-      <Back
-        onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
+      <BackMotionDiv
         animate={stepIndex > 0 ? 'visible' : 'hidden'}
-      />
+        transition={testableTransition()}
+        variants={{
+          initial: {opacity: 0, visibility: 'hidden'},
+          visible: {
+            opacity: 1,
+            visibility: 'visible',
+            transition: testableTransition({delay: 1}),
+          },
+          hidden: {
+            opacity: 0,
+            transitionEnd: {
+              visibility: 'hidden',
+            },
+          },
+        }}
+      >
+        <Button
+          onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
+          icon={<IconArrow direction="left" />}
+          priority="link"
+        >
+          {t('Back')}
+        </Button>
+      </BackMotionDiv>
     );
 
   const isLoading =
@@ -411,36 +431,7 @@ const StyledStepper = styled(Stepper)`
   }
 `;
 
-interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
-  animate: MotionProps['animate'];
-  className?: string;
-}
-
-const Back = styled(({className, animate, ...props}: BackButtonProps) => (
-  <motion.div
-    className={className}
-    animate={animate}
-    transition={testableTransition()}
-    variants={{
-      initial: {opacity: 0, visibility: 'hidden'},
-      visible: {
-        opacity: 1,
-        visibility: 'visible',
-        transition: testableTransition({delay: 1}),
-      },
-      hidden: {
-        opacity: 0,
-        transitionEnd: {
-          visibility: 'hidden',
-        },
-      },
-    }}
-  >
-    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
-      {t('Back')}
-    </Button>
-  </motion.div>
-))`
+const BackMotionDiv = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   position: absolute;
   top: 40px;
   left: 20px;

@@ -58,9 +58,9 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
             const currentPerms = new Set(permissionList);
 
             // permissions as defined by form submission
-            const newPerms: string[] = availablePermissions!.filter(k => data[k]);
+            const newPerms: string[] = availablePermissions.filter(k => data[k]);
             const addedPerms = newPerms.filter(perm => !currentPerms.has(perm));
-            const removedPerms = permissionList!.filter(perm => !data[perm]);
+            const removedPerms = permissionList.filter(perm => !data[perm]);
 
             const requests = [
               api.requestPromise(`/users/${user.id}/`, {
@@ -108,7 +108,7 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
             isSuperuser: user.isSuperuser,
             isStaff: user.isStaff,
             ...Object.fromEntries(
-              availablePermissions!.map(k => [k, permissionList!.includes(k)])
+              availablePermissions.map(k => [k, permissionList.includes(k)])
             ),
           }}
         >
@@ -123,7 +123,7 @@ function UserPermissionsModal({Body, Header, user, onSubmit, closeModal}: Props)
             label="Grant staff permission (WIP, will be required for admin access in the future)."
           />
           <h4>Additional Permissions</h4>
-          {availablePermissions!.map(perm => (
+          {availablePermissions.map(perm => (
             <BooleanField {...fieldProps} key={perm} name={perm} label={perm} />
           ))}
         </Form>

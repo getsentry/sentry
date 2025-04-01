@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
@@ -39,7 +39,7 @@ const dataTypeLabels = {
   [DataType.INDEXED_TRANSACTIONS]: 'Indexed Transactions',
   [DataType.PROFILES]: 'Profiles',
   [DataType.INDEXED_PROFILES]: 'Indexed Profiles',
-  [DataType.PROFILE_DURATION]: 'Profile Hours',
+  [DataType.PROFILE_DURATION]: 'Continuous Profile Hours',
   [DataType.PROFILE_DURATION_UI]: 'UI Profile Hours',
   [DataType.PROFILE_CHUNK]: 'Profile Chunks',
   [DataType.PROFILE_CHUNK_UI]: 'UI Profile Chunks',

@@ -4,7 +4,7 @@ import 'echarts/lib/component/toolbox';
 import 'echarts/lib/component/brush';
 import 'zrender/lib/svg/svg';
 
-import {forwardRef, useMemo} from 'react';
+import {useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -16,7 +16,6 @@ import type {
   LegendComponentOption,
   LineSeriesOption,
   SeriesOption,
-  TooltipComponentFormatterCallback,
   TooltipComponentFormatterCallbackParams,
   TooltipComponentOption,
   VisualMapComponentOption,
@@ -29,11 +28,6 @@ import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {
-  type ChartColorPalette,
-  getChartColorPalette,
-} from 'sentry/constants/chartPalette';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
 import type {
   EChartBrushEndHandler,
@@ -49,7 +43,6 @@ import type {
   EChartMouseOverHandler,
   EChartRenderedHandler,
   EChartRestoreHandler,
-  ReactEchartsRef,
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -113,10 +106,7 @@ interface TooltipOption
     seriesParamsOrParam: TooltipComponentFormatterCallbackParams
   ) => string;
   markerFormatter?: (marker: string, label?: string) => string;
-  nameFormatter?: (
-    name: string,
-    seriesParams?: TooltipComponentFormatterCallback<any>
-  ) => string;
+  nameFormatter?: (name: string, seriesParams?: CallbackDataParams) => string;
   /**
    * If true does not display sublabels with a value of 0.
    */
@@ -161,7 +151,9 @@ export interface BaseChartProps {
   colors?:
     | string[]
     | readonly string[]
-    | ((theme: Theme) => string[] | ChartColorPalette[number]);
+    | ((
+        theme: Theme
+      ) => string[] | ReturnType<Theme['chart']['getColorPalette']> | undefined);
   'data-test-id'?: string;
   /**
    * DataZoom (allows for zooming of chart)
@@ -177,10 +169,6 @@ export interface BaseChartProps {
    * optional, used to determine how xAxis is formatted if `isGroupedByDate == true`
    */
   end?: Date;
-  /**
-   * Forwarded Ref
-   */
-  forwardedRef?: React.Ref<ReactEchartsCore>;
   /**
    * Graphic options
    */
@@ -245,6 +233,7 @@ export interface BaseChartProps {
    * Display previous period as a LineSeries
    */
   previousPeriod?: Series[];
+  ref?: React.Ref<ReactEchartsCore>;
   /**
    * Use `canvas` when dealing with large datasets
    * See: https://ecomfe.github.io/echarts-doc/public/en/tutorial.html#Render%20by%20Canvas%20or%20SVG
@@ -337,7 +326,7 @@ const DEFAULT_ADDITIONAL_SERIES: LineSeriesOption[] = [];
 const DEFAULT_Y_AXIS = {};
 const DEFAULT_X_AXIS = {};
 
-function BaseChartUnwrapped({
+function BaseChart({
   brush,
   colors,
   grid,
@@ -363,7 +352,7 @@ function BaseChartUnwrapped({
   xAxes,
 
   style,
-  forwardedRef,
+  ref,
 
   onClick,
   onLegendSelectChanged,
@@ -404,8 +393,8 @@ function BaseChartUnwrapped({
   const color =
     resolveColors ||
     (series.length
-      ? getChartColorPalette(series.length)
-      : CHART_PALETTE[CHART_PALETTE.length - 1]);
+      ? theme.chart.getColorPalette(series.length)
+      : theme.chart.colors[theme.chart.colors.length - 1]);
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
@@ -621,6 +610,7 @@ function BaseChartUnwrapped({
           handleClick(props, instance);
           onClick?.(props, instance);
         },
+
         highlight: (props: any, instance: ECharts) => onHighlight?.(props, instance),
         mouseout: (props: any, instance: ECharts) => onMouseOut?.(props, instance),
         mouseover: (props: any, instance: ECharts) => onMouseOver?.(props, instance),
@@ -628,10 +618,13 @@ function BaseChartUnwrapped({
         restore: (props: any, instance: ECharts) => onRestore?.(props, instance),
         finished: (props: any, instance: ECharts) => onFinished?.(props, instance),
         rendered: (props: any, instance: ECharts) => onRendered?.(props, instance),
+
         legendselectchanged: (props: any, instance: ECharts) =>
           onLegendSelectChanged?.(props, instance),
+
         brush: (props: any, instance: ECharts) => onBrushStart?.(props, instance),
         brushend: (props: any, instance: ECharts) => onBrushEnd?.(props, instance),
+
         brushselected: (props: any, instance: ECharts) =>
           onBrushSelected?.(props, instance),
       }) as ReactEchartProps['onEvents'],
@@ -672,7 +665,7 @@ function BaseChartUnwrapped({
     <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
-        ref={forwardedRef}
+        ref={ref}
         echarts={echarts}
         notMerge={notMerge}
         lazyUpdate={lazyUpdate}
@@ -848,11 +841,5 @@ const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
     ${getTooltipStyles(p)};
   }
 `;
-
-const BaseChart = forwardRef<ReactEchartsRef, BaseChartProps>((props, ref) => (
-  <BaseChartUnwrapped forwardedRef={ref} {...props} />
-));
-
-BaseChart.displayName = 'forwardRef(BaseChart)';
 
 export default BaseChart;

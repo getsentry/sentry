@@ -73,7 +73,12 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                 color=LEVEL_TO_COLOR[get_color(event_for_tags, self.notification, self.group)],
                 # We can't embed urls in Discord embed footers.
                 footer=DiscordMessageEmbedFooter(
-                    build_footer(self.group, project, self.rules, "{text}")
+                    build_footer(
+                        group=self.group,
+                        project=project,
+                        url_format="{text}",
+                        rules=self.rules,
+                    )
                 ),
                 fields=build_tag_fields(event_for_tags, self.tags),
                 timestamp=timestamp,

@@ -402,9 +402,9 @@ const modalCss = css`
 export const triggerAM2CompatibilityCheck = ({organization}: Props) => {
   return openModal(
     () => (
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <AM2CompatibilityCheckModal />
-      </OrganizationContext.Provider>
+      </OrganizationContext>
     ),
     {
       modalCss,

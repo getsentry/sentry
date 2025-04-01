@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -11,6 +12,8 @@ import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
+
+const theme = ThemeFixture();
 
 type Data = {
   features?: string[];
@@ -149,6 +152,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -194,6 +198,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -228,6 +233,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -246,7 +252,7 @@ describe('Performance GridEditable Table', function () {
 
     expect(screen.getByRole('link', {name: '1234'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/traces/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/insights/summary/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
   });
 
@@ -275,6 +281,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -310,6 +317,7 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}

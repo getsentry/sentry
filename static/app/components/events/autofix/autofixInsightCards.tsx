@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
@@ -14,7 +14,6 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 
 import AutofixHighlightPopup from './autofixHighlightPopup';
@@ -61,27 +60,6 @@ export function ExpandableInsightContext({
   );
 }
 
-const animationProps: AnimationProps = {
-  exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
-  initial: {opacity: 0, height: 0, scale: 0.8},
-  animate: {opacity: 1, height: 'auto', scale: 1},
-  transition: testableTransition({
-    duration: 1.0,
-    height: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    scale: {
-      type: 'spring',
-      bounce: 0.2,
-    },
-    y: {
-      type: 'tween',
-      ease: 'easeOut',
-    },
-  }),
-};
-
 interface AutofixInsightCardProps {
   groupId: string;
   hasCardAbove: boolean;
@@ -91,6 +69,7 @@ interface AutofixInsightCardProps {
   insightCount: number;
   runId: string;
   stepIndex: number;
+  isNewInsight?: boolean;
 }
 
 function AutofixInsightCard({
@@ -102,6 +81,7 @@ function AutofixInsightCard({
   groupId,
   runId,
   insightCount,
+  isNewInsight,
 }: AutofixInsightCardProps) {
   const isLastInsightInStep = index === insightCount - 1;
   const headerRef = useRef<HTMLDivElement>(null);
@@ -166,8 +146,8 @@ function AutofixInsightCard({
           />
         )}
       </AnimatePresence>
-      <AnimatePresence initial>
-        <AnimationWrapper key="content" {...animationProps}>
+      <AnimatePresence initial={isNewInsight}>
+        <AnimationWrapper key="content">
           {hasCardAbove && (
             <ChainLink
               stepIndex={stepIndex}
@@ -176,7 +156,7 @@ function AutofixInsightCard({
               insightCount={insightCount}
             />
           )}
-          <InsightContainer>
+          <InsightContainer data-new-insight={isNewInsight ? 'true' : 'false'}>
             {isEditing ? (
               <EditContainer>
                 <form onSubmit={handleSubmit}>
@@ -184,6 +164,7 @@ function AutofixInsightCard({
                     <EditInput
                       type="text"
                       value={editText}
+                      maxLength={4096}
                       onChange={e => setEditText(e.target.value)}
                       placeholder={t('Share your own insight here...')}
                       autoFocus
@@ -355,6 +336,18 @@ function AutofixInsightCards({
   shouldCollapseByDefault,
 }: AutofixInsightCardsProps) {
   const [isCollapsed, setIsCollapsed] = useState(!!shouldCollapseByDefault);
+  const previousInsightsRef = useRef<AutofixInsight[]>([]);
+  const [newInsightIndices, setNewInsightIndices] = useState<number[]>([]);
+
+  // Compare current insights with previous insights to determine which ones are new
+  useEffect(() => {
+    if (insights.length === previousInsightsRef.current.length + 1) {
+      setNewInsightIndices([insights.length - 1]);
+    } else {
+      setNewInsightIndices([]);
+    }
+    previousInsightsRef.current = [...insights];
+  }, [insights]);
 
   useEffect(() => {
     setIsCollapsed(!!shouldCollapseByDefault);
@@ -397,6 +390,7 @@ function AutofixInsightCards({
                       groupId={groupId}
                       runId={runId}
                       insightCount={validInsightCount}
+                      isNewInsight={newInsightIndices.includes(index)}
                     />
                   ) : null
                 )}
@@ -505,6 +499,7 @@ function ChainLink({
                     type="text"
                     value={newInsightText}
                     onChange={e => setNewInsightText(e.target.value)}
+                    maxLength={4096}
                     placeholder={t('Share your own insight here...')}
                     autoFocus
                   />
@@ -574,16 +569,24 @@ const InsightsContainer = styled('div')`
 const InsightContainer = styled(motion.div)`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
-  animation: fadeFromActive 1.2s ease-out;
 
-  @keyframes fadeFromActive {
-    from {
-      background-color: ${p => p.theme.active};
-      border-color: ${p => p.theme.active};
-    }
-    to {
-      background-color: ${p => p.theme.background};
-      border-color: ${p => p.theme.innerBorder};
+  &[data-new-insight='true'] {
+    animation: fadeFromActive 0.8s ease-in-out;
+    @keyframes fadeFromActive {
+      from {
+        background-color: ${p => p.theme.active};
+        border-color: ${p => p.theme.active};
+        scale: 0.8;
+        height: 0;
+        opacity: 0;
+      }
+      to {
+        background-color: ${p => p.theme.background};
+        border-color: ${p => p.theme.innerBorder};
+        scale: 1;
+        height: auto;
+        opacity: 1;
+      }
     }
   }
 `;
@@ -686,16 +689,15 @@ const ContextBody = styled('div')`
 const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
 
-  &.new-insight {
+  &[data-new-insight='true'] {
     animation: textFadeFromActive 1.2s ease-out;
-  }
-
-  @keyframes textFadeFromActive {
-    from {
-      color: ${p => p.theme.white};
-    }
-    to {
-      color: inherit;
+    @keyframes textFadeFromActive {
+      from {
+        color: ${p => p.theme.white};
+      }
+      to {
+        color: inherit;
+      }
     }
   }
 `;

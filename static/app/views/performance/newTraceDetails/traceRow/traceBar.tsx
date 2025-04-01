@@ -26,11 +26,12 @@ export function makeTraceNodeBarColor(
   if (isTransactionNode(node)) {
     return pickBarColor(
       getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
-        node.value['transaction.op']
+        node.value['transaction.op'],
+      theme
     );
   }
   if (isSpanNode(node) || isEAPSpanNode(node)) {
-    return pickBarColor(node.value.op);
+    return pickBarColor(node.value.op, theme);
   }
   if (isAutogroupedNode(node)) {
     if (node.errors.size > 0) {
@@ -52,7 +53,7 @@ export function makeTraceNodeBarColor(
     }
     return theme.red300;
   }
-  return pickBarColor('default');
+  return pickBarColor('default', theme);
 }
 
 interface InvisibleTraceBarProps {

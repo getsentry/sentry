@@ -1,23 +1,24 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {getChartColorPalette} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import {
-  useProjectWebVitalsScoresTimeseriesQuery,
-  type WebVitalsScoreBreakdown,
-} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import type {SubregionCode} from 'sentry/views/insights/types';
+import {InsightsTimeSeriesWidget} from 'sentry/views/insights/common/components/insightsTimeSeriesWidget';
+import {
+  type DiscoverSeries,
+  useMetricsSeries,
+} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {SpanMetricsField, type SubregionCode} from 'sentry/views/insights/types';
+
+import {DEFAULT_QUERY_FILTER} from '../../settings';
+
+import {WebVitalsWeightList} from './webVitalWeightList';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -49,95 +50,99 @@ export function PerformanceScoreBreakdownChart({
   browserTypes,
   subregions,
 }: Props) {
-  const segmentColors = getChartColorPalette(3).slice(0, 5);
+  const theme = useTheme();
+  const segmentColors = theme.chart.getColorPalette(3).slice(0, 5);
 
-  const pageFilters = usePageFilters();
-
-  const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes, subregions});
-
-  const period = pageFilters.selection.datetime.period;
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
-  const chartSeriesOrder = ORDER;
-
-  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
-
-  const weightedTimeseries = formatTimeSeriesResultsToChartData(
-    weightedTimeseriesData,
-    segmentColors,
-    chartSeriesOrder
+  const search = new MutableSearch(
+    `${DEFAULT_QUERY_FILTER} has:measurements.score.total`
   );
 
-  const timeseries = formatTimeSeriesResultsToChartData(
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
+
+  if (subregions) {
+    search.addDisjunctionFilterValues(SpanMetricsField.USER_GEO_SUBREGION, subregions);
+  }
+
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanMetricsField.BROWSER_NAME, browserTypes);
+  }
+
+  const {
+    data: vitalScoresData,
+    isLoading: areVitalScoresLoading,
+    error: vitalScoresError,
+  } = useMetricsSeries(
     {
-      lcp: timeseriesData.lcp,
-      fcp: timeseriesData.fcp,
-      cls: timeseriesData.cls,
-      ttfb: timeseriesData.ttfb,
-      inp: timeseriesData.inp,
-      total: timeseriesData.total,
+      search,
+      yAxis: [
+        'performance_score(measurements.score.lcp)',
+        'performance_score(measurements.score.fcp)',
+        'performance_score(measurements.score.cls)',
+        'performance_score(measurements.score.inp)',
+        'performance_score(measurements.score.ttfb)',
+        'count()',
+      ],
+      transformAliasToInputFormat: true,
     },
-    segmentColors,
-    chartSeriesOrder
+    'api.performance.browser.web-vitals.timeseries-scores2'
   );
 
-  const weights = getWeights(
-    ORDER.filter(webVital => timeseriesData[webVital].some(series => series.value > 0))
-  );
+  const webVitalsThatHaveData: WebVitals[] = vitalScoresData
+    ? ORDER.filter(webVital => {
+        const key = `performance_score(measurements.score.${webVital})` as const;
+        const series = vitalScoresData[key]!;
+
+        return series.data.some(datum => datum.value > 0);
+      })
+    : [];
+
+  const weights = getWeights(webVitalsThatHaveData);
+
+  const allSeries: DiscoverSeries[] = vitalScoresData
+    ? ORDER.map((webVital, index) => {
+        const key = `performance_score(measurements.score.${webVital})` as const;
+        const series = vitalScoresData[key]!;
+
+        const scaledSeries: DiscoverSeries = {
+          ...series,
+          data: series.data.map(datum => {
+            return {
+              ...datum,
+              value: datum.value * weights[webVital],
+            };
+          }),
+          color: segmentColors[index],
+          meta: {
+            // TODO: The backend doesn't return these score fields with the "score" type yet. Fill this in manually for now.
+            fields: {
+              ...series.meta?.fields,
+              [key]: 'score',
+            },
+            units: series.meta?.units,
+          },
+        };
+
+        return scaledSeries;
+      })
+    : [];
 
   return (
-    <StyledChartPanel title={t('Score Breakdown')}>
-      <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
-      <Chart
-        stacked
-        hideYAxisSplitLine
-        height={180}
-        data={isTimeseriesLoading ? [] : weightedTimeseries}
-        disableXAxis
-        loading={isTimeseriesLoading}
-        type={ChartType.AREA}
-        grid={{
-          left: 5,
-          right: 5,
-          top: 5,
-          bottom: 0,
-        }}
-        dataMax={100}
-        chartColors={segmentColors}
-        tooltipFormatterOptions={{
-          nameFormatter: name => {
-            // nameFormatter expects a string an will wrap the output in an html string.
-            // Kind of a hack, but we can inject some html to escape styling for the subLabel.
-            const subLabel =
-              weights === undefined
-                ? ''
-                : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                  ` </strong>(${weights[name.toLocaleLowerCase()].toFixed(
-                    0
-                  )}% of Perf Score)<strong>`;
-            return `${name} Score${subLabel}`;
-          },
-          valueFormatter: (_value, _label, seriesParams: any) => {
-            const timestamp = seriesParams?.data[0];
-            const value = timeseries
-              .find(series => series.seriesName === seriesParams?.seriesName)
-              ?.data.find(dataPoint => dataPoint.name === timestamp)?.value;
-            return `<span class="tooltip-label-value">${value}</span>`;
-          },
-        }}
+    <ChartContainer>
+      <InsightsTimeSeriesWidget
+        title={t('Score Breakdown')}
+        height="100%"
+        visualizationType="area"
+        isLoading={areVitalScoresLoading}
+        error={vitalScoresError}
+        series={allSeries}
+        description={<WebVitalsWeightList weights={weights} />}
       />
-    </StyledChartPanel>
+    </ChartContainer>
   );
 }
 
-const StyledChartPanel = styled(ChartPanel)`
-  flex: 1;
-`;
-
-const PerformanceScoreSubtext = styled('div')`
-  width: 100%;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  margin-bottom: ${space(1)};
+const ChartContainer = styled('div')`
+  flex: 1 1 0%;
 `;

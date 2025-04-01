@@ -21,22 +21,22 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {darkTheme, lightTheme} from 'sentry/utils/theme';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay, {type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**
+   * The React context (from React.createContext) containing the provider for the tour.
+   */
+  TourContext: React.Context<TourContextType<T> | null>;
+  /**
    * The children of the tour context provider.
    * All children of this component will be blurred when the tour is active.
    * Only the active tour element and overlay will be discernible.
    */
   children: React.ReactNode;
-  /**
-   * Whether the tour can be accessed by the user
-   */
-  isAvailable: TourState<T>['isAvailable'];
   /**
    * Whether the tour has been completed.
    */
@@ -46,13 +46,25 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
-   * The React context (from React.createContext) containing the provider for the tour.
-   */
-  tourContext: React.Context<TourContextType<T> | null>;
-  /**
    * Whether to omit the blurring window.
    */
   omitBlur?: boolean;
+  /**
+   * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
+   */
+  onEndTour?: () => void;
+  /**
+   * Called when the tour is started.
+   */
+  onStartTour?: (stepId?: T) => void;
+  /**
+   * Called when the tour step changes.
+   */
+  onStepChange?: (stepId: T) => void;
+  /**
+   * Whether to require all steps to be registered in the DOM before the tour can start.
+   */
+  requireAllStepsRegistered?: boolean;
   /**
    * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
    */
@@ -61,24 +73,38 @@ export interface TourContextProviderProps<T extends TourEnumType> {
 
 export function TourContextProvider<T extends TourEnumType>({
   children,
-  isAvailable,
   isCompleted,
   tourKey,
-  tourContext,
+  TourContext,
   omitBlur,
   orderedStepIds,
+  onEndTour,
+  onStartTour,
+  onStepChange,
+  requireAllStepsRegistered,
 }: TourContextProviderProps<T>) {
   const organization = useOrganization();
   const {mutate} = useMutateAssistant();
-  const tourContextValue = useTourReducer<T>({
-    isAvailable,
-    isCompleted,
-    isRegistered: false,
-    orderedStepIds,
-    currentStepId: null,
-    tourKey,
-  });
-  const {dispatch, currentStepId} = tourContextValue;
+  const options = useMemo(
+    () => ({
+      onStartTour,
+      onEndTour,
+      onStepChange,
+      requireAllStepsRegistered,
+    }),
+    [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
+  );
+  const tourContextValue = useTourReducer<T>(
+    {
+      isCompleted,
+      isRegistered: false,
+      orderedStepIds,
+      currentStepId: null,
+      tourKey,
+    },
+    options
+  );
+  const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
 
   const tourHotkeys = useMemo(() => {
@@ -94,13 +120,22 @@ export function TourContextProvider<T extends TourEnumType>({
             mutate({guide: tourKey, status: 'dismissed'});
           }
           trackAnalytics('tour-guide.dismiss', {organization, id: `${currentStepId}`});
-          dispatch({type: 'END_TOUR'});
+          endTour();
         },
       },
-      {match: ['left', 'h'], callback: () => dispatch({type: 'PREVIOUS_STEP'})},
-      {match: ['right', 'l'], callback: () => dispatch({type: 'NEXT_STEP'})},
+      {match: ['left', 'h'], callback: () => previousStep()},
+      {match: ['right', 'l'], callback: () => nextStep()},
     ];
-  }, [dispatch, mutate, tourKey, isTourActive, organization, currentStepId]);
+  }, [
+    isTourActive,
+    tourKey,
+    organization,
+    currentStepId,
+    endTour,
+    mutate,
+    previousStep,
+    nextStep,
+  ]);
 
   useHotkeys(tourHotkeys);
 
@@ -111,10 +146,10 @@ export function TourContextProvider<T extends TourEnumType>({
   }, [isTourActive, mutate, tourKey]);
 
   return (
-    <tourContext.Provider value={tourContextValue}>
+    <TourContext value={tourContextValue}>
       {isTourActive && !omitBlur && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
-    </tourContext.Provider>
+    </TourContext>
   );
 }
 
@@ -186,8 +221,15 @@ function TourElementContent<T extends TourEnumType>({
   actions,
 }: TourElementContentProps<T>) {
   const organization = useOrganization();
-  const {currentStepId, dispatch, orderedStepIds, handleStepRegistration, tourKey} =
-    tourContextValue;
+  const {
+    currentStepId,
+    orderedStepIds,
+    handleStepRegistration,
+    tourKey,
+    previousStep,
+    nextStep,
+    endTour,
+  } = tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
   const hasPreviousStep = stepCount > 1;
@@ -211,19 +253,19 @@ function TourElementContent<T extends TourEnumType>({
     () => (
       <ButtonBar gap={1}>
         {hasPreviousStep && (
-          <TextTourAction size="xs" onClick={() => dispatch({type: 'PREVIOUS_STEP'})}>
+          <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
           </TextTourAction>
         )}
         {hasNextStep ? (
-          <TourAction size="xs" onClick={() => dispatch({type: 'NEXT_STEP'})}>
+          <TourAction size="xs" onClick={nextStep}>
             {t('Next')}
           </TourAction>
         ) : (
           <TourAction
             size="xs"
             onClick={() => {
-              dispatch({type: 'END_TOUR'});
+              endTour();
               trackAnalytics('tour-guide.finish', {
                 organization,
                 id: id.toString(),
@@ -237,7 +279,17 @@ function TourElementContent<T extends TourEnumType>({
         )}
       </ButtonBar>
     ),
-    [hasPreviousStep, hasNextStep, dispatch, organization, id, stepCount, tourKey]
+    [
+      hasPreviousStep,
+      hasNextStep,
+      previousStep,
+      nextStep,
+      endTour,
+      organization,
+      id,
+      stepCount,
+      tourKey,
+    ]
   );
 
   return (
@@ -258,7 +310,7 @@ function TourElementContent<T extends TourEnumType>({
             tour_key: tourKey,
           });
         }
-        dispatch({type: 'END_TOUR'});
+        endTour();
       }}
       stepCount={stepCount}
       stepTotal={stepTotal}
@@ -310,13 +362,13 @@ export function TourGuide({
 }: TourGuideProps) {
   const config = useLegacyStore(ConfigStore);
   const prefersDarkMode = config.theme === 'dark';
-
   const theme = useTheme();
+
   const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, overlayProps, arrowProps} = useOverlay({
+  const {triggerProps, overlayProps, arrowProps, update} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
@@ -324,6 +376,13 @@ export function TourGuide({
   });
 
   const Wrapper = wrapperComponent ?? TourTriggerWrapper;
+
+  // Update the overlay positioning when the content changes
+  useEffectAfterFirstRender(() => {
+    if (isOpen && update && defined(title) && defined(description)) {
+      update();
+    }
+  }, [isOpen, update, title, description]);
 
   return (
     <Fragment>
@@ -347,9 +406,7 @@ export function TourGuide({
                       strokeWidth: 0,
                       className: css`
                         path.fill {
-                          fill: ${prefersDarkMode
-                            ? darkTheme.purple300
-                            : darkTheme.surface400};
+                          fill: ${theme.tour.background};
                         }
                         path.stroke {
                           stroke: transparent;
@@ -363,10 +420,8 @@ export function TourGuide({
                           <div>{countText}</div>
                           {isDismissVisible && (
                             <TourCloseButton
-                              onClick={e => {
-                                handleDismiss(e);
-                              }}
-                              icon={<IconClose style={{color: darkTheme.textColor}} />}
+                              onClick={handleDismiss}
+                              icon={<IconClose />}
                               aria-label={t('Close')}
                               borderless
                               size="sm"
@@ -397,13 +452,13 @@ function scrollToElement(element: HTMLDivElement | null) {
 const TourBody = styled('div')<{prefersDarkMode: boolean}>`
   display: flex;
   flex-direction: column;
-  background: ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
+  background: ${p => p.theme.tour.background};
   padding: ${space(1.5)} ${space(2)};
-  color: ${darkTheme.textColor};
+  color: ${p => p.theme.tour.text};
   border-radius: ${p => p.theme.borderRadius};
   width: 360px;
   a {
-    color: ${darkTheme.textColor};
+    color: ${p => p.theme.tour.text};
     text-decoration: underline;
   }
 `;
@@ -413,6 +468,10 @@ const TourCloseButton = styled(Button)`
   padding: 0;
   height: 14px;
   min-height: 14px;
+  color: ${p => p.theme.tour.close};
+  &:hover {
+    color: ${p => p.theme.tour.close};
+  }
 `;
 
 const TourOverlay = styled(Overlay)`
@@ -425,14 +484,14 @@ const TopRow = styled('div')`
   grid-template-columns: 1fr 15px;
   align-items: start;
   height: 18px;
-  color: ${lightTheme.white};
+  color: ${p => p.theme.tour.close};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   opacity: 0.6;
 `;
 
 const TitleRow = styled('div')`
-  color: ${darkTheme.headingColor};
+  color: ${p => p.theme.tour.header};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.4;
@@ -440,7 +499,7 @@ const TitleRow = styled('div')`
 `;
 
 const DescriptionRow = styled('div')`
-  color: ${darkTheme.textColor};
+  color: ${p => p.theme.tour.text};
   font-size: ${p => p.theme.fontSizeMedium};
   font-weight: ${p => p.theme.fontWeightNormal};
   line-height: 1.4;
@@ -456,12 +515,13 @@ const ActionRow = styled('div')`
 
 export const TourAction = styled(Button)`
   border: 0;
-  background: ${lightTheme.white};
-  color: ${lightTheme.headingColor};
+  background: ${p => p.theme.white};
+  color: ${p => p.theme.tour.next};
+
   &:hover,
   &:active,
   &:focus {
-    color: ${lightTheme.headingColor};
+    color: ${p => p.theme.tour.next};
   }
 `;
 
@@ -469,11 +529,11 @@ export const TextTourAction = styled(Button)`
   border: 0;
   box-shadow: none;
   background: transparent;
-  color: ${lightTheme.white};
+  color: ${p => p.theme.tour.previous};
   &:hover,
   &:active,
   &:focus {
-    color: ${lightTheme.white};
+    color: ${p => p.theme.tour.previous};
   }
 `;
 
@@ -483,7 +543,6 @@ const BlurWindow = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.tour.blur};
   user-select: none;
-  pointer-events: none;
   backdrop-filter: blur(3px);
 `;
 
@@ -500,8 +559,7 @@ const TourTriggerWrapper = styled('div')<{prefersDarkMode: boolean}>`
       z-index: ${p => p.theme.zIndex.tour.element + 1};
       inset: 0;
       border-radius: ${p => p.theme.borderRadius};
-      box-shadow: inset 0 0 0 3px
-        ${p => (p.prefersDarkMode ? darkTheme.purple300 : darkTheme.surface400)};
+      box-shadow: inset 0 0 0 3px ${p => p.theme.tour.background};
     }
   }
 `;

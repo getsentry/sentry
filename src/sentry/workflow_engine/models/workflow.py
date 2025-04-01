@@ -69,7 +69,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return {"name": self.name}
 
     def evaluate_trigger_conditions(
-        self, job: WorkflowEventData
+        self, event_data: WorkflowEventData
     ) -> tuple[bool, list[DataCondition]]:
         """
         Evaluate the conditions for the workflow trigger and return if the evaluation was successful.
@@ -82,9 +82,9 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.when_condition_group is None:
             return True, []
 
-        workflow_job = replace(job, workflow=self)
+        workflow_event_data = replace(event_data, workflow_env=self.environment)
         (evaluation, _), remaining_conditions = process_data_condition_group(
-            self.when_condition_group.id, workflow_job
+            self.when_condition_group.id, workflow_event_data
         )
         return evaluation, remaining_conditions
 

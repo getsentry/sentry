@@ -1,6 +1,7 @@
-import {Fragment, memo, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag as Badge} from 'sentry/components/core/badge/tag';
 import {InputGroup} from 'sentry/components/core/input/inputGroup';
@@ -32,16 +33,27 @@ function SchemaHintsDrawer({
 }: SchemaHintsDrawerProps) {
   const organization = useOrganization();
   const [searchQuery, setSearchQuery] = useState('');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [currentQuery, setCurrentQuery] = useState(exploreQuery);
+
+  const handleQueryChange = useCallback(
+    (newQuery: string) => {
+      setCurrentQuery(newQuery);
+      setExploreQuery(newQuery);
+    },
+    [setExploreQuery]
+  );
 
   const selectedFilterKeys = useMemo(() => {
-    const filterQuery = new MutableSearch(exploreQuery);
+    const filterQuery = new MutableSearch(currentQuery);
     const allKeys = filterQuery.getFilterKeys();
     // When there is a filter with a negation, it stores the negation in the key.
     // To ensure all the keys are represented correctly in the drawer, we must
     // take these into account.
     const keysWithoutNegation = allKeys.map(key => key.replace('!', ''));
     return [...new Set(keysWithoutNegation)];
-  }, [exploreQuery]);
+  }, [currentQuery]);
 
   const sortedSelectedHints = useMemo(() => {
     const sortedKeys = selectedFilterKeys.toSorted((a, b) => {
@@ -77,12 +89,22 @@ function SchemaHintsDrawer({
     );
   }, [sortedHints, searchQuery]);
 
+  const virtualizer = useVirtualizer({
+    count: sortedAndFilteredHints.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 35,
+    overscan: 5,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
   const handleCheckboxChange = useCallback(
     (hint: Tag) => {
-      const filterQuery = new MutableSearch(exploreQuery);
+      const filterQuery = new MutableSearch(currentQuery);
       if (
-        filterQuery.getFilterKeys().includes(hint.key) ||
-        filterQuery.getFilterKeys().includes(`!${hint.key}`)
+        filterQuery
+          .getFilterKeys()
+          .some(key => key === hint.key || key === `!${hint.key}`)
       ) {
         // remove hint and/or negated hint if it exists
         filterQuery.removeFilter(hint.key);
@@ -95,14 +117,14 @@ function SchemaHintsDrawer({
           hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
         );
       }
-      setExploreQuery(filterQuery.formatString());
+      handleQueryChange(filterQuery.formatString());
       trackAnalytics('trace.explorer.schema_hints_click', {
         hint_key: hint.key,
         source: 'drawer',
         organization,
       });
     },
-    [exploreQuery, organization, setExploreQuery]
+    [currentQuery, handleQueryChange, organization]
   );
 
   const noAttributesMessage = (
@@ -111,23 +133,20 @@ function SchemaHintsDrawer({
     </NoAttributesMessage>
   );
 
-  const HintItem = memo(
-    ({hint}: {hint: Tag}) => {
-      const hintFieldDefinition = useMemo(
-        () => getFieldDefinition(hint.key, 'span', hint.kind),
-        [hint.key, hint.kind]
+  function HintItem({hint, index}: {hint: Tag; index: number}) {
+    const hintFieldDefinition = getFieldDefinition(hint.key, 'span', hint.kind);
+
+    const hintType =
+      hintFieldDefinition?.valueType === FieldValueType.BOOLEAN ? (
+        <Badge type="default">{t('boolean')}</Badge>
+      ) : hint.kind === FieldKind.MEASUREMENT ? (
+        <Badge type="success">{t('number')}</Badge>
+      ) : (
+        <Badge type="highlight">{t('string')}</Badge>
       );
 
-      const hintType = useMemo(
-        () =>
-          hintFieldDefinition?.valueType === FieldValueType.BOOLEAN
-            ? t('boolean')
-            : hint.kind === FieldKind.MEASUREMENT
-              ? t('number')
-              : t('string'),
-        [hintFieldDefinition?.valueType, hint.kind]
-      );
-      return (
+    return (
+      <div ref={virtualizer.measureElement} data-index={index}>
         <StyledMultipleCheckboxItem
           key={hint.key}
           value={hint.key}
@@ -137,20 +156,17 @@ function SchemaHintsDrawer({
             <Tooltip title={prettifyTagKey(hint.key)} showOnlyOnOverflow skipWrapper>
               <CheckboxLabel>{prettifyTagKey(hint.key)}</CheckboxLabel>
             </Tooltip>
-            <Badge>{hintType}</Badge>
+            {hintType}
           </CheckboxLabelContainer>
         </StyledMultipleCheckboxItem>
-      );
-    },
-    (prevProps, nextProps) => {
-      return prevProps.hint.key === nextProps.hint.key;
-    }
-  );
+      </div>
+    );
+  }
 
   return (
     <Fragment>
       <DrawerHeader hideBar />
-      <DrawerBody>
+      <StyledDrawerBody>
         <HeaderContainer>
           <SchemaHintsHeader>{t('Filter Attributes')}</SchemaHintsHeader>
           <StyledInputGroup>
@@ -166,11 +182,23 @@ function SchemaHintsDrawer({
           </StyledInputGroup>
         </HeaderContainer>
         <StyledMultipleCheckbox name={t('Filter keys')} value={selectedFilterKeys}>
-          {sortedAndFilteredHints.length === 0
-            ? noAttributesMessage
-            : sortedAndFilteredHints.map(hint => <HintItem key={hint.key} hint={hint} />)}
+          <ScrollContainer ref={scrollContainerRef}>
+            <AllItemsContainer height={virtualizer.getTotalSize()}>
+              {sortedAndFilteredHints.length === 0
+                ? noAttributesMessage
+                : virtualItems.map(item => (
+                    <VirtualOffset offset={item.start} key={item.key}>
+                      <HintItem
+                        key={item.key}
+                        hint={sortedAndFilteredHints[item.index]!}
+                        index={item.index}
+                      />
+                    </VirtualOffset>
+                  ))}
+            </AllItemsContainer>
+          </ScrollContainer>
         </StyledMultipleCheckbox>
-      </DrawerBody>
+      </StyledDrawerBody>
     </Fragment>
   );
 }
@@ -197,6 +225,10 @@ const SchemaHintsHeader = styled('h4')`
   margin: 0;
 `;
 
+const StyledDrawerBody = styled(DrawerBody)`
+  height: 100%;
+`;
+
 const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -221,7 +253,9 @@ const CheckboxLabel = styled('span')`
 `;
 
 const StyledMultipleCheckbox = styled(MultipleCheckbox)`
-  flex-direction: column;
+  display: block;
+  height: 100%;
+  overflow: auto;
 `;
 
 const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
@@ -241,10 +275,6 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
     background-color: ${p => p.theme.gray100};
   }
 
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-
   & > label {
     width: 100%;
     margin: 0;
@@ -255,6 +285,25 @@ const StyledMultipleCheckboxItem = styled(MultipleCheckbox.Item)`
     width: 100%;
     ${p => p.theme.overflowEllipsis};
   }
+`;
+
+const ScrollContainer = styled('div')`
+  height: 100%;
+  overflow: auto;
+`;
+
+const AllItemsContainer = styled('div')<{height: number}>`
+  position: relative;
+  width: 100%;
+  height: ${p => p.height}px;
+`;
+
+const VirtualOffset = styled('div')<{offset: number}>`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transform: translateY(${p => p.offset}px);
 `;
 
 const SearchInput = styled(InputGroup.Input)`

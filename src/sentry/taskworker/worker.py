@@ -82,7 +82,7 @@ def child_worker(
     for module in settings.TASKWORKER_IMPORTS:
         __import__(module)
 
-    current_task_id: str | None = None
+    current_activation: TaskActivation | None = None
     processed_task_count = 0
 
     def handle_alarm(signum: int, frame: Any) -> None:
@@ -92,13 +92,19 @@ def child_worker(
         If we hit an alarm in a child, we need to push a result
         and terminate the child.
         """
-        nonlocal current_task_id, processed_tasks
-
-        if current_task_id:
+        if current_activation:
             processed_tasks.put(
-                ProcessingResult(task_id=current_task_id, status=TASK_ACTIVATION_STATUS_FAILURE)
+                ProcessingResult(
+                    task_id=current_activation.id, status=TASK_ACTIVATION_STATUS_FAILURE
+                )
             )
-        metrics.incr("taskworker.worker.processing_deadline_exceeded")
+            metrics.incr(
+                "taskworker.worker.processing_deadline_exceeded",
+                tags={
+                    "namespace": current_activation.namespace,
+                    "taskname": current_activation.taskname,
+                },
+            )
         sys.exit(1)
 
     signal.signal(signal.SIGALRM, handle_alarm)
@@ -137,15 +143,15 @@ def child_worker(
             key = get_at_most_once_key(activation.namespace, activation.taskname, activation.id)
             if cache.add(key, "1", timeout=AT_MOST_ONCE_TIMEOUT):  # The key didn't exist
                 metrics.incr(
-                    "taskworker.task.at_most_once.executed", tags={"task": activation.taskname}
+                    "taskworker.task.at_most_once.executed", tags={"taskname": activation.taskname}
                 )
             else:
                 metrics.incr(
-                    "taskworker.worker.at_most_once.skipped", tags={"task": activation.taskname}
+                    "taskworker.worker.at_most_once.skipped", tags={"taskname": activation.taskname}
                 )
                 continue
 
-        current_task_id = activation.id
+        current_activation = activation
 
         # Set an alarm for the processing_deadline_duration
         signal.alarm(activation.processing_deadline_duration)
@@ -159,7 +165,7 @@ def child_worker(
             signal.alarm(0)
         except Exception as err:
             if task_func.should_retry(activation.retry_state, err):
-                logger.info("taskworker.task.retry", extra={"task": activation.taskname})
+                logger.info("taskworker.task.retry", extra={"taskname": activation.taskname})
                 next_state = TASK_ACTIVATION_STATUS_RETRY
 
             if next_state != TASK_ACTIVATION_STATUS_RETRY:
@@ -199,12 +205,12 @@ def child_worker(
         metrics.distribution(
             "taskworker.worker.execution_duration",
             execution_duration,
-            tags={"namespace": activation.namespace},
+            tags={"namespace": activation.namespace, "taskname": activation.taskname},
         )
         metrics.distribution(
             "taskworker.worker.execution_latency",
             execution_latency,
-            tags={"namespace": activation.namespace},
+            tags={"namespace": activation.namespace, "taskname": activation.taskname},
         )
 
 

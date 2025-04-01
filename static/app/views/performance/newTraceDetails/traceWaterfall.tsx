@@ -10,6 +10,7 @@ import {
   useState,
 } from 'react';
 import {flushSync} from 'react-dom';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
@@ -93,8 +94,8 @@ import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 import {useTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 
-const MIN_HEIGHT = 0;
-const DEFAULT_HEIGHT = 0;
+const MIN_HEIGHT = 150;
+const DEFAULT_HEIGHT = 330;
 const MAX_HEIGHT = 1500;
 
 const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
@@ -115,14 +116,19 @@ export interface TraceWaterfallProps {
   source: string;
   trace: UseApiQueryResult<TraceTree.Trace, RequestError>;
   traceEventView: EventView;
-  traceSlug: string | undefined;
+  traceSlug: string;
   tree: TraceTree;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
   replayTraces?: ReplayTrace[];
 }
 
+function clampHeight(height: number) {
+  return Math.max(MIN_HEIGHT, Math.min(height, MAX_HEIGHT));
+}
+
 export function TraceWaterfall(props: TraceWaterfallProps) {
+  const theme = useTheme();
   const api = useApi();
   const filters = usePageFilters();
   const {projects} = useProjects();
@@ -196,7 +202,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         span_list: {width: 1 - traceState.preferences.list.width},
       },
       traceScheduler,
-      traceView
+      traceView,
+      theme
     );
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -585,10 +592,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // just gives us the first match which may not be the one the user is looking for.
     if (node) {
       if (isAutogroupedNode(node) && type !== 'ag') {
+        const id = path ?? eventId!;
         if (isParentAutogroupedNode(node)) {
-          node = TraceTree.FindByID(node.head, eventId ?? path!) ?? node;
+          node = TraceTree.FindByID(node.head, id) ?? node;
         } else if (isSiblingAutogroupedNode(node)) {
-          node = node.children.find(n => TraceTree.FindByID(n, eventId ?? path!)) ?? node;
+          node = node.children.find(n => TraceTree.FindByID(n, id)) ?? node;
         }
       }
     }
@@ -840,7 +848,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     const loadedHeight = preferences.drawer.sizes['trace grid height'];
 
     if (traceGridRef && typeof loadedHeight !== 'undefined') {
-      setHeight(loadedHeight);
+      const newHeight = clampHeight(loadedHeight);
+      setHeight(newHeight);
       traceGridRef.style.setProperty('--panel-height', `${loadedHeight}px`);
     }
   }, [preferences.drawer.sizes, traceGridRef]);
@@ -861,10 +870,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
 
         const deltaY = moveEvent.clientY - startY;
-        const newHeight = Math.max(
-          MIN_HEIGHT,
-          Math.min(startHeight + deltaY, MAX_HEIGHT)
-        );
+        const newHeight = clampHeight(startHeight + deltaY);
 
         traceGridRef.style.setProperty('--panel-height', `${newHeight}px`);
       }
@@ -957,6 +963,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           meta={props.meta}
           traceType={shape}
           trace={props.tree}
+          traceId={props.traceSlug}
           traceGridRef={traceGridRef}
           manager={viewManager}
           scheduler={traceScheduler}

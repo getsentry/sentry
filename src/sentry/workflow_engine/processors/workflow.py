@@ -1,5 +1,5 @@
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from enum import StrEnum
 
 import sentry_sdk
@@ -58,17 +58,19 @@ def enqueue_workflow(
     )
 
 
-def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowEventData) -> set[Workflow]:
+def evaluate_workflow_triggers(
+    workflows: set[Workflow], event_data: WorkflowEventData
+) -> set[Workflow]:
     triggered_workflows: set[Workflow] = set()
 
     for workflow in workflows:
-        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(job)
+        evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
 
         if remaining_conditions:
             enqueue_workflow(
                 workflow,
                 remaining_conditions,
-                job.event,
+                event_data.event,
                 WorkflowDataConditionGroupType.WORKFLOW_TRIGGER,
             )
         else:
@@ -80,40 +82,51 @@ def evaluate_workflow_triggers(workflows: set[Workflow], job: WorkflowEventData)
 
 def evaluate_workflows_action_filters(
     workflows: set[Workflow],
-    job: WorkflowEventData,
+    event_data: WorkflowEventData,
 ) -> BaseQuerySet[Action]:
     filtered_action_groups: set[DataConditionGroup] = set()
 
-    # gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
-    workflow_ids = {workflow.id for workflow in workflows}
+    # Gets the list of the workflow ids, and then get the workflow_data_condition_groups for those workflows
+    workflow_ids_to_envs = {workflow.id: workflow.environment for workflow in workflows}
 
-    action_conditions = DataConditionGroup.objects.filter(
-        workflowdataconditiongroup__workflow_id__in=workflow_ids
-    ).distinct()
+    action_conditions = (
+        DataConditionGroup.objects.filter(
+            workflowdataconditiongroup__workflow_id__in=list(workflow_ids_to_envs.keys())
+        )
+        .prefetch_related("workflowdataconditiongroup_set")
+        .distinct()
+    )
 
     for action_condition in action_conditions:
-        # TODO(cathy): attach correct workflow to job
+        workflow_event_data = event_data
+
+        workflow_data_condition_group = action_condition.workflowdataconditiongroup_set.first()
+
+        # Populate the workflow_env in the job for the action_condition evaluation
+        if workflow_data_condition_group:
+            workflow_event_data = replace(
+                workflow_event_data, workflow_env=workflow_data_condition_group.workflow.environment
+            )
 
         (evaluation, result), remaining_conditions = process_data_condition_group(
-            action_condition.id, job
+            action_condition.id, workflow_event_data
         )
 
         if remaining_conditions:
             # If there are remaining conditions for the action filter to evaluate,
             # then return the list of conditions to enqueue
-            condition_group = action_condition.workflowdataconditiongroup_set.first()
-            if condition_group:
+            if workflow_data_condition_group:
                 enqueue_workflow(
-                    condition_group.workflow,
+                    workflow_data_condition_group.workflow,
                     remaining_conditions,
-                    job.event,
+                    event_data.event,
                     WorkflowDataConditionGroupType.ACTION_FILTER,
                 )
         else:
             if evaluation:
                 filtered_action_groups.add(action_condition)
 
-    return filter_recently_fired_workflow_actions(filtered_action_groups, job.event.group)
+    return filter_recently_fired_workflow_actions(filtered_action_groups, event_data.event.group)
 
 
 def log_fired_workflows(log_name: str, actions: list[Action], job: WorkflowEventData) -> None:

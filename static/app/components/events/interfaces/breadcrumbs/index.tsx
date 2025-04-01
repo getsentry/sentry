@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
@@ -23,7 +23,7 @@ import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSectio
 
 import SearchBarAction from '../searchBarAction';
 
-import Level from './breadcrumb/level';
+import {Level} from './breadcrumb/level';
 import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';

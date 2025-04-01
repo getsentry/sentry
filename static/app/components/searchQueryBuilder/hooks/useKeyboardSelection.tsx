@@ -55,7 +55,7 @@ function combineSelection(state: ListState<ParseResultToken>, newSelection: Key[
 }
 
 function useKeyboardSelectionState() {
-  const cursorKeyPositionRef = useRef<Key | null>();
+  const cursorKeyPositionRef = useRef<Key | null>(null);
 
   const selectInDirection = useCallback<SelectFunc>(
     ({state, beginNewSelectionFromKey, direction}) => {
@@ -118,9 +118,5 @@ const KeyboardSelectionContext = createContext<KeyboardSelectionData>({
 export function KeyboardSelection({children}: {children: ReactNode}) {
   const state = useKeyboardSelectionState();
 
-  return (
-    <KeyboardSelectionContext.Provider value={state}>
-      {children}
-    </KeyboardSelectionContext.Provider>
-  );
+  return <KeyboardSelectionContext value={state}>{children}</KeyboardSelectionContext>;
 }

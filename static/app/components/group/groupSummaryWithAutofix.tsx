@@ -21,9 +21,11 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import marked from 'sentry/utils/marked';
 import testableTransition from 'sentry/utils/testableTransition';
-import {useOpenSolutionsDrawer} from 'sentry/views/issueDetails/streamline/sidebar/solutionsHubDrawer';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 const pulseAnimation = {
   initial: {opacity: 1},
@@ -62,7 +64,7 @@ export function GroupSummaryWithAutofix({
 }) {
   const {data: autofixData, isPending} = useAutofixData({groupId: group.id});
 
-  const openSolutionsDrawer = useOpenSolutionsDrawer(group, project, event);
+  const openSeerDrawer = useOpenSeerDrawer(group, project, event);
 
   const rootCauseDescription = useMemo(
     () => (autofixData ? getRootCauseDescription(autofixData) : null),
@@ -106,12 +108,13 @@ export function GroupSummaryWithAutofix({
   if (rootCauseDescription) {
     return (
       <AutofixSummary
+        group={group}
         rootCauseDescription={rootCauseDescription}
         solutionDescription={solutionDescription}
         solutionIsLoading={solutionIsLoading}
         codeChangesDescription={codeChangesDescription}
         codeChangesIsLoading={codeChangesIsLoading}
-        openSolutionsDrawer={openSolutionsDrawer}
+        openSeerDrawer={openSeerDrawer}
         rootCauseCopyText={rootCauseCopyText}
         solutionCopyText={solutionCopyText}
       />
@@ -122,31 +125,35 @@ export function GroupSummaryWithAutofix({
 }
 
 function AutofixSummary({
+  group,
   rootCauseDescription,
   solutionDescription,
   solutionIsLoading,
   codeChangesDescription,
   codeChangesIsLoading,
-  openSolutionsDrawer,
+  openSeerDrawer,
   rootCauseCopyText,
   solutionCopyText,
 }: {
   codeChangesDescription: string | null;
   codeChangesIsLoading: boolean;
-  openSolutionsDrawer: () => void;
+  group: Group;
+  openSeerDrawer: () => void;
   rootCauseCopyText: string | null;
   rootCauseDescription: string | null;
   solutionCopyText: string | null;
   solutionDescription: string | null;
   solutionIsLoading: boolean;
 }) {
+  const organization = useOrganization();
+
   const insightCards: InsightCardObject[] = [
     {
       id: 'root_cause_description',
       title: t('Root Cause'),
       insight: rootCauseDescription,
-      icon: <IconFocus size="sm" color="pink400" />,
-      onClick: openSolutionsDrawer,
+      icon: <IconFocus size="sm" />,
+      onClick: openSeerDrawer,
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
     },
@@ -157,9 +164,9 @@ function AutofixSummary({
             id: 'solution_description',
             title: t('Solution'),
             insight: solutionDescription,
-            icon: <IconFix size="sm" color="green400" />,
+            icon: <IconFix size="sm" />,
             isLoading: solutionIsLoading,
-            onClick: openSolutionsDrawer,
+            onClick: openSeerDrawer,
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
           },
@@ -172,13 +179,40 @@ function AutofixSummary({
             id: 'code_changes',
             title: t('Code Changes'),
             insight: codeChangesDescription,
-            icon: <IconCode size="sm" color="blue400" />,
+            icon: <IconCode size="sm" />,
             isLoading: codeChangesIsLoading,
-            onClick: openSolutionsDrawer,
+            onClick: openSeerDrawer,
           },
         ]
       : []),
   ];
+
+  const handleCardClick = (cardId: string, originalOnClick?: () => void) => {
+    let eventKey: string | null = null;
+
+    switch (cardId) {
+      case 'root_cause_description':
+        eventKey = 'autofix.summary_root_cause_clicked';
+        break;
+      case 'solution_description':
+        eventKey = 'autofix.summary_solution_clicked';
+        break;
+      case 'code_changes':
+        eventKey = 'autofix.summary_code_changes_clicked';
+        break;
+      default:
+        break;
+    }
+
+    if (eventKey) {
+      trackAnalytics(eventKey, {
+        organization,
+        group_id: group.id,
+      });
+    }
+
+    originalOnClick?.();
+  };
 
   return (
     <div data-testid="autofix-summary">
@@ -192,7 +226,8 @@ function AutofixSummary({
             return (
               <InsightCardButton
                 key={card.id}
-                onClick={card.onClick}
+                onClick={() => handleCardClick(card.id, card.onClick)}
+                role="button"
                 initial="initial"
                 animate={card.isLoading ? 'animate' : 'initial'}
                 variants={pulseAnimation}
@@ -264,7 +299,7 @@ const InsightGrid = styled('div')`
   gap: ${space(1.5)};
 `;
 
-const InsightCardButton = styled(motion.button)`
+const InsightCardButton = styled(motion.div)<React.HTMLAttributes<HTMLDivElement>>`
   border-radius: ${p => p.theme.borderRadius};
   border: 1px solid ${p => p.theme.border};
   width: 100%;

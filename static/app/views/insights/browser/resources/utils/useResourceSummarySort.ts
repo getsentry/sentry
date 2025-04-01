@@ -32,7 +32,7 @@ export function useResourceSummarySort(
 
   return (
     // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
+    decodeSorts(location.query[sortParameterName]).find(isAValidSort) ?? fallback
   );
 }
 

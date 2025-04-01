@@ -4,6 +4,7 @@ from rest_framework import serializers
 
 from sentry import features
 from sentry.api.serializers.rest_framework import ValidationError
+from sentry.models.groupsearchview import GroupSearchViewVisibility
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
@@ -29,13 +30,12 @@ class ViewValidator(serializers.Serializer):
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True, allow_blank=True)
     querySort = serializers.ChoiceField(
-        choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
+        required=False, choices=SortOptions.as_choices(), default=SortOptions.DATE
     )
 
     projects = serializers.ListField(required=True, allow_empty=True)
     environments = serializers.ListField(required=True, allow_empty=True)
     timeFilters = serializers.DictField(required=True, allow_empty=False)
-    isAllProjects = serializers.BooleanField(required=False)
 
     def validate_projects(self, value):
         if not features.has("organizations:global-views", self.context["organization"]) and (
@@ -57,7 +57,7 @@ class ViewValidator(serializers.Serializer):
 
         return value
 
-    def validate(self, data):
+    def validate(self, data) -> GroupSearchViewValidatorResponse:
         if data["projects"] == [-1]:
             data["projects"] = []
             data["isAllProjects"] = True
@@ -73,3 +73,30 @@ class GroupSearchViewValidator(serializers.Serializer):
 
     def validate(self, data):
         return data
+
+
+class GroupSearchViewPostValidator(ViewValidator):
+    starred = serializers.BooleanField(required=False)
+
+    def validate(self, data):
+        return super().validate(data)
+
+
+class GroupSearchViewDetailsPutValidator(ViewValidator):
+    visibility = serializers.ChoiceField(
+        required=False, choices=GroupSearchViewVisibility.as_choices()
+    )
+
+    def validate_visibility(self, value):
+        has_share_access = (
+            self.context["access"].has_scope("team:admin")
+            or self.context["access"].has_scope("org:admin")
+            or self.context["access"].has_scope("org:owner")
+        )
+
+        if value == GroupSearchViewVisibility.ORGANIZATION and not has_share_access:
+            raise ValidationError(detail="You do not have permission to share this view")
+        return value
+
+    def validate(self, data):
+        return super().validate(data)

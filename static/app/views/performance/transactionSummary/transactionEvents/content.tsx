@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
 import {LinkButton} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -76,6 +77,7 @@ function EventsContent(props: Props) {
     projects,
   } = props;
   const routes = useRoutes();
+  const theme = useTheme();
   const domainViewFilters = useDomainViewFilters();
 
   const {eventView, titles} = useMemo(() => {
@@ -160,6 +162,7 @@ function EventsContent(props: Props) {
     <Layout.Main fullWidth>
       <Search {...props} eventView={eventView} />
       <EventsTable
+        theme={theme}
         eventView={eventView}
         organization={organization}
         routes={routes}

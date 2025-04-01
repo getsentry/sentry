@@ -527,6 +527,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Extract logs from python loggers within sentry itself
+# 1.0 = extract all warning-level logs
+register(
+    "ourlogs.sentry-emit-rollout",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Extract logs from breadcrumbs only for a random fraction of sent breadcrumbs.
 #
 # NOTE: Any value below 1.0 will break the product. Do not override in production.
@@ -587,6 +595,8 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# Issue Summary on Alerts (timeout in seconds)
+register("alerts.issue_summary_timeout", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -670,6 +680,13 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Add consent prompt for Azure DevOps Integration
+register(
+    "vsts.consent-prompt",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # PagerDuty Integration
@@ -1320,6 +1337,12 @@ register(
 )
 register(
     "project-abuse-quota.span-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "project-abuse-quota.log-limit",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2773,6 +2796,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Killswitch for Postgres query timeout error handling
+register(
+    "api.postgres-query-timeout-error-handling.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO: remove once removed from options
 register(
     "issue_platform.use_kafka_partition_key",
@@ -3134,6 +3165,16 @@ register(
 
 register(
     "taskworker.route.overrides",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.deletions.rollout",
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.deletions.control.rollout",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

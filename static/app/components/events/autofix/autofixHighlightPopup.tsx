@@ -121,7 +121,8 @@ function AutofixHighlightPopupContent({
   stepIndex,
   retainInsightCardIndex,
   isAgentComment,
-}: Props) {
+  isFocused,
+}: Props & {isFocused?: boolean}) {
   const {mutate: submitComment} = useCommentThread({groupId, runId});
   const {mutate: closeCommentThread} = useCloseCommentThread({groupId, runId});
 
@@ -253,7 +254,7 @@ function AutofixHighlightPopupContent({
   };
 
   return (
-    <Container onClick={handleContainerClick}>
+    <Container onClick={handleContainerClick} isFocused={isFocused}>
       <Header>
         <SelectedText>{truncatedText && <span>"{truncatedText}"</span>}</SelectedText>
         {allMessages.length > 0 && (
@@ -299,6 +300,7 @@ function AutofixHighlightPopupContent({
             placeholder={t('Questions or comments?')}
             value={comment}
             onChange={e => setComment(e.target.value)}
+            maxLength={4096}
             size="sm"
             autoFocus
           />
@@ -328,8 +330,8 @@ function getOptimalPosition(referenceRect: DOMRect, popupRect: DOMRect) {
   if (top + popupRect.height > viewportHeight) {
     top = viewportHeight - popupRect.height;
   }
-  if (top < 0) {
-    top = 0;
+  if (top < 42) {
+    top = 42;
   }
 
   return {left, top};
@@ -418,16 +420,18 @@ function AutofixHighlightPopup(props: Props) {
       onBlur={handleBlur}
       tabIndex={-1}
     >
-      <Arrow />
-      <ScaleContainer>
-        <AutofixHighlightPopupContent {...props} />
+      <ScaleContainer isFocused={isFocused}>
+        <Arrow />
+        <AutofixHighlightPopupContent {...props} isFocused={isFocused} />
       </ScaleContainer>
     </Wrapper>,
     document.body
   );
 }
 
-const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
+const Wrapper = styled(motion.div)<
+  {isFocused?: boolean} & React.HTMLAttributes<HTMLDivElement>
+>`
   z-index: ${p => (p.isFocused ? p.theme.zIndex.tooltip + 1 : p.theme.zIndex.tooltip)};
   display: flex;
   flex-direction: column;
@@ -439,23 +443,28 @@ const Wrapper = styled(motion.div)<{isFocused?: boolean}>`
   will-change: transform;
 `;
 
-const ScaleContainer = styled(motion.div)`
+const ScaleContainer = styled(motion.div)<{isFocused?: boolean}>`
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  transform-origin: top left;
+  transform-origin: top right;
   padding-left: ${space(2)};
+  transform: scale(${p => (p.isFocused ? 1 : 0.9)});
+  transition: transform 200ms ease;
 `;
 
-const Container = styled(motion.div)`
+const Container = styled(motion.div)<
+  React.HTMLAttributes<HTMLDivElement> & {isFocused?: boolean}
+>`
   position: relative;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
   background: ${p => p.theme.background};
   border: 1px dashed ${p => p.theme.border};
   overflow: hidden;
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => (p.isFocused ? p.theme.dropShadowHeavy : p.theme.dropShadowLight)};
+  transition: box-shadow 200ms ease;
 
   &:before {
     content: '';
@@ -536,6 +545,7 @@ const Arrow = styled('div')`
   top: 20px;
   right: -6px;
   transform: rotate(135deg);
+  z-index: 1;
 `;
 
 const MessagesContainer = styled('div')`

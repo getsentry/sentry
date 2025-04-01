@@ -331,8 +331,6 @@ export function InviteMissingMembersModal({
   );
 }
 
-export default InviteMissingMembersModal;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;
@@ -365,7 +363,7 @@ const MemberEmail = styled('div')`
   max-width: 150px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

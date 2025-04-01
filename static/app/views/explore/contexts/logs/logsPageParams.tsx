@@ -55,23 +55,31 @@ export interface LogsPageParamsProviderProps {
   analyticsPageSource: LogsAnalyticsPageSource;
   children: React.ReactNode;
   isOnEmbeddedView?: boolean;
+  limitToProjectIds?: number[];
+  limitToSpanId?: string;
   limitToTraceId?: string;
 }
 
 export function LogsPageParamsProvider({
   children,
   limitToTraceId,
+  limitToSpanId,
+  limitToProjectIds,
   isOnEmbeddedView,
   analyticsPageSource,
 }: LogsPageParamsProviderProps) {
   const location = useLocation();
   const logsQuery = decodeLogsQuery(location);
   const search = new MutableSearch(logsQuery);
-  const baseSearch = limitToTraceId
-    ? new MutableSearch('').addFilterValues(OurLogKnownFieldKey.TRACE_ID, [
-        limitToTraceId,
-      ])
-    : undefined;
+  let baseSearch: MutableSearch | undefined = undefined;
+  if (limitToSpanId && limitToTraceId) {
+    baseSearch = baseSearch ?? new MutableSearch('');
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+  } else if (limitToTraceId) {
+    baseSearch = baseSearch ?? new MutableSearch('');
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+  }
   const isTableEditingFrozen = isOnEmbeddedView;
   const fields = isTableEditingFrozen
     ? defaultLogFields()
@@ -79,12 +87,14 @@ export function LogsPageParamsProvider({
   const sortBys = isTableEditingFrozen
     ? [logsTimestampDescendingSortBy]
     : getLogSortBysFromLocation(location, fields);
-  const projectIds = isOnEmbeddedView ? [-1] : decodeProjects(location);
+  const projectIds = isOnEmbeddedView
+    ? (limitToProjectIds ?? [-1])
+    : decodeProjects(location);
 
   const cursor = getLogCursorFromLocation(location);
 
   return (
-    <LogsPageParamsContext.Provider
+    <LogsPageParamsContext
       value={{
         fields,
         search,
@@ -97,7 +107,7 @@ export function LogsPageParamsProvider({
       }}
     >
       {children}
-    </LogsPageParamsContext.Provider>
+    </LogsPageParamsContext>
   );
 }
 

@@ -18,7 +18,7 @@ import {
   sortedFlags,
 } from 'sentry/components/events/featureFlags/utils';
 import useDrawer from 'sentry/components/globalDrawer';
-import KeyValueData from 'sentry/components/keyValueData';
+import {KeyValueData} from 'sentry/components/keyValueData';
 import {featureFlagOnboardingPlatforms} from 'sentry/data/platformCategories';
 import {IconMegaphone, IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -31,9 +31,9 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useOrganizationFlagLog';
+import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/featureFlags/useSuspectFlags';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
-import {useOrganizationFlagLog} from 'sentry/views/issueDetails/streamline/hooks/useOrganizationFlagLog';
-import useSuspectFlags from 'sentry/views/issueDetails/streamline/hooks/useSuspectFlags';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 export function EventFeatureFlagList({

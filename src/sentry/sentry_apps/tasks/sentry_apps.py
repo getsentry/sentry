@@ -131,30 +131,6 @@ def send_alert_webhook_v2(
     additional_payload: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ):
-    send_alert_webhook(
-        rule=rule_label,
-        sentry_app_id=sentry_app_id,
-        instance_id=instance_id,
-        group_id=group_id,
-        occurrence_id=occurrence_id,
-        additional_payload_key=additional_payload_key,
-        additional_payload=additional_payload,
-        **kwargs,
-    )
-
-
-@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
-@retry_decorator
-def send_alert_webhook(
-    rule: str,
-    sentry_app_id: int,
-    instance_id: str,
-    group_id: int,
-    occurrence_id: str,
-    additional_payload_key: str | None = None,
-    additional_payload: Mapping[str, Any] | None = None,
-    **kwargs: Any,
-):
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
         event_type=SentryAppEventType.EVENT_ALERT_TRIGGERED,
@@ -167,7 +143,7 @@ def send_alert_webhook(
             "sentry_app_id": sentry_app_id,
             "project_id": project.id,
             "organization_slug": organization.slug,
-            "rule": rule,
+            "rule": rule_label,
         }
         lifecycle.add_extras(extra)
 
@@ -215,7 +191,7 @@ def send_alert_webhook(
 
         event_context = _webhook_event_data(group_event, group.id, project.id)
 
-        data = {"event": event_context, "triggered_rule": rule}
+        data = {"event": event_context, "triggered_rule": rule_label}
 
         # Attach extra payload to the webhook
         if additional_payload_key and additional_payload:
@@ -235,6 +211,30 @@ def send_alert_webhook(
             sentry_app_id=sentry_app_id,
             event=SentryAppEventType.EVENT_ALERT_TRIGGERED,
         )
+
+
+@instrumented_task(name="sentry.sentry_apps.tasks.sentry_apps.send_alert_webhook", **TASK_OPTIONS)
+@retry_decorator
+def send_alert_webhook(
+    rule: str,
+    sentry_app_id: int,
+    instance_id: str,
+    group_id: int,
+    occurrence_id: str,
+    additional_payload_key: str | None = None,
+    additional_payload: Mapping[str, Any] | None = None,
+    **kwargs: Any,
+):
+    send_alert_webhook_v2(
+        rule_label=rule,
+        sentry_app_id=sentry_app_id,
+        instance_id=instance_id,
+        group_id=group_id,
+        occurrence_id=occurrence_id,
+        additional_payload_key=additional_payload_key,
+        additional_payload=additional_payload,
+        **kwargs,
+    )
 
 
 def _process_resource_change(
@@ -305,17 +305,14 @@ def _process_resource_change(
                 )
                 if event in installation.sentry_app.events
             ]
+            data = {}
+            if isinstance(instance, (Event, GroupEvent)):
+                assert instance.group_id, "group id is required to create webhook event data"
+                data[name] = _webhook_event_data(instance, instance.group_id, instance.project_id)
+            else:
+                data[name] = serialize(instance)
 
             for installation in installations:
-                data = {}
-                if isinstance(instance, (Event, GroupEvent)):
-                    assert instance.group_id, "group id is required to create webhook event data"
-                    data[name] = _webhook_event_data(
-                        instance, instance.group_id, instance.project_id
-                    )
-                else:
-                    data[name] = serialize(instance)
-
                 # Trigger a new task for each webhook
                 send_resource_change_webhook.delay(
                     installation_id=installation.id, event=str(event), data=data
@@ -542,11 +539,11 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
                 "settings": settings,
             }
 
-        send_alert_webhook.delay(
+        send_alert_webhook_v2.delay(
             instance_id=event.event_id,
             group_id=event.group_id,
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
-            rule=f.rule.label,
+            rule_label=f.rule.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
         )
@@ -556,13 +553,24 @@ def send_webhooks(installation: RpcSentryAppInstallation, event: str, **kwargs: 
     with SentryAppInteractionEvent(
         operation_type=SentryAppInteractionType.SEND_WEBHOOK,
         event_type=SentryAppEventType(event),
-    ).capture():
+    ).capture() as lifecycle:
         servicehook: ServiceHook
         try:
             servicehook = ServiceHook.objects.get(
                 organization_id=installation.organization_id, actor_id=installation.id
             )
         except ServiceHook.DoesNotExist:
+            lifecycle.add_extra("events", installation.sentry_app.events)
+            lifecycle.add_extras(
+                {
+                    "installation_uuid": installation.uuid,
+                    "installation_id": installation.id,
+                    "organization": installation.organization_id,
+                    "sentry_app": installation.sentry_app.id,
+                    "events": installation.sentry_app.events,
+                    "webhook_url": installation.sentry_app.webhook_url or "",
+                }
+            )
             raise SentryAppSentryError(message=SentryAppWebhookFailureReason.MISSING_SERVICEHOOK)
         if event not in servicehook.events:
             raise SentryAppSentryError(

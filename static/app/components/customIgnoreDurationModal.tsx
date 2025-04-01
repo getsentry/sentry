@@ -18,7 +18,6 @@ type Props = ModalRenderProps & {
 export default function CustomIgnoreDurationModal(props: Props) {
   const [dateWarning, setDateWarning] = useState<boolean>(false);
   const {Header, Body, Footer, onSelected, closeModal} = props;
-  const label = t('Ignore this issue until \u2026');
 
   const snoozeDateInputRef = useRef<HTMLInputElement>(null);
 
@@ -67,7 +66,9 @@ export default function CustomIgnoreDurationModal(props: Props) {
 
   return (
     <Fragment>
-      <Header>{label}</Header>
+      <Header>
+        <h4>{t('Archive this issue until\u2026')}</h4>
+      </Header>
       <Body>
         <form className="form-horizontal">
           <div className="control-group">

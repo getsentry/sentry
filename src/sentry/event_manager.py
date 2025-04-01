@@ -1619,7 +1619,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
             sender="handle_regression",
         )
         if not options.get("groups.enable-post-update-signal"):
-            post_save.send(
+            post_save.send_robust(
                 sender=Group,
                 instance=group,
                 created=False,
@@ -1800,6 +1800,10 @@ def _process_existing_aggregate(
         **incoming_metadata,
         "title": _get_updated_group_title(existing_metadata, incoming_metadata),
     }
+    initial_priority = updated_group_values["data"]["metadata"].get("initial_priority")
+    if initial_priority is not None:
+        # cast to an int, as we don't want to pickle enums into task args.
+        updated_group_values["data"]["metadata"]["initial_priority"] = int(initial_priority)
 
     # We pass `times_seen` separately from all of the other columns so that `buffer_inr` knows to
     # increment rather than overwrite the existing value

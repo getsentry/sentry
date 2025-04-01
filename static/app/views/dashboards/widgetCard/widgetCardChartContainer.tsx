@@ -111,7 +111,6 @@ export function WidgetCardChartContainer({
         timeseriesResultsTypes,
         confidence,
         sampleCount,
-        isSampled,
       }) => {
         if (widget.widgetType === WidgetType.ISSUE) {
           return (
@@ -170,7 +169,6 @@ export function WidgetCardChartContainer({
               showConfidenceWarning={showConfidenceWarning}
               confidence={confidence}
               sampleCount={sampleCount}
-              isSampled={isSampled}
               minTableColumnWidth={minTableColumnWidth}
             />
           </Fragment>
@@ -179,8 +177,6 @@ export function WidgetCardChartContainer({
     </WidgetCardDataLoader>
   );
 }
-
-export default WidgetCardChartContainer;
 
 const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />

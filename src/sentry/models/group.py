@@ -736,7 +736,7 @@ class Group(Model):
             data_source=data_source,
         )
 
-        has_replays = counts.get(self.id, 0) > 0  # type: ignore[call-overload]
+        has_replays = counts.get(self.id, 0) > 0
         # need to refactor counts so that the type of the key returned in the dict is always a str
         # for typing
         metrics.incr(
@@ -926,7 +926,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self) -> Mapping[str, Any]:
+    def get_event_metadata(self) -> dict[str, Any]:
         """
         Return the metadata of this issue.
 

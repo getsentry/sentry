@@ -208,9 +208,9 @@ function getSourceMapsDocLinks(platform: string) {
     // Therefore, we have a static link here.
     sentryBundleSupport: `https://docs.sentry.io/platforms/javascript/sourcemaps/#sentry-bundler-support`,
     // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
-    artifactBundles: ['cordova', 'capacitor'].includes(platform)
+    debugIds: ['cordova', 'capacitor'].includes(platform)
       ? undefined
-      : `${basePlatformUrl}/sourcemaps/troubleshooting_js/artifact-bundles/`,
+      : `${basePlatformUrl}/sourcemaps/troubleshooting_js/debug-ids/`,
     // cordova and capacitor are not supported. (see: https://github.com/getsentry/sentry-docs/blob/c64fb081cad715dc9dd7639265e09c372c3a65e3/docs/platforms/javascript/common/sourcemaps/troubleshooting_js/artifact-bundles.mdx?plain=1#L4-L6)
     legacyUploadingMethods: ['cordova', 'capacitor'].includes(platform)
       ? undefined
@@ -571,8 +571,8 @@ export function SourceMapsDebuggerModal({
                 {tct(
                   '[link:Debug IDs] are a way of matching your source files to source maps. Follow all of the steps below to get a readable stack trace:',
                   {
-                    link: defined(sourceMapsDocLinks.artifactBundles) ? (
-                      <ExternalLinkWithIcon href={sourceMapsDocLinks.artifactBundles} />
+                    link: defined(sourceMapsDocLinks.debugIds) ? (
+                      <ExternalLinkWithIcon href={sourceMapsDocLinks.debugIds} />
                     ) : (
                       <Fragment />
                     ),
@@ -883,12 +883,10 @@ function SentryPluginMessage({
   toolUsedToUploadSourceMaps: ToolUsedToUploadSourceMaps;
 }) {
   const activePlugin = Object.keys(pluginConfig).find(
-    key => toolUsedToUploadSourceMaps[key as keyof ToolUsedToUploadSourceMaps]
+    key => toolUsedToUploadSourceMaps[key]
   );
 
-  const plugin = activePlugin
-    ? pluginConfig[activePlugin as keyof typeof pluginConfig]
-    : undefined;
+  const plugin = activePlugin ? pluginConfig[activePlugin] : undefined;
 
   if (plugin) {
     return (
@@ -1825,8 +1823,8 @@ const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'quest
   font-weight: ${p => p.theme.fontWeightBold};
   color: ${p =>
     ({
-      none: p.theme.gray300,
-      question: p.theme.gray300,
+      none: p.theme.subText,
+      question: p.theme.subText,
       checked: p.theme.green300,
       alert: p.theme.yellow400,
     })[p.status]};
@@ -1879,7 +1877,7 @@ const InstructionList = styled('ul')`
 `;
 
 const ScrapingSymbolificationErrorMessage = styled('p')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   border-left: 2px solid ${p => p.theme.gray200};
   padding-left: ${space(1)};
   margin-top: -${space(1)};

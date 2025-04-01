@@ -46,12 +46,10 @@ class LatestReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
     comparison_json_schema = {"type": "boolean"}
 
     @staticmethod
-    def evaluate_value(job: WorkflowEventData, comparison: Any) -> bool:
-        event = job.event
-        workflow = job.workflow
-        environment = workflow.environment if workflow else None
+    def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
+        event = event_data.event
 
-        latest_release = get_latest_release_for_env(environment, event)
+        latest_release = get_latest_release_for_env(event_data.workflow_env, event)
         if not latest_release:
             return False
 

@@ -1,4 +1,4 @@
-import {Fragment, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
 
@@ -39,6 +39,9 @@ interface StepProps {
   runId: string;
   step: AutofixStep;
   feedback?: AutofixFeedback;
+  isChangesFirstAppearance?: boolean;
+  isRootCauseFirstAppearance?: boolean;
+  isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
   shouldCollapseByDefault?: boolean;
@@ -68,6 +71,9 @@ export function Step({
   previousDefaultStepIndex,
   previousInsightCount,
   feedback,
+  isRootCauseFirstAppearance,
+  isSolutionFirstAppearance,
+  isChangesFirstAppearance,
 }: StepProps) {
   return (
     <StepCard>
@@ -103,6 +109,7 @@ export function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   feedback={feedback}
+                  isRootCauseFirstAppearance={isRootCauseFirstAppearance}
                 />
               )}
               {step.type === AutofixStepType.SOLUTION && (
@@ -118,6 +125,7 @@ export function Step({
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
                   feedback={feedback}
+                  isSolutionFirstAppearance={isSolutionFirstAppearance}
                 />
               )}
               {step.type === AutofixStepType.CHANGES && (
@@ -128,6 +136,7 @@ export function Step({
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
+                  isChangesFirstAppearance={isChangesFirstAppearance}
                 />
               )}
             </Fragment>
@@ -141,9 +150,14 @@ export function Step({
 export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
   const repos = data.repositories;
+  const isMountedRef = useRef<boolean>(false);
 
-  const stepsRef = useRef<Array<HTMLDivElement | null>>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   if (!steps?.length) {
     return null;
@@ -170,8 +184,10 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
     replaceHeadersWithBold(logs.at(-1)?.message ?? '') ??
     '';
 
+  const isInitialMount = !isMountedRef.current;
+
   return (
-    <StepsContainer ref={containerRef}>
+    <StepsContainer>
       {steps.map((step, index) => {
         const previousDefaultStepIndex = steps
           .slice(0, index)
@@ -200,12 +216,7 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           nextStep?.insights?.length === 0;
 
         return (
-          <div
-            ref={el => {
-              stepsRef.current[index] = el;
-            }}
-            key={step.id}
-          >
+          <div key={step.id}>
             <Step
               step={step}
               hasStepBelow={
@@ -228,6 +239,15 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               }
               previousInsightCount={previousInsightCount}
               feedback={data.feedback}
+              isRootCauseFirstAppearance={
+                step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS && !isInitialMount
+              }
+              isSolutionFirstAppearance={
+                step.type === AutofixStepType.SOLUTION && !isInitialMount
+              }
+              isChangesFirstAppearance={
+                step.type === AutofixStepType.CHANGES && !isInitialMount
+              }
             />
           </div>
         );

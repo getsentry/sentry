@@ -38,10 +38,10 @@ attribute_registry = Registry[AttributeHandler]()
 
 
 # Maps attributes to snuba columns
-ATTR_CHOICES = {
+ATTR_CHOICES: dict[str, Columns | None] = {
     "message": Columns.MESSAGE,
     "platform": Columns.PLATFORM,
-    "environment": Columns.MESSAGE,
+    "environment": Columns.ENVIRONMENT,
     "type": Columns.TYPE,
     "error.handled": Columns.ERROR_HANDLED,
     "error.unhandled": Columns.ERROR_HANDLED,

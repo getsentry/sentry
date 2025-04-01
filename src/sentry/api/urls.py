@@ -16,6 +16,12 @@ from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
+from sentry.api.endpoints.organization_member_invite.details import (
+    OrganizationMemberInviteDetailsEndpoint,
+)
+from sentry.api.endpoints.organization_member_invite.index import (
+    OrganizationMemberInviteIndexEndpoint,
+)
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
@@ -37,6 +43,7 @@ from sentry.api.endpoints.organization_unsubscribe import (
 )
 from sentry.api.endpoints.organization_user_rollback import OrganizationRollbackUserEndpoint
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
+from sentry.api.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
 from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
@@ -1692,6 +1699,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-member-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/invited-members/$",
+        OrganizationMemberInviteIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-member-invite-index",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/invited-members/(?P<member_invite_id>[^\/]+)/$",
+        OrganizationMemberInviteDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-member-invite-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/external-users/$",
         ExternalUserEndpoint.as_view(),
         name="sentry-api-0-organization-external-user",
@@ -2138,7 +2155,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     name="sentry-api-0-organization-scim-team-index",
                 ),
                 re_path(
-                    r"^Groups/(?P<team_id>\d+)$",
+                    r"^Groups/(?P<team_id_or_slug>\d+)$",
                     OrganizationSCIMTeamDetails.as_view(),
                     name="sentry-api-0-organization-scim-team-details",
                 ),
@@ -2840,6 +2857,12 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/tempest-credentials/(?P<tempest_credentials_id>\d+)/$",
         TempestCredentialsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-tempest-credentials-details",
+    ),
+    # Seer
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/seer/preferences/$",
+        ProjectSeerPreferencesEndpoint.as_view(),
+        name="sentry-api-0-project-seer-preferences",
     ),
     *workflow_urls.project_urlpatterns,
 ]

@@ -5,16 +5,17 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, cast, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events.constants import (
     DURATION_UNITS,
+    NOT_HAS_FILTER_ERROR_MESSAGE,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -414,11 +415,15 @@ def _is_wildcard(raw_value: object) -> TypeIs[str]:
 
 class SearchValue(NamedTuple):
     raw_value: str | float | datetime | Sequence[float] | Sequence[str]
+    # Used for top events where we don't want to modify the raw value at all
+    use_raw_value: bool = False
 
     @property
     def value(self) -> Any:
-        if _is_wildcard(self.raw_value):
-            return translate_wildcard(self.raw_value)
+        if self.use_raw_value:
+            return self.raw_value
+        elif self.is_wildcard():
+            return translate_wildcard(cast(str, self.raw_value))
         elif isinstance(self.raw_value, str):
             return translate_escape_sequences(self.raw_value)
         return self.raw_value
@@ -437,6 +442,9 @@ class SearchValue(NamedTuple):
             return str(self.value)
 
     def is_wildcard(self) -> bool:
+        # If we're using the raw value only it'll never be a wildcard
+        if self.use_raw_value:
+            return False
         return _is_wildcard(self.raw_value)
 
     def classify_and_format_wildcard(
@@ -623,10 +631,16 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     # Whether to wrap free_text_keys in asterisks
     wildcard_free_text: bool = False
 
+    # Disallow the use of the !has filter
+    allow_not_has_filter: bool = True
+
     @overload
     @classmethod
     def create_from[
-        TBool: (Literal[True], Literal[False])
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
     ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
@@ -638,7 +652,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
     @overload
     @classmethod
     def create_from[
-        TBool: (Literal[True], Literal[False])
+        TBool: (
+            Literal[True],
+            Literal[False],
+        )
     ](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
@@ -660,7 +677,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     # a way to represent positional-heterogenous lists -- but they are
     # actually lists
 
-    unwrapped_exceptions = (InvalidSearchQuery,)
+    unwrapped_exceptions = (InvalidSearchQuery, IncompatibleMetricsQuery)
 
     def __init__(
         self,
@@ -1220,6 +1237,16 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     ) -> SearchFilter:
         # the key is has here, which we don't need
         negation, _, _, _, (search_key,) = children
+
+        # Some datasets do not support the !has filter, but we allow
+        # team_key_transaction because we control that field and special
+        # case the way it's processed in search
+        if (
+            not self.config.allow_not_has_filter
+            and is_negated(negation)
+            and search_key.name != TEAM_KEY_TRANSACTION_ALIAS
+        ):
+            raise IncompatibleMetricsQuery(NOT_HAS_FILTER_ERROR_MESSAGE)
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):

@@ -217,6 +217,8 @@ describe('ProductUnavailableCTA', function () {
         reservedAttachments: 0,
         reservedMonitorSeats: 0,
         reservedUptime: 0,
+        reservedProfileDuration: 0,
+        reservedProfileDurationUI: 0,
       };
       const mockPlan = PlanFixture({});
       const mockPreview = PreviewDataFixture({});

@@ -10,6 +10,7 @@ from sentry_sdk import set_tag, set_user
 from sentry import eventstore
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
@@ -24,13 +25,15 @@ from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
 from .constants import METRIC_PREFIX
+from .in_app_stack_trace_rules import save_in_app_stack_trace_rules
 from .integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
     get_installation,
 )
 from .stacktraces import get_frames_to_process
-from .utils import PlatformConfig
+from .utils.platform import PlatformConfig
+from .utils.repository import create_repository
 
 logger = logging.getLogger(__name__)
 
@@ -177,61 +180,50 @@ def create_configurations(
 
     Returns a tuple of code mappings and in-app stack trace rules even when running in dry-run mode.
     """
-    organization_integration = installation.org_integration
-    if not organization_integration:
+    org_integration = installation.org_integration
+    if not org_integration:
         raise InstallationNotFoundError
 
-    organization_id = organization_integration.organization_id
-    dry_run = platform_config.is_dry_run_platform()
+    dry_run = platform_config.is_dry_run_platform(project.organization)
     platform = platform_config.platform
     tags: Mapping[str, str | bool] = {"platform": platform, "dry_run": dry_run}
     with metrics.timer(f"{METRIC_PREFIX}.create_configurations.duration", tags=tags):
         for code_mapping in code_mappings:
-            repository = (
-                Repository.objects.filter(
-                    name=code_mapping.repo.name, organization_id=organization_id
-                )
-                .order_by("-date_added")
-                .first()
-            )
-            if not repository:
-                created = False
-                if not dry_run:
-                    repository, created = Repository.objects.get_or_create(
-                        name=code_mapping.repo.name,
-                        organization_id=organization_id,
-                        integration_id=organization_integration.integration_id,
-                    )
-                if created or dry_run:
-                    metrics.incr(
-                        key=f"{METRIC_PREFIX}.repository.created", tags=tags, sample_rate=1.0
-                    )
-
-            created = False
-            if not dry_run:
-                _, created = RepositoryProjectPathConfig.objects.get_or_create(
-                    project=project,
-                    stack_root=code_mapping.stacktrace_root,
-                    defaults={
-                        "repository": repository,
-                        "organization_integration_id": organization_integration.id,
-                        "integration_id": organization_integration.integration_id,
-                        "organization_id": organization_integration.organization_id,
-                        "source_root": code_mapping.source_path,
-                        "default_branch": code_mapping.repo.branch,
-                        "automatically_generated": True,
-                    },
-                )
-            if created or dry_run:
-                metrics.incr(
-                    key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0
-                )
+            repository = create_repository(code_mapping.repo.name, org_integration, tags)
+            create_code_mapping(code_mapping, repository, project, org_integration, tags)
 
     in_app_stack_trace_rules: list[str] = []
     if platform_config.creates_in_app_stack_trace_rules():
-        # XXX: This will be changed on the next PR
-        pass
+        in_app_stack_trace_rules = save_in_app_stack_trace_rules(
+            project, code_mappings, platform_config
+        )
 
     # We return this to allow tests running in dry-run mode to assert
     # what would have been created.
     return code_mappings, in_app_stack_trace_rules
+
+
+def create_code_mapping(
+    code_mapping: CodeMapping,
+    repository: Repository | None,
+    project: Project,
+    org_integration: RpcOrganizationIntegration,
+    tags: Mapping[str, str | bool],
+) -> None:
+    created = False
+    if not tags["dry_run"] and repository is not None:
+        _, created = RepositoryProjectPathConfig.objects.get_or_create(
+            project=project,
+            stack_root=code_mapping.stacktrace_root,
+            defaults={
+                "repository": repository,
+                "organization_integration_id": org_integration.id,
+                "integration_id": org_integration.integration_id,
+                "organization_id": org_integration.organization_id,
+                "source_root": code_mapping.source_path,
+                "default_branch": code_mapping.repo.branch,
+                "automatically_generated": True,
+            },
+        )
+    if created or tags["dry_run"]:
+        metrics.incr(key=f"{METRIC_PREFIX}.code_mapping.created", tags=tags, sample_rate=1.0)

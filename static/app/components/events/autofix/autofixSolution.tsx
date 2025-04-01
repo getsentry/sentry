@@ -118,6 +118,7 @@ type AutofixSolutionProps = {
   customSolution?: string;
   description?: string;
   feedback?: AutofixFeedback;
+  isSolutionFirstAppearance?: boolean;
   previousDefaultStepIndex?: number;
   previousInsightCount?: number;
 };
@@ -647,7 +648,7 @@ function AutofixSolutionDisplay({
 export function AutofixSolution(props: AutofixSolutionProps) {
   if (props.solution.length === 0) {
     return (
-      <AnimatePresence initial>
+      <AnimatePresence initial={props.isSolutionFirstAppearance}>
         <AnimationWrapper key="card" {...cardAnimationProps}>
           <NoSolutionPadding>
             <Alert type="warning">{t('No solution found.')}</Alert>
@@ -660,7 +661,7 @@ export function AutofixSolution(props: AutofixSolutionProps) {
   const changesDisabled = props.repos.every(repo => repo.is_readable === false);
 
   return (
-    <AnimatePresence initial>
+    <AnimatePresence initial={props.isSolutionFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <AutofixSolutionDisplay {...props} changesDisabled={changesDisabled} />
       </AnimationWrapper>
@@ -784,7 +785,7 @@ const SelectionButton = styled('button')`
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   opacity: 0;
   transition:
     opacity 0.2s ease,
@@ -804,7 +805,7 @@ const SelectionButton = styled('button')`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   flex-shrink: 0;
   opacity: 1;
   transition: opacity 0.2s ease;
@@ -825,9 +826,10 @@ const InstructionsInputWrapper = styled('form')`
 
 const InstructionsInput = styled(Input)`
   flex-grow: 1;
+  padding-right: ${space(4)};
 
   &::placeholder {
-    color: ${p => p.theme.gray300};
+    color: ${p => p.theme.subText};
   }
 `;
 

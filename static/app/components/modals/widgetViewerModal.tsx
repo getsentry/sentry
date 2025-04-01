@@ -1,5 +1,5 @@
 import {Fragment, memo, useEffect, useMemo, useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -113,7 +113,6 @@ export interface WidgetViewerModalOptions {
   dashboardCreator?: User;
   dashboardFilters?: DashboardFilters;
   dashboardPermissions?: DashboardPermissions;
-  isSampled?: boolean | null;
   onEdit?: () => void;
   onMetricWidgetEdit?: (widget: Widget) => void;
   pageLinks?: string;
@@ -199,8 +198,8 @@ function WidgetViewerModal(props: Props) {
     dashboardCreator,
     confidence,
     sampleCount,
-    isSampled,
   } = props;
+  const theme = useTheme();
   const location = useLocation();
   const {projects} = useProjects();
   const navigate = useNavigate();
@@ -493,6 +492,7 @@ function WidgetViewerModal(props: Props) {
               location,
               widget: tableWidget,
               tableData: tableResults?.[0],
+              theme,
               onHeaderClick: () => {
                 if (
                   [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
@@ -510,6 +510,7 @@ function WidgetViewerModal(props: Props) {
               isFirstPage,
               projects,
               eventView,
+              theme,
             }),
             onResizeColumn,
           }}
@@ -566,6 +567,7 @@ function WidgetViewerModal(props: Props) {
             renderHeadCell: renderIssueGridHeaderCell({
               location,
               organization,
+              theme,
               selection,
               widget: tableWidget,
               onHeaderClick: () => {
@@ -574,6 +576,7 @@ function WidgetViewerModal(props: Props) {
             }) as (column: GridColumnOrder, columnIndex: number) => React.ReactNode,
             renderBodyCell: renderGridBodyCell({
               location,
+              theme,
               organization,
               selection,
               widget: tableWidget,
@@ -640,6 +643,7 @@ function WidgetViewerModal(props: Props) {
             renderHeadCell: renderReleaseGridHeaderCell({
               ...props,
               location,
+              theme,
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
@@ -654,6 +658,7 @@ function WidgetViewerModal(props: Props) {
             renderBodyCell: renderGridBodyCell({
               ...props,
               location,
+              theme,
               tableData: tableResults?.[0],
               isFirstPage,
             }),
@@ -859,7 +864,6 @@ function WidgetViewerModal(props: Props) {
                 showConfidenceWarning={widget.widgetType === WidgetType.SPANS}
                 confidence={confidence}
                 sampleCount={sampleCount}
-                isSampled={isSampled}
               />
             ) : (
               <MemoizedWidgetCardChartContainer

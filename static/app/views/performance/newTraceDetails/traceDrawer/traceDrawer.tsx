@@ -58,6 +58,7 @@ type TraceDrawerProps = {
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
+  traceId: string;
   traceType: TraceShape;
 };
 
@@ -434,7 +435,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         </TabsLayout>
       </TabsHeightContainer>
       {isDrawerMinimized ? null : (
-        <DrawerContainerRefContext.Provider value={contentContainerRef}>
+        <DrawerContainerRefContext value={contentContainerRef}>
           <Content
             ref={contentContainerRef}
             layout={traceState.preferences.layout}
@@ -466,13 +467,14 @@ export function TraceDrawer(props: TraceDrawerProps) {
                     organization={organization}
                     onParentClick={onParentClick}
                     node={traceState.tabs.current_tab.node}
+                    traceId={props.traceId}
                     onTabScrollToNode={props.onTabScrollToNode}
                   />
                 )
               ) : null}
             </ContentWrapper>
           </Content>
-        </DrawerContainerRefContext.Provider>
+        </DrawerContainerRefContext>
       )}
     </PanelWrapper>
   );

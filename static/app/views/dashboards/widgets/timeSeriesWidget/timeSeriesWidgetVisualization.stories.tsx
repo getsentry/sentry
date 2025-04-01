@@ -17,10 +17,13 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import type {LegendSelection, Release, TimeSeries, TimeSeriesMeta} from '../common/types';
 
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
+import {sampleScoreTimeSeries} from './fixtures/sampleScoreTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
+import {spanSamplesWithDurations} from './fixtures/spanSamplesWithDurations';
 import {Area} from './plottables/area';
 import {Bars} from './plottables/bars';
 import {Line} from './plottables/line';
+import {Samples} from './plottables/samples';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 // eslint-disable-next-line import/no-webpack-loader-syntax
@@ -216,6 +219,49 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
     );
   });
 
+  story('Data Types', () => {
+    return (
+      <Fragment>
+        <p>
+          <JSXNode name="TimeSeriesWidgetVisualization" /> can plot most, but not all data
+          types that come back from our time series endpoints. The supported data types
+          are:
+          <ul>
+            <li>
+              <code>number</code>
+            </li>
+            <li>
+              <code>integer</code>
+            </li>
+            <li>
+              <code>duration</code>
+            </li>
+            <li>
+              <code>percentage</code>
+            </li>
+            <li>
+              <code>size</code>
+            </li>
+            <li>
+              <code>rate</code>
+            </li>
+            <li>
+              <code>score</code>
+            </li>
+          </ul>
+        </p>
+        <p>
+          Each of those types has specific behavior in its axes range, axis value
+          formatting, tooltip formatting, unit scaling, and so on. For example, the{' '}
+          <code>score</code> type always uses the 0-100 Y axis range.
+        </p>
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization plottables={[new Area(sampleScoreTimeSeries)]} />
+        </MediumWidget>
+      </Fragment>
+    );
+  });
+
   story('Y Axes', () => {
     return (
       <Fragment>
@@ -306,6 +352,37 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
               ]}
             />
           </SmallWidget>
+
+          <SmallWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line({
+                  ...sampleDurationTimeSeries,
+                  field: 'custom_agg(duration)',
+                  meta: {
+                    type: 'number',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleDurationTimeSeries2,
+                  field: 'custom_agg2(duration)',
+                  meta: {
+                    type: 'integer',
+                    unit: null,
+                  },
+                }),
+                new Line({
+                  ...sampleThroughputTimeSeries,
+                  field: 'custom_agg3(duration)',
+                  meta: {
+                    type: 'duration',
+                    unit: DurationUnit.MILLISECOND,
+                  },
+                }),
+              ]}
+            />
+          </SmallWidget>
         </SideBySide>
       </Fragment>
     );
@@ -345,6 +422,34 @@ export default storyBook('TimeSeriesWidgetVisualization', (story, APIReference) 
             />
           </FillParent>
         </SmallSizingWindow>
+      </Fragment>
+    );
+  });
+
+  story('Samples', () => {
+    return (
+      <Fragment>
+        <p>
+          <code>Samples</code> plots discontinuous points. It's useful for placing markers
+          for individual events on top of a continuous aggregate series. In the example
+          below, we plot a set of span duration samples on top of an aggregate series of
+          the 99th percentile of those durations. Samples that are faster than a baseline
+          are green, samples that are slower are red.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[
+              new Line(sampleDurationTimeSeries),
+              new Samples(spanSamplesWithDurations, {
+                alias: 'Span Samples',
+                attributeName: 'p99(span.duration)',
+                baselineValue: 175,
+                baselineLabel: 'Average',
+              }),
+            ]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });

@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -36,7 +37,7 @@ function Filter({
   toggleOperationNameFilter,
 }: Props) {
   const organization = useOrganization();
-
+  const theme = useTheme();
   const checkedQuantity =
     operationNameFilter.type === 'no_filter'
       ? 0
@@ -53,10 +54,12 @@ function Filter({
       [...operationNameCounts].map(([operationName, operationCount]) => ({
         value: operationName,
         label: operationName,
-        leadingItems: <OperationDot backgroundColor={pickBarColor(operationName)} />,
+        leadingItems: (
+          <OperationDot backgroundColor={pickBarColor(operationName, theme)} />
+        ),
         trailingItems: <OperationCount>{operationCount}</OperationCount>,
       })),
-    [operationNameCounts]
+    [operationNameCounts, theme]
   );
 
   function onChange(selectedOpts: any) {

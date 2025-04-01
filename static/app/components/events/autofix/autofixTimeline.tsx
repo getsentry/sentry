@@ -4,7 +4,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {replaceHeadersWithBold} from 'sentry/components/events/autofix/autofixRootCause';
 import type {ColorConfig} from 'sentry/components/timeline';
-import Timeline from 'sentry/components/timeline';
+import {Timeline} from 'sentry/components/timeline';
 import {IconBroadcast, IconChevron, IconCode, IconUser} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked';
@@ -158,7 +158,7 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
 `;
 
 const StyledIconChevron = styled(IconChevron)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   flex-shrink: 0;
   margin-right: ${space(0.25)};
 `;

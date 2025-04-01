@@ -7,6 +7,7 @@ import {
   List as ReactVirtualizedList,
   WindowScroller,
 } from 'react-virtualized';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import differenceWith from 'lodash/differenceWith';
@@ -49,6 +50,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
   traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
   traceViewRef: React.RefObject<HTMLDivElement | null>;
   waterfallModel: WaterfallModel;
@@ -551,7 +553,10 @@ class SpanTree extends Component<PropType> {
 
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
-        const spanBarColor: string = pickBarColor(getSpanOperation(span));
+        const spanBarColor: string = pickBarColor(
+          getSpanOperation(span),
+          this.props.theme
+        );
         const numOfSpanChildren = payload.numOfSpanChildren;
 
         acc.outOfViewSpansAbove = [];
@@ -592,6 +597,7 @@ class SpanTree extends Component<PropType> {
         acc.spanTree.push({
           type: SpanTreeNodeType.SPAN,
           props: {
+            theme: this.props.theme,
             getCurrentLeftPos,
             onDragStart,
             onScroll,
@@ -768,10 +774,7 @@ class SpanTree extends Component<PropType> {
     }
 
     return (
-      <TraceViewContainer
-        // @ts-expect-error TODO(react19): Remove ts-expect-error once we upgrade to React 19
-        ref={this.props.traceViewRef}
-      >
+      <TraceViewContainer ref={this.props.traceViewRef}>
         <WindowScroller onScroll={this.throttledOnScroll}>
           {({height, isScrolling, onChildScroll, scrollTop}) => (
             <AutoSizer disableHeight>
