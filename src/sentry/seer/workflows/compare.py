@@ -1,44 +1,38 @@
-from sentry.seer.math import entropy, kl_divergence, laplace_smooth, rrf_score
+from sentry.seer.math import kl_divergence, laplace_smooth
+
+Distribution = dict[str, float]
 
 
-def kl_compare_sets(sup: dict[str, float], sub: dict[str, float]):
-    sup, sub = normalize_sets(sup, sub)
+def kl_compare_sets(sup: Distribution, sub: Distribution):
+    sup, sub = _normalize_sets(sup, sub)
     return kl_divergence(list(sup.values()), list(sub.values()))
 
 
-def rrf_compare_sets(sup: dict[str, float], sub: dict[str, float]):
-    sup, sub = normalize_sets(sup, sub)
-    kl_score = kl_divergence(list(sup.values()), list(sub.values()))
-    entropy_score = entropy(list(sub.values()))
-    return rrf_score(entropy_score, kl_score)
-
-
-def normalize_sets(
-    sup: dict[str, float],
-    sub: dict[str, float],
-) -> tuple[dict[str, float], dict[str, float]]:
+def _normalize_sets(a: Distribution, b: Distribution) -> tuple[Distribution, Distribution]:
     # add unseen value to each set.
     ...
 
-    # Ensure the two datasets are symmetric. The baseline set should always be a superset of the
-    # sub set.
-    sub = _ensure_symmetry(sup, sub)
+    # Ensure the two datasets are symmetric.
+    a, b = _ensure_symmetry(a, b)
 
     # Laplace smooth each set.  This will give us a dictionary full of floating points which
     # sum to 1.
-    sup = _smooth_distribution(sup)
-    sub = _smooth_distribution(sub)
+    a = _smooth_distribution(a)
+    b = _smooth_distribution(b)
 
-    return (sup, sub)
+    return (a, b)
 
 
-def _ensure_symmetry(sup: dict[str, float], sub: dict[str, float]) -> dict[str, float]:
+def _ensure_symmetry(a: Distribution, b: Distribution) -> tuple[Distribution, Distribution]:
     """
     Ensure the supersets keys are all contained within the subset. Extraneous keys in the subset
     are removed. Keys in the subset are implicitly reordered to match the superset.
     """
-    return {k: sub.get(k, 0) for k in sup}
+    keys = a.keys() | b.keys()
+    a = {k: a.get(k, 0) for k in keys}
+    b = {k: b.get(k, 0) for k in keys}
+    return a, b
 
 
-def _smooth_distribution(dist: dict[str, float]) -> dict[str, float]:
+def _smooth_distribution(dist: Distribution) -> Distribution:
     return dict(zip(dist.keys(), laplace_smooth(list(dist.values()))))

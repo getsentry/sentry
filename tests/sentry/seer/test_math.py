@@ -1,6 +1,6 @@
 import math
 
-from sentry.seer.math import entropy, kl_divergence, laplace_smooth, relative_entropy, rrf_score
+from sentry.seer.math import kl_divergence, laplace_smooth, relative_entropy
 
 
 def test_laplace_smooth():
@@ -15,6 +15,10 @@ def test_laplace_smooth():
     assert math.isclose(result[0], 0.67, rel_tol=1e-3)
     assert math.isclose(result[1], 0.33, rel_tol=1e-3)
 
+    result = laplace_smooth([0, 1])
+    assert result[0] > 0
+    assert result[1] < 1
+
 
 def test_kl_divergence():
     result = kl_divergence([0.5, 0.5], [0.8, 0.2])
@@ -24,31 +28,9 @@ def test_kl_divergence():
     assert math.isclose(result, 0.0871, rel_tol=1e-3), result
 
 
-def test_entropy():
-    result = entropy([0.8, 0.2])
-    assert math.isclose(result, 0.5004, rel_tol=1e-3), result
-
-    result = entropy([0.7, 0.3])
-    assert math.isclose(result, 0.6109, rel_tol=1e-3), result
-
-    # Assert probabilities which do not sum to 1 are scaled.
-    assert entropy([0.2, 0.2]) == entropy([0.5, 0.5])
-
-    # Assert invalid inputs have similar error characteristics to scipy.
-    assert entropy([]) == 0.0
-    assert entropy([-1]) == -math.inf
-    assert math.isnan(entropy([0]))
-
-
 def test_relative_entropy():
     a, b = [0.5, 0.5], [0.8, 0.2]
     rel_entr = relative_entropy(a, b)
     assert len(rel_entr) == 2, rel_entr
     assert math.isclose(rel_entr[0], -0.235, rel_tol=1e-3)
     assert math.isclose(rel_entr[1], 0.458, rel_tol=1e-3)
-
-
-def test_rrf_score():
-    kl_score = kl_divergence([0.5, 0.5], [0.8, 0.2])
-    entropy_score = entropy([0.8, 0.2])
-    assert math.isclose(rrf_score(entropy_score, kl_score), 0.0265, rel_tol=1e-3)

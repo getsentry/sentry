@@ -1,43 +1,6 @@
 import math
 
 
-def entropy(probabilities: list[float], base=math.e) -> float:
-    """
-    Shannon entropy. Quantifies the amount of uncertainty in a probability distribution.
-
-    Equation:
-        H = -sum(p(x) * log2(p(x)))
-
-    Parameters:
-        probabilities: A list of non-negative floating point values which sum to 1.
-    """
-    if len(probabilities) == 0:
-        return 0.0
-
-    # Negative probabilities are not allowed.
-    if any(s < 0 for s in probabilities):
-        return -math.inf
-
-    total = sum(probabilities)
-
-    # If the sum of the probabilities is 0 we return nan to emulate scipy's behavior.
-    if total == 0:
-        return math.nan
-
-    # If the sum of the probabilities does not equal to 1 then we can not perform the shannon
-    # entropy function. However we can normalize the values to the ratio of the sum which is what
-    # scipy appears to do. This ensures the probabilities always add up to 1 with each probability
-    # maintaining its relative dimension.
-    #
-    # We check for reasonable proximity to 1 with the offset 1e-9. Floating point numbers might not
-    # add up to 1 but may be close enough to not matter. If we were to ratio every probability that
-    # didn't end up as 1 we would introduce additional amounts of floating point loss.
-    if not math.isclose(total, 1.0, rel_tol=1e-9):
-        probabilities = [n / total for n in probabilities]
-
-    return -sum(n * math.log(n, base) for n in probabilities if n > 0)
-
-
 def laplace_smooth(probabilities: list[float], alpha: float = 1e-3) -> list[float]:
     """
     Removes 0 probabilities, preserves relative distribution of values, and normalizes range
@@ -54,23 +17,20 @@ def laplace_smooth(probabilities: list[float], alpha: float = 1e-3) -> list[floa
 
 
 def relative_entropy(a: list[float], b: list[float]) -> list[float]:
+    def _rel_entr(x: float, y: float):
+        if math.isnan(x) or math.isnan(y):
+            return math.nan
+        elif x > 0 and y > 0:
+            return x * math.log(x / y)
+        elif x == 0 and y >= 0:
+            return 0
+        else:
+            return math.inf
+
     assert len(a) == len(b), "Mismatched distribution lengths"
-    return [x * math.log(x / y) for (x, y) in zip(a, b) if a != 0]
+    return [_rel_entr(x, y) for (x, y) in zip(a, b) if a != 0]
 
 
 def kl_divergence(a: list[float], b: list[float]) -> float:
     assert len(a) == len(b), "Mismatched distribution lengths"
     return sum(relative_entropy(a, b))
-
-
-def rrf_score(
-    entropy_score: float,
-    kl_score: float,
-    entropy_alpha: float = 0.2,
-    kl_alpha: float = 0.8,
-    offset: int = 60,
-) -> float:
-    """Compute reciprocal rank fusion score."""
-    a = kl_alpha * (1 / (offset + kl_score))
-    b = (1 - entropy_alpha) * (1 / (offset + entropy_score))
-    return a + b
