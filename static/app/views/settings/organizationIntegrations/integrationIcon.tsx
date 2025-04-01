@@ -27,7 +27,7 @@ function ImageIcon(props: IconProps) {
   );
 }
 
-export default function IntegrationIcon({integration, size = 32}: IconProps) {
+export function IntegrationIcon({integration, size = 32}: IconProps) {
   return integration.icon ? (
     <ImageIcon size={size} integration={integration} />
   ) : (
