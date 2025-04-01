@@ -4,7 +4,7 @@ The fallback/default processing_deadline that tasks
 will use if neither the TaskNamespace or Task define a deadline
 """
 
-DEFAULT_REBALANCE_AFTER = 4096
+DEFAULT_REBALANCE_AFTER = 32
 """
 The number of tasks a worker will process before it
 selects a new broker instance.
