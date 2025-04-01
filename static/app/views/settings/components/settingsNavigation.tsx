@@ -43,7 +43,7 @@ function SettingsSecondaryNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
 
   return (
-    <SecondaryNav group={PrimaryNavGroup.SETTINGS}>
+    <SecondaryNav>
       <SecondaryNav.Header>
         {NAV_GROUP_LABELS[PrimaryNavGroup.SETTINGS]}
       </SecondaryNav.Header>
