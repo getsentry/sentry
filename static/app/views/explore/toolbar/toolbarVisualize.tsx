@@ -20,6 +20,7 @@ import {
 import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_VISUALIZATION,
+  DEFAULT_VISUALIZATION_AGGREGATE,
   DEFAULT_VISUALIZATION_FIELD,
   MAX_VISUALIZES,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -182,7 +183,27 @@ function VisualizeDropdown({
     return visualizes.flatMap(visualize => visualize.yAxes);
   }, [visualizes]);
 
-  const fieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
+  const parsedVisualize = useMemo(() => parseFunction(yAxis)!, [yAxis]);
+
+  // We want to lock down the fields dropdown when using count so that we can
+  // render `count(spans)` for better legibility. However, for backwards
+  // compatibility, we don't want to lock down all `count` queries immediately.
+  const lockOptions = yAxis === DEFAULT_VISUALIZATION;
+
+  const fieldValue = lockOptions ? 'spans' : parsedVisualize.arguments[0];
+
+  const countFieldOptions: Array<SelectOption<string>> = useMemo(
+    () => [
+      {
+        label: t('spans'),
+        value: 'spans',
+        textValue: 'spans',
+      },
+    ],
+    []
+  );
+  const defaultFieldOptions: Array<SelectOption<string>> = useVisualizeFields({yAxes});
+  const fieldOptions = lockOptions ? countFieldOptions : defaultFieldOptions;
 
   const aggregateOptions: Array<SelectOption<string>> = useMemo(() => {
     return ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => {
@@ -193,8 +214,6 @@ function VisualizeDropdown({
       };
     });
   }, []);
-
-  const parsedVisualize = useMemo(() => parseFunction(yAxis)!, [yAxis]);
 
   const setChartField = useCallback(
     ({value}: SelectOption<SelectKey>) => {
@@ -208,7 +227,10 @@ function VisualizeDropdown({
   const setChartAggregate = useCallback(
     ({value}: SelectOption<SelectKey>) => {
       const newVisualizes = visualizes.slice();
-      newVisualizes[group]!.yAxes[index] = `${value}(${parsedVisualize.arguments[0]})`;
+      newVisualizes[group]!.yAxes[index] =
+        value === DEFAULT_VISUALIZATION_AGGREGATE
+          ? DEFAULT_VISUALIZATION
+          : `${value}(${parsedVisualize.arguments[0]})`;
       setVisualizes(newVisualizes);
     },
     [group, index, parsedVisualize, setVisualizes, visualizes]
@@ -225,8 +247,9 @@ function VisualizeDropdown({
       <ColumnCompactSelect
         searchable
         options={fieldOptions}
-        value={parsedVisualize.arguments[0]}
+        value={fieldValue}
         onChange={setChartField}
+        disabled={lockOptions}
       />
       <Button
         borderless
