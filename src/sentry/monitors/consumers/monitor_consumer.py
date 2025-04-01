@@ -905,7 +905,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
             # the clock forward, if that is delayed it's possible for the
             # check-in to come in late
             kafka_delay = item.ts - start_time.replace(tzinfo=None)
-            metrics.gauge("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
+            metrics.timing("monitors.checkin.relay_kafka_delay", kafka_delay.total_seconds())
 
             # how long in wall-clock time did it take for us to process this
             # check-in. This records from when the message was first appended
@@ -913,7 +913,7 @@ def _process_checkin(item: CheckinItem, txn: Transaction | Span) -> None:
             #
             # XXX: We are ONLY recording this metric for completed check-ins.
             delay = datetime.now() - item.ts
-            metrics.gauge("monitors.checkin.completion_time", delay.total_seconds())
+            metrics.timing("monitors.checkin.completion_time", delay.total_seconds())
 
             metrics.incr(
                 "monitors.checkin.result",
