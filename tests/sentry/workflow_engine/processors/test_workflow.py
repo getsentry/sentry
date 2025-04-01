@@ -21,6 +21,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     DataConditionGroupAction,
     Workflow,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
@@ -295,6 +296,32 @@ class TestProcessWorkflows(BaseWorkflowTest):
             "workflow_engine.process_workflows.triggered_actions",
             amount=0,
             tags={"detector_type": self.error_detector.type},
+        )
+
+    def test_creates_workflow_fire_history(self):
+        dcg = self.create_data_condition_group()
+        self.create_data_condition(
+            type=Condition.REGRESSION_EVENT,
+            comparison=True,
+            condition_result=True,
+            condition_group=dcg,
+        )
+
+        workflow = self.create_workflow(when_condition_group=dcg)
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=workflow,
+        )
+
+        self.create_workflow_action(self.error_workflow)
+        self.create_workflow_action(workflow)
+
+        triggered_workflows = process_workflows(self.event_data)
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow__in=triggered_workflows, group=self.event_data.event.group
+            ).count()
+            == 2
         )
 
 

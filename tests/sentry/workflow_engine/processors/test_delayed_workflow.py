@@ -27,6 +27,7 @@ from sentry.workflow_engine.models import (
     DataConditionGroup,
     Detector,
     Workflow,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,
@@ -798,6 +799,24 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             [self.workflow2_dcgs[1].conditions.all()[0]],
             self.event2.for_group(self.group2),
             WorkflowDataConditionGroupType.ACTION_FILTER,
+        )
+
+    def test_fire_actions_for_groups__workflow_fire_history(self):
+        fire_actions_for_groups(
+            self.groups_to_dcgs, self.trigger_group_to_dcg_model, self.group_to_groupevent
+        )
+        assert WorkflowFireHistory.objects.all().count() == 2
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=self.workflow1, group=self.group1, event_id=self.event1.event_id
+            ).count()
+            == 1
+        )
+        assert (
+            WorkflowFireHistory.objects.filter(
+                workflow=self.workflow2, group=self.group2, event_id=self.event2.event_id
+            ).count()
+            == 1
         )
 
 
