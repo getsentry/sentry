@@ -1016,6 +1016,9 @@ describe('Subscription > UsageTotals', function () {
     );
 
     expect(screen.getByTestId('gifted-profileDuration')).toHaveTextContent('50 Gifted');
+    expect(screen.getByTestId('gifted-profileDuration')).not.toHaveTextContent(
+      '0 Reserved'
+    );
   });
 
   it('renders gifted hours for profile duration ui when gifted present', function () {
@@ -1033,6 +1036,9 @@ describe('Subscription > UsageTotals', function () {
     );
 
     expect(screen.getByTestId('gifted-profileDurationUI')).toHaveTextContent('50 Gifted');
+    expect(screen.getByTestId('gifted-profileDurationUI')).not.toHaveTextContent(
+      '0 Reserved'
+    );
   });
 });
 
