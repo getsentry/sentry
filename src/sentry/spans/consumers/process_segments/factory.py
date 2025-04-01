@@ -10,17 +10,12 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.produce import Produce
 from arroyo.processing.strategies.unfold import Unfold
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Value
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.buffered_segments_v1 import BufferedSegment
 
 from sentry import options
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.conf.types.kafka_definition import Topic
 from sentry.spans.consumers.process_segments.message import process_segment
-from sentry.spans.consumers.process_segments.types import Span
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
-
-BUFFERED_SEGMENT_SCHEMA: Codec[BufferedSegment] = get_topic_codec(Topic.BUFFERED_SEGMENTS)
 
 logger = logging.getLogger(__name__)
 
@@ -82,14 +77,15 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
-def _process_message(message: Message[KafkaPayload]) -> list[Span]:
+def _process_message(message: Message[KafkaPayload]) -> list[bytes]:
     if not options.get("standalone-spans.process-segments-consumer.enable"):
         return []
 
     try:
         value = message.payload.value
-        segment = BUFFERED_SEGMENT_SCHEMA.decode(value)
-        return process_segment(segment["spans"])
+        segment = orjson.loads(value)
+        processed = process_segment(segment["spans"])
+        return [orjson.dumps(span) for span in processed]
     except Exception:  # NOQA
         raise
         # TODO: Implement error handling
@@ -98,11 +94,9 @@ def _process_message(message: Message[KafkaPayload]) -> list[Span]:
         # raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _unfold_segment(spans: list[Span]):
-    for span in spans:
-        if span is not None:
-            yield Value(
-                KafkaPayload(key=None, value=orjson.dumps(span), headers=[]),
-                {},
-                timestamp=None,
-            )
+def _unfold_segment(spans: list[bytes]):
+    return [
+        Value(KafkaPayload(key=None, value=span, headers=[]), {})
+        for span in spans
+        if span is not None
+    ]
