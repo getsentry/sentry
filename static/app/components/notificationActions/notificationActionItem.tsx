@@ -98,7 +98,7 @@ function NotificationActionItem({
       case NotificationActionService.SENTRY_NOTIFICATION:
         return <IconMail size="sm" />;
       default:
-        return <PluginIcon pluginId={serviceType} size={16} />;
+        return <PluginIcon pluginId={serviceType ?? 'placeholder'} size={16} />;
     }
   };
 
