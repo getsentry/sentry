@@ -9,6 +9,7 @@ from typing import Any
 from django.conf import settings
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
+from sentry_sdk.integrations.logging import ignore_logger
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.options.manager import UpdateChannel
@@ -16,7 +17,12 @@ from sentry.options.manager import UpdateChannel
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
 
-logger = logging.getLogger("sentry")
+OPTIONS_LOGGER_NAME = "sentry.options_store"
+
+logger = logging.getLogger(OPTIONS_LOGGER_NAME)
+# Our SDK logging integration will create a circular dependency due to its
+# reliance on options, so we need to ignore it.
+ignore_logger(OPTIONS_LOGGER_NAME)
 
 
 @dataclasses.dataclass
