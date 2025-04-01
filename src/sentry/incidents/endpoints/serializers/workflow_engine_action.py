@@ -10,14 +10,13 @@ from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
     human_desc,
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,
 )
-from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
-from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.models import Action, DataConditionGroup, DataConditionGroupAction
+from sentry.workflow_engine.models import Action, ActionAlertRuleTriggerAction
 
 
 class WorkflowEngineActionSerializer(Serializer):
