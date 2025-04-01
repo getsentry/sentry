@@ -24,12 +24,6 @@ from sentry.search.eap.utils import translate_internal_to_public_alias
 from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba_rpc
 
-SUPPORTED_TRACE_TYPES = {
-    "ourlogs": SupportedTraceItemType.LOGS,
-    "spans": SupportedTraceItemType.SPANS,
-}
-
-
 DISALLOW_LIST = {
     "sentry.organization_id",
     "sentry.item_type",
