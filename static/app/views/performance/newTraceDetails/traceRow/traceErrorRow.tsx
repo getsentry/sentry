@@ -34,7 +34,7 @@ export function TraceErrorRow(
 ) {
   const description = isEAPErrorNode(props.node)
     ? props.node.value.description
-    : (props.node.value.message ?? props.node.value.title);
+    : (props.node.value.title ?? props.node.value.message);
   const timestamp = isEAPErrorNode(props.node)
     ? props.node.value.start_timestamp
     : props.node.value.timestamp;
