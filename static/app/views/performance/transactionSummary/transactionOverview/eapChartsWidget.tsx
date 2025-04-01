@@ -1,9 +1,9 @@
 import {useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
+import type {DataUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -81,15 +81,13 @@ function getWidgetContents(widgetType: EAPWidgetType) {
 }
 
 type EAPChartsWidgetProps = {
-  query: string;
   transactionName: string;
 };
 
-export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) {
+export function EAPChartsWidget({transactionName}: EAPChartsWidgetProps) {
   const [selectedWidget, setSelectedWidget] = useState<EAPWidgetType>(
     EAPWidgetType.DURATION_BREAKDOWN
   );
-  const theme = useTheme();
 
   // console.log(transactionName);
 
@@ -108,10 +106,18 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
     error,
   } = useSpanIndexedSeries(
     {
-      yAxis: ['count()'],
-      search: new MutableSearch(query),
+      yAxis: [
+        'p100(span.duration)',
+        'p99(span.duration)',
+        'p95(span.duration)',
+        'p90(span.duration)',
+        'p75(span.duration)',
+        'p50(span.duration)',
+      ],
+      search: new MutableSearch(`transaction.name:"${transactionName}"`),
       transformAliasToInputFormat: true,
     },
+
     'transaction-summary-charts-widget',
     DiscoverDatasets.SPANS_EAP
   );
@@ -119,13 +125,21 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
   console.dir(spanIndexedSeriesData);
 
   const timeSeries: TimeSeries = {
-    field: 'count()',
+    field: 'duration',
     meta: {
-      fields: spanIndexedSeriesData['count()'].meta.fields,
-      units: spanIndexedSeriesData['count()'].meta.units,
+      type:
+        spanIndexedSeriesData['p100(span.duration)']?.meta?.fields?.[
+          'p100(span.duration)'
+        ] ?? null,
+      unit: spanIndexedSeriesData['p100(span.duration)']?.meta?.units?.[
+        'p100(span.duration)'
+      ] as DataUnit,
     },
-    data: spanIndexedSeriesData['count()'].data,
-    color: theme.chart.colors[2][0],
+    data:
+      spanIndexedSeriesData['p100(span.duration)']?.data.map(item => ({
+        timestamp: item.name.toString(),
+        value: item.value,
+      })) ?? [],
   };
 
   return (
@@ -137,7 +151,11 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
         </Widget.WidgetToolbar>
       }
       Visualization={
-        <TimeSeriesWidgetVisualization plottables={[new Area(timeSeries)]} />
+        isPending || error ? (
+          <TimeSeriesWidgetVisualization.LoadingPlaceholder />
+        ) : (
+          <TimeSeriesWidgetVisualization plottables={[new Area(timeSeries)]} />
+        )
       }
       Footer={
         <FooterContainer>

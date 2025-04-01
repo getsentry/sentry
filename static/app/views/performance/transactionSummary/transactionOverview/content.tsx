@@ -266,7 +266,7 @@ function OTelSummaryContentInner({
         </FilterActions>
         {hasNewSpansUIFlag && (
           <EAPChartsWidgetContainer>
-            <EAPChartsWidget transactionName={transactionName} query={query} />
+            <EAPChartsWidget transactionName={transactionName} />
           </EAPChartsWidgetContainer>
         )}
         <PerformanceAtScaleContextProvider>
