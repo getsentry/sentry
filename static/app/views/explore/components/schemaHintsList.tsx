@@ -39,7 +39,6 @@ interface SchemaHintsListProps extends SchemaHintsPageParams {
   numberTags: TagCollection;
   stringTags: TagCollection;
   supportedAggregates: AggregationKey[];
-  filterKeySections?: FilterKeySection[];
   isLoading?: boolean;
   source?: SchemaHintsSources;
 }
