@@ -574,7 +574,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 footer_text = footer_text[:-4]  # chop off the empty space
 
             if self.issue_summary:
-                footer_text += f"    {ISSUE_SUMMARY_TO_EMOJI.get('seer')} Revealed by Seer"
+                footer_text += f"    {ISSUE_SUMMARY_TO_EMOJI.get('seer')} Powered by Seer"
 
             return self.get_context_block(text=footer_text)
         else:
