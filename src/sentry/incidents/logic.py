@@ -1148,8 +1148,6 @@ def get_triggers_for_alert_rule(alert_rule: AlertRule) -> QuerySet[AlertRuleTrig
 
 
 def _trigger_incident_triggers(incident: Incident) -> None:
-    from sentry.incidents.tasks import handle_trigger_action
-
     incident_triggers = IncidentTrigger.objects.filter(incident=incident)
     triggers = get_triggers_for_alert_rule(incident.alert_rule)
     actions = deduplicate_trigger_actions(triggers=list(triggers))
@@ -1160,16 +1158,30 @@ def _trigger_incident_triggers(incident: Incident) -> None:
 
         for action in actions:
             for project in incident.projects.all():
-                transaction.on_commit(
-                    handle_trigger_action.s(
-                        action_id=action.id,
-                        incident_id=incident.id,
-                        project_id=project.id,
-                        method="resolve",
-                        new_status=IncidentStatus.CLOSED.value,
-                    ).delay,
-                    using=router.db_for_write(AlertRuleTrigger),
+                _schedule_trigger_action(
+                    action_id=action.id,
+                    incident_id=incident.id,
+                    project_id=project.id,
+                    method="resolve",
+                    new_status=IncidentStatus.CLOSED.value,
                 )
+
+
+def _schedule_trigger_action(
+    action_id: int, incident_id: int, project_id: int, method: str, new_status: int
+) -> None:
+    from sentry.incidents.tasks import handle_trigger_action
+
+    transaction.on_commit(
+        lambda: handle_trigger_action.delay(
+            action_id=action_id,
+            incident_id=incident_id,
+            project_id=project_id,
+            method=method,
+            new_status=new_status,
+        ),
+        using=router.db_for_write(AlertRuleTrigger),
+    )
 
 
 def _sort_by_priority_list(triggers: Collection[AlertRuleTrigger]) -> list[AlertRuleTrigger]:

@@ -786,16 +786,13 @@ class SubscriptionProcessor:
 
         # Schedule the actions to be fired
         for action in actions_to_fire:
-            transaction.on_commit(
-                handle_trigger_action.s(
-                    action_id=action.id,
-                    incident_id=incident.id,
-                    project_id=self.subscription.project_id,
-                    method=method,
-                    new_status=new_status,
-                    metric_value=metric_value,
-                ).delay,
-                using=router.db_for_write(AlertRule),
+            self._schedule_trigger_action(
+                action_id=action.id,
+                incident_id=incident.id,
+                project_id=self.subscription.project_id,
+                method=method,
+                new_status=new_status,
+                metric_value=metric_value,
             )
 
         if features.has("organizations:metric-issue-poc", self.alert_rule.organization):
@@ -803,6 +800,27 @@ class SubscriptionProcessor:
                 incident=incident,
                 metric_value=metric_value,
             )
+
+    def _schedule_trigger_action(
+        self,
+        action_id: int,
+        incident_id: int,
+        project_id: int,
+        method: str,
+        new_status: int,
+        metric_value: float,
+    ) -> None:
+        transaction.on_commit(
+            lambda: handle_trigger_action.delay(
+                action_id=action_id,
+                incident_id=incident_id,
+                project_id=project_id,
+                method=method,
+                new_status=new_status,
+                metric_value=metric_value,
+            ),
+            using=router.db_for_write(AlertRule),
+        )
 
     def handle_incident_severity_update(self) -> None:
         if self.active_incident:
