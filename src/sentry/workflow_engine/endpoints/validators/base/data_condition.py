@@ -52,7 +52,7 @@ class BaseDataConditionValidator(
 
         if not handler:
             raise serializers.ValidationError(
-                "Condition Operators should implement their own validators."
+                "Condition Operators should implement their own validators for comparison"
             )
 
         try:
@@ -65,7 +65,9 @@ class BaseDataConditionValidator(
     def validate_condition_result(self, value: Any) -> Any:
         handler = self._get_handler()
         if not handler:
-            raise serializers.ValidationError("Invalid JSON Schema for condition result")
+            raise serializers.ValidationError(
+                "Condition Operators should implement their own validation for condition_result"
+            )
 
         try:
             return validate_json_schema(value, handler.condition_result_schema)
