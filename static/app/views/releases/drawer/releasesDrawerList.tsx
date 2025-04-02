@@ -31,10 +31,6 @@ interface ReleasesDrawerListProps {
   endTs: number;
   environments: readonly string[];
   projects: readonly number[];
-  /**
-   * A list of releases in the current release bucket
-   */
-  releases: ReleaseMetaBasic[];
   startTs: number;
   /**
    * A renderer function that returns a chart. It is called with the trimmed
