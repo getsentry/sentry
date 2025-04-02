@@ -8,6 +8,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {onboardingSteps} from 'sentry/views/onboarding/onboarding';
@@ -137,7 +138,9 @@ export function useBackActions({
   useBlocker(({historyAction, nextLocation}) => {
     if (historyAction === 'POP') {
       const prevStepIndex = onboardingSteps.findIndex(
-        step => nextLocation.pathname === `/onboarding/${step.id}/`
+        step =>
+          normalizeUrl(nextLocation.pathname, {forceCustomerDomain: true}) ===
+          `/onboarding/${step.id}/`
       );
       if (prevStepIndex < stepIndex) {
         backStepActions({
