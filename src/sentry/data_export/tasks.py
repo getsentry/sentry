@@ -5,7 +5,6 @@ import tempfile
 from hashlib import sha1
 
 import sentry_sdk
-from celery import current_task
 from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
@@ -17,6 +16,7 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, AssembleChecksumMismatch
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.retry import NoRetriesRemainingError, retry_task
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.rollback_metrics import incr_rollback_metrics
@@ -162,8 +162,8 @@ def assemble_download(
             capture_exception(error)
 
             try:
-                current_task.retry()
-            except MaxRetriesExceededError:
+                retry_task()
+            except (MaxRetriesExceededError, NoRetriesRemainingError):
                 metrics.incr(
                     "dataexport.end",
                     tags={"success": False, "error": str(error)},
