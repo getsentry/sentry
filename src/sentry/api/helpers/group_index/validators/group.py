@@ -36,7 +36,7 @@ class GroupValidator(serializers.Serializer):
     )
     substatus = serializers.ChoiceField(
         choices=list(zip(SUBSTATUS_UPDATE_CHOICES.keys(), SUBSTATUS_UPDATE_CHOICES.keys())),
-        required=False,
+        allow_null=True,
         help_text="The new substatus of the issue.",
     )
     hasSeen = serializers.BooleanField(
