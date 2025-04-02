@@ -12,7 +12,6 @@ import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixH
 import AutofixThumbsUpDownButtons from 'sentry/components/events/autofix/autofixThumbsUpDownButtons';
 import {
   type AutofixFeedback,
-  type AutofixRepository,
   type AutofixRootCauseData,
   type AutofixRootCauseSelection,
   AutofixStatus,
@@ -38,7 +37,6 @@ import {AutofixTimeline} from './autofixTimeline';
 type AutofixRootCauseProps = {
   causes: AutofixRootCauseData[];
   groupId: string;
-  repos: AutofixRepository[];
   rootCauseSelection: AutofixRootCauseSelection;
   runId: string;
   agentCommentThread?: CommentThread;

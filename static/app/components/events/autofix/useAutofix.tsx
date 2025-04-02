@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {
   type AutofixData,
@@ -49,7 +49,10 @@ const makeInitialAutofixData = (): AutofixResponse => ({
       },
     ],
     created_at: new Date().toISOString(),
-    repositories: [],
+    request: {
+      repos: [],
+    },
+    codebases: {},
   },
 });
 
@@ -123,6 +126,24 @@ const isPolling = (
       AutofixStatus.NEED_MORE_INFORMATION,
     ].includes(autofixData.status)
   );
+};
+
+export const useAutofixRepos = (groupId: string) => {
+  const {data} = useAutofixData({groupId});
+
+  return useMemo(() => {
+    const repos = data?.request?.repos ?? [];
+    const codebases = data?.codebases ?? {};
+
+    return {
+      repos: repos.map(repo => ({
+        ...repo,
+        is_readable: codebases[repo.external_id]?.is_readable,
+        is_writeable: codebases[repo.external_id]?.is_writeable,
+      })),
+      codebases,
+    };
+  }, [data]);
 };
 
 export const useAutofixData = ({groupId}: {groupId: string}) => {

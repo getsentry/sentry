@@ -14,7 +14,6 @@ import {
   type AutofixData,
   type AutofixFeedback,
   type AutofixProgressItem,
-  type AutofixRepository,
   AutofixStatus,
   type AutofixStep,
   AutofixStepType,
@@ -35,7 +34,6 @@ interface StepProps {
   hasErroredStepBefore: boolean;
   hasStepAbove: boolean;
   hasStepBelow: boolean;
-  repos: AutofixRepository[];
   runId: string;
   step: AutofixStep;
   feedback?: AutofixFeedback;
@@ -63,7 +61,6 @@ export function Step({
   step,
   groupId,
   runId,
-  repos,
   hasStepBelow,
   hasStepAbove,
   hasErroredStepBefore,
@@ -105,7 +102,6 @@ export function Step({
                   rootCauseSelection={step.selection}
                   terminationReason={step.termination_reason}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   feedback={feedback}
@@ -120,7 +116,6 @@ export function Step({
                   description={step.description}
                   solutionSelected={step.solution_selected}
                   customSolution={step.custom_solution}
-                  repos={repos}
                   previousDefaultStepIndex={previousDefaultStepIndex}
                   previousInsightCount={previousInsightCount}
                   agentCommentThread={step.agent_comment_thread ?? undefined}
@@ -149,7 +144,6 @@ export function Step({
 
 export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
   const steps = data.steps;
-  const repos = data.repositories;
   const isMountedRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -227,7 +221,6 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
               hasStepAbove
               groupId={groupId}
               runId={runId}
-              repos={repos}
               hasErroredStepBefore={previousStepErrored}
               shouldCollapseByDefault={
                 step.type === AutofixStepType.DEFAULT &&
