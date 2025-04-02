@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "0855_give_monitor_type_a_db_default"),
+        ("sentry", "0856_monitors_remove_type_column_state"),
     ]
 
     operations = [
