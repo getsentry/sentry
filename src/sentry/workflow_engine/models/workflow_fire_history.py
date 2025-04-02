@@ -9,7 +9,7 @@ class WorkflowFireHistory(DefaultFieldsModel):
 
     workflow = FlexibleForeignKey("workflow_engine.Workflow")
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
-    event_id = CharField("event_id", max_length=32, null=True)
+    event_id = CharField("event_id", max_length=32)
 
     class Meta:
         db_table = "workflow_engine_workflowfirehistory"
