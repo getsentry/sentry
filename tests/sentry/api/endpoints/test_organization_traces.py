@@ -545,7 +545,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                         "sliceStart": 0,
                         "sliceEnd": 40,
                         "sliceWidth": 40,
-                        "isRoot": False,
+                        "isRoot": True,
                         "kind": "project",
                         "project": self.project.slug,
                         "sdkName": "sentry.javascript.remix",
@@ -696,7 +696,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "foo:baz",
             ],
         ]:
-            if len(q) > 1 and not self.use_rpc:
+            if len(q) > 1 and self.use_rpc:
                 continue
 
             for features in [
@@ -743,7 +743,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             {
                                 "project": project_1.slug,
                                 "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
+                                "isRoot": True,
                                 "start": timestamps[0],
                                 "end": timestamps[0] + 60_100,
                                 "sliceStart": 0,
@@ -782,7 +782,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             {
                                 "project": project_1.slug,
                                 "sdkName": "sentry.javascript.node",
-                                "isRoot": False,
+                                "isRoot": True,
                                 "start": timestamps[4],
                                 "end": timestamps[4] + 90_123,
                                 "sliceStart": 0,
@@ -2501,7 +2501,7 @@ class OrganizationTracesEAPEndpointTest(OrganizationTracesEndpointTest):
             ["foo:[bar, baz]"],
             ["foo:bar span.duration:>10s", "foo:baz"],
         ]:
-            if len(q) > 1 and not self.use_rpc:
+            if len(q) > 1 and self.use_rpc:
                 continue
 
             expected = sorted(
