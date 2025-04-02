@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry import options
@@ -64,6 +65,28 @@ def create_new_event(
     event.data["stacktrace_string"] = stacktrace_string
 
     return (event, variants, grouphash, stacktrace_string)
+
+
+# Helper to make assertions less verbose
+def assert_metrics_call(
+    mock_metrics_function: MagicMock,
+    metric_key: str,
+    extra_tags: dict[str, Any] | None = None,
+    value: Any | None = None,
+) -> None:
+    metric_call_args = [
+        f"grouping.similarity.{metric_key}",
+        *([value] if value is not None else []),
+    ]
+    metric_call_kwargs = {
+        "sample_rate": options.get("seer.similarity.metrics_sample_rate"),
+        "tags": {
+            "platform": "python",
+            **(extra_tags or {}),
+        },
+    }
+
+    mock_metrics_function.assert_any_call(*metric_call_args, **metric_call_kwargs)
 
 
 class GetSeerSimilarIssuesTest(TestCase):
