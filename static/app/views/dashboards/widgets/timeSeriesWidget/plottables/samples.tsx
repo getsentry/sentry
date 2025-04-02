@@ -104,6 +104,10 @@ export class Samples implements Plottable {
     return this.#timestamps.at(-1) ?? null;
   }
 
+  get name(): string {
+    return `${this.config.attributeName} samples`;
+  }
+
   get label(): string {
     return this.config?.alias ?? t('%s Samples', this.config.attributeName);
   }
@@ -150,7 +154,7 @@ export class Samples implements Plottable {
 
     const series: ScatterSeriesOption = {
       type: 'scatter',
-      name: this.label,
+      name: this.name,
       data: samples.data.filter(isValidSampleRow).map(sample => {
         const value = sample[config.attributeName];
         return [sample.timestamp, value ?? ECHARTS_MISSING_DATA_VALUE, sample.id];

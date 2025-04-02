@@ -56,6 +56,10 @@ export abstract class ContinuousTimeSeries<
     this.config = config;
   }
 
+  get name(): string {
+    return this.timeSeries.field;
+  }
+
   get label(): string {
     return this.config?.alias ?? formatSeriesName(this.timeSeries.field);
   }
