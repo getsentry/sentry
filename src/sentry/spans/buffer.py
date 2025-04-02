@@ -259,10 +259,12 @@ class SpansBuffer:
             trace_redirects = redirects.setdefault(project_and_trace, {})
             while redirect := trace_redirects.get(parent):
                 parent = redirect
-            if parent != span.span_id:
-                trace_redirects[span.span_id] = parent
 
-            trees.setdefault((project_and_trace, parent), []).append(span)
+            subsegment = trees.setdefault((project_and_trace, parent), [])
+            if parent != span.span_id:
+                subsegment.extend(trees.pop((project_and_trace, span.span_id), []))
+                trace_redirects[span.span_id] = parent
+            subsegment.append(span)
 
         return trees
 
