@@ -208,7 +208,7 @@ export function useWrappedDiscoverQuery<T>({
     !defined(eventView.end) &&
     defined(eventView.statsPeriod);
 
-  const statsPeriodInMilliseconds = getStaleTimeForRelativePeriodTable(
+  const staleTimeForRelativePeriod = getStaleTimeForRelativePeriodTable(
     eventView.statsPeriod
   );
 
@@ -224,7 +224,7 @@ export function useWrappedDiscoverQuery<T>({
       refetchOnWindowFocus: false,
       retry: shouldRetryHandler,
       retryDelay: getRetryDelay,
-      staleTime: usesRelativeDateRange ? statsPeriodInMilliseconds : Infinity,
+      staleTime: usesRelativeDateRange ? staleTimeForRelativePeriod : Infinity,
     },
     queryExtras,
     noPagination,
