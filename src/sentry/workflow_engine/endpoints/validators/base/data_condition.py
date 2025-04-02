@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Any, Generic, TypeVar
 
 from jsonschema import ValidationError as JsonValidationError
@@ -19,10 +18,11 @@ class BaseDataConditionValidator(
     CamelSnakeSerializer,
     Generic[ComparisonType, ConditionResult],
 ):
+    id = serializers.IntegerField(required=False)
     type = serializers.ChoiceField(choices=[(t.value, t.value) for t in Condition])
     comparison = serializers.JSONField(required=True)
     condition_result = serializers.JSONField(required=True)
-    condition_group_id = serializers.IntegerField()
+    condition_group_id = serializers.IntegerField(required=True)
 
     def _get_handler(self) -> DataConditionHandler | None:
         condition_type = self.initial_data.get("type")
@@ -44,6 +44,8 @@ class BaseDataConditionValidator(
         except JsonValidationError:
             raise serializers.ValidationError("Invalid JSON Schema for comparison")
 
-    @abstractmethod
     def validate_condition_result(self, value: Any) -> ConditionResult:
-        pass
+        """
+        TODO - Still working through this -- getting close, but think it might be another json schema on the handler
+        """
+        raise NotImplementedError("Subclasses must implement this method")
