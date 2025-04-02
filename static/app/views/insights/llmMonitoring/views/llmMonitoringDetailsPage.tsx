@@ -68,7 +68,7 @@ export function LLMMonitoringPage({params}: Props) {
       fields: [
         SpanMetricsField.SPAN_OP,
         'count()',
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
       ],
       enabled: Boolean(groupId) && !useEAP,
@@ -82,7 +82,7 @@ export function LLMMonitoringPage({params}: Props) {
       fields: [
         SpanMetricsField.SPAN_OP,
         'count()',
-        `${SpanFunction.SPM}()`,
+        `${SpanFunction.EPM}()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
       ],
       enabled: Boolean(groupId) && useEAP,
@@ -175,7 +175,7 @@ export function LLMMonitoringPage({params}: Props) {
                       <MetricReadout
                         title={t('Pipeline Runs Per Minute')}
                         // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-                        value={spanMetrics?.[`${SpanFunction.SPM}()`]}
+                        value={spanMetrics?.[`${SpanFunction.EPM}()`]}
                         unit={RateUnit.PER_MINUTE}
                         isLoading={useEAP ? isEAPPending : areSpanMetricsLoading}
                       />

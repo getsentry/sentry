@@ -12,7 +12,8 @@ import type {
   Subscription,
   SubscriptionOnDemandBudgets,
 } from 'getsentry/types';
-import {BillingType, OnDemandBudgetMode, PlanTier} from 'getsentry/types';
+import {BillingType, OnDemandBudgetMode} from 'getsentry/types';
+import {displayBudgetName} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
@@ -116,7 +117,6 @@ function listBudgets({plan, categories, budget}: DisplayNameProps) {
 
 export function formatOnDemandBudget(
   plan: Plan,
-  planTier: string,
   budget: OnDemandBudgets,
   categories: string[] = [
     'errors',
@@ -129,12 +129,16 @@ export function formatOnDemandBudget(
     'profileDurationUI',
   ]
 ): React.ReactNode {
-  const budgetType = planTier === PlanTier.AM3 ? 'pay-as-you-go' : 'on-demand';
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    return `per-category ${budgetType} (${listBudgets({plan, categories, budget})})`;
+    return `per-category ${displayBudgetName(plan, {
+      withBudget: true,
+      pluralOndemand: true,
+    })} (${listBudgets({plan, categories, budget})})`;
   }
 
-  return `shared ${budgetType} of ${formatCurrency(budget.sharedMaxBudget ?? 0)}`;
+  return `shared ${displayBudgetName(plan, {
+    withBudget: true,
+  })} of ${formatCurrency(budget.sharedMaxBudget ?? 0)}`;
 }
 
 export function hasOnDemandBudgetsFeature(

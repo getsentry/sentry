@@ -51,7 +51,7 @@ const {
 
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
 
-const {SPM} = SpanFunction;
+const {EPM} = SpanFunction;
 
 const RESOURCE_SIZE_ALERT = t(
   `If you're noticing unusually large resource sizes, try updating to SDK version 7.82.0 or higher.`
@@ -60,11 +60,11 @@ const RESOURCE_SIZE_ALERT = t(
 type Row = {
   'avg(http.response_content_length)': number;
   'avg(span.self_time)': number;
+  'epm()': number;
   'project.id': number;
   'span.description': string;
   'span.group': string;
   'span.op': `resource.${'script' | 'img' | 'css' | 'iframe' | string}`;
-  'spm()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };
@@ -98,7 +98,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
       name: `${DATA_TYPE} ${t('Description')}`,
     },
     {
-      key: `${SPM}()`,
+      key: `${EPM}()`,
       width: COL_WIDTH_UNDEFINED,
       name: getThroughputTitle('http'),
     },
@@ -153,7 +153,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
         </DescriptionWrapper>
       );
     }
-    if (key === 'spm()') {
+    if (key === 'epm()') {
       return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(http.response_content_length)') {
