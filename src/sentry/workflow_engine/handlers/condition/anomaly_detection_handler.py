@@ -24,7 +24,6 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
-
 from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
