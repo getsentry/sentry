@@ -189,11 +189,13 @@ class AuthLoginView(BaseView):
         context = self.get_default_context(request=request)
 
         register_form = self.initialize_register_form(request=request)
+        login_form = AuthenticationForm(request=request)
         context.update(
             {
                 "op": "register",
                 "CAN_REGISTER": True,
                 "register_form": register_form,
+                "login_form": login_form,
             }
         )
         return self.respond_login(request=request, context=context, **kwargs)
