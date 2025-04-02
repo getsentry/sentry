@@ -13,7 +13,6 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternetProtocol} from 'sentry/types/user';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';
@@ -21,7 +20,7 @@ import {tableLayout} from './utils';
 
 type IpListType = InternetProtocol[] | null;
 
-function SessionHistory({location, routes, params}: RouteComponentProps) {
+function SessionHistory({location}: RouteComponentProps) {
   const {
     data: ipList = [],
     isLoading,
@@ -51,8 +50,7 @@ function SessionHistory({location, routes, params}: RouteComponentProps) {
         ? 'sessionHistory'
         : 'settings';
 
-  const recreateRouteProps = {routes, params, location};
-
+  const routePrefix = `/settings/account/security/`;
   return (
     <SentryDocumentTitle title={t('Session History')}>
       <SettingsPageHeader
@@ -61,16 +59,10 @@ function SessionHistory({location, routes, params}: RouteComponentProps) {
           <TabsContainer>
             <Tabs value={activeTab}>
               <TabList>
-                <TabList.Item
-                  key="settings"
-                  to={recreateRoute('', {...recreateRouteProps, stepBack: -1})}
-                >
+                <TabList.Item key="settings" to={`${routePrefix}`}>
                   {t('Settings')}
                 </TabList.Item>
-                <TabList.Item
-                  key="sessionHistory"
-                  to={recreateRoute('', recreateRouteProps)}
-                >
+                <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
                   {t('Session History')}
                 </TabList.Item>
               </TabList>
