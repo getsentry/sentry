@@ -153,7 +153,13 @@ function AutofixSummary({
       title: t('Root Cause'),
       insight: rootCauseDescription,
       icon: <IconFocus size="sm" />,
-      onClick: openSeerDrawer,
+      onClick: () => {
+        trackAnalytics('autofix.summary_root_cause_clicked', {
+          organization,
+          group_id: group.id,
+        });
+        openSeerDrawer();
+      },
       copyTitle: t('Copy root cause as Markdown'),
       copyText: rootCauseCopyText,
     },
@@ -166,7 +172,13 @@ function AutofixSummary({
             insight: solutionDescription,
             icon: <IconFix size="sm" />,
             isLoading: solutionIsLoading,
-            onClick: openSeerDrawer,
+            onClick: () => {
+              trackAnalytics('autofix.summary_solution_clicked', {
+                organization,
+                group_id: group.id,
+              });
+              openSeerDrawer();
+            },
             copyTitle: t('Copy solution as Markdown'),
             copyText: solutionCopyText,
           },
@@ -181,38 +193,17 @@ function AutofixSummary({
             insight: codeChangesDescription,
             icon: <IconCode size="sm" />,
             isLoading: codeChangesIsLoading,
-            onClick: openSeerDrawer,
+            onClick: () => {
+              trackAnalytics('autofix.summary_code_changes_clicked', {
+                organization,
+                group_id: group.id,
+              });
+              openSeerDrawer();
+            },
           },
         ]
       : []),
   ];
-
-  const handleCardClick = (cardId: string, originalOnClick?: () => void) => {
-    let eventKey: string | null = null;
-
-    switch (cardId) {
-      case 'root_cause_description':
-        eventKey = 'autofix.summary_root_cause_clicked';
-        break;
-      case 'solution_description':
-        eventKey = 'autofix.summary_solution_clicked';
-        break;
-      case 'code_changes':
-        eventKey = 'autofix.summary_code_changes_clicked';
-        break;
-      default:
-        break;
-    }
-
-    if (eventKey) {
-      trackAnalytics(eventKey, {
-        organization,
-        group_id: group.id,
-      });
-    }
-
-    originalOnClick?.();
-  };
 
   return (
     <div data-testid="autofix-summary">
@@ -226,7 +217,7 @@ function AutofixSummary({
             return (
               <InsightCardButton
                 key={card.id}
-                onClick={() => handleCardClick(card.id, card.onClick)}
+                onClick={card.onClick}
                 role="button"
                 initial="initial"
                 animate={card.isLoading ? 'animate' : 'initial'}
