@@ -72,7 +72,7 @@ TYPE_TO_STRING_MAP = {
     INT: "integer",
 }
 
-TYPE_MAP: dict[Units | UnitlessSearchTypes, AttributeKey.Type.ValueType] = {
+TYPE_MAP: dict[Units | SearchType, AttributeKey.Type.ValueType] = {
     "bit": DOUBLE,
     "byte": DOUBLE,
     "kibibyte": DOUBLE,

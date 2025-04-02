@@ -63,7 +63,6 @@ class ResolvedColumn:
             raise ValueError(
                 f"Invalid unit '{self.unit}' for search type '{self.search_type}'. Must be one of {valid_units}."
             )
-        return
 
         if self.unit is not None:
             raise ValueError(f"Search type '{self.search_type}' does not expect a unit.")
