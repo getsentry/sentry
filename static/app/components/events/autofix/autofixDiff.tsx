@@ -5,6 +5,7 @@ import {type Change, diffWords} from 'diff';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';
 import {TextArea} from 'sentry/components/core/textarea';
+import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {
   type DiffLine,
   DiffLineType,
@@ -587,14 +588,11 @@ function FileDiff({
   groupId: string;
   isExpandable: boolean;
   runId: string;
-  previousDefaultStepIndex?: number;
-  previousInsightCount?: number;
   repoId?: string;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  // const selection = useTextSelection(containerRef);
 
   return (
     <FileDiffWrapper>
@@ -618,20 +616,6 @@ function FileDiff({
           />
         )}
       </FileHeader>
-      {/* {selection && (
-        <AutofixHighlightPopup
-          selectedText={selection.selectedText}
-          referenceElement={selection.referenceElement}
-          groupId={groupId}
-          runId={runId}
-          stepIndex={previousDefaultStepIndex ?? 0}
-          retainInsightCardIndex={
-            previousInsightCount !== undefined && previousInsightCount >= 0
-              ? previousInsightCount - 1
-              : -1
-          }
-        />
-      )} */}
       {isExpanded && (
         <DiffContainer ref={containerRef}>
           {file.hunks.map(({section_header, source_start, lines}, index) => {
@@ -672,17 +656,26 @@ export function AutofixDiff({
   return (
     <DiffsColumn>
       {diff.map(file => (
-        <FileDiff
+        <AutofixHighlightWrapper
           key={file.path}
-          file={file}
           groupId={groupId}
           runId={runId}
-          repoId={repoId}
-          editable={editable}
-          previousDefaultStepIndex={previousDefaultStepIndex}
-          previousInsightCount={previousInsightCount}
-          isExpandable={isExpandable}
-        />
+          stepIndex={previousDefaultStepIndex ?? 0}
+          retainInsightCardIndex={
+            previousInsightCount !== undefined && previousInsightCount >= 0
+              ? previousInsightCount - 1
+              : -1
+          }
+        >
+          <FileDiff
+            file={file}
+            groupId={groupId}
+            runId={runId}
+            repoId={repoId}
+            editable={editable}
+            isExpandable={isExpandable}
+          />
+        </AutofixHighlightWrapper>
       ))}
     </DiffsColumn>
   );

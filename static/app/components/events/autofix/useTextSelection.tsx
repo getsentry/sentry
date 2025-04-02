@@ -36,7 +36,7 @@ export function useTextSelection(containerRef: React.RefObject<HTMLElement | nul
       }
 
       // Get the text content of the clicked element or its container
-      const clickedText = target.textContent?.trim() || '';
+      const clickedText = containerRef.current?.textContent?.trim() || '';
       if (!clickedText) {
         setSelection(null);
         return;

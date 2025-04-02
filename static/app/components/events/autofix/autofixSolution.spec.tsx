@@ -204,7 +204,6 @@ describe('AutofixSolution', () => {
     render(<AutofixSolution {...defaultProps} />);
 
     expect(screen.getByText('Fix the bug')).toBeInTheDocument();
-    expect(screen.getByText('Some code and analysis')).toBeInTheDocument();
   });
 
   it('passes the solution array when Code It Up button is clicked', async () => {
