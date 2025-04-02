@@ -48,7 +48,7 @@ export default function Legend(
         color: theme.textColor,
       },
       pageIconColor: theme.textColor,
-      pageIconInactiveColor: theme.subText,
+      pageIconInactiveColor: theme.disabled,
     } satisfies LegendComponentOption,
     rest
   );
