@@ -1301,7 +1301,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
 
         assert response.status_code == 400, response.data == {
-            "limit": "limit is required. the maximum limit is 3."
+            "limit": "limit is required. The maximum limit is 3."
         }
 
     def test_has_correct_limit_suggestion_with_no_aggregates_on_creation(self):
@@ -1328,5 +1328,5 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
 
         assert response.status_code == 400, response.data == {
-            "limit": "limit is required. the maximum limit is 5."
+            "limit": "limit is required. The maximum limit is 5."
         }

@@ -506,7 +506,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 f"Dashboard Widget limit was not set. Suggested maximum limit is {limit}."
             )
             raise serializers.ValidationError(
-                {"limit": f"limit is required. the maximum limit is ${limit}."}
+                {"limit": f"limit is required. The maximum limit is ${limit}."}
             )
         # Validate widget thresholds
         thresholds = data.get("thresholds")
