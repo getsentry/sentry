@@ -302,11 +302,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             secondary_alias=True,
         ),
-        ResolvedAttribute(
-            public_alias="project_id",
-            internal_name="sentry.project_id",
-            search_type="integer",
-        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("environment"),
         simple_sentry_field("messaging.destination.name"),
