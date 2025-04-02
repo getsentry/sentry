@@ -185,6 +185,7 @@ def get_issue_summary(
     group: Group,
     user: User | RpcUser | AnonymousUser | None = None,
     force_event_id: str | None = None,
+    source: str = "issue_details",
 ) -> tuple[dict[str, Any], int]:
     """
     Generate an AI summary for an issue.
@@ -248,11 +249,16 @@ def get_issue_summary(
                 not autofix_state
             ):  # Only trigger autofix if we don't have an autofix on this issue already.
                 with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+                    auto_run_source_map = {
+                        "issue_details": "issue_summary_fixability",
+                        "alert": "issue_summary_on_alert_fixability",
+                    }
+
                     response = trigger_autofix(
                         group=group,
                         event_id=event.event_id,
                         user=user,
-                        auto_run_source="issue_summary_fixability",
+                        auto_run_source=auto_run_source_map.get(source, "unknown_source"),
                     )
 
                     if response.status_code != 202:
