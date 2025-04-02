@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, type MotionProps} from 'framer-motion';
@@ -100,6 +100,7 @@ function PrimaryNavigationQuotaExceeded({
   const [exceededCategories, setExceededCategories] = useState<string[]>([]);
   const [promptsToCheck, setPromptsToCheck] = useState<string[]>([]);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
     if (!subscription.categories) {
@@ -132,7 +133,7 @@ function PrimaryNavigationQuotaExceeded({
   }, [subscription.categories, subscription.hadCustomDynamicSampling]);
 
   const {
-    // data: prompts,
+    data: prompts,
     isPending,
     isError,
   } = usePromptsCheck(
@@ -143,29 +144,19 @@ function PrimaryNavigationQuotaExceeded({
     {staleTime: 0, enabled: promptsToCheck.length > 0}
   );
 
-  // const promptIsDismissedForBillingPeriod = useCallback(
-  //   (prompt: {dismissed_ts?: number; snoozed_ts?: number}) => {
-  //     const {snoozed_ts, dismissed_ts} = prompt || {};
-  //     const time = snoozed_ts || dismissed_ts;
-  //     if (!time) {
-  //       return false;
-  //     }
-  //     const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
-  //     onDemandPeriodEnd.setHours(23, 59, 59);
-  //     return time <= onDemandPeriodEnd.getTime() / 1000;
-  //   },
-  //   [subscription.onDemandPeriodEnd]
-  // );
-
-  // const isAllDismissedForPeriod = useMemo(() => {
-  //   return (
-  //     !!prompts?.features &&
-  //     promptsToCheck.every(prompt => {
-  //       const promptData = prompts.features?.[prompt];
-  //       return promptData && promptIsDismissedForBillingPeriod(promptData);
-  //     })
-  //   );
-  // }, [prompts, promptsToCheck, promptIsDismissedForBillingPeriod]);
+  const promptIsDismissedForBillingPeriod = useCallback(
+    (prompt: {dismissed_ts?: number; snoozed_ts?: number}) => {
+      const {snoozed_ts, dismissed_ts} = prompt || {};
+      const time = snoozed_ts || dismissed_ts;
+      if (!time) {
+        return false;
+      }
+      const onDemandPeriodEnd = new Date(subscription.onDemandPeriodEnd);
+      onDemandPeriodEnd.setHours(23, 59, 59);
+      return time <= onDemandPeriodEnd.getTime() / 1000;
+    },
+    [subscription.onDemandPeriodEnd]
+  );
 
   const {
     isOpen,
@@ -177,6 +168,20 @@ function PrimaryNavigationQuotaExceeded({
   const api = useApi();
   const prefersStackedNav = usePrefersStackedNav();
 
+  useEffect(() => {
+    if (!hasLoaded && prompts?.features) {
+      if (
+        promptsToCheck.every(prompt => {
+          const promptData = prompts.features?.[prompt];
+          return promptData && promptIsDismissedForBillingPeriod(promptData);
+        })
+      ) {
+        setIsDismissed(true);
+      }
+      setHasLoaded(true);
+    }
+  }, [hasLoaded, prompts?.features, promptsToCheck, promptIsDismissedForBillingPeriod]);
+
   const shouldShow =
     prefersStackedNav &&
     exceededCategories.length > 0 &&
@@ -184,6 +189,14 @@ function PrimaryNavigationQuotaExceeded({
   if (!shouldShow || isPending || isError) {
     return null;
   }
+
+  // setIsDismissed(
+  //   !!prompts?.features &&
+  //     promptsToCheck.every(prompt => {
+  //       const promptData = prompts.features?.[prompt];
+  //       return promptData && promptIsDismissedForBillingPeriod(promptData);
+  //     })
+  // );
 
   const animateProps: MotionProps = {
     animate: {
