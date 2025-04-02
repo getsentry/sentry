@@ -202,8 +202,7 @@ export const getSdkInitSnippet = (
             : ''
 }
 Sentry.init({
-  dsn: "${params.dsn.public}",
-  ${
+  dsn: "${params.dsn.public}",${
     params.isProfilingSelected
       ? `integrations: [
     nodeProfilingIntegration(),
@@ -213,24 +212,26 @@ Sentry.init({
     params.isPerformanceSelected
       ? `
       // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions\n`
+      tracesSampleRate: 1.0, //  Capture 100% of the transactions`
       : ''
   }${
-    params.isProfilingSelected &&
-    params.profilingOptions?.defaultProfilingMode !== 'continuous'
-      ? `
+    params.isProfilingSelected
+      ? params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `
+    // Set sampling rate for profiling - this is evaluated only once per SDK.init
+    profileSessionSampleRate: 1.0,`
+        : `
     // Set sampling rate for profiling - this is evaluated only once per SDK.init call
     profileSessionSampleRate: 1.0,
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',`
-      : `
-    // Set sampling rate for profiling - this is evaluated only once per SDK.init
-    profileSessionSampleRate: 1.0,
-    `
-  }});${
+      : ''
+  }
+  });${
     params.isProfilingSelected &&
     params.profilingOptions?.defaultProfilingMode === 'continuous'
       ? `
+
 // Manually call startProfiler and stopProfiler
 // to profile the code in between
 Sentry.profiler.startProfiler();
