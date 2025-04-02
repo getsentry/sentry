@@ -196,23 +196,12 @@ Sentry.init({
     params.profilingOptions?.defaultProfilingMode === 'continuous'
       ? `
 
-// Manually call startProfiler and stopProfiler
-// to profile the code in between
-Sentry.profiler.startProfiler();
-${
-  params.isPerformanceSelected
-    ? `
-// Starts a transaction that will also be profiled
+// Profiling happens automatically after setting it up with \`Sentry.init()\`.
+// All spans (unless those discarded by sampling) will have profiling data attached to them.
 Sentry.startSpan({
-  name: "My First Transaction",
+  name: "My Span",
 }, () => {
-  // the code executing inside the transaction will be wrapped in a span and profiled
-});
-`
-    : '// this code will be profiled'
-}
-// Calls to stopProfiler are optional - if you don't stop the profile session, it will keep profiling
-// your application until the process exits or stopProfiler is called.
-Sentry.profiler.stopProfiler();`
+  // The code executed here will be profiled
+});`
       : ''
   }`;
