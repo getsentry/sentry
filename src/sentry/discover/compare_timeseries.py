@@ -46,6 +46,7 @@ def make_rpc_request(
         y_axes=query_parts["selected_columns"],
         referrer=Referrer.JOB_COMPARE_TIMESERIES.value,
         config=SearchResolverConfig(),
+        sampling_mode=None,
     )
 
     return TSResultForComparison(result=results, agg_alias=query_parts["selected_columns"][0])
