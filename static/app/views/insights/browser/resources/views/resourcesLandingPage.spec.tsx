@@ -21,7 +21,7 @@ const {
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
 } = SpanMetricsField;
-const {SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
+const {EPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
@@ -112,7 +112,7 @@ describe('ResourcesLandingPage', function () {
           "span.op",
           "count()",
           "avg(span.self_time)",
-          "spm()",
+          "epm()",
           "span.group",
           "avg(http.response_content_length)",
           "project.id",
@@ -203,7 +203,7 @@ const setupMockRequests = (organization: Organization) => {
           [PROJECT_ID]: 123,
           [SPAN_OP]: 'resource.script',
           [SPAN_GROUP]: 'group123',
-          [`${SPM}()`]: 123,
+          [`${EPM}()`]: 123,
           [`${TIME_SPENT_PERCENTAGE}()`]: 0.5,
           [`sum(${SPAN_SELF_TIME})`]: 123,
           'count()': 123,
@@ -217,7 +217,7 @@ const setupMockRequests = (organization: Organization) => {
           [PROJECT_ID]: 123,
           [SPAN_OP]: 'resource.script',
           [SPAN_GROUP]: 'group123',
-          [`${SPM}()`]: 123,
+          [`${EPM}()`]: 123,
           [`${TIME_SPENT_PERCENTAGE}()`]: 0.5,
           [`sum(${SPAN_SELF_TIME})`]: 123,
           'count()': 123,
@@ -269,17 +269,17 @@ const setupMockRequests = (organization: Organization) => {
     method: 'GET',
     match: [MockApiClient.matchQuery({referrer: 'api.starfish.span-time-charts'})],
     body: {
-      [`${SPM}()`]: {
+      [`${EPM}()`]: {
         data: [
           [1699907700, [{count: 7810.2}]],
           [1699908000, [{count: 1216.8}]],
         ],
         meta: {
           fields: {
-            [`${SPM}()`]: 'rate',
+            [`${EPM}()`]: 'rate',
           },
           units: {
-            [`${SPM}()`]: '1/second',
+            [`${EPM}()`]: '1/second',
           },
         },
       },

@@ -40,6 +40,7 @@ export interface InsightsTimeSeriesWidgetProps {
   visualizationType: 'line' | 'area' | 'bar';
   aliases?: Record<string, string>;
   description?: React.ReactNode;
+  height?: string | number;
   legendSelection?: LegendSelection | undefined;
   onLegendSelectionChange?: ((selection: LegendSelection) => void) | undefined;
   stacked?: boolean;
@@ -80,7 +81,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
   // TODO: Instead of using `ChartContainer`, enforce the height from the parent layout
   if (props.isLoading) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<TimeSeriesWidgetVisualization.LoadingPlaceholder />}
@@ -91,7 +92,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
   if (props.error) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<Widget.WidgetError error={props.error} />}
@@ -102,7 +103,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 
   if (props.series.filter(Boolean).length === 0) {
     return (
-      <ChartContainer>
+      <ChartContainer height={props.height}>
         <Widget
           Title={Title}
           Visualization={<Widget.WidgetError error={MISSING_DATA_MESSAGE} />}
@@ -116,7 +117,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
     : {};
 
   return (
-    <ChartContainer>
+    <ChartContainer height={props.height}>
       <Widget
         Title={Title}
         Visualization={
@@ -163,7 +164,7 @@ export function InsightsTimeSeriesWidget(props: InsightsTimeSeriesWidgetProps) {
 }
 
 const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
-  'spm()': THROUGHPUT_COLOR(theme),
+  'epm()': THROUGHPUT_COLOR(theme),
   'count()': COUNT_COLOR(theme),
   'avg(span.self_time)': AVG_COLOR(theme),
   'http_response_rate(3)': HTTP_RESPONSE_3XX_COLOR,
@@ -173,8 +174,10 @@ const COMMON_COLORS = (theme: Theme): Record<string, string> => ({
   'avg(span.duration)': theme.chart.colors[2][2],
 });
 
-const ChartContainer = styled('div')`
-  height: 220px;
+const ChartContainer = styled('div')<{height?: string | number}>`
+  min-height: 220px;
+  height: ${p =>
+    p.height ? (typeof p.height === 'string' ? p.height : `${p.height}px`) : '220px'};
 `;
 
 const ModalChartContainer = styled('div')`

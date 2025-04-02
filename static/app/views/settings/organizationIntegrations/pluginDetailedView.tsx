@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationInstallationStatus,

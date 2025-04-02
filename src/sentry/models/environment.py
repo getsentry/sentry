@@ -18,6 +18,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
@@ -117,6 +118,7 @@ class Environment(Model):
                     )
                 cache.set(cache_key, 1, 3600)
             except IntegrityError:
+                incr_rollback_metrics(EnvironmentProject)
                 # We've already created the object, should still cache the action.
                 cache.set(cache_key, 1, 3600)
 

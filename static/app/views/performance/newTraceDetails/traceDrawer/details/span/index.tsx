@@ -308,8 +308,10 @@ export function SpanNodeDetails({
             analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
           >
             <LogsPageDataProvider>
+              {issues.length > 0 ? (
+                <IssueList organization={organization} issues={issues} node={node} />
+              ) : null}
               <LogDetails />
-              <div>TO DO: EAP Span Details</div>
             </LogsPageDataProvider>
           </LogsPageParamsProvider>
         </TraceDrawerComponents.BodyContainer>
