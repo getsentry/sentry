@@ -81,7 +81,7 @@ export function makeGroupPriorityDropdownOptions({
   return PRIORITY_OPTIONS.map(priority => ({
     textValue: PRIORITY_KEY_TO_LABEL[priority],
     key: priority,
-    label: <GroupPriorityBadge priority={priority} />,
+    label: <GroupPriorityBadge showLabel priority={priority} />,
     onAction: () => onChange(priority),
   }));
 }
@@ -205,7 +205,7 @@ export function GroupPriorityDropdown({
           aria-label={t('Modify issue priority')}
           size="zero"
         >
-          <GroupPriorityBadge showLabel priority={value}>
+          <GroupPriorityBadge showLabel={false} priority={value}>
             <Chevron light direction={isOpen ? 'up' : 'down'} size="small" />
           </GroupPriorityBadge>
         </DropdownButton>
