@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -119,7 +119,7 @@ function DiffSides({
   const beforeElemRef = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
 
-  const resizableDrawer = useResizableDrawer({
+  const {onMouseDown} = useResizableDrawer({
     direction: 'left',
     initialSize: viewDimensions.width / 2,
     min: 0,
@@ -138,14 +138,6 @@ function DiffSides({
     },
   });
 
-  const handleDividerMouseDown: React.MouseEventHandler<HTMLElement> = useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      onDividerMouseDown?.(event);
-      resizableDrawer.onMouseDown(event);
-    },
-    [onDividerMouseDown, resizableDrawer]
-  );
-
   return (
     <Fragment>
       <Cover style={{width}} data-test-id="after-content">
@@ -161,7 +153,10 @@ function DiffSides({
       <Divider
         data-test-id="divider"
         ref={dividerElem}
-        onMouseDown={handleDividerMouseDown}
+        onMouseDown={event => {
+          onDividerMouseDown?.(event);
+          onMouseDown(event);
+        }}
       />
     </Fragment>
   );
@@ -214,16 +209,16 @@ const Divider = styled('div')`
   cursor: ew-resize;
   width: var(--line-width);
   height: 100%;
-  background: ${p => p.theme.purple400};
+  background: ${p => p.theme.diffSliderDivider};
   position: absolute;
   top: 0;
   transform: translate(-0.5px, 0);
 
   &::before,
   &::after {
-    background: ${p => p.theme.purple400};
+    background: ${p => p.theme.diffSliderDivider};
     border-radius: var(--handle-size);
-    border: var(--line-width) solid ${p => p.theme.purple400};
+    border: var(--line-width) solid ${p => p.theme.diffSliderDivider};
     content: '';
     height: var(--handle-size);
     position: absolute;
