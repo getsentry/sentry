@@ -212,7 +212,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');
@@ -242,7 +242,7 @@ describe('ExploreToolbar', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     const section = screen.getByTestId('section-visualizes');

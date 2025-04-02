@@ -9,10 +9,10 @@ describe('ExploreCharts', () => {
   it('renders the progressive loading indicator when the widget is progressively loading', async () => {
     const mockTimeseriesResult = {
       data: {
-        'avg(span.duration)': [
+        'count(span.duration)': [
           {
             data: [{timestamp: '2021-01-01', value: 123.0}],
-            field: 'avg(span.duration)',
+            field: 'count(span.duration)',
             meta: {type: 'duration', unit: DurationUnit.MILLISECOND},
           },
         ],
