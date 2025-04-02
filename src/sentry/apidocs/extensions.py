@@ -1,7 +1,13 @@
 from typing import Any, get_type_hints
 
-from drf_spectacular.extensions import OpenApiAuthenticationExtension, OpenApiSerializerExtension
+from drf_spectacular.extensions import (
+    OpenApiAuthenticationExtension,
+    OpenApiSerializerExtension,
+    OpenApiSerializerFieldExtension,
+)
 from drf_spectacular.openapi import AutoSchema
+from drf_spectacular.plumbing import build_basic_type
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
@@ -69,6 +75,23 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         return resolve_type_hint(self.target.typeSchema)
+
+
+class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
+    """
+    This extension restricts Sentry's use of the JSONField to mimic a DictField.
+    It comes from a change in drf-spectacular because rest_framework's JSONField actually accepts
+    primative, strings, numbers and arrays. drf-spectacular patched this, but in Sentry, we want to
+    ensure those fields are always given the correct type of 'object'.
+
+    issue: https://github.com/tfranzel/drf-spectacular/issues/1095
+    suggested patch: https://github.com/tfranzel/drf-spectacular/issues/1242#issuecomment-2123492057
+    """
+
+    target_class = "rest_framework.fields.JSONField"
+
+    def map_serializer_field(self, auto_schema, direction):
+        return build_basic_type(OpenApiTypes.OBJECT)
 
 
 # TODO: extension to do default error codes on responses.

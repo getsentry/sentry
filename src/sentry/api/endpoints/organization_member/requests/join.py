@@ -19,6 +19,7 @@ from sentry.notifications.utils.tasks import async_send_notification
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.parsers.email import AllowedEmailField
+from sentry.utils.rollback_metrics import incr_rollback_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ def create_organization_join_request(organization, email, ip_address=None):
                 invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
             )
         except IntegrityError:
+            incr_rollback_metrics(OrganizationMember)
             pass
 
         return om
