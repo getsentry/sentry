@@ -31,13 +31,14 @@ describe('useActiveNavGroup', function () {
     it.each([
       [PrimaryNavGroup.ISSUES, '/issues/foo/'],
       [PrimaryNavGroup.EXPLORE, '/explore/foo/'],
-      [PrimaryNavGroup.DASHBOARDS, '/dashboards/foo/'],
+      [PrimaryNavGroup.DASHBOARDS, '/dashboards/'],
+      [PrimaryNavGroup.DASHBOARDS, '/dashboard/foo/'],
       [PrimaryNavGroup.INSIGHTS, '/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/settings/foo/'],
       [PrimaryNavGroup.PIPELINE, '/pipeline/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       render(<TestComponent />, {
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,
@@ -53,14 +54,15 @@ describe('useActiveNavGroup', function () {
     it.each([
       [PrimaryNavGroup.ISSUES, '/organizations/org-slug/issues/foo/'],
       [PrimaryNavGroup.EXPLORE, '/organizations/org-slug/explore/foo/'],
-      [PrimaryNavGroup.DASHBOARDS, '/organizations/org-slug/dashboards/foo/'],
+      [PrimaryNavGroup.DASHBOARDS, '/organizations/org-slug/dashboards/'],
+      [PrimaryNavGroup.DASHBOARDS, '/organizations/org-slug/dashboard/foo/'],
       [PrimaryNavGroup.INSIGHTS, '/organizations/org-slug/insights/foo/'],
       [PrimaryNavGroup.SETTINGS, '/organizations/org-slug/settings/foo/'],
       [PrimaryNavGroup.PIPELINE, '/organizations/org-slug/pipeline/foo/'],
     ])('correctly matches %s nav group', async function (navGroup, path) {
       mockUsingCustomerDomain.mockReturnValue(false);
       render(<TestComponent />, {
-        disableRouterMocks: true,
+        enableRouterMocks: false,
         initialRouterConfig: {
           location: {
             pathname: path,

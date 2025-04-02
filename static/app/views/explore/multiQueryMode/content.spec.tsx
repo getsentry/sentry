@@ -173,7 +173,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -226,7 +226,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -277,7 +277,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -328,7 +328,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -442,7 +442,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(queries).toEqual([
@@ -595,7 +595,7 @@ describe('MultiQueryModeContent', function () {
           <Component />
         </SpanTagsProvider>
       </PageParamsProvider>,
-      {disableRouterMocks: true}
+      {enableRouterMocks: false}
     );
 
     expect(queries).toEqual([
