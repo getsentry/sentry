@@ -153,7 +153,6 @@ export function LogRowContent({
                   <LogFieldRenderer
                     item={getLogRowItem(field, dataRow, meta)}
                     meta={meta}
-                    tableResultLogRow={dataRow}
                     extra={rendererExtra}
                   />
                 </LogFirstCellContent>
@@ -203,7 +202,6 @@ export function LogRowContent({
                 <LogFieldRenderer
                   item={getLogRowItem(field, dataRow, meta)}
                   meta={meta}
-                  tableResultLogRow={dataRow}
                   extra={rendererExtra}
                 />
               </CellAction>
@@ -276,7 +274,6 @@ function LogRowDetails({
                     location,
                     organization,
                   }}
-                  tableResultLogRow={dataRow}
                 />
               </DetailsGrid>
               <DetailsFooter logColors={logColors}>

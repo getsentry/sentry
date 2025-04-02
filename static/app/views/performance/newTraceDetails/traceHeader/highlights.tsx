@@ -39,7 +39,7 @@ function LogsHighlights({
     projectId: String(log![OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(log![OurLogKnownFieldKey.TRACE_ID]),
     dataset: DiscoverDatasets.OURLOGS,
-    referrer: 'api.explore.log-item-details', // TODO Abdullah Khan: Add new for trace view headerreferrer
+    referrer: 'api.explore.log-item-details', // TODO Abdullah Khan: Add new referrer for trace view header
     enabled: !!logs,
   });
 
