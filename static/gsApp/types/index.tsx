@@ -87,6 +87,7 @@ export type Plan = {
   availableCategories: string[];
   basePrice: number;
   billingInterval: 'monthly' | 'annual';
+  budgetTerm: 'pay-as-you-go' | 'on-demand';
   /**
    * Data categories on the plan (errors, transactions, etc.)
    */
@@ -95,8 +96,8 @@ export type Plan = {
   contractInterval: 'monthly' | 'annual';
   description: string;
   features: string[];
-  hasOnDemandModes: boolean;
 
+  hasOnDemandModes: boolean;
   id: string;
   isTestPlan: boolean;
   maxMembers: number | null;
@@ -107,8 +108,8 @@ export type Plan = {
     [categoryKey in DataCategories]?: EventBucket[];
   };
   price: number;
-  reservedMinimum: number;
 
+  reservedMinimum: number;
   retentionDays: number;
   totalPrice: number;
   trialPlan: string | null;

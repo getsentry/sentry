@@ -41,7 +41,7 @@ type Row = Pick<
   | 'project.id'
   | 'span.description'
   | 'span.group'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.duration)'
   | 'sum(span.duration)'
   | 'sum(ai.total_tokens.used)'
@@ -50,7 +50,7 @@ type Row = Pick<
 
 type Column = GridColumnHeader<
   | 'span.description'
-  | 'spm()'
+  | 'epm()'
   | 'avg(span.duration)'
   | 'sum(ai.total_tokens.used)'
   | 'sum(ai.total_cost)'
@@ -78,16 +78,16 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Pipeline runs')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
-const SORTABLE_FIELDS = ['sum(ai.total_tokens.used)', 'avg(span.duration)', 'spm()'];
+const SORTABLE_FIELDS = ['sum(ai.total_tokens.used)', 'avg(span.duration)', 'epm()'];
 
 type ValidSort = Sort & {
-  field: 'spm()' | 'avg(span.duration)';
+  field: 'epm()' | 'avg(span.duration)';
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
@@ -107,7 +107,7 @@ export function EAPPipelinesTable() {
 
   let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
-    sort = {field: 'spm()', kind: 'desc'};
+    sort = {field: 'epm()', kind: 'desc'};
   }
 
   const {data, isPending, meta, pageLinks, error} = useEAPSpans(
@@ -121,7 +121,7 @@ export function EAPPipelinesTable() {
       fields: [
         SpanIndexedField.SPAN_GROUP,
         SpanIndexedField.SPAN_DESCRIPTION,
-        'spm()',
+        'epm()',
         'avg(span.duration)',
         'sum(span.duration)',
       ],
@@ -257,7 +257,7 @@ export function PipelinesTable() {
 
   let sort = decodeSorts(sortField).find(isAValidSort);
   if (!sort) {
-    sort = {field: 'spm()', kind: 'desc'};
+    sort = {field: 'epm()', kind: 'desc'};
   }
 
   const {data, isPending, meta, pageLinks, error} = useSpanMetrics(
@@ -269,7 +269,7 @@ export function PipelinesTable() {
       fields: [
         'span.group',
         'span.description',
-        'spm()',
+        'epm()',
         'avg(span.duration)',
         'sum(span.duration)',
       ],
