@@ -70,7 +70,7 @@ const TranslucentBackgroundPanel = styled(Panel)<{isDarkMode: boolean}>`
   margin-bottom: ${space(1)};
 `;
 
-const Title = styled('p')`
+const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: ${p => p.theme.fontWeightBold};
   margin: 0;
