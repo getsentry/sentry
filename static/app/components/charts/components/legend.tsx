@@ -43,7 +43,7 @@ export default function Legend(
         fontFamily: theme.text.family,
         lineHeight: 14,
       },
-      inactiveColor: theme.inactive,
+      inactiveColor: theme.disabled,
     },
     rest
   );

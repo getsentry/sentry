@@ -134,7 +134,7 @@ export function useMetricIssueLegend({
       align: 'left',
       show: true,
       data: legendItems,
-      inactiveColor: theme.gray200,
+      inactiveColor: theme.disabled,
     });
   }, [rule, series, theme]);
 }

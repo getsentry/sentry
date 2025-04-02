@@ -777,12 +777,6 @@ const generateAliases = (
   focusBorder: tokens.border.accent,
 
   /**
-   * Inactive
-   * NOTE: Used in only a few places, but unclear how this would map to chonkUI
-   */
-  inactive: colors.gray300,
-
-  /**
    * Link color indicates that something is clickable
    */
   linkColor: tokens.component.link.accent.default,
