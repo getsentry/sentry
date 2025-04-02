@@ -10,6 +10,7 @@ from sentry.grouping.ingest.seer import get_seer_similar_issues
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
+from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.seer.similarity.utils import get_stacktrace_string
@@ -17,59 +18,60 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 
 
-class GetSeerSimilarIssuesTest(TestCase):
-    def create_new_event(
-        self,
-        num_frames: int = 1,
-        stacktrace_string: str | None = None,
-        fingerprint: list[str] | None = None,
-    ) -> tuple[Event, dict[str, BaseVariant], GroupHash, str]:
-        error_type = "FailedToFetchError"
-        error_value = "Charlie didn't bring the ball back"
-        event = Event(
-            project_id=self.project.id,
-            event_id="12312012112120120908201304152013",
-            data={
-                "title": f"{error_type}('{error_value}')",
-                "exception": {
-                    "values": [
-                        {
-                            "type": error_type,
-                            "value": error_value,
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "function": f"play_fetch_{i}",
-                                        "filename": f"dogpark{i}.py",
-                                        "context_line": f"raise {error_type}('{error_value}')",
-                                    }
-                                    for i in range(num_frames)
-                                ]
-                            },
-                        }
-                    ]
-                },
-                "platform": "python",
-                "fingerprint": fingerprint or ["{{ default }}"],
+def create_new_event(
+    project: Project,
+    num_frames: int = 1,
+    stacktrace_string: str | None = None,
+    fingerprint: list[str] | None = None,
+) -> tuple[Event, dict[str, BaseVariant], GroupHash, str]:
+    error_type = "FailedToFetchError"
+    error_value = "Charlie didn't bring the ball back"
+    event = Event(
+        project_id=project.id,
+        event_id="12312012112120120908201304152013",
+        data={
+            "title": f"{error_type}('{error_value}')",
+            "exception": {
+                "values": [
+                    {
+                        "type": error_type,
+                        "value": error_value,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": f"play_fetch_{i}",
+                                    "filename": f"dogpark{i}.py",
+                                    "context_line": f"raise {error_type}('{error_value}')",
+                                }
+                                for i in range(num_frames)
+                            ]
+                        },
+                    }
+                ]
             },
-        )
-        variants = event.get_grouping_variants()
-        grouphash = GroupHash.objects.create(
-            hash=event.get_primary_hash(), project_id=self.project.id
-        )
-        create_or_update_grouphash_metadata_if_needed(
-            event, self.project, grouphash, True, DEFAULT_GROUPING_CONFIG, variants
-        )
+            "platform": "python",
+            "fingerprint": fingerprint or ["{{ default }}"],
+        },
+    )
+    variants = event.get_grouping_variants()
+    grouphash = GroupHash.objects.create(hash=event.get_primary_hash(), project_id=project.id)
+    create_or_update_grouphash_metadata_if_needed(
+        event, project, grouphash, True, DEFAULT_GROUPING_CONFIG, variants
+    )
 
-        if stacktrace_string is None:
-            stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
-        event.data["stacktrace_string"] = stacktrace_string
+    if stacktrace_string is None:
+        stacktrace_string = get_stacktrace_string(get_grouping_info_from_variants(variants))
+    event.data["stacktrace_string"] = stacktrace_string
 
-        return (event, variants, grouphash, stacktrace_string)
+    return (event, variants, grouphash, stacktrace_string)
 
+
+class GetSeerSimilarIssuesTest(TestCase):
     @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
-        new_event, new_variants, new_grouphash, new_stacktrace_string = self.create_new_event()
+        new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
+            self.project
+        )
 
         get_seer_similar_issues(new_event, new_grouphash, new_variants)
 
@@ -95,7 +97,7 @@ class GetSeerSimilarIssuesTest(TestCase):
         ).first()
         assert existing_event.group_id
 
-        new_event, new_variants, new_grouphash, _ = self.create_new_event()
+        new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
 
         seer_result_data = [
             SeerSimilarIssueData(
@@ -134,8 +136,9 @@ class GetSeerSimilarIssuesTest(TestCase):
         ).first()
         assert existing_event.group_id
 
-        new_event, new_variants, new_grouphash, _ = self.create_new_event(
-            fingerprint=["{{ default }}", "maisey"]
+        new_event, new_variants, new_grouphash, _ = create_new_event(
+            self.project,
+            fingerprint=["{{ default }}", "maisey"],
         )
 
         seer_result_data = [
@@ -176,8 +179,9 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
         assert existing_event.group_id
 
-        new_event, new_variants, new_grouphash, _ = self.create_new_event(
-            fingerprint=["{{ default }}", "charlie"]
+        new_event, new_variants, new_grouphash, _ = create_new_event(
+            self.project,
+            fingerprint=["{{ default }}", "charlie"],
         )
 
         seer_result_data = [
@@ -218,8 +222,9 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
         assert existing_event.group_id
 
-        new_event, new_variants, new_grouphash, _ = self.create_new_event(
-            fingerprint=["{{ default }}", "charlie"]
+        new_event, new_variants, new_grouphash, _ = create_new_event(
+            self.project,
+            fingerprint=["{{ default }}", "charlie"],
         )
 
         seer_result_data = [
@@ -260,7 +265,7 @@ class GetSeerSimilarIssuesTest(TestCase):
         )
         assert existing_event.group_id
 
-        new_event, new_variants, new_grouphash, _ = self.create_new_event()
+        new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
 
         seer_result_data = [
             SeerSimilarIssueData(
@@ -313,8 +318,9 @@ class GetSeerSimilarIssuesTest(TestCase):
         GroupHashMetadata.objects.filter(grouphash=existing_grouphash).delete()
         assert existing_grouphash.metadata is None
 
-        new_event, new_variants, new_grouphash, _ = self.create_new_event(
-            fingerprint=["{{ default }}", "maisey"]
+        new_event, new_variants, new_grouphash, _ = create_new_event(
+            self.project,
+            fingerprint=["{{ default }}", "maisey"],
         )
 
         seer_result_data = [
@@ -346,7 +352,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             )
 
     def test_no_parent_group_found_simple(self) -> None:
-        new_event, new_variants, new_grouphash, _ = self.create_new_event()
+        new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
 
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
@@ -364,8 +370,9 @@ class GetSeerSimilarIssuesTest(TestCase):
 
     @patch("sentry.grouping.ingest.seer.metrics.incr")
     def test_no_parent_group_found_hybrid_fingerprint(self, mock_metrics_incr: MagicMock) -> None:
-        new_event, new_variants, new_grouphash, _ = self.create_new_event(
-            fingerprint=["{{ default }}", "maisey"]
+        new_event, new_variants, new_grouphash, _ = create_new_event(
+            self.project,
+            fingerprint=["{{ default }}", "maisey"],
         )
 
         with patch(
