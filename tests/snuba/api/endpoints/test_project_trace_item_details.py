@@ -182,22 +182,22 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase, OurLogTestCase, SpanTe
             {"name": "is_segment", "type": "bool", "value": False},
             {"name": "is_transaction", "type": "float", "value": 0.0},
             {
-                "name": "precise.finish_ts",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {
-                "name": "precise.start_ts",
-                "type": "float",
-                "value": pytest.approx(self.one_min_ago.timestamp()),
-            },
-            {
                 "name": "received",
                 "type": "float",
                 "value": pytest.approx(self.one_min_ago.timestamp()),
             },
             {"name": "span.duration", "type": "float", "value": 1000.0},
             {"name": "span.self_time", "type": "float", "value": 1000.0},
+            {
+                "name": "tags[end_timestamp_precise,number]",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
+            {
+                "name": "tags[start_timestamp_precise,number]",
+                "type": "float",
+                "value": pytest.approx(self.one_min_ago.timestamp()),
+            },
             {"name": "project_id", "type": "int", "value": str(self.project.id)},
             {"name": "span.duration", "type": "int", "value": "1000"},
             {"name": "event_id", "type": "str", "value": span_1["event_id"]},
